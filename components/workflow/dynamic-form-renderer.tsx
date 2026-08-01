@@ -22,6 +22,7 @@ import type {
   RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import { isConditionalWorkflowFieldVisible } from "@/engine/runtime/workflow-conditional-logic";
 import {
   normalizeWorkflowEvidenceMode,
   normalizeWorkflowStudentPickerMode,
@@ -841,19 +842,7 @@ export function DynamicFormRenderer({
   }
 
   function shouldShowFieldForValues(field: RuntimeField, currentValues: RuntimeValues) {
-    if (!field.dependsOnFieldKey) return true;
-
-    const parentValue = currentValues[field.dependsOnFieldKey];
-
-    if (isEmptyValue(parentValue)) return false;
-
-    if (!field.linkedToValue) return true;
-
-    if (Array.isArray(parentValue)) {
-      return parentValue.map(String).includes(String(field.linkedToValue));
-    }
-
-    return String(parentValue) === String(field.linkedToValue);
+    return isConditionalWorkflowFieldVisible(field, currentValues);
   }
 
   function normalizeDefaultList(value: unknown) {
@@ -1023,19 +1012,7 @@ export function DynamicFormRenderer({
   }
 
   function shouldShowFieldInCurrentValues(field: RuntimeField) {
-    if (!field.dependsOnFieldKey) return true;
-
-    const parentValue = values[field.dependsOnFieldKey];
-
-    if (isEmptyValue(parentValue)) return false;
-
-    if (!field.linkedToValue) return true;
-
-    if (Array.isArray(parentValue)) {
-      return parentValue.map(String).includes(String(field.linkedToValue));
-    }
-
-    return String(parentValue) === String(field.linkedToValue);
+    return isConditionalWorkflowFieldVisible(field, values);
   }
 
   function validateCurrentStep() {

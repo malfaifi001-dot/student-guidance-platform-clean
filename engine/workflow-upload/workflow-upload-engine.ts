@@ -6,6 +6,10 @@ import {
 } from "@/lib/workflows/workflow-types";
 import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 import type { ParsedWorkflowRow } from "@/lib/workflow-upload/workflow-excel-parser";
+import {
+  conditionalOptionIdentity,
+  normalizeWorkflowFieldType,
+} from "@/engine/runtime/workflow-conditional-logic";
 
 const allowedFieldTypes = new Set([
   "TEXT",
@@ -67,16 +71,8 @@ function getFieldDefaultJson(row: ParsedWorkflowRow) {
 }
 
 function normalizeFieldType(type: string) {
-  const normalized = normalizeText(type).toUpperCase();
+  const normalized = normalizeWorkflowFieldType(type);
   return allowedFieldTypes.has(normalized) ? normalized : "TEXT";
-}
-
-function normalizeOptionValue(label: string) {
-  return label
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^\u0600-\u06FFa-zA-Z0-9_]/g, "")
-    .toLowerCase();
 }
 
 function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
@@ -237,19 +233,25 @@ export async function uploadWorkflowForService(params: {
 
       fieldsCount++;
 
-      const seenOptionValues = new Set<string>();
+      const seenOptions = new Set<string>();
 
       for (const optionRow of fieldRows) {
         if (!optionRow.optionLabel) continue;
 
         const optionValue =
-          optionRow.optionValue || normalizeOptionValue(optionRow.optionLabel);
+          optionRow.optionValue || normalizeText(optionRow.optionLabel);
 
-        if (!optionValue || seenOptionValues.has(optionValue)) {
+        const optionLinkedToValue = getOptionLinkedToValue(optionRow);
+        const optionIdentity = conditionalOptionIdentity({
+          value: optionValue,
+          linkedToValue: optionLinkedToValue,
+        });
+
+        if (!optionValue || seenOptions.has(optionIdentity)) {
           continue;
         }
 
-        seenOptionValues.add(optionValue);
+        seenOptions.add(optionIdentity);
 
         await prisma.dynamicFieldOption.create({
           data: {
@@ -257,7 +259,7 @@ export async function uploadWorkflowForService(params: {
             label: optionRow.optionLabel,
             value: optionValue,
             order: optionRow.optionOrder ?? optionsCount + 1,
-            linkedToValue: getOptionLinkedToValue(optionRow),
+            linkedToValue: optionLinkedToValue,
           },
         });
 

@@ -1,6 +1,9 @@
+==================================================
+RUNTIME RESOLVER
+==================================================
+
 import { prisma } from "@/lib/prisma";
 import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
-import { normalizeConditionalWorkflow } from "@/engine/runtime/workflow-conditional-logic";
 
 export type RuntimeOption = {
   id: string;
@@ -48,7 +51,7 @@ export type RuntimeWorkflow = {
 };
 
 export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow {
-  return normalizeConditionalWorkflow({
+  return {
     ...workflow,
     steps: [...workflow.steps]
       .sort((a, b) => a.order - b.order)
@@ -61,7 +64,7 @@ export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow 
             options: [...field.options].sort((a, b) => a.order - b.order),
           })),
       })),
-  });
+  };
 }
 
 export async function getRuntimeWorkflowByServiceSlug(
@@ -132,3 +135,32 @@ export async function getRuntimeWorkflowByServiceSlug(
     }),
   };
 }
+
+
+==================================================
+DATABASE WORKFLOW STATUS
+==================================================
+
+node.exe : D:\student-guidance-platform-clean\lib\prisma.ts:18
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (D:\student-guid...ib\prisma.ts:18:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    throw new Error("DATABASE_URL is not defined");
+          ^
+
+Error: DATABASE_URL is not defined
+    at createPrismaClient (D:\student-guidance-platform-clean\lib\prisma.ts:18:11)
+    at <anonymous> (D:\student-guidance-platform-clean\lib\prisma.ts:36:49)
+    at Object.<anonymous> (D:\student-guidance-platform-clean\lib\prisma.ts:38:26)
+    at Module._compile (node:internal/modules/cjs/loader:1854:14)
+    at Object.transformer (C:\Users\alfai\AppData\Local\npm-cache\_npx\fd45a72a545557e9\node_modules\tsx\dist\register-BoI6-WNn.cjs:9:3252)
+    at Module.load (node:internal/modules/cjs/loader:1577:32)
+    at Module._load (node:internal/modules/cjs/loader:1379:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1600:12)
+    at require (node:internal/modules/helpers:153:16)
+
+Node.js v24.16.0

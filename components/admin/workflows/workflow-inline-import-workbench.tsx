@@ -15,6 +15,10 @@ import {
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 import {
+  normalizeConditionalWorkflow,
+  normalizeWorkflowFieldType,
+} from "@/engine/runtime/workflow-conditional-logic";
+import {
   WORKFLOW_TYPES,
   normalizeWorkflowType,
   getWorkflowPlacementLabel,
@@ -40,6 +44,8 @@ type ParsedField = {
   isRepeater?: boolean;
   dependsOnFieldKey?: string | null;
   linkedToValue?: string | null;
+  explicitLinkedToValue?: string | null;
+  legacyLinkedToValues?: string[];
   options: ParsedOption[];
 };
 
@@ -114,15 +120,7 @@ function parseNumber(value: unknown, fallback: number) {
 }
 
 function normalizeFieldType(value: unknown) {
-  const raw = clean(value).toUpperCase().replace(/\s+/g, "_");
-
-  if (!raw) return "TEXT";
-
-  if (raw === "TEXT_AREA") return "TEXTAREA";
-  if (raw === "MULTISELECT") return "MULTI_SELECT";
-  if (raw === "DROPDOWN") return "SELECT";
-  if (raw === "IMAGE") return "IMAGE_UPLOAD";
-  if (raw === "FILE") return "FILE_UPLOAD";
+  const raw = normalizeWorkflowFieldType(value);
 
   return SUPPORTED_FIELD_TYPES.has(raw) ? raw : "TEXT";
 }
@@ -138,7 +136,7 @@ function buildRuntimeWorkflow({
   serviceSlug: string;
   parsedWorkflow: ParsedWorkflow;
 }): RuntimeWorkflow {
-  return {
+  return normalizeConditionalWorkflow({
     id: "preview-workflow",
     name: parsedWorkflow.name,
     serviceSlug,
@@ -170,7 +168,7 @@ function buildRuntimeWorkflow({
         })),
       })),
     })),
-  };
+  });
 }
 
 function parseRowsToWorkflow({
@@ -229,6 +227,16 @@ function parseRowsToWorkflow({
     );
 
     const stepMapKey = `${stepOrder}__${stepTitle}`;
+    const explicitFieldLinkedToValue = readCell(row, [
+      "fieldLinkedToValue",
+      "fieldLinkedValue",
+      "قيمة ربط الحقل",
+    ]);
+    const legacyLinkedToValue = readCell(row, [
+      "linkedToValue",
+      "linkedValue",
+      "مرتبط بقيمة",
+    ]);
     const existingStep =
       stepsMap.get(stepMapKey) ||
       ({
@@ -262,13 +270,23 @@ function parseRowsToWorkflow({
         dependsOnFieldKey:
           readCell(row, ["dependsOnFieldKey", "dependsOn", "يعتمد على"]) ||
           null,
-        linkedToValue:
-          readCell(row, ["linkedToValue", "linkedValue", "مرتبط بقيمة"]) ||
-          null,
+        linkedToValue: explicitFieldLinkedToValue || null,
+        explicitLinkedToValue: explicitFieldLinkedToValue || null,
+        legacyLinkedToValues: legacyLinkedToValue
+          ? [legacyLinkedToValue]
+          : [],
         options: [],
       };
 
       existingStep.fields.push(field);
+    } else if (
+      legacyLinkedToValue &&
+      !field.legacyLinkedToValues?.includes(legacyLinkedToValue)
+    ) {
+      field.legacyLinkedToValues = [
+        ...(field.legacyLinkedToValues || []),
+        legacyLinkedToValue,
+      ];
     }
 
     const optionLabel = readCell(row, [
@@ -291,7 +309,9 @@ function parseRowsToWorkflow({
           field.options.length + 1,
         ),
         linkedToValue:
-          readCell(row, ["optionLinkedToValue", "optionLinkedValue"]) || null,
+          readCell(row, ["optionLinkedToValue", "optionLinkedValue"]) ||
+          legacyLinkedToValue ||
+          null,
       };
 
       if (!field.options.some((item) => optionKey(item) === optionKey(option))) {
@@ -305,7 +325,20 @@ function parseRowsToWorkflow({
   const steps = Array.from(stepsMap.values())
     .map((step) => ({
       ...step,
-      fields: step.fields.sort((a, b) => a.order - b.order),
+      fields: step.fields
+        .map((field) => {
+          if (field.explicitLinkedToValue) {
+            return { ...field, linkedToValue: field.explicitLinkedToValue };
+          }
+          const legacyLinks = Array.from(
+            new Set((field.legacyLinkedToValues || []).map(clean).filter(Boolean)),
+          );
+          return {
+            ...field,
+            linkedToValue: legacyLinks.length === 1 ? legacyLinks[0] : null,
+          };
+        })
+        .sort((a, b) => a.order - b.order),
     }))
     .sort((a, b) => a.order - b.order);
 

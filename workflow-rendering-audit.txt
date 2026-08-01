@@ -1,0 +1,121 @@
+WORKFLOW RENDERING AUDIT
+Generated: 08/01/2026 15:29:37
+Project: D:\student-guidance-platform-clean
+
+===== GIT STATUS =====
+ M app/api/dashboard/admin/workflows/[serviceSlug]/draft/route.ts
+ M app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx
+ M components/admin/workflows/workflow-inline-import-workbench.tsx
+ M components/workflow/dynamic-field-renderer.tsx
+ M components/workflow/dynamic-form-renderer.tsx
+ M engine/runtime/runtime-resolver.ts
+ M engine/workflow-upload/workflow-upload-engine.ts
+ M lib/workflow-upload/workflow-excel-parser.ts
+?? .storage/workflows/activity-programs-citizenship-life/
+?? .storage/workflows/job_duties_performance/
+?? .storage/workflows/professional_community_interaction/
+?? bank-search-results.txt
+?? engine/runtime/workflow-conditional-logic.test.ts
+?? engine/runtime/workflow-conditional-logic.ts
+?? job-duties-active-workflow-report.txt
+?? job-duties-database-status.txt
+?? job-duties-runtime-diagnostic.txt
+?? teacher-workflow-runtime-files.txt
+?? workflow-publish-diagnostic.txt
+
+
+===== PATTERN: DynamicFormRenderer =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: dynamic-form-renderer =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: DynamicFieldOption =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: include:\s*\{ =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: options: =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: workflow\.status =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: status:\s*['"]PUBLISHED =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: PUBLISHED =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: DRAFT =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: isActive =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: isVisible =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: visibility =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: conditional =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: condition =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: publish =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=
+
+===== PATTERN: preview =====
+
+Name                           Value                                                                                                                                
+----                           -----                                                                                                                                
+0                              DATABASE_URL=

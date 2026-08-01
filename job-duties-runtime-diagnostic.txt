@@ -1,0 +1,1594 @@
+
+
+Path       : D:\student-guidance-platform-clean\app\api\admin\workflows\guardian-summons\route.ts
+LineNumber : 66
+Line       :                 dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\admin\workflows\guardian-summons\route.ts
+LineNumber : 67
+Line       :                   "dependsOnFieldKey" in field ? field.dependsOnFieldKey : null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\admin\workflows\guardian-summons\route.ts
+LineNumber : 68
+Line       :                 linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\admin\workflows\guardian-summons\route.ts
+LineNumber : 69
+Line       :                   "linkedToValue" in field ? field.linkedToValue : null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+LineNumber : 163
+Line       :                   dependsOnFieldKey: clean(field.dependsOnFieldKey) || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+LineNumber : 164
+Line       :                   linkedToValue: clean(field.linkedToValue) || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+LineNumber : 176
+Line       :                       linkedToValue: clean(option.linkedToValue) || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+LineNumber : 50
+Line       :       deactivatedCount: result.previousActiveWorkflowIds.length,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 167
+Line       :               dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 168
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 176
+Line       :                   linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 230
+Line       :         dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 231
+Line       :         linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\custom-report\entries\route.ts
+LineNumber : 239
+Line       :           linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-field\route.ts
+LineNumber : 51
+Line       :         dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-field\route.ts
+LineNumber : 52
+Line       :           body.dependsOnFieldKey || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-field\route.ts
+LineNumber : 54
+Line       :         linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-field\route.ts
+LineNumber : 55
+Line       :           body.linkedToValue || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx
+LineNumber : 3
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx
+LineNumber : 101
+Line       :           dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx
+LineNumber : 102
+Line       :           linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx
+LineNumber : 110
+Line       :             linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx
+LineNumber : 121
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+LineNumber : 4
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+LineNumber : 100
+Line       :           dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+LineNumber : 101
+Line       :           linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+LineNumber : 109
+Line       :             linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+LineNumber : 120
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+LineNumber : 3
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+LineNumber : 143
+Line       :         dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+LineNumber : 144
+Line       :         linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+LineNumber : 150
+Line       :           linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+LineNumber : 193
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+LineNumber : 40
+Line       :           fieldRequired, fieldOrder, allowOther, dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+LineNumber : 41
+Line       :           linkedToValue, optionLabel, optionValue, optionOrder
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 126
+Line       :   const activeWorkflow = [...defaultWorkflows]
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 138
+Line       :   const workflowForHealth = latestDraftWorkflow || activeWorkflow;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 153
+Line       :             dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 154
+Line       :             linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 160
+Line       :               linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 177
+Line       :         : workflow.id === activeWorkflow?.id),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 231
+Line       :         activeWorkflowName={activeWorkflow?.name}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 250
+Line       :           {activeWorkflow ? (
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 261
+Line       :         {activeWorkflow ? (
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 268
+Line       :                 workflowId={activeWorkflow.id}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 269
+Line       :                 currentName={activeWorkflow.name}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 273
+Line       :                 Version {activeWorkflow.version} ·{" "}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 274
+Line       :                 {activeWorkflow.steps.length} خطوات
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LineNumber : 279
+Line       :               {activeWorkflow.steps
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx
+LineNumber : 91
+Line       :   const activeWorkflows = workflows.filter(
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx
+LineNumber : 156
+Line       :                 value={activeWorkflows.length}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx
+LineNumber : 189
+Line       :           value={activeWorkflows.length}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 3
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 121
+Line       :                 dependsOnFieldKey: field.dependsOnFieldKey ?? null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 122
+Line       :                 linkedToValue: field.linkedToValue ?? null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 140
+Line       :                       linkedToValue: option.linkedToValue ?? null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 176
+Line       :         dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 177
+Line       :         linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 185
+Line       :           linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+LineNumber : 358
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+LineNumber : 4
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+LineNumber : 42
+Line       :         dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+LineNumber : 43
+Line       :         linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+LineNumber : 51
+Line       :           linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+LineNumber : 204
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx
+LineNumber : 2
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx
+LineNumber : 44
+Line       :     <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 4
+Line       : import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 15
+Line       :     ...buildActiveWorkflowSlotQuery({ serviceId: service.id }),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 165
+Line       :             dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 166
+Line       :             linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 176
+Line       :                 linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+LineNumber : 183
+Line       :     <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guardian-summons\new\page.tsx
+LineNumber : 3
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guardian-summons\new\page.tsx
+LineNumber : 41
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+LineNumber : 8
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+LineNumber : 78
+Line       :       dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+LineNumber : 79
+Line       :       linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+LineNumber : 87
+Line       :         linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+LineNumber : 98
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 3
+Line       : import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 21
+Line       :     ...buildActiveWorkflowSlotQuery({ serviceId: service.id }),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 80
+Line       :                   dependsOnFieldKey: "case_type",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 81
+Line       :                   linkedToValue: "academic",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 180
+Line       :             dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 181
+Line       :             linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 191
+Line       :                 linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx
+LineNumber : 198
+Line       :     <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 5
+Line       : import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 16
+Line       :     ...buildActiveWorkflowSlotQuery({ serviceId: service.id }),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 71
+Line       :                   dependsOnFieldKey: "problem_type",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 72
+Line       :                   linkedToValue: "academic",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 185
+Line       :             dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 186
+Line       :             linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 196
+Line       :                 linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx
+LineNumber : 205
+Line       :     <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\new\page.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\new\page.tsx
+LineNumber : 28
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\teacher\job_duties_performance\new\page.tsx
+LineNumber : 4
+Line       :   return <NewTeacherPerformanceWorkflow serviceSlug="job_duties_performance" />;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\teacher\job_duties_performance\page.tsx
+LineNumber : 4
+Line       :   return <TeacherPerformanceWorkflowHome serviceSlug="job_duties_performance" />;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\teacher\report-issuance\new\page.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\app\dashboard\teacher\report-issuance\new\page.tsx
+LineNumber : 28
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 15
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 28
+Line       :   linkedToValue?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 41
+Line       :   dependsOnFieldKey?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 42
+Line       :   linkedToValue?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 131
+Line       :   return `${option.value}__${option.linkedToValue || ""}`;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 162
+Line       :         dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 163
+Line       :         linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 169
+Line       :           linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 262
+Line       :         dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 263
+Line       :           readCell(row, ["dependsOnFieldKey", "dependsOn", "يعتمد على"]) ||
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 265
+Line       :         linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 266
+Line       :           readCell(row, ["linkedToValue", "linkedValue", "مرتبط بقيمة"]) ||
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 293
+Line       :         linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 294
+Line       :           readCell(row, ["optionLinkedToValue", "optionLinkedValue"]) || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+LineNumber : 643
+Line       :               <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+LineNumber : 29
+Line       :   activeWorkflowName?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+LineNumber : 83
+Line       :   activeWorkflowName,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+LineNumber : 275
+Line       :             {activeWorkflowName ? (
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+LineNumber : 277
+Line       :                 المفعل حاليًا: {activeWorkflowName}
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 23
+Line       :   activeWorkflow: WorkflowSummary | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 72
+Line       :   const activeWorkflow = workflows.find((w) => w.isActive) || null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 78
+Line       :     activeWorkflow,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 110
+Line       :   const { activeWorkflow, latestWorkflow, draftCount, fieldsCount, optionsCount } = info;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 118
+Line       :         activeWorkflow
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 150
+Line       :                 activeWorkflow
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 157
+Line       :               {activeWorkflow
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 159
+Line       :                     activeWorkflow.status,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 160
+Line       :                     activeWorkflow.isActive,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\admin\admin-workflows-filter-bar.tsx
+LineNumber : 168
+Line       :             {activeWorkflow?.name ||
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report\ai-report-workspace.tsx
+LineNumber : 7
+Line       : import type { DynamicFormRendererSaveHandler } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report\ai-report-workspace.tsx
+LineNumber : 8
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report\ai-report-workspace.tsx
+LineNumber : 621
+Line       :   const handleSave: DynamicFormRendererSaveHandler = async ({
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report\ai-report-workspace.tsx
+LineNumber : 740
+Line       :           <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report2\ai-report2-workspace.tsx
+LineNumber : 14
+Line       : import type { DynamicFormRendererSaveHandler } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report2\ai-report2-workspace.tsx
+LineNumber : 15
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report2\ai-report2-workspace.tsx
+LineNumber : 335
+Line       :   const handleSave: DynamicFormRendererSaveHandler = async ({
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\ai-report2\ai-report2-workspace.tsx
+LineNumber : 482
+Line       :           <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 10
+Line       :   linkedToValue?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 17
+Line       :   dependsOnFieldKey?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 18
+Line       :   linkedToValue?: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 165
+Line       :     sameValue(option.linkedToValue, parentValue),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 181
+Line       :   if (!field.dependsOnFieldKey) return [];
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 183
+Line       :   const value = values[field.dependsOnFieldKey];
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 193
+Line       :   if (!field.dependsOnFieldKey) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 198
+Line       :   return field.linkedToValue
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 199
+Line       :     ? parentValues.some((value) => sameValue(value, field.linkedToValue))
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 210
+Line       :   if (!field.dependsOnFieldKey) return options;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 214
+Line       :     field.linkedToValue &&
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 215
+Line       :       parentValues.some((value) => sameValue(value, field.linkedToValue)),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 219
+Line       :     option.linkedToValue
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 220
+Line       :       ? parentValues.some((value) => sameValue(value, option.linkedToValue))
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\committees\committee-chain-repeater.tsx
+LineNumber : 232
+Line       :         .map((field) => field.dependsOnFieldKey)
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 38
+Line       :       dependsOnFieldKey: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 39
+Line       :       linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 46
+Line       :         linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 318
+Line       :   if (field.dependsOnFieldKey && field.linkedToValue) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 319
+Line       :     if (values[field.dependsOnFieldKey] !== field.linkedToValue) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 497
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 498
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 506
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 519
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 520
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 533
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 534
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 547
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 548
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 556
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 563
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 576
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 577
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 584
+Line       :             linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 596
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LineNumber : 597
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LineNumber : 43
+Line       : type MobileDynamicFormRendererProps = {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LineNumber : 634
+Line       : export function MobileDynamicFormRenderer({
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LineNumber : 643
+Line       : }: MobileDynamicFormRendererProps) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LineNumber : 765
+Line       :             if (!field.dependsOnFieldKey) continue;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LineNumber : 768
+Line       :               changedKeys.has(field.dependsOnFieldKey) &&
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-new-case-workflow-page.tsx
+LineNumber : 4
+Line       : import { MobileDynamicFormRenderer } from "@/components/mobile/mobile-dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\mobile\mobile-new-case-workflow-page.tsx
+LineNumber : 43
+Line       :       <MobileDynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\services\workflow-service-home-page.tsx
+LineNumber : 204
+Line       :   const activeWorkflow = service.workflows[0] || null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\services\workflow-service-home-page.tsx
+LineNumber : 314
+Line       :       {!activeWorkflow ? (
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\special-report\special-report-builder.tsx
+LineNumber : 23
+Line       :   DynamicFormRenderer,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\special-report\special-report-builder.tsx
+LineNumber : 438
+Line       :           "النموذج يعمل الآن داخل DynamicFormRenderer المعتمد.",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\special-report\special-report-builder.tsx
+LineNumber : 635
+Line       :         <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\teacher-performance\teacher-performance-workflow-pages.tsx
+LineNumber : 4
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\teacher-performance\teacher-performance-workflow-pages.tsx
+LineNumber : 67
+Line       :       <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 51
+Line       :   if (!field.dependsOnFieldKey) return field.options;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 53
+Line       :   const parentValue = values[field.dependsOnFieldKey];
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 56
+Line       :     if (!option.linkedToValue) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 59
+Line       :       return parentValue.includes(option.linkedToValue);
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 62
+Line       :     return String(parentValue ?? "") === String(option.linkedToValue);
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-field-renderer.tsx
+LineNumber : 666
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 61
+Line       : export type DynamicFormRendererSaveMode = "draft" | "submit";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 63
+Line       : export type DynamicFormRendererSaveParams = {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 64
+Line       :   type: DynamicFormRendererSaveMode;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 75
+Line       : export type DynamicFormRendererSaveResult = {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 81
+Line       : export type DynamicFormRendererSaveHandler = (
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 82
+Line       :   params: DynamicFormRendererSaveParams,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 83
+Line       : ) => Promise<DynamicFormRendererSaveResult | void>;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 95
+Line       :   onSave?: DynamicFormRendererSaveHandler;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 632
+Line       : export function DynamicFormRenderer({
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 844
+Line       :     if (!field.dependsOnFieldKey) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 846
+Line       :     const parentValue = currentValues[field.dependsOnFieldKey];
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 850
+Line       :     if (!field.linkedToValue) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 853
+Line       :       return parentValue.map(String).includes(String(field.linkedToValue));
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 856
+Line       :     return String(parentValue) === String(field.linkedToValue);
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 959
+Line       :             if (!field.dependsOnFieldKey) continue;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 962
+Line       :               changedKeys.has(field.dependsOnFieldKey) &&
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 1026
+Line       :     if (!field.dependsOnFieldKey) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 1028
+Line       :     const parentValue = values[field.dependsOnFieldKey];
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 1032
+Line       :     if (!field.linkedToValue) return true;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 1035
+Line       :       return parentValue.map(String).includes(String(field.linkedToValue));
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LineNumber : 1038
+Line       :     return String(parentValue) === String(field.linkedToValue);
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx
+LineNumber : 1
+Line       : import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx
+LineNumber : 35
+Line       :             dependsOnFieldKey: field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx
+LineNumber : 36
+Line       :             linkedToValue: field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx
+LineNumber : 46
+Line       :                 linkedToValue: option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx
+LineNumber : 67
+Line       :     <DynamicFormRenderer
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\admin\system-health-service.ts
+LineNumber : 50
+Line       :     servicesWithoutActiveWorkflow,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\admin\system-health-service.ts
+LineNumber : 118
+Line       :       count: servicesWithoutActiveWorkflow,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\admin\system-health-service.ts
+LineNumber : 119
+Line       :       status: computeStatus(servicesWithoutActiveWorkflow, 3, 1),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report\ai-report-runtime-adapter.ts
+LineNumber : 415
+Line       :           dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report\ai-report-runtime-adapter.ts
+LineNumber : 416
+Line       :           linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report\ai-report-runtime-adapter.ts
+LineNumber : 426
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-intent-blueprints.ts
+LineNumber : 39
+Line       :     defaultPerformanceElements: ["learning_environment", "job_duties_performance"],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-intent-blueprints.ts
+LineNumber : 59
+Line       :     defaultPerformanceElements: ["learning_environment", "professional_community_interaction", "job_duties_performance"],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-intent-blueprints.ts
+LineNumber : 235
+Line       :     defaultPerformanceElements: ["job_duties_performance"],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-intent-blueprints.ts
+LineNumber : 254
+Line       :     defaultPerformanceElements: ["job_duties_performance", "learning_environment"],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-intent-blueprints.ts
+LineNumber : 272
+Line       :     defaultPerformanceElements: ["job_duties_performance"],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-performance-elements.ts
+LineNumber : 48
+Line       :     code: "job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\ai-report2\teacher-semantic-polisher.ts
+LineNumber : 253
+Line       :     element === "job_duties_performance" ||
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\portfolio\portfolio-performance-elements.ts
+LineNumber : 11
+Line       :     key: "job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\portfolio\portfolio-performance-elements.ts
+LineNumber : 14
+Line       :     serviceSlug: "job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\report-engine\report-structured-table-extractor.ts
+LineNumber : 83
+Line       :   "linkedtovalue",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts
+LineNumber : 296
+Line       : function collectActiveWorkflowFieldKeys(caseEntry: any) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts
+LineNumber : 745
+Line       :   const activeWorkflowFieldKeys = collectActiveWorkflowFieldKeys(caseEntry);
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts
+LineNumber : 757
+Line       :       if (!activeWorkflowFieldKeys.has(key)) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 148
+Line       :               dependsOnFieldKey: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 150
+Line       :               linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 172
+Line       :                 linkedToValue: null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 181
+Line       :        * DynamicFormRenderer الحالي يكتشف خطوة الشواهد
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 281
+Line       :           dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 282
+Line       :             field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 284
+Line       :           linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 285
+Line       :             field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 302
+Line       :             linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\runtime-builder.ts
+LineNumber : 303
+Line       :               option.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\types.ts
+LineNumber : 49
+Line       :   dependsOnFieldKey: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\types.ts
+LineNumber : 50
+Line       :   linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\special-report\types.ts
+LineNumber : 60
+Line       :     linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-types.ts
+LineNumber : 54
+Line       :   linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-types.ts
+LineNumber : 70
+Line       :   dependsOnFieldKey: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-types.ts
+LineNumber : 71
+Line       :   linkedToValue: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-types.ts
+LineNumber : 97
+Line       :   dependsOnFieldKey: string | null;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 53
+Line       :   if (!field.dependsOnFieldKey) {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 69
+Line       :       field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 106
+Line       :     field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 107
+Line       :     selectedOption?.linkedToValue || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 353
+Line       :     dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-value-counter.ts
+LineNumber : 354
+Line       :       field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 97
+Line       :         linkedToValue: nullableString(
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 98
+Line       :           record.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 149
+Line       :     dependsOnFieldKey: nullableString(
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 150
+Line       :       input.field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 152
+Line       :     linkedToValue: nullableString(
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 153
+Line       :       input.field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 396
+Line       :   const [caseEntries, activeWorkflow] =
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 433
+Line       :                       dependsOnFieldKey: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 434
+Line       :                       linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 443
+Line       :                           linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 466
+Line       :                   dependsOnFieldKey: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 467
+Line       :                   linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 485
+Line       :                       linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 534
+Line       :                   dependsOnFieldKey: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 535
+Line       :                   linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 544
+Line       :                       linkedToValue: true,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 557
+Line       :       activeWorkflow?.steps || [],
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 558
+Line       :       activeWorkflow?.id || null,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 608
+Line       :           dependsOnFieldKey:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 609
+Line       :             caseValue.field.dependsOnFieldKey,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 610
+Line       :           linkedToValue:
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\statistics\statistics-workflow-resolver.ts
+LineNumber : 611
+Line       :             caseValue.field.linkedToValue,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\teacher-performance\teacher-performance-services.ts
+LineNumber : 12
+Line       :     slug: "job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\teacher-performance\teacher-performance-services.ts
+LineNumber : 17
+Line       :     href: "/dashboard/teacher/job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 19
+Line       :   dependsOnFieldKey?: string;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 21
+Line       :   linkedToValue?: string;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 22
+Line       :   fieldLinkedToValue?: string;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 27
+Line       :   optionLinkedToValue?: string;
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 182
+Line       :   dependsOnFieldKey: [
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 183
+Line       :     "dependsonfieldkey",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 195
+Line       :   linkedToValue: [
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 196
+Line       :     "linkedtovalue",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 205
+Line       :   fieldLinkedToValue: [
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 206
+Line       :     "fieldlinkedtovalue",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 239
+Line       :   optionLinkedToValue: [
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 240
+Line       :     "optionlinkedtovalue",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 349
+Line       :         dependsOnFieldKey: get("dependsOnFieldKey") || undefined,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 351
+Line       :         linkedToValue: get("linkedToValue") || undefined,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 352
+Line       :         fieldLinkedToValue: get("fieldLinkedToValue") || undefined,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+LineNumber : 357
+Line       :         optionLinkedToValue: get("optionLinkedToValue") || undefined,
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\active-workflow-resolver.ts
+LineNumber : 8
+Line       : export function buildActiveWorkflowSlotQuery(input: {
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 172
+Line       :           dependsOnFieldKey: "summons_result",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 173
+Line       :           linkedToValue: "attended",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 182
+Line       :           dependsOnFieldKey: "summons_result",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 183
+Line       :           linkedToValue: "attended",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 192
+Line       :           dependsOnFieldKey: "summons_result",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 193
+Line       :           linkedToValue: "not_attended",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 219
+Line       :           dependsOnFieldKey: "follow_up_needed",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts
+LineNumber : 220
+Line       :           linkedToValue: "yes",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\workflow-activation-service.ts
+LineNumber : 76
+Line       :             previousActiveWorkflowIds: previous.map((item) => item.id),
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workflows\workflow-activation-service.ts
+LineNumber : 86
+Line       :       return { workflow, previousActiveWorkflowIds: previous.map((item) => item.id), canonicalSlot };
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+Path       : D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts
+LineNumber : 34
+Line       :   teacherPerformanceJobDuties: "/dashboard/teacher/job_duties_performance",
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+
+
+

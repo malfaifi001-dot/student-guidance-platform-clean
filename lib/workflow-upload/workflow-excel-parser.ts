@@ -295,11 +295,17 @@ function mapHeaders(headers: string[]) {
   Object.entries(headerMap).forEach(([key, aliases]) => {
     const normalizedAliases = aliases.map(normalizeHeader);
 
-    const index = normalizedHeaders.findIndex((header) =>
-      normalizedAliases.some(
-        (alias) => header === alias || header.includes(alias),
-      ),
+    const exactIndex = normalizedHeaders.findIndex((header) =>
+      normalizedAliases.some((alias) => header === alias),
     );
+    const index =
+      exactIndex >= 0
+        ? exactIndex
+        : key === "linkedToValue"
+          ? -1
+          : normalizedHeaders.findIndex((header) =>
+              normalizedAliases.some((alias) => header.includes(alias)),
+            );
 
     if (index >= 0) {
       result.set(key as keyof ParsedWorkflowRow, index);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { normalizeConditionalWorkflow } from "@/engine/runtime/workflow-conditional-logic";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
@@ -117,7 +118,7 @@ export default async function WorkflowPreviewPage({
     );
   }
 
-  const runtimeWorkflow = {
+  const runtimeWorkflow = normalizeConditionalWorkflow({
     id: workflow.id,
     name: workflow.name,
     serviceSlug: workflow.service.slug,
@@ -151,7 +152,7 @@ export default async function WorkflowPreviewPage({
         })),
       })),
     })),
-  };
+  });
 
   return (
     <main className="space-y-6" dir="rtl">

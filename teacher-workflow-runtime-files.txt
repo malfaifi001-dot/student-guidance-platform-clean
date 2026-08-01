@@ -1,0 +1,593 @@
+
+==================================================
+FILE: components\teacher-performance\teacher-performance-workflow-pages.tsx
+==================================================
+
+   1: import { notFound } from "next/navigation";
+   2: 
+   3: import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
+   4: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+   5: import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
+   6: import { getTeacherPerformanceService } from "@/lib/teacher-performance/teacher-performance-services";
+   7: 
+   8: export function TeacherPerformanceWorkflowHome({
+   9:   serviceSlug,
+  10: }: {
+  11:   serviceSlug: string;
+  12: }) {
+  13:   const service = getTeacherPerformanceService(serviceSlug);
+  14: 
+  15:   if (!service) {
+  16:     notFound();
+  17:   }
+  18: 
+  19:   return (
+  20:     <WorkflowServiceHomePage
+  21:       serviceSlug={service.slug}
+  22:       basePath={service.href}
+  23:       title={service.title}
+  24:       description={service.description}
+  25:       newButtonLabel="إنشاء تقرير جديد"
+  26:       caseSingularName="تقرير"
+  27:       casePluralName="تقارير"
+  28:       emptyTitle="لا توجد تقارير بعد"
+  29:       emptyDescription="ابدأ بإنشاء أول تقرير من نموذج Workflow المنشور. بعد الحفظ سيظهر هنا كسجل قابل للمتابعة."
+  30:     />
+  31:   );
+  32: }
+  33: 
+  34: export async function NewTeacherPerformanceWorkflow({
+  35:   serviceSlug,
+  36: }: {
+  37:   serviceSlug: string;
+  38: }) {
+  39:   const service = getTeacherPerformanceService(serviceSlug);
+  40: 
+  41:   if (!service) {
+  42:     notFound();
+  43:   }
+  44: 
+  45:   const runtime = await getRuntimeWorkflowByServiceSlug(service.slug);
+  46: 
+  47:   if (!runtime) {
+  48:     return (
+  49:       <main className="space-y-6" dir="rtl">
+  50:         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+  51:           <p className="text-sm font-black text-amber-700">{service.title}</p>
+  52: 
+  53:           <h1 className="mt-2 text-2xl font-black text-amber-900">
+  54:             لا يوجد Workflow منشور
+  55:           </h1>
+  56: 
+  57:           <p className="mt-3 text-sm leading-7 text-amber-700">
+  58:             قم برفع Workflow لهذه الخدمة من لوحة الأدمن أولًا، ثم انشره حتى يظهر للمعلم.
+  59:           </p>
+  60:         </section>
+  61:       </main>
+  62:     );
+  63:   }
+  64: 
+  65:   return (
+  66:     <main dir="rtl" className="space-y-6">
+  67:       <DynamicFormRenderer
+  68:         workflow={runtime.workflow}
+  69:         serviceId={runtime.service.id}
+  70:         requiresStudent={false}
+  71:         title={service.title}
+  72:       />
+  73:     </main>
+  74:   );
+  75: }
+
+==================================================
+FILE: components\services\workflow-service-home-page.tsx
+==================================================
+
+   1: import type { ReactNode } from "react";
+   2: import Link from "next/link";
+   3: import { redirect } from "next/navigation";
+   4: import {
+   5:   CalendarDays,
+   6:   ClipboardList,
+   7:   FileText,
+   8:   ImageIcon,
+   9:   PencilLine,
+  10:   Plus,
+  11:   Search,
+  12: } from "lucide-react";
+  13: 
+  14: import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+  15: import { prisma } from "@/lib/prisma";
+  16: 
+  17: type WorkflowServiceHomePageProps = {
+  18:   serviceSlug: string;
+  19:   title: string;
+  20:   description: string;
+  21:   newButtonLabel: string;
+  22:   caseSingularName: string;
+  23:   casePluralName: string;
+  24:   basePath?: string;
+  25:   emptyTitle?: string;
+  26:   emptyDescription?: string;
+  27: };
+  28: 
+  29: function formatDate(value: Date | string | null | undefined) {
+  30:   if (!value) return "غير محدد";
+  31: 
+  32:   try {
+  33:     return new Date(value).toLocaleDateString("ar-SA", {
+  34:       year: "numeric",
+  35:       month: "short",
+  36:       day: "numeric",
+  37:     });
+  38:   } catch {
+  39:     return String(value);
+  40:   }
+  41: }
+  42: 
+  43: function formatCount(value: number) {
+  44:   return new Intl.NumberFormat("ar-SA").format(value);
+  45: }
+  46: 
+  47: function getCaseStatusLabel(status: string) {
+  48:   if (status === "DRAFT") return "مسودة";
+  49:   if (status === "SUBMITTED") return "مرسلة";
+  50:   if (status === "ARCHIVED") return "مؤرشفة";
+  51: 
+  52:   return status || "غير محدد";
+  53: }
+  54: 
+  55: function isActivityProgramServiceSlug(serviceSlug: string) {
+  56:   return serviceSlug.startsWith("activity-programs-");
+  57: }
+  58: 
+  59: function getCaseStatusClass(status: string) {
+  60:   if (status === "DRAFT") {
+  61:     return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+  62:   }
+  63: 
+  64:   if (status === "SUBMITTED") {
+  65:     return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  66:   }
+  67: 
+  68:   return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+  69: }
+  70: 
+  71: function isGenericTitle(title: string) {
+  72:   const normalized = title
+  73:     .toLowerCase()
+  74:     .replace(/[أإآ]/g, "ا")
+  75:     .replace(/ى/g, "ي")
+  76:     .replace(/ة/g, "ه")
+  77:     .replace(/\s+/g, " ")
+  78:     .trim();
+  79: 
+  80:   return (
+  81:     !normalized ||
+  82:     normalized === "بدون عنوان" ||
+  83:     normalized === "حاله بدون عنوان" ||
+  84:     normalized === "حالة بدون عنوان" ||
+  85:     normalized === "حاله جديده" ||
+  86:     normalized === "حالة جديدة" ||
+  87:     normalized.includes("برنامج ارشادي جديد")
+  88:   );
+  89: }
+  90: 
+  91: function getCaseTitle(
+  92:   caseItem: {
+  93:     title?: string | null;
+  94:     createdAt?: Date | string | null;
+  95:   },
+  96:   caseSingularName: string,
+  97: ) {
+  98:   const title = String(caseItem.title || "").trim();
+  99: 
+ 100:   if (title && !isGenericTitle(title)) {
+ 101:     return title;
+ 102:   }
+ 103: 
+ 104:   return `${caseSingularName} - ${formatDate(caseItem.createdAt)}`;
+ 105: }
+ 106: 
+ 107: function getAssignedTeacherName(caseItem: {
+ 108:   values?: {
+ 109:     fieldKey: string;
+ 110:     value: string | null;
+ 111:   }[];
+ 112: }) {
+ 113:   return (
+ 114:     caseItem.values?.find((item) => item.fieldKey === "assigned_teacher_name")
+ 115:       ?.value || ""
+ 116:   ).trim();
+ 117: }
+ 118: 
+ 119: function getNextActionText(caseItem: {
+ 120:   status: string;
+ 121:   _count: {
+ 122:     guidanceReports: number;
+ 123:   };
+ 124: }) {
+ 125:   if (caseItem.status === "DRAFT") {
+ 126:     return "استكمال المسودة";
+ 127:   }
+ 128: 
+ 129:   if (caseItem._count.guidanceReports > 0) {
+ 130:     return "فتح التقارير";
+ 131:   }
+ 132: 
+ 133:   if (caseItem.status === "SUBMITTED") {
+ 134:     return "إصدار تقرير";
+ 135:   }
+ 136: 
+ 137:   return "عرض الحالة";
+ 138: }
+ 139: 
+ 140: export async function WorkflowServiceHomePage({
+ 141:   serviceSlug,
+ 142:   title,
+ 143:   description,
+ 144:   newButtonLabel,
+ 145:   caseSingularName,
+ 146:   casePluralName,
+ 147:   basePath = `/dashboard/${serviceSlug}`,
+ 148:   emptyTitle = "لا توجد حالات بعد",
+ 149:   emptyDescription = "ابدأ بإنشاء أول حالة. بعد الحفظ ستظهر هنا كبطاقات سهلة.",
+ 150: }: WorkflowServiceHomePageProps) {
+ 151:   const context = await requireDashboardPageContext();
+ 152: 
+ 153:   if (!context.isAdmin && !context.schoolAccountId) {
+ 154:     redirect("/dashboard/onboarding?required=true");
+ 155:   }
+ 156: 
+ 157:   const service = await prisma.service.findUnique({
+ 158:     where: {
+ 159:       slug: serviceSlug,
+ 160:     },
+ 161:     include: {
+ 162:       workflows: {
+ 163:         where: {
+ 164:           isActive: true,
+ 165:         },
+ 166:         orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
+ 167:         take: 1,
+ 168:         select: {
+ 169:           id: true,
+ 170:           name: true,
+ 171:           updatedAt: true,
+ 172:         },
+ 173:       },
+ 174:     },
+ 175:   });
+ 176: 
+ 177:   if (!service) {
+ 178:     return (
+ 179:       <main className="space-y-6" dir="rtl">
+ 180:         <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
+ 181:           <p className="text-sm font-black text-amber-700">{title}</p>
+ 182: 
+ 183:           <h1 className="mt-2 text-3xl font-black text-amber-950">
+ 184:             الخدمة غير مهيأة
+ 185:           </h1>
+ 186: 
+ 187:           <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-amber-800">
+ 188:             لم يتم العثور على الخدمة. افتح مركز Workflows وارفع ملف الخدمة.
+ 189:           </p>
+ 190: 
+ 191:           {context.isAdmin ? (
+ 192:             <Link
+ 193:               href={`/dashboard/admin/workflows/${serviceSlug}`}
+ 194:               className="mt-6 inline-flex rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+ 195:             >
+ 196:               فتح مركز الرفع
+ 197:             </Link>
+ 198:           ) : null}
+ 199:         </section>
+ 200:       </main>
+ 201:     );
+ 202:   }
+ 203: 
+ 204:   const activeWorkflow = service.workflows[0] || null;
+ 205: 
+ 206:   const cases = await prisma.caseEntry.findMany({
+ 207:     where: context.isAdmin
+ 208:       ? {
+ 209:           serviceId: service.id,
+ 210:         }
+ 211:       : {
+ 212:           serviceId: service.id,
+ 213:           schoolAccountId: context.schoolAccountId as string,
+ 214:         },
+ 215:     orderBy: {
+ 216:       updatedAt: "desc",
+ 217:     },
+ 218:     take: 18,
+ 219:     select: {
+ 220:       id: true,
+ 221:       title: true,
+ 222:       status: true,
+ 223:       createdAt: true,
+ 224:       updatedAt: true,
+ 225:       submittedAt: true,
+ 226:       _count: {
+ 227:         select: {
+ 228:           values: true,
+ 229:           evidences: true,
+ 230:           guidanceReports: true,
+ 231:         },
+ 232:       },
+ 233:       values: {
+ 234:         where: {
+ 235:           fieldKey: "assigned_teacher_name",
+ 236:         },
+ 237:         take: 1,
+ 238:         select: {
+ 239:           fieldKey: true,
+ 240:           value: true,
+ 241:         },
+ 242:       },
+ 243:       guidanceReports: {
+ 244:         orderBy: {
+ 245:           updatedAt: "desc",
+ 246:         },
+ 247:         take: 1,
+ 248:         select: {
+ 249:           id: true,
+ 250:           status: true,
+ 251:           templateId: true,
+ 252:           updatedAt: true,
+ 253:         },
+ 254:       },
+ 255:     },
+ 256:   });
+ 257: 
+ 258:   const draftsCount = cases.filter((item) => item.status === "DRAFT").length;
+ 259:   const submittedCount = cases.filter((item) => item.status === "SUBMITTED").length;
+ 260:   const readyForReportCount = cases.filter(
+ 261:     (item) => item.status === "SUBMITTED" && item._count.guidanceReports === 0,
+ 262:   ).length;
+ 263: 
+ 264:   return (
+ 265:     <main className="space-y-7" dir="rtl">
+ 266:       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+ 267:         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+ 268:           <div>
+ 269:             <p className="text-sm font-black text-sky-100">Workflow Runtime</p>
+ 270: 
+ 271:             <h1 className="mt-3 text-4xl font-black">{title}</h1>
+ 272: 
+ 273:             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
+ 274:               {description}
+ 275:             </p>
+ 276:           </div>
+ 277: 
+ 278:           <Link
+ 279:             href={`${basePath}/new`}
+ 280:             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+ 281:           >
+ 282:             <Plus className="h-4 w-4" />
+ 283:             {newButtonLabel}
+ 284:           </Link>
+ 285:         </div>
+ 286:       </section>
+ 287: 
+ 288:       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+ 289:         <SimpleMetricCard
+ 290:           icon={<ClipboardList className="h-5 w-5" />}
+ 291:           label={casePluralName}
+ 292:           value={formatCount(cases.length)}
+ 293:         />
+ 294: 
+ 295:         <SimpleMetricCard
+ 296:           icon={<PencilLine className="h-5 w-5" />}
+ 297:           label="مسودات"
+ 298:           value={formatCount(draftsCount)}
+ 299:         />
+ 300: 
+ 301:         <SimpleMetricCard
+ 302:           icon={<FileText className="h-5 w-5" />}
+ 303:           label="مرسلة"
+ 304:           value={formatCount(submittedCount)}
+ 305:         />
+ 306: 
+ 307:         <SimpleMetricCard
+ 308:           icon={<CalendarDays className="h-5 w-5" />}
+ 309:           label="جاهزة للتقرير"
+ 310:           value={formatCount(readyForReportCount)}
+ 311:         />
+ 312:       </section>
+ 313: 
+ 314:       {!activeWorkflow ? (
+ 315:         <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6">
+ 316:           <h2 className="text-xl font-black text-amber-950">
+ 317:             لا يوجد نموذج منشور
+ 318:           </h2>
+ 319: 
+ 320:           <p className="mt-2 text-sm font-bold leading-7 text-amber-800">
+ 321:             ارفع Workflow من لوحة الأدمن ثم انشره حتى تظهر نماذج الإنشاء.
+ 322:           </p>
+ 323: 
+ 324:           {context.isAdmin ? (
+ 325:             <Link
+ 326:               href={`/dashboard/admin/workflows/${serviceSlug}`}
+ 327:               className="mt-5 inline-flex rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+ 328:             >
+ 329:               فتح رفع Workflow
+ 330:             </Link>
+ 331:           ) : null}
+ 332:         </section>
+ 333:       ) : null}
+ 334: 
+ 335:       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+ 336:         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+ 337:           <div>
+ 338:             <p className="text-xs font-black text-sky-700">السجلات السابقة</p>
+ 339: 
+ 340:             <h2 className="mt-1 text-2xl font-black text-slate-950">
+ 341:               آخر {casePluralName}
+ 342:             </h2>
+ 343: 
+ 344:             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+ 345:               اختر السجل المطلوب. التفاصيل تظهر فقط عند الحاجة.
+ 346:             </p>
+ 347:           </div>
+ 348: 
+ 349:           <Link
+ 350:             href={`${basePath}/new`}
+ 351:             className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+ 352:           >
+ 353:             <Plus className="h-4 w-4" />
+ 354:             {newButtonLabel}
+ 355:           </Link>
+ 356:         </div>
+ 357: 
+ 358:         {cases.length ? (
+ 359:           <div className="grid gap-4 xl:grid-cols-2">
+ 360:             {cases.map((caseItem) => {
+ 361:               const latestReport = caseItem.guidanceReports[0] || null;
+ 362:               const reportHref = latestReport
+ 363:                 ? `/dashboard/report/${latestReport.id}/preview${
+ 364:                     latestReport.templateId
+ 365:                       ? `?template=${encodeURIComponent(latestReport.templateId)}`
+ 366:                       : ""
+ 367:                   }`
+ 368:                 : `/dashboard/report/new?caseId=${caseItem.id}`;
+ 369: 
+ 370:               return (
+ 371:                 <article
+ 372:                   key={caseItem.id}
+ 373:                   className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+ 374:                 >
+ 375:                   <div className="min-w-0">
+ 376:                     <div className="flex flex-wrap items-center gap-2">
+ 377:                       <span
+ 378:                         className={[
+ 379:                           "rounded-full px-3 py-1 text-xs font-black",
+ 380:                           getCaseStatusClass(caseItem.status),
+ 381:                         ].join(" ")}
+ 382:                       >
+ 383:                         {getCaseStatusLabel(caseItem.status)}
+ 384:                       </span>
+ 385: 
+ 386:                       {caseItem._count.evidences > 0 ? (
+ 387:                         <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+ 388:                           <ImageIcon className="h-3.5 w-3.5" />
+ 389:                           {formatCount(caseItem._count.evidences)} شواهد
+ 390:                         </span>
+ 391:                       ) : null}
+ 392: 
+ 393:                       {caseItem._count.guidanceReports > 0 ? (
+ 394:                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+ 395:                           له تقرير
+ 396:                         </span>
+ 397:                       ) : null}
+ 398:                     </div>
+ 399: 
+ 400:                     <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+ 401:                       {getCaseTitle(caseItem, caseSingularName)}
+ 402:                     </h3>
+ 403: 
+ 404:                     <p className="mt-1 text-xs font-bold text-slate-500">
+ 405:                       آخر تحديث: {formatDate(caseItem.updatedAt)}
+ 406:                     </p>
+ 407:                   </div>
+ 408: 
+ 409:                   <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+ 410:                     الإجراء التالي: {getNextActionText(caseItem)}
+ 411:                   </div>
+ 412: 
+ 413:                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+ 414:                     <Link
+ 415:                       href={`/dashboard/cases/${caseItem.id}`}
+ 416:                       className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+ 417:                     >
+ 418:                       عرض
+ 419:                     </Link>
+ 420: 
+ 421:                     <div className="flex flex-wrap gap-2">
+ 422:                       {caseItem.status === "DRAFT" ? (
+ 423:                         <Link
+ 424:                           href={`/dashboard/cases/${caseItem.id}/edit`}
+ 425:                           className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-slate-800"
+ 426:                         >
+ 427:                           <PencilLine className="h-4 w-4" />
+ 428:                           استكمال
+ 429:                         </Link>
+ 430:                       ) : (
+ 431:                         <Link
+ 432:                           href={reportHref}
+ 433:                           className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
+ 434:                         >
+ 435:                           <FileText className="h-4 w-4" />
+ 436:                           {caseItem._count.guidanceReports > 0
+ 437:                             ? "فتح التقارير"
+ 438:                             : "إصدار تقرير"}
+ 439:                         </Link>
+ 440:                       )}
+ 441:                     </div>
+ 442:                   </div>
+ 443:                 </article>
+ 444:               );
+ 445:             })}
+ 446:           </div>
+ 447:         ) : (
+ 448:           <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+ 449:             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
+ 450:               <Search className="h-7 w-7" />
+ 451:             </div>
+ 452: 
+ 453:             <h3 className="mt-4 text-xl font-black text-slate-800">
+ 454:               {emptyTitle}
+ 455:             </h3>
+ 456: 
+ 457:             <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
+ 458:               {emptyDescription}
+ 459:             </p>
+ 460: 
+ 461:             <Link
+ 462:               href={`${basePath}/new`}
+ 463:               className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+ 464:             >
+ 465:               <Plus className="h-4 w-4" />
+ 466:               {newButtonLabel}
+ 467:             </Link>
+ 468:           </div>
+ 469:         )}
+ 470:       </section>
+ 471:     </main>
+ 472:   );
+ 473: }
+ 474: 
+ 475: function SimpleMetricCard({
+ 476:   icon,
+ 477:   label,
+ 478:   value,
+ 479: }: {
+ 480:   icon: ReactNode;
+ 481:   label: string;
+ 482:   value: string;
+ 483: }) {
+ 484:   return (
+ 485:     <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+ 486:       <div className="flex items-center gap-3">
+ 487:         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+ 488:           {icon}
+ 489:         </div>
+ 490: 
+ 491:         <div>
+ 492:           <p className="text-xs font-black text-slate-400">{label}</p>
+ 493:           <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
+ 494:         </div>
+ 495:       </div>
+ 496:     </article>
+ 497:   );
+ 498: }
+
+==================================================
+FILE: app\dashboard\teacher\job_duties_performance\new\page.tsx
+==================================================
+
+   1: import { NewTeacherPerformanceWorkflow } from "@/components/teacher-performance/teacher-performance-workflow-pages";
+   2: 
+   3: export default function NewTeacherPerformancePage() {
+   4:   return <NewTeacherPerformanceWorkflow serviceSlug="job_duties_performance" />;
+   5: }

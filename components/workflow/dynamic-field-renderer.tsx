@@ -19,6 +19,7 @@ import type {
   RuntimeOption,
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
 
 type DynamicFieldRendererProps = {
   field: RuntimeField;
@@ -48,19 +49,7 @@ function HelpText({ text }: { text?: string | null }) {
 }
 
 function getFilteredOptions(field: RuntimeField, values: RuntimeValues) {
-  if (!field.dependsOnFieldKey) return field.options;
-
-  const parentValue = values[field.dependsOnFieldKey];
-
-  return field.options.filter((option) => {
-    if (!option.linkedToValue) return true;
-
-    if (Array.isArray(parentValue)) {
-      return parentValue.includes(option.linkedToValue);
-    }
-
-    return String(parentValue ?? "") === String(option.linkedToValue);
-  });
+  return filterConditionalWorkflowOptions(field, values);
 }
 
 function SelectOptions({

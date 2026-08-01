@@ -1,0 +1,986 @@
+BANK SEARCH REPORT
+Project: D:\student-guidance-platform-clean
+Generated: 2026-08-01 08:57:35
+
+===== FILE OR FOLDER NAMES CONTAINING BANK =====
+D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer
+D:\student-guidance-platform-clean\app\api\dashboard\subscription\bank-transfer
+D:\student-guidance-platform-clean\data\ai-report\generated\teacher-performance-knowledge-bank.json
+D:\student-guidance-platform-clean\data\ai-report\source\teacher_performance_value_bank_11_elements_cleaned.xlsx
+D:\student-guidance-platform-clean\data\ai-report\source\teacher_performance_value_bank_master_batch09_final.xlsx
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts
+D:\student-guidance-platform-clean\scripts\build-ai-report-knowledge-bank.mjs
+D:\student-guidance-platform-clean\scripts\extend-bank-transfer-for-plans.cjs
+
+===== FILE CONTENT CONTAINING BANK =====
+.\achievement-portfolio-review.txt:16361
+/bank/i,
+
+.\achievement-portfolio-review.txt:26826
+/bank/i,
+
+.\ai-report-code-scan.txt:4091
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report-code-scan.txt:4200
+`AI report knowledge bank is missing. Run: node scripts/build-ai-report-knowledge-bank.mjs`,
+
+.\ai-report-code-scan.txt:4307
+const bank = getKnowledgeBank();
+
+.\ai-report-code-scan.txt:4311
+const items = bank.items
+
+.\ai-report-code-scan.txt:4337
+FILE: scripts\build-ai-report-knowledge-bank.mjs
+
+.\ai-report-code-scan.txt:4362
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report-code-scan.txt:4589
+const bank = {
+
+.\ai-report-code-scan.txt:4605
+fs.writeFileSync(outputPath, `${JSON.stringify(bank, null, 2)}\n`, "utf8");
+
+.\ai-report-code-scan.txt:4607
+console.log("AI report knowledge bank generated.");
+
+.\ai-report-code-scan.txt:4608
+console.log(`Reports: ${bank.counts.reports}`);
+
+.\ai-report-code-scan.txt:4609
+console.log(`Value rows: ${bank.counts.valueRows}`);
+
+.\ai-report-code-scan.txt:4610
+console.log(`Manual rows: ${bank.counts.manualRows}`);
+
+.\ai-report-code-scan.txt:4611
+console.log(`Unique items: ${bank.counts.items}`);
+
+.\ai-report-code-scan.txt:4615
+FILE: data\ai-report\generated\teacher-performance-knowledge-bank.json
+
+.\ai-report-core-only.txt:2518
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report-core-only.txt:2627
+`AI report knowledge bank is missing. Run: node scripts/build-ai-report-knowledge-bank.mjs`,
+
+.\ai-report-core-only.txt:2734
+const bank = getKnowledgeBank();
+
+.\ai-report-core-only.txt:2738
+const items = bank.items
+
+.\ai-report-core-only.txt:2766
+FILE: scripts\build-ai-report-knowledge-bank.mjs
+
+.\ai-report-core-only.txt:2791
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report-core-only.txt:3018
+const bank = {
+
+.\ai-report-core-only.txt:3034
+fs.writeFileSync(outputPath, `${JSON.stringify(bank, null, 2)}\n`, "utf8");
+
+.\ai-report-core-only.txt:3036
+console.log("AI report knowledge bank generated.");
+
+.\ai-report-core-only.txt:3037
+console.log(`Reports: ${bank.counts.reports}`);
+
+.\ai-report-core-only.txt:3038
+console.log(`Value rows: ${bank.counts.valueRows}`);
+
+.\ai-report-core-only.txt:3039
+console.log(`Manual rows: ${bank.counts.manualRows}`);
+
+.\ai-report-core-only.txt:3040
+console.log(`Unique items: ${bank.counts.items}`);
+
+.\ai-report-current-code-review.txt:947
+> lib\ai-report\ai-report-knowledge-retriever.ts:17:  "teacher-performance-knowledge-bank.json",
+
+.\ai-report-current-code-review.txt:1005
+> lib\ai-report\ai-report-knowledge-retriever.ts:126:      `AI report knowledge bank is missing. Run:
+
+.\ai-report-current-code-review.txt:1006
+node scripts/build-ai-report-knowledge-bank.mjs`,
+
+.\ai-report-current-code-review.txt:1066
+> lib\ai-report\ai-report-knowledge-retriever.ts:233:  const bank = getKnowledgeBank();
+
+.\ai-report-current-code-review.txt:1071
+lib\ai-report\ai-report-knowledge-retriever.ts:237:  const items = bank.items
+
+.\ai-report-current-code-review.txt:3230
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report-current-code-review.txt:3339
+`AI report knowledge bank is missing. Run: node scripts/build-ai-report-knowledge-bank.mjs`,
+
+.\ai-report-current-code-review.txt:3446
+const bank = getKnowledgeBank();
+
+.\ai-report-current-code-review.txt:3450
+const items = bank.items
+
+.\ai-report2-review-bundle.txt:439
+"source": "bank | custom",
+
+.\ai-report2-review-bundle.txt:5811
+"teacher-performance-knowledge-bank.json",
+
+.\ai-report2-review-bundle.txt:6092
+throw new Error(`Knowledge bank not found: ${inputPath}`);
+
+.\ai-report2-review-bundle.txt:6152
+source: "teacher-performance-knowledge-bank.json",
+
+.\ai-report2-review-bundle.txt:6155
+"Patterns extracted from teacher report knowledge bank. Used as flexible guidance, not a mandatory template.",
+
+.\build-errors.txt:98
+Γö£ ╞Æ /api/dashboard/subscription/bank-transfer
+
+.\calendar-center-required-code.txt:2308
+action: "bank-transfer-requested",
+
+.\calendar-center-required-code.txt:2364
+? "bank-transfer-approved"
+
+.\calendar-center-required-code.txt:2365
+: "bank-transfer-rejected",
+
+.\calendar-route-files.txt:1592
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\calendar-route-files.txt:1625
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\calendar-route-files.txt:2204
+const response = await fetch("/api/dashboard/subscription/bank-transfer", {
+
+.\calendar-route-files.txt:6053
+"bank-transfer-requested": "طلب تحويل",
+
+.\calendar-route-files.txt:6054
+"bank-transfer-approved": "قبول تحويل",
+
+.\calendar-route-files.txt:6055
+"bank-transfer-rejected": "رفض تحويل",
+
+.\calendar-route-files.txt:37574
+/bank/i,
+
+.\calendar-route-files.txt:62573
+type PaymentMethod = "bank" | "online";
+
+.\calendar-route-files.txt:62693
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\calendar-route-files.txt:63106
+setPaymentMethod("bank");
+
+.\calendar-route-files.txt:63230
+active={paymentMethod === "bank"}
+
+.\calendar-route-files.txt:63234
+onClick={() => setPaymentMethod("bank")}
+
+.\calendar-route-files.txt:63292
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\calendar-route-files.txt:69047
+action: "bank-transfer-requested",
+
+.\calendar-route-files.txt:69103
+? "bank-transfer-approved"
+
+.\calendar-route-files.txt:69104
+: "bank-transfer-rejected",
+
+.\certificates-context.txt:27
+M data/ai-report/generated/teacher-performance-knowledge-bank.json
+
+.\certificates-context.txt:602
+"source": "bank | custom",
+
+.\custom-report-full-debug.txt:14407
+type PaymentMethod = "bank" | "online";
+
+.\custom-report-full-debug.txt:14530
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\custom-report-full-debug.txt:14953
+setPaymentMethod("bank");
+
+.\custom-report-full-debug.txt:15077
+active={paymentMethod === "bank"}
+
+.\custom-report-full-debug.txt:15081
+onClick={() => setPaymentMethod("bank")}
+
+.\custom-report-full-debug.txt:15139
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\hostinger-preflight-report.txt:151
+â”œ Æ’ /api/dashboard/subscription/bank-transfer
+
+.\local-db-before-clean-20260624-132028.sql:5543
+('cmq3z7g5j0003tkno1w73lnnm','INV-202606-000001','cmq3ue3ju006xjwnops8u8s4y','cmq39e4qo0000p0nob1amk97o','ISSUED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',799,0,0,799,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3ue3ju006xjwnops8u8s4y\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3udrjp006tjwno0h7c4yir\"}}','2026-06-07 16:08:03.463','2026-06-07 16:08:03.463','2026-06-07 16:08:03.463'),
+
+.\local-db-before-clean-20260624-132028.sql:5544
+('cmq3zr8e30005tknokap8x46b','INV-202606-000002','cmq3ue3jm006wjwnoyqo7sgac','cmq39e4qo0000p0nob1amk97o','ISSUED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',799,0,0,799,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3ue3jm006wjwnoyqo7sgac\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3udrjp006tjwno0h7c4yir\"}}','2026-06-07 16:23:26.523','2026-06-07 16:23:26.523','2026-06-07 16:23:26.523'),
+
+.\local-db-before-clean-20260624-132028.sql:5545
+('cmq406hnz0000jonol5j6ahvp','INV-202606-000003','cmq3sqp84000urknoxga01t2l','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',99,0,0,99,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3sqp84000urknoxga01t2l\",\"amount\":99,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3siwn6000rrknoxo0jx3ms\"},\"canceledAt\":\"2026-06-07T17:38:16.113Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":null}','2026-06-07 16:35:18.383','2026-06-07 16:35:18.383','2026-06-07 17:38:16.117'),
+
+.\local-db-before-clean-20260624-132028.sql:5546
+('cmq41wskp0006vwnojhql0o2k','INV-202606-000004','cmq41v7ze0003vwnoc1c7s6jy','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',695,15,104,799,'SAR',NULL,'{\"invoiceNote\":\"┘ü╪º╪¬┘ê╪▒╪⌐/╪Ñ┘è╪╡╪º┘ä ╪»┘ü╪╣ ╪Ñ╪»╪º╪▒┘è. ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä╪╢╪▒┘è╪¿┘è╪⌐ ╪º┘ä┘å┘ç╪º╪ª┘è╪⌐ ╪¬╪¬╪╖┘ä╪¿ ╪º┘â╪¬┘à╪º┘ä ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪│╪¼┘ä ┘ê╪º┘ä╪▒┘é┘à ╪º┘ä╪╢╪▒┘è╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":true,\"vatRate\":15},\"transaction\":{\"id\":\"cmq41v7ze0003vwnoc1c7s6jy\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq41uona0000vwnose3x74oh\"},\"canceledAt\":\"2026-06-07T17:36:17.772Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":null}','2026-06-07 17:23:45.193','2026-06-07 17:23:45.193','2026-06-07 17:36:17.776'),
+
+.\local-db-before-clean-20260624-132028.sql:5547
+('cmq421wjn0006q4noe1zu4apt','INV-202606-000005','cmq421ji40003q4nok7rccl8m','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',86,15,13,99,'SAR','/generated/invoices/INV-202606-000005.pdf','{\"invoiceNote\":\"┘ü╪º╪¬┘ê╪▒╪⌐/╪Ñ┘è╪╡╪º┘ä ╪»┘ü╪╣ ╪Ñ╪»╪º╪▒┘è. ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä╪╢╪▒┘è╪¿┘è╪⌐ ╪º┘ä┘å┘ç╪º╪ª┘è╪⌐ ╪¬╪¬╪╖┘ä╪¿ ╪º┘â╪¬┘à╪º┘ä ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪│╪¼┘ä ┘ê╪º┘ä╪▒┘é┘à ╪º┘ä╪╢╪▒┘è╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":true,\"vatRate\":15},\"transaction\":{\"id\":\"cmq421ji40003q4nok7rccl8m\",\"amount\":99,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq42044x0000q4noec3mm9og\"},\"canceledAt\":\"2026-06-07T18:29:10.923Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":\"╪º╪│╪¬╪▒╪»╪º╪» ╪╣┘à┘ä┘è╪⌐ ╪º┘ä╪»┘ü╪╣\",\"cancelSource\":\"PAYMENT_REFUND\"}','2026-06-07 17:27:43.619','2026-06-07 17:27:43.619','2026-06-07 18:29:48.270'),
+
+.\local-db-before-clean-20260624-132028.sql:5863
+('cmq3sqp84000urknoxga01t2l','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3siwn6000rrknoxo0jx3ms','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3siwn6000rrknoxo0jx3ms\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"┘à╪¡┘à╪» ╪º┘ä┘ü┘è┘ü┘è\",\"receiptUrl\":\"123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 123 | ┘à┘ä╪º╪¡╪╕╪⌐: 123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:01:00.738Z\",\"syncedAt\":\"2026-06-07T13:07:04.364Z\"}','2026-06-07 13:07:04.372','2026-06-07 13:07:04.372'),
+
+.\local-db-before-clean-20260624-132028.sql:5864
+('cmq3ue3jm006wjwnoyqo7sgac','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3udrjp006tjwno0h7c4yir','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3udrjp006tjwno0h7c4yir\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 234 | ┘à┘ä╪º╪¡╪╕╪⌐: 2134 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:53:00.086Z\",\"syncedAt\":\"2026-06-07T13:53:15.626Z\"}','2026-06-07 13:53:15.634','2026-06-07 13:53:15.634'),
+
+.\local-db-before-clean-20260624-132028.sql:5865
+('cmq3ue3ju006xjwnops8u8s4y','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3udrjp006tjwno0h7c4yir','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3udrjp006tjwno0h7c4yir\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 234 | ┘à┘ä╪º╪¡╪╕╪⌐: 2134 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:53:00.086Z\",\"syncedAt\":\"2026-06-07T13:53:15.637Z\"}','2026-06-07 13:53:15.642','2026-06-07 13:53:15.642'),
+
+.\local-db-before-clean-20260624-132028.sql:5866
+('cmq41v7ze0003vwnoc1c7s6jy','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq41uona0000vwnose3x74oh','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq41uona0000vwnose3x74oh\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"`12123\",\"receiptUrl\":\"123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 123 | ┘à┘ä╪º╪¡╪╕╪⌐: 123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T17:22:06.791Z\",\"syncedAt\":\"2026-06-07T17:22:31.848Z\"}','2026-06-07 17:22:31.850','2026-06-07 17:22:31.850'),
+
+.\local-db-before-clean-20260624-132028.sql:5867
+('cmq421ji40003q4nok7rccl8m','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','REFUNDED','bank-transfer:cmq42044x0000q4noec3mm9og','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq42044x0000q4noec3mm9og\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"1234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 1234 | ┘à┘ä╪º╪¡╪╕╪⌐: 1234 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T17:26:20.145Z\",\"syncedAt\":\"2026-06-07T17:27:26.713Z\",\"refundedAt\":\"2026-06-07T18:29:10.910Z\",\"refundedById\":\"cmq39e4qo0000p0nob1amk97o\",\"refundReason\":null,\"refundSource\":\"ADMIN_RECONCILIATION\"}','2026-06-07 17:27:26.716','2026-06-07 18:29:10.915'),
+
+.\local-db-before-clean-20260624-132028.sql:5870
+('cmq45z8260008k8nosem3zuji','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq45yx740005k8no0afer8z2','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq45yx740005k8no0afer8z2\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"2345425\",\"receiptUrl\":\"2345\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 23454 | ┘à┘ä╪º╪¡╪╕╪⌐: 23454 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T19:17:22.960Z\",\"syncedAt\":\"2026-06-07T19:17:37.036Z\"}','2026-06-07 19:17:37.038','2026-06-07 19:17:37.038'),
+
+.\local-db-before-clean-20260624-132028.sql:5871
+('cmq46ewfg000yk8no86ptoq68','cmq46ewbm000jk8no09lykogi',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq46effu000fk8no9sycb25s','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq46effu000fk8no9sycb25s\",\"schoolAccountId\":\"cmq46dsfw000ck8noq30vldq7\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq46ewbm000jk8no09lykogi\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"`1123\",\"receiptUrl\":\"`1123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: `23`1123 | ┘à┘ä╪º╪¡╪╕╪⌐: `123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq46dshf000dk8nopigzmt9g\",\"originalCreatedAt\":\"2026-06-07T19:29:26.442Z\",\"syncedAt\":\"2026-06-07T19:29:48.458Z\"}','2026-06-07 19:29:48.460','2026-06-07 19:29:48.460');
+
+.\local-db-before-clean-20260624-132028.sql:6239
+('cmq41v7zv0004vwnok86o6c8j','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq41v7ze0003vwnoc1c7s6jy\",\"bankTransferRequestId\":\"cmq41uona0000vwnose3x74oh\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":799,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq41uona0000vwnose3x74oh\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 17:22:31.867'),
+
+.\local-db-before-clean-20260624-132028.sql:6243
+('cmq421jiq0004q4noarex4eam','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq421ji40003q4nok7rccl8m\",\"bankTransferRequestId\":\"cmq42044x0000q4noec3mm9og\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq42044x0000q4noec3mm9og\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 17:27:26.738'),
+
+.\local-db-before-clean-20260624-132028.sql:6267
+('cmq45z82g0009k8nobty257mu','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq45z8260008k8nosem3zuji\",\"bankTransferRequestId\":\"cmq45yx740005k8no0afer8z2\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq45yx740005k8no0afer8z2\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 19:17:37.048'),
+
+.\local-db-before-clean-20260624-132028.sql:6272
+('cmq46ewfs000zk8not6k66yon','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq46ewfg000yk8no86ptoq68\",\"bankTransferRequestId\":\"cmq46effu000fk8no9sycb25s\",\"schoolAccountId\":\"cmq46dsfw000ck8noq30vldq7\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq46effu000fk8no9sycb25s\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 19:29:48.472'),
+
+.\plans-subscription-current-files.txt:301
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\plans-subscription-current-files.txt:334
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\plans-subscription-current-files.txt:4703
+type PaymentMethod = "bank" | "online";
+
+.\plans-subscription-current-files.txt:4807
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\plans-subscription-current-files.txt:5152
+setPaymentMethod("bank");
+
+.\plans-subscription-current-files.txt:5268
+active={paymentMethod === "bank"}
+
+.\plans-subscription-current-files.txt:5272
+onClick={() => setPaymentMethod("bank")}
+
+.\plans-subscription-current-files.txt:5330
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\report-1-reference-code-dump.txt:7489
+/bank/i,
+
+.\report-2-flow-code-dump.txt:16494
+/bank/i,
+
+.\report-2-related-files.txt:337
+===== data\ai-report\generated\teacher-performance-knowledge-bank.json =====
+
+.\report-2-runtime-code.txt:7298
+D:\student-guidance-platform-clean\components\activation\counselor-activation-center.tsx:111: const response = await fetch("/api/dashboard/subscription/bank-transfer", {
+
+.\report-2-runtime-code.txt:8332
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:5: type CreatePaidBankTransferPaymentTransactionOptions = {
+
+.\report-2-runtime-code.txt:8333
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:13: type CreatePaidBankTransferPaymentTransactionResult = {
+
+.\report-2-runtime-code.txt:8334
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:50: export async function createPaidBankTransferPaymentTransaction(
+
+.\report-2-runtime-code.txt:8335
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:52: options: CreatePaidBankTransferPaymentTransactionOptions = {}
+
+.\report-2-runtime-code.txt:8336
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:53: ): Promise<CreatePaidBankTransferPaymentTransactionResult> {
+
+.\report-2-runtime-code.txt:8337
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:54: const request = await prisma.bankTransferRequest.findUnique({
+
+.\report-2-runtime-code.txt:8338
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:84: if (request.status !== "PAID") {
+
+.\report-2-runtime-code.txt:8339
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:87: skippedReason: "BANK_TRANSFER_REQUEST_NOT_PAID",
+
+.\report-2-runtime-code.txt:8340
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:102: const existingTransaction = await prisma.paymentTransaction.findFirst({
+
+.\report-2-runtime-code.txt:8341
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:125: const subscription = await prisma.subscription.findFirst({
+
+.\report-2-runtime-code.txt:8342
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:142: const transaction = await prisma.paymentTransaction.create({
+
+.\report-2-runtime-code.txt:8343
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:148: status: "PAID",
+
+.\report-2-runtime-code.txt:8344
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:179: await logAdminActivity({
+
+.\report-2-runtime-code.txt:8345
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:185: details: {
+
+.\report-2-runtime-code.txt:8346
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:210: const transaction = await prisma.paymentTransaction.findFirst({
+
+.\report-2-runtime-code.txt:8370
+D:\student-guidance-platform-clean\lib\admin\payments.ts:3: import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+
+.\report-edit-snapshot-review.txt:1169
+id: "pending-bank-transfers",
+
+.\report-edit-snapshot-review.txt:44077
+/bank/i,
+
+.\report-edit-snapshot-review.txt:57485
+SPECIAL_REPORT_FIELD_BANK,
+
+.\report-edit-snapshot-review.txt:57654
+SPECIAL_REPORT_FIELD_BANK.find(
+
+.\report-edit-snapshot-review.txt:57678
+SPECIAL_REPORT_FIELD_BANK.find(
+
+.\report-edit-snapshot-review.txt:57686
+): field is (typeof SPECIAL_REPORT_FIELD_BANK)[number] =>
+
+.\report-edit-snapshot-review.txt:58222
+{SPECIAL_REPORT_FIELD_BANK.map(
+
+.\report-edit-snapshot-review.txt:61857
+if (!transactionExternalRef?.startsWith("bank-transfer:")) {
+
+.\report-edit-snapshot-review.txt:61861
+const bankTransferRequestId = transactionExternalRef.replace("bank-transfer:", "");
+
+.\report-edit-snapshot-review.txt:63816
+/bank/i,
+
+.\report-related-code.txt:3444
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\report-related-code.txt:3445
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\report-related-code.txt:3446
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\report-related-code.txt:3692
+id: "pending-bank-transfers",
+
+.\report-related-code.txt:15672
+"bank-transfer-requested": "طلب تحويل",
+
+.\report-related-code.txt:15673
+"bank-transfer-approved": "قبول تحويل",
+
+.\report-related-code.txt:15674
+"bank-transfer-rejected": "رفض تحويل",
+
+.\report-related-code.txt:33265
+/bank/i,
+
+.\report-related-code.txt:51138
+action: "bank-transfer-requested",
+
+.\report-related-code.txt:51194
+? "bank-transfer-approved"
+
+.\report-related-code.txt:51195
+: "bank-transfer-rejected",
+
+.\report-related-code.txt:52225
+/bank/i,
+
+.\report2-admin-template-real-source-context.txt:13474
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\report2-admin-template-real-source-context.txt:13475
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\report2-admin-template-real-source-context.txt:13476
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\report2-evidence-render-current-context.txt:51468
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\report2-evidence-render-current-context.txt:51469
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\report2-evidence-render-current-context.txt:51470
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\report2-header-match-context.txt:5665
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\report2-header-match-context.txt:5698
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\report2-header-match-context.txt:6277
+const response = await fetch("/api/dashboard/subscription/bank-transfer", {
+
+.\report2-header-match-context.txt:7118
+"bank-transfer-requested": "طلب تحويل",
+
+.\report2-header-match-context.txt:7119
+"bank-transfer-approved": "قبول تحويل",
+
+.\report2-header-match-context.txt:7120
+"bank-transfer-rejected": "رفض تحويل",
+
+.\report2-header-match-context.txt:50193
+type PaymentMethod = "bank" | "online";
+
+.\report2-header-match-context.txt:50316
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\report2-header-match-context.txt:50739
+setPaymentMethod("bank");
+
+.\report2-header-match-context.txt:50863
+active={paymentMethod === "bank"}
+
+.\report2-header-match-context.txt:50867
+onClick={() => setPaymentMethod("bank")}
+
+.\report2-header-match-context.txt:50925
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\report2-prepare-execution-context.txt:18782
+/bank/i,
+
+.\report2-prepare-execution-context.txt:27701
+/bank/i,
+
+.\school-settings-ui-needed-files.txt:57
+app\api\dashboard\subscription\bank-transfer\route.ts
+
+.\school-settings-ui-needed-files.txt:181
+lib\admin\bank-transfer-payments.ts
+
+.\school-settings-ui-needed-files.txt:2057
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\school-settings-ui-needed-files.txt:2058
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\school-settings-ui-needed-files.txt:2059
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\school-settings-ui-needed-files.txt:2498
+id: "pending-bank-transfers",
+
+.\school-settings-ui-needed-files.txt:10627
+==================== app\api\dashboard\subscription\bank-transfer\route.ts ====================
+
+.\school-settings-ui-needed-files.txt:10693
+// audit-log:bank-transfer-requested
+
+.\school-settings-ui-needed-files.txt:17467
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\school-settings-ui-needed-files.txt:17500
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\school-settings-ui-needed-files.txt:21335
+"bank-transfer-requested": "طلب تحويل",
+
+.\school-settings-ui-needed-files.txt:21336
+"bank-transfer-approved": "قبول تحويل",
+
+.\school-settings-ui-needed-files.txt:21337
+"bank-transfer-rejected": "رفض تحويل",
+
+.\school-settings-ui-needed-files.txt:66870
+type PaymentMethod = "bank" | "online";
+
+.\school-settings-ui-needed-files.txt:66990
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\school-settings-ui-needed-files.txt:67403
+setPaymentMethod("bank");
+
+.\school-settings-ui-needed-files.txt:67527
+active={paymentMethod === "bank"}
+
+.\school-settings-ui-needed-files.txt:67531
+onClick={() => setPaymentMethod("bank")}
+
+.\school-settings-ui-needed-files.txt:67589
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\school-settings-ui-needed-files.txt:70615
+action: "bank-transfer-requested",
+
+.\school-settings-ui-needed-files.txt:70671
+? "bank-transfer-approved"
+
+.\school-settings-ui-needed-files.txt:70672
+: "bank-transfer-rejected",
+
+.\school-settings-ui-needed-files.txt:70936
+==================== lib\admin\bank-transfer-payments.ts ====================
+
+.\school-settings-ui-needed-files.txt:70975
+return `bank-transfer:${bankTransferRequestId}`;
+
+.\school-settings-ui-needed-files.txt:71320
+if (!transactionExternalRef?.startsWith("bank-transfer:")) {
+
+.\school-settings-ui-needed-files.txt:71324
+const bankTransferRequestId = transactionExternalRef.replace("bank-transfer:", "");
+
+.\school-settings-ui-needed-files.txt:71670
+import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+
+.\school-settings-ui-needed-files.txt:74959
+/bank/i,
+
+.\security-review-extra-files.txt:1767
+================ FILE: app\api\dashboard\subscription\bank-transfer\route.ts ================
+
+.\security-review-extra-files.txt:1833
+// audit-log:bank-transfer-requested
+
+.\security-review-files.txt:2121
+action: "bank-transfer-requested",
+
+.\security-review-files.txt:2177
+? "bank-transfer-approved"
+
+.\security-review-files.txt:2178
+: "bank-transfer-rejected",
+
+.\special-report-architecture-scan.txt:8
+M data/ai-report/generated/teacher-performance-knowledge-bank.json
+
+.\special-report-architecture-scan.txt:730
+"source": "bank | custom",
+
+.\statistics-foundation-scan.txt:6347
+SPECIAL_REPORT_FIELD_BANK,
+
+.\statistics-report-review.txt:26289
+action: "bank-transfer-requested",
+
+.\statistics-report-review.txt:26345
+? "bank-transfer-approved"
+
+.\statistics-report-review.txt:26346
+: "bank-transfer-rejected",
+
+.\statistics-stage-1-scan.txt:1029
+action: "bank-transfer-requested",
+
+.\statistics-stage-1-scan.txt:1085
+? "bank-transfer-approved"
+
+.\statistics-stage-1-scan.txt:1086
+: "bank-transfer-rejected",
+
+.\student-picker-api-debug.txt:1116
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\student-picker-api-debug.txt:1117
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\student-picker-api-debug.txt:1118
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\student-picker-api-debug.txt:1358
+id: "pending-bank-transfers",
+
+.\student-picker-api-debug.txt:8845
+// audit-log:bank-transfer-requested
+
+.\student-reference-gender-diagnostic.txt:40398
+51:   /bank/i,
+
+.\student-reference-gender-diagnostic.txt:40410
+51:   /bank/i,
+
+.\student-reference-gender-diagnostic.txt:58026
+721:               active={paymentMethod === "bank"}
+
+.\student-reference-gender-diagnostic.txt:58030
+725:               onClick={() => setPaymentMethod("bank")}
+
+.\student-reference-gender-diagnostic.txt:58046
+725:               onClick={() => setPaymentMethod("bank")}
+
+.\student-reference-gender-diagnostic.txt:74997
+9: import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+
+.\student-reference-gender-diagnostic.txt:76090
+189:       id: "pending-bank-transfers",
+
+.\student-reference-gender-diagnostic.txt:76102
+189:       id: "pending-bank-transfers",
+
+.\student-reference-gender-diagnostic.txt:77628
+112:       transaction.externalRef?.startsWith("bank-transfer:")
+
+.\student-reference-gender-diagnostic.txt:77630
+114:       const bankTransferRequestId = transaction.externalRef.replace("bank-transfer:", "");
+
+.\student-reference-gender-diagnostic.txt:93740
+===== FILE: .\app\api\dashboard\subscription\bank-transfer\route.ts =====
+
+.\student-reference-gender-diagnostic.txt:95353
+75:     action: "bank-transfer-requested",
+
+.\student-reference-gender-diagnostic.txt:95377
+75:     action: "bank-transfer-requested",
+
+.\student-reference-gender-diagnostic.txt:95479
+131:         ? "bank-transfer-approved"
+
+.\student-reference-gender-diagnostic.txt:95480
+132:         : "bank-transfer-rejected",
+
+.\student-reference-gender-diagnostic.txt:95991
+===== FILE: .\lib\admin\bank-transfer-payments.ts =====
+
+.\student-reference-gender-diagnostic.txt:106722
+36:   /bank/i,
+
+.\student-reference-gender-diagnostic.txt:106746
+36:   /bank/i,
+
+.\subscriptions-page-files.txt:4183
+type PaymentMethod = "bank" | "online";
+
+.\subscriptions-page-files.txt:4303
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\subscriptions-page-files.txt:4716
+setPaymentMethod("bank");
+
+.\subscriptions-page-files.txt:4840
+active={paymentMethod === "bank"}
+
+.\subscriptions-page-files.txt:4844
+onClick={() => setPaymentMethod("bank")}
+
+.\subscriptions-page-files.txt:4902
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\workflow-activation-api-map.txt:1
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+
+.\workflow-activation-api-map.txt:5
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+
+.\workflow-dump.txt:2687
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\workflow-dump.txt:2720
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\workflow-dump.txt:3777
+"bank-transfer-requested": "طلب تحويل",
+
+.\workflow-dump.txt:3778
+"bank-transfer-approved": "قبول تحويل",
+
+.\workflow-dump.txt:3779
+"bank-transfer-rejected": "رفض تحويل",
+
+.\workflow-ui-and-upload-map.txt:1
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+
+.\app\api\dashboard\admin\activity\metrics\route.ts:213
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\app\api\dashboard\admin\activity\metrics\route.ts:214
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\app\api\dashboard\admin\activity\metrics\route.ts:215
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\app\api\dashboard\admin\operational-alerts\route.ts:189
+id: "pending-bank-transfers",
+
+.\app\api\dashboard\ai-report2\suggest\route.ts:444
+"source": "bank | custom",
+
+.\app\api\dashboard\special-report\ai\route.ts:6
+SPECIAL_REPORT_FIELD_BANK,
+
+.\app\api\dashboard\special-report\ai\route.ts:99
+SPECIAL_REPORT_FIELD_BANK.find(
+
+.\app\api\dashboard\subscription\bank-transfer\route.ts:65
+// audit-log:bank-transfer-requested
+
+.\components\activation\admin-activations-center.tsx:271
+`/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+
+.\components\activation\admin-activations-center.tsx:304
+`/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+
+.\components\activation\counselor-activation-center.tsx:111
+const response = await fetch("/api/dashboard/subscription/bank-transfer", {
+
+.\components\admin\admin-activity-metrics-panel.tsx:113
+"bank-transfer-requested": "طلب تحويل",
+
+.\components\admin\admin-activity-metrics-panel.tsx:114
+"bank-transfer-approved": "قبول تحويل",
+
+.\components\admin\admin-activity-metrics-panel.tsx:115
+"bank-transfer-rejected": "رفض تحويل",
+
+.\components\report-engine\report-field-selection-gate.tsx:51
+/bank/i,
+
+.\components\special-report\special-report-builder.tsx:30
+SPECIAL_REPORT_FIELD_BANK,
+
+.\components\special-report\special-report-builder.tsx:199
+SPECIAL_REPORT_FIELD_BANK.find(
+
+.\components\special-report\special-report-builder.tsx:223
+SPECIAL_REPORT_FIELD_BANK.find(
+
+.\components\special-report\special-report-builder.tsx:231
+): field is (typeof SPECIAL_REPORT_FIELD_BANK)[number] =>
+
+.\components\special-report\special-report-builder.tsx:767
+{SPECIAL_REPORT_FIELD_BANK.map(
+
+.\components\subscription\counselor-plans-page.tsx:51
+type PaymentMethod = "bank" | "online";
+
+.\components\subscription\counselor-plans-page.tsx:174
+const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+.\components\subscription\counselor-plans-page.tsx:597
+setPaymentMethod("bank");
+
+.\components\subscription\counselor-plans-page.tsx:721
+active={paymentMethod === "bank"}
+
+.\components\subscription\counselor-plans-page.tsx:725
+onClick={() => setPaymentMethod("bank")}
+
+.\components\subscription\counselor-plans-page.tsx:783
+{!isSelectedPlanFree && paymentMethod === "bank" ? (
+
+.\data\ai-report\generated\teacher-report-patterns.json:3
+"source": "teacher-performance-knowledge-bank.json",
+
+.\data\ai-report\generated\teacher-report-patterns.json:5
+"description": "Patterns extracted from teacher report knowledge bank. Used as flexible guidance, not a mandatory template.",
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2029
+('cmq3z7g5j0003tkno1w73lnnm','INV-202606-000001','cmq3ue3ju006xjwnops8u8s4y','cmq39e4qo0000p0nob1amk97o','ISSUED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',799,0,0,799,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3ue3ju006xjwnops8u8s4y\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3udrjp006tjwno0h7c4yir\"}}','2026-06-07 16:08:03.463','2026-06-07 16:08:03.463','2026-06-07 16:08:03.463'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2030
+('cmq3zr8e30005tknokap8x46b','INV-202606-000002','cmq3ue3jm006wjwnoyqo7sgac','cmq39e4qo0000p0nob1amk97o','ISSUED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',799,0,0,799,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3ue3jm006wjwnoyqo7sgac\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3udrjp006tjwno0h7c4yir\"}}','2026-06-07 16:23:26.523','2026-06-07 16:23:26.523','2026-06-07 16:23:26.523'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2031
+('cmq406hnz0000jonol5j6ahvp','INV-202606-000003','cmq3sqp84000urknoxga01t2l','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',99,0,0,99,'SAR',NULL,'{\"invoiceNote\":\"╪¬┘à ╪Ñ╪╡╪»╪º╪▒ ┘ç╪░┘ç ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪ó┘ä┘è┘ï╪º ┘à┘å ┘à╪▒┘â╪▓ ╪º┘ä┘à╪»┘ü┘ê╪╣╪º╪¬ ┘ü┘è ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":false,\"vatRate\":0},\"transaction\":{\"id\":\"cmq3sqp84000urknoxga01t2l\",\"amount\":99,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq3siwn6000rrknoxo0jx3ms\"},\"canceledAt\":\"2026-06-07T17:38:16.113Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":null}','2026-06-07 16:35:18.383','2026-06-07 16:35:18.383','2026-06-07 17:38:16.117'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2032
+('cmq41wskp0006vwnojhql0o2k','INV-202606-000004','cmq41v7ze0003vwnoc1c7s6jy','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',695,15,104,799,'SAR',NULL,'{\"invoiceNote\":\"┘ü╪º╪¬┘ê╪▒╪⌐/╪Ñ┘è╪╡╪º┘ä ╪»┘ü╪╣ ╪Ñ╪»╪º╪▒┘è. ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä╪╢╪▒┘è╪¿┘è╪⌐ ╪º┘ä┘å┘ç╪º╪ª┘è╪⌐ ╪¬╪¬╪╖┘ä╪¿ ╪º┘â╪¬┘à╪º┘ä ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪│╪¼┘ä ┘ê╪º┘ä╪▒┘é┘à ╪º┘ä╪╢╪▒┘è╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":true,\"vatRate\":15},\"transaction\":{\"id\":\"cmq41v7ze0003vwnoc1c7s6jy\",\"amount\":799,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq41uona0000vwnose3x74oh\"},\"canceledAt\":\"2026-06-07T17:36:17.772Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":null}','2026-06-07 17:23:45.193','2026-06-07 17:23:45.193','2026-06-07 17:36:17.776'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2033
+('cmq421wjn0006q4noe1zu4apt','INV-202606-000005','cmq421ji40003q4nok7rccl8m','cmq39e4qo0000p0nob1amk97o','CANCELED','┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è','smstudents.com','╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐',NULL,NULL,NULL,'┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','k@k.com','┘à┘ê╪¼┘ç ╪╖┘ä╪º╪¿┘è','╪º┘ä╪╣╪»┘ê┘è┘å','┘â╪▒┘è┘à ╪º┘ä┘ü┘è┘ü┘è','╪º╪┤╪¬╪▒╪º┘â ┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è - ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐',86,15,13,99,'SAR','/generated/invoices/INV-202606-000005.pdf','{\"invoiceNote\":\"┘ü╪º╪¬┘ê╪▒╪⌐/╪Ñ┘è╪╡╪º┘ä ╪»┘ü╪╣ ╪Ñ╪»╪º╪▒┘è. ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä╪╢╪▒┘è╪¿┘è╪⌐ ╪º┘ä┘å┘ç╪º╪ª┘è╪⌐ ╪¬╪¬╪╖┘ä╪¿ ╪º┘â╪¬┘à╪º┘ä ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪│╪¼┘ä ┘ê╪º┘ä╪▒┘é┘à ╪º┘ä╪╢╪▒┘è╪¿┘è.\",\"settings\":{\"sellerName\":\"┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘ê╪¼┘è┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"sellerDomain\":\"smstudents.com\",\"sellerCountry\":\"╪º┘ä┘à┘à┘ä┘â╪⌐ ╪º┘ä╪╣╪▒╪¿┘è╪⌐ ╪º┘ä╪│╪╣┘ê╪»┘è╪⌐\",\"sellerAddress\":null,\"commercialRegistration\":null,\"taxNumber\":null,\"vatEnabled\":true,\"vatRate\":15},\"transaction\":{\"id\":\"cmq421ji40003q4nok7rccl8m\",\"amount\":99,\"currency\":\"SAR\",\"method\":\"BANK_TRANSFER\",\"status\":\"PAID\",\"externalRef\":\"bank-transfer:cmq42044x0000q4noec3mm9og\"},\"canceledAt\":\"2026-06-07T18:29:10.923Z\",\"canceledById\":\"cmq39e4qo0000p0nob1amk97o\",\"cancelReason\":\"╪º╪│╪¬╪▒╪»╪º╪» ╪╣┘à┘ä┘è╪⌐ ╪º┘ä╪»┘ü╪╣\",\"cancelSource\":\"PAYMENT_REFUND\"}','2026-06-07 17:27:43.619','2026-06-07 17:27:43.619','2026-06-07 18:29:48.270'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2260
+('cmq3sqp84000urknoxga01t2l','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3siwn6000rrknoxo0jx3ms','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3siwn6000rrknoxo0jx3ms\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"┘à╪¡┘à╪» ╪º┘ä┘ü┘è┘ü┘è\",\"receiptUrl\":\"123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 123 | ┘à┘ä╪º╪¡╪╕╪⌐: 123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:01:00.738Z\",\"syncedAt\":\"2026-06-07T13:07:04.364Z\"}','2026-06-07 13:07:04.372','2026-06-07 13:07:04.372'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2261
+('cmq3ue3jm006wjwnoyqo7sgac','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3udrjp006tjwno0h7c4yir','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3udrjp006tjwno0h7c4yir\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 234 | ┘à┘ä╪º╪¡╪╕╪⌐: 2134 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:53:00.086Z\",\"syncedAt\":\"2026-06-07T13:53:15.626Z\"}','2026-06-07 13:53:15.634','2026-06-07 13:53:15.634'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2262
+('cmq3ue3ju006xjwnops8u8s4y','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq3udrjp006tjwno0h7c4yir','{\"source\":\"BANK_TRANSFER_REQUEST\",\"bankTransferRequestId\":\"cmq3udrjp006tjwno0h7c4yir\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"senderName\":\"234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 234 | ┘à┘ä╪º╪¡╪╕╪⌐: 2134 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T13:53:00.086Z\",\"syncedAt\":\"2026-06-07T13:53:15.637Z\"}','2026-06-07 13:53:15.642','2026-06-07 13:53:15.642'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2263
+('cmq41v7ze0003vwnoc1c7s6jy','cmq3sen4z0004rknonqstkzdy',NULL,799,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq41uona0000vwnose3x74oh','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq41uona0000vwnose3x74oh\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"`12123\",\"receiptUrl\":\"123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪│┘å┘ê┘è | ╪¼┘ê╪º┘ä: 123 | ┘à┘ä╪º╪¡╪╕╪⌐: 123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 365 ┘è┘ê┘à\",\"billingCycle\":\"yearly\",\"durationDays\":365,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T17:22:06.791Z\",\"syncedAt\":\"2026-06-07T17:22:31.848Z\"}','2026-06-07 17:22:31.850','2026-06-07 17:22:31.850'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2264
+('cmq421ji40003q4nok7rccl8m','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','REFUNDED','bank-transfer:cmq42044x0000q4noec3mm9og','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq42044x0000q4noec3mm9og\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"1234\",\"receiptUrl\":\"1234\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 1234 | ┘à┘ä╪º╪¡╪╕╪⌐: 1234 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T17:26:20.145Z\",\"syncedAt\":\"2026-06-07T17:27:26.713Z\",\"refundedAt\":\"2026-06-07T18:29:10.910Z\",\"refundedById\":\"cmq39e4qo0000p0nob1amk97o\",\"refundReason\":null,\"refundSource\":\"ADMIN_RECONCILIATION\"}','2026-06-07 17:27:26.716','2026-06-07 18:29:10.915'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2267
+('cmq45z8260008k8nosem3zuji','cmq3sen4z0004rknonqstkzdy',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq45yx740005k8no0afer8z2','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq45yx740005k8no0afer8z2\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq3sen4z0004rknonqstkzdy\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"2345425\",\"receiptUrl\":\"2345\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: 23454 | ┘à┘ä╪º╪¡╪╕╪⌐: 23454 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq398ldk0001egnop84ms58l\",\"originalCreatedAt\":\"2026-06-07T19:17:22.960Z\",\"syncedAt\":\"2026-06-07T19:17:37.036Z\"}','2026-06-07 19:17:37.038','2026-06-07 19:17:37.038'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2268
+('cmq46ewfg000yk8no86ptoq68','cmq46ewbm000jk8no09lykogi',NULL,99,'SAR','BANK_TRANSFER','PAID','bank-transfer:cmq46effu000fk8no9sycb25s','{\"source\":\"BANK_TRANSFER_APPROVAL\",\"bankTransferRequestId\":\"cmq46effu000fk8no9sycb25s\",\"schoolAccountId\":\"cmq46dsfw000ck8noq30vldq7\",\"requestPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionId\":\"cmq46ewbm000jk8no09lykogi\",\"activeSubscriptionPlanId\":\"cmq3sifkr0009rknoop8oszne\",\"activeSubscriptionStatus\":\"ACTIVE\",\"senderName\":\"`1123\",\"receiptUrl\":\"`1123\",\"adminNote\":\"╪╖┘ä╪¿ ╪¿╪º┘é╪⌐: ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ | ┘å┘ê╪╣ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â: ╪┤┘ç╪▒┘è | ╪¼┘ê╪º┘ä: `23`1123 | ┘à┘ä╪º╪¡╪╕╪⌐: `123 | ╪¬┘à ╪º┘ä┘é╪¿┘ê┘ä ┘ê╪¬┘ü╪╣┘è┘ä ╪¿╪º┘é╪⌐ ╪¿╪º┘é╪⌐ ╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪┤┘ç╪▒┘è╪⌐ ┘ä┘à╪»╪⌐ 30 ┘è┘ê┘à\",\"billingCycle\":\"monthly\",\"durationDays\":30,\"requesterUserId\":\"cmq46dshf000dk8nopigzmt9g\",\"originalCreatedAt\":\"2026-06-07T19:29:26.442Z\",\"syncedAt\":\"2026-06-07T19:29:48.458Z\"}','2026-06-07 19:29:48.460','2026-06-07 19:29:48.460');
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2453
+('cmq41v7zv0004vwnok86o6c8j','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq41v7ze0003vwnoc1c7s6jy\",\"bankTransferRequestId\":\"cmq41uona0000vwnose3x74oh\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":799,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq41uona0000vwnose3x74oh\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 17:22:31.867'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2457
+('cmq421jiq0004q4noarex4eam','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq421ji40003q4nok7rccl8m\",\"bankTransferRequestId\":\"cmq42044x0000q4noec3mm9og\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq42044x0000q4noec3mm9og\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 17:27:26.738'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2481
+('cmq45z82g0009k8nobty257mu','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq45z8260008k8nosem3zuji\",\"bankTransferRequestId\":\"cmq45yx740005k8no0afer8z2\",\"schoolAccountId\":\"cmq398l940000egnowj9hvqdd\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq45yx740005k8no0afer8z2\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 19:17:37.048'),
+
+.\db-backups\student_guidance_local_20260609-025050.sql:2486
+('cmq46ewfs000zk8not6k66yon','cmq39e4qo0000p0nob1amk97o',NULL,NULL,'PAYMENT','PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER','SUCCESS','╪Ñ┘å╪┤╪º╪í ╪╣┘à┘ä┘è╪⌐ ╪»┘ü╪╣ ┘à┘å ╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è','{\"paymentTransactionId\":\"cmq46ewfg000yk8no86ptoq68\",\"bankTransferRequestId\":\"cmq46effu000fk8no9sycb25s\",\"schoolAccountId\":\"cmq46dsfw000ck8noq30vldq7\",\"planId\":\"cmq3sifkr0009rknoop8oszne\",\"amount\":99,\"currency\":\"SAR\",\"externalRef\":\"bank-transfer:cmq46effu000fk8no9sycb25s\",\"source\":\"BANK_TRANSFER_APPROVAL\"}','::1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','2026-06-07 19:29:48.472'),
+
+.\docs\ACTION_BUTTON_UX_POLICY.md:36
+- Approve bank transfer
+
+.\docs\ACTION_BUTTON_UX_POLICY.md:37
+- Reject bank transfer
+
+.\lib\admin\activity-events.ts:75
+action: "bank-transfer-requested",
+
+.\lib\admin\activity-events.ts:131
+? "bank-transfer-approved"
+
+.\lib\admin\activity-events.ts:132
+: "bank-transfer-rejected",
+
+.\lib\admin\bank-transfer-payments.ts:38
+return `bank-transfer:${bankTransferRequestId}`;
+
+.\lib\admin\invoices.ts:148
+if (!transactionExternalRef?.startsWith("bank-transfer:")) {
+
+.\lib\admin\invoices.ts:152
+const bankTransferRequestId = transactionExternalRef.replace("bank-transfer:", "");
+
+.\lib\admin\payments.ts:3
+import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+
+.\lib\ai-report\ai-report-knowledge-retriever.ts:17
+"teacher-performance-knowledge-bank.json",
+
+.\lib\ai-report\ai-report-knowledge-retriever.ts:126
+`AI report knowledge bank is missing. Run: node scripts/build-ai-report-knowledge-bank.mjs`,
+
+.\lib\ai-report\ai-report-knowledge-retriever.ts:233
+const bank = getKnowledgeBank();
+
+.\lib\ai-report\ai-report-knowledge-retriever.ts:237
+const items = bank.items
+
+.\lib\report-engine\document-draft\report-document-builder.ts:36
+/bank/i,
+
+.\lib\special-report\catalog.ts:78
+export const SPECIAL_REPORT_FIELD_BANK: SpecialReportFieldDefinition[] = [
+
+.\lib\special-report\catalog.ts:254
+SPECIAL_REPORT_FIELD_BANK.find((field) => field.key === key) ?? null
+
+.\lib\special-report\catalog.ts:262
+SPECIAL_REPORT_FIELD_BANK.map((field) => field.key)
+
+.\_local-diagnostics\hostinger-login-pool-diagnosis.txt:555
+D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts:28: error instanceof Prisma.PrismaClientKnownRequestError &&
+
+.\_review-next-report-from-case\project-report-case-map.txt:145
+D:\student-guidance-platform-clean\app\api\dashboard\subscription\bank-transfer\route.ts
+
+.\_review-template-studio-full\template-studio-files-combined.txt:1150
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\_review-template-studio-full\template-studio-files-combined.txt:1151
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\_review-template-studio-full\template-studio-files-combined.txt:1152
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\_review-template-studio-full\template-studio-files-combined.txt:6739
+"bank-transfer-requested": "طلب تحويل",
+
+.\_review-template-studio-full\template-studio-files-combined.txt:6740
+"bank-transfer-approved": "قبول تحويل",
+
+.\_review-template-studio-full\template-studio-files-combined.txt:6741
+"bank-transfer-rejected": "رفض تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:1150
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:1151
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:1152
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:10113
+"bank-transfer-requested": "طلب تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:10114
+"bank-transfer-approved": "قبول تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-1.txt:10115
+"bank-transfer-rejected": "رفض تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-2.txt:6169
+action: "bank-transfer-requested",
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-2.txt:6225
+? "bank-transfer-approved"
+
+.\_review-template-studio-full-v2\template-studio-files-combined-part-2.txt:6226
+: "bank-transfer-rejected",
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:1150
+bankTransfers: countAction("bank-transfer-requested"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:1151
+approvedTransfers: countAction("bank-transfer-approved"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:1152
+rejectedTransfers: countAction("bank-transfer-rejected"),
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:10113
+"bank-transfer-requested": "طلب تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:10114
+"bank-transfer-approved": "قبول تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:10115
+"bank-transfer-rejected": "رفض تحويل",
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:36260
+action: "bank-transfer-requested",
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:36316
+? "bank-transfer-approved"
+
+.\_review-template-studio-full-v2\template-studio-files-combined.txt:36317
+: "bank-transfer-rejected",

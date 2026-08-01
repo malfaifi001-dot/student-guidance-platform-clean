@@ -1,0 +1,1726 @@
+{
+  "service": {
+    "id": "cmqzak7q100tycono9983b3dh",
+    "slug": "job_duties_performance",
+    "name": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐"
+  },
+  "runtimeSelectedWorkflow": {
+    "id": "cmsa5xh2502tbe4noaty0gqu6",
+    "name": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐ Workflow",
+    "workflowType": "service-main",
+    "fieldsCount": 50,
+    "optionsCount": 501
+  },
+  "workflows": [
+    {
+      "id": "cmsa5xh2502tbe4noaty0gqu6",
+      "name": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐ Workflow",
+      "version": 2,
+      "status": "ACTIVE",
+      "isActive": true,
+      "activeKey": "cmqzak7q100tycono9983b3dh:service-main",
+      "workflowType": "service-main",
+      "createdAt": "2026-08-01T09:22:17.117Z",
+      "updatedAt": "2026-08-01T09:22:34.191Z",
+      "fieldsCount": 50,
+      "optionsCount": 501,
+      "fields": [
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "duty_record_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä╪│╪¼┘ä ╪ú┘ê ╪º┘ä╪¿╪▒┘å╪º┘à╪¼",
+          "type": "SELECT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 10,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "weekly_focus",
+          "label": "┘à╪¼╪º┘ä ╪º┘ä╪¬┘é╪▒┘è╪▒ ╪º┘ä╪ú╪│╪¿┘ê╪╣┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "weekly_school_report",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "supervision_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä┘à┘å╪º┘ê╪¿╪⌐ ╪ú┘ê ╪º┘ä╪Ñ╪┤╪▒╪º┘ü",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "daily_supervision",
+          "optionsCount": 7,
+          "linkedOptionsCount": 7
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "standby_type",
+          "label": "┘å┘ê╪╣ ╪º╪│╪¬╪½┘à╪º╪▒ ╪¡╪╡╪⌐ ╪º┘ä╪º┘å╪¬╪╕╪º╪▒",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "standby_class",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "safety_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä┘à┘ç┘à╪⌐ ┘ü┘è ╪º┘ä╪ú┘à┘å ┘ê╪º┘ä╪│┘ä╪º┘à╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "safety_security",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "broadcast_type",
+          "label": "┘à┘ê╪╢┘ê╪╣ ╪º┘ä╪Ñ╪░╪º╪╣╪⌐ ╪º┘ä┘à╪»╪▒╪│┘è╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_broadcast",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "activity_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä┘å╪┤╪º╪╖ ╪ú┘ê ╪º┘ä┘ü╪╣╪º┘ä┘è╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "extracurricular_activity",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "discipline_type",
+          "label": "┘à╪¼╪º┘ä ╪º┘ä╪º┘å╪╢╪¿╪º╪╖ ╪º┘ä┘à╪»╪▒╪│┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_discipline",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "assignment_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä╪¬┘â┘ä┘è┘ü",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_assignment",
+          "optionsCount": 8,
+          "linkedOptionsCount": 8
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "committee_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä┘ä╪¼┘å╪⌐ ╪ú┘ê ╪º┘ä┘ü╪▒┘è┘é",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "committee_team",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "record_type",
+          "label": "┘å┘ê╪╣ ╪º┘ä╪│╪¼┘ä ╪ú┘ê ╪º┘ä╪¬┘ê╪½┘è┘é",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "records_documentation",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "weekly_actions",
+          "label": "╪º┘ä┘à┘ç╪º┘à ╪º┘ä┘à┘å┘ü╪░╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": "weekly_focus",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "supervision_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪Ñ╪┤╪▒╪º┘ü",
+          "type": "TEXT",
+          "dependsOnFieldKey": "supervision_type",
+          "linkedToValue": null,
+          "optionsCount": 28,
+          "linkedOptionsCount": 28
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "standby_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¡╪╡╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": "standby_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "safety_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "TEXT",
+          "dependsOnFieldKey": "safety_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "broadcast_actions",
+          "label": "┘ü┘é╪▒╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "TEXT",
+          "dependsOnFieldKey": "broadcast_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "activity_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "TEXT",
+          "dependsOnFieldKey": "activity_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "discipline_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "TEXT",
+          "dependsOnFieldKey": "discipline_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "assignment_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "TEXT",
+          "dependsOnFieldKey": "assignment_type",
+          "linkedToValue": null,
+          "optionsCount": 46,
+          "linkedOptionsCount": 46
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "committee_actions",
+          "label": "┘å┘ê╪╣ ╪º┘ä┘à╪┤╪º╪▒┘â╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": "committee_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "record_actions",
+          "label": "╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä╪¬╪¡╪»┘è╪½",
+          "type": "TEXT",
+          "dependsOnFieldKey": "record_type",
+          "linkedToValue": null,
+          "optionsCount": 24,
+          "linkedOptionsCount": 24
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "weekly_completion",
+          "label": "┘à╪│╪¬┘ê┘ë ╪º┘ä╪Ñ┘å╪¼╪º╪▓",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "weekly_school_report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "supervision_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "daily_supervision",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "standby_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "standby_class",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "safety_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "safety_security",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "broadcast_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘é╪»┘è┘à",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_broadcast",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "activity_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "extracurricular_activity",
+          "optionsCount": 6,
+          "linkedOptionsCount": 6
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "discipline_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä┘à╪╣╪º┘ä╪¼╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_discipline",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "assignment_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "assignment_type",
+          "linkedToValue": null,
+          "optionsCount": 25,
+          "linkedOptionsCount": 25
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "committee_role",
+          "label": "╪º┘ä╪»┘ê╪▒ ┘ü┘è ╪º┘ä┘ä╪¼┘å╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "committee_team",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "record_method",
+          "label": "╪ú╪│┘ä┘ê╪¿ ╪º┘ä╪¬┘ê╪½┘è┘é",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "records_documentation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "weekly_result",
+          "label": "╪º┘ä┘å╪¬┘è╪¼╪⌐ ╪º┘ä╪╣╪º┘à╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "weekly_school_report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "supervision_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "daily_supervision",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "standby_engagement",
+          "label": "┘à╪│╪¬┘ê┘ë ╪¬┘ü╪º╪╣┘ä ╪º┘ä╪╖┘ä╪º╪¿",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "standby_class",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "safety_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "safety_security",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "broadcast_participation",
+          "label": "╪┤┘â┘ä ╪º┘ä┘à╪┤╪º╪▒┘â╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_broadcast",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "activity_participation",
+          "label": "┘å╪╖╪º┘é ╪º┘ä┘à╪┤╪º╪▒┘â╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "extracurricular_activity",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "discipline_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_discipline",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "assignment_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä╪¬┘â┘ä┘è┘ü",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_assignment",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "committee_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä┘à┘ç┘à╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "committee_team",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "record_status",
+          "label": "╪¡╪º┘ä╪⌐ ╪º┘ä╪│╪¼┘ä",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "records_documentation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "supervision_result",
+          "label": "┘å╪¬┘è╪¼╪⌐ ╪º┘ä┘à┘å╪º┘ê╪¿╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "daily_supervision",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "standby_result",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "standby_class",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "safety_result",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "safety_security",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "broadcast_result",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_broadcast",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "activity_result",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "extracurricular_activity",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "discipline_result",
+          "label": "╪º┘ä┘å╪¬┘è╪¼╪⌐",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_discipline",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "assignment_output",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "school_assignment",
+          "optionsCount": 8,
+          "linkedOptionsCount": 8
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "committee_output",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "committee_team",
+          "optionsCount": 5,
+          "linkedOptionsCount": 5
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "record_output",
+          "label": "╪º┘ä┘à╪«╪▒╪¼ ╪º┘ä┘å┘ç╪º╪ª┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": "duty_record_type",
+          "linkedToValue": "records_documentation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 4
+        }
+      ]
+    },
+    {
+      "id": "cmqzal69600u8cono9fjl3snv",
+      "name": "╪º┘ä┘é╪»┘è┘à",
+      "version": 1,
+      "status": "ARCHIVED",
+      "isActive": false,
+      "activeKey": null,
+      "workflowType": "service-main",
+      "createdAt": "2026-06-29T14:07:31.050Z",
+      "updatedAt": "2026-08-01T09:22:24.519Z",
+      "fieldsCount": 118,
+      "optionsCount": 558,
+      "fields": [
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "report_template",
+          "label": "┘å┘ê╪╣ ╪º┘ä╪¬┘é╪▒┘è╪▒",
+          "type": "SELECT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 14,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_date",
+          "label": "╪¬╪º╪▒┘è╪« ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "DATE",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "academic_year",
+          "label": "╪º┘ä╪╣╪º┘à ╪º┘ä╪»╪▒╪º╪│┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "semester",
+          "label": "╪º┘ä┘ü╪╡┘ä ╪º┘ä╪»╪▒╪º╪│┘è",
+          "type": "SELECT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 2,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "week_or_period",
+          "label": "╪º┘ä╪ú╪│╪¿┘ê╪╣ / ╪º┘ä┘ü╪¬╪▒╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "subject",
+          "label": "╪º┘ä┘à╪º╪»╪⌐ ╪º┘ä╪»╪▒╪º╪│┘è╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grade_class",
+          "label": "╪º┘ä╪╡┘ü / ╪º┘ä┘ü╪╡┘ä",
+          "type": "TEXT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "report_topic",
+          "label": "╪╣┘å┘ê╪º┘å ╪º┘ä╪¬┘é╪▒┘è╪▒ / ╪º┘ä┘ê╪¡╪»╪⌐ / ╪º┘ä╪¿╪▒┘å╪º┘à╪¼",
+          "type": "TEXT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "target_group",
+          "label": "╪º┘ä┘ü╪ª╪⌐ ╪º┘ä┘à╪│╪¬┘ç╪»┘ü╪⌐",
+          "type": "TEXT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "student_count",
+          "label": "╪╣╪»╪» ╪º┘ä╪╖┘ä╪º╪¿ ╪º┘ä┘à╪│╪¬┘ü┘è╪»┘è┘å",
+          "type": "NUMBER",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "implementation_place",
+          "label": "┘à┘â╪º┘å ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "SELECT",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_weekly_school_report",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_subject_achievement_report",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_nafes_general_readiness_report",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_nafes_reading_training_plan",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_nafes_math_training_plan",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_nafes_science_training_plan",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_learning_loss_tracking",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_model_lesson_report",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_madrasati_distance_platform_activation",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_onedrive_technical_program",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "tools_individual_education_plan_iep",
+          "label": "╪º┘ä┘ê╪│╪º╪ª┘ä ┘ê╪º┘ä╪ú╪»┘ê╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 8,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_weekly_school_report",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_subject_achievement_report",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_nafes_general_readiness_report",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_nafes_reading_training_plan",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_nafes_math_training_plan",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_nafes_science_training_plan",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_learning_loss_tracking",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_model_lesson_report",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_madrasati_distance_platform_activation",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_onedrive_technical_program",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "grouping_individual_education_plan_iep",
+          "label": "╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬┘å╪╕┘è┘à / ╪º┘ä┘ü╪ª╪⌐",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_weekly_school_report",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_subject_achievement_report",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_nafes_general_readiness_report",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_nafes_reading_training_plan",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_nafes_math_training_plan",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_nafes_science_training_plan",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_learning_loss_tracking",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_model_lesson_report",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_madrasati_distance_platform_activation",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_onedrive_technical_program",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "roles_individual_education_plan_iep",
+          "label": "╪º┘ä╪ú╪»┘ê╪º╪▒ ┘ê╪º┘ä┘à╪│╪ñ┘ê┘ä┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_weekly_school_report",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_subject_achievement_report",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_unit_completion_report",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "unit-completion-report",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_nafes_general_readiness_report",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_nafes_reading_training_plan",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_nafes_math_training_plan",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_nafes_science_training_plan",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_learning_loss_tracking",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_model_lesson_report",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_madrasati_distance_platform_activation",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_onedrive_technical_program",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_period_one_test_results_analysis",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "objectives_individual_education_plan_iep",
+          "label": "╪º┘ä╪ú┘ç╪»╪º┘ü",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_weekly_school_report",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_subject_achievement_report",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_nafes_general_readiness_report",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_nafes_reading_training_plan",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_nafes_math_training_plan",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_nafes_science_training_plan",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_learning_loss_tracking",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_model_lesson_report",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_madrasati_distance_platform_activation",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_onedrive_technical_program",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_period_one_test_results_analysis",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "execution_steps_individual_education_plan_iep",
+          "label": "╪º┘ä┘à┘ç╪º┘à / ╪«╪╖┘ê╪º╪¬ ╪º┘ä╪¬┘å┘ü┘è╪░",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_weekly_school_report",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_subject_achievement_report",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_nafes_general_readiness_report",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_nafes_reading_training_plan",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_nafes_math_training_plan",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_nafes_science_training_plan",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_learning_loss_tracking",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_model_lesson_report",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_madrasati_distance_platform_activation",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_onedrive_technical_program",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_period_one_test_results_analysis",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "evaluation_items_individual_education_plan_iep",
+          "label": "┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä┘à╪¬╪º╪¿╪╣╪⌐ ┘ê╪º┘ä╪¬┘é┘è┘è┘à",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 7,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_weekly_school_report",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_subject_achievement_report",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_nafes_general_readiness_report",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_nafes_reading_training_plan",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_nafes_math_training_plan",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_nafes_science_training_plan",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_learning_loss_tracking",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 3,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_model_lesson_report",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 3,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_madrasati_distance_platform_activation",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_onedrive_technical_program",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_period_one_test_results_analysis",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 6,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "results_or_other_individual_education_plan_iep",
+          "label": "╪º┘ä┘å╪¬╪º╪ª╪¼ / ╪º┘ä┘à╪«╪▒╪¼╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_weekly_school_report",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_subject_achievement_report",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_nafes_general_readiness_report",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_nafes_reading_training_plan",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_nafes_math_training_plan",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_nafes_science_training_plan",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_learning_loss_tracking",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_model_lesson_report",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_madrasati_distance_platform_activation",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_onedrive_technical_program",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_period_one_test_results_analysis",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "challenges_individual_education_plan_iep",
+          "label": "╪º┘ä╪¬╪¡╪»┘è╪º╪¬ / ╪º┘ä┘à┘ä╪º╪¡╪╕╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_weekly_school_report",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "weekly-school-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_subject_achievement_report",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "subject-achievement-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_nafes_general_readiness_report",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-general-readiness-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_nafes_reading_training_plan",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-reading-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_nafes_math_training_plan",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-math-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_nafes_science_training_plan",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "nafes-science-training-plan",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_learning_loss_tracking",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "learning-loss-tracking",
+          "optionsCount": 5,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_model_lesson_report",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "model-lesson-report",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_madrasati_distance_platform_activation",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "madrasati-distance-platform-activation",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_onedrive_technical_program",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "onedrive-technical-program",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_period_one_test_results_analysis",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "period-one-test-results-analysis",
+          "optionsCount": 9,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "recommendations_individual_education_plan_iep",
+          "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬ ╪º┘ä┘à┘é╪¬╪▒╪¡╪⌐ / ╪º┘ä╪¬┘ê╪╡┘è╪º╪¬",
+          "type": "MULTI_SELECT",
+          "dependsOnFieldKey": "report_template",
+          "linkedToValue": "individual-education-plan-iep",
+          "optionsCount": 4,
+          "linkedOptionsCount": 0
+        },
+        {
+          "step": "╪ú╪»╪º╪í ╪º┘ä┘ê╪º╪¼╪¿╪º╪¬ ╪º┘ä┘ê╪╕┘è┘ü┘è╪⌐",
+          "key": "manual_notes",
+          "label": "┘à┘ä╪º╪¡╪╕╪º╪¬ ╪º╪«╪¬┘è╪º╪▒┘è╪⌐ ╪Ñ╪╢╪º┘ü┘è╪⌐",
+          "type": "TEXTAREA",
+          "dependsOnFieldKey": null,
+          "linkedToValue": null,
+          "optionsCount": 0,
+          "linkedOptionsCount": 0
+        }
+      ]
+    }
+  ]
+}

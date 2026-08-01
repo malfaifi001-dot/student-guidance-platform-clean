@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeWorkflowFieldType } from "@/engine/runtime/workflow-conditional-logic";
 const FieldType = {
   TEXT: "TEXT",
   TEXTAREA: "TEXTAREA",
@@ -36,7 +37,7 @@ function clean(value: unknown) {
 }
 
 function normalizeFieldType(value: unknown): string {
-  const text = clean(value).toUpperCase();
+  const text = normalizeWorkflowFieldType(value);
 
   return FIELD_TYPES.has(text as string)
     ? (text as string)
