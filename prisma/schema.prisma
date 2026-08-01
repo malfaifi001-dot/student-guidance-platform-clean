@@ -486,6 +486,7 @@ model Workflow {
   status       WorkflowStatus @default(DRAFT)
   isActive     Boolean        @default(false)
   workflowType String         @default("default")
+  activeKey    String?        @unique @db.VarChar(255)
 
   originalFileName       String?   @db.VarChar(255)
   originalFileStorageKey String?   @unique @db.VarChar(255)

@@ -2,6 +2,8 @@ import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer
 import { prisma } from "@/lib/prisma";
 import { ensureServiceBySlug } from "@/engine/services/service-workspace-engine";
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
+import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
+import { getWorkflowActivationSlot } from "@/lib/workflows/workflow-slot";
 
 async function ensureStudentFollowUpWorkflow() {
   const service = await ensureServiceBySlug({
@@ -11,10 +13,7 @@ async function ensureStudentFollowUpWorkflow() {
   });
 
   const existingWorkflow = await prisma.workflow.findFirst({
-    where: {
-      serviceId: service.id,
-      isActive: true,
-    },
+    ...buildActiveWorkflowSlotQuery({ serviceId: service.id }),
     include: {
       steps: {
         include: {
@@ -37,6 +36,8 @@ async function ensureStudentFollowUpWorkflow() {
       version: 1,
       status: "ACTIVE",
       isActive: true,
+      workflowType: "service-main",
+      activeKey: getWorkflowActivationSlot({ serviceId: service.id, workflowType: "service-main" }),
       steps: {
         create: [
           {

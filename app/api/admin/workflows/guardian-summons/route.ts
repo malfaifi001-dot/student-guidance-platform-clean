@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { activateWorkflow } from "@/lib/workflows/workflow-activation-service";
 import {
   FAMILY_SCHOOL_COMMUNICATION_SERVICE,
   GUARDIAN_SUMMONS_WORKFLOW,
 } from "@/lib/workflows/guardian-summons-workflow-template";
 
 export async function POST() {
+  const adminError = await requireAdminApi();
+  if (adminError) return adminError;
+
   try {
     const service = await prisma.service.upsert({
       where: {
@@ -21,18 +27,6 @@ export async function POST() {
         name: FAMILY_SCHOOL_COMMUNICATION_SERVICE.name,
         description: FAMILY_SCHOOL_COMMUNICATION_SERVICE.description,
         status: "ACTIVE",
-      },
-    });
-
-    await prisma.workflow.updateMany({
-      where: {
-        serviceId: service.id,
-        workflowType: GUARDIAN_SUMMONS_WORKFLOW.workflowType,
-        isActive: true,
-      },
-      data: {
-        isActive: false,
-        status: "ARCHIVED",
       },
     });
 
@@ -52,8 +46,9 @@ export async function POST() {
         workflowType: GUARDIAN_SUMMONS_WORKFLOW.workflowType,
         name: GUARDIAN_SUMMONS_WORKFLOW.name,
         version: latest ? latest.version + 1 : 1,
-        status: "ACTIVE",
-        isActive: true,
+        status: "DRAFT",
+        isActive: false,
+        activeKey: null,
         steps: {
           create: GUARDIAN_SUMMONS_WORKFLOW.steps.map((step: any) => ({
             title: step.title,
@@ -85,6 +80,15 @@ export async function POST() {
           })),
         },
       },
+    });
+
+    const current = await getCurrentSessionUser();
+    await activateWorkflow({
+      workflowId: workflow.id,
+      actorUserId: current?.user.id,
+      sourceAction: "GUARDIAN_SUMMONS_TEMPLATE_CREATE",
+      activityAction: "WORKFLOW_PUBLISHED",
+      activityTitle: "تم إنشاء ونشر Workflow استدعاء ولي أمر",
     });
 
     return NextResponse.json({

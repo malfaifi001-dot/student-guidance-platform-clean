@@ -5,6 +5,7 @@ import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer
 import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 type PageProps = {
   params: Promise<{
@@ -28,6 +29,8 @@ export default async function NewActivityProgramDomainCasePage({
         slug: domain.serviceSlug,
       },
       isActive: true,
+      status: "ACTIVE",
+      workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
     },
     include: {
       service: true,
@@ -44,9 +47,7 @@ export default async function NewActivityProgramDomainCasePage({
         },
       },
     },
-    orderBy: {
-      version: "desc",
-    },
+    orderBy: [{ activeKey: "desc" }, { version: "desc" }, { updatedAt: "desc" }],
   });
 
   if (!workflow) {

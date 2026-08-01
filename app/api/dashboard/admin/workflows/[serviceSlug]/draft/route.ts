@@ -17,6 +17,7 @@ type FieldType = (typeof FieldType)[keyof typeof FieldType];
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 import {
   normalizeWorkflowEvidenceMode,
   normalizeWorkflowStudentPickerMode,
@@ -121,7 +122,7 @@ export async function POST(request: Request, context: RouteContext) {
     const versionAggregate = await prisma.workflow.aggregate({
       where: {
         serviceId: service.id,
-        workflowType,
+        workflowType: { in: getWorkflowSlotTypeAliases(workflowType) },
       },
       _max: {
         version: true,

@@ -1,136 +1,61 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import {
+  activateWorkflow,
+  WorkflowActivationConflictError,
+} from "@/lib/workflows/workflow-activation-service";
 
-type RouteContext = {
-  params: Promise<{
-    serviceSlug: string;
-  }>;
-};
-
-function clean(value: unknown) {
-  return String(value ?? "").trim();
-}
+type RouteContext = { params: Promise<{ serviceSlug: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const adminError = await requireAdminApi();
+  if (adminError) return adminError;
+
   try {
-    const adminError = await requireAdminApi();
-
-    if (adminError) {
-      return adminError;
-    }
-
     const { serviceSlug } = await context.params;
     const body = await request.json();
-    const workflowId = clean(body?.workflowId);
-
+    const workflowId = String(body?.workflowId ?? "").trim();
     if (!workflowId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "workflowId مطلوب.",
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "workflowId مطلوب." }, { status: 400 });
     }
 
-    const workflow = await prisma.workflow.findFirst({
-      where: {
-        id: workflowId,
-        service: {
-          slug: serviceSlug,
-        },
-      },
-      include: {
-        service: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-          },
-        },
-      },
+    const target = await prisma.workflow.findFirst({
+      where: { id: workflowId, service: { slug: serviceSlug } },
+      select: { id: true },
     });
-
-    if (!workflow) {
+    if (!target) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Workflow غير موجود داخل هذه الخدمة.",
-        },
+        { success: false, error: "Workflow غير موجود داخل هذه الخدمة." },
         { status: 404 },
       );
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.workflow.updateMany({
-        where: {
-          serviceId: workflow.serviceId,
-          workflowType: workflow.workflowType,
-          id: {
-            not: workflow.id,
-          },
-          OR: [
-            {
-              isActive: true,
-            },
-            {
-              status: "ACTIVE",
-            },
-          ],
-        },
-        data: {
-          isActive: false,
-          status: "ARCHIVED",
-        },
-      });
-
-      await tx.workflow.update({
-        where: {
-          id: workflow.id,
-        },
-        data: {
-          status: "ACTIVE",
-          isActive: true,
-        },
-      });
-
-      await tx.platformActivityLog.create({
-        data: {
-          category: "WORKFLOW",
-          action: "WORKFLOW_ACTIVATED",
-          severity: "INFO",
-          title: "تم تفعيل Workflow",
-          details: {
-            serviceSlug: workflow.service.slug,
-            serviceName: workflow.service.name,
-            workflowId: workflow.id,
-            workflowName: workflow.name,
-            workflowType: workflow.workflowType,
-            version: workflow.version,
-          },
-        },
-      });
+    const current = await getCurrentSessionUser();
+    const result = await activateWorkflow({
+      workflowId,
+      actorUserId: current?.user.id,
+      sourceAction: "ADMIN_ACTIVATE_API",
     });
 
     return NextResponse.json({
       success: true,
       message: "تم تفعيل Workflow بنجاح.",
-      workflowId: workflow.id,
+      workflowId: result.workflow.id,
+      canonicalSlot: result.canonicalSlot,
     });
   } catch (error) {
     console.error("WORKFLOW_ACTIVATE_ERROR", error);
-
+    const conflict = error instanceof WorkflowActivationConflictError;
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "حدث خطأ أثناء تفعيل Workflow.",
+        code: conflict ? error.code : "WORKFLOW_ACTIVATION_FAILED",
+        error: error instanceof Error ? error.message : "حدث خطأ أثناء تفعيل Workflow.",
       },
-      { status: 400 },
+      { status: conflict ? 409 : 400 },
     );
   }
 }

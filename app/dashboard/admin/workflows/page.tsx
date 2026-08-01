@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { prisma } from "@/lib/prisma";
 import { AdminWorkflowsFilterBar } from "@/components/admin/admin-workflows-filter-bar";
+import { getWorkflowActivationSlot } from "@/lib/workflows/workflow-slot";
 
 function countWorkflowFields(workflow: any) {
   return workflow.steps.reduce(
@@ -87,7 +88,12 @@ export default async function AdminWorkflowsPage() {
     },
   });
 
-  const activeWorkflows = workflows.filter((workflow) => workflow.isActive);
+  const activeWorkflows = workflows.filter(
+    (workflow) =>
+      workflow.isActive &&
+      workflow.status === "ACTIVE" &&
+      workflow.activeKey === getWorkflowActivationSlot(workflow),
+  );
   const draftWorkflows = workflows.filter((workflow) => workflow.status === "DRAFT");
   const linkedCasesCount = workflows.reduce(
     (total, workflow) => total + (workflow._count?.cases || 0),

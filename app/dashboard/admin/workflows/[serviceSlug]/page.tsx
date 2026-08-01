@@ -17,10 +17,13 @@ import {
   isWorkflowUploadEligibleService,
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import {
-  WORKFLOW_TYPES,
   getWorkflowPlacementLabel,
   isSecondaryWorkflow,
 } from "@/lib/workflows/workflow-types";
+import {
+  getWorkflowActivationSlot,
+  workflowBelongsToSlot,
+} from "@/lib/workflows/workflow-slot";
 
 type PageProps = {
   params: Promise<{
@@ -113,14 +116,21 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
   const workflows = service.workflows;
 
   const defaultWorkflows = workflows.filter(
-    (workflow) => workflow.workflowType === WORKFLOW_TYPES.DEFAULT,
+    (workflow) => workflowBelongsToSlot(workflow.workflowType, "service-main"),
   );
 
   const subWorkflows = workflows.filter((workflow) =>
     isSecondaryWorkflow(workflow.workflowType),
   );
 
-  const activeWorkflow = defaultWorkflows.find((workflow) => workflow.isActive);
+  const activeWorkflow = [...defaultWorkflows]
+    .filter((workflow) => workflow.isActive && workflow.status === "ACTIVE")
+    .sort((a, b) => {
+      const expected = getWorkflowActivationSlot(a);
+      const aOwnsKey = a.activeKey === expected ? 1 : 0;
+      const bOwnsKey = b.activeKey === getWorkflowActivationSlot(b) ? 1 : 0;
+      return bOwnsKey - aOwnsKey || b.version - a.version || b.updatedAt.getTime() - a.updatedAt.getTime() || b.id.localeCompare(a.id);
+    })[0];
   const latestDraftWorkflow = defaultWorkflows.find(
     (workflow) => workflow.status === "DRAFT",
   );
@@ -159,7 +169,12 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
     name: workflow.name,
     version: workflow.version,
     status: String(workflow.status),
-    isActive: workflow.isActive,
+    isActive:
+      workflow.isActive &&
+      workflow.status === "ACTIVE" &&
+      (workflow.activeKey
+        ? workflow.activeKey === getWorkflowActivationSlot(workflow)
+        : workflow.id === activeWorkflow?.id),
     workflowTypeLabel: getWorkflowPlacementLabel(workflow.workflowType),
     updatedAtLabel: formatWorkflowDate(workflow.updatedAt),
     stepsCount: workflow.steps.length,

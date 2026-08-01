@@ -6,6 +6,7 @@ import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 export default async function NewGuidanceProgramPage() {
   const workflow = await prisma.workflow.findFirst({
@@ -14,6 +15,8 @@ export default async function NewGuidanceProgramPage() {
         slug: "guidance-programs",
       },
       isActive: true,
+      status: "ACTIVE",
+      workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
     },
     include: {
       service: true,
@@ -33,9 +36,7 @@ export default async function NewGuidanceProgramPage() {
       },
     },
 
-    orderBy: {
-      version: "desc",
-    },
+    orderBy: [{ activeKey: "desc" }, { version: "desc" }, { updatedAt: "desc" }],
   });
 
   if (!workflow) {

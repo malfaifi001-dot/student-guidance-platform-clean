@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
-import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 type PageProps = {
   params: Promise<{
@@ -27,7 +27,7 @@ export default async function WorkflowBuilderDetailsPage({ params }: PageProps) 
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: workflowId,
-      workflowType: WORKFLOW_TYPES.DEFAULT,
+      workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
     },
     include: {
       service: true,

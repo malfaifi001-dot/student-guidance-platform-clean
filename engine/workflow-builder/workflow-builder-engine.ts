@@ -1,10 +1,10 @@
 ﻿import { prisma } from "@/lib/prisma";
-import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 export async function getWorkflowBuilderData() {
   const workflows = await prisma.workflow.findMany({
     where: {
-      workflowType: WORKFLOW_TYPES.DEFAULT,
+      workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
     },
     include: {
       service: true,

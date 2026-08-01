@@ -6,6 +6,7 @@ import {
   getActivityProgramDomainBySlug,
 } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -29,6 +30,8 @@ export default async function NewActivityProgramPage({
         slug: "activity-programs",
       },
       isActive: true,
+      status: "ACTIVE",
+      workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
     },
     include: {
       service: true,
@@ -45,9 +48,7 @@ export default async function NewActivityProgramPage({
         },
       },
     },
-    orderBy: {
-      version: "desc",
-    },
+    orderBy: [{ activeKey: "desc" }, { version: "desc" }, { updatedAt: "desc" }],
   });
 
   if (!workflow) {

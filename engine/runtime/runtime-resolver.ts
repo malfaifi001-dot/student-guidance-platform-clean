@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildActiveWorkflowSlotQuery } from "@/lib/workflows/active-workflow-resolver";
 
 export type RuntimeOption = {
   id: string;
@@ -70,37 +71,23 @@ export async function getRuntimeWorkflowByServiceSlug(
     where: {
       slug: serviceSlug,
     },
+  });
+  if (!service) {
+    return null;
+  }
+
+  const workflow = await prisma.workflow.findFirst({
+    ...buildActiveWorkflowSlotQuery({ serviceId: service.id, workflowType }),
     include: {
-      workflows: {
-        where: {
-          isActive: true,
-          status: "ACTIVE",
-          workflowType,
-        },
+      steps: {
         include: {
-          steps: {
-            include: {
-              fields: {
-                include: {
-                  options: true,
-                },
-              },
-            },
-          },
+          fields: { include: { options: true } },
         },
-        orderBy: {
-          version: "desc",
-        },
-        take: 1,
       },
     },
   });
 
-  const workflow = service?.workflows[0];
-
-  if (!service || !workflow) {
-    return null;
-  }
+  if (!workflow) return null;
 
   return {
     service,

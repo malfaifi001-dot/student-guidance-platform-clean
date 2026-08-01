@@ -4,6 +4,7 @@ import {
   normalizeWorkflowType,
   type WorkflowType,
 } from "@/lib/workflows/workflow-types";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 import type { ParsedWorkflowRow } from "@/lib/workflow-upload/workflow-excel-parser";
 
 const allowedFieldTypes = new Set([
@@ -157,7 +158,7 @@ export async function uploadWorkflowForService(params: {
   const latestWorkflow = await prisma.workflow.findFirst({
     where: {
       serviceId: service.id,
-      workflowType,
+      workflowType: { in: getWorkflowSlotTypeAliases(workflowType) },
     },
     orderBy: { version: "desc" },
   });

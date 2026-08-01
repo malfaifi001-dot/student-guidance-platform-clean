@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { getWorkflowActivationSlot, getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 import type {
   StatisticsFieldDefinition,
@@ -492,14 +493,19 @@ export async function loadResolvedStatisticsCases(input: {
       }),
 
       prisma.workflow.findFirst({
-        where: {
-          serviceId: input.serviceId,
-          status: "ACTIVE",
-          isActive: true,
-        },
-        orderBy: [
-          {
-            version: "desc",
+          where: {
+            serviceId: input.serviceId,
+            status: "ACTIVE",
+            isActive: true,
+            OR: [
+              { activeKey: getWorkflowActivationSlot({ serviceId: input.serviceId, workflowType: "service-main" }) },
+              { activeKey: null, workflowType: { in: getWorkflowSlotTypeAliases("service-main") } },
+            ],
+          },
+          orderBy: [
+            { activeKey: "desc" },
+            {
+              version: "desc",
           },
           {
             updatedAt: "desc",

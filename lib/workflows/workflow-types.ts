@@ -1,3 +1,5 @@
+import { normalizeWorkflowActivationType } from "@/lib/workflows/workflow-slot";
+
 export const WORKFLOW_PLACEMENTS = {
   SERVICE_MAIN: "service-main",
   GUARDIAN_SUMMONS: "guardian-summons",
@@ -54,5 +56,5 @@ export function getWorkflowPlacementLabel(value?: string | null) {
 }
 
 export function isSecondaryWorkflow(value?: string | null) {
-  return normalizeWorkflowType(value) !== WORKFLOW_TYPES.SERVICE_MAIN;
+  return normalizeWorkflowActivationType(value) !== WORKFLOW_TYPES.SERVICE_MAIN;
 }

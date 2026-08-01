@@ -1,143 +1,62 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
-import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+import {
+  activateWorkflow,
+  WorkflowActivationConflictError,
+} from "@/lib/workflows/workflow-activation-service";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
-type RouteContext = {
-  params: Promise<{
-    serviceSlug: string;
-  }>;
-};
+type RouteContext = { params: Promise<{ serviceSlug: string }> };
 
 export async function POST(_request: Request, context: RouteContext) {
   const adminError = await requireAdminApi();
-
-  if (adminError) {
-    return adminError;
-  }
+  if (adminError) return adminError;
 
   try {
     const { serviceSlug } = await context.params;
-
-    const publishResult = await prisma.$transaction(async (tx) => {
-      const service = await tx.service.findUnique({
-        where: {
-          slug: serviceSlug,
-        },
-      });
-
-      if (!service) {
-        return {
-          ok: false as const,
-          status: 404,
-          error: "الخدمة غير موجودة.",
-        };
-      }
-
-      const draftWorkflow = await tx.workflow.findFirst({
-        where: {
-          serviceId: service.id,
-          workflowType: WORKFLOW_TYPES.DEFAULT,
-          status: "DRAFT",
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-      if (!draftWorkflow) {
-        return {
-          ok: false as const,
-          status: 404,
-          error: "لا يوجد Workflow مسودة لاعتماده.",
-        };
-      }
-
-      const deactivatedWorkflows = await tx.workflow.updateMany({
-        where: {
-          serviceId: draftWorkflow.serviceId,
-          workflowType: draftWorkflow.workflowType,
-          id: {
-            not: draftWorkflow.id,
-          },
-          OR: [
-            {
-              isActive: true,
-            },
-            {
-              status: "ACTIVE",
-            },
-          ],
-        },
-        data: {
-          isActive: false,
-          status: "ARCHIVED",
-        },
-      });
-
-      const publishedWorkflow = await tx.workflow.update({
-        where: {
-          id: draftWorkflow.id,
-        },
-        data: {
-          isActive: true,
-          status: "ACTIVE",
-        },
-      });
-
-      return {
-        ok: true as const,
-        service,
-        publishedWorkflow,
-        deactivatedCount: deactivatedWorkflows.count,
-      };
-    });
-
-    if (!publishResult.ok) {
-      return NextResponse.json(
-        { error: publishResult.error },
-        { status: publishResult.status },
-      );
+    const service = await prisma.service.findUnique({ where: { slug: serviceSlug } });
+    if (!service) {
+      return NextResponse.json({ error: "الخدمة غير موجودة." }, { status: 404 });
     }
 
-    prisma.platformActivityLog
-      .create({
-        data: {
-          category: "WORKFLOW",
-          action: "WORKFLOW_PUBLISHED",
-          severity: "INFO",
-          title: "تم اعتماد Workflow",
-          details: {
-            serviceSlug: publishResult.service.slug,
-            serviceName: publishResult.service.name,
-            workflowId: publishResult.publishedWorkflow.id,
-            workflowName: publishResult.publishedWorkflow.name,
-            workflowType: publishResult.publishedWorkflow.workflowType,
-            version: publishResult.publishedWorkflow.version,
-            deactivatedCount: publishResult.deactivatedCount,
-          },
-        },
-      })
-      .catch((error) => {
-        console.error("WORKFLOW_PUBLISH_ACTIVITY_LOG_ERROR", error);
-      });
+    const draftWorkflow = await prisma.workflow.findFirst({
+      where: {
+        serviceId: service.id,
+        workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
+        status: "DRAFT",
+      },
+      orderBy: [{ version: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+    });
+    if (!draftWorkflow) {
+      return NextResponse.json({ error: "لا يوجد Workflow مسودة لاعتماده." }, { status: 404 });
+    }
+
+    const current = await getCurrentSessionUser();
+    const result = await activateWorkflow({
+      workflowId: draftWorkflow.id,
+      actorUserId: current?.user.id,
+      sourceAction: "ADMIN_PUBLISH_API",
+      activityAction: "WORKFLOW_PUBLISHED",
+      activityTitle: "تم اعتماد Workflow",
+    });
 
     return NextResponse.json({
       success: true,
       message: "تم اعتماد ونشر Workflow بنجاح.",
-      workflowId: publishResult.publishedWorkflow.id,
-      deactivatedCount: publishResult.deactivatedCount,
+      workflowId: result.workflow.id,
+      deactivatedCount: result.previousActiveWorkflowIds.length,
     });
   } catch (error) {
+    const conflict = error instanceof WorkflowActivationConflictError;
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "حدث خطأ أثناء اعتماد Workflow.",
+        code: conflict ? error.code : "WORKFLOW_PUBLISH_FAILED",
+        error: error instanceof Error ? error.message : "حدث خطأ أثناء اعتماد Workflow.",
       },
-      { status: 400 },
+      { status: conflict ? 409 : 400 },
     );
   }
 }

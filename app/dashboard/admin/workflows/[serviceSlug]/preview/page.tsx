@@ -4,7 +4,7 @@ import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
-import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+import { getWorkflowSlotTypeAliases } from "@/lib/workflows/workflow-slot";
 
 type PageProps = {
   params: Promise<{
@@ -45,7 +45,7 @@ export default async function WorkflowPreviewPage({
           service: {
             slug: serviceSlug,
           },
-          workflowType: WORKFLOW_TYPES.DEFAULT,
+          workflowType: { in: getWorkflowSlotTypeAliases("service-main") },
           OR: [
             {
               status: "DRAFT",
@@ -89,6 +89,9 @@ export default async function WorkflowPreviewPage({
       : [
           {
             status: "asc",
+          },
+          {
+            activeKey: "desc",
           },
           {
             version: "desc",
