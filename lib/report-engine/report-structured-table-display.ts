@@ -1,6 +1,7 @@
 import type { SmartReportTable } from "@/lib/report-engine/smart-report-types";
 import {
   getStructuredValueTableMetadata,
+  isStudentIdentityField,
   isStudentDataTable,
 } from "@/lib/workflow-values/structured-value-metadata";
 
@@ -246,6 +247,20 @@ export function normalizeStudentDataTableBlockOrder(template: unknown) {
   if (!Array.isArray(source.pages)) return template;
 
   const studentBlocks: Record<string, unknown>[] = [];
+  const signatureBlocks: Record<string, unknown>[] = [];
+  const hasStudentTable = source.pages.some((page) =>
+    Boolean(
+      page &&
+        typeof page === "object" &&
+        Array.isArray((page as { blocks?: unknown }).blocks) &&
+        ((page as { blocks: unknown[] }).blocks.some(
+          (block) =>
+            Boolean(block && typeof block === "object") &&
+            (block as Record<string, unknown>).kind === "structured-table" &&
+            isStudentDataTable(block as Record<string, unknown>),
+        )),
+    ),
+  );
   const pages = source.pages.map((page) => {
     if (!page || typeof page !== "object") return page;
     const pageRecord = page as Record<string, unknown>;
@@ -258,7 +273,38 @@ export function normalizeStudentDataTableBlockOrder(template: unknown) {
       );
       const studentTable =
         candidate.kind === "structured-table" && isStudentDataTable(candidate);
-      if (!studentTable) return [candidate];
+      const signatureBlock =
+        candidate.kind === "signature-grid" ||
+        candidate.kind === "signatures" ||
+        candidate.kind === "approval-signatures" ||
+        Array.isArray(candidate.signatures);
+      if (signatureBlock) {
+        signatureBlocks.push({ ...candidate, placement: "flow" });
+        return [];
+      }
+
+      if (!studentTable) {
+        if (
+          hasStudentTable &&
+          candidate.kind === "dynamic-fields" &&
+          Array.isArray(candidate.dynamicFields)
+        ) {
+          const dynamicFields = candidate.dynamicFields.filter(
+            (field) =>
+              !field ||
+              typeof field !== "object" ||
+              !isStudentIdentityField(field as Record<string, unknown>),
+          );
+          return [
+            {
+              ...candidate,
+              dynamicFields,
+              ...(dynamicFields.length ? {} : { visible: false }),
+            },
+          ];
+        }
+        return [candidate];
+      }
 
       const normalizedStudentBlock = normalizeStructuredTableBlockPresentation({
         ...candidate,
@@ -278,7 +324,7 @@ export function normalizeStudentDataTableBlockOrder(template: unknown) {
     return { ...pageRecord, blocks };
   });
 
-  if (!studentBlocks.length) return template;
+  if (!studentBlocks.length && !signatureBlocks.length) return template;
   const targetPageIndex = pages.findIndex((page) => {
     if (!page || typeof page !== "object") return false;
     const candidate = page as Record<string, unknown>;
@@ -286,14 +332,21 @@ export function normalizeStudentDataTableBlockOrder(template: unknown) {
   });
   if (targetPageIndex < 0) return template;
 
+  const lastPageIndex = pages.length - 1;
+
   return {
     ...(source as Record<string, unknown>),
     pages: pages.map((page, index) => {
-      if (index !== targetPageIndex || !page || typeof page !== "object") return page;
+      if (!page || typeof page !== "object") return page;
       const pageRecord = page as Record<string, unknown>;
+      const existingBlocks = (pageRecord.blocks as unknown[]) || [];
       return {
         ...pageRecord,
-        blocks: [...studentBlocks, ...((pageRecord.blocks as unknown[]) || [])],
+        blocks: [
+          ...(index === targetPageIndex ? studentBlocks : []),
+          ...existingBlocks,
+          ...(index === lastPageIndex ? signatureBlocks : []),
+        ],
       };
     }),
   };

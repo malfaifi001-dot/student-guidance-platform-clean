@@ -20,7 +20,10 @@ import {
   normalizeSmartReportTablePresentation,
   normalizeStudentDataTableBlockOrder,
 } from "@/lib/report-engine/report-structured-table-display";
-import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
+import {
+  isStudentDataTable,
+  isStudentIdentityField,
+} from "@/lib/workflow-values/structured-value-metadata";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
@@ -1123,10 +1126,21 @@ function collectEvidences(payload: SmartReportPayload) {
     });
 }
 
-function getPreviewCase(payload: SmartReportPayload) {
+function getPreviewCase(payload: SmartReportPayload, template?: StudioTemplate) {
   const data = getPayloadAny(payload);
   const student = data.student || data.caseInfo?.student || {};
-  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+  const hasStudentDataTable =
+    (payload.tables || []).some(isStudentDataTable) ||
+    Boolean(
+      template?.pages.some((page) =>
+        page.blocks.some(
+          (block) => block.kind === "structured-table" && isStudentDataTable(block),
+        ),
+      ),
+    );
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])].filter(
+    (field) => !hasStudentDataTable || !isStudentIdentityField(field),
+  );
 
   return {
     found: true,
@@ -1137,6 +1151,7 @@ function getPreviewCase(payload: SmartReportPayload) {
     status: cleanText(data.caseInfo?.status),
     createdAt: cleanText(data.caseInfo?.createdAt),
     updatedAt: cleanText(data.caseInfo?.updatedAt),
+    hasStudentDataTable,
     student: {
       name: cleanText(student.name || student.fullName),
       nationalId: cleanText(student.nationalId),
@@ -1234,11 +1249,7 @@ function isReportTwoSignatureBlock(block: StudioBlock | null | undefined) {
 }
 
 function getReportTwoSignatureTargetPageId(pages: StudioPage[]) {
-  const lastContentPage = [...pages]
-    .reverse()
-    .find((page) => page.kind !== "evidence");
-
-  return lastContentPage?.id || pages[pages.length - 1]?.id || "";
+  return pages[pages.length - 1]?.id || "";
 }
 
 function getReportTwoSignatureHiddenKeys(block: StudioBlock | null | undefined) {
@@ -1377,7 +1388,7 @@ function withReportTwoSignatureBlock(
     showTitle: baseSignatureBlock.showTitle ?? false,
     showMeta: false,
     align: "center",
-    placement: "bottom",
+    placement: "flow",
     signatures: getReportTwoConfiguredSignatureCards(signatures, signatureBlock),
   } as StudioBlock;
 
@@ -1646,8 +1657,8 @@ function getReportTwoBlockHeightScore(
   previewCase: ReturnType<typeof getPreviewCase>,
   designId?: ReportDesignId,
 ) {
-  if (isReportTwoSignatureBlock(block) || (block as any)?.placement === "bottom") {
-    return 0;
+  if (isReportTwoSignatureBlock(block)) {
+    return 34;
   }
 
   if (block.kind === "hero-title") return 32;
@@ -2001,7 +2012,6 @@ function buildReportTwoRuntimeTemplate(
       const rows = getReportTwoDynamicFieldRows(block, previewCase, designId);
 
       if (!rows.length) {
-        placeBlock(block);
         return;
       }
 
@@ -2443,7 +2453,11 @@ function getReportTwoDynamicFieldsFromPreviewCase(
         visible: Boolean(label && (value || valueItems.length)),
       };
     })
-    .filter((item) => item.label && (item.value || item.valueItems?.length));
+    .filter((item) => item.label && (item.value || item.valueItems?.length))
+    .filter(
+      (item) =>
+        !previewCase.hasStudentDataTable || !isStudentIdentityField(item),
+    );
 
   return ensureUniqueReportTwoDynamicFieldIds(fields);
 }
@@ -2470,7 +2484,12 @@ function getDynamicFieldsForBlock(
     });
   });
 
-  const fields = block.dynamicFields.map((field, index) => {
+  const fields = block.dynamicFields
+    .filter(
+      (field) =>
+        !previewCase.hasStudentDataTable || !isStudentIdentityField(field),
+    )
+    .map((field, index) => {
     const source =
       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
@@ -3339,11 +3358,21 @@ export function ReportTwoStudioRuntime({
     [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
   );
 
-  const previewCase = useMemo(() => getPreviewCase(preparedPayload), [preparedPayload]);
+  const previewCase = useMemo(
+    () => getPreviewCase(preparedPayload, template),
+    [preparedPayload, template],
+  );
 
   const previewTemplate = useMemo(
-    () => buildReportTwoRuntimeTemplate(template, previewCase),
-    [template, previewCase],
+    () =>
+      buildReportTwoRuntimeTemplate(
+        withReportTwoSignatureBlock(
+          normalizeStudentDataTableBlockOrder(template) as StudioTemplate,
+          preparedPayload,
+        ),
+        previewCase,
+      ),
+    [template, previewCase, preparedPayload],
   );
 
   const visiblePreviewPages = useMemo(() => {
@@ -3384,8 +3413,11 @@ export function ReportTwoStudioRuntime({
   );
 
   const signedVisiblePreviewTemplate = useMemo(
-    () => withReportTwoSignatureBlock(visiblePreviewTemplate, preparedPayload),
-    [visiblePreviewTemplate, preparedPayload],
+    () =>
+      normalizeStudentDataTableBlockOrder(
+        visiblePreviewTemplate,
+      ) as StudioTemplate,
+    [visiblePreviewTemplate],
   );
   const activePage = useMemo(
     () =>
@@ -4668,11 +4700,19 @@ export function ReportTwoStudioRuntime({
       setPageSafePlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
       return;
     }
+    if (isReportTwoSignatureBlock(selectedBlock)) {
+      setPageSafePlacementNotice("كتلة التوقيعات تظهر دائمًا في نهاية التقرير.");
+      return;
+    }
 
     const targetIndex = direction === "up" ? index - 1 : index + 1;
 
     if (targetIndex < 0 || targetIndex >= sourcePage.blocks.length) return;
     const targetBlock = sourcePage.blocks[targetIndex];
+    if (direction === "down" && isReportTwoSignatureBlock(targetBlock)) {
+      setPageSafePlacementNotice("لا يمكن وضع محتوى بعد كتلة التوقيعات.");
+      return;
+    }
     if (
       direction === "up" &&
       targetBlock.kind === "structured-table" &&
@@ -5981,12 +6021,15 @@ export function ReportTwoStudioRuntime({
                     type="button"
                     onClick={() => moveBlock("up")}
                     disabled={
-                      selectedBlock.kind === "structured-table" &&
-                      isStudentDataTable(selectedBlock)
+                      (selectedBlock.kind === "structured-table" &&
+                        isStudentDataTable(selectedBlock)) ||
+                      isReportTwoSignatureBlock(selectedBlock)
                     }
                     title={
-                      selectedBlock.kind === "structured-table" &&
-                      isStudentDataTable(selectedBlock)
+                      isReportTwoSignatureBlock(selectedBlock)
+                        ? "كتلة التوقيعات تظهر دائمًا في نهاية التقرير."
+                        : selectedBlock.kind === "structured-table" &&
+                            isStudentDataTable(selectedBlock)
                         ? "جدول بيانات الطلاب يظهر دائمًا في بداية التقرير."
                         : "تحريك إلى أعلى"
                     }
@@ -5999,12 +6042,15 @@ export function ReportTwoStudioRuntime({
                     type="button"
                     onClick={() => moveBlock("down")}
                     disabled={
-                      selectedBlock.kind === "structured-table" &&
-                      isStudentDataTable(selectedBlock)
+                      (selectedBlock.kind === "structured-table" &&
+                        isStudentDataTable(selectedBlock)) ||
+                      isReportTwoSignatureBlock(selectedBlock)
                     }
                     title={
-                      selectedBlock.kind === "structured-table" &&
-                      isStudentDataTable(selectedBlock)
+                      isReportTwoSignatureBlock(selectedBlock)
+                        ? "كتلة التوقيعات تظهر دائمًا في نهاية التقرير."
+                        : selectedBlock.kind === "structured-table" &&
+                            isStudentDataTable(selectedBlock)
                         ? "جدول بيانات الطلاب يظهر دائمًا في بداية التقرير."
                         : "تحريك إلى أسفل"
                     }

@@ -3,6 +3,7 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
+import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
 
 export type ReportDesignId =
   | "ministry-form"
@@ -186,6 +187,7 @@ type FinalReportValueItem = {
 };
 
 type PreviewCaseData = {
+  hasStudentDataTable?: boolean;
   evidences?: Array<{
     id?: string;
     title?: string;
@@ -2125,14 +2127,34 @@ function PageBlocks({
   className: string;
 }) {
   const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
-  const flowBlocks = blocks.filter((block: any) => (block.placement || "flow") === "flow");
-  const fixedBlocks = blocks.filter((block: any) => (block.placement || "flow") !== "flow");
+  const flowBlocks = blocks.filter(
+    (block: any) =>
+      isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+  );
+  const fixedBlocks = blocks.filter(
+    (block: any) =>
+      !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+  );
 
   return (
-    <main className={`relative ${className}`}>
-      <div className="space-y-4">
+    <main className={`relative flex flex-col ${className}`}>
+      <div className="flex min-h-[inherit] flex-1 flex-col gap-4">
         {flowBlocks.map((block: any) => (
-          <DesignBlock key={block.id} block={block} context={context} previewCase={previewCase} designId={designId} />
+          <div
+            key={block.id}
+            className={
+              isSignatureGridDesignBlock(block)
+                ? "mt-auto break-inside-avoid pt-6"
+                : ""
+            }
+            style={
+              isSignatureGridDesignBlock(block)
+                ? { breakInside: "avoid", pageBreakInside: "avoid" }
+                : undefined
+            }
+          >
+            <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+          </div>
         ))}
       </div>
 
@@ -2202,7 +2224,11 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
           visible: item.visible !== false,
         };
       })
-      .filter((item: any) => item.visible && item.label);
+      .filter((item: any) => item.visible && item.label)
+      .filter(
+        (item: any) =>
+          !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+      );
   }
 
   return getWorkflowDynamicFieldCards(previewCase)
@@ -2223,7 +2249,11 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
         visible: true,
       };
     })
-    .filter((item: any) => item.visible && item.label && item.value);
+    .filter((item: any) => item.visible && item.label && item.value)
+    .filter(
+      (item: any) =>
+        !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+    );
 }
 function isSignatureGridDesignBlock(block: any) {
   const kind = String(block?.kind || "").trim();
@@ -2433,6 +2463,7 @@ function DesignBlock({
   }
   if (isDynamicFieldsDesignBlock(block)) {
     const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+    if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) return null;
 
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)} data-report-dynamic-fields>
@@ -2497,19 +2528,8 @@ function DesignBlock({
     return (
       <section
         data-report-design-signature-block
-        className="report-design-signature-grid-block"
-        style={
-          block.placement === "bottom"
-            ? {
-                position: "absolute",
-                left: "50%",
-                bottom: "-15mm",
-                width: signatures.length >= 3 ? "168mm" : "140mm",
-                transform: "translateX(-50%)",
-                zIndex: 25,
-              }
-            : undefined
-        }
+        className="report-design-signature-grid-block break-inside-avoid"
+        style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
       >
         {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 

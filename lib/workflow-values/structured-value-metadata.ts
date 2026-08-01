@@ -50,9 +50,51 @@ function normalizeFieldKey(value: string) {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
     .toLowerCase()
-    .replace(/[\s-]+/g, "_")
+    .replace(/[\s./-]+/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
+}
+
+const STUDENT_IDENTITY_FIELD_KEYS = new Set([
+  ...SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA.tableColumns.map((column) =>
+    normalizeFieldKey(column.key),
+  ),
+  "student_id",
+  "student_name",
+  "gender",
+]);
+
+type StudentIdentityFieldLike = {
+  id?: unknown;
+  key?: unknown;
+  fieldKey?: unknown;
+  name?: unknown;
+  boundFieldKey?: unknown;
+  sourceFieldKey?: unknown;
+};
+
+export function isStudentIdentityField(field: StudentIdentityFieldLike) {
+  const candidates = [
+    field.key,
+    field.fieldKey,
+    field.boundFieldKey,
+    field.sourceFieldKey,
+    field.name,
+    field.id,
+  ];
+
+  return candidates.some((candidate) => {
+    const key = normalizeFieldKey(String(candidate ?? ""));
+    if (!key) return false;
+    if (STUDENT_IDENTITY_FIELD_KEYS.has(key)) return true;
+
+    const hasStudentPrefix = key.startsWith("student_");
+    const withoutStudentPrefix = key.replace(/^student_/, "");
+    if (withoutStudentPrefix === "name") return hasStudentPrefix;
+    if (withoutStudentPrefix === "class") return hasStudentPrefix;
+
+    return STUDENT_IDENTITY_FIELD_KEYS.has(withoutStudentPrefix);
+  });
 }
 
 export function getStructuredValueTableMetadata(fieldKey: string) {
