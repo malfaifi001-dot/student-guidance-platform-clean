@@ -3,12 +3,17 @@
 import { useMemo } from "react";
 import { ReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
 
-export function ReportTwoActivePreviewRenderer({ template, context, previewCase, sourcePayload }: {
+export function ReportTwoActivePreviewRenderer({ template, context, previewCase, sourcePayload, variantId }: {
   template: any;
   context: Record<string, string>;
   previewCase: any;
   sourcePayload?: unknown;
+  variantId?: string | null;
 }) {
   const displayTemplate = useMemo(
     () => applyStructuredTableDisplayMetadataToTemplate(template, sourcePayload),
@@ -18,7 +23,17 @@ export function ReportTwoActivePreviewRenderer({ template, context, previewCase,
   const activePage = pages[0] || null;
 
   return (
-    <section className="report-two-a4-host report-two-persisted-active-root">
+    <section
+      className={[
+        "report-two-a4-host report-two-persisted-active-root",
+        variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+    >
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
       <ReportDesignRenderer
         suppressAutoEvidencePages
         renderMode="stack"

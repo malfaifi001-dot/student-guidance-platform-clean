@@ -11,12 +11,17 @@ import {
   getReportHeaderSettingsStyle,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
 
 type PrintDocumentSnapshot = {
   template: any;
   context: Record<string, string>;
   previewCase: any;
   designTemplateId?: ReportDesignId;
+  variantId?: string | null;
 };
 
 export function ReportTwoPrintDocument({
@@ -84,7 +89,18 @@ export function ReportTwoPrintDocument({
   }, [autoPrint]);
 
   return (
-    <main className="report-two-print-document" dir="rtl">
+    <main
+      className={[
+        "report-two-print-document",
+        snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+      dir="rtl"
+    >
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
       <style>{`
         @page {
           size: A4;

@@ -467,11 +467,12 @@ export function ReportDesignRenderer({
   const selectedDesign = normalizeDesignId(
     designId || template?.designTemplateId || "ministry-form",
   );
+  const isMinistryStyleDesign = selectedDesign === "ministry-form";
 
   const logoWidthPx = getDesignLogoNumber(
     context,
     "report.logoWidthPx",
-    96,
+    isMinistryStyleDesign ? 132 : 96,
     24,
     240,
   );
@@ -479,7 +480,7 @@ export function ReportDesignRenderer({
   const logoHeightPx = getDesignLogoNumber(
     context,
     "report.logoHeightPx",
-    56,
+    isMinistryStyleDesign ? 80 : 56,
     20,
     160,
   );
@@ -1568,6 +1569,8 @@ export function A4DesignPage({
   previewCase: PreviewCaseData | null;
   pageLabel: string;
 }) {
+  const schoolName = String(context["identity.schoolName"] || "").trim();
+
   if (designId === "report-official-archive") {
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-300 bg-white p-[10mm] shadow-xl">
@@ -2091,13 +2094,12 @@ export function A4DesignPage({
     <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white shadow-xl">
       <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[56mm]">
         <header className="report-design-header absolute left-0 right-0 top-0 z-10 rounded-b-[46px] bg-[#1d343f] px-[18mm] py-[13mm] text-white">
-          <div className="grid grid-cols-[138px_1fr_138px] items-center gap-5">
+          <div className="grid grid-cols-[1.25fr_0.9fr_1fr] items-center gap-5">
             <div className="text-right text-sm font-bold leading-7 text-slate-100">
-              <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>
+              <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>{schoolName ? <p className="mt-1" style={{ textAlign: getDesignHeaderAlign(context, "identity.schoolName", "center") }}>{schoolName}</p> : null}
             </div>
             <div className="text-center">
-              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
-              <p className="report-design-header-title mt-3 text-base font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-[80px] w-[132px] object-contain brightness-0 invert" />
             </div>
             <div className="text-left text-sm font-bold leading-7 text-slate-100">
               <p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>

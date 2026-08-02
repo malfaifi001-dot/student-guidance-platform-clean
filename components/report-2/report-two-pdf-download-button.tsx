@@ -9,6 +9,7 @@ type SnapshotInfo = {
   snapshotPagesJson?: unknown;
   renderContext?: unknown;
   previewCase?: unknown;
+  variantId?: string | null;
 };
 
 type PdfDownloadButtonProps = {
@@ -98,6 +99,7 @@ export function ReportTwoPdfDownloadButton({
         template: { pages },
         context: snapshot.renderContext || {},
         previewCase: snapshot.previewCase || null,
+        variantId: snapshot.variantId || null,
       };
 
       const response = await fetch(

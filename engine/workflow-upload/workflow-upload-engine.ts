@@ -10,6 +10,7 @@ import {
   conditionalOptionIdentity,
   normalizeWorkflowFieldType,
 } from "@/engine/runtime/workflow-conditional-logic";
+import { getFieldLinkedToValue } from "@/engine/workflow-upload/workflow-upload-normalization";
 
 const allowedFieldTypes = new Set([
   "TEXT",
@@ -75,33 +76,6 @@ function normalizeFieldType(type: string) {
   return allowedFieldTypes.has(normalized) ? normalized : "TEXT";
 }
 
-function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
-  const first = fieldRows[0];
-
-  if (!first) return null;
-
-  if (first.fieldLinkedToValue) {
-    return first.fieldLinkedToValue;
-  }
-
-  const legacyValues = Array.from(
-    new Set(
-      fieldRows
-        .map((row) => normalizeText(row.linkedToValue))
-        .filter(Boolean)
-    )
-  );
-
-  if (
-    legacyValues.length === 1 &&
-    !fieldRows.some((row) => row.optionLinkedToValue)
-  ) {
-    return legacyValues[0];
-  }
-
-  return null;
-}
-
 function getOptionLinkedToValue(row: ParsedWorkflowRow) {
   return row.optionLinkedToValue || row.linkedToValue || null;
 }
@@ -149,7 +123,6 @@ export async function uploadWorkflowForService(params: {
       status: "ACTIVE",
     },
   });
-
 
   const latestWorkflow = await prisma.workflow.findFirst({
     where: {
@@ -276,4 +249,3 @@ export async function uploadWorkflowForService(params: {
     optionsCount,
   };
 }
-

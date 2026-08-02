@@ -6,6 +6,7 @@ import {
   isConditionalWorkflowFieldVisible,
   normalizeConditionalWorkflow,
 } from "./workflow-conditional-logic";
+import { getFieldLinkedToValue } from "../workflow-upload/workflow-upload-normalization";
 
 const areas = [
   "teaching_and_classroom_tasks",
@@ -71,8 +72,14 @@ test("preview and persisted runtime expose identical linked MULTI_SELECT options
 
   assert.equal(previewField.type, "MULTI_SELECT");
   assert.equal(runtimeField.type, "MULTI_SELECT");
-  assert.equal(isConditionalWorkflowFieldVisible(previewAreaField, values), true);
-  assert.equal(isConditionalWorkflowFieldVisible(runtimeAreaField, values), true);
+  assert.equal(
+    isConditionalWorkflowFieldVisible(previewAreaField, values),
+    true,
+  );
+  assert.equal(
+    isConditionalWorkflowFieldVisible(runtimeAreaField, values),
+    true,
+  );
   assert.equal(previewOptions.length, 4);
   assert.deepEqual(
     previewOptions.map(({ label, value, order }) => ({ label, value, order })),
@@ -148,7 +155,15 @@ test("Arabic label fallback remains compatible with strict conditional links", (
       },
     ],
   });
-  const childField = workflow.steps[0].fields[1];
+  const childField = workflow.steps[0].fields[1] as {
+    dependsOnFieldKey: string;
+    linkedToValue: string;
+    options: Array<{
+      label: string;
+      value: string;
+      linkedToValue: string;
+    }>;
+  };
   const values = { communication_type: persistedParentValue };
 
   assert.equal(persistedParentValue, arabicLabel);
@@ -159,5 +174,136 @@ test("Arabic label fallback remains compatible with strict conditional links", (
       ({ label, value }) => ({ label, value }),
     ),
     [{ label: "متابعة حالة الطالب", value: "متابعة حالة الطالب" }],
+  );
+});
+
+test("field and option links coexist after upload normalization", () => {
+  const fieldRows = [
+    {
+      linkedToValue: "prior_knowledge",
+      optionLinkedToValue: "prior_knowledge",
+    },
+    {
+      linkedToValue: "prior_knowledge",
+      optionLinkedToValue: "prior_knowledge",
+    },
+  ];
+  const fieldLinkedToValue = getFieldLinkedToValue(fieldRows);
+  const child = {
+    key: "completed_tasks",
+    type: "MULTI_SELECT",
+    dependsOnFieldKey: "strategy_family",
+    linkedToValue: fieldLinkedToValue,
+    options: [
+      {
+        value: "activate_prior_learning",
+        linkedToValue: fieldRows[0].optionLinkedToValue,
+      },
+      {
+        value: "support_differentiation",
+        linkedToValue: "differentiation_support",
+      },
+    ],
+  };
+  const values = { strategy_family: "prior_knowledge" };
+
+  assert.equal(fieldLinkedToValue, "prior_knowledge");
+  assert.equal(isConditionalWorkflowFieldVisible(child, values), true);
+  assert.deepEqual(
+    filterConditionalWorkflowOptions(child, values).map(({ value }) => value),
+    ["activate_prior_learning"],
+  );
+});
+
+test("unrelated child remains hidden instead of rendering an empty select", () => {
+  const child = {
+    dependsOnFieldKey: "strategy_family",
+    linkedToValue: "differentiation_support",
+    options: [
+      {
+        value: "support_differentiation",
+        linkedToValue: "differentiation_support",
+      },
+    ],
+  };
+
+  assert.equal(
+    isConditionalWorkflowFieldVisible(child, {
+      strategy_family: "prior_knowledge",
+    }),
+    false,
+  );
+});
+
+test("explicit field link has priority over legacy row links", () => {
+  assert.equal(
+    getFieldLinkedToValue([
+      {
+        fieldLinkedToValue: "  explicit_family  ",
+        linkedToValue: "legacy_family",
+        optionLinkedToValue: "option_family",
+      },
+    ]),
+    "explicit_family",
+  );
+});
+
+test("legacy field link survives option links and ambiguous links remain null", () => {
+  assert.equal(
+    getFieldLinkedToValue([
+      {
+        linkedToValue: "prior_knowledge",
+        optionLinkedToValue: "prior_knowledge",
+      },
+      {
+        linkedToValue: "prior_knowledge",
+        optionLinkedToValue: "prior_knowledge",
+      },
+    ]),
+    "prior_knowledge",
+  );
+  assert.equal(
+    getFieldLinkedToValue([
+      {
+        linkedToValue: "prior_knowledge",
+        optionLinkedToValue: "prior_knowledge",
+      },
+      {
+        linkedToValue: "differentiation_support",
+        optionLinkedToValue: "differentiation_support",
+      },
+    ]),
+    null,
+  );
+});
+
+test("preview and persisted field dependencies produce identical results", () => {
+  const rows = [
+    {
+      linkedToValue: "prior_knowledge",
+      optionLinkedToValue: "prior_knowledge",
+    },
+  ];
+  const previewField = {
+    dependsOnFieldKey: "strategy_family",
+    linkedToValue: "prior_knowledge",
+    options: [
+      { value: "task_one", linkedToValue: "prior_knowledge" },
+      { value: "task_two", linkedToValue: "differentiation_support" },
+    ],
+  };
+  const persistedField = {
+    ...previewField,
+    linkedToValue: getFieldLinkedToValue(rows),
+  };
+  const values = { strategy_family: "prior_knowledge" };
+
+  assert.equal(
+    isConditionalWorkflowFieldVisible(previewField, values),
+    isConditionalWorkflowFieldVisible(persistedField, values),
+  );
+  assert.deepEqual(
+    filterConditionalWorkflowOptions(previewField, values),
+    filterConditionalWorkflowOptions(persistedField, values),
   );
 });

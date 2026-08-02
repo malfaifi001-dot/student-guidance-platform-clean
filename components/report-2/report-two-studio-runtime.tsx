@@ -11,6 +11,10 @@ import {
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
 import type {
   SmartReportPayload,
   SmartReportTable,
@@ -694,8 +698,8 @@ function getDefaultReportTwoLogoSettings(
       cleanText(context["report.logoUrl"]) ||
       cleanText(context["identity.logoUrl"]) ||
       "/uploads/school-logos/MOE.png",
-    width: 96,
-    height: 56,
+    width: 132,
+    height: 80,
     fit: "contain",
     filter: "invert",
   };
@@ -3723,6 +3727,7 @@ export function ReportTwoStudioRuntime({
       context: editableRuntimeContext,
       previewCase,
       designTemplateId: template.designTemplateId || "ministry-form",
+      variantId: selectedVariantId || null,
     };
   }
 
@@ -5427,7 +5432,10 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+            <ReportTwoOfficialActivitySignatureStyle
+              enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+            />
             <style>{`
               .report-two-a4-host {
                 overflow-x: hidden;
@@ -5563,7 +5571,12 @@ export function ReportTwoStudioRuntime({
             ref={reportTwoPdfStackExportRef}
             aria-hidden="true"
             data-report-two-snapshot-source="print-stack"
-            className="report-two-a4-host report-two-pdf-stack-export-root"
+            className={[
+              "report-two-a4-host report-two-pdf-stack-export-root",
+              selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+                ? "report-two-official-activity-card"
+                : "",
+            ].join(" ")}
             style={{
               position: "fixed",
               top: 0,
@@ -5575,6 +5588,9 @@ export function ReportTwoStudioRuntime({
               zIndex: -1,
             }}
           >
+            <ReportTwoOfficialActivitySignatureStyle
+              enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+            />
             <ReportDesignRenderer
               suppressAutoEvidencePages
               renderMode="stack"
@@ -5684,7 +5700,7 @@ export function ReportTwoStudioRuntime({
                       updateReportTwoLogoSettings({
                         width: normalizeReportTwoLogoNumber(
                           Number(event.target.value),
-                          96,
+                          132,
                           24,
                           240,
                         ),
@@ -5708,7 +5724,7 @@ export function ReportTwoStudioRuntime({
                       updateReportTwoLogoSettings({
                         height: normalizeReportTwoLogoNumber(
                           Number(event.target.value),
-                          56,
+                          80,
                           20,
                           160,
                         ),

@@ -10,6 +10,7 @@ type SnapshotForDownload = {
   snapshotPagesJson?: unknown;
   renderContext?: unknown;
   previewCase?: unknown;
+  variantId?: string | null;
 };
 
 type ReportTwoSnapshotPreviewProps = {
@@ -30,6 +31,7 @@ type ReportTwoSnapshotPreviewProps = {
     snapshotPagesJson?: unknown;
     snapshotHtml: string;
     pdfUrl?: string | null;
+    variantId?: string | null;
   };
   caseTitle?: string | null;
   printMode?: boolean;
@@ -154,6 +156,7 @@ export function ReportTwoSnapshotPreview({
             context={(snapshot.renderContext || {}) as Record<string, string>}
             previewCase={snapshot.previewCase || null}
             sourcePayload={snapshot.snapshotPayload}
+            variantId={snapshot.variantId}
           />
         ) : (
           <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />
