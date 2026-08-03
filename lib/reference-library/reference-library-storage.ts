@@ -8,11 +8,12 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-const STORAGE_ROOT = path.resolve(
-  process.cwd(),
-  ".storage",
-  "reference-library",
-);
+const configuredStorageRoot =
+  process.env.REFERENCE_LIBRARY_STORAGE_ROOT?.trim();
+
+const STORAGE_ROOT = configuredStorageRoot
+  ? path.resolve(configuredStorageRoot)
+  : path.resolve(process.cwd(), ".storage", "reference-library");
 
 function resolveStoragePath(storageKey: string) {
   const normalizedKey = storageKey.replace(/\\/g, "/").replace(/^\/+/, "");

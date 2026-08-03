@@ -78,6 +78,22 @@ export async function POST(request: Request) {
   }
 
   const { kind, dataUrl } = payloadResult.data;
+  const expectedKind: SignatureKind | null =
+    current.user.role === "COUNSELOR"
+      ? "counselor"
+      : current.user.role === "ACTIVITY_LEADER"
+        ? "activityLeader"
+        : null;
+
+  if (!expectedKind || kind !== expectedKind) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لا يتوفر حقل توقيع مخصص لهذا الدور حاليًا.",
+      },
+      { status: 403 },
+    );
+  }
 
   const signatureUrl = await saveSignatureImage({
     schoolAccountId: current.user.schoolAccountId,

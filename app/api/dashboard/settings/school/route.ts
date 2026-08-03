@@ -15,11 +15,33 @@ export async function GET() {
   }
 
   const profile = current.user.schoolAccount?.profile;
+  const signatureKind =
+    current.user.role === "COUNSELOR"
+      ? "counselor"
+      : current.user.role === "ACTIVITY_LEADER"
+        ? "activityLeader"
+        : "";
 
   return NextResponse.json({
     success: true,
     data: {
       officialName: current.user.officialName || current.user.name || "",
+      currentUserName: current.user.officialName || current.user.name || "صاحب الحساب",
+      currentUserRole: current.user.role,
+      currentUserGender: current.user.gender,
+      currentUserSignatureKind: signatureKind,
+      currentUserSignatureUrl:
+        signatureKind === "counselor"
+          ? profile?.counselorSignatureUrl || ""
+          : signatureKind === "activityLeader"
+            ? profile?.activityLeaderSignatureUrl || ""
+            : "",
+      currentUserSignedAt:
+        signatureKind === "counselor"
+          ? profile?.counselorSignedAt?.toISOString() || ""
+          : signatureKind === "activityLeader"
+            ? profile?.activityLeaderSignedAt?.toISOString() || ""
+            : "",
       jobTitle: current.user.jobTitle || "",
       phone: current.user.phone || "",
       schoolName: profile?.schoolName || "",
