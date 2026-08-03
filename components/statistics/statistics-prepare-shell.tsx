@@ -461,12 +461,6 @@ export function StatisticsPrepareShell({
             executiveDescription:
               approvedDescription,
 
-            insights:
-              analysis.insights,
-
-            recommendations:
-              analysis.recommendations,
-
             analysisMode:
               analysis.analysisMode,
           }),
@@ -1007,66 +1001,6 @@ export function StatisticsPrepareShell({
                   /1800
                 </span>
               </label>
-
-              {analysis ? (
-                <>
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-black text-slate-900">
-                        الاستنتاجات
-                      </h3>
-
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">
-                        {analysis.analysisMode ===
-                        "DEEPSEEK"
-                          ? "تحليل ذكي"
-                          : "صياغة احتياطية"}
-                      </span>
-                    </div>
-
-                    <ul className="mt-3 space-y-2">
-                      {analysis.insights.map(
-                        (
-                          insight,
-                          index,
-                        ) => (
-                          <li
-                            key={`${index}-${insight}`}
-                            className="text-sm leading-6 text-slate-600"
-                          >
-                            • {insight}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <h3 className="text-sm font-black text-slate-900">
-                      التوصيات
-                    </h3>
-
-                    <ul className="mt-3 space-y-2">
-                      {analysis.recommendations.map(
-                        (
-                          recommendation,
-                          index,
-                        ) => (
-                          <li
-                            key={`${index}-${recommendation}`}
-                            className="text-sm leading-6 text-slate-600"
-                          >
-                            •{" "}
-                            {
-                              recommendation
-                            }
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-                </>
-              ) : null}
 
               {saveError ? (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">

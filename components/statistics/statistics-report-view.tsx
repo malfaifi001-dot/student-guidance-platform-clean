@@ -13,10 +13,7 @@ import {
 import {
   StatisticsPrintController,
 } from "@/components/statistics/statistics-print-controller";
-
-import {
-  formatEducationOfficeDisplay,
-} from "@/lib/report-engine/report-identity-runtime";
+import { getReportPreparedByLabel } from "@/lib/statistics/statistics-report-copy";
 
 export type StatisticsReportViewData = {
   id: string;
@@ -58,6 +55,7 @@ export type StatisticsReportViewData = {
   };
 
   creator: {
+    gender: string;
     name: string;
     jobTitle: string;
   };
@@ -79,13 +77,42 @@ function formatDate(
   }
 
   return new Intl.DateTimeFormat(
-    "ar-SA",
+    "en-GB",
     {
       year: "numeric",
-      month: "long",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Riyadh",
     },
-  ).format(new Date(value));
+  ).format(new Date(value)).replaceAll("/", "-");
+}
+
+function formatEducationDepartmentLine(input: {
+  educationDepartment: string;
+  educationOffice: string;
+}) {
+  const rawValue = (
+    input.educationDepartment ||
+    input.educationOffice
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!rawValue) return "";
+
+  const location = rawValue
+    .replace(/^مكتب\s+(?:ال)?تعليم\s*/u, "")
+    .replace(/^مكتب\s+التعليم\s*/u, "")
+    .replace(/^الإدارة\s+العامة\s+للتعليم\s*(?:بمنطقة)?\s*/u, "")
+    .replace(/^الإدارة\s+التعليمية\s*(?:بمنطقة)?\s*/u, "")
+    .replace(/^إدارة\s+(?:ال)?تعليم\s*(?:بمنطقة)?\s*/u, "")
+    .replace(/^تعليم\s+منطقة\s*/u, "")
+    .replace(/^ب?منطقة\s*/u, "")
+    .trim();
+
+  return location
+    ? `الإدارة التعليمية بمنطقة ${location}`
+    : "الإدارة التعليمية";
 }
 
 export function StatisticsReportView({
@@ -93,7 +120,7 @@ export function StatisticsReportView({
   autoPrint,
   showControls = true,
 }: Props) {
-  const educationOfficeLabel = formatEducationOfficeDisplay({
+  const educationDepartmentLine = formatEducationDepartmentLine({
     educationOffice: data.school.educationOffice,
     educationDepartment: data.school.educationDepartment,
   });
@@ -170,7 +197,7 @@ export function StatisticsReportView({
             <div className="flex min-h-[34mm] flex-col items-center justify-center space-y-0.5 text-center text-sm font-bold leading-6 text-slate-600">
               <p>المملكة العربية السعودية</p>
               <p>وزارة التعليم</p>
-              {educationOfficeLabel ? <p>{educationOfficeLabel}</p> : null}
+              {educationDepartmentLine ? <p>{educationDepartmentLine}</p> : null}
             </div>
 
             <div className="flex min-h-[34mm] min-w-0 flex-col items-center justify-center text-center">
@@ -189,9 +216,6 @@ export function StatisticsReportView({
 
             <div className="flex min-h-[34mm] flex-col items-center justify-center space-y-0.5 text-center text-sm font-bold leading-6 text-slate-600">
               <p>تاريخ الإنشاء: {formatDate(data.createdAt)}</p>
-              {data.serviceNames.length ? (
-                <p className="break-words">{data.serviceNames.join("، ")}</p>
-              ) : null}
             </div>
           </div>
 
@@ -270,7 +294,7 @@ export function StatisticsReportView({
           <div className="flex items-end justify-start">
             <div>
               <p className="text-xs font-bold text-slate-500">
-                أعد التقرير
+                {getReportPreparedByLabel(data.creator.gender)}
               </p>
 
               <p className="mt-2 font-black text-slate-950">

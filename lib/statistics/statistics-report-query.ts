@@ -170,6 +170,7 @@ export async function getStatisticsReportView(
         name: true,
         officialName: true,
         jobTitle: true,
+        gender: true,
       },
     }),
   ]);
@@ -287,6 +288,10 @@ export async function getStatisticsReportView(
     },
 
     creator: {
+      gender:
+        creator?.gender ||
+        "UNKNOWN",
+
       name:
         creator?.officialName ||
         creator?.name ||
