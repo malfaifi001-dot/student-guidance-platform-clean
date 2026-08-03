@@ -19,6 +19,8 @@ type SmartReportDocumentRendererProps = {
   variantId?: ReportVariantId;
 };
 
+
+
 const ARABIC_VALUE_MAP: Record<string, string> = {
   term_1: "الفصل الدراسي الأول",
   term_2: "الفصل الدراسي الثاني",
