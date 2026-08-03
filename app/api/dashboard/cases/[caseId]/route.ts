@@ -7,8 +7,8 @@ import { logCaseSavedEvent } from "@/lib/admin/activity-events";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import {
   buildCaseEntryWhereForUser,
-  roleCanDeleteCase,
 } from "@/lib/cases/case-access-scope";
+import { resolveCaseCapabilities } from "@/lib/cases/case-permissions";
 import { deleteEvidenceFiles } from "@/lib/evidence/delete-evidence-files";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
@@ -56,6 +56,7 @@ export async function GET(_request: Request, context: RouteContext) {
       isAdmin: authResult.isAdmin,
       userId: authResult.user.id,
       userRole: authResult.user.role,
+      userEmail: authResult.user.email,
     });
 
     return NextResponse.json({
@@ -105,12 +106,21 @@ export async function PATCH(request: Request, context: RouteContext) {
           id: authResult.user.id,
           role: authResult.user.role,
           schoolAccountId: authResult.schoolAccountId,
+          email: authResult.user.email,
         }),
       },
       select: {
         id: true,
         schoolAccountId: true,
+        createdById: true,
+        status: true,
         service: { select: { slug: true } },
+        activityAssignment: {
+          select: {
+            teacherEmail: true,
+            status: true,
+          },
+        },
         values: { select: { fieldKey: true, value: true, jsonValue: true } },
       },
     });
@@ -123,6 +133,27 @@ export async function PATCH(request: Request, context: RouteContext) {
           error: "الحالة غير موجودة أو لا تملك صلاحية تعديلها.",
         },
         { status: 404 },
+      );
+    }
+
+    if (
+      !resolveCaseCapabilities(
+        {
+          id: authResult.user.id,
+          role: authResult.user.role,
+          schoolAccountId: authResult.schoolAccountId,
+          email: authResult.user.email,
+        },
+        editableCase,
+      ).canEditCase
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "CASE_EDIT_FORBIDDEN",
+          error: "لا تملك صلاحية تعديل هذه الحالة.",
+        },
+        { status: 403 },
       );
     }
 
@@ -152,6 +183,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       isAdmin: authResult.isAdmin,
       userId: authResult.user.id,
       userRole: authResult.user.role,
+      userEmail: authResult.user.email,
       title: body.title,
       studentId: body.studentId,
       values: body.values || {},
@@ -268,47 +300,75 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   if (authResult instanceof Response) return authResult;
 
-  if (!roleCanDeleteCase(authResult.user.role)) {
-    return NextResponse.json(
-      { success: false, code: "CASE_DELETE_FORBIDDEN", error: "لا تملك صلاحية حذف الحالة." },
-      { status: 403 },
-    );
-  }
-
   const { caseId } = await context.params;
-  const accessWhere = buildCaseEntryWhereForUser({
+  const permissionUser = {
     id: authResult.user.id,
     role: authResult.user.role,
     schoolAccountId: authResult.schoolAccountId,
-  });
+    email: authResult.user.email,
+  };
 
-  const caseEntry = await prisma.caseEntry.findFirst({
-    where: { AND: [{ id: caseId }, accessWhere] },
+  const caseEntry = await prisma.caseEntry.findUnique({
+    where: { id: caseId },
     select: {
       id: true,
       title: true,
       schoolAccountId: true,
       service: { select: { slug: true } },
+      createdById: true,
+      status: true,
+      activityAssignment: {
+        select: {
+          teacherEmail: true,
+          status: true,
+        },
+      },
       evidences: { select: { fileUrl: true } },
       caseEvidences: { select: { fileUrl: true } },
     },
   });
 
-  if (!caseEntry) {
+  if (
+    !caseEntry ||
+    (authResult.user.role !== "ADMIN" &&
+      caseEntry.schoolAccountId !== authResult.schoolAccountId)
+  ) {
     return NextResponse.json(
       { success: false, code: "CASE_NOT_FOUND", error: "الحالة غير موجودة أو لا تملك صلاحية حذفها." },
       { status: 404 },
     );
   }
 
+  if (!resolveCaseCapabilities(permissionUser, caseEntry).canDeleteCase) {
+    return NextResponse.json(
+      { success: false, code: "CASE_DELETE_FORBIDDEN", error: "لا تملك صلاحية حذف هذه الحالة." },
+      { status: 403 },
+    );
+  }
+
   try {
     const deletion = await prisma.$transaction(async (tx) => {
-      const current = await tx.caseEntry.findFirst({
-        where: { AND: [{ id: caseId }, accessWhere] },
-        select: { id: true },
+      const current = await tx.caseEntry.findUnique({
+        where: { id: caseId },
+        select: {
+          id: true,
+          schoolAccountId: true,
+          createdById: true,
+          status: true,
+          service: { select: { slug: true } },
+          activityAssignment: {
+            select: {
+              teacherEmail: true,
+              status: true,
+            },
+          },
+        },
       });
 
       if (!current) throw new Error("CASE_ALREADY_DELETED");
+      if (!resolveCaseCapabilities(permissionUser, current).canDeleteCase) {
+        throw new Error("CASE_DELETE_FORBIDDEN");
+      }
 
       const [activeReports, snapshots, guidanceReports] = await Promise.all([
         tx.reportTwoActive.findMany({ where: { caseEntryId: caseId }, select: { id: true } }),
@@ -393,6 +453,12 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return NextResponse.json(
         { success: false, code: "CASE_NOT_FOUND", error: "تم حذف الحالة مسبقًا." },
         { status: 404 },
+      );
+    }
+    if (error instanceof Error && error.message === "CASE_DELETE_FORBIDDEN") {
+      return NextResponse.json(
+        { success: false, code: "CASE_DELETE_FORBIDDEN", error: "لا تملك صلاحية حذف هذه الحالة." },
+        { status: 403 },
       );
     }
     console.error("case deletion failed", {

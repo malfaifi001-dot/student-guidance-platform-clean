@@ -1,10 +1,14 @@
+import { buildCaseEntryPermissionWhere } from "@/lib/cases/case-permissions";
+import type { Prisma } from "@prisma/client";
+
 type ReportScopeUser = {
   id: string;
   role: string;
   schoolAccountId?: string | null;
+  email?: string | null;
 };
 
-const ACTIVITY_PROGRAM_SERVICE_SLUGS = [
+const ACTIVITY_LEADER_REPORT_SERVICE_SLUGS = [
   "activity-programs",
   "activity-programs-citizenship-life",
   "activity-programs-science-technology",
@@ -16,74 +20,30 @@ const ACTIVITY_PROGRAM_SERVICE_SLUGS = [
   "custom-report",
 ];
 
-function activityProgramSlugScope() {
-  return {
-    in: ACTIVITY_PROGRAM_SERVICE_SLUGS,
-  };
-}
-
-export function buildCaseEntryReportWhereForUser(user: ReportScopeUser): any {
-  if (user.role === "ADMIN") {
-    return {};
-  }
-
-  const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
-
+export function buildCaseEntryReportWhereForUser(
+  user: ReportScopeUser,
+): Prisma.CaseEntryWhereInput {
   if (user.role === "ACTIVITY_LEADER") {
     return {
-      schoolAccountId,
+      schoolAccountId: user.schoolAccountId || "__NO_SCHOOL__",
       service: {
-        slug: activityProgramSlugScope(),
+        slug: { in: ACTIVITY_LEADER_REPORT_SERVICE_SLUGS },
       },
     };
   }
 
-  if (user.role === "STAFF") {
-    return {
-      schoolAccountId,
-      createdById: user.id,
-    };
-  }
-
-  return {
-    schoolAccountId,
-  };
+  return buildCaseEntryPermissionWhere(user);
 }
 
-export function buildGuidanceReportWhereForUser(user: ReportScopeUser): any {
+export function buildGuidanceReportWhereForUser(
+  user: ReportScopeUser,
+): Prisma.GuidanceReportWhereInput {
   if (user.role === "ADMIN") {
     return {};
   }
-
-  const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
-
-  if (user.role === "ACTIVITY_LEADER") {
-    return {
-      serviceSlug: activityProgramSlugScope(),
-      caseEntry: {
-        is: {
-          schoolAccountId,
-        },
-      },
-    };
-  }
-
-  if (user.role === "STAFF") {
-    return {
-      caseEntry: {
-        is: {
-          schoolAccountId,
-          createdById: user.id,
-        },
-      },
-    };
-  }
-
   return {
     caseEntry: {
-      is: {
-        schoolAccountId,
-      },
+      is: buildCaseEntryReportWhereForUser(user),
     },
   };
 }

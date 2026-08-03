@@ -101,6 +101,7 @@ export default async function MobileCounselorCasesPage() {
       id: viewerId || "__NO_USER__",
       role: viewerRole,
       schoolAccountId: viewerSchoolAccountId,
+      email: context.user.email,
     }),
     include: {
       service: {

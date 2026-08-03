@@ -365,6 +365,7 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
       id: context.user.id,
       role: context.user.role,
       schoolAccountId: context.schoolAccountId,
+      email: context.user.email,
     }),
     select: { id: true, title: true },
     take: 500,

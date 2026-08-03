@@ -14,6 +14,11 @@ import type {
   RuntimeStep,
   RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
+import {
+  normalizeWorkflowStudentPickerMode,
+  shouldShowStudentPicker,
+} from "@/lib/workflows/workflow-runtime-settings";
+import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 
 type EvidenceItem = {
   id: string;
@@ -58,12 +63,6 @@ const SERVICES_WITH_EVIDENCE = new Set([
   "student-guidance-services",
   "committees-meetings",
   "activity-programs",
-]);
-
-const SERVICES_REQUIRING_STUDENT = new Set([
-  "student-follow-up",
-  "family-school-communication",
-  "student-guidance-services",
 ]);
 
 const OTHER_VALUE = "__OTHER__";
@@ -417,7 +416,12 @@ function StudentPicker({
   return (
     <section className="rounded-[1.6rem] bg-sky-50/80 p-4 shadow-sm ring-1 ring-sky-100">
       <p className="text-xs font-black text-sky-700">الطالب</p>
-      <h2 className="mt-1 text-xl font-black text-slate-950">اختيار الطالب/الطالبة</h2>
+      <h2 className="mt-1 text-xl font-black text-slate-950">
+        اختيار الطالب/الطالبة — اختياري
+      </h2>
+      <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
+        يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
+      </p>
 
       {selectedStudent ? (
         <div className="mt-4 rounded-[1.3rem] bg-white p-3 ring-1 ring-white/90">
@@ -665,17 +669,13 @@ export function MobileDynamicFormRenderer({
     [steps, workflow],
   );
 
-  const workflowStudentPickerMode =
-    typeof (workflow as RuntimeWorkflow & { studentPickerMode?: unknown }).studentPickerMode === "string"
-      ? String((workflow as RuntimeWorkflow & { studentPickerMode?: string }).studentPickerMode)
-      : "SERVICE_DEFAULT";
-
-  const needsStudent =
-    workflowStudentPickerMode === "REQUIRED"
-      ? true
-      : workflowStudentPickerMode === "DISABLED"
-        ? false
-        : requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+  const workflowStudentPickerMode = normalizeWorkflowStudentPickerMode(
+    (workflow as RuntimeWorkflow & { studentPickerMode?: unknown }).studentPickerMode,
+  );
+  const serviceDefaultShowsStudentPicker =
+    requiresStudent ??
+    (steps.some(isStudentPickerStep) ||
+      getServiceRuntimePolicy(workflow.serviceSlug).showsStudentPicker);
 
   const supportsEvidence =
     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || steps.some(isEvidenceStep);
@@ -696,13 +696,17 @@ export function MobileDynamicFormRenderer({
   const isLastStep = currentStepIndex === steps.length - 1;
 
   const workflowHasStudentPickerStep = steps.some(isStudentPickerStep);
+  const supportsStudentPicker = shouldShowStudentPicker(
+    workflowStudentPickerMode,
+    serviceDefaultShowsStudentPicker,
+  );
   const showStudentPicker =
-    needsStudent &&
+    supportsStudentPicker &&
     currentStep &&
     (isStudentPickerStep(currentStep) ||
       (!workflowHasStudentPickerStep && isFirstStep));
 
-  const showStudentSummary = needsStudent && !showStudentPicker && Boolean(selectedStudent);
+  const showStudentSummary = supportsStudentPicker && !showStudentPicker && Boolean(selectedStudent);
   const showEvidence = supportsEvidence && isEvidenceStep(currentStep);
 
   function shouldShowFieldForValues(field: RuntimeField, currentValues: RuntimeValues) {
@@ -805,27 +809,13 @@ export function MobileDynamicFormRenderer({
     }));
   }
 
-  function validateStudentSelection() {
-    if (!needsStudent) return true;
-
-    if (selectedStudent?.id) return true;
-
-    setFeedback({
-      type: "warning",
-      title: "اختيار الطالب مطلوب",
-      message: "اختر الطالب/الطالبة قبل الحفظ أو الإرسال.",
-    });
-
-    return false;
-  }
-
   function validateCurrentStep() {
-    if (!validateStudentSelection()) return false;
     if (!currentStep) return true;
 
     const visibleFields = currentStep.fields
       .filter((field) => shouldShowField(field, values))
-      .filter((field) => !isEvidenceField(field));
+      .filter((field) => !isEvidenceField(field))
+      .filter((field) => !isStudentPickerField(field));
 
     for (const field of visibleFields) {
       if (!field.isRequired) continue;
@@ -880,7 +870,6 @@ export function MobileDynamicFormRenderer({
   }
 
   async function handleSave(type: "draft" | "submit") {
-    if (!validateStudentSelection()) return;
     if (type === "submit" && !validateCurrentStep()) return;
 
     try {

@@ -6,7 +6,7 @@ export type StudentRequirementMode =
 
 export type ServiceRuntimePolicy = {
   serviceSlug: string;
-  requiresStudent: boolean;
+  showsStudentPicker: boolean;
   supportsMultipleStudents: boolean;
   studentMode: StudentRequirementMode;
   evidenceMode: "none" | "guidance_programs_only";
@@ -16,7 +16,7 @@ export type ServiceRuntimePolicy = {
 export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
   "student-follow-up": {
     serviceSlug: "student-follow-up",
-    requiresStudent: true,
+    showsStudentPicker: true,
     supportsMultipleStudents: false,
     studentMode: "single",
     evidenceMode: "none",
@@ -25,7 +25,7 @@ export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
 
   "family-school-communication": {
     serviceSlug: "family-school-communication",
-    requiresStudent: true,
+    showsStudentPicker: true,
     supportsMultipleStudents: false,
     studentMode: "single",
     evidenceMode: "none",
@@ -34,7 +34,7 @@ export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
 
   "student-guidance-services": {
     serviceSlug: "student-guidance-services",
-    requiresStudent: true,
+    showsStudentPicker: true,
     supportsMultipleStudents: true,
     studentMode: "single",
     evidenceMode: "none",
@@ -43,7 +43,7 @@ export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
 
   "guidance-programs": {
     serviceSlug: "guidance-programs",
-    requiresStudent: false,
+    showsStudentPicker: false,
     supportsMultipleStudents: false,
     studentMode: "target_audience",
     evidenceMode: "guidance_programs_only",
@@ -52,7 +52,7 @@ export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
 
   "committees-meetings": {
     serviceSlug: "committees-meetings",
-    requiresStudent: false,
+    showsStudentPicker: false,
     supportsMultipleStudents: false,
     studentMode: "none",
     evidenceMode: "none",
@@ -64,7 +64,7 @@ export function getServiceRuntimePolicy(serviceSlug: string): ServiceRuntimePoli
   return (
     serviceRuntimePolicies[serviceSlug] ?? {
       serviceSlug,
-      requiresStudent: false,
+      showsStudentPicker: false,
       supportsMultipleStudents: false,
       studentMode: "none",
       evidenceMode: "none",

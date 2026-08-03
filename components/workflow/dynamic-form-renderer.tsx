@@ -26,7 +26,9 @@ import { isConditionalWorkflowFieldVisible } from "@/engine/runtime/workflow-con
 import {
   normalizeWorkflowEvidenceMode,
   normalizeWorkflowStudentPickerMode,
+  shouldShowStudentPicker,
 } from "@/lib/workflows/workflow-runtime-settings";
+import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
 
 export type EvidenceItem = {
@@ -115,16 +117,6 @@ const SERVICES_WITH_EVIDENCE = new Set([
   "student-guidance-services",
   "committees-meetings",
   "activity-programs",
-]);
-
-/**
- * خدمات تحتاج اختيار طالب/طالبة افتراضيًا.
- * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
- */
-const SERVICES_REQUIRING_STUDENT = new Set([
-  "student-follow-up",
-  "family-school-communication",
-  "student-guidance-services",
 ]);
 
 function normalizeRuntimeText(value: string) {
@@ -701,17 +693,14 @@ export function DynamicFormRenderer({
         ? false
         : serviceDefaultSupportsEvidence;
 
-  const workflowStudentPickerDecision =
-    workflowStudentPickerMode === "REQUIRED"
-      ? true
-      : workflowStudentPickerMode === "DISABLED"
-        ? false
-        : undefined;
-
-  const needsStudent =
-    workflowStudentPickerDecision ??
+  const serviceDefaultShowsStudentPicker =
     requiresStudent ??
-    SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+    (workflowHasStudentPickerStep ||
+      getServiceRuntimePolicy(workflow.serviceSlug).showsStudentPicker);
+  const supportsStudentPicker = shouldShowStudentPicker(
+    workflowStudentPickerMode,
+    serviceDefaultShowsStudentPicker,
+  );
 
   // WORKFLOW_STUDENT_PICKER_MODE_RUNTIME_MARKER
 
@@ -775,12 +764,12 @@ export function DynamicFormRenderer({
         isLastStep));
 
   const showStudentPickerCard =
-    needsStudent &&
+    supportsStudentPicker &&
     (isStudentPickerStep(currentStep) ||
       (!workflowHasStudentPickerStep && isFirstStep));
 
   const showStudentSummaryCard =
-    needsStudent && !showStudentPickerCard && selectedStudents.length > 0;
+    supportsStudentPicker && !showStudentPickerCard && selectedStudents.length > 0;
 
   function showFeedback(
     type: FeedbackState["type"],
@@ -992,32 +981,11 @@ export function DynamicFormRenderer({
     });
   }
 
-  function validateStudentSelection() {
-    if (!needsStudent) return true;
-
-    if (selectedStudents.length > 0) {
-      return true;
-    }
-
-    showFeedback(
-      "warning",
-      "اختيار الطالب/الطالبة مطلوب",
-      "يرجى اختيار الطالب/الطالبة المرتبط بهذه الحالة قبل المتابعة."
-    );
-
-    const pickerIndex = steps.findIndex(isStudentPickerStep);
-    setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
-
-    return false;
-  }
-
   function shouldShowFieldInCurrentValues(field: RuntimeField) {
     return isConditionalWorkflowFieldVisible(field, values);
   }
 
   function validateCurrentStep() {
-    if (!validateStudentSelection()) return false;
-
     if (!displayCurrentStep) return true;
 
     const isCommitteeChainCurrentStep =
@@ -1120,7 +1088,6 @@ export function DynamicFormRenderer({
   }
 
   async function performSave(type: "draft" | "submit") {
-    if (!validateStudentSelection()) return;
     if (type === "submit" && !validateCurrentStep()) return;
 
     try {
@@ -1296,9 +1263,9 @@ export function DynamicFormRenderer({
             الخطوة {currentStepIndex + 1} من {steps.length}
           </span>
 
-          {needsStudent ? (
+          {supportsStudentPicker ? (
             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              اختيار الطالب/الطالبة مطلوب
+              اختيار الطالب/الطالبة — اختياري
             </span>
           ) : null}
 
@@ -1670,16 +1637,15 @@ function SmartStudentPickerCard({
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div>
           <p className="text-sm font-black text-sky-700">
-            اختيار الطالب/الطالبة
+            اختيار الطالب/الطالبة — اختياري
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-slate-900">
-            اختر الطالب/الطالبة المرتبط بهذه الحالة
+            اختيار الطالب/الطالبة — اختياري
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            ابحث باسم الطالب/الطالبة أو رقم الهوية. بعد الاختيار سيتم ربط
-            الحالة بسجل الطالب/الطالبة وبيانات ولي الأمر.
+            يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
           </p>
 
           <div className="relative mt-5">
@@ -1768,7 +1734,7 @@ function SmartStudentPickerCard({
               </p>
 
               <p className="mt-2 text-xs leading-6 text-slate-500">
-                اختيار الطالب/الطالبة مطلوب لهذه الحالة، ويستخدم في التقارير والتصدير وتتبع الحالات.
+                يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
               </p>
             </div>
           )}

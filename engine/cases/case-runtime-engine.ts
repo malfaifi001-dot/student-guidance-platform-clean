@@ -19,6 +19,7 @@ type CaseAccessScope = {
   isAdmin?: boolean;
   userId?: string | null;
   userRole?: string | null;
+  userEmail?: string | null;
 };
 
 type SaveRuntimeCaseParams = {
@@ -103,6 +104,7 @@ function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
       id: scope.userId || "__NO_USER__",
       role: scope.userRole || "COUNSELOR",
       schoolAccountId,
+      email: scope.userEmail,
     }),
   };
 }
@@ -476,11 +478,12 @@ async function findStudentOrNull(
   assertSchoolScope(scope);
 
   const schoolAccountId = scope.schoolAccountId;
+  const studentSchoolScope = schoolAccountId ? { schoolAccountId } : {};
 
   return prisma.student.findFirst({
     where: {
       id: studentId,
-      ...(scope.isAdmin ? {} : { schoolAccountId: schoolAccountId as string }),
+      ...studentSchoolScope,
     },
     select: {
       id: true,
@@ -520,9 +523,10 @@ export async function saveRuntimeCase({
     isAdmin: false,
   };
 
+  const normalizedStudentId = String(studentId ?? "").trim() || null;
   const existingService = await assertServiceExists(serviceId);
   const existingWorkflow = await findWorkflowOrNull(workflowId);
-  const existingStudent = await findStudentOrNull(studentId, scope);
+  const existingStudent = await findStudentOrNull(normalizedStudentId, scope);
 
   if (workflowId && !existingWorkflow) {
     throw new Error(`workflowId غير موجود في قاعدة البيانات: ${workflowId}`);
@@ -532,7 +536,7 @@ export async function saveRuntimeCase({
     throw new Error("الـ workflow لا يتبع الخدمة المحددة.");
   }
 
-  if (studentId && !existingStudent) {
+  if (normalizedStudentId && !existingStudent) {
     throw new Error("الطالب غير موجود أو لا يتبع مدرستك.");
   }
 
@@ -550,7 +554,7 @@ export async function saveRuntimeCase({
       serviceId: existingService.id,
       workflowId: existingWorkflow?.id,
       workflowSnapshot: workflowSnapshot || undefined,
-      studentId: existingStudent?.id,
+      studentId: existingStudent?.id ?? null,
       createdById: createdById || null,
       title: title || undefined,
       status: toCaseStatus(status),
@@ -605,12 +609,13 @@ export async function updateRuntimeCase({
     throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
   }
 
-  const existingStudent = await findStudentOrNull(studentId, {
+  const normalizedStudentId = String(studentId ?? "").trim() || null;
+  const existingStudent = await findStudentOrNull(normalizedStudentId, {
     schoolAccountId: existingCase.schoolAccountId,
     isAdmin,
   });
 
-  if (studentId && !existingStudent) {
+  if (normalizedStudentId && !existingStudent) {
     throw new Error("الطالب غير موجود أو لا يتبع نفس مدرسة الحالة.");
   }
 
@@ -629,7 +634,7 @@ export async function updateRuntimeCase({
       where: { id: caseId },
       data: {
         title: title || undefined,
-        studentId: studentId ? existingStudent?.id : null,
+        studentId: existingStudent?.id ?? null,
         status: status ? toCaseStatus(status) : undefined,
         submittedAt: status === "SUBMITTED" ? new Date() : undefined,
         values: { create: serializedValues },

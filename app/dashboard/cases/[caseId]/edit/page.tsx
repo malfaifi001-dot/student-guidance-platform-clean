@@ -7,6 +7,7 @@ import {
 } from "@/engine/runtime/runtime-resolver";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
+import { resolveCaseCapabilities } from "@/lib/cases/case-permissions";
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
@@ -224,6 +225,7 @@ export default async function EditCasePage({ params }: PageProps) {
       id: context.user.id,
       role: context.user.role,
       schoolAccountId,
+      email: context.user.email,
     }),
   };
 
@@ -233,6 +235,12 @@ export default async function EditCasePage({ params }: PageProps) {
       values: true,
       evidences: true,
       service: true,
+      activityAssignment: {
+        select: {
+          teacherEmail: true,
+          status: true,
+        },
+      },
       guidanceReports: {
         orderBy: { updatedAt: "desc" },
         take: 1,
@@ -262,6 +270,20 @@ export default async function EditCasePage({ params }: PageProps) {
   });
 
   if (!caseEntry || !caseEntry.service) {
+    notFound();
+  }
+
+  if (
+    !resolveCaseCapabilities(
+      {
+        id: context.user.id,
+        role: context.user.role,
+        schoolAccountId,
+        email: context.user.email,
+      },
+      caseEntry,
+    ).canEditCase
+  ) {
     notFound();
   }
 

@@ -1,17 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import {
-  Eye,
-  FileText,
-  PencilLine,
   Search,
-  Trash2,
   UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ReportDeleteAction } from "@/components/reports/report-delete-action";
-import { CaseDeleteAction } from "@/components/cases/case-delete-action";
+import { CaseCardActions } from "@/components/cases/case-card-actions";
+import type { CaseCapabilities } from "@/lib/cases/case-permissions";
 
 type CaseRow = {
   id: string;
@@ -53,7 +48,7 @@ type CaseRow = {
   valuesCount: number;
   evidencesCount: number;
   reportsCount: number;
-  canDeleteCase: boolean;
+  capabilities: CaseCapabilities;
   reportTwoReport?: {
     id: string;
     status: "DRAFT" | "APPROVED";
@@ -99,10 +94,6 @@ function normalizeText(value: string) {
     .replace(/ة/g, "ه")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function getReportUrl(caseItem: CaseRow) {
-  return `/dashboard/report-2/cases/${encodeURIComponent(caseItem.id)}/prepare`;
 }
 
 function getDisplayStatus(caseItem: CaseRow) {
@@ -153,37 +144,6 @@ function getNextActionText(caseItem: CaseRow) {
   }
 
   return "متابعة الحالة";
-}
-
-function getReportAction(caseItem: CaseRow) {
-  if (caseItem.reportTwoReport?.id) {
-    return {
-      label: "معاينة التقرير",
-      href: caseItem.reportTwoReport.previewUrl,
-      className: "bg-emerald-700 text-white hover:bg-emerald-800",
-    };
-  }
-
-  if (caseItem.latestReport?.previewUrl) {
-    return {
-      label: "معاينة التقرير",
-      href: caseItem.latestReport.previewUrl,
-      className:
-        caseItem.latestReport.status === "APPROVED"
-          ? "bg-emerald-700 text-white hover:bg-emerald-800"
-          : "bg-sky-600 text-white hover:bg-sky-700",
-    };
-  }
-
-  if (caseItem.status === "SUBMITTED") {
-    return {
-      label: "إصدار تقرير",
-      href: getReportUrl(caseItem),
-      className: "bg-sky-700 text-white hover:bg-sky-800",
-    };
-  }
-
-  return null;
 }
 
 export function CasesSearchTable({ cases }: CasesSearchTableProps) {
@@ -375,39 +335,16 @@ function CaseFollowUpCard({
   onCaseDeleted: (caseId: string) => void;
 }) {
   const displayStatus = getDisplayStatus(caseItem);
-  const reportAction = getReportAction(caseItem);
   const reportStatus =
     caseItem.reportTwoReport?.status || caseItem.latestReport?.status || null;
   const persistedReportId =
     caseItem.reportTwoReport?.id || caseItem.latestReport?.id || null;
-  const deleteEndpoint = caseItem.reportTwoReport?.id
-    ? `/api/dashboard/report-2/snapshots/${encodeURIComponent(caseItem.reportTwoReport.id)}`
-    : caseItem.latestReport
-      ? `/api/dashboard/reports/${encodeURIComponent(caseItem.latestReport.id)}/delete`
-      : null;
   const reportStatusLabel =
     reportStatus === "APPROVED"
       ? "معتمد"
       : reportStatus === "DRAFT"
         ? "مسودة تقرير"
         : null;
-
-  const baseIconButtonClass =
-    "grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700";
-
-  const disabledIconButtonClass =
-    "grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-300 shadow-sm";
-
-  const reportIconButtonClass = reportAction
-    ? [
-        "grid h-10 w-10 place-items-center rounded-full text-white shadow-sm transition",
-        reportStatus === "APPROVED"
-          ? "bg-emerald-700 hover:bg-emerald-800"
-          : reportStatus === "DRAFT"
-            ? "bg-sky-600 hover:bg-sky-700"
-            : "bg-sky-700 hover:bg-sky-800",
-      ].join(" ")
-    : disabledIconButtonClass;
 
   const cardClassName = [
     "flex h-full flex-col rounded-[1.75rem] border p-4 shadow-sm transition hover:shadow-md",
@@ -449,75 +386,10 @@ function CaseFollowUpCard({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2" dir="ltr">
-          <Link
-            href={`/dashboard/cases/${caseItem.id}`}
-            aria-label="عرض الحالة"
-            title="عرض الحالة"
-            className={baseIconButtonClass}
-          >
-            <Eye className="h-4 w-4" />
-          </Link>
-
-          <Link
-            href={`/dashboard/cases/${caseItem.id}/edit`}
-            aria-label="تعديل الحالة"
-            title="تعديل الحالة"
-            className={baseIconButtonClass}
-          >
-            <PencilLine className="h-4 w-4" />
-          </Link>
-
-          {reportAction ? (
-            <Link
-              href={reportAction.href}
-              aria-label={reportAction.label}
-              title={reportAction.label}
-              className={reportIconButtonClass}
-            >
-              <FileText className="h-4 w-4" />
-            </Link>
-          ) : (
-            <span
-              aria-label="لا يوجد تقرير جاهز"
-              title="لا يوجد تقرير جاهز"
-              className={reportIconButtonClass}
-            >
-              <FileText className="h-4 w-4" />
-            </span>
-          )}
-
-          {persistedReportId && deleteEndpoint &&
-          (!caseItem.reportTwoReport || caseItem.reportTwoReport.canDeleteReport) ? (
-            <ReportDeleteAction
-              reportId={persistedReportId}
-              reportTitle={caseItem.reportTwoReport?.title || caseItem.title}
-              caseTitle={caseItem.title}
-              reportStatus={reportStatus || "DRAFT"}
-              deleteEndpoint={deleteEndpoint}
-              reportTwoDraftStorage={
-                caseItem.reportTwoReport?.id
-                  ? { caseId: caseItem.id, serviceSlug: caseItem.service.slug }
-                  : undefined
-              }
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </ReportDeleteAction>
-          ) : null}
-
-          {caseItem.canDeleteCase ? (
-            <CaseDeleteAction
-              caseId={caseItem.id}
-              caseTitle={caseItem.title}
-              serviceName={caseItem.service.name}
-              serviceSlug={caseItem.service.slug}
-              studentName={caseItem.student?.fullName}
-              hasLinkedReports={Boolean(persistedReportId || caseItem.reportsCount)}
-              onDeleted={onCaseDeleted}
-            />
-          ) : null}
-        </div>
+        <CaseCardActions
+          caseEntry={caseItem}
+          onCaseDeleted={onCaseDeleted}
+        />
       </div>
 
       <h2 className="mt-3 text-lg font-black leading-8 text-slate-950">

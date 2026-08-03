@@ -25,6 +25,7 @@ export default async function CaseDetailsPage({ params }: PageProps) {
       isAdmin: context.isAdmin,
       userId: context.user.id,
       userRole: context.user.role,
+      userEmail: context.user.email,
     });
 
     const snapshot = await getLatestReportTwoSnapshotForCase(context, caseId);

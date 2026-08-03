@@ -5,8 +5,9 @@ import { CasesSearchTable } from "@/components/cases/cases-search-table";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import {
   buildCaseEntryWhereForUser,
-  roleCanDeleteCase,
 } from "@/lib/cases/case-access-scope";
+import { resolveCaseCapabilities } from "@/lib/cases/case-permissions";
+import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
 import { prisma } from "@/lib/prisma";
 import { listLatestReportTwoSnapshotsForCases } from "@/lib/report-2/report-snapshot-service";
 import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
@@ -23,229 +24,6 @@ function formatDate(value: Date | string | null | undefined) {
   } catch {
     return String(value);
   }
-}
-
-function normalizeArabicText(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
-  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-};
-
-function cleanTitleText(value: unknown) {
-  const text = String(value ?? "").trim();
-
-  if (!text || text === "null" || text === "undefined") {
-    return "";
-  }
-
-  if (text.length > 140) {
-    return "";
-  }
-
-  return text;
-}
-
-function stringifyTitleCandidate(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return cleanTitleText(value);
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const candidate = stringifyTitleCandidate(item);
-
-      if (candidate) {
-        return candidate;
-      }
-    }
-
-    return "";
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    const priorityKeys = [
-      "program_name",
-      "programName",
-      "program",
-      "guidanceProgram",
-      "guidance_program",
-      "selectedProgram",
-      "activityName",
-      "activity_name",
-      "title",
-      "name",
-      "label",
-      "value",
-    ];
-
-    for (const key of priorityKeys) {
-      const candidate = stringifyTitleCandidate(record[key]);
-
-      if (candidate) {
-        return candidate;
-      }
-    }
-  }
-
-  return "";
-}
-
-function extractTitleSelectedValues(value: unknown): string[] {
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => extractTitleSelectedValues(item));
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    return [
-      ...extractTitleSelectedValues(record.value),
-      ...extractTitleSelectedValues(record.id),
-      ...extractTitleSelectedValues(record.key),
-      ...extractTitleSelectedValues(record.slug),
-      ...extractTitleSelectedValues(record.label),
-      ...extractTitleSelectedValues(record.name),
-    ];
-  }
-
-  return [];
-}
-
-function getArabicOptionLabelFromCaseValue(value: any) {
-  const selectedValues = extractTitleSelectedValues(
-    value?.jsonValue ?? value?.value,
-  );
-
-  if (!selectedValues.length) {
-    return "";
-  }
-
-  const options = Array.isArray(value?.field?.options)
-    ? value.field.options
-    : [];
-
-  for (const selectedValue of selectedValues) {
-    const cleanSelected = String(selectedValue).trim();
-
-    if (!cleanSelected) {
-      continue;
-    }
-
-    const fallbackLabel = CASE_TITLE_FALLBACK_LABELS[cleanSelected];
-
-    if (fallbackLabel) {
-      return fallbackLabel;
-    }
-
-    const option = options.find((item: any) => {
-      return (
-        String(item?.value || "").trim() === cleanSelected ||
-        String(item?.label || "").trim() === cleanSelected
-      );
-    });
-
-    if (option?.label) {
-      return cleanTitleText(option.label);
-    }
-  }
-
-  return "";
-}
-
-function getCaseValueText(value: any) {
-  return (
-    getArabicOptionLabelFromCaseValue(value) ||
-    stringifyTitleCandidate(value?.jsonValue) ||
-    stringifyTitleCandidate(value?.value)
-  );
-}
-
-function isGenericCaseTitle(title: string) {
-  const normalized = normalizeArabicText(title);
-
-  return (
-    !normalized ||
-    normalized === "بدون عنوان" ||
-    normalized === "حاله بدون عنوان" ||
-    normalized === "حالة بدون عنوان" ||
-    normalized === "حاله جديده" ||
-    normalized === "حالة جديدة" ||
-    normalized.includes("برنامج ارشادي جديد") ||
-    normalized.includes("حاله جديده")
-  );
-}
-
-function isTitleLikeField(value: any) {
-  const fieldText = normalizeArabicText(
-    [
-      value?.fieldKey,
-      value?.field?.key,
-      value?.field?.label,
-    ]
-      .filter(Boolean)
-      .join(" "),
-  );
-
-  return (
-    fieldText.includes("program") ||
-    fieldText.includes("activity") ||
-    fieldText.includes("title") ||
-    fieldText.includes("برنامج") ||
-    fieldText.includes("النشاط") ||
-    fieldText.includes("عنوان") ||
-    fieldText.includes("موضوع")
-  );
-}
-
-function getCaseDisplayTitle(caseItem: any) {
-  const values = Array.isArray(caseItem.values) ? caseItem.values : [];
-
-  for (const value of values) {
-    if (!isTitleLikeField(value)) {
-      continue;
-    }
-
-    const candidate = getCaseValueText(value);
-
-    if (candidate && !isGenericCaseTitle(candidate)) {
-      return candidate;
-    }
-  }
-
-  const savedTitle = cleanTitleText(caseItem.title);
-
-  if (savedTitle && !isGenericCaseTitle(savedTitle)) {
-    return savedTitle;
-  }
-
-  return caseItem.service?.name || "حالة جديدة";
 }
 
 function getCaseStatusLabel(status: string) {
@@ -331,6 +109,7 @@ export default async function CasesPage() {
       id: viewerId || "__NO_USER__",
       role: viewerRole,
       schoolAccountId: viewerSchoolAccountId,
+      email: context.user.email,
     }),
     include: {
       service: {
@@ -356,6 +135,12 @@ export default async function CasesPage() {
         select: {
           id: true,
           name: true,
+        },
+      },
+      activityAssignment: {
+        select: {
+          teacherEmail: true,
+          status: true,
         },
       },
       values: {
@@ -416,9 +201,17 @@ export default async function CasesPage() {
     context.user.role,
     "REPORT_DELETE",
   );
-  const canDeleteCases = roleCanDeleteCase(viewerRole);
 
   const rows = cases.map((caseItem) => {
+    const capabilities = resolveCaseCapabilities(
+      {
+        id: viewerId || "__NO_USER__",
+        role: viewerRole,
+        schoolAccountId: viewerSchoolAccountId,
+        email: context.user.email,
+      },
+      caseItem,
+    );
     const latestReportTwoSnapshot = snapshotMap.get(caseItem.id) || null;
     const latestReport = caseItem.guidanceReports[0] || null;
     const reportPreviewUrl = latestReport
@@ -441,7 +234,7 @@ export default async function CasesPage() {
 
     return {
       id: caseItem.id,
-      title: getCaseDisplayTitle(caseItem),
+      title: resolveArabicCaseReportTitle(caseItem),
       status: caseItem.status,
       statusLabel: getCaseStatusLabel(caseItem.status),
       createdAt: caseItem.createdAt.toISOString(),
@@ -492,7 +285,11 @@ export default async function CasesPage() {
       valuesCount: caseItem._count.values,
       evidencesCount: caseItem._count.evidences,
       reportsCount: caseItem._count.guidanceReports,
-      canDeleteCase: canDeleteCases,
+      capabilities: {
+        ...capabilities,
+        canDeleteCaseReport:
+          capabilities.canDeleteCaseReport && roleCanDeleteReportTwo,
+      },
       reportTwoReport: latestReportTwoSnapshot
         ? {
             id: latestReportTwoSnapshot.id,

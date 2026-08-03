@@ -1,68 +1,17 @@
 import type { Prisma } from "@prisma/client";
+import { buildCaseEntryPermissionWhere } from "@/lib/cases/case-permissions";
 
 type CaseScopeUser = {
   id: string;
   role: string;
   schoolAccountId?: string | null;
+  email?: string | null;
 };
-
-const ACTIVITY_PROGRAM_SERVICE_SLUGS = [
-  "activity-programs",
-  "activity-programs-citizenship-life",
-  "activity-programs-science-technology",
-  "activity-programs-culture-arts",
-  "activity-programs-sports-health",
-  "activity-programs-scouting",
-  "activity-programs-events-occasions",
-  "activity-programs-non-class-periods",
-];
-
-function activityProgramServiceScope() {
-  return {
-    in: ACTIVITY_PROGRAM_SERVICE_SLUGS,
-  };
-}
 
 export function buildCaseEntryWhereForUser(
   user: CaseScopeUser,
 ): Prisma.CaseEntryWhereInput {
-  if (user.role === "ADMIN") {
-    return {};
-  }
-
-  const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
-
-  if (user.role === "ACTIVITY_LEADER") {
-    return {
-      schoolAccountId,
-      service: {
-        slug: activityProgramServiceScope(),
-      },
-    };
-  }
-
-  if (user.role === "STAFF") {
-    return {
-      schoolAccountId,
-      createdById: user.id || "__NO_USER__",
-    };
-  }
-
-  return {
-    schoolAccountId,
-  };
-}
-
-const CASE_DELETE_ROLES = new Set([
-  "ADMIN",
-  "COUNSELOR",
-  "ACTIVITY_LEADER",
-  "SCHOOL_OWNER",
-  "STAFF",
-]);
-
-export function roleCanDeleteCase(role: string) {
-  return CASE_DELETE_ROLES.has(role);
+  return buildCaseEntryPermissionWhere(user);
 }
 
 export function getCaseCenterScopeLabel(role: string) {

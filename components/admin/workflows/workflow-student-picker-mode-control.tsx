@@ -24,17 +24,17 @@ const studentPickerModeOptions: Array<{
   {
     value: "SERVICE_DEFAULT",
     label: "حسب إعداد الخدمة",
-    description: "يستخدم الإعداد الافتراضي للخدمة.",
+    description: "يتبع ظهور اختيار الطالب الإعداد الافتراضي للخدمة، ويبقى الربط اختياريًا.",
   },
   {
     value: "REQUIRED",
-    label: "يتطلب اختيار طالب",
-    description: "يظهر Smart Picker ويمنع المتابعة بدون طالب.",
+    label: "إظهار اختيار الطالب",
+    description: "يظهر اختيار الطالب/الطالبة للمستخدم، ويمكنه ربط الحالة بطالب أو المتابعة دون اختيار.",
   },
   {
     value: "DISABLED",
-    label: "لا يتطلب اختيار طالب",
-    description: "يخفي اختيار الطالب لهذا الـ Workflow.",
+    label: "إخفاء اختيار الطالب",
+    description: "لا يظهر اختيار الطالب/الطالبة داخل هذا الـ Workflow.",
   },
 ];
 

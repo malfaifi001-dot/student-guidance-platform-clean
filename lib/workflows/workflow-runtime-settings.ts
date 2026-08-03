@@ -31,6 +31,23 @@ export function normalizeWorkflowStudentPickerMode(
   return "SERVICE_DEFAULT";
 }
 
+export function shouldShowStudentPicker(
+  value: unknown,
+  serviceDefaultVisible: boolean,
+): boolean {
+  const mode = normalizeWorkflowStudentPickerMode(value);
+
+  if (mode === "DISABLED") return false;
+  if (mode === "REQUIRED") return true;
+
+  return serviceDefaultVisible;
+}
+
+export function isStudentSelectionRequired(value?: unknown): boolean {
+  void value;
+  return false;
+}
+
 export function normalizeWorkflowEvidenceMode(
   value: unknown,
 ): WorkflowEvidenceMode {

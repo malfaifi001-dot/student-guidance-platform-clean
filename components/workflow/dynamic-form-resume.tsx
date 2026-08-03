@@ -68,7 +68,6 @@ export function DynamicFormResume({
       caseId={caseId}
       workflow={buildRuntimeWorkflow(caseEntry)}
       serviceId={caseEntry.service.id}
-      requiresStudent={Boolean(caseEntry.student)}
       title={caseEntry.title || caseEntry.workflow.name}
       initialValues={restoreValues(caseEntry)}
     />

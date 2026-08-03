@@ -60,6 +60,7 @@ export async function getAuthorizedReportTwoCase(
         id: context.user.id,
         role: context.user.role,
         schoolAccountId: context.schoolAccountId,
+        email: context.user.email,
       }),
     },
     select: {

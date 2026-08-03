@@ -1293,22 +1293,22 @@ export function CaseDetailsView({
           value={caseEntry.service?.name || "غير محددة"}
         />
 
-        {caseEntry.student ? (
-          <SummaryCard
-            icon={<UserRound className="h-5 w-5" />}
-            label="الطالب/الطالبة"
-            value={caseEntry.student.fullName}
-            helper={[
-              caseEntry.student.stage,
-              caseEntry.student.grade,
-              caseEntry.student.classroom
-                ? `فصل ${caseEntry.student.classroom}`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          />
-        ) : null}
+        <SummaryCard
+          icon={<UserRound className="h-5 w-5" />}
+          label="الطالب/الطالبة"
+          value={caseEntry.student?.fullName || "غير مرتبط بطالب"}
+          helper={caseEntry.student
+            ? [
+                caseEntry.student.stage,
+                caseEntry.student.grade,
+                caseEntry.student.classroom
+                  ? `فصل ${caseEntry.student.classroom}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : undefined}
+        />
 
         <SummaryCard
           icon={<CalendarDays className="h-5 w-5" />}
