@@ -16,23 +16,23 @@ export type AppService = {
 export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
   {
     slug: "guidance-programs",
-    title: "البرامج الإرشادية",
-    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
+    title: "برامج التوجيه الطلابي",
+    description: "إدارة برامج التوجيه الطلابي وخطط التنفيذ.",
     href: "/dashboard/guidance-programs",
     kind: "workflow",
   },
   {
     slug: "student-follow-up",
-    title: "متابعة الطلاب",
-    description: "متابعة الطلاب والحالات الطلابية.",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
+    description: "متابعة الطلبة والمواقف اليومية الطارئة والحالات الطلابية.",
     href: "/dashboard/student-follow-up",
     kind: "workflow",
   },
   {
     slug: "guardian-summons",
-    title: "استدعاء ولي أمر",
+    title: "إشعار ولي الأمر",
     description:
-      "إنشاء وتوثيق استدعاءات أولياء الأمور وربطها بالطلاب والحالات والتقارير الرسمية.",
+      "إنشاء وتوثيق إشعارات أولياء الأمور وربطها بالطلاب والحالات والتقارير الرسمية.",
     href: "/dashboard/guardian-summons",
     kind: "workflow",
   },
@@ -45,15 +45,15 @@ export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
   },
   {
     slug: "family-school-communication",
-    title: "التواصل بين الأسرة والمدرسة",
-    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    description: "توثيق التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور.",
     href: "/dashboard/family-school-communication",
     kind: "workflow",
   },
   {
     slug: "student-guidance-services",
-    title: "الخدمات الإرشادية المقدمة للطلاب",
-    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
+    title: "خدمات التوجيه الطلابي",
+    description: "إدارة خدمات التوجيه الطلابي.",
     href: "/dashboard/student-guidance-services",
     kind: "workflow",
   },
@@ -146,7 +146,7 @@ export const workflowUploadServices: AppService[] = [
 export const standaloneServices: AppService[] = [
   {
     slug: "counselor-reference-library",
-    title: "المرجع الشامل",
+    title: "مكتبة الموجه الطلابي",
     description:
       "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
     href: "/dashboard/counselor-reference-library",

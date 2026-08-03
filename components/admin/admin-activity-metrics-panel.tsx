@@ -90,13 +90,13 @@ function percentageChange(current: number, previous: number) {
 
 function serviceLabel(slug: string) {
   const labels: Record<string, string> = {
-    "student-follow-up": "متابعة الطلاب",
-    "family-school-communication": "التواصل بين الأسرة والمدرسة",
+    "student-follow-up": "متابعة الطلبة والمواقف اليومية الطارئة",
+    "family-school-communication": "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     "committees-meetings": "اللجان والاجتماعات",
-    "guidance-programs": "البرامج الإرشادية",
+    "guidance-programs": "برامج التوجيه الطلابي",
     "results-analysis": "تحليل النتائج",
-    "student-guidance-services": "الخدمات الإرشادية",
-    "counselor-reference-library": "المرجع الشامل",
+    "student-guidance-services": "خدمات التوجيه الطلابي",
+    "counselor-reference-library": "مكتبة الموجه الطلابي",
   };
 
   return labels[slug] || slug;

@@ -347,7 +347,7 @@ export function CounselorActivationCenter() {
             </h2>
 
             <div className="mt-3 grid gap-2 text-[14px] font-bold text-slate-600 md:grid-cols-2">
-              <span>• توثيق الحالات والخدمات الإرشادية</span>
+              <span>• توثيق الحالات وخدمات التوجيه الطلابي</span>
               <span>• إصدار التقارير الرسمية</span>
               <span>• رفع الشواهد وربطها بالحالة</span>
               <span>• حفظ بيانات الطلاب وملفاتهم</span>

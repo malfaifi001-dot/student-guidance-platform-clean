@@ -100,7 +100,7 @@ const stats: StatCard[] = [
 
 const services: ServiceCard[] = [
   {
-    title: "متابعة الطلاب",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
     description:
       "متابعة الحالة الأكاديمية والسلوكية للطلاب وتقديم الدعم والإرشاد المناسب في الوقت الصحيح.",
     image: "/uploads/VD/1.png",
@@ -108,7 +108,7 @@ const services: ServiceCard[] = [
     tone: "cyan",
   },
   {
-    title: "التواصل بين الأسرة والمدرسة",
+    title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     description:
       "تعزيز التواصل الفعّال مع أولياء الأمور وتوثيق ما تم مناقشته ونتائج التواصل.",
     image: "/uploads/VD/2.png",
@@ -129,7 +129,7 @@ const students: StudentRow[] = [
   {
     name: "محمد العتيبي",
     grade: "الثاني الثانوي - أ",
-    service: "متابعة الطلاب",
+    service: "متابعة الطلبة والمواقف اليومية الطارئة",
     status: "نشط",
     statusClass: "bg-emerald-50 text-emerald-700",
     updatedAt: "منذ 15 دقيقة",
@@ -139,7 +139,7 @@ const students: StudentRow[] = [
   {
     name: "سارة الشهراني",
     grade: "الأول الثانوي - ب",
-    service: "التواصل بين الأسرة والمدرسة",
+    service: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     status: "في انتظار المتابعة",
     statusClass: "bg-amber-50 text-amber-700",
     updatedAt: "منذ ساعة",
@@ -159,7 +159,7 @@ const students: StudentRow[] = [
   {
     name: "نورة المطيري",
     grade: "الثاني الثانوي - ج",
-    service: "متابعة الطلاب",
+    service: "متابعة الطلبة والمواقف اليومية الطارئة",
     status: "قيد التنفيذ",
     statusClass: "bg-violet-50 text-violet-700",
     updatedAt: "منذ يوم",

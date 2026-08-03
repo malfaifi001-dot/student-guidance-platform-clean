@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_FOLDER_CREATED",
       severity: "SUCCESS",
-      title: "تم إنشاء مجلد في المرجع الشامل",
+      title: "تم إنشاء مجلد في مكتبة الموجه الطلابي",
       details: {
         itemId: folder.id,
         title: folder.title,

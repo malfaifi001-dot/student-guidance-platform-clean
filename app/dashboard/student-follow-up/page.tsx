@@ -4,7 +4,7 @@ export default function StudentFollowUpPage() {
   return (
     <WorkflowServiceHomePage
       serviceSlug="student-follow-up"
-      title="متابعة الطلاب"
+      title="متابعة الطلبة والمواقف اليومية الطارئة"
       description="تابع الحالات الطلابية، واستكمل المسودات، وأصدر تقارير للحالات المرسلة."
       newButtonLabel="إنشاء متابعة جديدة"
       caseSingularName="متابعة"

@@ -46,20 +46,20 @@ export const guardianSummonsDynamicFields: DynamicFieldInfo[] = [
   { key: "studentName", label: "اسم الطالب", description: "من الطالب المختار." },
   { key: "studentClass", label: "الصف / الفصل", description: "من بيانات الطالب." },
   { key: "guardianName", label: "اسم ولي الأمر", description: "من بيانات ولي الأمر." },
-  { key: "summonDay", label: "يوم الحضور", description: "من Workflow الاستدعاء." },
-  { key: "summonDate", label: "تاريخ الحضور", description: "من Workflow الاستدعاء." },
-  { key: "summonTime", label: "وقت الحضور", description: "من Workflow الاستدعاء." },
+  { key: "summonDay", label: "يوم الحضور", description: "من Workflow الإشعار." },
+  { key: "summonDate", label: "تاريخ الحضور", description: "من Workflow الإشعار." },
+  { key: "summonTime", label: "وقت الحضور", description: "من Workflow الإشعار." },
   { key: "summonPeriod", label: "الفترة", description: "صباحًا أو مساءً." },
-  { key: "summonReason", label: "سبب الاستدعاء", description: "سبب أو أسباب الاستدعاء." },
+  { key: "summonReason", label: "سبب الإشعار", description: "سبب أو أسباب الإشعار." },
   { key: "notes", label: "ملاحظات", description: "ملاحظات اختيارية." },
 ];
 
 export const guardianSummonsTemplatePreset = {
   id: "tpl-guardian-summons-letter",
-  name: "خطاب استدعاء ولي أمر",
-  title: "استدعاء ولي أمر طالب",
+  name: "خطاب إشعار ولي الأمر",
+  title: "إشعار ولي الأمر طالب",
   description:
-    "تصميم رسمي ثابت لخطاب استدعاء ولي أمر، مع ربط ديناميكي بهوية المدرسة وبيانات الطالب.",
+    "تصميم رسمي ثابت لخطاب إشعار ولي الأمر، مع ربط ديناميكي بهوية المدرسة وبيانات الطالب.",
   scope: "SUB_WORKFLOW",
   status: "PUBLISHED",
   updatedAt: "2026-06-02",
@@ -70,19 +70,19 @@ export const guardianSummonsTemplatePreset = {
     {
       id: "guardian-summons-page",
       kind: "letter",
-      title: "خطاب استدعاء ولي أمر",
+      title: "خطاب إشعار ولي الأمر",
       description:
-        "التصميم ثابت، والبيانات تسحب من هوية المدرسة والطالب وWorkflow الاستدعاء.",
+        "التصميم ثابت، والبيانات تسحب من هوية المدرسة والطالب وWorkflow الإشعار.",
       blocks: [
         {
           id: "guardian-hardcoded-letter",
           kind: "custom-paragraph",
-          title: "خطاب استدعاء ولي أمر",
-          description: "التصميم الرسمي الثابت لخطاب استدعاء ولي أمر.",
+          title: "خطاب إشعار ولي الأمر",
+          description: "التصميم الرسمي الثابت لخطاب إشعار ولي الأمر.",
           required: true,
           source: {
             source: "caseValues",
-            label: "بيانات الاستدعاء",
+            label: "بيانات الإشعار",
             description: "بيانات الطالب وولي الأمر وموعد الحضور والسبب.",
             fieldKey: "studentName",
           },
@@ -96,8 +96,8 @@ export const guardianSummonsPreviewCaseData: RuntimePreviewCaseData = {
   found: true,
   caseId: "guardian-summons-preview",
   serviceSlug: "family-school-communication",
-  serviceName: "التواصل بين الأسرة والمدرسة",
-  title: "استدعاء ولي أمر طالب",
+  serviceName: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+  title: "إشعار ولي الأمر طالب",
   status: "ISSUED",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -130,7 +130,7 @@ export const guardianSummonsPreviewCaseData: RuntimePreviewCaseData = {
     { fieldKey: "summonPeriod", fieldLabel: "الفترة", value: "صباحًا" },
     {
       fieldKey: "summonReason",
-      fieldLabel: "سبب الاستدعاء",
+      fieldLabel: "سبب الإشعار",
       value:
         "غيابه المتكرر لأكثر من خمسة أيام بدون عذر، تأخره المتكرر لأكثر من خمسة أيام بدون عذر",
     },
@@ -215,7 +215,7 @@ export function GuardianSummonsLetterPreview({
         <OfficialHeader values={values} />
 
         <h1 className="mt-7 text-center text-[27px] font-black tracking-tight">
-          استدعاء ولي أمر طالب
+          إشعار ولي الأمر طالب
         </h1>
 
         <StudentGuardianLine values={values} />
@@ -507,7 +507,7 @@ function DynamicFieldsPanel() {
           </h3>
 
           <p className="mt-1 text-xs leading-6 text-slate-500">
-            التصميم ثابت، وهذه المفاتيح تتغير حسب هوية المدرسة والطالب والاستدعاء.
+            التصميم ثابت، وهذه المفاتيح تتغير حسب هوية المدرسة والطالب والإشعار.
           </p>
         </div>
 

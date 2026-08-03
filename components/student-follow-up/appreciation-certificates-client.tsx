@@ -39,7 +39,7 @@ const STORAGE_KEY =
 
 const initialValues: Record<string, string> = {
   certificateTitle: "شهادة شكر وتقدير",
-  appreciationReason: "تميزه في المتابعة الطلابية وتحسن مستوى الانضباط والتحصيل",
+  appreciationReason: "تميزه في المتابعة الطلبة والمواقف اليومية الطارئةية وتحسن مستوى الانضباط والتحصيل",
   achievementCategory: "الانضباط والتحصيل الدراسي",
   achievementTitle: "تحسن ملحوظ في مستوى الطالب",
   achievementSummary: "نظير التزامه، وتفاعله الإيجابي، وحرصه على تطوير مستواه.",
@@ -170,7 +170,7 @@ export function AppreciationCertificatesClient() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-emerald-700">
-              متابعة الطلاب
+              متابعة الطلبة والمواقف اليومية الطارئة
             </p>
 
             <h1 className="mt-2 text-2xl font-black text-slate-900">

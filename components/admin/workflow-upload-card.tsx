@@ -16,7 +16,7 @@ const workflowPlacements = [
   },
   {
     value: "guardian-summons",
-    label: "استدعاء ولي أمر",
+    label: "إشعار ولي الأمر",
   },
   {
     value: "letter",

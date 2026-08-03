@@ -150,7 +150,7 @@ export async function POST(
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_FILE_REPLACED",
       severity: "SUCCESS",
-      title: "تم استبدال نسخة ملف في المرجع الشامل",
+      title: "تم استبدال نسخة ملف في مكتبة الموجه الطلابي",
       details: {
         itemId: item.id,
         title: item.title,

@@ -1863,7 +1863,7 @@ export function ReportTemplateStudio() {
 
                     <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
                       استخدم هذا الربط إذا كان ظهور البلوك يعتمد على قيمة معينة
-                      من الحالة. مثل: نتيجة التواصل، مؤشر الأداء، سبب الاستدعاء.
+                      من الحالة. مثل: نتيجة التواصل، مؤشر الأداء، سبب الإشعار.
                     </p>
 
                     <label className="mt-3 block">

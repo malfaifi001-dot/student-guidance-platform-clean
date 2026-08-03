@@ -20,10 +20,10 @@ export default async function GuardianSummonsPreviewPage({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-950">
-              معاينة الاستدعاء
+              معاينة الإشعار
             </h1>
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              راجع خطاب استدعاء ولي الأمر قبل الطباعة أو الحفظ بصيغة PDF.
+              راجع خطاب إشعار ولي الأمر قبل الطباعة أو الحفظ بصيغة PDF.
             </p>
           </div>
           <GuardianSummonsPreviewToolbar caseId={caseId} />

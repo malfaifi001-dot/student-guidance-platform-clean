@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   notFound,
   redirect,
@@ -18,6 +19,11 @@ import { canAccessStatistics } from "@/lib/statistics/statistics-access";
 
 export const dynamic =
   "force-dynamic";
+export const metadata: Metadata = {
+  title: {
+    absolute: "التقرير الإحصائي",
+  },
+};
 
 type Props = {
   params: Promise<{

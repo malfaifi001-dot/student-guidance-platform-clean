@@ -96,7 +96,7 @@ export function SoftBlueDashboard({
                 <HeroButton
                   href="/dashboard/counselor-reference-library"
                   icon={<BookOpen className="h-4 w-4" />}
-                  label="فتح المرجع"
+                  label="فتح المكتبة"
                 />
               </div>
             </div>
@@ -123,7 +123,7 @@ export function SoftBlueDashboard({
               icon={<Users className="h-5 w-5" />}
               label="الطلاب"
               value={formatCount(stats.students)}
-              helper="افتح المرجع الشامل عند الحاجة."
+              helper="افتح مكتبة الموجه الطلابي عند الحاجة."
               href="/dashboard/counselor-reference-library"
             />
           </section>
@@ -143,7 +143,7 @@ export function SoftBlueDashboard({
               <ServiceCard
                 href="/dashboard/guidance-programs"
                 icon={<ClipboardList className="h-6 w-6" />}
-                title="البرامج الإرشادية"
+                title="برامج التوجيه الطلابي"
                 helper="برامج وخطط إرشادية."
               />
 
@@ -157,14 +157,14 @@ export function SoftBlueDashboard({
               <ServiceCard
                 href="/dashboard/student-follow-up"
                 icon={<Users className="h-6 w-6" />}
-                title="متابعة الطلاب"
+                title="متابعة الطلبة والمواقف اليومية الطارئة"
                 helper="متابعة أو إنشاء حالة."
               />
 
               <ServiceCard
                 href="/dashboard/student-guidance-services"
                 icon={<FileText className="h-6 w-6" />}
-                title="الخدمات الإرشادية المقدمة للطلاب"
+                title="خدمات التوجيه الطلابي"
                 helper="توثيق الخدمات المقدمة."
               />
             </div>
@@ -186,7 +186,7 @@ export function SoftBlueDashboard({
                 <QuietLink
                   href="/dashboard/counselor-reference-library"
                   icon={<BookOpen className="h-5 w-5" />}
-                  title="المرجع الشامل"
+                  title="مكتبة الموجه الطلابي"
                 />
 
                 <QuietLink
@@ -198,7 +198,7 @@ export function SoftBlueDashboard({
                 <QuietLink
                   href="/dashboard/family-school-communication"
                   icon={<MessageCircle className="h-5 w-5" />}
-                  title="التواصل بين الأسرة والمدرسة"
+                  title="التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور"
                 />
               </div>
             </details>

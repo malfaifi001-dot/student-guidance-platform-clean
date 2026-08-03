@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  parseSurveyQuestionHelpText,
   surveyAudienceLabels,
   surveyQuestionTypeLabels,
   type SurveyQuestionInputType,
@@ -11,6 +12,8 @@ import {
 type QuestionDraft = {
   label: string;
   type: SurveyQuestionInputType;
+  sectionTitle: string | null;
+  helpText: string | null;
   isRequired: boolean;
   optionsText: string;
 };
@@ -33,6 +36,7 @@ type LoadedSurvey = {
     id: string;
     label: string;
     type: SurveyQuestionInputType;
+    helpText?: string | null;
     isRequired: boolean;
     options: {
       id: string;
@@ -107,12 +111,18 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
     setOpensAt(toDatetimeLocal(loadedSurvey.opensAt));
     setEndsAt(toDatetimeLocal(loadedSurvey.endsAt));
     setQuestions(
-      loadedSurvey.questions.map((question) => ({
-        label: question.label,
-        type: question.type,
-        isRequired: question.isRequired,
-        optionsText: question.options.map((option) => option.label).join("\n"),
-      })),
+      loadedSurvey.questions.map((question) => {
+        const metadata = parseSurveyQuestionHelpText(question.helpText);
+
+        return {
+          label: metadata.fullLabel || question.label,
+          type: question.type,
+          sectionTitle: metadata.sectionTitle,
+          helpText: metadata.helpText,
+          isRequired: question.isRequired,
+          optionsText: question.options.map((option) => option.label).join("\n"),
+        };
+      }),
     );
   }
 
@@ -139,6 +149,8 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
       {
         label: "",
         type: "TEXT",
+        sectionTitle: null,
+        helpText: null,
         isRequired: false,
         optionsText: "",
       },
@@ -172,6 +184,8 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
         questions: questions.map((question) => ({
           label: question.label,
           type: question.type,
+          sectionTitle: question.sectionTitle,
+          helpText: question.helpText,
           isRequired: question.isRequired,
           options: question.optionsText
             .split("\n")
@@ -366,7 +380,14 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
             const needsOptions = question.type === "SINGLE_CHOICE" || question.type === "MULTIPLE_CHOICE";
 
             return (
-              <div key={index} className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div key={index} className="space-y-3">
+                {question.sectionTitle ? (
+                  <div className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4">
+                    <h3 className="text-lg font-bold text-slate-950">{question.sectionTitle}</h3>
+                  </div>
+                ) : null}
+
+                <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-bold text-slate-800">السؤال {index + 1}</p>
 
@@ -430,6 +451,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
                     />
                   </label>
                 ) : null}
+                </div>
               </div>
             );
           })}

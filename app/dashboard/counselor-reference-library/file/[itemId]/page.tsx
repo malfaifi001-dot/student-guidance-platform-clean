@@ -76,7 +76,7 @@ export default async function CounselorReferenceLibraryFilePage({
 
               <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
                 {item.description ||
-                  "معاينة الملف داخل المرجع الشامل."}
+                  "معاينة الملف داخل مكتبة الموجه الطلابي."}
               </p>
             </div>
           </div>

@@ -1678,7 +1678,7 @@ export function A4DesignPage({
                 <div>
                   <p className="text-[10px] font-black text-slate-400">الخدمة</p>
                   <p className="mt-1 text-[12px] font-black text-slate-800">
-                    {context["service.name"] || "البرامج الإرشادية"}
+                    {context["service.name"] || "برامج التوجيه الطلابي"}
                   </p>
                 </div>
               </div>

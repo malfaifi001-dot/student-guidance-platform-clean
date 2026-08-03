@@ -2,30 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-const INVALID_FILE_NAME_CHARACTERS = /[\\/:*?"<>|]+/g;
 const PRINT_RESOURCE_WAIT_MS = 1600;
 const FINAL_PAINT_WAIT_MS = 120;
+const STATISTICS_REPORT_DOCUMENT_TITLE = "التقرير الإحصائي";
 
-function cleanTitlePart(value: string) {
-  return value
-    .replace(INVALID_FILE_NAME_CHARACTERS, " ")
-    .replace(/\s+/g, " ")
-    .replace(/^[\s،-]+|[\s،-]+$/g, "")
-    .trim();
-}
-
-export function buildStatisticsPrintDocumentTitle(serviceNames: string[]) {
-  const uniqueServiceNames = Array.from(
-    new Set(serviceNames.map(cleanTitlePart).filter(Boolean)),
-  );
-  const combinedServices = uniqueServiceNames.join("، ");
-  const readableServices =
-    combinedServices.length > 110
-      ? `${combinedServices.slice(0, 106).trim()}…`
-      : combinedServices;
-  return cleanTitlePart(
-    ["تقرير إحصائي", readableServices].filter(Boolean).join(" - "),
-  );
+export function buildStatisticsPrintDocumentTitle() {
+  return STATISTICS_REPORT_DOCUMENT_TITLE;
 }
 
 function delay(ms: number) {
@@ -80,18 +62,14 @@ async function waitForNextPaint() {
 
 export function StatisticsPrintController({
   enabled,
-  serviceNames,
 }: {
   enabled: boolean;
-  serviceNames: string[];
 }) {
   const startedRef = useRef(false);
   const printedRef = useRef(false);
-  const serviceNamesKey = serviceNames.join("\u0000");
 
   useEffect(() => {
-    const normalizedServiceNames = serviceNamesKey.split("\u0000").filter(Boolean);
-    const printTitle = buildStatisticsPrintDocumentTitle(normalizedServiceNames);
+    const printTitle = buildStatisticsPrintDocumentTitle();
     document.title = printTitle;
 
     if (!enabled || startedRef.current || printedRef.current) return;
@@ -116,7 +94,7 @@ export function StatisticsPrintController({
       cancelled = true;
       startedRef.current = false;
     };
-  }, [enabled, serviceNamesKey]);
+  }, [enabled]);
 
   return null;
 }

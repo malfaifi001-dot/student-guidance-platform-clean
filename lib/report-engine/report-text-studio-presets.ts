@@ -37,7 +37,7 @@ export const REPORT_TEXT_VARIABLES: ReportTextVariable[] = [
     key: "serviceName",
     label: "اسم الخدمة",
     description: "الخدمة التي صدر منها التقارير.",
-    example: "البرامج الإرشادية",
+    example: "برامج التوجيه الطلابي",
     group: "service",
   },
   {
@@ -145,7 +145,7 @@ export const SAMPLE_REPORT_TEXT_VARIABLES: Record<string, string> = {
   counselorName: "الموجه الطلابي",
   academicYear: "1447هـ",
   semester: "الفصل الدراسي الأول",
-  serviceName: "البرامج الإرشادية",
+  serviceName: "برامج التوجيه الطلابي",
   reportTitle: "تقرير برنامج تعزيز السلوك الإيجابي",
   programTitle: "برنامج تعزيز السلوك الإيجابي",
   executionDate: "2026-05-26",
@@ -167,9 +167,9 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
     id: "guidance-programs-official",
     name: "تقرير برنامج إرشادي رسمي",
     description:
-      "قالب رسمي لتوثيق البرامج الإرشادية مع وصف وهدف وتنفيذ ومؤشرات وشواهد.",
+      "قالب رسمي لتوثيق برامج التوجيه الطلابي مع وصف وهدف وتنفيذ ومؤشرات وشواهد.",
     serviceSlug: "guidance-programs",
-    serviceName: "البرامج الإرشادية",
+    serviceName: "برامج التوجيه الطلابي",
     kind: "official",
     status: "DRAFT",
     version: 1,
@@ -234,7 +234,7 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
         isLockedForCounselor: false,
         order: 6,
         body:
-          "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة البرامج الإرشادية القادمة.",
+          "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة برامج التوجيه الطلابي القادمة.",
       },
     ],
   },
@@ -244,7 +244,7 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
     description:
       "قالب لتوثيق التواصل مع ولي الأمر وما تم مناقشته ونتيجة التواصل.",
     serviceSlug: "family-school-communication",
-    serviceName: "التواصل بين الأسرة والمدرسة",
+    serviceName: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     kind: "official",
     status: "DRAFT",
     version: 1,

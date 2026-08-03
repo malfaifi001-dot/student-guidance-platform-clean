@@ -259,10 +259,10 @@ function isCommitteeChainRuntimeField(field: RuntimeField) {
 }
 
 const RUNTIME_SERVICE_LABELS: Record<string, string> = {
-  "guidance-programs": "البرامج الإرشادية",
-  "student-follow-up": "متابعة الطلاب",
-  "family-school-communication": "التواصل بين الأسرة والمدرسة",
-  "student-guidance-services": "الخدمات الإرشادية",
+  "guidance-programs": "برامج التوجيه الطلابي",
+  "student-follow-up": "متابعة الطلبة والمواقف اليومية الطارئة",
+  "family-school-communication": "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+  "student-guidance-services": "خدمات التوجيه الطلابي",
   "committees-meetings": "اللجان والاجتماعات",
   "activity-programs": "برامج النشاط",
   "activity-programs-citizenship-life": "برامج النشاط - المواطنة والحياة",

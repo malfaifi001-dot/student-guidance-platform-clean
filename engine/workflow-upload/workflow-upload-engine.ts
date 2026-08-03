@@ -85,7 +85,7 @@ function getWorkflowDisplayName(params: {
   workflowType: WorkflowType;
 }) {
   if (params.workflowType === WORKFLOW_TYPES.GUARDIAN_SUMMONS) {
-    return "استدعاء ولي أمر";
+    return "إشعار ولي الأمر";
   }
 
   if (params.workflowType === WORKFLOW_TYPES.CERTIFICATE) {

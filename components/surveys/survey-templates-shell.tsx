@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { surveyAudienceLabels, type SurveyBoardRole } from "@/lib/surveys/survey-config";
 import { surveyTemplates } from "@/lib/surveys/survey-templates";
 
@@ -23,14 +24,10 @@ function audienceLabel(value: string) {
 }
 
 export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesShellProps) {
-  const [category, setCategory] = useState("");
+  const router = useRouter();
   const [isCreatingKey, setIsCreatingKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const filteredTemplates = category
-    ? surveyTemplates.filter((template) => template.category === category)
-    : surveyTemplates;
 
   async function createFromTemplate(templateKey: string, mode: CreateMode) {
     setIsCreatingKey(`${templateKey}:${mode}`);
@@ -49,23 +46,37 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
       }),
     });
 
-    const data = await response.json().catch(() => null);
+    const responseText = await response.text();
+    const data = (() => {
+      try {
+        return JSON.parse(responseText);
+      } catch {
+        return null;
+      }
+    })();
 
     setIsCreatingKey(null);
 
     if (!response.ok) {
-      setError(data?.error || "تعذر إنشاء المسودة من القالب.");
+      const returnedError =
+        typeof data?.error === "string"
+          ? data.error
+          : responseText && !responseText.trimStart().startsWith("<")
+            ? responseText
+            : `تعذر إنشاء المسودة من القالب (رمز الاستجابة ${response.status}).`;
+
+      setError(returnedError);
       return;
     }
 
     if (mode === "edit") {
-      window.location.href = `${boardPath}/${data.survey.id}/edit`;
+      router.push(`${boardPath}/${data.survey.id}/edit`);
       return;
     }
 
     setFeedback("تم إنشاء المسودة من القالب. سيتم نقلك إلى مركز الاستبيانات.");
     window.setTimeout(() => {
-      window.location.href = boardPath;
+      router.push(boardPath);
     }, 700);
   }
 
@@ -76,7 +87,7 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
           العودة إلى مركز الاستبيانات
         </Link>
 
-        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mt-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-950">قوالب الاستبيانات الجاهزة</h1>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
@@ -84,19 +95,6 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
             </p>
           </div>
 
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            <span>تصفية القوالب</span>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="w-full min-w-56 rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
-            >
-              <option value="">كل القوالب</option>
-              <option value="guidance">إرشادي</option>
-              <option value="activity">نشاط</option>
-              <option value="school">مدرسي</option>
-            </select>
-          </label>
         </div>
       </section>
 
@@ -113,7 +111,7 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
-        {filteredTemplates.map((template) => (
+        {surveyTemplates.map((template) => (
           <article
             key={template.key}
             className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -132,7 +130,7 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
               </div>
 
               <h2 className="mt-4 text-lg font-bold text-slate-950">{template.title}</h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600">{template.description}</p>
+              <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-600">{template.description}</p>
 
               <div className="mt-4 rounded-2xl bg-slate-50 p-4">
                 <p className="text-xs font-bold text-slate-500">أمثلة من الأسئلة</p>

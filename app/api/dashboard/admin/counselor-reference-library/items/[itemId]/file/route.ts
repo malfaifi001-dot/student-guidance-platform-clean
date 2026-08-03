@@ -81,7 +81,7 @@ export async function DELETE(
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_FILE_VARIANT_REMOVED",
       severity: "WARNING",
-      title: "تم حذف نسخة ملف من المرجع الشامل",
+      title: "تم حذف نسخة ملف من مكتبة الموجه الطلابي",
       details: {
         itemId: item.id,
         title: item.title,

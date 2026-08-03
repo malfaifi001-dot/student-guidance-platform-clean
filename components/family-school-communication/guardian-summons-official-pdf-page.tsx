@@ -70,7 +70,7 @@ export function GuardianSummonsOfficialPdfPage({
         </header>
 
         <h1 className="mt-12 text-center text-[31px] font-black tracking-tight">
-          استدعاء ولي أمر طالب
+          إشعار ولي الأمر طالب
         </h1>
 
         <section className="mt-9 text-[17px] font-bold leading-10">

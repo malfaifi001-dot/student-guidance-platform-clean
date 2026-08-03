@@ -18,7 +18,7 @@ export const smartReportTypeDescriptions: Record<SmartReportType, string> = {
   ACTIVITY_REPORT: "يناسب برامج النشاط وبطاقات التنفيذ والشواهد والتوقيعات.",
   MEETING_REPORT: "يناسب اللجان والاجتماعات ومحاضر التوصيات.",
   FAMILY_COMMUNICATION_REPORT: "يناسب توثيق التواصل مع ولي الأمر ونتائجه.",
-  STUDENT_FOLLOWUP_REPORT: "يناسب متابعة الطلاب والإجراءات والنتائج.",
+  STUDENT_FOLLOWUP_REPORT: "يناسب متابعة الطلبة والمواقف اليومية الطارئة والإجراءات والنتائج.",
   EVIDENCE_REPORT: "يركز على عرض الشواهد والمرفقات بطريقة منظمة.",
   SUMMARY_REPORT: "تقرير مختصر يصلح للأرشفة والطباعة السريعة.",
 };

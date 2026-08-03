@@ -179,7 +179,7 @@ export async function PATCH(
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_ITEM_UPDATED",
       severity: "SUCCESS",
-      title: "تم تحديث عنصر في المرجع الشامل",
+      title: "تم تحديث عنصر في مكتبة الموجه الطلابي",
       details: {
         itemId: item.id,
         title: item.title,
@@ -232,7 +232,7 @@ export async function DELETE(
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_ITEM_DELETED",
       severity: "WARNING",
-      title: "تم حذف عنصر من المرجع الشامل",
+      title: "تم حذف عنصر من مكتبة الموجه الطلابي",
       details: {
         itemId: deleted.id,
         itemType: deleted.itemType,

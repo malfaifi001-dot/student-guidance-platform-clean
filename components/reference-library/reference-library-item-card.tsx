@@ -80,7 +80,7 @@ export function ReferenceLibraryItemCard({
             {item.description ||
               (isFolder
                 ? "محتوى معرفي منظم يضم أقسامًا وملفات متعددة."
-                : "ملف متاح للقراءة ضمن المرجع الشامل.")}
+                : "ملف متاح للقراءة ضمن مكتبة الموجه الطلابي.")}
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">

@@ -43,8 +43,8 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
 
 export const counselorWorkspaceModules: WorkspaceModule[] = [
   {
-    title: "الخدمات الإرشادية",
-    description: "الخدمات والبرامج الإرشادية المعتمدة للموجه الطلابي.",
+    title: "خدمات التوجيه الطلابي",
+    description: "خدمات وبرامج التوجيه الطلابي المعتمدة للموجه الطلابي.",
     href: "/dashboard/student-guidance-services",
     icon: "workflow",
     status: "available",

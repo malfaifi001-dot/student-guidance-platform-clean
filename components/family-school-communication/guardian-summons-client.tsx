@@ -150,7 +150,7 @@ export function GuardianSummonsClient() {
   }
 
   function deleteRecord(recordId: string) {
-    const confirmed = window.confirm("هل تريد حذف هذا الاستدعاء؟");
+    const confirmed = window.confirm("هل تريد حذف هذا الإشعار؟");
 
     if (!confirmed) return;
 
@@ -165,15 +165,15 @@ export function GuardianSummonsClient() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-emerald-700">
-              التواصل بين الأسرة والمدرسة
+              التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور
             </p>
 
             <h1 className="mt-2 text-3xl font-black text-slate-900">
-              استدعاء ولي أمر
+              إشعار ولي الأمر
             </h1>
 
             <p className="mt-2 text-sm leading-7 text-slate-500">
-              هذه الصفحة تعرض الاستدعاءات الصادرة، ثم يتم تسجيل حضور ولي الأمر
+              هذه الصفحة تعرض الإشعارات الصادرة، ثم يتم تسجيل حضور ولي الأمر
               ونتيجة المتابعة بعد الإصدار.
             </p>
           </div>
@@ -182,7 +182,7 @@ export function GuardianSummonsClient() {
             href="/dashboard/family-school-communication/guardian-summons/new"
             className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
           >
-            إنشاء استدعاء ولي أمر
+            إنشاء إشعار ولي الأمر
           </Link>
         </div>
       </section>
@@ -215,7 +215,7 @@ export function GuardianSummonsClient() {
         </div>
 
         <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
-          عدد الاستدعاءات المحفوظة: {records.length} — المعروضة:{" "}
+          عدد الإشعارات المحفوظة: {records.length} — المعروضة:{" "}
           {filteredRecords.length}
         </div>
       </section>
@@ -342,12 +342,12 @@ export function GuardianSummonsClient() {
         ) : (
           <div className="p-10 text-center">
             <p className="text-sm font-black text-slate-500">
-              لا توجد استدعاءات مطابقة.
+              لا توجد إشعارات مطابقة.
             </p>
 
             <p className="mt-2 text-xs leading-6 text-slate-400">
-              إن كنت أصدرت استدعاء ولم يظهر هنا، افتح صفحة الإنشاء مرة أخرى
-              واضغط إصدار الاستدعاء، ثم ارجع لهذه الصفحة.
+              إن كنت أصدرت إشعار ولم يظهر هنا، افتح صفحة الإنشاء مرة أخرى
+              واضغط إصدار الإشعار، ثم ارجع لهذه الصفحة.
             </p>
           </div>
         )}
@@ -359,7 +359,7 @@ export function GuardianSummonsClient() {
 function buildPdfFileName(record: GuardianSummonsRecord) {
   const studentName = record.student?.fullName || "طالب";
   const date = record.summonDate || record.createdAt?.slice(0, 10) || "";
-  return `استدعاء-ولي-أمر-${studentName}-${date}.pdf`;
+  return `إشعار-ولي-أمر-${studentName}-${date}.pdf`;
 }
 
 function buildPdfPayloadFromRecord(record: GuardianSummonsRecord) {

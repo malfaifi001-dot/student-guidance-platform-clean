@@ -84,7 +84,7 @@ function buildPreviewCaseData(payload: Payload): RuntimePreviewCaseData {
     found: true,
     caseId: pickValue(payload.id, "appreciation-certificate-preview"),
     serviceSlug: "student-follow-up",
-    serviceName: "متابعة الطلاب",
+    serviceName: "متابعة الطلبة والمواقف اليومية الطارئة",
     title: "شهادة شكر وتقدير",
     status: pickValue(payload.status, "ISSUED"),
     createdAt: pickValue(payload.createdAt, new Date().toISOString()),

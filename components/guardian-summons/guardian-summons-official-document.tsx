@@ -187,7 +187,7 @@ export function GuardianSummonsOfficialDocument({
 
         <main className="mt-2">
           <h1 className="text-center text-[25px] font-bold leading-tight">
-            استدعاء ولي أمر طالب
+            إشعار ولي الأمر طالب
           </h1>
 
           <div className="mt-9 flex items-center justify-between text-[15px]">

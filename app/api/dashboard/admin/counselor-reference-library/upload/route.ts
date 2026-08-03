@@ -401,7 +401,7 @@ export async function POST(request: Request) {
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_FILE_UPLOADED",
       severity: "SUCCESS",
-      title: "تم رفع ملف إلى المرجع الشامل",
+      title: "تم رفع ملف إلى مكتبة الموجه الطلابي",
       details: {
         itemId: item.id,
         title: item.title,

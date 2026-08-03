@@ -7,7 +7,9 @@ import { getStatisticsReportView } from "@/lib/statistics/statistics-report-quer
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "تقرير إحصائي",
+  title: {
+    absolute: "التقرير الإحصائي",
+  },
 };
 
 type PageProps = {

@@ -434,7 +434,7 @@ export function AdminReferenceItemCard({
           {item.description ||
             (isFolder
               ? "حقيبة منظمة تضم مجموعة من الأقسام والملفات."
-              : "ملف معرفي متاح ضمن المرجع الشامل.")}
+              : "ملف معرفي متاح ضمن مكتبة الموجه الطلابي.")}
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">

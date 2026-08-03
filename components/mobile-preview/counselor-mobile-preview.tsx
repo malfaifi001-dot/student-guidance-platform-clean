@@ -22,28 +22,28 @@ type IconName =
 
 const services = [
   {
-    title: "متابعة الطلاب",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
     description: "رصد الحالات، التصنيف، الإجراء، والنتيجة من شاشة واحدة.",
     icon: "users" as IconName,
     tone: "from-blue-500 to-cyan-400",
     count: "12",
   },
   {
-    title: "البرامج الإرشادية",
+    title: "برامج التوجيه الطلابي",
     description: "تنفيذ البرامج وإرفاق الشواهد وقياس مؤشرات الأداء.",
     icon: "compass" as IconName,
     tone: "from-indigo-500 to-violet-400",
     count: "8",
   },
   {
-    title: "التواصل الأسري",
+    title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     description: "توثيق التواصل مع ولي الأمر وما تم مناقشته والنتيجة.",
     icon: "message" as IconName,
     tone: "from-emerald-500 to-teal-400",
     count: "6",
   },
   {
-    title: "الخدمات الإرشادية",
+    title: "خدمات التوجيه الطلابي",
     description: "جلسات فردية وجمعية وتوجيه جمعي ودراسة حالة.",
     icon: "edit" as IconName,
     tone: "from-amber-500 to-orange-400",

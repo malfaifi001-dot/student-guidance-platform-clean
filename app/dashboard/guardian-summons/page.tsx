@@ -4,13 +4,13 @@ export default function GuardianSummonsPage() {
   return (
     <WorkflowServiceHomePage
       serviceSlug="guardian-summons"
-      title="استدعاء ولي أمر"
-      description="أنشئ استدعاءات أولياء الأمور، واستكمل المسودات، وتابع الحالات المرسلة، وأصدر الخطاب الرسمي لكل حالة."
-      newButtonLabel="إنشاء استدعاء جديد"
-      caseSingularName="استدعاء"
-      casePluralName="استدعاءات"
-      emptyTitle="لا توجد استدعاءات بعد"
-      emptyDescription="ابدأ بإنشاء أول استدعاء لولي أمر. بعد الحفظ سيظهر هنا كسجل حالة رسمي."
+      title="إشعار ولي الأمر"
+      description="أنشئ إشعارات أولياء الأمور، واستكمل المسودات، وتابع الحالات المرسلة، وأصدر الخطاب الرسمي لكل حالة."
+      newButtonLabel="إنشاء إشعار جديد"
+      caseSingularName="إشعار"
+      casePluralName="إشعارات"
+      emptyTitle="لا توجد إشعارات بعد"
+      emptyDescription="ابدأ بإنشاء أول إشعار لولي أمر. بعد الحفظ سيظهر هنا كسجل حالة رسمي."
     />
   );
 }

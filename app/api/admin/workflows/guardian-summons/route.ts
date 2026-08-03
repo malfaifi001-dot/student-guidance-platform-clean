@@ -88,12 +88,12 @@ export async function POST() {
       actorUserId: current?.user.id,
       sourceAction: "GUARDIAN_SUMMONS_TEMPLATE_CREATE",
       activityAction: "WORKFLOW_PUBLISHED",
-      activityTitle: "تم إنشاء ونشر Workflow استدعاء ولي أمر",
+      activityTitle: "تم إنشاء ونشر Workflow إشعار ولي الأمر",
     });
 
     return NextResponse.json({
       ok: true,
-      message: "تم إنشاء ونشر Workflow استدعاء ولي أمر بنجاح.",
+      message: "تم إنشاء ونشر Workflow إشعار ولي الأمر بنجاح.",
       workflowId: workflow.id,
     });
   } catch (error) {
@@ -103,7 +103,7 @@ export async function POST() {
         error:
           error instanceof Error
             ? error.message
-            : "تعذر إنشاء Workflow استدعاء ولي أمر.",
+            : "تعذر إنشاء Workflow إشعار ولي الأمر.",
       },
       { status: 400 },
     );

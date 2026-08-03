@@ -4,7 +4,7 @@ export default function Page() {
   return (
     <MobileNewCaseWorkflowPage
       serviceSlug="guidance-programs"
-      title="البرامج الإرشادية"
+      title="برامج التوجيه الطلابي"
       requiresStudent={false}
     />
   );

@@ -1,19 +1,19 @@
 export const FAMILY_SCHOOL_COMMUNICATION_SERVICE = {
   slug: "family-school-communication",
-  name: "التواصل بين الأسرة والمدرسة",
+  name: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
   description:
     "توثيق التواصل مع الأسرة وولي الأمر ونتائج التواصل ضمن سجلات الخدمة.",
 };
 
 export const GUARDIAN_SUMMONS_WORKFLOW = {
   workflowType: "guardian-summons",
-  name: "استدعاء ولي أمر",
+  name: "إشعار ولي الأمر",
   version: 1,
   steps: [
     {
       title: "اختيار الطالب/الطالبة",
       description:
-        "اختر الطالب/الطالبة من بيانات الطلاب ليتم ربط الاستدعاء بسجل الطالب وولي الأمر.",
+        "اختر الطالب/الطالبة من بيانات الطلاب ليتم ربط الإشعار بسجل الطالب وولي الأمر.",
       order: 1,
       fields: [
         {
@@ -28,19 +28,19 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
       ],
     },
     {
-      title: "أسباب الاستدعاء",
-      description: "يمكن اختيار أكثر من سبب للاستدعاء.",
+      title: "أسباب الإشعار",
+      description: "يمكن اختيار أكثر من سبب للإشعار.",
       order: 2,
       fields: [
         {
           key: "summons_reasons",
-          label: "أسباب استدعاء ولي الأمر",
+          label: "أسباب إشعار ولي الأمر",
           type: "MULTI_SELECT",
           isRequired: true,
           order: 1,
           allowOther: true,
           helpText:
-            "اختر كل الأسباب المناسبة للحالة. ستظهر الأسباب المختارة في خطاب الاستدعاء.",
+            "اختر كل الأسباب المناسبة للحالة. ستظهر الأسباب المختارة في خطاب الإشعار.",
           options: [
             ["academic_weakness", "ضعف التحصيل الدراسي."],
             ["low_academic_performance", "تدني مستوى الأداء الأكاديمي."],
@@ -72,7 +72,7 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
       ],
     },
     {
-      title: "موعد وطريقة الاستدعاء",
+      title: "موعد وطريقة الإشعار",
       description: "حدد موعد حضور ولي الأمر وطريقة إشعاره.",
       order: 3,
       fields: [
@@ -130,7 +130,7 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
         },
         {
           key: "priority",
-          label: "أولوية الاستدعاء",
+          label: "أولوية الإشعار",
           type: "SELECT",
           isRequired: true,
           order: 6,
@@ -143,14 +143,14 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
       ],
     },
     {
-      title: "ما بعد الاستدعاء",
+      title: "ما بعد الإشعار",
       description:
-        "توثق هذه البيانات داخل النظام ولا تظهر في خطاب الاستدعاء الرسمي المختصر.",
+        "توثق هذه البيانات داخل النظام ولا تظهر في خطاب الإشعار الرسمي المختصر.",
       order: 4,
       fields: [
         {
           key: "summons_result",
-          label: "نتيجة الاستدعاء",
+          label: "نتيجة الإشعار",
           type: "SELECT",
           isRequired: true,
           order: 1,
@@ -160,7 +160,7 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
             ["not_attended", "لم يحضر ولي الأمر"],
             ["phone_contact", "تم التواصل هاتفيًا بدل الحضور"],
             ["postponed", "تم تأجيل الموعد"],
-            ["closed_without_attendance", "تم إغلاق الاستدعاء بدون حضور"],
+            ["closed_without_attendance", "تم إغلاق الإشعار بدون حضور"],
           ],
         },
         {
@@ -193,7 +193,7 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
           linkedToValue: "not_attended",
           allowOther: true,
           options: [
-            ["resummon", "إعادة الاستدعاء"],
+            ["resummon", "إعادة الإشعار"],
             ["phone_contact", "التواصل الهاتفي"],
             ["escalate_admin", "تصعيد للإدارة"],
             ["document_only", "الاكتفاء بالتوثيق"],

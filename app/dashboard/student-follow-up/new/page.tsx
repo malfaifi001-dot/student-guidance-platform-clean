@@ -8,7 +8,7 @@ import { getWorkflowActivationSlot } from "@/lib/workflows/workflow-slot";
 async function ensureStudentFollowUpWorkflow() {
   const service = await ensureServiceBySlug({
     slug: "student-follow-up",
-    name: "متابعة الطلاب",
+    name: "متابعة الطلبة والمواقف اليومية الطارئة",
     description: "متابعة حالات الطلاب والطالبات.",
   });
 
@@ -32,7 +32,7 @@ async function ensureStudentFollowUpWorkflow() {
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
-      name: "نموذج متابعة الطلاب",
+      name: "نموذج متابعة الطلبة والمواقف اليومية الطارئة",
       version: 1,
       status: "ACTIVE",
       isActive: true,

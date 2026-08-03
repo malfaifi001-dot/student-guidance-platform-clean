@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { parseSurveyQuestionHelpText } from "@/lib/surveys/survey-config";
 
 type SurveyQuestionOption = {
   id: string;
@@ -177,9 +178,17 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
 
       {survey.questions.map((question, index) => {
         const currentAnswer = answers[question.id];
+        const metadata = parseSurveyQuestionHelpText(question.helpText);
 
         return (
-          <section key={question.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div key={question.id} className="space-y-4">
+            {metadata.sectionTitle ? (
+              <section className="rounded-3xl border border-sky-200 bg-sky-50 px-6 py-5">
+                <h2 className="text-xl font-bold text-slate-950">{metadata.sectionTitle}</h2>
+              </section>
+            ) : null}
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-700">
                 {index + 1}
@@ -187,12 +196,12 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
 
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-bold leading-8 text-slate-950">
-                  {question.label}
+                  {metadata.fullLabel || question.label}
                   {question.isRequired ? <span className="mr-1 text-rose-600">*</span> : null}
                 </h2>
 
-                {question.helpText ? (
-                  <p className="mt-1 text-sm leading-7 text-slate-500">{question.helpText}</p>
+                {metadata.helpText ? (
+                  <p className="mt-1 text-sm leading-7 text-slate-500">{metadata.helpText}</p>
                 ) : null}
 
                 {isScaleLike(question.type) ? (
@@ -345,7 +354,8 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                 </div>
               ) : null}
             </div>
-          </section>
+            </section>
+          </div>
         );
       })}
 

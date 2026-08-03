@@ -19,11 +19,11 @@ export default async function GuardianSummonsDesignPreviewPage() {
         <p className="text-sm font-black text-emerald-700">معاينة التصاميم</p>
 
         <h1 className="mt-2 text-2xl font-black text-slate-900">
-          تصميم استدعاء ولي أمر
+          تصميم إشعار ولي الأمر
         </h1>
 
         <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-          هذه الصفحة تعرض آخر نسخة محفوظة من نموذج استدعاء ولي أمر. التعديل
+          هذه الصفحة تعرض آخر نسخة محفوظة من نموذج إشعار ولي الأمر. التعديل
           الحقيقي يتم من صفحة النماذج، وأي نسخة منشورة ستنعكس هنا وفي PDF.
         </p>
 

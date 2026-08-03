@@ -857,7 +857,7 @@ export function CaseDetailsView({
     : reportTwoSnapshotHref ||
       `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
   const primaryReportLabel = isGuardianSummons
-    ? "إصدار استدعاء"
+    ? "إصدار إشعار"
     : reportTwoSnapshotHref
       ? reportTwoStatus === "APPROVED"
         ? "معاينة التقرير المعتمد"

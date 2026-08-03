@@ -29,7 +29,7 @@ const EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS = [
 ];
 
 const EXCLUDED_WORKFLOW_UPLOAD_TITLE_PARTS = [
-  "المرجع الشامل",
+  "مكتبة الموجه الطلابي",
   "التقارير",
   "تحليل النتائج",
 ];
@@ -128,7 +128,7 @@ export async function ensureDashboardWorkflowService(serviceSlug: string) {
 
 /**
  * يهيئ خدمات Workflow فقط، ويستبعد:
- * المرجع الشامل، التقارير، تحليل النتائج.
+ * مكتبة الموجه الطلابي، التقارير، تحليل النتائج.
  */
 export async function ensureDashboardWorkflowServices() {
   const results = [];

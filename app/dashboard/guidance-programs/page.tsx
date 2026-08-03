@@ -4,7 +4,7 @@ export default function GuidanceProgramsPage() {
   return (
     <WorkflowServiceHomePage
       serviceSlug="guidance-programs"
-      title="البرامج الإرشادية"
+      title="برامج التوجيه الطلابي"
       description="أنشئ برنامجًا إرشاديًا، أو أكمل مسودة، أو أصدر تقريرًا لبرنامج مكتمل."
       newButtonLabel="إنشاء برنامج جديد"
       caseSingularName="برنامج"

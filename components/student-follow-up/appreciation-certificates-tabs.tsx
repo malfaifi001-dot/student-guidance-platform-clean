@@ -33,7 +33,7 @@ export function AppreciationCertificatesTabs() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-emerald-700">
-              متابعة الطلاب
+              متابعة الطلبة والمواقف اليومية الطارئة
             </p>
 
             <h1 className="mt-2 text-2xl font-black text-slate-900">
@@ -41,7 +41,7 @@ export function AppreciationCertificatesTabs() {
             </h1>
 
             <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-              تبويبة مستقلة لشهادات الشكر داخل خدمة متابعة الطلاب، تشمل الإصدار
+              تبويبة مستقلة لشهادات الشكر داخل خدمة متابعة الطلبة والمواقف اليومية الطارئة، تشمل الإصدار
               والسجل والإحصائيات والقالب الرسمي.
             </p>
           </div>

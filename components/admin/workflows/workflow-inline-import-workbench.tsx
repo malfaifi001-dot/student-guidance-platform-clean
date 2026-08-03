@@ -564,7 +564,7 @@ export function WorkflowInlineImportWorkbench({
                 Workflow أساسي للخدمة
               </option>
               <option value={WORKFLOW_TYPES.GUARDIAN_SUMMONS}>
-                استدعاء ولي أمر
+                إشعار ولي الأمر
               </option>
               <option value={WORKFLOW_TYPES.CERTIFICATE}>شهادة</option>
               <option value={WORKFLOW_TYPES.LETTER}>خطاب</option>

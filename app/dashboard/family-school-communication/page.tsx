@@ -4,7 +4,7 @@ export default function FamilySchoolCommunicationPage() {
   return (
     <WorkflowServiceHomePage
       serviceSlug="family-school-communication"
-      title="التواصل بين الأسرة والمدرسة"
+      title="التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور"
       description="وثّق التواصل مع ولي الأمر، واستكمل المسودات، وأصدر التقارير عند الحاجة."
       newButtonLabel="إنشاء تواصل جديد"
       caseSingularName="تواصل"

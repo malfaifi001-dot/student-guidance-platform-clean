@@ -159,7 +159,6 @@ export function StatisticsReportView({
     >
       <StatisticsPrintController
         enabled={autoPrint}
-        serviceNames={data.serviceNames}
       />
 
       {showControls && !autoPrint ? (
@@ -198,6 +197,7 @@ export function StatisticsReportView({
               <p>المملكة العربية السعودية</p>
               <p>وزارة التعليم</p>
               {educationDepartmentLine ? <p>{educationDepartmentLine}</p> : null}
+              {data.school.name ? <p>{data.school.name}</p> : null}
             </div>
 
             <div className="flex min-h-[34mm] min-w-0 flex-col items-center justify-center text-center">
@@ -205,13 +205,8 @@ export function StatisticsReportView({
                 src={MINISTRY_OF_EDUCATION_LOGO_SRC}
                 alt="شعار وزارة التعليم"
                 data-statistics-ministry-logo="true"
-                className="h-[18mm] w-auto max-w-[42mm] object-contain"
+                className="h-[20.25mm] w-auto max-w-[47.25mm] object-contain"
               />
-              {data.school.name ? (
-                <h2 className="mt-2 text-base font-black leading-6 text-slate-950">
-                  {data.school.name}
-                </h2>
-              ) : null}
             </div>
 
             <div className="flex min-h-[34mm] flex-col items-center justify-center space-y-0.5 text-center text-sm font-bold leading-6 text-slate-600">
@@ -227,31 +222,7 @@ export function StatisticsReportView({
         </header>
 
         <div className="statistics-report-content flex-1 space-y-7 px-[14mm] py-[10mm]">
-          <section className="grid break-inside-avoid grid-cols-4 gap-3">
-            <div className="rounded-xl border border-slate-200 p-4 text-center">
-              <p className="text-xs font-bold text-slate-500">
-                الحالات المؤهلة
-              </p>
-
-              <p className="mt-2 text-2xl font-black text-slate-950">
-                {
-                  data.sourceCaseCount
-                }
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 p-4 text-center">
-              <p className="text-xs font-bold text-slate-500">
-                التقارير الصادرة
-              </p>
-
-              <p className="mt-2 text-2xl font-black text-slate-950">
-                {
-                  data.sourceReportCount
-                }
-              </p>
-            </div>
-
+          <section className="mx-auto grid w-full max-w-[120mm] break-inside-avoid grid-cols-2 gap-4">
             <div className="rounded-xl border border-slate-200 p-4 text-center">
               <p className="text-xs font-bold text-slate-500">
                 بداية الفترة
@@ -279,7 +250,7 @@ export function StatisticsReportView({
 
           <section>
             <h2 className="break-after-avoid border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
-              الوصف التنفيذي
+              وصف التقرير الإحصائي
             </h2>
 
             <p className="mt-4 whitespace-pre-wrap text-justify text-[14px] font-semibold leading-8 text-slate-700">

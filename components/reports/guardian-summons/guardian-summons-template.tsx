@@ -528,7 +528,7 @@ export function GuardianSummonsTemplate({
             alt="وزارة التعليم"
             className="ministry-logo"
           />
-          <h1 className="document-title">استدعاء ولي أمر طالب</h1>
+          <h1 className="document-title">إشعار ولي الأمر طالب</h1>
         </div>
 
         <div className="header-column header-left">

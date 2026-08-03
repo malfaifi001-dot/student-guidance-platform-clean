@@ -18,7 +18,7 @@ export default async function AppreciationCertificateDesignPage() {
         </h1>
 
         <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-          قالب شهادة شكر لخدمة متابعة الطلاب. النص ثابت، والمتغيرات من هوية
+          قالب شهادة شكر لخدمة متابعة الطلبة والمواقف اليومية الطارئة. النص ثابت، والمتغيرات من هوية
           المدرسة والطالب وسجل المتابعة والإحصاء.
         </p>
 

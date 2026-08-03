@@ -132,11 +132,11 @@ export function GuardianSummonsNewClient({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-emerald-700">
-              التواصل بين الأسرة والمدرسة
+              التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور
             </p>
 
             <h1 className="mt-2 text-2xl font-black text-slate-900">
-              إنشاء استدعاء ولي أمر
+              إنشاء إشعار ولي الأمر
             </h1>
 
             <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
@@ -204,13 +204,13 @@ export function GuardianSummonsNewClient({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-slate-900">
-                  بيانات Workflow الاستدعاء
+                  بيانات Workflow الإشعار
                 </h2>
 
                 <p className="mt-1 text-sm leading-7 text-slate-500">
                   {workflow
                     ? `تم تحميل Workflow: ${workflow.name}`
-                    : "لم يتم العثور على Workflow منشور للاستدعاء. تظهر حقول افتراضية مؤقتة."}
+                    : "لم يتم العثور على Workflow منشور للإشعار. تظهر حقول افتراضية مؤقتة."}
                 </p>
               </div>
 
@@ -265,7 +265,7 @@ export function GuardianSummonsNewClient({
                   disabled={!selectedStudent}
                   className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  إصدار الاستدعاء
+                  إصدار الإشعار
                 </button>
 
                 <GuardianSummonsReportEnginePdfButton
@@ -480,7 +480,7 @@ function getRenderableSteps(workflow: RuntimeWorkflow) {
   return [
     {
       id: "fallback-step",
-      title: "بيانات الاستدعاء الافتراضية",
+      title: "بيانات الإشعار الافتراضية",
       description:
         "هذه حقول مؤقتة تظهر عند عدم وجود Workflow منشور من الأدمن.",
       order: 1,
@@ -567,7 +567,7 @@ function getRenderableSteps(workflow: RuntimeWorkflow) {
         {
           id: "fallback-summon-reason",
           key: "summonReason",
-          label: "سبب الاستدعاء",
+          label: "سبب الإشعار",
           type: "MULTI_SELECT",
           placeholder: null,
           helpText: null,
@@ -727,7 +727,7 @@ function buildPdfPayloadFromDraft(
 
 function buildPdfFileName(student: GuardianSummonsStudent | null) {
   const studentName = student?.fullName || "طالب";
-  return `استدعاء-ولي-أمر-${studentName}.pdf`;
+  return `إشعار-ولي-أمر-${studentName}.pdf`;
 }
 
 function readRecords(): GuardianSummonsRecord[] {
@@ -773,8 +773,8 @@ function buildPreviewCaseData(
     found: true,
     caseId: record.id,
     serviceSlug: "family-school-communication",
-    serviceName: "التواصل بين الأسرة والمدرسة",
-    title: "استدعاء ولي أمر طالب",
+    serviceName: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    title: "إشعار ولي الأمر طالب",
     status: record.status,
     createdAt: record.createdAt,
     updatedAt: record.issuedAt || record.createdAt,

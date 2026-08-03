@@ -4,7 +4,7 @@ export default function Page() {
   return (
     <MobileNewCaseWorkflowPage
       serviceSlug="student-follow-up"
-      title="متابعة الطلاب"
+      title="متابعة الطلبة والمواقف اليومية الطارئة"
       requiresStudent={true}
     />
   );

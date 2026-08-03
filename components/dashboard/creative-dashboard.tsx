@@ -71,7 +71,7 @@ const mainActions = [
 
 const serviceCards = [
   {
-    title: "متابعة الطلاب",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
     description: "تابع الحالات الفردية بواجهة هادئة وسجل واضح.",
     href: "/dashboard/student-follow-up",
     icon: Users,
@@ -89,7 +89,7 @@ const serviceCards = [
     icon: ShieldCheck,
   },
   {
-    title: "البرامج الإرشادية",
+    title: "برامج التوجيه الطلابي",
     description: "نفّذ برنامجًا إرشاديًا واربط الشواهد والتقارير.",
     href: "/dashboard/guidance-programs",
     icon: HeartHandshake,

@@ -11,7 +11,7 @@ export default async function NewGuardianSummonsPage() {
       <main className="space-y-6" dir="rtl">
         <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
           <p className="text-sm font-black text-amber-700">
-            استدعاء ولي أمر
+            إشعار ولي الأمر
           </p>
 
           <h1 className="mt-2 text-3xl font-black text-amber-950">
@@ -19,7 +19,7 @@ export default async function NewGuardianSummonsPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-amber-800">
-            تم تجهيز الخدمة، لكن لا يوجد نموذج منشور لاستدعاء ولي أمر. ارفع
+            تم تجهيز الخدمة، لكن لا يوجد نموذج منشور لإشعار ولي الأمر. ارفع
             ملف Excel من مركز Workflows ثم انشره حتى يظهر نموذج الإنشاء.
           </p>
 
@@ -42,7 +42,7 @@ export default async function NewGuardianSummonsPage() {
         workflow={runtime.workflow}
         serviceId={runtime.service.id}
         requiresStudent
-        title="استدعاء ولي أمر"
+        title="إشعار ولي الأمر"
         caseDetailsBasePath="/dashboard/guardian-summons"
       />
     </main>

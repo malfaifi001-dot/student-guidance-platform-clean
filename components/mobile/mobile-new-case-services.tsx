@@ -14,7 +14,7 @@ type NewCaseService = {
 const services: NewCaseService[] = [
   {
     slug: "guidance-programs",
-    title: "البرامج الإرشادية",
+    title: "برامج التوجيه الطلابي",
     icon: "spark",
   },
   {
@@ -24,22 +24,22 @@ const services: NewCaseService[] = [
   },
   {
     slug: "student-follow-up",
-    title: "متابعة الطلاب",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
     icon: "check",
   },
   {
     slug: "student-guidance-services",
-    title: "الخدمات الإرشادية",
+    title: "خدمات التوجيه الطلابي",
     icon: "file",
   },
   {
     slug: "family-school-communication",
-    title: "التواصل الأسري",
+    title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     icon: "users",
   },
   {
     slug: "guardian-summons",
-    title: "استدعاء ولي أمر",
+    title: "إشعار ولي الأمر",
     icon: "bell",
   },
   {

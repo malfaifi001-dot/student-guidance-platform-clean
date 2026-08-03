@@ -201,7 +201,7 @@ export async function GET(request: Request, context: RouteContext) {
       category: "SYSTEM",
       action: "REFERENCE_LIBRARY_FILE_DOWNLOADED",
       severity: "INFO",
-      title: "تم تنزيل ملف من المرجع الشامل",
+      title: "تم تنزيل ملف من مكتبة الموجه الطلابي",
       details: {
         itemId: visibleItem.id,
         title: visibleItem.title,

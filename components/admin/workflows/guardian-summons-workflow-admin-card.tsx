@@ -22,10 +22,10 @@ export function GuardianSummonsWorkflowAdminCard() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "تعذر إنشاء/نشر Workflow استدعاء ولي أمر.");
+        throw new Error(data.error || "تعذر إنشاء/نشر Workflow إشعار ولي الأمر.");
       }
 
-      setMessage(data.message || "تم إنشاء/نشر Workflow استدعاء ولي أمر بنجاح.");
+      setMessage(data.message || "تم إنشاء/نشر Workflow إشعار ولي الأمر بنجاح.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
     } finally {
@@ -44,10 +44,10 @@ export function GuardianSummonsWorkflowAdminCard() {
           <div>
             <p className="text-xs font-black text-emerald-700">Workflow فرعي داخل خدمة التواصل</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">
-              استدعاء ولي أمر
+              إشعار ولي الأمر
             </h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-slate-600">
-              ينشئ Workflow مستقل باسم guardian-summons داخل خدمة التواصل بين الأسرة والمدرسة، ثم يظهر للموجه/الموجهة في الداشبورد ويُحفظ كسجل حالة طبيعي.
+              ينشئ Workflow مستقل باسم guardian-summons داخل خدمة التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور، ثم يظهر للموجه/الموجهة في الداشبورد ويُحفظ كسجل حالة طبيعي.
             </p>
 
             {message ? (

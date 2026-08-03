@@ -6,6 +6,7 @@ import {
   surveyStateActionPayloadSchema,
   surveyUpdateDraftPayloadSchema,
 } from "@/lib/surveys/survey-api-schemas";
+import { prepareSurveyQuestionForPersistence } from "@/lib/surveys/survey-config";
 
 type RouteContext = {
   params: Promise<{
@@ -187,23 +188,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           opensAt,
           endsAt,
           questions: {
-            create: payload.questions.map((question, index) => ({
-              key: `q_${index + 1}`,
-              label: question.label,
-              type: question.type,
-              helpText: question.helpText,
-              isRequired: question.isRequired,
-              order: index + 1,
-              scaleMin: question.scaleMin ?? null,
-              scaleMax: question.scaleMax ?? null,
-              options: {
-                create: question.options.map((option, optionIndex) => ({
-                  label: option,
-                  value: `option_${optionIndex + 1}`,
-                  order: optionIndex + 1,
-                })),
-              },
-            })),
+            create: payload.questions.map((question, index) => {
+              const persistedQuestion = prepareSurveyQuestionForPersistence(question);
+
+              return {
+                key: `q_${index + 1}`,
+                label: persistedQuestion.label,
+                type: question.type,
+                helpText: persistedQuestion.helpText,
+                isRequired: question.isRequired,
+                order: index + 1,
+                scaleMin: question.scaleMin ?? null,
+                scaleMax: question.scaleMax ?? null,
+                options: {
+                  create: question.options.map((option, optionIndex) => ({
+                    label: option,
+                    value: `option_${optionIndex + 1}`,
+                    order: optionIndex + 1,
+                  })),
+                },
+              };
+            }),
           },
         },
         include: {

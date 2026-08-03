@@ -1,0 +1,1478 @@
+SURVEYS DASHBOARD ONLY
+Route: /dashboard/surveys
+Project: D:\student-guidance-platform-clean
+Generated: 2026-08-03 22:42:41
+
+============================================================
+FILES INDEX
+============================================================
+
+app\dashboard\surveys\page.tsx
+components\surveys\survey-center-shell.tsx
+app\api\dashboard\surveys\route.ts
+lib\surveys\survey-api-access.ts
+lib\surveys\survey-api-schemas.ts
+lib\surveys\survey-config.ts
+lib\surveys\survey-service.ts
+lib\subscription\subscription-guard.ts
+
+============================================================
+FILES CONTENT
+============================================================
+
+################################################################
+FILE: app\dashboard\surveys\page.tsx
+################################################################
+
+import { redirect } from "next/navigation";
+import { SurveyCenterShell } from "@/components/surveys/survey-center-shell";
+import { requireActiveSubscriptionForCurrentUser } from "@/lib/subscription/subscription-guard";
+
+export const dynamic = "force-dynamic";
+
+export default async function CounselorSurveysPage() {
+  const current = await requireActiveSubscriptionForCurrentUser();
+
+  if (current.user.role === "ADMIN") {
+    redirect("/dashboard/admin/surveys");
+  }
+
+  if (current.user.role === "ACTIVITY_LEADER") {
+    redirect("/dashboard/activity-leader/surveys");
+  }
+
+  if (current.user.role === "TEACHER") {
+    return <SurveyCenterShell ownerRole="TEACHER" boardPath="/dashboard/surveys" />;
+  }
+
+  return <SurveyCenterShell ownerRole="COUNSELOR" boardPath="/dashboard/surveys" />;
+}
+
+
+################################################################
+FILE: components\surveys\survey-center-shell.tsx
+################################################################
+
+"use client";
+
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { BarChart3, MoreVertical, Send, Share2 } from "lucide-react";
+import {
+  surveyAudienceLabels,
+  type SurveyBoardRole,
+  type SurveyQuestionInputType,
+} from "@/lib/surveys/survey-config";
+
+type SurveyListItem = {
+  id: string;
+  title: string;
+  description?: string | null;
+  audienceType: string;
+  ownerRole?: string | null;
+  boardPath?: string | null;
+  isAnonymous: boolean;
+  token: string;
+  status: "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  _count?: {
+    questions: number;
+    responses: number;
+  };
+};
+
+type SurveyCenterShellProps = {
+  ownerRole: SurveyBoardRole;
+  boardPath: string;
+};
+
+type QuestionDraft = {
+  label: string;
+  type: SurveyQuestionInputType;
+  isRequired: boolean;
+  options: string[];
+};
+
+const initialQuestions: QuestionDraft[] = [
+  {
+    label: "ما مدى رضاك عن الخدمة المقدمة؟",
+    type: "RATING",
+    isRequired: true,
+    options: [],
+  },
+  {
+    label: "ما أبرز ملاحظاتك أو مقترحاتك؟",
+    type: "TEXTAREA",
+    isRequired: false,
+    options: [],
+  },
+];
+
+function getSurveyStatusLabel(status: SurveyListItem["status"]) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "PUBLISHED") return "منشور";
+  if (status === "CLOSED") return "مغلق";
+  return "مؤرشف";
+}
+
+function getSurveyStatusClass(status: SurveyListItem["status"]) {
+  if (status === "DRAFT") return "bg-amber-50 text-amber-700 ring-amber-100";
+  if (status === "PUBLISHED") return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  if (status === "CLOSED") return "bg-slate-100 text-slate-700 ring-slate-200";
+  return "bg-slate-200 text-slate-700 ring-slate-300";
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "غير محدد";
+  }
+
+  return date.toLocaleDateString("ar-SA-u-ca-gregory", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function fromDatetimeLocal(value: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
+export function SurveyCenterShell({
+  ownerRole,
+  boardPath,
+}: SurveyCenterShellProps) {
+  const router = useRouter();
+  const loadRequestIdRef = useRef(0);
+  const [surveys, setSurveys] = useState<SurveyListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [audienceType, setAudienceType] = useState("GENERAL");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [opensAt, setOpensAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const stats = useMemo(() => {
+    return {
+      total: surveys.length,
+      published: surveys.filter((survey) => survey.status === "PUBLISHED").length,
+      drafts: surveys.filter((survey) => survey.status === "DRAFT").length,
+      responses: surveys.reduce((sum, survey) => sum + (survey._count?.responses || 0), 0),
+    };
+  }, [surveys]);
+
+  async function loadSurveys() {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+
+    setIsLoading(true);
+    setError(null);
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const params = new URLSearchParams({
+        ownerRole,
+        boardPath,
+      });
+
+      const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (!response.ok) {
+        setError(data?.error || "تعذر تحميل الاستبيانات.");
+        setSurveys([]);
+        return;
+      }
+
+      setSurveys(Array.isArray(data?.surveys) ? data.surveys : []);
+    } catch {
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setError("تعذر تحميل الاستبيانات.");
+      setSurveys([]);
+    } finally {
+      window.clearTimeout(timeoutId);
+
+      if (loadRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    void loadSurveys();
+  }, [ownerRole, boardPath]);
+
+  useEffect(() => {
+    function refreshOnReturn() {
+      void loadSurveys();
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void loadSurveys();
+      }
+    }
+
+    window.addEventListener("pageshow", refreshOnReturn);
+    window.addEventListener("dashboard:navigation-refresh", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("pageshow", refreshOnReturn);
+      window.removeEventListener("dashboard:navigation-refresh", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [ownerRole, boardPath]);
+
+  function resetCreateForm() {
+    setTitle("");
+    setDescription("");
+    setAudienceType("GENERAL");
+    setIsAnonymous(false);
+    setOpensAt("");
+    setEndsAt("");
+  }
+
+  function openCreateModal() {
+    setFeedback(null);
+    setError(null);
+    setIsCreateOpen(true);
+  }
+
+  function closeCreateModal() {
+    if (isSaving) return;
+
+    setIsCreateOpen(false);
+    resetCreateForm();
+  }
+
+  async function handleCreateSurvey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isSaving) return;
+
+    const cleanTitle = title.trim();
+
+    if (!cleanTitle) {
+      setError("اكتب عنوان الاستبيان أولًا.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setFeedback(null);
+
+    const response = await fetch("/api/dashboard/surveys", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: cleanTitle,
+        description,
+        audienceType,
+        ownerRole,
+        boardPath,
+        isAnonymous,
+        opensAt: fromDatetimeLocal(opensAt),
+        endsAt: fromDatetimeLocal(endsAt),
+        questions: initialQuestions.map((question) => ({
+          label: question.label,
+          type: question.type,
+          isRequired: question.isRequired,
+          options: question.options,
+          scaleMin: 1,
+          scaleMax: 5,
+        })),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    setIsSaving(false);
+
+    if (!response.ok) {
+      setError(data?.error || "تعذر إنشاء الاستبيان.");
+      return;
+    }
+
+    const surveyId = data?.survey?.id;
+
+    if (!surveyId) {
+      setError("تم إنشاء المسودة لكن تعذر فتح صفحة التعديل.");
+      return;
+    }
+
+    setIsCreateOpen(false);
+    resetCreateForm();
+    router.push(`${boardPath}/${surveyId}/edit`);
+  }
+
+  async function updateSurveyStatus(
+    surveyId: string,
+    action: "publish" | "close" | "archive",
+  ) {
+    setFeedback(null);
+    setError(null);
+
+    const response = await fetch(`/api/dashboard/surveys/${surveyId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      setError(data?.error || "تعذر تنفيذ الإجراء.");
+      return;
+    }
+
+    setFeedback(data?.message || "تم تنفيذ الإجراء.");
+    await loadSurveys();
+  }
+
+  async function deleteSurvey(surveyId: string) {
+    setFeedback(null);
+    setError(null);
+
+    const response = await fetch(`/api/dashboard/surveys/${surveyId}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      setError(data?.error || "تعذر حذف الاستبيان.");
+      return;
+    }
+
+    setFeedback(data?.message || "تم حذف مسودة الاستبيان.");
+    await loadSurveys();
+  }
+
+  async function copySurveyLink(token: string) {
+    const url = `${window.location.origin}/survey/${token}`;
+    await navigator.clipboard.writeText(url);
+    setFeedback("تم نسخ رابط الاستبيان.");
+  }
+
+  return (
+    <div className="space-y-7" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div>
+            <h1 className="text-4xl font-black">
+              الاستبيانات
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap gap-2 xl:justify-end">
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            >
+              + استبيان جديد
+            </button>
+
+            <a
+              href={`${boardPath}/templates`}
+              className="inline-flex items-center justify-center rounded-2xl border border-white/25 bg-white/15 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              فتح القوالب
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-4">
+        <Metric label="الاستبيانات" value={stats.total} />
+        <Metric label="منشورة" value={stats.published} />
+        <Metric label="مسودات" value={stats.drafts} />
+        <Metric label="الردود" value={stats.responses} />
+      </section>
+
+      {feedback ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800">
+          {feedback}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-sky-700">السجلات</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              آخر الاستبيانات
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            + استبيان جديد
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-black text-slate-500">
+            جاري تحميل الاستبيانات...
+          </div>
+        ) : null}
+
+        {!isLoading && surveys.length === 0 ? (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-black text-slate-500">
+            لا توجد استبيانات بعد.
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          {surveys.map((survey) => (
+            <article
+              key={survey.id}
+              className="relative rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm"
+            >
+              <div className="absolute left-5 top-5 z-20 flex items-center gap-1.5">
+                {survey.status === "DRAFT" ? (
+                  <button
+                    type="button"
+                    onClick={() => void updateSurveyStatus(survey.id, "publish")}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                    title="نشر"
+                    aria-label="نشر"
+                  >
+                    <Send className="h-4.5 w-4.5" />
+                  </button>
+                ) : null}
+
+                <a
+                  href={`${boardPath}/${survey.id}/analysis`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-sky-700 transition hover:border-sky-200 hover:bg-sky-50 focus-visible:border-sky-300 focus-visible:bg-sky-50 focus-visible:outline-none"
+                  title="تحليل"
+                  aria-label="تحليل"
+                >
+                  <BarChart3 className="h-4.5 w-4.5" />
+                </a>
+
+                <a
+                  href={`${boardPath}/${survey.id}/share`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                  title="مشاركة"
+                  aria-label="مشاركة"
+                >
+                  <Share2 className="h-4.5 w-4.5" />
+                </a>
+
+                <div className="group relative">
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:border-slate-300 focus-visible:bg-slate-50 focus-visible:outline-none"
+                    title="المزيد"
+                    aria-label="المزيد"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+
+                  <div className="pointer-events-none invisible absolute left-0 top-12 z-30 w-44 translate-y-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-right opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <a
+                      href={`${boardPath}/${survey.id}/responses`}
+                      className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      الردود
+                    </a>
+
+                    {survey.status === "DRAFT" ? (
+                      <a
+                        href={`${boardPath}/${survey.id}/edit`}
+                        className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                      >
+                        تعديل
+                      </a>
+                    ) : null}
+
+                    {survey.status === "PUBLISHED" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void copySurveyLink(survey.token)}
+                          className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                        >
+                          نسخ الرابط
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => void updateSurveyStatus(survey.id, "close")}
+                          className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                        >
+                          إغلاق
+                        </button>
+                      </>
+                    ) : null}
+
+                    {survey.status !== "ARCHIVED" ? (
+                      <button
+                        type="button"
+                        onClick={() => void updateSurveyStatus(survey.id, "archive")}
+                        className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                      >
+                        أرشفة
+                      </button>
+                    ) : null}
+
+                    {survey.status === "DRAFT" ? (
+                      <button
+                        type="button"
+                        onClick={() => void deleteSurvey(survey.id)}
+                        className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-rose-700 transition hover:bg-rose-50"
+                      >
+                        حذف
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className={[
+                        "rounded-full px-3 py-1 text-xs font-black ring-1",
+                        getSurveyStatusClass(survey.status),
+                      ].join(" ")}
+                    >
+                      {getSurveyStatusLabel(survey.status)}
+                    </span>
+
+                    <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                      {surveyAudienceLabels[survey.audienceType] || survey.audienceType}
+                    </span>
+
+                    {survey.isAnonymous ? (
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+                        مجهول
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="mt-4 text-xl font-black leading-8 text-slate-950">
+                    {survey.title}
+                  </h3>
+
+                  <p className="mt-2 text-xs font-bold text-slate-500">
+                    آخر تحديث: {formatDate(survey.updatedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-2 rounded-2xl bg-white p-3 text-sm font-black text-slate-600 md:grid-cols-2">
+                <span>{survey._count?.questions || 0} سؤال</span>
+                <span>{survey._count?.responses || 0} رد</span>
+              </div>
+
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {isCreateOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+          onMouseDown={closeCreateModal}
+        >
+          <section
+            className="w-full max-w-4xl rounded-[2.25rem] bg-white p-6 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black text-sky-700">استبيان جديد</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                  بيانات الاستبيان
+                </h2>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateSurvey}>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>عنوان الاستبيان</span>
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                    placeholder="مثال: قياس رضا أولياء الأمور"
+                    autoFocus
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>الفئة المستهدفة</span>
+                  <select
+                    value={audienceType}
+                    onChange={(event) => setAudienceType(event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                  >
+                    {Object.entries(surveyAudienceLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="mt-5 block space-y-2 text-sm font-black text-slate-700">
+                <span>الوصف</span>
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                  placeholder="وصف مختصر"
+                />
+              </label>
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>بداية الردود</span>
+                  <input
+                    type="datetime-local"
+                    value={opensAt}
+                    onChange={(event) => setOpensAt(event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>نهاية الردود</span>
+                  <input
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={(event) => setEndsAt(event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                  />
+                </label>
+              </div>
+
+              <label className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={(event) => setIsAnonymous(event.target.checked)}
+                />
+                <span>استبيان مجهول الهوية</span>
+              </label>
+
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  إلغاء
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSaving ? "جاري الحفظ..." : "إنشاء المسودة"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-black text-slate-400">{label}</p>
+      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+    </article>
+  );
+}
+
+################################################################
+FILE: app\api\dashboard\surveys\route.ts
+################################################################
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireSurveyServiceContext } from "@/lib/surveys/survey-api-access";
+import {
+  surveyCreatePayloadSchema,
+} from "@/lib/surveys/survey-api-schemas";
+import { createSurveyToken } from "@/lib/surveys/survey-service";
+
+function parseOptionalDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export async function GET(request: NextRequest) {
+  const { context, error } = await requireSurveyServiceContext();
+
+  if (error || !context) {
+    return error ?? NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  const searchParams = request.nextUrl.searchParams;
+  const ownerRole = searchParams.get("ownerRole");
+  const boardPath = searchParams.get("boardPath");
+
+  const where: Record<string, unknown> = {};
+
+  if (!context.isAdmin) {
+    where.schoolAccountId = context.schoolAccountId;
+  }
+
+  if (ownerRole) {
+    where.ownerRole = ownerRole;
+  }
+
+  if (boardPath) {
+    where.boardPath = boardPath;
+  }
+
+  const surveys = await prisma.survey.findMany({
+    where,
+    orderBy: {
+      updatedAt: "desc",
+    },
+    include: {
+      service: true,
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+      questions: {
+        orderBy: {
+          order: "asc",
+        },
+        include: {
+          options: {
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+      responses: {
+        select: {
+          id: true,
+          submittedAt: true,
+        },
+        orderBy: {
+          submittedAt: "desc",
+        },
+        take: 5,
+      },
+      _count: {
+        select: {
+          questions: true,
+          responses: true,
+        },
+      },
+    },
+  });
+
+  return NextResponse.json({ surveys });
+}
+
+export async function POST(request: NextRequest) {
+  const { context, error } = await requireSurveyServiceContext();
+
+  if (error || !context) {
+    return error ?? NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  if (!context.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error:
+          "إنشاء الاستبيانات يحتاج حساب مدرسة مرتبط. يمكن لاحقًا إضافة استبيانات منصة عامة للأدمن.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const rawPayload = await request.json().catch(() => null);
+  const payloadResult = surveyCreatePayloadSchema.safeParse(rawPayload);
+
+  if (!payloadResult.success) {
+    return NextResponse.json(
+      {
+        error: payloadResult.error.issues[0]?.message || "بيانات الاستبيان غير صالحة.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const payload = payloadResult.data;
+  const opensAt = parseOptionalDate(payload.opensAt);
+  const endsAt = parseOptionalDate(payload.endsAt);
+
+  if (payload.opensAt && !opensAt) {
+    return NextResponse.json(
+      { error: "تاريخ بداية الاستقبال غير صالح." },
+      { status: 400 },
+    );
+  }
+
+  if (payload.endsAt && !endsAt) {
+    return NextResponse.json(
+      { error: "تاريخ نهاية الاستقبال غير صالح." },
+      { status: 400 },
+    );
+  }
+
+  if (opensAt && endsAt && endsAt.getTime() < opensAt.getTime()) {
+    return NextResponse.json(
+      {
+        error: "تاريخ نهاية الاستقبال يجب أن يكون بعد تاريخ البداية.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const ownerRole = payload.ownerRole ?? context.user.role;
+
+  const survey = await prisma.survey.create({
+    data: {
+      schoolAccountId: context.schoolAccountId,
+      createdById: context.user.id,
+      title: payload.title,
+      description: payload.description,
+      audienceType: payload.audienceType,
+      ownerRole,
+      boardPath: payload.boardPath,
+      isAnonymous: payload.isAnonymous,
+      opensAt,
+      endsAt,
+      token: createSurveyToken(),
+      status: "DRAFT",
+      questions: {
+        create: payload.questions.map((question, index) => ({
+          key: `q_${index + 1}`,
+          label: question.label,
+          type: question.type,
+          helpText: question.helpText,
+          isRequired: question.isRequired,
+          order: index + 1,
+          scaleMin: question.scaleMin ?? null,
+          scaleMax: question.scaleMax ?? null,
+          options: {
+            create: question.options.map((option, optionIndex) => ({
+              label: option,
+              value: `option_${optionIndex + 1}`,
+              order: optionIndex + 1,
+            })),
+          },
+        })),
+      },
+    },
+    include: {
+      questions: {
+        orderBy: {
+          order: "asc",
+        },
+        include: {
+          options: {
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          questions: true,
+          responses: true,
+        },
+      },
+    },
+  });
+
+  return NextResponse.json({
+    message: "تم إنشاء الاستبيان كمسودة.",
+    survey,
+  });
+}
+
+
+################################################################
+FILE: lib\surveys\survey-api-access.ts
+################################################################
+
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { requireServiceAccessForCurrentUser } from "@/bin/require-auth";
+import type { SchoolDashboardContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { SURVEY_SERVICE_SLUG } from "@/lib/surveys/survey-config";
+
+type SurveyAccessResult<TInclude extends Prisma.SurveyInclude | undefined> = {
+  context: SchoolDashboardContext | null;
+  survey: (
+    TInclude extends Prisma.SurveyInclude
+      ? Prisma.SurveyGetPayload<{ include: TInclude }>
+      : Prisma.SurveyGetPayload<Record<string, never>>
+  ) | null;
+  error: Response | null;
+};
+
+export async function requireSurveyServiceContext() {
+  const context = await requireServiceAccessForCurrentUser(SURVEY_SERVICE_SLUG);
+
+  if (context instanceof Response) {
+    return {
+      context: null,
+      error: context,
+    };
+  }
+
+  return {
+    context: context as SchoolDashboardContext,
+    error: null,
+  };
+}
+
+export async function requireSurveyAccess<
+  TInclude extends Prisma.SurveyInclude | undefined = undefined,
+>(
+  surveyId: string,
+  include?: TInclude,
+): Promise<SurveyAccessResult<TInclude>> {
+  const { context, error } = await requireSurveyServiceContext();
+
+  if (error || !context) {
+    return {
+      context: null,
+      survey: null,
+      error,
+    } as SurveyAccessResult<TInclude>;
+  }
+
+  const survey = await prisma.survey.findUnique({
+    where: {
+      id: surveyId,
+    },
+    include,
+  }) as SurveyAccessResult<TInclude>["survey"];
+
+  if (!survey) {
+    return {
+      context: null,
+      survey: null,
+      error: NextResponse.json(
+        {
+          error: "الاستبيان غير موجود.",
+        },
+        { status: 404 },
+      ),
+    } as SurveyAccessResult<TInclude>;
+  }
+
+  if (!context.isAdmin && survey.schoolAccountId !== context.schoolAccountId) {
+    return {
+      context: null,
+      survey: null,
+      error: NextResponse.json(
+        {
+          error: "لا تملك صلاحية الوصول لهذا الاستبيان.",
+        },
+        { status: 403 },
+      ),
+    } as SurveyAccessResult<TInclude>;
+  }
+
+  return {
+    context,
+    survey,
+    error: null,
+  } as SurveyAccessResult<TInclude>;
+}
+
+
+################################################################
+FILE: lib\surveys\survey-api-schemas.ts
+################################################################
+
+import { z } from "zod";
+
+const surveyOwnerRoleSchema = z.enum([
+  "ADMIN",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "TEACHER",
+]);
+
+const surveyQuestionTypeSchema = z.enum([
+  "TEXT",
+  "TEXTAREA",
+  "SINGLE_CHOICE",
+  "MULTIPLE_CHOICE",
+  "YES_NO",
+  "RATING",
+  "SCALE",
+  "NUMBER",
+  "DATE",
+]);
+
+const optionalTrimmedString = (maxLength: number) =>
+  z.preprocess(
+    (value) => (typeof value === "string" ? value.trim() : value),
+    z.union([z.string().max(maxLength), z.null(), z.undefined()]),
+  ).transform((value) => {
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    return value.length ? value : null;
+  });
+
+const optionalNumber = z.preprocess((value) => {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.trim());
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  return value;
+}, z.number().finite().optional());
+
+export const surveyQuestionInputSchema = z
+  .object({
+    label: z.preprocess(
+      (value) => (typeof value === "string" ? value.trim() : value),
+      z.string().min(1).max(300),
+    ),
+    type: surveyQuestionTypeSchema.default("TEXT"),
+    helpText: optionalTrimmedString(500),
+    isRequired: z.boolean().optional().default(false),
+    scaleMin: optionalNumber,
+    scaleMax: optionalNumber,
+    options: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  })
+  .superRefine((value, ctx) => {
+    const requiresOptions =
+      value.type === "SINGLE_CHOICE" || value.type === "MULTIPLE_CHOICE";
+
+    if (requiresOptions && value.options.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "الأسئلة الاختيارية تحتاج خيارًا واحدًا على الأقل.",
+        path: ["options"],
+      });
+    }
+
+    if (
+      (value.type === "SCALE" || value.type === "NUMBER" || value.type === "RATING") &&
+      value.scaleMin !== undefined &&
+      value.scaleMax !== undefined &&
+      value.scaleMax < value.scaleMin
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "الحد الأعلى يجب أن يكون أكبر من أو يساوي الحد الأدنى.",
+        path: ["scaleMax"],
+      });
+    }
+  });
+
+export const surveyCreatePayloadSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  description: optionalTrimmedString(1000),
+  audienceType: z.string().trim().min(1).max(50).default("GENERAL"),
+  ownerRole: surveyOwnerRoleSchema.optional(),
+  boardPath: z.string().trim().min(1).max(160).default("/dashboard/surveys"),
+  isAnonymous: z.boolean().optional().default(false),
+  opensAt: optionalTrimmedString(40),
+  endsAt: optionalTrimmedString(40),
+  questions: z.array(surveyQuestionInputSchema).min(1).max(50),
+});
+
+export const surveyTemplateCreatePayloadSchema = z.object({
+  templateKey: z.string().trim().min(1).max(120),
+  ownerRole: surveyOwnerRoleSchema.optional(),
+  boardPath: optionalTrimmedString(160),
+});
+
+export const surveyActionSchema = z.enum([
+  "update-draft",
+  "publish",
+  "close",
+  "archive",
+]);
+
+export const surveyUpdateDraftPayloadSchema = surveyCreatePayloadSchema.extend({
+  action: z.literal("update-draft"),
+});
+
+export const surveyStateActionPayloadSchema = z.object({
+  action: z.enum(["publish", "close", "archive"]),
+});
+
+export { surveyOwnerRoleSchema };
+
+
+################################################################
+FILE: lib\surveys\survey-config.ts
+################################################################
+
+export const SURVEY_SERVICE_SLUG = "surveys";
+
+export type SurveyBoardRole = "ADMIN" | "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+
+export type SurveyQuestionInputType =
+  | "TEXT"
+  | "TEXTAREA"
+  | "SINGLE_CHOICE"
+  | "MULTIPLE_CHOICE"
+  | "YES_NO"
+  | "RATING"
+  | "SCALE"
+  | "NUMBER"
+  | "DATE";
+
+export const surveyQuestionTypeLabels: Record<SurveyQuestionInputType, string> = {
+  TEXT: "إجابة قصيرة",
+  TEXTAREA: "إجابة طويلة",
+  SINGLE_CHOICE: "اختيار واحد",
+  MULTIPLE_CHOICE: "اختيارات متعددة",
+  YES_NO: "نعم / لا",
+  RATING: "تقييم",
+  SCALE: "مقياس رقمي",
+  NUMBER: "رقم",
+  DATE: "تاريخ",
+};
+
+export const surveyAudienceLabels: Record<string, string> = {
+  GENERAL: "عام",
+  STUDENTS: "طلاب",
+  GUARDIANS: "أولياء أمور",
+  TEACHERS: "معلمون",
+  STAFF: "الكادر التعليمي",
+  ADMINISTRATIVE: "إداريون",
+};
+
+export const surveyBoardLabels: Record<SurveyBoardRole, string> = {
+  ADMIN: "مركز استبيانات الإدارة",
+  COUNSELOR: "مركز استبيانات التوجيه الطلابي",
+  ACTIVITY_LEADER: "مركز استبيانات ريادة النشاط",
+  TEACHER: "مركز استبيانات المعلم",
+};
+
+
+################################################################
+FILE: lib\surveys\survey-service.ts
+################################################################
+
+import crypto from "node:crypto";
+import { prisma } from "@/lib/prisma";
+
+type SurveyAvailabilityInput = {
+  status: string;
+  opensAt?: Date | string | null;
+  endsAt?: Date | string | null;
+};
+
+export function createSurveyToken() {
+  return crypto.randomBytes(18).toString("base64url");
+}
+
+export function normalizePhone(value: unknown) {
+  return String(value || "")
+    .replace(/[^\d+]/g, "")
+    .trim()
+    .slice(0, 20);
+}
+
+function toDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateTime(value: Date | string | null | undefined) {
+  const date = toDate(value);
+
+  if (!date) return null;
+
+  return date.toLocaleString("ar-SA");
+}
+
+export function getSurveyAvailability(survey: SurveyAvailabilityInput) {
+  const now = new Date();
+  const opensAt = toDate(survey.opensAt);
+  const endsAt = toDate(survey.endsAt);
+
+  if (survey.status === "DRAFT") {
+    return {
+      isOpen: false,
+      code: "DRAFT",
+      title: "الاستبيان غير منشور",
+      reason: "هذا الاستبيان ما زال مسودة ولم يتم نشره بعد.",
+    };
+  }
+
+  if (survey.status === "CLOSED") {
+    return {
+      isOpen: false,
+      code: "CLOSED",
+      title: "الاستبيان مغلق",
+      reason: "تم إغلاق استقبال الردود لهذا الاستبيان.",
+    };
+  }
+
+  if (survey.status === "ARCHIVED") {
+    return {
+      isOpen: false,
+      code: "ARCHIVED",
+      title: "الاستبيان مؤرشف",
+      reason: "هذا الاستبيان مؤرشف ولا يستقبل ردودًا جديدة.",
+    };
+  }
+
+  if (survey.status !== "PUBLISHED") {
+    return {
+      isOpen: false,
+      code: "NOT_PUBLISHED",
+      title: "الاستبيان غير متاح",
+      reason: "الاستبيان غير منشور حاليًا.",
+    };
+  }
+
+  if (opensAt && opensAt.getTime() > now.getTime()) {
+    return {
+      isOpen: false,
+      code: "NOT_STARTED",
+      title: "لم تبدأ فترة استقبال الردود",
+      reason: `سيكون الاستبيان متاحًا للتعبئة ابتداءً من ${formatDateTime(opensAt) || "الموعد المحدد"}.`,
+    };
+  }
+
+  if (endsAt && endsAt.getTime() < now.getTime()) {
+    return {
+      isOpen: false,
+      code: "ENDED",
+      title: "انتهت فترة استقبال الردود",
+      reason: `انتهت فترة تعبئة هذا الاستبيان في ${formatDateTime(endsAt) || "الموعد المحدد"}.`,
+    };
+  }
+
+  return {
+    isOpen: true,
+    code: "OPEN",
+    title: "الاستبيان متاح",
+    reason: null,
+  };
+}
+
+export async function getPublicSurveyByToken(token: string) {
+  const survey = await prisma.survey.findUnique({
+    where: {
+      token,
+    },
+    include: {
+      questions: {
+        orderBy: {
+          order: "asc",
+        },
+        include: {
+          options: {
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!survey) {
+    return {
+      survey: null,
+      availability: {
+        isOpen: false,
+        code: "NOT_FOUND",
+        title: "الاستبيان غير موجود",
+        reason: "الرابط غير صحيح أو لم يعد متاحًا.",
+      },
+    };
+  }
+
+  return {
+    survey,
+    availability: getSurveyAvailability(survey),
+  };
+}
+
+export async function getPublishedSurveyByToken(token: string) {
+  const { survey, availability } = await getPublicSurveyByToken(token);
+
+  if (!survey || !availability.isOpen) {
+    return null;
+  }
+
+  return survey;
+}
+
+################################################################
+FILE: lib\subscription\subscription-guard.ts
+################################################################
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionForCurrentUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId,
+  );
+
+  if (!overview.usable) {
+    redirect("/dashboard/plans?reason=activation-required");
+  }
+
+  return current;
+}
+
+export async function requireServiceAccessForCurrentUser(
+  serviceSlug: string,
+) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    redirect(
+      `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+        serviceSlug,
+      )}`,
+    );
+  }
+
+  return current;
+}
+
+export async function requireCanCreateInServiceForCurrentUser(
+  serviceSlug: string,
+) {
+  await requireActiveSubscriptionForCurrentUser();
+
+  return requireServiceAccessForCurrentUser(
+    serviceSlug,
+  );
+}

@@ -42,7 +42,7 @@ export default async function PublicSurveyPage({ params }: PageProps) {
           <h1 className="mt-3 text-2xl font-bold text-slate-950">{survey.title}</h1>
 
           {survey.description ? (
-            <p className="mt-3 text-sm leading-7 text-slate-600">{survey.description}</p>
+            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{survey.description}</p>
           ) : null}
 
           {survey.isAnonymous ? (

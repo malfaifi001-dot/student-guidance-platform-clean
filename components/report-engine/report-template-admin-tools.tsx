@@ -103,7 +103,7 @@ const smartVariables: Array<{
     key: "serviceName",
     label: "اسم الخدمة",
     description: "اسم الخدمة التي صدر منها التقارير.",
-    example: "البرامج الإرشادية",
+    example: "برامج التوجيه الطلابي",
     group: "خدمة",
   },
   {
@@ -1293,7 +1293,7 @@ function buildSampleVariables(
   const serviceName =
     template.scope === "SERVICE" && template.serviceSlug
       ? getServiceName(template.serviceSlug)
-      : "البرامج الإرشادية";
+      : "برامج التوجيه الطلابي";
 
   return {
     schoolName: identity.schoolName || "اسم المدرسة",

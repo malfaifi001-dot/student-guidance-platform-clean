@@ -7,8 +7,8 @@ import { getWorkflowActivationSlot } from "@/lib/workflows/workflow-slot";
 async function ensureFamilyCommunicationWorkflow() {
   const service = await ensureServiceBySlug({
     slug: "family-school-communication",
-    name: "التواصل بين الأسرة والمدرسة",
-    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    name: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    description: "توثيق التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور.",
   });
 
   const existingWorkflow = await prisma.workflow.findFirst({
@@ -31,7 +31,7 @@ async function ensureFamilyCommunicationWorkflow() {
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
-      name: "نموذج التواصل بين الأسرة والمدرسة",
+      name: "نموذج التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
       version: 1,
       status: "ACTIVE",
       isActive: true,

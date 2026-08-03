@@ -64,7 +64,7 @@ const counselorImportantLinks: SidebarLinkItem[] = [
 
 const counselorServiceLinks: SidebarLinkItem[] = [
   {
-    label: "البرامج الإرشادية",
+    label: "برامج التوجيه الطلابي",
     href: "/dashboard/guidance-programs",
     icon: ClipboardList,
   },
@@ -74,20 +74,20 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: ShieldCheck,
   },
   {
-    label: "متابعة الطلاب",
+    label: "متابعة الطلبة والمواقف اليومية الطارئة",
     href: "/dashboard/student-follow-up",
     icon: Users,
   },
   {
-    label: "الخدمات الإرشادية المقدمة للطلاب",
+    label: "خدمات التوجيه الطلابي",
     href: "/dashboard/student-guidance-services",
     icon: FileText,
   },
   {
-    label: "استدعاء ولي أمر",
+    label: "إشعار ولي الأمر",
     href: "/dashboard/guardian-summons",
     icon: UserRound,
-    shortLabel: "استدعاء",
+    shortLabel: "الإشعار",
   },
   {
     label: "تحليل النتائج",
@@ -95,12 +95,12 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: BarChart3,
   },
   {
-    label: "التواصل بين الأسرة والمدرسة",
+    label: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     href: "/dashboard/family-school-communication",
     icon: MessageCircle,
   },
   {
-    label: "المرجع الشامل",
+    label: "مكتبة الموجه الطلابي",
     href: "/dashboard/counselor-reference-library",
     icon: BookOpen,
   },
@@ -217,7 +217,7 @@ const adminMainLinks: SidebarLinkItem[] = [
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
   { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
   {
-    label: "إدارة المرجع الشامل",
+    label: "إدارة مكتبة الموجه الطلابي",
     href: "/dashboard/admin/counselor-reference-library",
     icon: BookOpen,
   },
@@ -281,14 +281,14 @@ const collapsedLabelByLabel: Record<string, string> = {
   "تقرير مخصص": "مخصص",
   "التقويم والتنبيهات": "التقويم",
 
-  "البرامج الإرشادية": "البرامج",
+  "برامج التوجيه الطلابي": "البرامج",
   "اللجان والاجتماعات": "اللجان",
-  "متابعة الطلاب": "المتابعة",
-  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
-  "المرجع الشامل": "المرجع",
+  "متابعة الطلبة والمواقف اليومية الطارئة": "المتابعة",
+  "خدمات التوجيه الطلابي": "التوجيه",
+  "مكتبة الموجه الطلابي": "المكتبة",
   "الإحصائيات": "إحصائيات",
   "تحليل النتائج": "التحليل",
-  "التواصل بين الأسرة والمدرسة": "الأسرة",
+  "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور": "الأسرة",
 
   "لوحة المركز": "المركز",
   "تحليل جديد": "تحليل جديد",

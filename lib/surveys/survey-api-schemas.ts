@@ -55,6 +55,7 @@ export const surveyQuestionInputSchema = z
       z.string().min(1).max(300),
     ),
     type: surveyQuestionTypeSchema.default("TEXT"),
+    sectionTitle: optionalTrimmedString(180),
     helpText: optionalTrimmedString(500),
     isRequired: z.boolean().optional().default(false),
     scaleMin: optionalNumber,

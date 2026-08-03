@@ -63,7 +63,7 @@ export function AdminReferenceLibraryCenter() {
     useState<Breadcrumb[]>([
       {
         id: null,
-        title: "المرجع الشامل",
+        title: "مكتبة الموجه الطلابي",
       },
     ]);
 
@@ -145,7 +145,7 @@ export function AdminReferenceLibraryCenter() {
       setItems([]);
       setFeedback({
         type: "error",
-        title: "تعذر تحميل المرجع",
+        title: "تعذر تحميل المكتبة",
         message:
           requestError instanceof Error
             ? requestError.message
@@ -316,7 +316,7 @@ export function AdminReferenceLibraryCenter() {
     pendingAction?.type === "DELETE"
       ? pendingAction.item.itemType === "FOLDER"
         ? "سيحذف المجلد إذا كان فارغًا فقط. المجلد الذي يحتوي عناصر لن يُحذف."
-        : "سيحذف الملف وبياناته من المرجع الشامل."
+        : "سيحذف الملف وبياناته من مكتبة الموجه الطلابي."
       : pendingAction?.type === "STATUS"
         ? `سيتم تغيير حالة «${pendingAction.item.title}» إلى ${
             pendingAction.status === "PUBLISHED"
@@ -341,7 +341,7 @@ export function AdminReferenceLibraryCenter() {
             </div>
 
             <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              إدارة المرجع الشامل
+              إدارة مكتبة الموجه الطلابي
             </h1>
 
             <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-white/85 sm:text-base">

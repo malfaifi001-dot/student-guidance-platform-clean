@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 export const DEFAULT_PLATFORM_SERVICES = [
   {
     slug: "counselor-reference-library",
-    name: "المرجع الشامل",
+    name: "مكتبة الموجه الطلابي",
     description:
       "مكتبة معرفية للموجه الطلابي تتيح استعراض الحقائب والأدلة والملفات وقراءتها أو تحميلها حسب الصلاحيات.",
   },

@@ -26,7 +26,7 @@ export function GuardianSummonsPreviewToolbar({ caseId }: { caseId: string }) {
           className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-black text-sky-700 transition hover:bg-sky-100"
         >
           <PencilLine className="h-4 w-4" />
-          تعديل الاستدعاء
+          تعديل الإشعار
         </Link>
         <button
           type="button"

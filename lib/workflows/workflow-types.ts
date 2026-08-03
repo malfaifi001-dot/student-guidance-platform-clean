@@ -47,7 +47,7 @@ export function normalizeWorkflowType(value?: string | null): WorkflowType {
 }
 
 export function getWorkflowPlacementLabel(value?: string | null) {
-  if (value === WORKFLOW_TYPES.GUARDIAN_SUMMONS) return "استدعاء ولي أمر";
+  if (value === WORKFLOW_TYPES.GUARDIAN_SUMMONS) return "إشعار ولي الأمر";
   if (value === WORKFLOW_TYPES.CERTIFICATE) return "شهادة";
   if (value === WORKFLOW_TYPES.LETTER) return "خطاب";
   if (value === WORKFLOW_TYPES.FORM) return "نموذج";

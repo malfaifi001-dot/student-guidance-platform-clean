@@ -28,7 +28,7 @@ export const SMART_TEXT_VARIABLES: SmartTextVariableDefinition[] = [
     key: "serviceName",
     label: "اسم الخدمة",
     description: "اسم الخدمة الإرشادية التي صدر منها التقارير.",
-    example: "البرامج الإرشادية",
+    example: "برامج التوجيه الطلابي",
   },
   {
     key: "reportTitle",
@@ -100,10 +100,15 @@ export const SMART_TEXT_VARIABLES: SmartTextVariableDefinition[] = [
 
 export const GUIDANCE_PROGRAM_TEXT_LIBRARY: SmartTextTemplateSet = {
   id: "guidance-programs",
-  name: "البرامج الإرشادية",
+  name: "برامج التوجيه الطلابي",
   description:
-    "نصوص رسمية مخصصة لتقارير البرامج الإرشادية والأنشطة ذات الشواهد.",
-  serviceNameIncludes: ["البرامج الإرشادية", "برنامج إرشادي", "guidance"],
+    "نصوص رسمية مخصصة لتقارير برامج التوجيه الطلابي والأنشطة ذات الشواهد.",
+  serviceNameIncludes: [
+    "برامج التوجيه الطلابي",
+    "البرامج الإرشادية",
+    "برنامج إرشادي",
+    "guidance",
+  ],
   sections: [
     {
       id: "smart-intro",
@@ -140,7 +145,7 @@ export const GUIDANCE_PROGRAM_TEXT_LIBRARY: SmartTextTemplateSet = {
       id: "smart-recommendation",
       title: "توصية ختامية",
       body:
-        "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة البرامج الإرشادية القادمة.",
+        "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة برامج التوجيه الطلابي القادمة.",
     },
   ],
 };
@@ -210,7 +215,7 @@ export function renderSmartTemplate(
 
 export function createSampleSmartTextVariables(): SmartTextVariableMap {
   return {
-    serviceName: "البرامج الإرشادية",
+    serviceName: "برامج التوجيه الطلابي",
     reportTitle: "تقرير برنامج تعزيز السلوك الإيجابي",
     programTitle: "برنامج تعزيز السلوك الإيجابي",
     executionDate: "2026-05-26",

@@ -4,8 +4,8 @@ export default function StudentGuidanceServicesPage() {
   return (
     <WorkflowServiceHomePage
       serviceSlug="student-guidance-services"
-      title="الخدمات الإرشادية المقدمة للطلاب"
-      description="سجّل الخدمات الإرشادية المقدمة للطلاب المقدمة للطلاب، واستكمل المسودات، وأصدر التقارير."
+      title="خدمات التوجيه الطلابي"
+      description="سجّل خدمات التوجيه الطلابي، واستكمل المسودات، وأصدر التقارير."
       newButtonLabel="إنشاء خدمة جديدة"
       caseSingularName="خدمة"
       casePluralName="خدمات"

@@ -178,8 +178,8 @@ function buildPreviewCaseData(
     found: true,
     caseId: payload.id || "guardian-summons-preview",
     serviceSlug: "family-school-communication",
-    serviceName: "التواصل بين الأسرة والمدرسة",
-    title: "استدعاء ولي أمر طالب",
+    serviceName: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    title: "إشعار ولي الأمر طالب",
     status: payload.status || "ISSUED",
     createdAt: payload.createdAt || new Date().toISOString(),
     updatedAt:

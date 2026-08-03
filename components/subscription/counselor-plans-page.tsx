@@ -83,15 +83,15 @@ function getServiceDisplayName(slug?: string | null) {
   if (!slug) return null;
 
   const labels: Record<string, string> = {
-    "guidance-programs": "البرامج الإرشادية",
+    "guidance-programs": "برامج التوجيه الطلابي",
     "committees-meetings": "اللجان والاجتماعات",
-    "student-follow-up": "متابعة الطلاب",
-    "student-guidance-services": "الخدمات الإرشادية المقدمة للطلاب",
-    "family-school-communication": "التواصل بين الأسرة والمدرسة",
+    "student-follow-up": "متابعة الطلبة والمواقف اليومية الطارئة",
+    "student-guidance-services": "خدمات التوجيه الطلابي",
+    "family-school-communication": "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     surveys: "الاستبيانات",
     "results-analysis": "تحليل النتائج",
     "assessment-center": "مركز التحليل والاختبارات",
-    "counselor-reference-library": "المرجع الشامل",
+    "counselor-reference-library": "مكتبة الموجه الطلابي",
     "custom-report": "التقرير المخصص",
     reports: "التقارير",
   };

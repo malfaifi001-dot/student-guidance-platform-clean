@@ -23,8 +23,8 @@ export const sampleOfficialReportData: OfficialReportData = {
   title: "تقرير تنفيذ برنامج إرشادي",
   subtitle: "تعزيز السلوك الإيجابي داخل البيئة المدرسية",
 
-  serviceName: "البرامج الإرشادية",
-  category: "البرامج الإرشادية",
+  serviceName: "برامج التوجيه الطلابي",
+  category: "برامج التوجيه الطلابي",
   reportDate: "19 / 05 / 2026م",
   targetGroup: "جميع الطلاب المستفيدين",
 

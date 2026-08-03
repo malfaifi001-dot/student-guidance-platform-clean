@@ -112,7 +112,7 @@ const servicesModule: MobileModule = {
 
 const guidanceServices: GuidanceService[] = [
   {
-    title: "البرامج الإرشادية",
+    title: "برامج التوجيه الطلابي",
     href: "/mobile/counselor/guidance-programs/new",
     icon: "spark",
   },
@@ -122,17 +122,17 @@ const guidanceServices: GuidanceService[] = [
     icon: "users",
   },
   {
-    title: "متابعة الطلاب",
+    title: "متابعة الطلبة والمواقف اليومية الطارئة",
     href: "/mobile/counselor/student-follow-up/new",
     icon: "check",
   },
   {
-    title: "الخدمات الإرشادية",
+    title: "خدمات التوجيه الطلابي",
     href: "/mobile/counselor/student-guidance-services/new",
     icon: "file",
   },
   {
-    title: "التواصل الأسري",
+    title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     href: "/mobile/counselor/family-school-communication/new",
     icon: "users",
   },

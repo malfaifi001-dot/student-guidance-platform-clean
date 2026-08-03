@@ -14,10 +14,10 @@ export default async function NewGuardianSummonsPage() {
         <div>
           <p className="text-sm font-black text-amber-700">Workflow غير منشور</p>
           <h1 className="mt-2 text-3xl font-black text-amber-950">
-            لم يتم نشر نموذج استدعاء ولي أمر بعد
+            لم يتم نشر نموذج إشعار ولي الأمر بعد
           </h1>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-amber-800">
-            يجب على الأدمن إنشاء/نشر Workflow استدعاء ولي أمر من صفحة إدارة Workflows قبل استخدامه من الموجه/الموجهة.
+            يجب على الأدمن إنشاء/نشر Workflow إشعار ولي الأمر من صفحة إدارة Workflows قبل استخدامه من الموجه/الموجهة.
           </p>
         </div>
 
@@ -45,7 +45,7 @@ export default async function NewGuardianSummonsPage() {
       workflow={result.workflow}
       serviceId={result.service.id}
       requiresStudent
-      title="استدعاء ولي أمر"
+      title="إشعار ولي الأمر"
     />
   );
 }

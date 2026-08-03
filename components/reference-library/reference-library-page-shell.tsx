@@ -87,7 +87,7 @@ export function ReferenceLibraryPageShell({
               href="/dashboard/counselor-reference-library"
               className="rounded-xl px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
             >
-              المرجع الشامل
+              مكتبة الموجه الطلابي
             </Link>
 
             {breadcrumbs.map(

@@ -53,7 +53,7 @@ export const appreciationCertificateTemplatePreset = {
   name: "شهادة شكر وتقدير",
   title: "شهادة شكر وتقدير",
   description:
-    "قالب شهادة شكر رسمي لخدمة متابعة الطلاب، يعتمد على هوية المدرسة وبيانات الطالب ونتائج المتابعة والإحصاء.",
+    "قالب شهادة شكر رسمي لخدمة متابعة الطلبة والمواقف اليومية الطارئة، يعتمد على هوية المدرسة وبيانات الطالب ونتائج المتابعة والإحصاء.",
   scope: "SUB_WORKFLOW",
   status: "PUBLISHED",
   updatedAt: "2026-06-02",
@@ -88,7 +88,7 @@ export const appreciationCertificatePreviewCaseData: RuntimePreviewCaseData = {
   found: true,
   caseId: "appreciation-certificate-preview",
   serviceSlug: "student-follow-up",
-  serviceName: "متابعة الطلاب",
+  serviceName: "متابعة الطلبة والمواقف اليومية الطارئة",
   title: "شهادة شكر وتقدير",
   status: "ISSUED",
   createdAt: new Date().toISOString(),
@@ -116,7 +116,7 @@ export const appreciationCertificatePreviewCaseData: RuntimePreviewCaseData = {
     { fieldKey: "stage", fieldLabel: "المرحلة", value: "الابتدائية" },
 
     { fieldKey: "certificateTitle", fieldLabel: "العنوان", value: "شهادة شكر وتقدير" },
-    { fieldKey: "appreciationReason", fieldLabel: "سبب التكريم", value: "تميزه في المتابعة الطلابية وتحسن مستوى الانضباط والتحصيل" },
+    { fieldKey: "appreciationReason", fieldLabel: "سبب التكريم", value: "تميزه في المتابعة الطلبة والمواقف اليومية الطارئةية وتحسن مستوى الانضباط والتحصيل" },
     { fieldKey: "achievementCategory", fieldLabel: "المجال", value: "الانضباط والتحصيل الدراسي" },
     { fieldKey: "achievementTitle", fieldLabel: "الإنجاز", value: "تحسن ملحوظ في مستوى الطالب" },
     { fieldKey: "achievementSummary", fieldLabel: "الملخص", value: "نظير التزامه، وتفاعله الإيجابي، وحرصه على تطوير مستواه." },
@@ -222,7 +222,7 @@ export function AppreciationCertificatePreview({
             <div className="w-[85mm] text-left text-[11px] font-bold leading-6">
               <div>{values.schoolName}</div>
               <div>{values.academicYear}</div>
-              <div>متابعة الطلاب</div>
+              <div>متابعة الطلبة والمواقف اليومية الطارئة</div>
               {values.certificateNumber ? <div>رقم: {values.certificateNumber}</div> : null}
             </div>
           </section>
@@ -344,7 +344,7 @@ function DynamicFieldsPanel() {
           </h3>
 
           <p className="mt-1 text-xs leading-6 text-slate-500">
-            كل هذه القيم قابلة للحقن من هوية المدرسة، الطالب، وسجل متابعة الطلاب.
+            كل هذه القيم قابلة للحقن من هوية المدرسة، الطالب، وسجل متابعة الطلبة والمواقف اليومية الطارئة.
           </p>
         </div>
 
@@ -425,7 +425,7 @@ function buildCertificateValues(data: RuntimePreviewCaseData) {
 
     appreciationReason:
       cleanValue(getValue(data, ["appreciationReason", "reason"])) ||
-      "تميزه في المتابعة الطلابية",
+      "تميزه في المتابعة الطلبة والمواقف اليومية الطارئةية",
 
     achievementCategory:
       cleanValue(getValue(data, ["achievementCategory", "category"])) ||

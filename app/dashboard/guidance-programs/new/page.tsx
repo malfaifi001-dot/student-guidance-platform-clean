@@ -48,7 +48,7 @@ export default async function NewGuidanceProgramPage() {
           </h1>
 
           <p className="mt-3 text-sm text-amber-700">
-            قم برفع Workflow لخدمة البرامج الإرشادية أولًا.
+            قم برفع Workflow لخدمة برامج التوجيه الطلابي أولًا.
           </p>
         </section>
       </main>
