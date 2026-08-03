@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  EDUCATION_ADMINISTRATIONS,
+  normalizeEducationAdministration,
+  OTHER_SCHOOL_PROFILE_OPTION,
+} from "@/lib/constants/school-profile-options";
+import { SAUDI_CITY_OTHER_OPTION } from "@/lib/constants/saudi-cities";
 
 const requiredTrimmedString = (label: string, maxLength: number) =>
   z
@@ -29,13 +35,38 @@ export const schoolSettingsPatchSchema = z.object({
   principalName: optionalTrimmedString(160),
   principalPhone: optionalTrimmedString(40),
   activityLeaderName: optionalTrimmedString(160),
-  educationDepartment: optionalTrimmedString(160),
+  schoolStatisticalNumber: z.preprocess(
+    (value) => (typeof value === "string" ? value.trim() : value),
+    z
+      .union([
+        z
+          .string()
+          .regex(/^\d*$/, "الرقم الإحصائي يجب أن يحتوي على أرقام فقط.")
+          .max(50),
+        z.null(),
+        z.undefined(),
+      ])
+      .transform((value) => (typeof value === "string" ? value : "")),
+  ),
+  educationDepartment: z.preprocess(
+    (value) =>
+      typeof value === "string"
+        ? normalizeEducationAdministration(value)
+        : value,
+    z.enum(EDUCATION_ADMINISTRATIONS, {
+      error: "اختر إدارة تعليم من القائمة المعتمدة.",
+    }),
+  ),
   educationOffice: optionalTrimmedString(160),
-  city: optionalTrimmedString(120),
+  city: requiredTrimmedString("المدينة", 120).refine(
+    (value) => value !== SAUDI_CITY_OTHER_OPTION,
+    "اكتب اسم المدينة عند اختيار أخرى.",
+  ),
   district: optionalTrimmedString(120),
-  stage: optionalTrimmedString(120),
-  academicYear: optionalTrimmedString(60),
-  currentSemester: optionalTrimmedString(60),
+  stage: requiredTrimmedString("المرحلة", 120).refine(
+    (value) => value !== OTHER_SCHOOL_PROFILE_OPTION,
+    "اكتب اسم المرحلة عند اختيار أخرى.",
+  ),
   logoUrl: optionalTrimmedString(500),
 });
 

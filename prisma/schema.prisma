@@ -300,14 +300,15 @@ model SchoolProfile {
   counselorSignatureUrl String?
   counselorSignedAt     DateTime?
 
-  educationDepartment String?
-  educationOffice     String?
-  city                String?
-  district            String?
-  stage               String?
-  academicYear        String?
-  currentSemester     String?
-  logoUrl             String?
+  educationDepartment     String?
+  educationOffice         String?
+  schoolStatisticalNumber String? @db.VarChar(50)
+  city                    String?
+  district                String?
+  stage                   String?
+  academicYear            String?
+  currentSemester         String?
+  logoUrl                 String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

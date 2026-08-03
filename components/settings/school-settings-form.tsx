@@ -1,11 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type HTMLAttributes,
+} from "react";
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
 import {
   getArabicSignatureTitle,
   getArabicUserRoleLabel,
 } from "@/lib/auth/user-role-display";
+import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import {
+  SAUDI_CITIES,
+  SAUDI_CITY_OTHER_OPTION,
+} from "@/lib/constants/saudi-cities";
+import {
+  EDUCATION_ADMINISTRATIONS,
+  normalizeEducationAdministration,
+  OTHER_SCHOOL_PROFILE_OPTION,
+  SCHOOL_STAGES,
+} from "@/lib/constants/school-profile-options";
 
 type CurrentUserSignatureKind = "activityLeader" | "counselor" | "teacher";
 
@@ -20,6 +38,7 @@ type SchoolSettingsFormState = {
   jobTitle: string;
   phone: string;
   schoolName: string;
+  schoolStatisticalNumber: string;
   principalName: string;
   principalPhone: string;
   principalSignatureUrl: string;
@@ -35,8 +54,6 @@ type SchoolSettingsFormState = {
   city: string;
   district: string;
   stage: string;
-  academicYear: string;
-  currentSemester: string;
   logoUrl: string;
   onboardingCompleted?: boolean;
 };
@@ -53,6 +70,7 @@ function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | nu
     jobTitle: data?.jobTitle || "",
     phone: data?.phone || "",
     schoolName: data?.schoolName || "",
+    schoolStatisticalNumber: data?.schoolStatisticalNumber || "",
     principalName: data?.principalName || "",
     principalPhone: data?.principalPhone || "",
     principalSignatureUrl: data?.principalSignatureUrl || "",
@@ -63,13 +81,13 @@ function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | nu
     activityLeaderSignedAt: data?.activityLeaderSignedAt || "",
     counselorSignatureUrl: data?.counselorSignatureUrl || "",
     counselorSignedAt: data?.counselorSignedAt || "",
-    educationDepartment: data?.educationDepartment || "",
+    educationDepartment: normalizeEducationAdministration(
+      data?.educationDepartment,
+    ),
     educationOffice: data?.educationOffice || "",
     city: data?.city || "",
     district: data?.district || "",
     stage: data?.stage || "",
-    academicYear: data?.academicYear || "",
-    currentSemester: data?.currentSemester || "",
     logoUrl: data?.logoUrl || "",
     onboardingCompleted: Boolean(data?.onboardingCompleted),
   };
@@ -86,6 +104,7 @@ const EMPTY_FORM: SchoolSettingsFormState = {
   jobTitle: "",
   phone: "",
   schoolName: "",
+  schoolStatisticalNumber: "",
   principalName: "",
   principalPhone: "",
   principalSignatureUrl: "",
@@ -101,8 +120,6 @@ const EMPTY_FORM: SchoolSettingsFormState = {
   city: "",
   district: "",
   stage: "",
-  academicYear: "",
-  currentSemester: "",
   logoUrl: "",
   onboardingCompleted: false,
 };
@@ -113,6 +130,7 @@ export function SchoolSettingsForm() {
     useState<SchoolSettingsFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | "warning";
@@ -139,9 +157,29 @@ export function SchoolSettingsForm() {
     return Boolean(
       form.officialName.trim() &&
         form.jobTitle.trim() &&
-        form.schoolName.trim()
+        form.schoolName.trim() &&
+        EDUCATION_ADMINISTRATIONS.includes(
+          form.educationDepartment as (typeof EDUCATION_ADMINISTRATIONS)[number],
+        ) &&
+        form.city.trim() &&
+        form.city !== SAUDI_CITY_OTHER_OPTION &&
+        form.stage.trim() &&
+        form.stage !== OTHER_SCHOOL_PROFILE_OPTION
     );
   }, [form]);
+
+  const citySelection = SAUDI_CITIES.some((city) => city === form.city)
+    ? form.city
+    : form.city
+      ? SAUDI_CITY_OTHER_OPTION
+      : "";
+  const stageSelection = SCHOOL_STAGES.includes(
+    form.stage as (typeof SCHOOL_STAGES)[number]
+  )
+    ? form.stage
+    : form.stage
+      ? OTHER_SCHOOL_PROFILE_OPTION
+      : "";
 
   const hasChanges = useMemo(() => {
     return JSON.stringify(form) !== JSON.stringify(initialForm);
@@ -247,10 +285,22 @@ export function SchoolSettingsForm() {
   async function save() {
     setFeedback(null);
 
+    if (
+      form.schoolStatisticalNumber &&
+      !/^\d+$/.test(form.schoolStatisticalNumber)
+    ) {
+      setFeedback({
+        type: "warning",
+        message: "الرقم الإحصائي للمدرسة يجب أن يحتوي على أرقام فقط.",
+      });
+      return;
+    }
+
     if (!requiredCompleted) {
       setFeedback({
         type: "warning",
-        message: "أكمل الاسم الرسمي، المسمى الوظيفي، واسم المدرسة أولًا.",
+        message:
+          "أكمل الحقول المطلوبة واختر إدارة التعليم والمدينة والمرحلة.",
       });
       return;
     }
@@ -285,6 +335,7 @@ export function SchoolSettingsForm() {
         type: "success",
         message: "تم حفظ بيانات المدرسة والحساب بنجاح.",
       });
+      setSaveConfirmationOpen(true);
     } catch (error) {
       setFeedback({
         type: "error",
@@ -481,6 +532,16 @@ ${signatureUrl}`;
 
   return (
     <div className="space-y-6">
+      <SmartFeedbackModal
+        open={saveConfirmationOpen}
+        type="success"
+        title="تم الحفظ بنجاح"
+        description="تم حفظ بيانات المدرسة الرسمية وتحديثها بنجاح."
+        primaryActionLabel="حسنًا"
+        onPrimaryAction={() => setSaveConfirmationOpen(false)}
+        onOpenChange={setSaveConfirmationOpen}
+      />
+
       {feedback ? (
         <div
           className={[
@@ -614,39 +675,69 @@ ${signatureUrl}`;
           />
 
           <Input
+            label="الرقم الإحصائي للمدرسة"
+            value={form.schoolStatisticalNumber}
+            onChange={(value) =>
+              update("schoolStatisticalNumber", value.replace(/\D/g, ""))
+            }
+            inputMode="numeric"
+            maxLength={50}
+          />
+
+          <Input
             label="اسم المدير/ة"
             value={form.principalName}
             onChange={(value) => update("principalName", value)}
           />
 
-          <Input
+          <Select
             label="إدارة التعليم"
             value={form.educationDepartment}
             onChange={(value) => update("educationDepartment", value)}
+            options={EDUCATION_ADMINISTRATIONS}
+            required
+            unsupportedValue={form.educationDepartment}
           />
-<Input
+
+          <SearchableRtlSelect
             label="المدينة"
-            value={form.city}
+            value={citySelection}
             onChange={(value) => update("city", value)}
+            options={[...SAUDI_CITIES, SAUDI_CITY_OTHER_OPTION]}
+            placeholder="اختر المدينة"
+            searchPlaceholder="ابحث عن مدينة أو محافظة"
+            required
           />
-<Input
+
+          {citySelection === SAUDI_CITY_OTHER_OPTION ? (
+            <Input
+              label="اكتب اسم المدينة"
+              value={form.city === SAUDI_CITY_OTHER_OPTION ? "" : form.city}
+              onChange={(value) => update("city", value)}
+              required
+            />
+          ) : null}
+
+          <Select
             label="المرحلة"
-            value={form.stage}
+            value={stageSelection}
             onChange={(value) => update("stage", value)}
+            options={[...SCHOOL_STAGES, OTHER_SCHOOL_PROFILE_OPTION]}
+            required
           />
 
-          <Input
-            label="العام الدراسي"
-            value={form.academicYear}
-            onChange={(value) => update("academicYear", value)}
-          />
+          {stageSelection === OTHER_SCHOOL_PROFILE_OPTION ? (
+            <Input
+              label="اكتب المرحلة"
+              value={
+                form.stage === OTHER_SCHOOL_PROFILE_OPTION ? "" : form.stage
+              }
+              onChange={(value) => update("stage", value)}
+              required
+            />
+          ) : null}
 
-          <Input
-            label="الفصل الدراسي"
-            value={form.currentSemester}
-            onChange={(value) => update("currentSemester", value)}
-          />
-</div>
+        </div>
       </section>
 
       <div className="sticky bottom-4 z-20 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
@@ -1524,10 +1615,6 @@ function ReportIdentityPreviewCard({
             {form.schoolName || "اسم المدرسة"}
           </p>
 
-          <p className="mt-2 text-sm font-bold text-slate-500">
-            {form.academicYear || "العام الدراسي"} ·{" "}
-            {form.currentSemester || "الفصل الدراسي"}
-          </p>
         </div>
 
         <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
@@ -1570,11 +1657,15 @@ function Input({
   value,
   onChange,
   required = false,
+  inputMode,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -1586,8 +1677,57 @@ function Input({
       <input
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
       />
+    </label>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+  required = false,
+  unsupportedValue,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly string[];
+  required?: boolean;
+  unsupportedValue?: string;
+}) {
+  const hasUnsupportedValue = Boolean(
+    unsupportedValue && !options.includes(unsupportedValue)
+  );
+
+  return (
+    <label className="block min-w-0">
+      <span className="text-sm font-black text-slate-700">
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </span>
+
+      <select
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+      >
+        <option value="">اختر {label}</option>
+        {hasUnsupportedValue ? (
+          <option value={unsupportedValue}>
+            {unsupportedValue} (قيمة محفوظة)
+          </option>
+        ) : null}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
