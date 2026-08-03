@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useState } from "react";
+import { FormFeedbackModal } from "@/components/feedback/form-feedback-modal";
 import { parseSurveyQuestionHelpText } from "@/lib/surveys/survey-config";
 
 type SurveyQuestionOption = {
@@ -32,6 +33,70 @@ type PublicSurveyFormProps = {
   survey: PublicSurvey;
 };
 
+type FeedbackModalState = {
+  type: "error" | "warning" | "success";
+  title: string;
+  message: string;
+  fieldId?: string;
+};
+
+const RESPONDENT_NAME_FIELD = "respondent-name";
+const RESPONDENT_PHONE_FIELD = "respondent-phone";
+
+const arabicIndicDigits = "٠١٢٣٤٥٦٧٨٩";
+const easternArabicDigits = "۰۱۲۳۴۵۶۷۸۹";
+
+function normalizeArabicDigits(value: string) {
+  return value.replace(/[٠-٩۰-۹]/g, (digit) => {
+    const arabicIndex = arabicIndicDigits.indexOf(digit);
+    return String(arabicIndex >= 0 ? arabicIndex : easternArabicDigits.indexOf(digit));
+  });
+}
+
+function normalizeSaudiMobile(value: string) {
+  const normalizedDigits = normalizeArabicDigits(value.trim());
+  const compact = normalizedDigits.replace(/[\s()-]/g, "");
+
+  if (!/^\+?\d+$/.test(compact)) {
+    return { normalized: compact, isValid: false };
+  }
+
+  const localNumber = compact.startsWith("+966")
+    ? `0${compact.slice(4)}`
+    : compact.startsWith("00966")
+      ? `0${compact.slice(5)}`
+      : compact.startsWith("966")
+        ? `0${compact.slice(3)}`
+        : compact;
+
+  return {
+    normalized: localNumber,
+    isValid: /^05\d{8}$/.test(localNumber),
+  };
+}
+
+function isAnswerEmpty(value: string | string[] | undefined) {
+  return Array.isArray(value)
+    ? value.every((item) => !item.trim())
+    : !value?.trim();
+}
+
+function isValidIsoDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
 function getScaleRange(question: SurveyQuestion) {
   const min = question.scaleMin && question.scaleMin > 0 ? question.scaleMin : 1;
   const max = question.scaleMax && question.scaleMax > min ? question.scaleMax : 5;
@@ -59,12 +124,42 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [feedbackModal, setFeedbackModal] =
+    useState<FeedbackModalState | null>(null);
   const submissionPendingRef = useRef(false);
   const submissionKeyRef = useRef<string | null>(null);
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  function clearFieldError(fieldId: string) {
+    setFieldErrors((current) => {
+      if (!current[fieldId]) return current;
+      const next = { ...current };
+      delete next[fieldId];
+      return next;
+    });
+  }
+
+  function scrollToField(fieldId: string) {
+    setFeedbackModal(null);
+
+    window.setTimeout(() => {
+      const field = fieldRefs.current[fieldId];
+      if (!field) return;
+
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusTarget = field.matches("input, textarea, button")
+        ? field
+        : field.querySelector<HTMLElement>(
+            "input, textarea, button, [tabindex]:not([tabindex='-1'])",
+          );
+      window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 350);
+    }, 0);
+  }
 
   function setAnswer(questionId: string, value: string | string[]) {
+    clearFieldError(questionId);
     setAnswers((current) => ({
       ...current,
       [questionId]: value,
@@ -94,17 +189,84 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
     }
 
     setFeedback(null);
-    setError(null);
+    const nextErrors: Record<string, string> = {};
+    let normalizedPhone = respondentPhone.trim();
+    const normalizedAnswers = { ...answers };
 
-    if (!survey.isAnonymous && !respondentName.trim()) {
-      setError("الاسم مطلوب لإرسال هذا الاستبيان.");
+    if (!survey.isAnonymous) {
+      if (!respondentName.trim()) {
+        nextErrors[RESPONDENT_NAME_FIELD] = "الاسم مطلوب لإرسال هذا الاستبيان.";
+      }
+
+      if (!respondentPhone.trim()) {
+        nextErrors[RESPONDENT_PHONE_FIELD] = "رقم الجوال مطلوب لإرسال هذا الاستبيان.";
+      } else {
+        const mobileResult = normalizeSaudiMobile(respondentPhone);
+        normalizedPhone = mobileResult.normalized;
+        if (!mobileResult.isValid) {
+          nextErrors[RESPONDENT_PHONE_FIELD] =
+            "رقم الجوال يجب أن يحتوي على أرقام صحيحة.";
+        }
+      }
+    }
+
+    for (const question of survey.questions) {
+      const answer = answers[question.id];
+
+      if (question.isRequired && isAnswerEmpty(answer)) {
+        nextErrors[question.id] = `السؤال «${question.label}» مطلوب.`;
+        continue;
+      }
+
+      if (typeof answer !== "string" || !answer.trim()) continue;
+
+      if (question.type === "TEXT" && question.label.includes("جوال")) {
+        const mobileResult = normalizeSaudiMobile(answer);
+        if (!mobileResult.isValid) {
+          nextErrors[question.id] =
+            "رقم الجوال يجب أن يحتوي على أرقام صحيحة.";
+        } else {
+          normalizedAnswers[question.id] = mobileResult.normalized;
+        }
+      }
+
+      if (question.type === "NUMBER" && !Number.isFinite(Number(answer))) {
+        nextErrors[question.id] = "أدخل رقمًا صحيحًا لهذا السؤال.";
+      }
+
+      if (
+        question.type === "DATE" &&
+        !isValidIsoDate(answer)
+      ) {
+        nextErrors[question.id] = "أدخل تاريخًا صحيحًا لهذا السؤال.";
+      }
+    }
+
+    const orderedFieldIds = [
+      ...(survey.isAnonymous
+        ? []
+        : [RESPONDENT_NAME_FIELD, RESPONDENT_PHONE_FIELD]),
+      ...survey.questions.map((question) => question.id),
+    ];
+    const firstInvalidField = orderedFieldIds.find(
+      (fieldId) => nextErrors[fieldId],
+    );
+
+    if (firstInvalidField) {
+      const errorCount = Object.keys(nextErrors).length;
+      setFieldErrors(nextErrors);
+      setFeedbackModal({
+        type: "error",
+        title: "تعذر إرسال الاستبيان",
+        message: `${nextErrors[firstInvalidField]}${
+          errorCount > 1 ? `\nيوجد ${errorCount} حقول تحتاج إلى مراجعة.` : ""
+        }`,
+        fieldId: firstInvalidField,
+      });
       return;
     }
 
-    if (!survey.isAnonymous && !respondentPhone.trim()) {
-      setError("رقم الجوال مطلوب لإرسال هذا الاستبيان.");
-      return;
-    }
+    setFieldErrors({});
 
     submissionPendingRef.current = true;
     setIsSubmitting(true);
@@ -120,8 +282,8 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
           submissionKey: submissionKeyRef.current,
           respondentType: survey.audienceType,
           respondentName,
-          respondentPhone,
-          answers,
+          respondentPhone: normalizedPhone,
+          answers: normalizedAnswers,
         }),
       });
 
@@ -140,18 +302,36 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
       }
 
       if (!response.ok) {
-        setError(data?.error || "تعذر إرسال الرد بسبب خطأ في الخادم.");
+        const message = data?.error || "تعذر إرسال الرد بسبب خطأ في الخادم.";
+        const relatedQuestion = survey.questions.find((question) =>
+          message.includes(question.label),
+        );
+        if (relatedQuestion) {
+          setFieldErrors((current) => ({
+            ...current,
+            [relatedQuestion.id]: message,
+          }));
+        }
+        setFeedbackModal({
+          type: "error",
+          title: "تعذر إرسال الاستبيان",
+          message,
+          fieldId: relatedQuestion?.id,
+        });
         return;
       }
 
+      setFeedbackModal(null);
       setFeedback(
         data?.message || "تم إرسال الاستجابة بنجاح، شكرًا لتعاونك.",
       );
       setIsSubmitted(true);
     } catch {
-      setError(
-        "تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.",
-      );
+      setFeedbackModal({
+        type: "error",
+        title: "تعذر إرسال الاستبيان",
+        message: "تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.",
+      });
     } finally {
       submissionPendingRef.current = false;
       setIsSubmitting(false);
@@ -171,48 +351,92 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <>
+      <FormFeedbackModal
+        open={Boolean(feedbackModal)}
+        type={feedbackModal?.type || "error"}
+        title={feedbackModal?.title || ""}
+        message={feedbackModal?.message || ""}
+        primaryActionLabel={
+          feedbackModal?.fieldId ? "الذهاب إلى الحقل" : "إغلاق"
+        }
+        secondaryActionLabel={feedbackModal?.fieldId ? "إغلاق" : undefined}
+        onPrimaryAction={() => {
+          if (feedbackModal?.fieldId) {
+            scrollToField(feedbackModal.fieldId);
+          } else {
+            setFeedbackModal(null);
+          }
+        }}
+        onClose={() => setFeedbackModal(null)}
+      />
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {!survey.isAnonymous ? (
         <section className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-2">
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
+          <label
+            ref={(element) => {
+              fieldRefs.current[RESPONDENT_NAME_FIELD] = element;
+            }}
+            className="space-y-2 text-sm font-semibold text-slate-700"
+          >
             <span>
               الاسم <span className="text-rose-600">*</span>
             </span>
             <input
               value={respondentName}
-              onChange={(event) => setRespondentName(event.target.value)}
+              onChange={(event) => {
+                setRespondentName(event.target.value);
+                clearFieldError(RESPONDENT_NAME_FIELD);
+              }}
               required
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+              aria-invalid={Boolean(fieldErrors[RESPONDENT_NAME_FIELD])}
+              className={`w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                fieldErrors[RESPONDENT_NAME_FIELD]
+                  ? "border-rose-400 bg-rose-50"
+                  : "border-slate-200 bg-white"
+              }`}
               placeholder="اكتب الاسم"
             />
+            {fieldErrors[RESPONDENT_NAME_FIELD] ? (
+              <span className="block text-xs font-bold leading-6 text-rose-600">
+                {fieldErrors[RESPONDENT_NAME_FIELD]}
+              </span>
+            ) : null}
           </label>
 
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
+          <label
+            ref={(element) => {
+              fieldRefs.current[RESPONDENT_PHONE_FIELD] = element;
+            }}
+            className="space-y-2 text-sm font-semibold text-slate-700"
+          >
             <span>
               رقم الجوال <span className="text-rose-600">*</span>
             </span>
             <input
               value={respondentPhone}
-              onChange={(event) => setRespondentPhone(event.target.value)}
+              onChange={(event) => {
+                setRespondentPhone(event.target.value);
+                clearFieldError(RESPONDENT_PHONE_FIELD);
+              }}
               required
               inputMode="tel"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+              aria-invalid={Boolean(fieldErrors[RESPONDENT_PHONE_FIELD])}
+              className={`w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                fieldErrors[RESPONDENT_PHONE_FIELD]
+                  ? "border-rose-400 bg-rose-50"
+                  : "border-slate-200 bg-white"
+              }`}
               placeholder="05xxxxxxxx"
             />
+            {fieldErrors[RESPONDENT_PHONE_FIELD] ? (
+              <span className="block text-xs font-bold leading-6 text-rose-600">
+                {fieldErrors[RESPONDENT_PHONE_FIELD]}
+              </span>
+            ) : null}
           </label>
         </section>
-      ) : null}
-
-      {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {error}
-        </div>
-      ) : null}
-
-      {feedback ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-          {feedback}
-        </div>
       ) : null}
 
       {survey.questions.map((question, index) => {
@@ -227,7 +451,17 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section
+              ref={(element) => {
+                fieldRefs.current[question.id] = element;
+              }}
+              data-invalid={fieldErrors[question.id] ? "true" : undefined}
+              className={`rounded-3xl border p-6 shadow-sm transition ${
+                fieldErrors[question.id]
+                  ? "border-rose-400 bg-rose-50/60 ring-2 ring-rose-100"
+                  : "border-slate-200 bg-white"
+              }`}
+            >
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-700">
                 {index + 1}
@@ -257,7 +491,12 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                   value={typeof currentAnswer === "string" ? currentAnswer : ""}
                   onChange={(event) => setAnswer(question.id, event.target.value)}
                   required={question.isRequired}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+                  aria-invalid={Boolean(fieldErrors[question.id])}
+                  className={`w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                    fieldErrors[question.id]
+                      ? "border-rose-400 bg-rose-50"
+                      : "border-slate-200 bg-white"
+                  }`}
                   placeholder="اكتب إجابتك"
                 />
               ) : null}
@@ -267,7 +506,12 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                   value={typeof currentAnswer === "string" ? currentAnswer : ""}
                   onChange={(event) => setAnswer(question.id, event.target.value)}
                   required={question.isRequired}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+                  aria-invalid={Boolean(fieldErrors[question.id])}
+                  className={`min-h-28 w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                    fieldErrors[question.id]
+                      ? "border-rose-400 bg-rose-50"
+                      : "border-slate-200 bg-white"
+                  }`}
                   placeholder="اكتب إجابتك"
                 />
               ) : null}
@@ -278,7 +522,12 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                   value={typeof currentAnswer === "string" ? currentAnswer : ""}
                   onChange={(event) => setAnswer(question.id, event.target.value)}
                   required={question.isRequired}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+                  aria-invalid={Boolean(fieldErrors[question.id])}
+                  className={`w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                    fieldErrors[question.id]
+                      ? "border-rose-400 bg-rose-50"
+                      : "border-slate-200 bg-white"
+                  }`}
                   placeholder="اكتب الرقم"
                 />
               ) : null}
@@ -289,7 +538,12 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                   value={typeof currentAnswer === "string" ? currentAnswer : ""}
                   onChange={(event) => setAnswer(question.id, event.target.value)}
                   required={question.isRequired}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-sky-400"
+                  aria-invalid={Boolean(fieldErrors[question.id])}
+                  className={`w-full rounded-2xl border px-4 py-3 outline-none transition focus:border-sky-400 ${
+                    fieldErrors[question.id]
+                      ? "border-rose-400 bg-rose-50"
+                      : "border-slate-200 bg-white"
+                  }`}
                 />
               ) : null}
 
@@ -393,6 +647,11 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
                 </div>
               ) : null}
             </div>
+            {fieldErrors[question.id] ? (
+              <p className="mt-3 text-xs font-bold leading-6 text-rose-600">
+                {fieldErrors[question.id]}
+              </p>
+            ) : null}
             </section>
           </div>
         );
@@ -405,6 +664,7 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
       >
         {isSubmitting ? "جاري الإرسال..." : "إرسال الرد"}
       </button>
-    </form>
+      </form>
+    </>
   );
 }
