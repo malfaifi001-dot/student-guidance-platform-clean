@@ -30,6 +30,7 @@ import {
 } from "@/lib/workflows/workflow-runtime-settings";
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
+import { OPTIONAL_STUDENT_PICKER_LABEL } from "@/lib/workflows/workflow-runtime-copy";
 
 export type EvidenceItem = {
   id: string;
@@ -1249,14 +1250,7 @@ export function DynamicFormRenderer({
       />
 
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
-        <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
-
-        <h1 className="mt-4 text-4xl font-black">{title || workflow.name}</h1>
-
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
-          نموذج ديناميكي مبني على Workflow منشور. الحقول والخيارات والتبعيات
-          تظهر حسب إعدادات الخدمة والبيانات المرفوعة من لوحة الأدمن.
-        </p>
+        <h1 className="text-4xl font-black">{title || workflow.name}</h1>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
@@ -1265,7 +1259,7 @@ export function DynamicFormRenderer({
 
           {supportsStudentPicker ? (
             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              اختيار الطالب/الطالبة — اختياري
+              اختيار الطالب/الطالبة
             </span>
           ) : null}
 
@@ -1310,16 +1304,9 @@ export function DynamicFormRenderer({
       {showEvidenceCard ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
           <div className="mb-6">
-            <p className="text-sm font-black text-sky-600">شواهد الحالة</p>
-
-            <h2 className="mt-2 text-3xl font-black text-slate-900">
+            <h2 className="text-3xl font-black text-slate-900">
               الشواهد والمرفقات
             </h2>
-
-            <p className="mt-2 text-sm leading-7 text-slate-500">
-              أضف الصور أو الملفات الداعمة لهذه الحالة. تظهر هذه البطاقة فقط في
-              خطوة الشواهد، ولا تظهر في باقي الخطوات.
-            </p>
           </div>
 
           <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
@@ -1635,20 +1622,12 @@ function SmartStudentPickerCard({
   return (
     <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div>
-          <p className="text-sm font-black text-sky-700">
-            اختيار الطالب/الطالبة — اختياري
-          </p>
-
-          <h2 className="mt-2 text-2xl font-black text-slate-900">
-            اختيار الطالب/الطالبة — اختياري
+        <div className="lg:flex lg:h-full lg:flex-col lg:justify-center">
+          <h2 className="text-right text-2xl font-black text-slate-900">
+            {OPTIONAL_STUDENT_PICKER_LABEL}
           </h2>
 
-          <p className="mt-2 text-sm leading-7 text-slate-600">
-            يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
-          </p>
-
-          <div className="relative mt-5">
+          <div className="relative mt-3">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -1728,13 +1707,9 @@ function SmartStudentPickerCard({
               onClearAll={() => onStudentsChange([])}
             />
           ) : (
-            <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+            <div className="flex h-full min-h-32 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
               <p className="text-sm font-black text-sky-700">
                 لم يتم اختيار طالب/طالبة
-              </p>
-
-              <p className="mt-2 text-xs leading-6 text-slate-500">
-                يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
               </p>
             </div>
           )}

@@ -19,6 +19,10 @@ import {
   shouldShowStudentPicker,
 } from "@/lib/workflows/workflow-runtime-settings";
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
+import {
+  getVisibleWorkflowStepDescription,
+  OPTIONAL_STUDENT_PICKER_LABEL,
+} from "@/lib/workflows/workflow-runtime-copy";
 
 type EvidenceItem = {
   id: string;
@@ -415,38 +419,11 @@ function StudentPicker({
 
   return (
     <section className="rounded-[1.6rem] bg-sky-50/80 p-4 shadow-sm ring-1 ring-sky-100">
-      <p className="text-xs font-black text-sky-700">الطالب</p>
-      <h2 className="mt-1 text-xl font-black text-slate-950">
-        اختيار الطالب/الطالبة — اختياري
+      <h2 className="text-right text-[1.45rem] font-black leading-tight text-slate-950">
+        {OPTIONAL_STUDENT_PICKER_LABEL}
       </h2>
-      <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
-        يمكن ربط الحالة بطالب/طالبة للاستفادة من بياناته في التقارير والمتابعة، أو المتابعة دون اختيار.
-      </p>
 
-      {selectedStudent ? (
-        <div className="mt-4 rounded-[1.3rem] bg-white p-3 ring-1 ring-white/90">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-black text-slate-950">{selectedStudent.fullName}</p>
-              <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
-                {[selectedStudent.stage, selectedStudent.grade, selectedStudent.classroom ? `فصل ${selectedStudent.classroom}` : null]
-                  .filter(Boolean)
-                  .join(" · ") || "بيانات الطالب"}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onStudentSelected(null)}
-              className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600"
-            >
-              تغيير
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="relative mt-4">
+      <div className="relative mt-3">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -484,6 +461,29 @@ function StudentPicker({
           </div>
         ) : null}
       </div>
+
+      {selectedStudent ? (
+        <div className="mt-3 rounded-[1.3rem] bg-white p-3 ring-1 ring-white/90">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-black text-slate-950">{selectedStudent.fullName}</p>
+              <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
+                {[selectedStudent.stage, selectedStudent.grade, selectedStudent.classroom ? `فصل ${selectedStudent.classroom}` : null]
+                  .filter(Boolean)
+                  .join(" · ") || "بيانات الطالب"}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onStudentSelected(null)}
+              className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-600"
+            >
+              تغيير
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -599,6 +599,10 @@ function StepHeader({
   totalSteps: number;
   currentStep: RuntimeStep;
 }) {
+  const visibleStepDescription = getVisibleWorkflowStepDescription(
+    currentStep.description,
+  );
+
   return (
     <section className="mobile-hero-card-dark rounded-[1.6rem] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -611,9 +615,9 @@ function StepHeader({
             {currentStep.title || title}
           </h1>
 
-          {currentStep.description ? (
+          {visibleStepDescription ? (
             <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
-              {currentStep.description}
+              {visibleStepDescription}
             </p>
           ) : null}
         </div>

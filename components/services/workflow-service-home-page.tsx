@@ -266,9 +266,7 @@ export async function WorkflowServiceHomePage({
       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <p className="text-sm font-black text-sky-100">Workflow Runtime</p>
-
-            <h1 className="mt-3 text-4xl font-black">{title}</h1>
+            <h1 className="text-4xl font-black">{title}</h1>
 
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
               {description}

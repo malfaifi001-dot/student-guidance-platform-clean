@@ -10,6 +10,7 @@ import {
   type RuntimeValues,
 } from "@/engine/runtime/field-dependency-engine";
 import type { RuntimeField, RuntimeStep } from "@/engine/runtime/runtime-resolver";
+import { getVisibleWorkflowStepDescription } from "@/lib/workflows/workflow-runtime-copy";
 
 type WorkflowStepCardProps = {
   step: RuntimeStep;
@@ -110,6 +111,9 @@ export function WorkflowStepCard({
     : visibleFields;
 
   const committeeValid = isCommitteeRowsValid(values.committee_items);
+  const visibleStepDescription = getVisibleWorkflowStepDescription(
+    step.description,
+  );
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -120,9 +124,9 @@ export function WorkflowStepCard({
           {step.title}
         </h2>
 
-        {step.description ? (
+        {visibleStepDescription ? (
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            {step.description}
+            {visibleStepDescription}
           </p>
         ) : null}
       </div>
