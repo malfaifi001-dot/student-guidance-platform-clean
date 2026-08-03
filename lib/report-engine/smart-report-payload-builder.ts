@@ -8,6 +8,7 @@ import {
   getReportLanguageModeFromUserGender,
 } from "@/lib/report-engine/report-language-mode";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 import type {
   SmartReportEvidenceItem,
   SmartReportField,
@@ -33,6 +34,8 @@ type CurrentUserLike = {
     gender?: string | null;
     officialName?: string | null;
     jobTitle?: string | null;
+    signatureUrl?: string | null;
+    signatureSignedAt?: Date | null;
     schoolAccountId?: string | null;
     schoolAccount?: {
       name?: string | null;
@@ -1035,6 +1038,7 @@ function buildSignatures(
   const profile = resolveSchoolProfileForReport(caseEntry, current);
   const serviceSlug = caseEntry.service?.slug || "";
   const isActivity = isActivityProgramReportService(serviceSlug);
+  const hasActivityAssignment = Boolean(caseEntry.activityAssignment);
   const transformTitle = (value: string) =>
     applyReportLanguageModeToText(value, languageMode);
 
@@ -1049,7 +1053,10 @@ function buildSignatures(
     required: false,
   });
 
-  if (isActivity) {
+  if (
+    isActivity &&
+    (current.user.role !== "TEACHER" || hasActivityAssignment)
+  ) {
     signatures.push({
       key: "activity_leader",
       label: transformTitle("رائد النشاط"),
@@ -1062,12 +1069,29 @@ function buildSignatures(
       required: true,
     });
   } else {
+    const isTeacher = current.user.role === "TEACHER";
+    const currentUserRoleLabel = getArabicUserRoleLabel({
+      role: current.user.role,
+      gender: current.user.gender,
+    });
+
     signatures.push({
       key: "counselor",
-      label: transformTitle("الموجه الطلابي"),
+      label: isTeacher
+        ? currentUserRoleLabel
+        : transformTitle("الموجه الطلابي"),
       signerName: current.user.officialName || current.user.name,
-      signerTitle: current.user.jobTitle || transformTitle("الموجه الطلابي"),
-      imageUrl: profile?.counselorSignatureUrl || profile?.activityLeaderSignatureUrl || null,
+      signerTitle: isTeacher
+        ? currentUserRoleLabel
+        : current.user.jobTitle || transformTitle("الموجه الطلابي"),
+      imageUrl: isTeacher
+        ? current.user.signatureUrl || null
+        : profile?.counselorSignatureUrl ||
+          profile?.activityLeaderSignatureUrl ||
+          null,
+      signedAt: isTeacher
+        ? current.user.signatureSignedAt?.toISOString() || null
+        : null,
       required: true,
     });
   }
@@ -1080,8 +1104,16 @@ function buildSignatures(
         caseEntry.activityAssignment.teacherSignedName ||
         caseEntry.activityAssignment.teacherName,
       signerTitle: transformTitle("المعلم المنفذ"),
-      imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
-      signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+      imageUrl:
+        caseEntry.activityAssignment.teacherSignatureUrl ||
+        (current.user.role === "TEACHER"
+          ? current.user.signatureUrl || null
+          : null),
+      signedAt:
+        caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() ||
+        (current.user.role === "TEACHER"
+          ? current.user.signatureSignedAt?.toISOString() || null
+          : null),
       required: true,
     });
   }
@@ -1421,7 +1453,12 @@ export async function buildSmartReportPayloadForCase({
       schoolLeaderName: profile?.principalName || "",
       schoolLeaderSignatureUrl: profile?.principalSignatureUrl || "",
       userName: current.user.officialName || current.user.name || "",
-      userSignatureUrl: profile?.counselorSignatureUrl || profile?.activityLeaderSignatureUrl || "",
+      userSignatureUrl:
+        current.user.role === "TEACHER"
+          ? current.user.signatureUrl || ""
+          : profile?.counselorSignatureUrl ||
+            profile?.activityLeaderSignatureUrl ||
+            "",
     },
     caseInfo: {
       id: caseEntry.id,

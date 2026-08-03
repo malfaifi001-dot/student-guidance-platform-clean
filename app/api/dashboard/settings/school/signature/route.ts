@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
@@ -8,10 +9,11 @@ import { schoolSignaturePostSchema } from "@/lib/settings/school-settings-api-sc
 
 export const runtime = "nodejs";
 
-type SignatureKind = "activityLeader" | "counselor";
+type SignatureKind = "activityLeader" | "counselor" | "teacher";
 
 async function saveSignatureImage(input: {
   schoolAccountId: string;
+  userId: string;
   kind: SignatureKind;
   dataUrl: string;
 }) {
@@ -29,22 +31,25 @@ async function saveSignatureImage(input: {
     return "";
   }
 
+  const relativeDirectory =
+    input.kind === "teacher"
+      ? path.join("user-signatures", input.userId)
+      : path.join("school-signatures", input.schoolAccountId);
   const uploadDir = path.join(
     process.cwd(),
     "public",
     "uploads",
-    "school-signatures",
-    input.schoolAccountId,
+    relativeDirectory,
   );
 
   await mkdir(uploadDir, { recursive: true });
 
-  const fileName = `${input.kind}-signature-${Date.now()}.png`;
+  const fileName = `${input.kind}-signature-${Date.now()}-${randomUUID()}.png`;
   const fullPath = path.join(uploadDir, fileName);
 
   await writeFile(fullPath, buffer);
 
-  return `/uploads/school-signatures/${input.schoolAccountId}/${fileName}`;
+  return `/uploads/${relativeDirectory.replaceAll(path.sep, "/")}/${fileName}`;
 }
 
 export async function POST(request: Request) {
@@ -83,6 +88,8 @@ export async function POST(request: Request) {
       ? "counselor"
       : current.user.role === "ACTIVITY_LEADER"
         ? "activityLeader"
+        : current.user.role === "TEACHER"
+          ? "teacher"
         : null;
 
   if (!expectedKind || kind !== expectedKind) {
@@ -97,6 +104,7 @@ export async function POST(request: Request) {
 
   const signatureUrl = await saveSignatureImage({
     schoolAccountId: current.user.schoolAccountId,
+    userId: current.user.id,
     kind,
     dataUrl,
   });
@@ -113,37 +121,50 @@ export async function POST(request: Request) {
 
   const signedAt = new Date();
 
-  await prisma.schoolProfile.upsert({
-    where: {
-      schoolAccountId: current.user.schoolAccountId,
-    },
-    update:
-      kind === "activityLeader"
-        ? {
-            activityLeaderSignatureUrl: signatureUrl,
-            activityLeaderSignedAt: signedAt,
-          }
-        : {
-            counselorSignatureUrl: signatureUrl,
-            counselorSignedAt: signedAt,
-          },
-    create: {
-      schoolAccountId: current.user.schoolAccountId,
-      schoolName:
-        current.user.schoolAccount?.profile?.schoolName ||
-        current.user.schoolAccount?.name ||
-        "اسم المدرسة",
-      ...(kind === "activityLeader"
-        ? {
-            activityLeaderSignatureUrl: signatureUrl,
-            activityLeaderSignedAt: signedAt,
-          }
-        : {
-            counselorSignatureUrl: signatureUrl,
-            counselorSignedAt: signedAt,
-          }),
-    },
-  });
+  if (kind === "teacher") {
+    await prisma.user.update({
+      where: {
+        id: current.user.id,
+        schoolAccountId: current.user.schoolAccountId,
+      },
+      data: {
+        signatureUrl,
+        signatureSignedAt: signedAt,
+      },
+    });
+  } else {
+    await prisma.schoolProfile.upsert({
+      where: {
+        schoolAccountId: current.user.schoolAccountId,
+      },
+      update:
+        kind === "activityLeader"
+          ? {
+              activityLeaderSignatureUrl: signatureUrl,
+              activityLeaderSignedAt: signedAt,
+            }
+          : {
+              counselorSignatureUrl: signatureUrl,
+              counselorSignedAt: signedAt,
+            },
+      create: {
+        schoolAccountId: current.user.schoolAccountId,
+        schoolName:
+          current.user.schoolAccount?.profile?.schoolName ||
+          current.user.schoolAccount?.name ||
+          "اسم المدرسة",
+        ...(kind === "activityLeader"
+          ? {
+              activityLeaderSignatureUrl: signatureUrl,
+              activityLeaderSignedAt: signedAt,
+            }
+          : {
+              counselorSignatureUrl: signatureUrl,
+              counselorSignedAt: signedAt,
+            }),
+      },
+    });
+  }
 
   return NextResponse.json({
     success: true,

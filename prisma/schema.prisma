@@ -219,14 +219,16 @@ model User {
   schoolAccountId String?
   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
 
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String?
-  role         UserRole @default(COUNSELOR)
-  gender       Gender   @default(UNKNOWN)
-  officialName String?
-  jobTitle     String?
+  name              String
+  email             String    @unique
+  phone             String?
+  passwordHash      String?
+  role              UserRole  @default(COUNSELOR)
+  gender            Gender    @default(UNKNOWN)
+  officialName      String?
+  jobTitle          String?
+  signatureUrl      String?   @db.Text
+  signatureSignedAt DateTime?
 
   teachingStages      Json?
   teachingSpecialties Json?

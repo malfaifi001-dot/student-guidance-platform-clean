@@ -7,12 +7,14 @@ import {
   getArabicUserRoleLabel,
 } from "@/lib/auth/user-role-display";
 
+type CurrentUserSignatureKind = "activityLeader" | "counselor" | "teacher";
+
 type SchoolSettingsFormState = {
   officialName: string;
   currentUserName: string;
   currentUserRole: string;
   currentUserGender: string;
-  currentUserSignatureKind: "activityLeader" | "counselor" | "";
+  currentUserSignatureKind: CurrentUserSignatureKind | "";
   currentUserSignatureUrl: string;
   currentUserSignedAt: string;
   jobTitle: string;
@@ -117,9 +119,9 @@ export function SchoolSettingsForm() {
     message: string;
   } | null>(null);
   const [schoolSignaturePadOpen, setSchoolSignaturePadOpen] =
-    useState<"activityLeader" | null>(null);
+    useState<CurrentUserSignatureKind | null>(null);
   const [signatureSavingKind, setSignatureSavingKind] = useState<
-    "activityLeader" | ""
+    CurrentUserSignatureKind | ""
   >("");
   const [sendingPrincipalRequest, setSendingPrincipalRequest] = useState(false);
   const [principalSignatureLink, setPrincipalSignatureLink] = useState("");
@@ -330,7 +332,11 @@ export function SchoolSettingsForm() {
     setFeedback(null);
 
     try {
-      setSignatureSavingKind("activityLeader");
+      if (!form.currentUserSignatureKind) {
+        throw new Error("لا يتوفر حفظ توقيع لهذا الدور.");
+      }
+
+      setSignatureSavingKind(form.currentUserSignatureKind);
 
       const response = await fetch("/api/dashboard/settings/school/signature", {
         method: "POST",
@@ -501,7 +507,11 @@ ${signatureUrl}`;
         principalSignatureLink={principalSignatureLink}
         principalWhatsAppLink={principalWhatsAppLink}
         onSendPrincipalSignatureRequest={sendPrincipalSignatureRequest}
-        onOpenActivityLeaderSignature={() => setSchoolSignaturePadOpen("activityLeader")}
+        onOpenCurrentUserSignature={() => {
+          if (form.currentUserSignatureKind) {
+            setSchoolSignaturePadOpen(form.currentUserSignatureKind);
+          }
+        }}
         onRefresh={reloadSchoolSettingsFromApi}
       />
 
@@ -534,14 +544,14 @@ ${signatureUrl}`;
       ) : null}
 
 
-      {schoolSignaturePadOpen === "activityLeader" ? (
+      {schoolSignaturePadOpen ? (
         <SchoolSignaturePadModal
           title={getArabicSignatureTitle({
             role: form.currentUserRole,
             gender: form.currentUserGender,
           })}
           signerName={form.currentUserName || "صاحب الحساب"}
-          saving={signatureSavingKind === "activityLeader"}
+          saving={Boolean(signatureSavingKind)}
           onClose={() => setSchoolSignaturePadOpen(null)}
           onSave={saveCurrentUserSignature}
         />
@@ -703,16 +713,16 @@ function SchoolSignaturesCard({
   principalSignatureLink,
   principalWhatsAppLink,
   onSendPrincipalSignatureRequest,
-  onOpenActivityLeaderSignature,
+  onOpenCurrentUserSignature,
   onRefresh,
 }: {
   form: SchoolSettingsFormState;
   sendingPrincipalRequest: boolean;
-  signatureSavingKind: "activityLeader" | "";
+  signatureSavingKind: CurrentUserSignatureKind | "";
   principalSignatureLink: string;
   principalWhatsAppLink: string;
   onSendPrincipalSignatureRequest: () => void;
-  onOpenActivityLeaderSignature: () => void;
+  onOpenCurrentUserSignature: () => void;
   onRefresh: () => void;
 }) {
   const roleLabel = getArabicUserRoleLabel({
@@ -789,20 +799,20 @@ function SchoolSignaturesCard({
 
           <button
             type="button"
-            onClick={onOpenActivityLeaderSignature}
+            onClick={onOpenCurrentUserSignature}
             disabled={
-              signatureSavingKind === "activityLeader" ||
+              Boolean(signatureSavingKind) ||
               !canSaveCurrentUserSignature
             }
             className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {signatureSavingKind === "activityLeader"
+            {signatureSavingKind
               ? "جاري الحفظ..."
               : !canSaveCurrentUserSignature
                 ? "لا يتوفر حفظ توقيع لهذا الدور"
                 : form.currentUserSignatureUrl
-                  ? `تحديث ${signatureTitle}`
-                  : `إضافة ${signatureTitle}`}
+                  ? "تحديث التوقيع"
+                  : "إضافة توقيع"}
           </button>
         </article>
 

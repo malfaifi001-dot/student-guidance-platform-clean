@@ -20,6 +20,8 @@ export async function GET() {
       ? "counselor"
       : current.user.role === "ACTIVITY_LEADER"
         ? "activityLeader"
+        : current.user.role === "TEACHER"
+          ? "teacher"
         : "";
 
   return NextResponse.json({
@@ -31,13 +33,17 @@ export async function GET() {
       currentUserGender: current.user.gender,
       currentUserSignatureKind: signatureKind,
       currentUserSignatureUrl:
-        signatureKind === "counselor"
+        signatureKind === "teacher"
+          ? current.user.signatureUrl || ""
+          : signatureKind === "counselor"
           ? profile?.counselorSignatureUrl || ""
           : signatureKind === "activityLeader"
             ? profile?.activityLeaderSignatureUrl || ""
             : "",
       currentUserSignedAt:
-        signatureKind === "counselor"
+        signatureKind === "teacher"
+          ? current.user.signatureSignedAt?.toISOString() || ""
+          : signatureKind === "counselor"
           ? profile?.counselorSignedAt?.toISOString() || ""
           : signatureKind === "activityLeader"
             ? profile?.activityLeaderSignedAt?.toISOString() || ""
