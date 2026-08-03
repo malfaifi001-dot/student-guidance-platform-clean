@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { parseSurveyQuestionHelpText } from "@/lib/surveys/survey-config";
 
 type SurveyQuestionOption = {
@@ -43,6 +43,16 @@ function isScaleLike(type: string) {
   return type === "RATING" || type === "SCALE";
 }
 
+function createSubmissionKey() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
 export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
   const [respondentName, setRespondentName] = useState("");
   const [respondentPhone, setRespondentPhone] = useState("");
@@ -51,6 +61,8 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const submissionPendingRef = useRef(false);
+  const submissionKeyRef = useRef<string | null>(null);
 
   function setAnswer(questionId: string, value: string | string[]) {
     setAnswers((current) => ({
@@ -77,55 +89,82 @@ export function PublicSurveyForm({ survey }: PublicSurveyFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setIsSubmitting(true);
+    if (submissionPendingRef.current || isSubmitting || isSubmitted) {
+      return;
+    }
+
     setFeedback(null);
     setError(null);
 
     if (!survey.isAnonymous && !respondentName.trim()) {
-      setIsSubmitting(false);
       setError("الاسم مطلوب لإرسال هذا الاستبيان.");
       return;
     }
 
     if (!survey.isAnonymous && !respondentPhone.trim()) {
-      setIsSubmitting(false);
       setError("رقم الجوال مطلوب لإرسال هذا الاستبيان.");
       return;
     }
 
-    const response = await fetch(`/api/survey/${survey.token}/submit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        respondentType: survey.audienceType,
-        respondentName,
-        respondentPhone,
-        answers,
-      }),
-    });
+    submissionPendingRef.current = true;
+    setIsSubmitting(true);
+    submissionKeyRef.current ||= createSubmissionKey();
 
-    const data = await response.json().catch(() => null);
+    try {
+      const response = await fetch(`/api/survey/${survey.token}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          submissionKey: submissionKeyRef.current,
+          respondentType: survey.audienceType,
+          respondentName,
+          respondentPhone,
+          answers,
+        }),
+      });
 
-    setIsSubmitting(false);
+      const responseText = await response.text().catch(() => "");
+      let data: { error?: string; message?: string } | null = null;
 
-    if (!response.ok) {
-      setError(data?.error || "تعذر إرسال الرد.");
-      return;
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText) as {
+            error?: string;
+            message?: string;
+          };
+        } catch {
+          data = null;
+        }
+      }
+
+      if (!response.ok) {
+        setError(data?.error || "تعذر إرسال الرد بسبب خطأ في الخادم.");
+        return;
+      }
+
+      setFeedback(
+        data?.message || "تم إرسال الاستجابة بنجاح، شكرًا لتعاونك.",
+      );
+      setIsSubmitted(true);
+    } catch {
+      setError(
+        "تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.",
+      );
+    } finally {
+      submissionPendingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    setFeedback(data?.message || "تم إرسال الرد بنجاح.");
-    setIsSubmitted(true);
   }
 
   if (isSubmitted) {
     return (
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-7 text-center shadow-sm">
-        <p className="text-sm font-bold text-emerald-700">تم إرسال الرد</p>
-        <h2 className="mt-3 text-2xl font-bold text-slate-950">شكرًا لمشاركتك</h2>
+        <p className="text-sm font-bold text-emerald-700">تم إرسال الاستجابة</p>
+        <h2 className="mt-3 text-2xl font-bold text-slate-950">شكرًا لتعاونك</h2>
         <p className="mt-3 text-sm leading-7 text-emerald-800">
-          تم حفظ ردك بنجاح.
+          {feedback || "تم إرسال الاستجابة بنجاح، شكرًا لتعاونك."}
         </p>
       </section>
     );

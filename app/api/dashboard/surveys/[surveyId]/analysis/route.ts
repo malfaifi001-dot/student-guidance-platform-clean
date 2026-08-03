@@ -21,6 +21,10 @@ function answerToText(answer: { value: string | null; jsonValue: unknown } | und
       .join("، ");
   }
 
+  if (typeof answer.jsonValue === "string") {
+    return answer.jsonValue;
+  }
+
   if (answer.jsonValue !== null && answer.jsonValue !== undefined) {
     return JSON.stringify(answer.jsonValue);
   }
@@ -59,14 +63,39 @@ export async function GET(_request: Request, context: RouteContext) {
             order: "asc",
           },
         },
+        answers: {
+          orderBy: {
+            response: {
+              submittedAt: "desc",
+            },
+          },
+          take: 20,
+          select: {
+            id: true,
+            value: true,
+            jsonValue: true,
+            response: {
+              select: {
+                submittedAt: true,
+              },
+            },
+          },
+        },
       },
     },
     responses: {
       orderBy: {
         submittedAt: "desc",
       },
-      include: {
-        answers: true,
+      select: {
+        submittedAt: true,
+        answers: {
+          select: {
+            questionId: true,
+            value: true,
+            jsonValue: true,
+          },
+        },
       },
     },
   });
@@ -128,10 +157,19 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const textSamples =
       question.type === "TEXT" || question.type === "TEXTAREA"
-        ? responseAnswers
-            .map((answer) => answerToText(answer).trim())
-            .filter(Boolean)
-            .slice(0, 8)
+        ? question.answers
+            .map((answer) => {
+              const value = answer.value?.trim()
+                ? answer.value
+                : answerToText(answer);
+
+              return {
+                id: answer.id,
+                value,
+                submittedAt: answer.response.submittedAt,
+              };
+            })
+            .filter((sample) => sample.value.trim().length > 0)
         : [];
 
     return {

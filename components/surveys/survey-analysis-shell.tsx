@@ -27,6 +27,7 @@ type OptionCount = {
 };
 
 type TextSample = {
+  id: string;
   value: string;
   submittedAt: string;
 };
@@ -650,17 +651,33 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
                   </div>
                 ) : null}
 
-                {question.textSamples.length > 0 ? (
+                {question.type === "TEXT" || question.type === "TEXTAREA" ? (
                   <div className="mt-4 space-y-2">
                     <p className="text-sm font-bold text-slate-800">عينات من الإجابات النصية</p>
-                    {question.textSamples.map((sample, sampleIndex) => (
+                    {question.textSamples.length > 0 ? (
                       <div
-                        key={`${question.id}-${sampleIndex}`}
-                        className="rounded-2xl bg-white p-4 text-sm leading-7 text-slate-700"
+                        className={[
+                          "space-y-2 rounded-2xl border border-slate-200 bg-slate-100/70 p-2",
+                          question.textSamples.length > 4
+                            ? "max-h-[18rem] touch-pan-y overflow-y-auto overscroll-contain"
+                            : "",
+                        ].join(" ")}
+                        dir="rtl"
                       >
-                        {sample.value}
+                        {question.textSamples.map((sample) => (
+                          <div
+                            key={sample.id}
+                            className="whitespace-pre-wrap break-words rounded-xl border border-slate-100 bg-white p-4 text-right text-sm leading-7 text-slate-700"
+                          >
+                            {sample.value}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="rounded-2xl bg-white p-4 text-sm leading-7 text-slate-500">
+                        لا توجد إجابات نصية حتى الآن.
+                      </p>
+                    )}
                   </div>
                 ) : null}
               </article>

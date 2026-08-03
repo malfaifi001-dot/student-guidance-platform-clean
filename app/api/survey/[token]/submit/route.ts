@@ -75,6 +75,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const respondentName = String(payload?.respondentName || "").trim();
   const respondentPhone = normalizePhone(payload?.respondentPhone);
+  const submissionKey = String(payload?.submissionKey || "").trim();
+
+  if (submissionKey && !/^[a-zA-Z0-9-]{20,100}$/.test(submissionKey)) {
+    return NextResponse.json(
+      { error: "معرّف إرسال الاستجابة غير صالح." },
+      { status: 400 },
+    );
+  }
 
   if (!survey.isAnonymous && !respondentName) {
     return NextResponse.json(
@@ -145,6 +153,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
     answerRows.push(answerData);
   }
 
+  if (submissionKey) {
+    const existingResponse = await prisma.surveyResponse.findFirst({
+      where: {
+        surveyId: survey.id,
+        metadata: {
+          path: "$.submissionKey",
+          equals: submissionKey,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingResponse) {
+      return NextResponse.json({
+        ok: true,
+        message: "تم إرسال الاستجابة بنجاح، شكرًا لتعاونك.",
+        responseId: existingResponse.id,
+      });
+    }
+  }
+
   const response = await prisma.surveyResponse.create({
     data: {
       surveyId: survey.id,
@@ -152,14 +183,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
       respondentType: String(payload?.respondentType || survey.audienceType || "GENERAL").trim(),
       respondentName: survey.isAnonymous ? null : respondentName,
       respondentPhone: survey.isAnonymous ? null : respondentPhone,
+      metadata: submissionKey ? { submissionKey } : undefined,
       answers: {
         create: answerRows,
       },
     },
   });
 
-  return NextResponse.json({
-    message: "تم إرسال الرد بنجاح.",
-    responseId: response.id,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      message: "تم إرسال الاستجابة بنجاح، شكرًا لتعاونك.",
+      responseId: response.id,
+    },
+    { status: 201 },
+  );
 }
