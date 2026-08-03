@@ -8,6 +8,7 @@ import {
   requireDashboardPageContext,
 } from "@/lib/auth/dashboard-context";
 import { normalizeStatisticsServiceSelection } from "@/lib/statistics/statistics-service-selection";
+import { canAccessStatistics } from "@/lib/statistics/statistics-access";
 
 type SearchValue =
   | string
@@ -36,10 +37,7 @@ export default async function StatisticsPreparePage({
   const context =
     await requireDashboardPageContext();
 
-  if (
-    context.user.role !== "ADMIN" &&
-    context.user.role !== "COUNSELOR"
-  ) {
+  if (!canAccessStatistics(context)) {
     redirect("/dashboard");
   }
 

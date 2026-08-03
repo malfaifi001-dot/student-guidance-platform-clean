@@ -281,7 +281,7 @@ export function StatisticsCreatePopCard({
                 )
               ) : (
                 <div className="px-4 py-10 text-center text-sm leading-6 text-slate-500">
-                  لا توجد خدمات متاحة ضمن اشتراك حسابك.
+                  لا توجد خدمات متاحة للإحصائيات في حسابك حاليًا.
                 </div>
               )}
             </div>

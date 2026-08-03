@@ -13,16 +13,7 @@ export type AppService = {
   kind: "workflow" | "standalone" | "admin";
 };
 
-export const workflowServices: AppService[] = [
-  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
-  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
-  {
-    slug: "teacher-report-issuance",
-    title: "إصدار تقرير",
-    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
-    href: "/dashboard/teacher/report-issuance",
-    kind: "workflow",
-  },
+export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
   {
     slug: "guidance-programs",
     title: "البرامج الإرشادية",
@@ -66,6 +57,19 @@ export const workflowServices: AppService[] = [
     href: "/dashboard/student-guidance-services",
     kind: "workflow",
   },
+];
+
+export const workflowServices: AppService[] = [
+  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+  {
+    slug: "teacher-report-issuance",
+    title: "إصدار تقرير",
+    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+    href: "/dashboard/teacher/report-issuance",
+    kind: "workflow",
+  },
+  ...COUNSELOR_GUIDANCE_WORKFLOW_SERVICES,
 ];
 
 export const smartInterventionWorkflowServices: AppService[] = [

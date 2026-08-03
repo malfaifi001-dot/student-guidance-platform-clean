@@ -7,12 +7,17 @@ import type { DashboardContext } from "@/lib/auth/dashboard-context";
 const STATISTICS_ALLOWED_ROLES = new Set([
   "ADMIN",
   "COUNSELOR",
+  "TEACHER",
 ]);
+
+export function canAccessStatistics(context: DashboardContext) {
+  return STATISTICS_ALLOWED_ROLES.has(context.user.role);
+}
 
 export function requireStatisticsRole(
   context: DashboardContext,
 ): NextResponse | null {
-  if (STATISTICS_ALLOWED_ROLES.has(context.user.role)) {
+  if (canAccessStatistics(context)) {
     return null;
   }
 

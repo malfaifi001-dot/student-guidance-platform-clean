@@ -14,6 +14,7 @@ import {
 import {
   getStatisticsReportView,
 } from "@/lib/statistics/statistics-report-query";
+import { canAccessStatistics } from "@/lib/statistics/statistics-access";
 
 export const dynamic =
   "force-dynamic";
@@ -49,10 +50,7 @@ export default async function StatisticsReportPage({
   const context =
     await requireDashboardPageContext();
 
-  if (
-    context.user.role !== "ADMIN" &&
-    context.user.role !== "COUNSELOR"
-  ) {
+  if (!canAccessStatistics(context)) {
     redirect("/dashboard");
   }
 
