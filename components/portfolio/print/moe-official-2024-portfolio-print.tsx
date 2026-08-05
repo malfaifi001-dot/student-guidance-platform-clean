@@ -234,6 +234,204 @@ function EvidenceFigure({
   );
 }
 
+/* MOE24 MODERN REPORT DETAILS ICON LAYOUT */
+
+type Moe24ReportFieldVisual = {
+  icon:
+    | "document"
+    | "book"
+    | "tasks"
+    | "clipboard"
+    | "chart"
+    | "target"
+    | "calendar"
+    | "clock"
+    | "person"
+    | "note";
+  tone: "teal" | "green";
+};
+
+function getMoe24ReportFieldVisual(
+  label: string,
+  index: number,
+): Moe24ReportFieldVisual {
+  const normalizedLabel = label.trim();
+
+  if (
+    normalizedLabel.includes("السجل") ||
+    normalizedLabel.includes("البرنامج") ||
+    normalizedLabel.includes("التقرير")
+  ) {
+    return { icon: "document", tone: "green" };
+  }
+
+  if (
+    normalizedLabel.includes("المجال") ||
+    normalizedLabel.includes("المادة") ||
+    normalizedLabel.includes("التدريس")
+  ) {
+    return { icon: "book", tone: "teal" };
+  }
+
+  if (
+    normalizedLabel.includes("المهام") ||
+    normalizedLabel.includes("الأعمال") ||
+    normalizedLabel.includes("الطلاب") ||
+    normalizedLabel.includes("الطالبات")
+  ) {
+    return { icon: "tasks", tone: "teal" };
+  }
+
+  if (
+    normalizedLabel.includes("الوصف") ||
+    normalizedLabel.includes("الخطة") ||
+    normalizedLabel.includes("التنفيذ")
+  ) {
+    return { icon: "clipboard", tone: "green" };
+  }
+
+  if (
+    normalizedLabel.includes("الإنجاز") ||
+    normalizedLabel.includes("المستوى") ||
+    normalizedLabel.includes("النسبة")
+  ) {
+    return { icon: "chart", tone: "teal" };
+  }
+
+  if (
+    normalizedLabel.includes("النتيجة") ||
+    normalizedLabel.includes("الهدف")
+  ) {
+    return { icon: "target", tone: "green" };
+  }
+
+  if (
+    normalizedLabel.includes("التاريخ") ||
+    normalizedLabel.includes("اليوم")
+  ) {
+    return { icon: "calendar", tone: "green" };
+  }
+
+  if (
+    normalizedLabel.includes("المدة") ||
+    normalizedLabel.includes("الوقت")
+  ) {
+    return { icon: "clock", tone: "teal" };
+  }
+
+  if (
+    normalizedLabel.includes("المنفذ") ||
+    normalizedLabel.includes("المعلم") ||
+    normalizedLabel.includes("المسؤول")
+  ) {
+    return { icon: "person", tone: "green" };
+  }
+
+  return {
+    icon: "note",
+    tone: index % 2 === 0 ? "teal" : "green",
+  };
+}
+
+function Moe24ReportFieldIcon({
+  icon,
+}: {
+  icon: Moe24ReportFieldVisual["icon"];
+}) {
+  if (icon === "document") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M7 3h7l4 4v14H7z" />
+        <path d="M14 3v5h5" />
+        <path d="M10 12h5M10 16h5" />
+      </svg>
+    );
+  }
+
+  if (icon === "book") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M4 5.5c2.8-.8 5.4-.2 8 1.7v12c-2.6-1.9-5.2-2.5-8-1.7z" />
+        <path d="M20 5.5c-2.8-.8-5.4-.2-8 1.7v12c2.6-1.9 5.2-2.5 8-1.7z" />
+      </svg>
+    );
+  }
+
+  if (icon === "tasks") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="9" cy="9" r="3" />
+        <circle cx="16.5" cy="10" r="2.5" />
+        <path d="M4.5 19c.8-3.1 2.9-4.7 6.2-4.7S16 15.9 16.8 19" />
+        <path d="M15 15.2c2.5.1 4 1.4 4.5 3.8" />
+      </svg>
+    );
+  }
+
+  if (icon === "clipboard") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M8 5h8v3H8z" />
+        <path d="M6 7h12v14H6z" />
+        <path d="M9 12h6M9 16h6" />
+      </svg>
+    );
+  }
+
+  if (icon === "chart") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M5 20v-5h3v5zM11 20v-9h3v9zM17 20V5h3v15z" />
+      </svg>
+    );
+  }
+
+  if (icon === "target") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="12" cy="12" r="1" />
+        <path d="m15.5 8.5 4-4M16.8 4.5h2.7v2.7" />
+      </svg>
+    );
+  }
+
+  if (icon === "calendar") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M5 6h14v14H5z" />
+        <path d="M8 3v5M16 3v5M5 10h14" />
+        <path d="M8 14h2M12 14h2M16 14h1M8 17h2M12 17h2" />
+      </svg>
+    );
+  }
+
+  if (icon === "clock") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    );
+  }
+
+  if (icon === "person") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="8" r="3" />
+        <path d="M6 20c.7-4 2.7-6 6-6s5.3 2 6 6" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path d="M5 19h4l10-10-4-4L5 15z" />
+      <path d="m13 7 4 4M5 19l3-1-2-2z" />
+    </svg>
+  );
+}
 function MoeReportPages({ report }: { report: PortfolioReportContent }) {
   const pages = buildPortfolioReportPages(report);
   const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
@@ -252,7 +450,13 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
         >
           <header className="moe24-report-title">
             <span>{report.serviceName || report.subtitle || "تقرير"}</span>
-            <h1>{report.title}</h1>
+            <div className="moe24-report-title-row">
+              <span
+                className="moe24-report-title-accent"
+                aria-hidden="true"
+              />
+              <h1>{report.title}</h1>
+            </div>
             <small>
               صفحة {pageIndex + 1} من {pages.length}
             </small>
@@ -269,28 +473,56 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                     className="moe24-report-section moe24-report-details-section"
                   >
                     <h2>التفاصيل</h2>
+
                     <div className="moe24-report-details-panel">
                       <div className="moe24-report-detail-grid">
-                        {section.fields.map((field) => {
+                        {section.fields.map((field, fieldIndex) => {
                           const serializedValue = Array.isArray(field.value)
                             ? field.value.join("\n")
                             : String(field.value);
+
                           const wide =
                             Array.isArray(field.value) ||
                             serializedValue.length > 90 ||
                             serializedValue.includes("\n");
 
+                          const visual = getMoe24ReportFieldVisual(
+                            field.label,
+                            fieldIndex,
+                          );
+
                           return (
-                            <div
+                            <article
                               key={`${field.key}-${field.label}`}
-                              className={`moe24-report-field${wide ? " moe24-report-field-wide" : ""}`}
+                              className={[
+                                "moe24-report-field",
+                                `moe24-report-field-${visual.tone}`,
+                                wide ? "moe24-report-field-wide" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
                             >
-                              <div className="moe24-report-field-label">
-                                <span className="moe24-report-field-dot" aria-hidden="true" />
-                                <span>{field.label}</span>
+                              <span
+                                className="moe24-report-field-icon"
+                                aria-hidden="true"
+                              >
+                                <Moe24ReportFieldIcon icon={visual.icon} />
+                              </span>
+
+                              <div className="moe24-report-field-content">
+                                <div className="moe24-report-field-label">
+                                  <span
+                                    className="moe24-report-field-dot"
+                                    aria-hidden="true"
+                                  />
+                                  <span>{field.label}</span>
+                                </div>
+
+                                <strong>
+                                  {renderFieldValue(field.value)}
+                                </strong>
                               </div>
-                              <strong>{renderFieldValue(field.value)}</strong>
-                            </div>
+                            </article>
                           );
                         })}
                       </div>
@@ -1228,33 +1460,36 @@ export function MoeOfficial2024PortfolioPrint({
         .moe24-report-title {
           position: relative;
           margin-bottom: 6mm;
-          border-bottom: 1px solid var(--moe24-line);
           padding: 0 0 4.5mm;
         }
 
-        .moe24-report-title::after {
-          content: "";
-          position: absolute;
-          right: 0;
-          bottom: -1px;
-          width: 56mm;
-          height: 1px;
-          background: linear-gradient(
-            90deg,
-            var(--moe24-blue),
-            var(--moe24-green)
-          );
-        }
-
-        .moe24-report-title span {
+        .moe24-report-title > span {
           color: var(--moe24-gold);
           font-size: 9px;
           font-weight: 800;
         }
 
-        .moe24-report-title h1 {
+        .moe24-report-title-row {
+          display: flex;
+          align-items: center;
+          gap: 3mm;
+          margin-top: 2mm;
+        }
+
+        .moe24-report-title-accent {
+          display: block;
+          width: 1mm;
+          height: 10mm;
+          flex: 0 0 1mm;
+          border-radius: 999px;
+          background: var(--moe24-teal);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-report-title-row h1 {
           max-width: 150mm;
-          margin: 2mm 0 0;
+          margin: 0;
           color: var(--moe24-navy);
           font-size: 26px;
           font-weight: 800;
@@ -1272,7 +1507,7 @@ export function MoeOfficial2024PortfolioPrint({
 
         .moe24-report-sections {
           display: grid;
-          gap: 6mm;
+          gap: 4mm;
         }
 
         .moe24-report-section {
@@ -1281,29 +1516,24 @@ export function MoeOfficial2024PortfolioPrint({
         }
 
         .moe24-report-section h2 {
-          margin: 0 0 3mm;
+          margin: 0 0 2mm;
           color: var(--moe24-navy);
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 800;
-        }
-
-        .moe24-report-section h2::after {
-          content: "";
-          display: inline-block;
-          width: 12mm;
-          height: 1px;
-          margin-inline-start: 3mm;
-          vertical-align: middle;
-          background: var(--moe24-gold);
         }
 
         .moe24-report-details-panel {
           position: relative;
           overflow: hidden;
-          border: 1px solid rgba(21, 68, 90, 0.12);
+          border: 1px solid rgba(21, 68, 90, 0.14);
           border-radius: 4mm;
-          padding: 5mm;
-          background: #f8fafa;
+          padding: 5mm 4mm 4mm;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(248, 251, 251, 0.98) 0%,
+              rgba(255, 255, 255, 0.98) 100%
+            );
           box-shadow: none;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -1315,65 +1545,125 @@ export function MoeOfficial2024PortfolioPrint({
           top: 0;
           right: 0;
           left: 0;
-          height: 1mm;
-          background: linear-gradient(90deg, var(--moe24-blue), var(--moe24-teal), var(--moe24-green));
+          height: 1.2mm;
+          background:
+            linear-gradient(
+              90deg,
+              var(--moe24-blue) 0%,
+              var(--moe24-teal) 50%,
+              var(--moe24-green) 100%
+            );
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .moe24-report-detail-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 0 7mm;
-          border-top: 0;
+          gap: 2mm 4mm;
         }
 
         .moe24-report-field {
+          --moe24-report-field-accent: var(--moe24-teal);
+          --moe24-report-field-soft: rgba(13, 169, 166, 0.08);
+
+          position: relative;
+          display: grid;
+          grid-template-columns: 9mm minmax(0, 1fr);
           min-width: 0;
-          min-height: 18mm;
-          border-bottom: 1px solid rgba(21, 68, 90, 0.1);
-          padding: 4mm 0;
+          min-height: 17mm;
+          align-items: center;
+          gap: 2.5mm;
+          border: 0;
+          border-radius: 2.5mm;
+          padding: 2.5mm 3mm;
+          background: rgba(255, 255, 255, 0.76);
+          box-shadow:
+            inset 0 0 0 1px rgba(21, 68, 90, 0.08);
+          break-inside: avoid;
+          page-break-inside: avoid;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-report-field-green {
+          --moe24-report-field-accent: var(--moe24-green);
+          --moe24-report-field-soft: rgba(7, 168, 105, 0.08);
         }
 
         .moe24-report-field-wide {
           grid-column: 1 / -1;
+          grid-template-columns: 9mm minmax(0, 1fr);
+        }
+
+        .moe24-report-field-icon {
+          display: grid;
+          width: 8mm;
+          height: 8mm;
+          place-items: center;
+          border: 1px solid rgba(21, 68, 90, 0.12);
+          border-radius: 2mm;
+          background: var(--moe24-report-field-soft);
+          color: var(--moe24-report-field-accent);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-report-field-icon svg {
+          width: 4.5mm;
+          height: 4.5mm;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.65;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .moe24-report-field-content {
+          min-width: 0;
         }
 
         .moe24-report-field-label {
           display: flex;
           align-items: center;
-          gap: 2mm;
+          gap: 1.5mm;
         }
 
         .moe24-report-field-dot {
-          width: 2.2mm;
-          height: 2.2mm;
-          flex: 0 0 2.2mm;
+          width: 1.7mm;
+          height: 1.7mm;
+          flex: 0 0 1.7mm;
           border-radius: 50%;
-          background: var(--moe24-teal);
+          background: var(--moe24-report-field-accent);
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
 
-        .moe24-report-field:nth-child(even) .moe24-report-field-dot {
-          background: var(--moe24-green);
-        }
-
         .moe24-report-field-label > span:last-child {
           color: var(--moe24-muted);
-          font-size: 8.5px;
-          font-weight: 700;
+          font-size: 7.8px;
+          font-weight: 750;
+          line-height: 1.3;
         }
 
         .moe24-report-field strong {
           display: block;
-          margin-top: 2mm;
+          margin-top: 1mm;
           color: var(--moe24-navy);
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 800;
-          line-height: 1.7;
+          line-height: 1.45;
           overflow-wrap: anywhere;
         }
 
+        .moe24-report-field-wide strong {
+          font-size: 9.8px;
+          line-height: 1.55;
+        }
+
         .moe24-report-list {
+          display: grid;
+          gap: 0.7mm;
           margin: 0;
           padding: 0;
           list-style: none;
@@ -1381,8 +1671,9 @@ export function MoeOfficial2024PortfolioPrint({
 
         .moe24-report-list li {
           position: relative;
-          padding: 0.8mm 4.5mm 0.8mm 0;
-          border-bottom: 1px solid rgba(21, 68, 90, 0.08);
+          border: 0;
+          padding: 0.4mm 3.5mm 0.4mm 0;
+          color: var(--moe24-navy);
         }
 
         .moe24-report-list li::before {
@@ -1393,7 +1684,7 @@ export function MoeOfficial2024PortfolioPrint({
           width: 1.7mm;
           height: 1.7mm;
           border-radius: 50%;
-          background: var(--moe24-teal);
+          background: var(--moe24-report-field-accent);
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
