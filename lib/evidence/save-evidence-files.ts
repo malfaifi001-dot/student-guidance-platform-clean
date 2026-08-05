@@ -1,6 +1,7 @@
 import crypto from "crypto";
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+
+import { writeEvidenceFile } from "@/lib/evidence/evidence-file-storage";
 
 export const MAX_EVIDENCE_FILES = 6;
 export const MAX_EVIDENCE_FILE_SIZE = 5 * 1024 * 1024;
@@ -95,9 +96,6 @@ export async function saveEvidenceFiles(params: {
   files: File[];
   schoolAccountId: string;
 }) {
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "evidence");
-  await mkdir(uploadDir, { recursive: true });
-
   const uploadedItems: SavedEvidenceFile[] = [];
 
   for (const file of params.files) {
@@ -109,11 +107,10 @@ export async function saveEvidenceFiles(params: {
 
     const safeOriginalName = sanitizeOriginalFileName(file.name);
     const storedName = `${params.schoolAccountId}-${crypto.randomUUID()}.${extension}`;
-    const storedPath = path.join(uploadDir, storedName);
     const publicUrl = `/uploads/evidence/${storedName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(storedPath, buffer);
+    await writeEvidenceFile(storedName, buffer);
 
     uploadedItems.push({
       fileName: safeOriginalName,
