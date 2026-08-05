@@ -10,11 +10,6 @@ export function chunkPortfolioItems<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-export function cleanPortfolioEvidenceTitle(title: string, index: number) {
-  const clean = String(title || "").trim();
-  return !clean || /\.(png|jpg|jpeg|webp|gif|pdf)$/i.test(clean) || clean.length > 36 ? `شاهد ${index + 1}` : clean;
-}
-
 export function paginatePortfolioText(body: string, limit = 1800): string[] {
   const text = body.trim();
   if (!text) return [""];
@@ -73,7 +68,6 @@ export function getPortfolioEvidenceImageHeightMm(report: PortfolioReportContent
 function sectionScore(section: PortfolioReportSectionModel, report: PortfolioReportContent) {
   if (section.kind === "details") return 20 + Math.max(Math.ceil(section.fields.length / 2), 1) * 18;
   if (section.kind === "narrative") return 18 + Math.ceil(section.body.length / 90) * 6;
-  if (section.kind === "evidence-empty") return 24;
   const perPage = getPortfolioEvidencePerPage(report);
   const shown = Math.min(section.items.length || 1, perPage);
   if (perPage <= 1) return 105;
@@ -86,7 +80,6 @@ export function buildPortfolioReportPages(report: PortfolioReportContent): Portf
     { kind: "details", fields: report.normalizedFields },
     ...splitNarrativeIntoPages(report.narrative?.body || "").map((body) => ({ kind: "narrative" as const, body })),
     ...chunkPortfolioItems(report.evidenceItems, getPortfolioEvidencePerPage(report)).map((items) => ({ kind: "evidence" as const, items })),
-    ...(report.evidenceItems.length ? [] : [{ kind: "evidence-empty" as const }]),
   ];
   const pages: PortfolioReportPageModel[] = [];
   let sections: PortfolioReportSectionModel[] = [];

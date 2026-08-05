@@ -1,0 +1,1684 @@
+import type { CSSProperties, ReactNode } from "react";
+
+import {
+  buildPortfolioReportPages,
+  getPortfolioEvidenceImageHeightMm,
+  getPortfolioEvidencePerPage,
+} from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+
+const MOE_2024 = {
+  navy: "#15445A",
+  green: "#07A869",
+  blue: "#3D7EB9",
+  teal: "#0DA9A6",
+  gold: "#C1B48A",
+  gray: "#C2C1C1",
+  paper: "#FFFFFF",
+  soft: "#F5F7F6",
+  ink: "#18313D",
+  muted: "#63737B",
+  line: "#D9E0E2",
+} as const;
+
+function renderFieldValue(value: string | string[]) {
+  if (Array.isArray(value)) {
+    return (
+      <ul className="moe24-report-list">
+        {value.map((item, index) => (
+          <li key={`${item}-${index}`}>{item}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  return value || "غير محدد";
+}
+
+function BrandRule() {
+  return <div className="moe24-brand-rule" aria-hidden="true" />;
+}
+
+function PageNumber() {
+  return <span className="moe24-page-number" aria-label="رقم الصفحة" />;
+}
+
+function MoePage({
+  children,
+  sectionLabel,
+  className = "",
+  style,
+}: {
+  children: ReactNode;
+  sectionLabel: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <section
+      className={`moe24-page ${className}`}
+      style={style}
+      data-page-label={sectionLabel}
+    >
+      <BrandRule />
+
+      <header className="moe24-page-header">
+        <div className="moe24-header-brand">
+          <span className="moe24-header-dot" aria-hidden="true" />
+          <span>ملف الإنجاز</span>
+        </div>
+        <span>{sectionLabel}</span>
+      </header>
+
+      <main className="moe24-page-body">{children}</main>
+
+      <footer className="moe24-page-footer">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{sectionLabel}</span>
+        <PageNumber />
+      </footer>
+    </section>
+  );
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <header className="moe24-section-heading">
+      {eyebrow ? <span className="moe24-eyebrow">{eyebrow}</span> : null}
+      <h2>{title}</h2>
+      <span className="moe24-heading-rule" aria-hidden="true" />
+      {description ? <p>{description}</p> : null}
+    </header>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="moe24-info-row">
+      <span>{label}</span>
+      <strong>{value || "غير محدد"}</strong>
+    </div>
+  );
+}
+
+function IntroFeature({
+  title,
+  text,
+  tone,
+}: {
+  title: string;
+  text: string;
+  tone: "blue" | "green";
+}) {
+  return (
+    <section className={`moe24-intro-feature moe24-intro-feature-${tone}`}>
+      <span className="moe24-quote" aria-hidden="true">
+        “
+      </span>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </section>
+  );
+}
+
+function QualificationPage({
+  data,
+  item,
+}: {
+  data: PortfolioPrintData;
+  item: PortfolioPrintData["qualificationItems"][number];
+}) {
+  const typeLabel =
+    item.type === "QUALIFICATION"
+      ? "مؤهل"
+      : item.type === "COURSE"
+        ? "دورة"
+        : "شهادة";
+
+  const hasImage =
+    Boolean(item.attachmentUrl) &&
+    (item.attachmentKind === "IMAGE" ||
+      item.attachmentMimeType.startsWith("image/") ||
+      /\.(?:jpe?g|png|webp|gif|svg)(?:\?.*)?$/i.test(item.attachmentUrl));
+
+  const metadata = [
+    item.issuer,
+    item.date,
+    item.hours ? `${item.hours} ساعة` : "",
+  ].filter(Boolean);
+
+  return (
+    <MoePage
+      sectionLabel="المؤهلات والدورات"
+      className="moe24-qualification-page"
+    >
+      <SectionHeading eyebrow={typeLabel} title={item.title} />
+
+      {metadata.length ? (
+        <div className="moe24-qualification-meta">
+          {metadata.map((value, index) => (
+            <span key={`${value}-${index}`}>{value}</span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="moe24-qualification-media">
+        {hasImage ? (
+          <img src={item.attachmentUrl} alt={item.title} />
+        ) : (
+          <div className="moe24-media-placeholder">
+            <span>لا توجد صورة مرفقة</span>
+          </div>
+        )}
+      </div>
+
+      {item.description ? (
+        <p className="moe24-qualification-description">{item.description}</p>
+      ) : null}
+
+      <span className="moe24-owner-note">
+        {data.owner.name}
+        {data.portfolio.preferences.showSchoolName ? ` · ${data.school.name}` : ""}
+      </span>
+    </MoePage>
+  );
+}
+
+function EvidenceFigure({
+  item,
+  title,
+  heightMm,
+  fit,
+}: {
+  item: PortfolioReportContent["evidenceItems"][number];
+  title: string;
+  heightMm: number;
+  fit: "contain" | "cover";
+}) {
+  const isImage =
+    item.type === "IMAGE" ||
+    Boolean(item.url && /\.(png|jpe?g|webp|gif|svg)$/i.test(item.url));
+
+  if (!item.url) return null;
+
+  if (!isImage) {
+    return (
+      <a
+        className="moe24-file-attachment"
+        href={item.url}
+        target="_blank"
+        rel="noreferrer"
+      >
+        ملف مرفق
+      </a>
+    );
+  }
+
+  return (
+    <figure className="moe24-evidence-figure">
+      <img
+        src={item.url}
+        alt={title}
+        style={{ height: `${heightMm}mm`, objectFit: fit }}
+      />
+    </figure>
+  );
+}
+
+function MoeReportPages({ report }: { report: PortfolioReportContent }) {
+  const pages = buildPortfolioReportPages(report);
+  const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
+  const evidenceColumns =
+    getPortfolioEvidencePerPage(report) <= 1
+      ? "minmax(0, 1fr)"
+      : "repeat(2, minmax(0, 1fr))";
+
+  return (
+    <>
+      {pages.map((page, pageIndex) => (
+        <MoePage
+          key={page.key}
+          sectionLabel={report.serviceName || "التقرير"}
+          className="moe24-report-page"
+        >
+          <header className="moe24-report-title">
+            <span>{report.serviceName || report.subtitle || "تقرير"}</span>
+            <h1>{report.title}</h1>
+            <small>
+              صفحة {pageIndex + 1} من {pages.length}
+            </small>
+          </header>
+
+          <div className="moe24-report-sections">
+            {page.sections.map((section, sectionIndex) => {
+              if (section.kind === "details") {
+                if (!section.fields.length) return null;
+
+                return (
+                  <section
+                    key={`details-${page.key}-${sectionIndex}`}
+                    className="moe24-report-section"
+                  >
+                    <h2>التفاصيل</h2>
+                    <div className="moe24-report-detail-grid">
+                      {section.fields.map((field) => {
+                        const wide =
+                          Array.isArray(field.value) ||
+                          String(field.value).length > 90;
+
+                        return (
+                          <div
+                            key={`${field.key}-${field.label}`}
+                            className={`moe24-report-field${wide ? " moe24-report-field-wide" : ""}`}
+                          >
+                            <span>{field.label}</span>
+                            <strong>{renderFieldValue(field.value)}</strong>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              }
+
+              if (section.kind === "narrative") {
+                if (!section.body.trim()) return null;
+
+                return (
+                  <section
+                    key={`narrative-${page.key}-${sectionIndex}`}
+                    className="moe24-report-section"
+                  >
+                    <h2>وصف التنفيذ</h2>
+                    <p className="moe24-report-narrative">{section.body}</p>
+                  </section>
+                );
+              }
+
+              if (!section.items.length) {
+                return null;
+              }
+
+              return (
+                <section
+                  key={`evidence-${page.key}-${sectionIndex}`}
+                  className="moe24-report-section"
+                >
+                  <h2>الشواهد والمرفقات</h2>
+                  <div
+                    className="moe24-evidence-grid"
+                    style={{ gridTemplateColumns: evidenceColumns }}
+                  >
+                    {section.items.map((item) => (
+                      <EvidenceFigure
+                        key={item.id}
+                        item={item}
+                        title={item.title?.trim() || "صورة مرفقة"}
+                        heightMm={evidenceHeightMm}
+                        fit={report.evidenceSettings.fit}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </MoePage>
+      ))}
+    </>
+  );
+}
+
+function CustomEvidencePage({
+  item,
+  label,
+}: {
+  item: PortfolioPrintData["customEvidence"][number];
+  label: string;
+}) {
+  const isImage =
+    item.mimeType.startsWith("image/") ||
+    /\.(png|jpe?g|webp|gif|svg)$/i.test(item.fileUrl);
+
+  return (
+    <MoePage sectionLabel={label} className="moe24-custom-evidence-page">
+      <SectionHeading title={item.title} />
+
+      {item.description ? (
+        <p className="moe24-section-copy">{item.description}</p>
+      ) : null}
+
+      {isImage ? (
+        <img
+          className="moe24-custom-evidence-image"
+          src={item.fileUrl}
+          alt={item.title}
+        />
+      ) : (
+        <a
+          className="moe24-file-attachment moe24-file-attachment-large"
+          href={item.fileUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          فتح الملف المرفق
+        </a>
+      )}
+    </MoePage>
+  );
+}
+
+export function MoeOfficial2024PortfolioPrint({
+  data,
+}: {
+  data: PortfolioPrintData;
+}) {
+  const enabledSections = data.performanceSections
+    .filter((section) => section.isEnabled)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+
+  const sectionByKey = new Map(
+    data.sections.map((section) => [section.key, section]),
+  );
+
+  const sectionEnabled = (key: string) =>
+    sectionByKey.get(key)?.isEnabled !== false;
+
+  const sectionOrder = (key: string) =>
+    sectionByKey.get(key)?.sortOrder ?? 0;
+
+  const visibleQualifications = data.qualificationItems
+    .filter((item) => item.isVisible)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+
+  const educationIdentity = data.educationIdentity;
+
+  const hasIntroIdentity = Boolean(
+    educationIdentity.vision ||
+      educationIdentity.mission ||
+      educationIdentity.pillars.length ||
+      educationIdentity.values.length ||
+      educationIdentity.strategicObjectives.length,
+  );
+
+  return (
+    <div
+      className="moe24-root"
+      dir="rtl"
+      style={
+        {
+          "--moe24-navy": MOE_2024.navy,
+          "--moe24-green": MOE_2024.green,
+          "--moe24-blue": MOE_2024.blue,
+          "--moe24-teal": MOE_2024.teal,
+          "--moe24-gold": MOE_2024.gold,
+          "--moe24-gray": MOE_2024.gray,
+          "--moe24-paper": MOE_2024.paper,
+          "--moe24-soft": MOE_2024.soft,
+          "--moe24-ink": MOE_2024.ink,
+          "--moe24-muted": MOE_2024.muted,
+          "--moe24-line": MOE_2024.line,
+        } as CSSProperties
+      }
+    >
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        @media print {
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .moe24-root {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+
+          .moe24-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            break-after: page;
+            page-break-after: always;
+          }
+
+          .moe24-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+        }
+
+        .moe24-root {
+          counter-reset: moe24-page;
+          display: flex;
+          min-height: 100vh;
+          flex-direction: column;
+          gap: 24px;
+          padding: 24px 0;
+          background: #edf2f4;
+          color: var(--moe24-ink);
+          font-family: "Sakkal Majalla", "Cairo", "Tahoma", "Arial", sans-serif;
+        }
+
+        .moe24-page {
+          counter-increment: moe24-page;
+          position: relative;
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          margin: 0 auto;
+          overflow: hidden;
+          background: var(--moe24-paper);
+          box-shadow: 0 22px 64px rgba(21, 68, 90, 0.14);
+          break-after: page;
+          page-break-after: always;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-brand-rule {
+          position: absolute;
+          top: 0;
+          right: 0;
+          left: 0;
+          height: 4mm;
+          background: linear-gradient(
+            90deg,
+            var(--moe24-blue) 0%,
+            var(--moe24-teal) 48%,
+            var(--moe24-green) 100%
+          );
+        }
+
+        .moe24-page-header {
+          position: absolute;
+          top: 12mm;
+          right: 15mm;
+          left: 15mm;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          color: var(--moe24-muted);
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        .moe24-header-brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 2mm;
+          color: var(--moe24-navy);
+          font-weight: 800;
+        }
+
+        .moe24-header-dot {
+          width: 2.8mm;
+          height: 2.8mm;
+          border-radius: 50%;
+          background: var(--moe24-green);
+        }
+
+        .moe24-page-body {
+          position: relative;
+          height: 100%;
+          padding: 31mm 18mm 25mm;
+          overflow: hidden;
+        }
+
+        .moe24-page-footer {
+          position: absolute;
+          right: 15mm;
+          bottom: 8mm;
+          left: 15mm;
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          align-items: center;
+          gap: 7mm;
+          border-top: 1px solid var(--moe24-line);
+          padding-top: 2.6mm;
+          color: var(--moe24-muted);
+          font-size: 8.5px;
+          font-weight: 700;
+        }
+
+        .moe24-page-footer::before {
+          content: "";
+          position: absolute;
+          top: -1px;
+          right: 0;
+          width: 38mm;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            var(--moe24-blue),
+            var(--moe24-green)
+          );
+        }
+
+        .moe24-page-number::before {
+          content: counter(moe24-page, decimal-leading-zero);
+          color: var(--moe24-navy);
+          font-weight: 800;
+        }
+
+        .moe24-section-heading {
+          position: relative;
+          max-width: 172mm;
+          margin-bottom: 7mm;
+        }
+
+        .moe24-eyebrow {
+          display: block;
+          margin-bottom: 1.8mm;
+          color: var(--moe24-gold);
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .moe24-section-heading h2 {
+          margin: 0;
+          color: var(--moe24-navy);
+          font-size: 28px;
+          font-weight: 800;
+          line-height: 1.25;
+        }
+
+        .moe24-heading-rule {
+          display: block;
+          width: 46mm;
+          height: 1.2mm;
+          margin-top: 3mm;
+          border-radius: 999px;
+          background: linear-gradient(
+            90deg,
+            var(--moe24-blue),
+            var(--moe24-green)
+          );
+        }
+
+        .moe24-section-heading p {
+          max-width: 150mm;
+          margin: 3mm 0 0;
+          color: var(--moe24-muted);
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.9;
+        }
+
+        .moe24-cover {
+          background:
+            linear-gradient(
+              135deg,
+              rgba(61, 126, 185, 0.96),
+              rgba(13, 169, 166, 0.96) 52%,
+              rgba(7, 168, 105, 0.96)
+            );
+          color: #ffffff;
+        }
+
+        .moe24-cover .moe24-brand-rule,
+        .moe24-cover .moe24-page-header {
+          display: none;
+        }
+
+        .moe24-cover .moe24-page-body {
+          display: grid;
+          align-content: center;
+          padding: 28mm 24mm 26mm;
+        }
+
+        .moe24-cover::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 0;
+          left: 0;
+          height: 18mm;
+          background: var(--moe24-navy);
+        }
+
+        .moe24-cover::after {
+          content: "";
+          position: absolute;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          height: 14mm;
+          background: var(--moe24-navy);
+        }
+
+        .moe24-cover-mark {
+          width: 42mm;
+          height: 1.5mm;
+          margin-bottom: 15mm;
+          background: rgba(255, 255, 255, 0.92);
+        }
+
+        .moe24-cover-kicker {
+          margin: 0 0 4mm;
+          color: rgba(255, 255, 255, 0.82);
+          font-size: 15px;
+          font-weight: 700;
+        }
+
+        .moe24-cover h1 {
+          max-width: 155mm;
+          margin: 0;
+          color: #ffffff;
+          font-size: 42px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .moe24-cover-subtitle {
+          margin: 5mm 0 0;
+          color: #ffffff;
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .moe24-cover-details {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4mm 12mm;
+          margin-top: 18mm;
+          border-top: 1px solid rgba(255, 255, 255, 0.42);
+          padding-top: 7mm;
+        }
+
+        .moe24-cover-details div {
+          min-width: 0;
+        }
+
+        .moe24-cover-details span {
+          display: block;
+          color: rgba(255, 255, 255, 0.72);
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .moe24-cover-details strong {
+          display: block;
+          margin-top: 1.5mm;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 800;
+          line-height: 1.6;
+        }
+
+        .moe24-cover .moe24-page-footer {
+          z-index: 3;
+          border-top-color: rgba(255, 255, 255, 0.3);
+          color: rgba(255, 255, 255, 0.82);
+        }
+
+        .moe24-cover .moe24-page-footer::before {
+          background: rgba(255, 255, 255, 0.76);
+        }
+
+        .moe24-cover .moe24-page-number::before {
+          color: #ffffff;
+        }
+
+        .moe24-index {
+          margin-top: 4mm;
+          border-top: 1px solid var(--moe24-line);
+        }
+
+        .moe24-index-row {
+          display: grid;
+          grid-template-columns: 14mm 1fr auto;
+          align-items: center;
+          min-height: 12mm;
+          border-bottom: 1px solid var(--moe24-line);
+        }
+
+        .moe24-index-row span,
+        .moe24-index-row strong {
+          padding: 2.5mm 2mm;
+          font-size: 10.5px;
+        }
+
+        .moe24-index-row span {
+          color: var(--moe24-muted);
+          font-weight: 700;
+        }
+
+        .moe24-index-row strong {
+          color: var(--moe24-navy);
+          font-weight: 800;
+        }
+
+        .moe24-intro-copy,
+        .moe24-section-copy {
+          margin: 0;
+          color: var(--moe24-ink);
+          font-size: 12px;
+          font-weight: 600;
+          line-height: 2;
+          white-space: pre-wrap;
+        }
+
+        .moe24-intro-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 5mm;
+          margin-top: 7mm;
+        }
+
+        .moe24-intro-feature {
+          position: relative;
+          min-height: 48mm;
+          overflow: hidden;
+          border-top: 1.2mm solid var(--moe24-blue);
+          border-bottom: 1px solid var(--moe24-line);
+          padding: 7mm 5mm 5mm;
+          background: #ffffff;
+        }
+
+        .moe24-intro-feature-green {
+          border-top-color: var(--moe24-green);
+        }
+
+        .moe24-intro-feature h3 {
+          position: relative;
+          z-index: 2;
+          margin: 0;
+          color: var(--moe24-navy);
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .moe24-intro-feature p {
+          position: relative;
+          z-index: 2;
+          margin: 3mm 0 0;
+          color: var(--moe24-ink);
+          font-size: 10.5px;
+          font-weight: 600;
+          line-height: 1.9;
+          text-align: justify;
+          white-space: pre-wrap;
+        }
+
+        .moe24-quote {
+          position: absolute;
+          top: -2mm;
+          left: 4mm;
+          color: rgba(13, 169, 166, 0.12);
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 34mm;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        .moe24-identity-columns {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9mm;
+          margin-top: 7mm;
+          border-top: 1px solid var(--moe24-line);
+          border-bottom: 1px solid var(--moe24-line);
+          padding: 5.5mm 6mm;
+          background: #f8fafa;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-identity-list {
+          --moe24-identity-accent: var(--moe24-teal);
+          --moe24-identity-accent-secondary: var(--moe24-blue);
+          --moe24-identity-marker-bg: rgba(13, 169, 166, 0.1);
+          position: relative;
+          min-width: 0;
+          padding-top: 4mm;
+        }
+
+        .moe24-identity-list::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 32mm;
+          height: 0.7mm;
+          border-radius: 999px;
+          background: linear-gradient(90deg, var(--moe24-identity-accent-secondary), var(--moe24-identity-accent));
+        }
+
+        .moe24-identity-list-values {
+          --moe24-identity-accent: var(--moe24-green);
+          --moe24-identity-accent-secondary: var(--moe24-gold);
+          --moe24-identity-marker-bg: rgba(7, 168, 105, 0.1);
+        }
+
+        .moe24-identity-list:only-child {
+          grid-column: 1 / -1;
+        }
+
+        .moe24-identity-list-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 2.5mm;
+          margin-bottom: 4mm;
+        }
+
+        .moe24-identity-list-mark {
+          width: 3.2mm;
+          height: 3.2mm;
+          flex: 0 0 3.2mm;
+          margin-top: 1.2mm;
+          border: 0.8mm solid var(--moe24-identity-marker-bg);
+          border-radius: 50%;
+          background: var(--moe24-identity-accent);
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-identity-list-header h3 {
+          margin: 0;
+          color: var(--moe24-navy);
+          font-size: 16.5px;
+          font-weight: 800;
+          line-height: 1.3;
+        }
+
+        .moe24-identity-list-subtitle {
+          margin: 1mm 0 0;
+          color: var(--moe24-muted);
+          font-size: 8.5px;
+          font-weight: 650;
+          line-height: 1.5;
+        }
+
+        .moe24-identity-list ol {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          counter-reset: moe24-list;
+        }
+
+        .moe24-identity-list li {
+          counter-increment: moe24-list;
+          position: relative;
+          display: flex;
+          min-height: 8.5mm;
+          align-items: center;
+          border-bottom: 1px solid rgba(21, 68, 90, 0.12);
+          padding: 1.5mm 9.5mm 1.5mm 1mm;
+          color: var(--moe24-navy);
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .moe24-identity-list li::before {
+          content: counter(moe24-list, decimal-leading-zero);
+          position: absolute;
+          top: 50%;
+          right: 0;
+          display: grid;
+          width: 6.5mm;
+          height: 6.5mm;
+          place-items: center;
+          transform: translateY(-50%);
+          border-radius: 50%;
+          background: var(--moe24-identity-marker-bg);
+          color: var(--moe24-identity-accent);
+          font-size: 7.5px;
+          font-weight: 800;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .moe24-objectives {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 3mm 8mm;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          counter-reset: moe24-objective;
+        }
+
+        .moe24-objectives li {
+          counter-increment: moe24-objective;
+          position: relative;
+          min-height: 14mm;
+          border-bottom: 1px solid var(--moe24-line);
+          padding: 3mm 11mm 3mm 0;
+          color: var(--moe24-ink);
+          font-size: 10px;
+          font-weight: 650;
+          line-height: 1.6;
+        }
+
+        .moe24-objectives li::before {
+          content: counter(moe24-objective, decimal-leading-zero);
+          position: absolute;
+          top: 3mm;
+          right: 0;
+          color: var(--moe24-green);
+          font-size: 8px;
+          font-weight: 800;
+        }
+
+        .moe24-profile-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 10mm;
+          border-top: 1px solid var(--moe24-line);
+        }
+
+        .moe24-info-row {
+          display: grid;
+          grid-template-columns: 34mm minmax(0, 1fr);
+          min-height: 13mm;
+          align-items: center;
+          border-bottom: 1px solid var(--moe24-line);
+        }
+
+        .moe24-info-row span {
+          color: var(--moe24-muted);
+          font-size: 9.5px;
+          font-weight: 700;
+        }
+
+        .moe24-info-row strong {
+          color: var(--moe24-navy);
+          font-size: 11.5px;
+          font-weight: 800;
+          line-height: 1.6;
+        }
+
+        .moe24-profile-summary {
+          margin: 8mm 0;
+          border-inline-start: 1.5mm solid var(--moe24-gold);
+          padding: 1mm 5mm 1mm 0;
+          color: var(--moe24-ink);
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 2;
+          white-space: pre-wrap;
+        }
+
+        .moe24-qualification-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2mm 5mm;
+          margin-top: -3mm;
+          color: var(--moe24-muted);
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .moe24-qualification-meta span + span::before {
+          content: "•";
+          margin-inline-end: 5mm;
+          color: var(--moe24-gold);
+        }
+
+        .moe24-qualification-media {
+          display: grid;
+          width: 172mm;
+          height: 178mm;
+          place-items: center;
+          margin: 8mm auto 0;
+          overflow: hidden;
+          background: transparent;
+        }
+
+        .moe24-qualification-media img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          border: 0;
+          background: transparent;
+          object-fit: contain;
+        }
+
+        .moe24-media-placeholder {
+          display: grid;
+          width: 100%;
+          height: 100%;
+          place-items: center;
+          border: 1px solid var(--moe24-line);
+          color: var(--moe24-muted);
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .moe24-qualification-description {
+          max-height: 26mm;
+          margin: 5mm 0 0;
+          overflow: hidden;
+          border-top: 1px solid var(--moe24-line);
+          padding-top: 3mm;
+          color: var(--moe24-ink);
+          font-size: 9.5px;
+          font-weight: 600;
+          line-height: 1.8;
+          white-space: pre-wrap;
+        }
+
+        .moe24-owner-note {
+          position: absolute;
+          right: 18mm;
+          bottom: 19mm;
+          color: var(--moe24-muted);
+          font-size: 8px;
+          font-weight: 700;
+        }
+
+        .moe24-divider .moe24-page-body {
+          display: grid;
+          align-content: center;
+        }
+
+        .moe24-divider-content {
+          position: relative;
+          max-width: 154mm;
+          border-top: 1.5mm solid var(--moe24-green);
+          padding-top: 10mm;
+        }
+
+        .moe24-divider-index {
+          display: block;
+          margin-bottom: 4mm;
+          color: var(--moe24-gold);
+          font-size: 14px;
+          font-weight: 800;
+        }
+
+        .moe24-divider h2 {
+          margin: 0;
+          color: var(--moe24-navy);
+          font-size: 38px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .moe24-divider p {
+          max-width: 135mm;
+          margin: 5mm 0 0;
+          color: var(--moe24-muted);
+          font-size: 12px;
+          font-weight: 600;
+          line-height: 2;
+        }
+
+        .moe24-divider-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8mm;
+          margin-top: 13mm;
+          border-top: 1px solid var(--moe24-line);
+          padding-top: 6mm;
+        }
+
+        .moe24-divider-stat strong {
+          display: block;
+          color: var(--moe24-navy);
+          font-size: 24px;
+          font-weight: 800;
+        }
+
+        .moe24-divider-stat span {
+          display: block;
+          margin-top: 1mm;
+          color: var(--moe24-muted);
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .moe24-report-title {
+          position: relative;
+          margin-bottom: 7mm;
+          border-bottom: 1px solid var(--moe24-line);
+          padding-bottom: 5mm;
+        }
+
+        .moe24-report-title::after {
+          content: "";
+          position: absolute;
+          right: 0;
+          bottom: -1px;
+          width: 56mm;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            var(--moe24-blue),
+            var(--moe24-green)
+          );
+        }
+
+        .moe24-report-title span {
+          color: var(--moe24-gold);
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .moe24-report-title h1 {
+          max-width: 150mm;
+          margin: 1.5mm 0 0;
+          color: var(--moe24-navy);
+          font-size: 27px;
+          font-weight: 800;
+          line-height: 1.3;
+        }
+
+        .moe24-report-title small {
+          position: absolute;
+          top: 1mm;
+          left: 0;
+          color: var(--moe24-muted);
+          font-size: 8px;
+          font-weight: 700;
+        }
+
+        .moe24-report-sections {
+          display: grid;
+          gap: 6mm;
+        }
+
+        .moe24-report-section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .moe24-report-section h2 {
+          margin: 0 0 3mm;
+          color: var(--moe24-navy);
+          font-size: 15px;
+          font-weight: 800;
+        }
+
+        .moe24-report-section h2::after {
+          content: "";
+          display: inline-block;
+          width: 12mm;
+          height: 1px;
+          margin-inline-start: 3mm;
+          vertical-align: middle;
+          background: var(--moe24-gold);
+        }
+
+        .moe24-report-detail-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 8mm;
+          border-top: 1px solid var(--moe24-line);
+        }
+
+        .moe24-report-field {
+          min-height: 15mm;
+          border-bottom: 1px solid var(--moe24-line);
+          padding: 3mm 0;
+        }
+
+        .moe24-report-field-wide {
+          grid-column: 1 / -1;
+        }
+
+        .moe24-report-field span {
+          display: block;
+          color: var(--moe24-muted);
+          font-size: 8.5px;
+          font-weight: 700;
+        }
+
+        .moe24-report-field strong {
+          display: block;
+          margin-top: 1.5mm;
+          color: var(--moe24-ink);
+          font-size: 10.5px;
+          font-weight: 700;
+          line-height: 1.7;
+        }
+
+        .moe24-report-list {
+          margin: 0;
+          padding-inline-start: 5mm;
+        }
+
+        .moe24-report-narrative {
+          margin: 0;
+          border-inline-start: 1.2mm solid var(--moe24-teal);
+          padding: 1mm 5mm 1mm 0;
+          color: var(--moe24-ink);
+          font-size: 10.5px;
+          font-weight: 600;
+          line-height: 1.9;
+          white-space: pre-wrap;
+        }
+
+        .moe24-evidence-grid {
+          display: grid;
+          gap: 5mm;
+        }
+
+        .moe24-evidence-figure {
+          margin: 0;
+          overflow: hidden;
+          border-radius: 4mm;
+          background: transparent;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .moe24-evidence-figure img {
+          display: block;
+          width: 100%;
+          border: 0;
+          border-radius: 4mm;
+          background: transparent;
+        }
+
+        .moe24-file-attachment {
+          display: grid;
+          min-height: 24mm;
+          place-items: center;
+          border: 1px solid var(--moe24-line);
+          color: var(--moe24-navy);
+          font-size: 10px;
+          font-weight: 800;
+          text-decoration: none;
+        }
+
+        .moe24-file-attachment-large {
+          min-height: 80mm;
+          margin-top: 10mm;
+        }
+
+        .moe24-custom-evidence-image {
+          display: block;
+          width: 100%;
+          max-height: 205mm;
+          margin-top: 8mm;
+          border-radius: 4mm;
+          object-fit: contain;
+        }
+
+        .moe24-conclusion {
+          background: var(--moe24-navy);
+          color: #ffffff;
+        }
+
+        .moe24-conclusion .moe24-brand-rule,
+        .moe24-conclusion .moe24-page-header {
+          display: none;
+        }
+
+        .moe24-conclusion .moe24-page-body {
+          display: grid;
+          align-content: center;
+          padding: 28mm 28mm;
+        }
+
+        .moe24-conclusion-label {
+          color: var(--moe24-gold);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .moe24-conclusion h2 {
+          max-width: 150mm;
+          margin: 4mm 0 0;
+          color: #ffffff;
+          font-size: 38px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .moe24-conclusion p {
+          max-width: 145mm;
+          margin: 9mm 0 0;
+          color: rgba(255, 255, 255, 0.88);
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 2.1;
+          white-space: pre-wrap;
+        }
+
+        .moe24-conclusion .moe24-page-footer {
+          border-top-color: rgba(255, 255, 255, 0.24);
+          color: rgba(255, 255, 255, 0.72);
+        }
+
+        .moe24-conclusion .moe24-page-footer::before {
+          background: linear-gradient(
+            90deg,
+            var(--moe24-blue),
+            var(--moe24-green)
+          );
+        }
+
+        .moe24-conclusion .moe24-page-number::before {
+          color: #ffffff;
+        }
+
+        @media screen and (max-width: 900px) {
+          .moe24-page {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      <MoePage sectionLabel="الغلاف" className="moe24-cover" style={{ order: -10000 }}>
+        <div className="moe24-cover-mark" aria-hidden="true" />
+        <p className="moe24-cover-kicker">وزارة التعليم · ملف مهني موثق</p>
+        <h1>{data.portfolio.title}</h1>
+        <p className="moe24-cover-subtitle">
+          {data.owner.jobTitle} · {data.portfolio.term}
+        </p>
+
+        <div className="moe24-cover-details">
+          <div>
+            <span>صاحب الملف</span>
+            <strong>{data.owner.name}</strong>
+          </div>
+
+          {data.portfolio.preferences.showSchoolName ? (
+            <div>
+              <span>المدرسة</span>
+              <strong>{data.school.name}</strong>
+            </div>
+          ) : null}
+
+          <div>
+            <span>العام الدراسي</span>
+            <strong>{data.portfolio.academicYear}</strong>
+          </div>
+
+          <div>
+            <span>الفصل الدراسي</span>
+            <strong>{data.portfolio.term}</strong>
+          </div>
+        </div>
+      </MoePage>
+
+      {data.portfolio.preferences.showTableOfContents ? (
+        <MoePage sectionLabel="الفهرس" style={{ order: -9999 }}>
+          <SectionHeading eyebrow="المحتويات" title="فهرس الملف" />
+
+          <div className="moe24-index">
+            {data.sections
+              .filter((section) => section.isEnabled)
+              .sort((first, second) => first.sortOrder - second.sortOrder)
+              .map((section, index) => (
+                <div key={section.id} className="moe24-index-row">
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{section.title}</strong>
+                  <span>قسم</span>
+                </div>
+              ))}
+          </div>
+        </MoePage>
+      ) : null}
+
+      {sectionEnabled("introduction") ? (
+        <div style={{ order: sectionOrder("introduction") }}>
+          <MoePage sectionLabel="المقدمة">
+            <SectionHeading
+              eyebrow="مدخل الملف"
+              title="المقدمة"
+              description={
+                data.portfolio.introText ||
+                "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي."
+              }
+            />
+
+            {hasIntroIdentity ? (
+              <>
+                {educationIdentity.vision || educationIdentity.mission ? (
+                  <div className="moe24-intro-grid">
+                    {educationIdentity.vision ? (
+                      <IntroFeature
+                        title="الرؤية"
+                        text={educationIdentity.vision}
+                        tone="blue"
+                      />
+                    ) : null}
+
+                    {educationIdentity.mission ? (
+                      <IntroFeature
+                        title="الرسالة"
+                        text={educationIdentity.mission}
+                        tone="green"
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {educationIdentity.pillars.length ||
+                educationIdentity.values.length ? (
+                  <div className="moe24-identity-columns">
+                    {educationIdentity.pillars.length ? (
+                      <section className="moe24-identity-list moe24-identity-list-pillars">
+                        <div className="moe24-identity-list-header">
+                          <span className="moe24-identity-list-mark" aria-hidden="true" />
+                          <div>
+                            <h3>المحاور</h3>
+                            <p className="moe24-identity-list-subtitle">مرتكزات العمل التعليمي</p>
+                          </div>
+                        </div>
+                        <ol>
+                          {educationIdentity.pillars.map((item, index) => (
+                            <li key={`pillar-${index}`}>{item}</li>
+                          ))}
+                        </ol>
+                      </section>
+                    ) : null}
+
+                    {educationIdentity.values.length ? (
+                      <section className="moe24-identity-list moe24-identity-list-values">
+                        <div className="moe24-identity-list-header">
+                          <span className="moe24-identity-list-mark" aria-hidden="true" />
+                          <div>
+                            <h3>القيم</h3>
+                            <p className="moe24-identity-list-subtitle">قيم تقود الممارسة المهنية</p>
+                          </div>
+                        </div>
+                        <ol>
+                          {educationIdentity.values.map((item, index) => (
+                            <li key={`value-${index}`}>{item}</li>
+                          ))}
+                        </ol>
+                      </section>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </MoePage>
+
+          {educationIdentity.strategicObjectives.length ? (
+            <MoePage sectionLabel="الأهداف الاستراتيجية">
+              <SectionHeading
+                eyebrow="الهوية التعليمية"
+                title="الأهداف الاستراتيجية"
+              />
+              <ol className="moe24-objectives">
+                {educationIdentity.strategicObjectives.map(
+                  (objective, index) => (
+                    <li key={`objective-${index}`}>{objective}</li>
+                  ),
+                )}
+              </ol>
+            </MoePage>
+          ) : null}
+        </div>
+      ) : null}
+
+      {sectionEnabled("profile") ? (
+        <MoePage
+          sectionLabel="السيرة المهنية"
+          style={{ order: sectionOrder("profile") }}
+        >
+          <SectionHeading eyebrow="صاحب الملف" title="السيرة المهنية" />
+
+          <div className="moe24-profile-grid">
+            <InfoRow label="الاسم" value={data.owner.name} />
+            <InfoRow label="المسمى الوظيفي" value={data.owner.jobTitle} />
+
+            {data.portfolio.preferences.showSchoolName ? (
+              <InfoRow label="المدرسة" value={data.school.name} />
+            ) : null}
+
+            {data.portfolio.preferences.showPrincipalName ? (
+              <InfoRow
+                label="مدير المدرسة"
+                value={data.school.principalName || "غير محدد"}
+              />
+            ) : null}
+          </div>
+
+          {data.biography.professionalSummary ? (
+            <p className="moe24-profile-summary">
+              {data.biography.professionalSummary}
+            </p>
+          ) : null}
+
+          <div className="moe24-profile-grid">
+            <InfoRow
+              label="التخصص"
+              value={data.biography.specialization}
+            />
+            <InfoRow
+              label="المؤهل العلمي"
+              value={data.biography.academicQualification}
+            />
+            <InfoRow
+              label="سنوات الخبرة"
+              value={data.biography.yearsOfExperience}
+            />
+            <InfoRow label="المهارات" value={data.biography.skills} />
+            <InfoRow
+              label="الاهتمامات المهنية"
+              value={data.biography.professionalInterests}
+            />
+          </div>
+        </MoePage>
+      ) : null}
+
+      {sectionEnabled("qualifications") ? (
+        <div style={{ order: sectionOrder("qualifications") }}>
+          {visibleQualifications.map((item) => (
+            <QualificationPage key={item.id} data={data} item={item} />
+          ))}
+        </div>
+      ) : null}
+
+      {enabledSections.map((section, index) => (
+        <div key={section.key} style={{ order: section.sortOrder }}>
+          {data.portfolio.preferences.showPerformanceDividers ? (
+            <MoePage
+              sectionLabel={section.title}
+              className="moe24-divider"
+            >
+              <div className="moe24-divider-content">
+                <span className="moe24-divider-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h2>{section.title}</h2>
+                {section.intro ? <p>{section.intro}</p> : null}
+
+                <div className="moe24-divider-stats">
+                  <div className="moe24-divider-stat">
+                    <strong>{section.weight}%</strong>
+                    <span>الوزن النسبي</span>
+                  </div>
+                  <div className="moe24-divider-stat">
+                    <strong>{section.reports.length}</strong>
+                    <span>التقارير</span>
+                  </div>
+                  <div className="moe24-divider-stat">
+                    <strong>
+                      {section.reports.reduce(
+                        (total, report) => total + report.evidenceCount,
+                        0,
+                      )}
+                    </strong>
+                    <span>الشواهد</span>
+                  </div>
+                </div>
+              </div>
+            </MoePage>
+          ) : null}
+
+          {section.reports.map((report) =>
+            report.content ? (
+              <MoeReportPages key={report.id} report={report.content} />
+            ) : null,
+          )}
+
+          {data.customEvidence
+            .filter(
+              (item) =>
+                item.sectionId === section.id &&
+                item.isVisible &&
+                item.fileUrl,
+            )
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((item) => (
+              <CustomEvidencePage
+                key={item.id}
+                item={item}
+                label={section.title}
+              />
+            ))}
+        </div>
+      ))}
+
+      {data.customEvidence
+        .filter((item) => !item.sectionId && item.isVisible && item.fileUrl)
+        .sort((first, second) => first.sortOrder - second.sortOrder)
+        .map((item) => (
+          <CustomEvidencePage
+            key={item.id}
+            item={item}
+            label="شاهد مستقل"
+          />
+        ))}
+
+      {sectionEnabled("closing") ? (
+        <MoePage
+          sectionLabel="الخاتمة"
+          className="moe24-conclusion"
+          style={{ order: sectionOrder("closing") }}
+        >
+          <span className="moe24-conclusion-label">ختام الملف</span>
+          <h2>الخاتمة</h2>
+          <p>
+            {data.portfolio.conclusionText ||
+              "ختامًا، يمثل هذا الملف توثيقًا مهنيًا لأبرز الإنجازات وفرص التطوير القادمة."}
+          </p>
+        </MoePage>
+      ) : null}
+    </div>
+  );
+}

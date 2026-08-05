@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
-import { buildPortfolioReportPages, cleanPortfolioEvidenceTitle, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
+import { buildPortfolioReportPages, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 
 function renderFieldValue(value: string | string[]) {
@@ -210,20 +210,6 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
                     );
                   }
 
-                  if (section.kind === "evidence-empty") {
-                    return (
-                      <section
-                        key={`evidence-empty-${page.key}-${sectionIndex}`}
-                        className="portfolio-report-section"
-                      >
-                        <h2>الشواهد والمرفقات</h2>
-                        <div className="portfolio-report-empty">
-                          لا توجد شواهد أو مرفقات في هذا التقرير.
-                        </div>
-                      </section>
-                    );
-                  }
-
                   return (
                     <section
                       key={`evidence-${page.key}-${sectionIndex}`}
@@ -235,8 +221,7 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
                         className="portfolio-report-evidence-grid"
                         style={{ gridTemplateColumns: evidenceGridColumns }}
                       >
-                        {section.items.map((item, index) => {
-                          const title = cleanPortfolioEvidenceTitle(item.title, index);
+                        {section.items.map((item) => {
                           const isImage =
                             item.type === "IMAGE" ||
                             Boolean(item.url && /\.(png|jpe?g|webp|gif|svg)$/i.test(item.url));
@@ -245,36 +230,37 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
                             <figure
                               key={item.id}
                               className="portfolio-report-evidence-card"
-                              style={{
-                                minHeight: report.evidenceSettings.showCaptions
-                                  ? `${evidenceImageHeightMm + 9}mm`
-                                  : `${evidenceImageHeightMm}mm`,
-                              }}
+                              style={{ minHeight: `${evidenceImageHeightMm}mm` }}
                             >
                               {isImage && item.url ? (
                                 <img
                                   src={item.url}
-                                  alt={title}
+                                  alt={item.title?.trim() || "صورة مرفقة"}
                                   style={{
                                     height: `${evidenceImageHeightMm}mm`,
                                     objectFit: report.evidenceSettings.fit,
                                   }}
                                 />
                               ) : (
-                                <div
-                                  className="portfolio-report-file-card"
-                                  style={{ height: `${evidenceImageHeightMm}mm` }}
-                                >
-                                  {item.url ? "ملف مرفق" : "مرفق بدون رابط"}
-                                </div>
+                                item.url ? (
+                                  <a
+                                    className="portfolio-report-file-card"
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ height: `${evidenceImageHeightMm}mm` }}
+                                  >
+                                    فتح الملف المرفق
+                                  </a>
+                                ) : (
+                                  <div
+                                    className="portfolio-report-file-card"
+                                    style={{ height: `${evidenceImageHeightMm}mm` }}
+                                  >
+                                    مرفق بدون رابط
+                                  </div>
+                                )
                               )}
-
-                              {report.evidenceSettings.showCaptions ? (
-                                <figcaption>
-                                  {title}
-                                  {item.description ? <small style={{ display: "block", marginTop: 3, color: "#64748b" }}>{item.description}</small> : null}
-                                </figcaption>
-                              ) : null}
                             </figure>
                           );
                         })}
@@ -1155,41 +1141,36 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
 
         .portfolio-report-evidence-card {
           margin: 0;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          overflow: hidden;
-          background: white;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          overflow: visible;
+          background: transparent;
+          box-shadow: none;
           break-inside: avoid;
         }
 
         .portfolio-report-evidence-card img {
           width: 100%;
           object-fit: contain;
-          background: #f8fafc;
+          border: 0;
+          border-radius: 18px;
+          background: transparent;
+          box-shadow: none;
           display: block;
-        }
-
-        .portfolio-report-evidence-card figcaption {
-          max-height: 12mm;
-          overflow: hidden;
-          border-top: 1px solid #f1f5f9;
-          padding: 6px 10px;
-          color: #475569;
-          font-size: 10px;
-          font-weight: 800;
-          line-height: 1.5;
-          text-align: center;
         }
 
         .portfolio-report-file-card {
           display: grid;
           place-items: center;
-          background: #f8fafc;
+          border-block: 1px solid #e2e8f0;
+          background: transparent;
           color: #64748b;
           font-size: 12px;
           font-weight: 950;
           text-align: center;
-          padding: 8px;
+          padding: 8px 0;
+          text-decoration: none;
         }
 
         @media screen and (max-width: 900px) {
@@ -1467,6 +1448,478 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
             print-color-adjust: exact !important;
           }
         }
+        /* PORTFOLIO OBJECTIVES SPACING FIX */
+
+        .portfolio-objectives-page .portfolio-page-body {
+          padding-top: 15mm;
+        }
+
+        .portfolio-objectives-page .portfolio-section-heading {
+          margin-top: 5mm;
+          margin-bottom: 8mm;
+        }
+
+        .portfolio-objectives-page .portfolio-objectives-list {
+          margin-top: 7mm;
+        }
+        /* PORTFOLIO OBJECTIVES ACTUAL POSITION FIX */
+
+        .portfolio-objectives-page .portfolio-section-heading,
+        .portfolio-objectives-page .portfolio-objectives-list {
+          position: relative;
+          transform: translateY(14mm);
+        }
+
+        .portfolio-objectives-page .portfolio-section-heading {
+          margin-bottom: 6mm;
+        }
+
+        .portfolio-objectives-page .portfolio-objectives-list {
+          margin-top: 0;
+        }
+        /* PORTFOLIO OBJECTIVES BADGE SPACING FIX */
+
+        .portfolio-objectives-page .portfolio-section-heading {
+          padding-top: 7mm;
+        }
+
+        .portfolio-objectives-page .portfolio-section-kicker {
+          display: inline-flex;
+          margin-top: 4mm;
+          margin-bottom: 3mm;
+        }
+
+        .portfolio-objectives-page .portfolio-section-heading h2 {
+          margin-top: 0;
+        }
+        /* PORTFOLIO INTRODUCTION SINGLE PAGE */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 7mm;
+          padding-bottom: 29mm;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          font-size: 24px;
+          line-height: 1.3;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          margin-top: 2.5mm;
+          font-size: 9.2px;
+          line-height: 1.75;
+        }
+
+        .portfolio-introduction-page .portfolio-education-identity {
+          margin-top: 4mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-grid {
+          gap: 3.5mm;
+          padding-top: 3mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card {
+          min-height: 38mm;
+          border-radius: 3.5mm;
+          padding: 3.5mm 4mm 4mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-icon {
+          width: 8mm;
+          height: 8mm;
+          flex-basis: 8mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-icon svg {
+          width: 4.2mm;
+          height: 4.2mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-label {
+          font-size: 7px;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card h3 {
+          font-size: 12px;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card p {
+          margin-top: 2.5mm;
+          font-size: 8px;
+          line-height: 1.65;
+          text-align: right;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-quote {
+          top: -1mm;
+          left: 3mm;
+          font-size: 24mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-lists {
+          gap: 3.5mm;
+          margin-top: 3.5mm;
+          padding-top: 0;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list {
+          min-height: 31mm;
+          border-radius: 3.5mm;
+          padding: 3mm 4mm 3.5mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list h3 {
+          margin-bottom: 1.5mm;
+          font-size: 11px;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list h3::before {
+          width: 6mm;
+          height: 6mm;
+          flex-basis: 6mm;
+          font-size: 8px;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list ul,
+        .portfolio-introduction-page .portfolio-identity-list ol {
+          gap: 0;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list li {
+          min-height: 4.6mm;
+          padding: 0.7mm 4mm 0.7mm 0;
+          font-size: 7.3px;
+          line-height: 1.4;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list li::before {
+          top: 1.7mm;
+          width: 1.7mm;
+          height: 1.7mm;
+        }
+
+        .portfolio-objectives-inline {
+          margin-top: 4mm;
+          border-top: 1px solid rgba(47, 109, 75, 0.2);
+          padding-top: 3mm;
+        }
+
+        .portfolio-objectives-inline-heading {
+          display: flex;
+          align-items: center;
+          gap: 2.5mm;
+          margin-bottom: 3mm;
+        }
+
+        .portfolio-objectives-inline-icon {
+          display: grid;
+          width: 8mm;
+          height: 8mm;
+          flex: 0 0 8mm;
+          place-items: center;
+          border-radius: 50%;
+          background: #2f6d4b;
+          color: #ffffff;
+          font-size: 10px;
+          font-weight: 950;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .portfolio-objectives-inline-heading span:not(.portfolio-objectives-inline-icon) {
+          display: block;
+          color: #6f9f81;
+          font-size: 7px;
+          font-weight: 900;
+        }
+
+        .portfolio-objectives-inline-heading h3 {
+          margin: 0.4mm 0 0;
+          color: #20372d;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 2mm 3mm;
+          margin: 0;
+          padding: 0;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list li {
+          min-height: 10mm;
+          border-radius: 2.5mm;
+          padding: 2mm 9mm 2mm 2.5mm;
+          font-size: 7.2px;
+          line-height: 1.4;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list li::before {
+          right: 2mm;
+          width: 5.5mm;
+          height: 5.5mm;
+          font-size: 6px;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list li::after {
+          width: 0.8mm;
+        }
+
+        @media print {
+          .portfolio-objectives-inline-icon,
+          .portfolio-objectives-inline .portfolio-objectives-list li,
+          .portfolio-objectives-inline .portfolio-objectives-list li::before,
+          .portfolio-objectives-inline .portfolio-objectives-list li::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+        /* PORTFOLIO INTRODUCTION LARGE TYPOGRAPHY FIX */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 18mm;
+          padding-bottom: 29mm;
+        }
+
+        .portfolio-introduction-page .portfolio-section-heading {
+          margin-top: 5mm;
+          margin-bottom: 5mm;
+        }
+
+        .portfolio-introduction-page .portfolio-section-kicker {
+          margin-bottom: 2.5mm;
+          padding: 1.8mm 4mm;
+          font-size: 11px;
+          line-height: 1.3;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          margin-top: 0;
+          font-size: 32px;
+          line-height: 1.25;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          margin-top: 3mm;
+          font-size: 14px;
+          font-weight: 750;
+          line-height: 1.8;
+        }
+
+        .portfolio-introduction-page .portfolio-education-identity {
+          margin-top: 4mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-grid {
+          gap: 3.5mm;
+          padding-top: 2mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card {
+          min-height: 39mm;
+          padding: 3.5mm 4mm 4mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-label {
+          font-size: 10px;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card h3 {
+          font-size: 17px;
+          line-height: 1.35;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-feature-card p {
+          margin-top: 2.5mm;
+          font-size: 12px;
+          font-weight: 750;
+          line-height: 1.65;
+          text-align: right;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list {
+          min-height: 32mm;
+          padding: 3mm 4mm 3.5mm;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list h3 {
+          margin-bottom: 1.5mm;
+          font-size: 16px;
+          line-height: 1.35;
+        }
+
+        .portfolio-introduction-page .portfolio-identity-list li {
+          min-height: 4.8mm;
+          padding: 0.6mm 4mm 0.6mm 0;
+          font-size: 10.5px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .portfolio-objectives-inline {
+          margin-top: 3mm;
+          padding-top: 2.5mm;
+        }
+
+        .portfolio-objectives-inline-heading {
+          margin-bottom: 2.5mm;
+        }
+
+        .portfolio-objectives-inline-heading span:not(.portfolio-objectives-inline-icon) {
+          font-size: 9px;
+        }
+
+        .portfolio-objectives-inline-heading h3 {
+          font-size: 17px;
+          line-height: 1.3;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list {
+          gap: 1.8mm 3mm;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list li {
+          min-height: 9.5mm;
+          padding: 1.8mm 8.5mm 1.8mm 2.5mm;
+          font-size: 10px;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+
+        .portfolio-objectives-inline .portfolio-objectives-list li::before {
+          width: 5.5mm;
+          height: 5.5mm;
+          font-size: 7px;
+        }
+        /* PORTFOLIO INTRODUCTION HEADING ALIGNMENT FIX */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 18mm;
+        }
+
+        .portfolio-introduction-page .portfolio-section-heading {
+          position: relative;
+          display: flex;
+          width: 100%;
+          flex-direction: column;
+          align-items: flex-start;
+          margin: 0 0 5mm;
+          padding: 0;
+          transform: none;
+          text-align: right;
+        }
+
+        .portfolio-introduction-page .portfolio-section-kicker {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 0 2.5mm;
+          padding: 1.8mm 4mm;
+          transform: none;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          transform: none;
+          text-align: right;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          width: 100%;
+          margin: 3mm 0 0;
+          text-align: right;
+        }
+
+        .portfolio-introduction-page .portfolio-education-identity {
+          margin-top: 5mm;
+        }
+        /* PORTFOLIO INTRODUCTION REAL VERTICAL POSITION FIX */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 0 !important;
+        }
+
+        .portfolio-introduction-page .portfolio-page-body > .portfolio-section-heading {
+          margin-top: 24mm !important;
+          margin-bottom: 4mm !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-kicker {
+          margin: 0 0 3mm !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          margin: 0 !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          margin-top: 4mm !important;
+        }
+
+        .portfolio-introduction-page .portfolio-education-identity {
+          margin-top: 6mm !important;
+        }
+        /* PORTFOLIO INTRODUCTION REAL VERTICAL POSITION FIX */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 0 !important;
+        }
+
+        .portfolio-introduction-page .portfolio-page-body > .portfolio-section-heading {
+          margin-top: 24mm !important;
+          margin-bottom: 4mm !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-kicker {
+          margin: 0 0 3mm !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          margin: 0 !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          margin-top: 4mm !important;
+        }
+
+        .portfolio-introduction-page .portfolio-education-identity {
+          margin-top: 6mm !important;
+        }
+        /* PORTFOLIO INTRODUCTION HEADER OVERLAP FINAL FIX */
+
+        .portfolio-introduction-page .portfolio-page-body {
+          padding-top: 31mm !important;
+        }
+
+        .portfolio-introduction-page .portfolio-page-body > .portfolio-section-heading {
+          margin-top: 0 !important;
+          margin-bottom: 5mm !important;
+          transform: none !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-kicker {
+          margin-top: 0 !important;
+          margin-bottom: 3mm !important;
+        }
+
+        .portfolio-introduction-page .portfolio-section-title {
+          margin: 0 !important;
+        }
+
+        .portfolio-introduction-page .portfolio-introduction-text {
+          margin-top: 4mm !important;
+        }
       `}</style>
 
       <section className="portfolio-page portfolio-cover-page" style={{ order: -10000 }}>
@@ -1491,7 +1944,7 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
             <div className="portfolio-stat-grid">
               <div className="portfolio-stat">
                 <strong>{enabledSections.length}</strong>
-                <span>عنصر أداء</span>
+                <span>أقسام الأداء</span>
               </div>
               <div className="portfolio-stat">
                 <strong>{data.totals.reports}</strong>
@@ -1594,15 +2047,26 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
                 {educationIdentity.pillars.length ? <section className="portfolio-identity-list"><h3>المحاور</h3><ol>{educationIdentity.pillars.map((item, index) => <li key={`pillar-${index}`}>{item}</li>)}</ol></section> : null}
                 {educationIdentity.values.length ? <section className="portfolio-identity-list"><h3>القيم</h3><ol>{educationIdentity.values.map((item, index) => <li key={`value-${index}`}>{item}</li>)}</ol></section> : null}
               </div> : null}
+
+              {educationIdentity.strategicObjectives.length ? (
+                <section className="portfolio-objectives-inline">
+                  <div className="portfolio-objectives-inline-heading">
+                    <span className="portfolio-objectives-inline-icon" aria-hidden="true">✓</span>
+                    <div>
+                      <span>الهوية التعليمية</span>
+                      <h3>الأهداف الاستراتيجية</h3>
+                    </div>
+                  </div>
+
+                  <ol className="portfolio-objectives-list">
+                    {educationIdentity.strategicObjectives.map((objective, index) => (
+                      <li key={`objective-${index}`}>{objective}</li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
             </div> : null}
           </PageShell>
-          {educationIdentity.strategicObjectives.length ? <PageShell pageLabel="المقدمة" className="portfolio-objectives-page">
-            <div className="portfolio-objectives-heading">
-              <span className="portfolio-section-kicker">الهوية التعليمية</span>
-              <h2 className="portfolio-section-title">الأهداف الاستراتيجية</h2>
-            </div>
-            <ol className="portfolio-objectives-list">{educationIdentity.strategicObjectives.map((objective, index) => <li key={`objective-${index}`}>{objective}</li>)}</ol>
-          </PageShell> : null}
         </div>
       ) : null}
 
@@ -1642,13 +2106,12 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
         </div>
       ) : null}
 
-      {enabledSections.map((section, index) => (
+      {enabledSections.map((section) => (
         <div key={section.key} style={{ order: section.sortOrder }}>
           {data.portfolio.preferences.showPerformanceDividers ? (
-          <PageShell pageLabel={`عنصر أداء ${index + 1}`} className="portfolio-divider-page">
+          <PageShell pageLabel={section.title} className="portfolio-divider-page">
             <div className="portfolio-divider-hero">
               <div>
-                <span className="portfolio-section-kicker">عنصر أداء</span>
                 <h2>{section.title}</h2>
                 <p>{section.intro}</p>
 

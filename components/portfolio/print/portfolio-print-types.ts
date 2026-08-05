@@ -105,8 +105,7 @@ export type PortfolioPrintData = {
 export type PortfolioReportSectionModel =
   | { kind: "details"; fields: PortfolioReportContent["normalizedFields"] }
   | { kind: "narrative"; body: string }
-  | { kind: "evidence"; items: PortfolioReportContent["evidenceItems"] }
-  | { kind: "evidence-empty" };
+  | { kind: "evidence"; items: PortfolioReportContent["evidenceItems"] };
 
 export type PortfolioReportPageModel = {
   key: string;

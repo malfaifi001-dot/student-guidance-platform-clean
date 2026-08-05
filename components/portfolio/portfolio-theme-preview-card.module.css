@@ -13,3 +13,13 @@
 .preview-ministry .panelB { left:18%; bottom:18px; width:28%; height:28px; }
 .preview-ministry .panelC,.preview-ministry .line { display:none; }
 .preview-ministry .page { left:15px; bottom:13px; }
+.preview-moe-official-2024 { background:#fff; border-color:color-mix(in srgb,var(--mini-primary) 20%,white); }
+.preview-moe-official-2024 .ornament { top:0; right:0; left:0; height:8px; background:linear-gradient(90deg,#3d7eb9,var(--mini-accent),var(--mini-secondary)); }
+.preview-moe-official-2024 .title { top:28px; right:18px; width:52%; height:10px; background:var(--mini-primary); }
+.preview-moe-official-2024 .subtitle { top:45px; right:18px; width:25%; height:3px; background:var(--mini-accent); opacity:1; }
+.preview-moe-official-2024 .panel { bottom:32px; height:55px; border:0; border-top:1px solid color-mix(in srgb,var(--mini-primary) 18%,white); border-bottom:1px solid color-mix(in srgb,var(--mini-primary) 12%,white); background:linear-gradient(#fff,var(--mini-muted)); }
+.preview-moe-official-2024 .panelA { right:18px; width:calc(50% - 23px); }
+.preview-moe-official-2024 .panelB { left:18px; width:calc(50% - 23px); }
+.preview-moe-official-2024 .panelC { display:none; }
+.preview-moe-official-2024 .line { right:18px; bottom:17px; width:calc(100% - 36px); height:1px; background:color-mix(in srgb,var(--mini-primary) 32%,white); }
+.preview-moe-official-2024 .page { left:18px; bottom:10px; width:13px; height:4px; background:var(--mini-primary); opacity:.7; }
