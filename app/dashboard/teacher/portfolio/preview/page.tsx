@@ -1,31 +1,25 @@
 import { redirect } from "next/navigation";
 
-import { MinistryElegantPortfolioPrint } from "@/components/portfolio/print/ministry-elegant-portfolio-print";
-import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
-import { requireDashboardUser } from "@/lib/auth/require-auth";
-import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+type TeacherPortfolioPreviewPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function TeacherPortfolioPreviewPage() {
-  const current = await requireDashboardUser();
+export default async function TeacherPortfolioPreviewPage({
+  searchParams,
+}: TeacherPortfolioPreviewPageProps) {
+  const query = await searchParams;
+  const targetParams = new URLSearchParams();
 
-  if (current.user.role === "ADMIN") {
-    redirect("/dashboard/admin");
+  for (const [key, value] of Object.entries(query)) {
+    if (key === "print") continue;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => targetParams.append(key, item));
+    } else if (value !== undefined) {
+      targetParams.append(key, value);
+    }
   }
 
-  if (current.user.role !== "TEACHER") {
-    redirect("/dashboard");
-  }
-
-  const workspace = await getTeacherPortfolioWorkspace(current.user);
-
-  if (!workspace.ok) {
-    redirect("/dashboard/onboarding?required=true");
-  }
-
-  return (
-    <>
-      <PortfolioPrintActions />
-      <MinistryElegantPortfolioPrint data={workspace} />
-    </>
-  );
+  const queryString = targetParams.toString();
+  redirect(`/teacher/portfolio/print${queryString ? `?${queryString}` : ""}`);
 }

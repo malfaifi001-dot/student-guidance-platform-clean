@@ -1,0 +1,2309 @@
+PORTFOLIO INTRODUCTION DESIGN REVIEW
+Generated: 2026-08-05 11:21:33
+Project: D:\student-guidance-platform-clean
+
+===== GIT STATUS =====
+ M app/dashboard/teacher/portfolio/page.tsx
+ M app/dashboard/teacher/portfolio/preview/page.tsx
+ M components/portfolio/portfolio-dashboard.tsx
+ M components/portfolio/print/ministry-elegant-portfolio-print.tsx
+ M components/portfolio/print/portfolio-print-actions.tsx
+ M components/report-engine/report-document-renderer.tsx
+ M lib/portfolio/portfolio-read-model.ts
+ M lib/portfolio/portfolio-report-content.ts
+ M lib/portfolio/portfolio-theme-registry.ts
+ M tsconfig.tsbuildinfo
+?? app/api/dashboard/portfolio/
+?? app/teacher/portfolio/
+?? assessment-print-pattern.txt
+?? components/portfolio/portfolio-content-panel.tsx
+?? components/portfolio/portfolio-design-panel.tsx
+?? components/portfolio/portfolio-feedback-pop-card.tsx
+?? components/portfolio/portfolio-qualifications-panel.tsx
+?? components/portfolio/portfolio-reports-evidence-panel.tsx
+?? components/portfolio/portfolio-sections-panel.tsx
+?? components/portfolio/portfolio-settings-panel.tsx
+?? components/portfolio/portfolio-theme-preview-card.module.css
+?? components/portfolio/portfolio-theme-preview-card.tsx
+?? components/portfolio/portfolio-workspace.tsx
+?? components/portfolio/print/portfolio-print-document.tsx
+?? components/portfolio/print/portfolio-print-pagination.ts
+?? components/portfolio/print/portfolio-print-types.ts
+?? lib/portfolio/portfolio-api.ts
+?? lib/portfolio/portfolio-authorization.ts
+?? lib/portfolio/portfolio-image-upload.ts
+?? lib/portfolio/portfolio-report-service.ts
+?? lib/portfolio/portfolio-service.ts
+?? lib/portfolio/portfolio-types.ts
+?? portfolio-feature-review.txt
+?? portfolio-print-code.txt
+?? portfolio-print-components.txt
+?? portfolio-themes-review.txt
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-0439f849-8879-4ec5-a2be-0c9a4e924d1d.jpg
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-dbb22f8f-c44f-44eb-8082-b0fdaf0f380e.jpg
+?? public/uploads/portfolio/
+
+===== MATCHED FILES =====
+app\api\dashboard\portfolio\[portfolioId]\route.ts
+components\portfolio\portfolio-content-panel.tsx
+components\portfolio\portfolio-feedback-pop-card.tsx
+components\portfolio\portfolio-workspace.tsx
+components\portfolio\print\ministry-elegant-portfolio-print.tsx
+components\portfolio\print\portfolio-print-document.tsx
+components\portfolio\print\themes\portfolio-theme-ornaments.tsx
+lib\portfolio\portfolio-api.ts
+lib\portfolio\portfolio-read-model.ts
+lib\portfolio\portfolio-service.ts
+lib\portfolio\portfolio-types.ts
+
+==============================================================================================================
+FILE: app\api\dashboard\portfolio\[portfolioId]\route.ts
+==============================================================================================================
+import { NextResponse } from "next/server";
+
+import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
+import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { updatePortfolioContent, updatePortfolioSettings } from "@/lib/portfolio/portfolio-service";
+import { portfolioPatchSchema } from "@/lib/portfolio/portfolio-types";
+
+type Context = { params: Promise<{ portfolioId: string }> };
+
+export async function GET(_request: Request, context: Context) {
+  try {
+    const user = await requirePortfolioApiUser();
+    const { portfolioId } = await context.params;
+    const workspace = await getTeacherPortfolioWorkspace(user, portfolioId);
+    return NextResponse.json(workspace);
+  } catch (error) {
+    return portfolioApiError(error);
+  }
+}
+
+export async function PATCH(request: Request, context: Context) {
+  try {
+    const user = await requirePortfolioApiUser();
+    const { portfolioId } = await context.params;
+    const input = portfolioPatchSchema.parse(await request.json());
+
+    if (input.operation === "settings") {
+      await updatePortfolioSettings(user, portfolioId, input);
+    } else {
+      await updatePortfolioContent(user, portfolioId, input);
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return portfolioApiError(error);
+  }
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-content-panel.tsx
+==============================================================================================================
+"use client";
+
+import { ArrowDown, ArrowUp, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+
+import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { portfolioEducationIdentitySchema, type PortfolioEducationIdentity } from "@/lib/portfolio/portfolio-types";
+
+type ListKey = "pillars" | "values" | "strategicObjectives";
+
+const biographyLabels: Array<[keyof TeacherPortfolioWorkspace["biography"], string]> = [
+  ["professionalSummary", "الملخص المهني"],
+  ["specialization", "التخصص"],
+  ["academicQualification", "المؤهل العلمي"],
+  ["yearsOfExperience", "سنوات الخبرة"],
+  ["skills", "المهارات"],
+  ["professionalInterests", "الاهتمامات المهنية"],
+];
+
+function RepeatableList({
+  title,
+  helper,
+  items,
+  maximum,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  helper: string;
+  items: string[];
+  maximum: number;
+  disabled: boolean;
+  onChange: (items: string[]) => void;
+}) {
+  const update = (index: number, value: string) => onChange(items.map((item, itemIndex) => itemIndex === index ? value : item));
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  return <fieldset disabled={disabled} className="space-y-3 rounded-2xl border border-slate-200 p-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><legend className="text-sm font-black text-slate-800">{title}</legend><p className="mt-1 text-xs font-bold leading-5 text-slate-500">{helper}</p></div>
+      <button type="button" disabled={items.length >= maximum} onClick={() => onChange([...items, ""])} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-50 px-3 py-2 text-xs font-black text-teal-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />إضافة</button>
+    </div>
+    {items.length ? <div className="space-y-2">{items.map((item, index) => <div key={`${title}-${index}`} className="flex items-center gap-2">
+      <span className="w-6 shrink-0 text-center text-xs font-black text-slate-400">{index + 1}</span>
+      <input value={item} onChange={(event) => update(index, event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none focus:border-teal-500" aria-label={`${title} ${index + 1}`} />
+      <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`نقل ${title} إلى أعلى`} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+      <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label={`نقل ${title} إلى أسفل`} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+      <button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} aria-label={`حذف ${title}`} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
+    </div>)}</div> : <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500">لا توجد عناصر. يمكنك إضافة أول عنصر.</p>}
+  </fieldset>;
+}
+
+export function PortfolioContentPanel({ data, busy, onSave }: { data: TeacherPortfolioWorkspace; busy: boolean; onSave: (body: unknown) => Promise<void> }) {
+  const [introText, setIntroText] = useState(data.portfolio.introText);
+  const [conclusionText, setConclusionText] = useState(data.portfolio.conclusionText);
+  const [biography, setBiography] = useState(data.biography);
+  const [educationIdentity, setEducationIdentity] = useState<PortfolioEducationIdentity>(() => ({
+    ...data.educationIdentity,
+    pillars: [...data.educationIdentity.pillars],
+    values: [...data.educationIdentity.values],
+    strategicObjectives: [...data.educationIdentity.strategicObjectives],
+  }));
+  const [validationError, setValidationError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submittingRef = useRef(false);
+  const disabled = busy || saving;
+  const biographyField = (key: keyof typeof biography, value: string) => setBiography((current) => ({ ...current, [key]: value }));
+  const identityText = (key: "vision" | "mission", value: string) => setEducationIdentity((current) => ({ ...current, [key]: value }));
+  const identityList = (key: ListKey, items: string[]) => setEducationIdentity((current) => ({ ...current, [key]: items }));
+
+  async function submit() {
+    if (submittingRef.current || busy) return;
+    const parsed = portfolioEducationIdentitySchema.safeParse(educationIdentity);
+    if (!parsed.success) {
+      setValidationError(parsed.error.issues[0]?.message || "تحقق من بيانات الهوية التعليمية.");
+      return;
+    }
+    submittingRef.current = true;
+    setSaving(true);
+    setValidationError("");
+    try {
+      await onSave({ operation: "content", introText, conclusionText, biography, educationIdentity: parsed.data });
+    } catch {
+      // The workspace presents API errors through PortfolioFeedbackPopCard.
+    } finally {
+      submittingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  return <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <div><h2 className="text-xl font-black text-slate-950">المحتوى التعريفي</h2><p className="mt-1 text-sm font-bold text-slate-500">الاسم والمسمى والمدرسة تُقرأ تلقائيًا من الملف الشخصي.</p></div>
+
+    <section className="space-y-3"><div><h3 className="text-base font-black text-slate-900">المقدمة</h3><p className="mt-1 text-xs font-bold text-slate-500">النص الافتتاحي الذي يسبق الهوية التعليمية.</p></div><textarea rows={5} value={introText} disabled={disabled} onChange={(event) => setIntroText(event.target.value)} className="w-full rounded-2xl border border-slate-200 p-4 outline-none focus:border-teal-500 disabled:bg-slate-50" /></section>
+
+    <section className="space-y-4 border-y border-slate-200 py-6">
+      <div><h3 className="text-lg font-black text-slate-950">الهوية التعليمية</h3><p className="mt-1 text-sm font-bold text-slate-500">حرّر الرؤية والرسالة والقوائم، وسيظهر ترتيبها نفسه في صفحات المقدمة.</p></div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="text-sm font-black text-slate-700">الرؤية<textarea rows={5} maxLength={1000} value={educationIdentity.vision} disabled={disabled} onChange={(event) => identityText("vision", event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 p-4 font-bold leading-7 outline-none focus:border-teal-500 disabled:bg-slate-50" /><span className="mt-1 block text-left text-[11px] font-bold text-slate-400">{educationIdentity.vision.length}/1000</span></label>
+        <label className="text-sm font-black text-slate-700">الرسالة<textarea rows={5} maxLength={1200} value={educationIdentity.mission} disabled={disabled} onChange={(event) => identityText("mission", event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 p-4 font-bold leading-7 outline-none focus:border-teal-500 disabled:bg-slate-50" /><span className="mt-1 block text-left text-[11px] font-bold text-slate-400">{educationIdentity.mission.length}/1200</span></label>
+      </div>
+      <RepeatableList title="المحاور" helper="حتى 10 محاور، بحد أقصى 120 حرفًا لكل محور." items={educationIdentity.pillars} maximum={10} disabled={disabled} onChange={(items) => identityList("pillars", items)} />
+      <RepeatableList title="القيم" helper="حتى 12 قيمة، بحد أقصى 100 حرف لكل قيمة." items={educationIdentity.values} maximum={12} disabled={disabled} onChange={(items) => identityList("values", items)} />
+      <RepeatableList title="الأهداف الاستراتيجية" helper="حتى 20 هدفًا، بحد أقصى 220 حرفًا لكل هدف." items={educationIdentity.strategicObjectives} maximum={20} disabled={disabled} onChange={(items) => identityList("strategicObjectives", items)} />
+      {validationError ? <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">{validationError}</p> : null}
+    </section>
+
+    <section className="space-y-4"><div><h3 className="text-base font-black text-slate-900">السيرة المهنية</h3><p className="mt-1 text-xs font-bold text-slate-500">معلومات مهنية مكملة لبيانات الحساب والمدرسة.</p></div><div className="grid gap-4 md:grid-cols-2">{biographyLabels.map(([key, label]) => <label key={key} className={`text-sm font-black text-slate-700 ${key === "professionalSummary" ? "md:col-span-2" : ""}`}>{label}<textarea rows={key === "professionalSummary" ? 4 : 2} value={biography[key]} disabled={disabled} onChange={(event) => biographyField(key, event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 p-4 outline-none focus:border-teal-500 disabled:bg-slate-50" /></label>)}</div></section>
+    <section className="space-y-3"><h3 className="text-base font-black text-slate-900">الخاتمة</h3><textarea rows={5} value={conclusionText} disabled={disabled} onChange={(event) => setConclusionText(event.target.value)} className="w-full rounded-2xl border border-slate-200 p-4 outline-none focus:border-teal-500 disabled:bg-slate-50" /></section>
+    <button type="submit" disabled={disabled} className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ المحتوى</button>
+  </form>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-feedback-pop-card.tsx
+==============================================================================================================
+"use client";
+
+import { AlertTriangle, CheckCircle2, Loader2, X } from "lucide-react";
+import type { ReactNode } from "react";
+
+export type PortfolioFeedback = {
+  type: "success" | "error" | "confirm";
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  onConfirm?: () => void;
+};
+
+export function PortfolioFeedbackPopCard({ feedback, loading, children, onClose }: {
+  feedback: PortfolioFeedback | null;
+  loading?: boolean;
+  children?: ReactNode;
+  onClose: () => void;
+}) {
+  if (!feedback) return null;
+  const SuccessIcon = feedback.type === "success" ? CheckCircle2 : AlertTriangle;
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" dir="rtl">
+      <section className="w-full max-w-lg rounded-[2rem] border border-white/70 bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <span className={`grid h-14 w-14 place-items-center rounded-2xl ${feedback.type === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+            <SuccessIcon className="h-7 w-7" />
+          </span>
+          <button type="button" onClick={onClose} disabled={loading} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+        </div>
+        <h2 className="mt-5 text-xl font-black text-slate-950">{feedback.title}</h2>
+        {feedback.description ? <p className="mt-2 text-sm font-bold leading-7 text-slate-600">{feedback.description}</p> : null}
+        {children ? <div className="mt-5">{children}</div> : null}
+        <div className="mt-6 flex gap-3">
+          {feedback.onConfirm ? <button type="button" disabled={loading} onClick={feedback.onConfirm} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{feedback.confirmLabel || "تأكيد"}</button> : null}
+          <button type="button" disabled={loading} onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700">{feedback.onConfirm ? "إلغاء" : "إغلاق"}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-workspace.tsx
+==============================================================================================================
+"use client";
+
+import { Award, BookOpenCheck, ExternalLink, FileText, Printer, UserRound } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { PortfolioContentPanel } from "@/components/portfolio/portfolio-content-panel";
+import { PortfolioDesignPanel } from "@/components/portfolio/portfolio-design-panel";
+import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
+import { PortfolioQualificationsPanel } from "@/components/portfolio/portfolio-qualifications-panel";
+import { PortfolioReportsEvidencePanel } from "@/components/portfolio/portfolio-reports-evidence-panel";
+import { PortfolioSectionsPanel } from "@/components/portfolio/portfolio-sections-panel";
+import { PortfolioSettingsPanel } from "@/components/portfolio/portfolio-settings-panel";
+import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioCustomEvidence, PortfolioWorkspaceItem } from "@/lib/portfolio/portfolio-types";
+
+const tabs = ["نظرة عامة", "إعدادات الملف", "التصميم", "المحتوى", "المؤهلات والدورات", "التقارير والشواهد", "ترتيب الأقسام", "المعاينة"] as const;
+type Tab = (typeof tabs)[number];
+
+export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfolioWorkspace }) {
+  const router = useRouter();
+  const [data, setData] = useState(initialData);
+  const [tab, setTab] = useState<Tab>("نظرة عامة");
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
+  useEffect(() => setData(initialData), [initialData]);
+  const base = `/api/dashboard/portfolio/${data.portfolio.id}`;
+
+  async function request(url: string, init: RequestInit, success = "تم حفظ التغييرات بنجاح.") {
+    setBusy(true);
+    try {
+      const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...init.headers } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر إكمال العملية.");
+      setFeedback({ type: "success", title: "تم الحفظ", description: success });
+      router.refresh();
+    } catch (error) {
+      setFeedback({ type: "error", title: "تعذر الحفظ", description: error instanceof Error ? error.message : "حاول مرة أخرى." });
+      throw error;
+    } finally { setBusy(false); }
+  }
+
+  const savePortfolio = (body: unknown) => request(base, { method: "PATCH", body: JSON.stringify(body) });
+  const createItem = (body: unknown) => request(`${base}/items`, { method: "POST", body: JSON.stringify(body) }, "تمت إضافة العنصر.");
+  const updateItem = (id: string, body: unknown) => request(`${base}/items/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const moveItem = (id: string, direction: "up" | "down") => request(`${base}/items/${id}`, { method: "PATCH", body: JSON.stringify({ action: "move", direction }) }, "تم تحديث ترتيب العناصر.");
+  const toggleSection = (id: string, isEnabled: boolean) => request(`${base}/sections/${id}`, { method: "PATCH", body: JSON.stringify({ isEnabled }) });
+  const moveSection = (id: string, direction: "up" | "down") => request(`${base}/sections/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الأقسام.");
+  const syncReports = () => request(`${base}/reports/sync`, { method: "POST" }, "تمت مزامنة التقارير المتاحة.");
+  const reportVisibility = (id: string, isVisible: boolean) => request(`${base}/reports/${id}`, { method: "PATCH", body: JSON.stringify({ isVisible }) });
+  const reportMove = (id: string, direction: "up" | "down") => request(`${base}/reports/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب التقارير.");
+  const evidenceUpdate = (itemId: string, evidenceId: string, body: unknown) => request(`${base}/reports/${itemId}/evidence/${encodeURIComponent(evidenceId)}`, { method: "PATCH", body: JSON.stringify(body) });
+  const evidenceMove = (itemId: string, evidenceId: string, direction: "up" | "down") => request(`${base}/reports/${itemId}/evidence/${encodeURIComponent(evidenceId)}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الشواهد.");
+  const customCreate = (body: unknown) => request(`${base}/custom-evidence`, { method: "POST", body: JSON.stringify(body) }, "تمت إضافة الشاهد المستقل.");
+  const customUpdate = (id: string, body: unknown) => request(`${base}/custom-evidence/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const customMove = (id: string, direction: "up" | "down") => request(`${base}/custom-evidence/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الشواهد المستقلة.");
+
+  async function uploadQualificationImage(file: File) {
+    setBusy(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch(`${base}/uploads`, { method: "POST", body: formData });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر رفع الصورة.");
+      return payload as { attachmentUrl: string; attachmentMimeType: "image/jpeg" | "image/png" | "image/webp"; attachmentKind: "IMAGE" };
+    } catch (error) {
+      setFeedback({ type: "error", title: "تعذر رفع الصورة", description: error instanceof Error ? error.message : "حاول مرة أخرى." });
+      throw error;
+    } finally { setBusy(false); }
+  }
+
+  function confirmDelete(item: PortfolioWorkspaceItem) {
+    setFeedback({ type: "confirm", title: "حذف العنصر؟", description: `سيتم حذف «${item.title}» من ملف الإنجاز.`, confirmLabel: "حذف", onConfirm: () => { void request(`${base}/items/${item.id}`, { method: "DELETE" }, "تم حذف العنصر.").then(() => setFeedback(null)); } });
+  }
+
+  function confirmCustomDelete(item: PortfolioCustomEvidence) {
+    setFeedback({ type: "confirm", title: "حذف الشاهد المستقل؟", description: `سيُحذف «${item.title}» من ملف الإنجاز فقط، ولن يُحذف الملف الأصلي.`, confirmLabel: "حذف", onConfirm: () => { void request(`${base}/custom-evidence/${item.id}`, { method: "DELETE" }, "تم حذف الشاهد المستقل.").then(() => setFeedback(null)); } });
+  }
+
+  return <main dir="rtl" className="space-y-5">
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8"><div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"><div><p className="text-sm font-black text-teal-700">مساحة المعلم</p><h1 className="mt-2 text-3xl font-black text-slate-950">{data.portfolio.title}</h1><p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">{data.portfolio.description || "أدر محتوى ملف الإنجاز وترتيبه ثم راجع النسخة الحية قبل الطباعة."}</p></div><Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><Printer className="h-4 w-4" />معاينة الملف</Link></div></section>
+    <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map((item) => <button key={item} onClick={() => setTab(item)} className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-black transition ${tab === item ? "bg-teal-700 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{item}</button>)}</nav>
+    {tab === "نظرة عامة" ? <Overview data={data} /> : null}
+    {tab === "إعدادات الملف" ? <PortfolioSettingsPanel key={`${data.portfolio.id}-${data.portfolio.title}`} data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "التصميم" ? <PortfolioDesignPanel data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "المحتوى" ? <PortfolioContentPanel key={`${data.portfolio.id}-${data.portfolio.introText}-${JSON.stringify(data.educationIdentity)}`} data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "المؤهلات والدورات" ? <PortfolioQualificationsPanel items={data.qualificationItems} busy={busy} onUpload={uploadQualificationImage} onCreate={createItem} onUpdate={updateItem} onMove={moveItem} onDelete={confirmDelete} /> : null}
+    {tab === "التقارير والشواهد" ? <PortfolioReportsEvidencePanel data={data} busy={busy} onSync={syncReports} onReportVisibility={reportVisibility} onReportMove={reportMove} onEvidenceUpdate={evidenceUpdate} onEvidenceMove={evidenceMove} onCustomCreate={customCreate} onCustomUpdate={customUpdate} onCustomMove={customMove} onCustomDelete={confirmCustomDelete} /> : null}
+    {tab === "ترتيب الأقسام" ? <PortfolioSectionsPanel sections={data.sections} busy={busy} onToggle={toggleSection} onMove={moveSection} /> : null}
+    {tab === "المعاينة" ? <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black">المعاينة الحية</h2><p className="mt-2 text-sm font-bold text-slate-500">افتح المعاينة المستقلة لرؤية صفحات A4 دون ترويسة أو شريط لوحة التحكم.</p><Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />فتح المعاينة</Link></section> : null}
+    <PortfolioFeedbackPopCard feedback={feedback} loading={busy} onClose={() => !busy && setFeedback(null)} />
+  </main>;
+}
+
+function Overview({ data }: { data: TeacherPortfolioWorkspace }) {
+  const cards = [[UserRound, "صاحب الملف", data.owner.name], [BookOpenCheck, "الفصل", data.portfolio.term], [FileText, "التقارير", String(data.totals.reports)], [Award, "الشواهد", String(data.totals.evidences)]] as const;
+  return <div className="space-y-5"><section className="grid gap-4 md:grid-cols-4">{cards.map(([Icon, label, value]) => <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon className="h-6 w-6 text-teal-700" /><p className="mt-3 text-xs font-black text-slate-400">{label}</p><strong className="mt-1 block text-lg font-black text-slate-900">{value}</strong></div>)}</section><section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">عناصر الأداء</h2><div className="mt-5 grid gap-3 md:grid-cols-2">{data.performanceSections.map((section) => <div key={section.key} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><div><h3 className="text-sm font-black text-slate-900">{section.title}</h3><p className="mt-1 text-xs font-bold text-slate-400">الوزن {section.weight}% · {section.isEnabled ? "ظاهر" : "مخفي"}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{section.reports.length}</span></div></div>)}</div></section></div>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\print\ministry-elegant-portfolio-print.tsx
+==============================================================================================================
+import type { CSSProperties, ReactNode } from "react";
+
+import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
+import { buildPortfolioReportPages, cleanPortfolioEvidenceTitle, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+
+function renderFieldValue(value: string | string[]) {
+  if (Array.isArray(value)) {
+    return (
+      <ul className="portfolio-report-list">
+        {value.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  return value || "غير محدد";
+}
+
+function PageShell({
+  children,
+  pageLabel,
+  className = "",
+  style,
+}: {
+  children: ReactNode;
+  pageLabel: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel}>
+      <div className="portfolio-page-header">
+        <span>ملف الإنجاز</span>
+        <span>{pageLabel}</span>
+      </div>
+
+      <div className="portfolio-page-body">{children}</div>
+
+      <div className="portfolio-page-footer">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{pageLabel}</span>
+      </div>
+    </section>
+  );
+}
+
+function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="portfolio-info-card">
+      <span>{label}</span>
+      <strong>{value || "غير محدد"}</strong>
+    </div>
+  );
+}
+
+function PortfolioQualificationDocumentPage({ data, item }: {
+  data: PortfolioPrintData;
+  item: PortfolioPrintData["qualificationItems"][number];
+}) {
+  const typeLabel = item.type === "QUALIFICATION" ? "مؤهل" : item.type === "COURSE" ? "دورة" : "شهادة";
+  const hasImage = Boolean(item.attachmentUrl) && (item.attachmentKind === "IMAGE" || item.attachmentMimeType.startsWith("image/") || /\.(?:jpe?g|png|webp)(?:\?.*)?$/i.test(item.attachmentUrl));
+  const descriptionFontSize = item.description.length > 1000 ? "7px" : item.description.length > 500 ? "8px" : "10px";
+  const metadata = [item.issuer, item.date, item.hours ? `${item.hours} ساعة` : ""].filter(Boolean);
+
+  return <section className="portfolio-page portfolio-qualification-document-page">
+    <div className="portfolio-page-header"><span>المؤهلات والدورات</span><span>ملف إنجاز {data.owner.name}</span></div>
+    <div className="portfolio-page-body portfolio-qualification-document-body">
+      <h2 className="portfolio-qualification-title">{item.title}</h2>
+      <div className="portfolio-qualification-summary">
+        <span className="portfolio-qualification-type">{typeLabel}</span>
+        {metadata.length ? <p className="portfolio-qualification-meta">{metadata.map((value, metadataIndex) => <span key={`${value}-${metadataIndex}`}>{value}</span>)}</p> : null}
+      </div>
+      <div className="portfolio-qualification-image-stage">
+        {hasImage ? <img src={item.attachmentUrl} alt={item.title} /> : <div className="portfolio-qualification-image-placeholder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.75 3.75h7.5l3 3v13.5H6.75V3.75Z" /><path d="M14.25 3.75v3h3M9 11.25h6M9 14.25h6" /></svg>
+          <span>لا توجد صورة مرفقة لهذا العنصر</span>
+        </div>}
+      </div>
+      {item.description ? <p className="portfolio-qualification-description" style={{ fontSize: descriptionFontSize }}>{item.description}</p> : null}
+    </div>
+    <div className="portfolio-page-footer portfolio-qualification-footer"><span>{data.portfolio.preferences.showSchoolName ? data.school.name : data.portfolio.title}</span><span>{data.owner.name}</span><span className="portfolio-global-page-number" /></div>
+  </section>;
+}
+
+function PortfolioDesignedReportPage({ report }: { report: PortfolioReportContent }) {
+  const pages = buildPortfolioReportPages(report);
+  const evidenceImageHeightMm = getPortfolioEvidenceImageHeightMm(report);
+  const evidenceGridColumns =
+    getPortfolioEvidencePerPage(report) <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+
+  return (
+    <>
+      {pages.map((page, pageIndex) => (
+        <section key={page.key} className="portfolio-report-page">
+          <div className="portfolio-report-frame">
+            <div className="portfolio-report-band" />
+
+            <div className="portfolio-report-fixed-header">
+              <span>{report.serviceName || "التقرير"}</span>
+              <span>{`صفحة ${pageIndex + 1} من ${pages.length}`}</span>
+            </div>
+
+            <main className="portfolio-report-body">
+              <header className="portfolio-report-header">
+                <div>
+                  <h1>{report.title}</h1>
+                  <p>{report.serviceName || report.subtitle || "التقرير"}</p>
+                </div>
+              </header>
+
+              <div className="portfolio-report-sections">
+                {page.sections.map((section, sectionIndex) => {
+                  if (section.kind === "details") {
+                    return (
+                      <section
+                        key={`details-${page.key}-${sectionIndex}`}
+                        className="portfolio-report-section"
+                      >
+                        <h2>التفاصيل</h2>
+
+                        {section.fields.length === 0 ? (
+                          <div className="portfolio-report-empty">
+                            لا توجد حقول متاحة في هذا التقرير.
+                          </div>
+                        ) : (
+                          <div className="portfolio-report-detail-grid">
+                            {section.fields.map((field) => (
+                              <div
+                                key={`${field.key}-${field.label}`}
+                                className={
+                                  Array.isArray(field.value) || String(field.value).length > 80
+                                    ? "portfolio-report-detail-box portfolio-report-detail-box-wide"
+                                    : "portfolio-report-detail-box"
+                                }
+                              >
+                                <span>{field.label}</span>
+                                <strong>{renderFieldValue(field.value)}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  }
+
+                  if (section.kind === "narrative") {
+                    return (
+                      <section
+                        key={`narrative-${page.key}-${sectionIndex}`}
+                        className="portfolio-report-section"
+                      >
+                        <h2>وصف التنفيذ</h2>
+                        <p className="portfolio-report-narrative">{section.body}</p>
+                      </section>
+                    );
+                  }
+
+                  if (section.kind === "evidence-empty") {
+                    return (
+                      <section
+                        key={`evidence-empty-${page.key}-${sectionIndex}`}
+                        className="portfolio-report-section"
+                      >
+                        <h2>الشواهد والمرفقات</h2>
+                        <div className="portfolio-report-empty">
+                          لا توجد شواهد أو مرفقات في هذا التقرير.
+                        </div>
+                      </section>
+                    );
+                  }
+
+                  return (
+                    <section
+                      key={`evidence-${page.key}-${sectionIndex}`}
+                      className="portfolio-report-section"
+                    >
+                      <h2>الشواهد والمرفقات</h2>
+
+                      <div
+                        className="portfolio-report-evidence-grid"
+                        style={{ gridTemplateColumns: evidenceGridColumns }}
+                      >
+                        {section.items.map((item, index) => {
+                          const title = cleanPortfolioEvidenceTitle(item.title, index);
+                          const isImage =
+                            item.type === "IMAGE" ||
+                            Boolean(item.url && /\.(png|jpe?g|webp|gif|svg)$/i.test(item.url));
+
+                          return (
+                            <figure
+                              key={item.id}
+                              className="portfolio-report-evidence-card"
+                              style={{
+                                minHeight: report.evidenceSettings.showCaptions
+                                  ? `${evidenceImageHeightMm + 9}mm`
+                                  : `${evidenceImageHeightMm}mm`,
+                              }}
+                            >
+                              {isImage && item.url ? (
+                                <img
+                                  src={item.url}
+                                  alt={title}
+                                  style={{
+                                    height: `${evidenceImageHeightMm}mm`,
+                                    objectFit: report.evidenceSettings.fit,
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="portfolio-report-file-card"
+                                  style={{ height: `${evidenceImageHeightMm}mm` }}
+                                >
+                                  {item.url ? "ملف مرفق" : "مرفق بدون رابط"}
+                                </div>
+                              )}
+
+                              {report.evidenceSettings.showCaptions ? (
+                                <figcaption>
+                                  {title}
+                                  {item.description ? <small style={{ display: "block", marginTop: 3, color: "#64748b" }}>{item.description}</small> : null}
+                                </figcaption>
+                              ) : null}
+                            </figure>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </main>
+
+            <div className="portfolio-report-fixed-footer">
+              <span>ملف الإنجاز</span>
+              <span>{report.serviceName || "التقرير"}</span>
+            </div>
+          </div>
+        </section>
+      ))}
+    </>
+  );
+}
+
+export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintData }) {
+  const theme = getPortfolioTheme(data.portfolio.themeId);
+  const enabledSections = data.performanceSections
+    .filter((section) => section.isEnabled)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+  const sectionByKey = new Map(data.sections.map((section) => [section.key, section]));
+  const sectionEnabled = (key: string) => sectionByKey.get(key)?.isEnabled !== false;
+  const sectionOrder = (key: string) => sectionByKey.get(key)?.sortOrder ?? 0;
+  const visibleQualificationItems = data.qualificationItems.filter((item) => item.isVisible);
+  const educationIdentity = data.educationIdentity;
+  const hasIntroductionIdentity = Boolean(
+    educationIdentity.vision ||
+    educationIdentity.mission ||
+    educationIdentity.pillars.length ||
+    educationIdentity.values.length,
+  );
+
+  return (
+    <div
+      className="portfolio-print-root"
+      dir="rtl"
+      style={
+        {
+          "--portfolio-primary": theme.palette.primary,
+          "--portfolio-secondary": theme.palette.secondary,
+          "--portfolio-accent": theme.palette.accent,
+          "--portfolio-muted": theme.palette.muted,
+        } as CSSProperties
+      }
+    >
+      <style>{`
+        @page {
+          size: 210mm 297mm;
+          margin: 0;
+        }
+
+        @media print {
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .portfolio-print-root {
+            width: 210mm !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .portfolio-page,
+          .portfolio-report-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            break-after: page;
+            page-break-after: always;
+          }
+
+          .portfolio-page:last-child,
+          .portfolio-report-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+        }
+
+        .portfolio-print-root {
+          counter-reset: portfolio-page;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: #eef4f8;
+          padding: 24px 0;
+          color: #0f172a;
+          font-family: inherit;
+        }
+
+        .portfolio-page,
+        .portfolio-report-page {
+          counter-increment: portfolio-page;
+          position: relative;
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          margin: 0 auto 24px;
+          overflow: hidden;
+          background: white;
+          box-shadow: 0 22px 70px rgba(15, 23, 42, 0.12);
+          page-break-after: always;
+          break-after: page;
+        }
+
+        .portfolio-page-body {
+          position: relative;
+          z-index: 2;
+          padding: 34mm 20mm 24mm;
+        }
+
+        .portfolio-qualification-document-page {
+          break-after: page;
+          page-break-after: always;
+        }
+
+        .portfolio-qualification-document-body {
+          display: flex;
+          flex-direction: column;
+          padding-top: 26mm;
+          padding-bottom: 22mm;
+        }
+
+        .portfolio-qualification-type {
+          display: inline-block;
+          flex: 0 0 auto;
+          border-radius: 999px;
+          padding: 1.4mm 4mm;
+          background: var(--portfolio-secondary);
+          color: white;
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .portfolio-qualification-title {
+          max-width: 158mm;
+          margin: 0;
+          color: var(--portfolio-secondary);
+          font-size: 25px;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .portfolio-qualification-summary {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 2.5mm 5mm;
+          min-height: 8mm;
+          margin-top: 3mm;
+        }
+
+        .portfolio-qualification-meta {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 2mm;
+          margin: 0;
+          color: #64748b;
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .portfolio-qualification-meta span + span::before {
+          content: "·";
+          margin-inline-end: 2mm;
+          color: rgba(15, 118, 110, 0.58);
+        }
+
+        .portfolio-qualification-image-stage {
+          display: grid;
+          width: 168mm;
+          height: 150mm;
+          place-items: center;
+          margin: 6mm auto 0;
+          overflow: hidden;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
+          clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+        }
+
+        .portfolio-qualification-image-stage img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
+          object-fit: contain;
+          object-position: center;
+        }
+
+        .portfolio-qualification-image-placeholder {
+          display: grid;
+          width: 100%;
+          height: 100%;
+          place-items: center;
+          gap: 3mm;
+          background: #f8fafc;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 800;
+          text-align: center;
+        }
+
+        .portfolio-qualification-image-placeholder svg {
+          width: 11mm;
+          height: 11mm;
+          fill: none;
+          stroke: var(--portfolio-primary);
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-width: 1.25;
+          opacity: 0.62;
+        }
+
+        .portfolio-qualification-description {
+          max-height: 25mm;
+          margin: 4mm 0 0;
+          overflow: hidden;
+          border-inline-start: 2px solid rgba(15, 118, 110, 0.55);
+          padding-inline-start: 4mm;
+          color: #475569;
+          font-weight: 650;
+          line-height: 1.65;
+          white-space: pre-wrap;
+        }
+
+        .portfolio-page-footer.portfolio-qualification-footer {
+          display: grid;
+          grid-template-columns: 1fr 1fr auto;
+          gap: 6mm;
+        }
+
+        .portfolio-global-page-number::before {
+          content: counter(portfolio-page);
+        }
+
+        .portfolio-qualification-section {
+          width: 210mm;
+          margin: 0 auto;
+        }
+
+        .portfolio-page-header,
+        .portfolio-page-footer {
+          position: absolute;
+          left: 18mm;
+          right: 18mm;
+          z-index: 3;
+          display: flex;
+          justify-content: space-between;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .portfolio-page-header {
+          top: 14mm;
+        }
+
+        .portfolio-page-footer {
+          bottom: 12mm;
+          border-top: 1px solid rgba(15, 118, 110, 0.22);
+          padding-top: 8px;
+          font-size: 10px;
+        }
+
+        .portfolio-title-pill,
+        .portfolio-section-kicker {
+          display: inline-flex;
+          border-radius: 999px;
+          background: var(--portfolio-muted);
+          padding: 8px 20px;
+          color: var(--portfolio-primary);
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .portfolio-main-title {
+          margin-top: 18px;
+          color: var(--portfolio-secondary);
+          font-size: 42px;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .portfolio-subtitle {
+          margin-top: 8px;
+          color: var(--portfolio-primary);
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .portfolio-cover-card,
+        .portfolio-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .portfolio-stat-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .portfolio-info-card,
+        .portfolio-stat {
+          border: 1px solid rgba(15, 118, 110, 0.16);
+          border-radius: 18px;
+          background: rgba(248, 250, 252, 0.82);
+          padding: 14px 16px;
+        }
+
+        .portfolio-info-card span,
+        .portfolio-stat span {
+          display: block;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .portfolio-info-card strong,
+        .portfolio-stat strong {
+          display: block;
+          margin-top: 5px;
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.7;
+        }
+
+        .portfolio-stat {
+          text-align: center;
+        }
+
+        .portfolio-stat strong {
+          color: var(--portfolio-primary);
+          font-size: 28px;
+        }
+
+        .portfolio-section-title {
+          color: var(--portfolio-secondary);
+          font-size: 30px;
+          font-weight: 950;
+          line-height: 1.45;
+        }
+
+        .portfolio-section-text {
+          margin-top: 18px;
+          color: #334155;
+          font-size: 16px;
+          font-weight: 700;
+          line-height: 2.25;
+        }
+
+        .portfolio-introduction-section {
+          width: 210mm;
+          margin: 0 auto;
+        }
+
+        .portfolio-introduction-text {
+          margin: 4mm 0 0;
+          color: #334155;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.95;
+          white-space: pre-wrap;
+        }
+
+        .portfolio-education-identity {
+          margin-top: 7mm;
+          border-top: 1px solid #dbe3e8;
+        }
+
+        .portfolio-identity-block {
+          padding: 4mm 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .portfolio-identity-block h3,
+        .portfolio-identity-list h3 {
+          margin: 0 0 1.5mm;
+          color: var(--portfolio-secondary);
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .portfolio-identity-block p {
+          margin: 0;
+          color: #334155;
+          font-size: 10.5px;
+          font-weight: 700;
+          line-height: 1.9;
+          white-space: pre-wrap;
+        }
+
+        .portfolio-identity-lists {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10mm;
+          padding-top: 5mm;
+        }
+
+        .portfolio-identity-list ol,
+        .portfolio-objectives-list {
+          margin: 0;
+          padding-inline-start: 6mm;
+        }
+
+        .portfolio-identity-list li {
+          padding: 1.6mm 0;
+          border-bottom: 1px solid #edf1f3;
+          color: #475569;
+          font-size: 10px;
+          font-weight: 800;
+          line-height: 1.6;
+        }
+
+        .portfolio-objectives-heading {
+          padding-bottom: 4mm;
+          border-bottom: 2px solid var(--portfolio-primary);
+        }
+
+        .portfolio-objectives-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          column-gap: 12mm;
+          margin-top: 8mm;
+          list-style-position: outside;
+        }
+
+        .portfolio-objectives-list li {
+          min-height: 16mm;
+          padding: 3mm 1mm 3mm 0;
+          border-bottom: 1px solid #dbe3e8;
+          color: #334155;
+          font-size: 10.5px;
+          font-weight: 800;
+          line-height: 1.75;
+          break-inside: avoid;
+        }
+
+        .portfolio-index-table {
+          margin-top: 26px;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          overflow: hidden;
+        }
+
+        .portfolio-index-row {
+          display: grid;
+          grid-template-columns: 64px 1fr 96px;
+          align-items: center;
+          border-bottom: 1px solid #e2e8f0;
+          min-height: 46px;
+        }
+
+        .portfolio-index-row:last-child {
+          border-bottom: 0;
+        }
+
+        .portfolio-index-row span,
+        .portfolio-index-row strong {
+          padding: 10px 14px;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .portfolio-index-row span {
+          color: #64748b;
+        }
+
+        .portfolio-index-row strong {
+          color: #0f172a;
+        }
+
+        .portfolio-divider-hero {
+          display: grid;
+          min-height: 190mm;
+          place-items: center;
+          text-align: center;
+        }
+
+        .portfolio-divider-hero h2 {
+          color: var(--portfolio-secondary);
+          font-size: 38px;
+          font-weight: 950;
+          line-height: 1.45;
+        }
+
+        .portfolio-divider-hero p {
+          margin: 18px auto 0;
+          max-width: 560px;
+          color: #64748b;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 2.1;
+        }
+
+        .portfolio-empty {
+          margin-top: 16px;
+          border-radius: 16px;
+          background: #f8fafc;
+          padding: 14px 16px;
+          color: #475569;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 2;
+        }
+
+        .portfolio-report-frame {
+          position: absolute;
+          inset: 7mm;
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+          background: white;
+        }
+
+        .portfolio-report-band {
+          position: absolute;
+          top: 0;
+          left: -20mm;
+          right: -20mm;
+          height: 10mm;
+          border-radius: 0 0 28px 28px;
+          background: linear-gradient(90deg, var(--portfolio-secondary), var(--portfolio-primary));
+        }
+
+        .portfolio-report-fixed-header,
+        .portfolio-report-fixed-footer {
+          position: absolute;
+          left: 12mm;
+          right: 12mm;
+          z-index: 10;
+          display: flex;
+          justify-content: space-between;
+          color: #94a3b8;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .portfolio-report-fixed-header {
+          top: 13mm;
+        }
+
+        .portfolio-report-fixed-footer {
+          bottom: 8mm;
+          border-top: 4px solid transparent;
+          border-image: linear-gradient(90deg, #7ccf9c, var(--portfolio-primary), var(--portfolio-secondary)) 1;
+          padding-top: 7px;
+        }
+
+        .portfolio-report-body {
+          position: relative;
+          height: 100%;
+          padding: 23mm 14mm 22mm;
+          overflow: hidden;
+        }
+
+        .portfolio-report-header h1 {
+          margin: 8px 0 2px;
+          color: var(--portfolio-secondary);
+          font-size: 28px;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .portfolio-report-header p {
+          margin: 0;
+          color: var(--portfolio-primary);
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .portfolio-report-sections {
+          display: grid;
+          gap: 2.5mm;
+          margin-top: 2mm;
+        }
+
+        .portfolio-report-section {
+          margin-top: 1mm;
+        }
+
+        .portfolio-report-section h2 {
+          display: inline-flex;
+          border-radius: 999px;
+          background: linear-gradient(90deg, var(--portfolio-secondary), var(--portfolio-primary));
+          color: white;
+          padding: 7px 22px;
+          font-size: 13px;
+          font-weight: 950;
+          margin: 0;
+        }
+
+        .portfolio-report-detail-grid {
+          margin-top: 3mm;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .portfolio-report-detail-box {
+          min-height: 17mm;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          background: rgba(248, 250, 252, 0.7);
+          padding: 8px 11px;
+        }
+
+        .portfolio-report-detail-box-wide {
+          grid-column: 1 / -1;
+        }
+
+        .portfolio-report-detail-box span {
+          display: block;
+          color: #94a3b8;
+          font-size: 10px;
+          font-weight: 950;
+          line-height: 1.5;
+        }
+
+        .portfolio-report-detail-box strong {
+          display: block;
+          margin-top: 3px;
+          color: #0f172a;
+          font-size: 11px;
+          font-weight: 950;
+          line-height: 1.7;
+        }
+
+        .portfolio-report-list {
+          margin: 0;
+          padding-inline-start: 18px;
+        }
+
+        .portfolio-report-narrative,
+        .portfolio-report-empty {
+          margin-top: 3mm;
+          border-radius: 18px;
+          padding: 12px 14px;
+          font-size: 11px;
+          line-height: 1.9;
+        }
+
+        .portfolio-report-narrative {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          color: #1e293b;
+          font-weight: 850;
+          white-space: pre-line;
+        }
+
+        .portfolio-report-empty {
+          border: 1px dashed #cbd5e1;
+          background: #f8fafc;
+          color: #64748b;
+          font-weight: 900;
+        }
+
+        .portfolio-report-evidence-grid {
+          margin-top: 3mm;
+          display: grid;
+          gap: 12px;
+        }
+
+        .portfolio-report-evidence-card {
+          margin: 0;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          overflow: hidden;
+          background: white;
+          break-inside: avoid;
+        }
+
+        .portfolio-report-evidence-card img {
+          width: 100%;
+          object-fit: contain;
+          background: #f8fafc;
+          display: block;
+        }
+
+        .portfolio-report-evidence-card figcaption {
+          max-height: 12mm;
+          overflow: hidden;
+          border-top: 1px solid #f1f5f9;
+          padding: 6px 10px;
+          color: #475569;
+          font-size: 10px;
+          font-weight: 800;
+          line-height: 1.5;
+          text-align: center;
+        }
+
+        .portfolio-report-file-card {
+          display: grid;
+          place-items: center;
+          background: #f8fafc;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 950;
+          text-align: center;
+          padding: 8px;
+        }
+
+        @media screen and (max-width: 900px) {
+          .portfolio-page,
+          .portfolio-report-page {
+            width: 100%;
+            height: auto;
+            min-height: 297mm;
+          }
+
+          .portfolio-qualification-section {
+            width: 100%;
+          }
+
+          .portfolio-introduction-section {
+            width: 100%;
+          }
+
+          .portfolio-cover-card,
+          .portfolio-stat-grid,
+          .portfolio-report-detail-grid,
+          .portfolio-report-evidence-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <section className="portfolio-page portfolio-cover-page" style={{ order: -10000 }}>
+        <div className="portfolio-page-body">
+          <div style={{ minHeight: "220mm", display: "grid", alignContent: "center" }}>
+            <div className="portfolio-title-pill">منصة التوجيه الطلابي</div>
+            <h1 className="portfolio-main-title">{data.portfolio.title}</h1>
+            <p className="portfolio-subtitle">
+              {data.owner.jobTitle} · {data.portfolio.term}
+            </p>
+
+            <div className="portfolio-cover-card">
+              <MiniInfo label="صاحب الملف" value={data.owner.name} />
+              {data.portfolio.preferences.showSchoolName ? (
+                <MiniInfo label="المدرسة" value={data.school.name} />
+              ) : null}
+              <MiniInfo label="العام" value={data.portfolio.academicYear} />
+              <MiniInfo label="الفصل الدراسي" value={data.portfolio.term} />
+            </div>
+
+            {data.portfolio.preferences.showCoverStatistics ? (
+            <div className="portfolio-stat-grid">
+              <div className="portfolio-stat">
+                <strong>{enabledSections.length}</strong>
+                <span>عنصر أداء</span>
+              </div>
+              <div className="portfolio-stat">
+                <strong>{data.totals.reports}</strong>
+                <span>تقرير</span>
+              </div>
+              <div className="portfolio-stat">
+                <strong>{data.totals.evidences}</strong>
+                <span>شاهد</span>
+              </div>
+            </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="portfolio-page-footer">
+          <span>{data.portfolio.preferences.showSchoolName ? data.school.name : ""}</span>
+          <span>ملف الإنجاز</span>
+        </div>
+      </section>
+
+      {data.portfolio.preferences.showTableOfContents ? (
+      <PageShell pageLabel="الفهرس" className="portfolio-index-page" style={{ order: -9999 }}>
+        <span className="portfolio-section-kicker">المحتويات</span>
+        <h2 className="portfolio-section-title">فهرس الملف</h2>
+
+        <div className="portfolio-index-table">
+          {data.sections
+            .filter((section) => section.isEnabled)
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((section, index) => (
+            <div key={section.id} className="portfolio-index-row">
+              <span>{index + 1}</span>
+              <strong>{section.title}</strong>
+              <span>قسم</span>
+            </div>
+          ))}
+        </div>
+      </PageShell>
+      ) : null}
+
+      {sectionEnabled("introduction") ? (
+        <div className="portfolio-introduction-section" style={{ order: sectionOrder("introduction") }}>
+          <PageShell pageLabel="المقدمة" className="portfolio-introduction-page">
+            <span className="portfolio-section-kicker">مدخل الملف</span>
+            <h2 className="portfolio-section-title">المقدمة</h2>
+            <p className="portfolio-introduction-text">
+              {data.portfolio.introText || "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي."}
+            </p>
+            {hasIntroductionIdentity ? <div className="portfolio-education-identity">
+              {educationIdentity.vision ? <section className="portfolio-identity-block"><h3>الرؤية</h3><p>{educationIdentity.vision}</p></section> : null}
+              {educationIdentity.mission ? <section className="portfolio-identity-block"><h3>الرسالة</h3><p>{educationIdentity.mission}</p></section> : null}
+              {educationIdentity.pillars.length || educationIdentity.values.length ? <div className="portfolio-identity-lists">
+                {educationIdentity.pillars.length ? <section className="portfolio-identity-list"><h3>المحاور</h3><ol>{educationIdentity.pillars.map((item, index) => <li key={`pillar-${index}`}>{item}</li>)}</ol></section> : null}
+                {educationIdentity.values.length ? <section className="portfolio-identity-list"><h3>القيم</h3><ol>{educationIdentity.values.map((item, index) => <li key={`value-${index}`}>{item}</li>)}</ol></section> : null}
+              </div> : null}
+            </div> : null}
+          </PageShell>
+          {educationIdentity.strategicObjectives.length ? <PageShell pageLabel="المقدمة" className="portfolio-objectives-page">
+            <div className="portfolio-objectives-heading">
+              <span className="portfolio-section-kicker">الهوية التعليمية</span>
+              <h2 className="portfolio-section-title">الأهداف الاستراتيجية</h2>
+            </div>
+            <ol className="portfolio-objectives-list">{educationIdentity.strategicObjectives.map((objective, index) => <li key={`objective-${index}`}>{objective}</li>)}</ol>
+          </PageShell> : null}
+        </div>
+      ) : null}
+
+      {sectionEnabled("profile") ? (
+      <PageShell pageLabel="السيرة المهنية" className="portfolio-biography-page" style={{ order: sectionOrder("profile") }}>
+        <span className="portfolio-section-kicker">صاحب الملف</span>
+        <h2 className="portfolio-section-title">السيرة المهنية</h2>
+        <div className="portfolio-cover-card">
+          <MiniInfo label="الاسم" value={data.owner.name} />
+          <MiniInfo label="المسمى" value={data.owner.jobTitle} />
+          {data.portfolio.preferences.showSchoolName ? <MiniInfo label="المدرسة" value={data.school.name} /> : null}
+          {data.portfolio.preferences.showPrincipalName ? <MiniInfo label="مدير المدرسة" value={data.school.principalName || "غير محدد"} /> : null}
+        </div>
+        {data.biography.professionalSummary ? <p className="portfolio-section-text">{data.biography.professionalSummary}</p> : null}
+        <div className="portfolio-cover-card">
+          <MiniInfo label="التخصص" value={data.biography.specialization} />
+          <MiniInfo label="المؤهل العلمي" value={data.biography.academicQualification} />
+          <MiniInfo label="سنوات الخبرة" value={data.biography.yearsOfExperience} />
+          <MiniInfo label="المهارات" value={data.biography.skills} />
+          <MiniInfo label="الاهتمامات المهنية" value={data.biography.professionalInterests} />
+        </div>
+      </PageShell>
+      ) : null}
+
+      {sectionEnabled("qualifications") ? (
+        <div className="portfolio-qualification-section" style={{ order: sectionOrder("qualifications") }}>
+          {visibleQualificationItems.length ? visibleQualificationItems
+            .slice()
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((item) => <PortfolioQualificationDocumentPage key={item.id} data={data} item={item} />) : (
+            <PageShell pageLabel="المؤهلات والدورات" className="portfolio-qualifications-page">
+              <span className="portfolio-section-kicker">تطوير مهني</span>
+              <h2 className="portfolio-section-title">المؤهلات والدورات</h2>
+              <div className="portfolio-empty">لا توجد مؤهلات أو دورات مضافة حتى الآن.</div>
+            </PageShell>
+          )}
+        </div>
+      ) : null}
+
+      {enabledSections.map((section, index) => (
+        <div key={section.key} style={{ order: section.sortOrder }}>
+          {data.portfolio.preferences.showPerformanceDividers ? (
+          <PageShell pageLabel={`عنصر أداء ${index + 1}`} className="portfolio-divider-page">
+            <div className="portfolio-divider-hero">
+              <div>
+                <span className="portfolio-section-kicker">عنصر أداء</span>
+                <h2>{section.title}</h2>
+                <p>{section.intro}</p>
+
+                <div className="portfolio-stat-grid">
+                  <div className="portfolio-stat">
+                    <strong>{section.weight}%</strong>
+                    <span>الوزن النسبي</span>
+                  </div>
+                  <div className="portfolio-stat">
+                    <strong>{section.reports.length}</strong>
+                    <span>تقرير</span>
+                  </div>
+                  <div className="portfolio-stat">
+                    <strong>
+                      {section.reports.reduce(
+                        (total, report) => total + report.evidenceCount,
+                        0,
+                      )}
+                    </strong>
+                    <span>شاهد</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PageShell>
+          ) : null}
+
+          {section.reports.length ? (
+            section.reports.map((report) =>
+              report.content ? (
+                <PortfolioDesignedReportPage key={report.id} report={report.content} />
+              ) : (
+                <PageShell key={report.id} pageLabel={section.title}>
+                  <span className="portfolio-section-kicker">تقرير</span>
+                  <h2 className="portfolio-section-title">{report.title}</h2>
+                  <div className="portfolio-empty">
+                    هذا التقرير من مصدر قديم وسيتم تحويله لاحقًا إلى الشكل الموحد.
+                  </div>
+                </PageShell>
+              ),
+            )
+          ) : (
+            <PageShell pageLabel={section.title}>
+              <span className="portfolio-section-kicker">التقارير والشواهد</span>
+              <h2 className="portfolio-section-title">{section.title}</h2>
+              <div className="portfolio-empty">لا توجد تقارير لهذا العنصر حتى الآن.</div>
+            </PageShell>
+          )}
+
+          {data.customEvidence
+            .filter((item) => item.sectionId === section.id && item.isVisible && item.fileUrl)
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((item) => (
+              <PageShell key={item.id} pageLabel={section.title}>
+                <span className="portfolio-section-kicker">شاهد مستقل</span>
+                <h2 className="portfolio-section-title">{item.title}</h2>
+                {item.description ? <p className="portfolio-section-text">{item.description}</p> : null}
+                {/\.(png|jpe?g|webp|gif)$/i.test(item.fileUrl) || item.mimeType.startsWith("image/") ? (
+                  <img src={item.fileUrl} alt={item.title} style={{ display: "block", width: "100%", maxHeight: "175mm", objectFit: "contain", marginTop: "8mm" }} />
+                ) : (
+                  <div className="portfolio-empty">ملف مرفق: {item.fileUrl}</div>
+                )}
+              </PageShell>
+            ))}
+        </div>
+      ))}
+
+      {data.customEvidence
+        .filter((item) => !item.sectionId && item.isVisible && item.fileUrl)
+        .sort((first, second) => first.sortOrder - second.sortOrder)
+        .map((item) => (
+          <PageShell key={item.id} pageLabel="شاهد مستقل" style={{ order: 900 }}>
+            <span className="portfolio-section-kicker">شاهد مستقل</span>
+            <h2 className="portfolio-section-title">{item.title}</h2>
+            {item.description ? <p className="portfolio-section-text">{item.description}</p> : null}
+            {/\.(png|jpe?g|webp|gif)$/i.test(item.fileUrl) || item.mimeType.startsWith("image/") ? (
+              <img src={item.fileUrl} alt={item.title} style={{ display: "block", width: "100%", maxHeight: "175mm", objectFit: "contain", marginTop: "8mm" }} />
+            ) : <div className="portfolio-empty">ملف مرفق: {item.fileUrl}</div>}
+          </PageShell>
+        ))}
+
+      {sectionEnabled("closing") ? (
+      <PageShell pageLabel="الخاتمة" className="portfolio-conclusion-page" style={{ order: sectionOrder("closing") }}>
+        <span className="portfolio-section-kicker">ختام الملف</span>
+        <h2 className="portfolio-section-title">الخاتمة</h2>
+        <p className="portfolio-section-text">
+          {data.portfolio.conclusionText ||
+            "ختامًا، يمثل هذا الملف توثيقًا مختصرًا لأبرز الإنجازات وفرص التطوير القادمة."}
+        </p>
+      </PageShell>
+      ) : null}
+    </div>
+  );
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\print\portfolio-print-document.tsx
+==============================================================================================================
+export {
+  MinistryElegantPortfolioPrint as PortfolioPrintDocument,
+} from "@/components/portfolio/print/ministry-elegant-portfolio-print";
+
+
+==============================================================================================================
+FILE: components\portfolio\print\themes\portfolio-theme-ornaments.tsx
+==============================================================================================================
+READ ERROR: Exception calling "ReadAllText" with "2" argument(s): "Could not find file 'D:\student-guidance-platform-clean\components\portfolio\print\themes\portfolio-theme-ornaments.tsx'."
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-api.ts
+==============================================================================================================
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import {
+  assertTeacherActor,
+  PortfolioServiceError,
+} from "@/lib/portfolio/portfolio-authorization";
+
+export async function requirePortfolioApiUser() {
+  const current = await requireDashboardUser();
+  assertTeacherActor(current.user);
+  return current.user;
+}
+
+export function portfolioApiError(error: unknown) {
+  if (error instanceof PortfolioServiceError) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
+  }
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      { ok: false, error: error.issues[0]?.message || "البيانات المدخلة غير صحيحة." },
+      { status: 400 },
+    );
+  }
+  if (error instanceof SyntaxError) {
+    return NextResponse.json({ ok: false, error: "تعذر قراءة البيانات المرسلة." }, { status: 400 });
+  }
+
+  console.error("Portfolio API error", error);
+  return NextResponse.json(
+    { ok: false, error: "تعذر إكمال العملية الآن. حاول مرة أخرى." },
+    { status: 500 },
+  );
+}
+
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-read-model.ts
+==============================================================================================================
+import { prisma } from "@/lib/prisma";
+import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
+import { TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS } from "@/lib/portfolio/portfolio-performance-elements";
+import { loadCustomEvidence, loadManagedPortfolioReports } from "@/lib/portfolio/portfolio-report-service";
+import { loadPortfolioForUser, readBiography, readEducationIdentity, readPortfolioSettings } from "@/lib/portfolio/portfolio-service";
+import type { PortfolioItemType, PortfolioReportGroup } from "@/lib/portfolio/portfolio-types";
+
+type PortfolioCurrentUser = {
+  id: string;
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+  jobTitle?: string | null;
+  schoolAccountId?: string | null;
+};
+
+function ownerName(user: PortfolioCurrentUser) {
+  return user.officialName || user.name || "المعلم";
+}
+
+function metadata(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export async function getTeacherPortfolioWorkspace(
+  user: PortfolioCurrentUser,
+  portfolioId?: string | null,
+) {
+  if (!user.schoolAccountId) return { ok: false as const, reason: "NO_SCHOOL" };
+
+  const portfolio = await loadPortfolioForUser(user, portfolioId);
+  const [school, sections, qualificationItems, managedReports, customEvidence] = await Promise.all([
+    prisma.schoolAccount.findUnique({
+      where: { id: user.schoolAccountId },
+      include: { profile: true },
+    }),
+    prisma.achievementPortfolioSection.findMany({
+      where: { portfolioId: portfolio.id },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
+    prisma.achievementPortfolioItem.findMany({
+      where: {
+        portfolioId: portfolio.id,
+        sourceType: { in: ["QUALIFICATION", "COURSE", "CERTIFICATE"] },
+      },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
+    loadManagedPortfolioReports(user, portfolio.id),
+    loadCustomEvidence(user, portfolio.id),
+  ]);
+
+  const performanceSections = TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS.map((definition) => {
+    const stored = sections.find((section) => section.sectionKey === definition.key);
+    const reports = managedReports
+      .filter((report) => report.sectionKey === definition.key && report.isVisible && report.isAvailable)
+      .sort((first, second) => first.sortOrder - second.sortOrder)
+      .map((report) => ({
+        id: report.sourceId,
+        itemId: report.itemId,
+        title: report.title,
+        status: report.status,
+        generatedAt: report.generatedAt,
+        createdAt: report.createdAt,
+        evidenceCount: report.evidence.filter((item) => item.isVisible && item.url).length,
+        caseTitle: report.caseTitle,
+        serviceName: report.serviceName,
+        previewUrl: report.previewUrl,
+        sourceType: report.sourceType,
+        content: report.content,
+      }));
+    return {
+      ...definition,
+      id: stored?.id || definition.key,
+      sortOrder: stored?.sortOrder ?? 0,
+      isEnabled: stored?.isEnabled ?? true,
+      intro: stored?.introText || definition.intro,
+      reports,
+    };
+  });
+
+  const reportGroups: PortfolioReportGroup[] = performanceSections.map((section) => {
+    const reports = managedReports
+      .filter((report) => report.sectionKey === section.key)
+      .sort((first, second) => first.sortOrder - second.sortOrder)
+      .map(({ content: _content, ...report }) => report);
+    return {
+      sectionId: section.id,
+      sectionKey: section.key,
+      title: section.title,
+      weight: section.weight,
+      isEnabled: section.isEnabled,
+      availableCount: reports.filter((report) => report.isAvailable).length,
+      includedCount: reports.filter((report) => report.isAvailable && report.isVisible).length,
+      visibleEvidenceCount: reports.reduce(
+        (total, report) => total + report.evidence.filter((item) => item.isVisible).length,
+        0,
+      ),
+      reports,
+    };
+  });
+
+  const totalReports = performanceSections.reduce((sum, section) => sum + section.reports.length, 0);
+  const totalEvidences = performanceSections.reduce(
+    (sum, section) => sum + section.reports.reduce((count, report) => count + report.evidenceCount, 0),
+    0,
+  );
+  const settings = readPortfolioSettings(portfolio.settingsJson);
+  const profileSection = sections.find((section) => section.sectionKey === "profile");
+  const introductionSection = sections.find((section) => section.sectionKey === "introduction");
+
+  return {
+    ok: true as const,
+    portfolio: {
+      id: portfolio.id,
+      title: portfolio.title,
+      academicYear: portfolio.academicYear,
+      term: portfolio.term,
+      themeId: getPortfolioTheme(portfolio.themeId).id,
+      status: portfolio.status,
+      introText: portfolio.introText || "",
+      conclusionText: portfolio.conclusionText || "",
+      bioText: portfolio.bioText || "",
+      description: settings.description,
+      preferences: settings.preferences,
+    },
+    owner: { name: ownerName(user), jobTitle: user.jobTitle || "معلم" },
+    school: {
+      name: school?.profile?.schoolName || school?.name || "المدرسة",
+      logoUrl: school?.profile?.logoUrl || null,
+      principalName: school?.profile?.principalName || null,
+      academicYear: school?.profile?.academicYear || null,
+      currentSemester: school?.profile?.currentSemester || null,
+    },
+    sections: sections.map((section) => ({
+      id: section.id,
+      key: section.sectionKey,
+      kind: section.kind,
+      title: section.title,
+      introText: section.introText || "",
+      sortOrder: section.sortOrder,
+      isEnabled: section.isEnabled,
+    })),
+    biography: readBiography(profileSection?.metadataJson),
+    educationIdentity: readEducationIdentity(introductionSection?.metadataJson),
+    qualificationItems: qualificationItems.map((item) => {
+      const meta = metadata(item.metadataJson);
+      return {
+        id: item.id,
+        type: item.sourceType as PortfolioItemType,
+        title: item.title,
+        issuer: typeof meta.issuer === "string" ? meta.issuer : "",
+        date: typeof meta.date === "string" ? meta.date : "",
+        hours: typeof meta.hours === "string" ? meta.hours : "",
+        description: item.description || "",
+        attachmentUrl: typeof meta.attachmentUrl === "string" ? meta.attachmentUrl : "",
+        attachmentMimeType: (meta.attachmentMimeType === "image/jpeg" || meta.attachmentMimeType === "image/png" || meta.attachmentMimeType === "image/webp" ? meta.attachmentMimeType : "") as "image/jpeg" | "image/png" | "image/webp" | "",
+        attachmentKind: meta.attachmentKind === "IMAGE" || (typeof meta.attachmentUrl === "string" && /\.(?:jpe?g|png|webp)$/i.test(meta.attachmentUrl)) ? "IMAGE" as const : "" as const,
+        sortOrder: item.sortOrder,
+        isVisible: item.isVisible,
+      };
+    }),
+    reportGroups,
+    customEvidence,
+    performanceSections,
+    totals: { reports: totalReports, evidences: totalEvidences, sections: sections.length },
+  };
+}
+
+export type TeacherPortfolioWorkspace = Extract<
+  Awaited<ReturnType<typeof getTeacherPortfolioWorkspace>>,
+  { ok: true }
+>;
+
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-service.ts
+==============================================================================================================
+import type { Prisma } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
+import {
+  assertTeacherActor,
+  PortfolioServiceError,
+  requireOwnedPortfolio,
+  type PortfolioActor,
+} from "@/lib/portfolio/portfolio-authorization";
+import { TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS } from "@/lib/portfolio/portfolio-performance-elements";
+import { DEFAULT_PORTFOLIO_THEME_ID } from "@/lib/portfolio/portfolio-theme-registry";
+import type {
+  PortfolioBiography,
+  PortfolioEducationIdentity,
+  PortfolioPreferences,
+} from "@/lib/portfolio/portfolio-types";
+
+export const DEFAULT_PORTFOLIO_PREFERENCES: PortfolioPreferences = {
+  showSchoolName: true,
+  showPrincipalName: true,
+  showCoverStatistics: true,
+  showTableOfContents: true,
+  showPerformanceDividers: true,
+};
+
+export const EMPTY_PORTFOLIO_BIOGRAPHY: PortfolioBiography = {
+  professionalSummary: "",
+  specialization: "",
+  academicQualification: "",
+  yearsOfExperience: "",
+  skills: "",
+  professionalInterests: "",
+};
+
+export const DEFAULT_PORTFOLIO_EDUCATION_IDENTITY: PortfolioEducationIdentity = {
+  vision: "تحقيق تعليم شامل للجميع يعزز القيم والمعرفة في بيئة تنافسية عالمية، ويمكّن الأفراد والمجتمعات من اكتساب مهارات ذات جودة عالية.",
+  mission: "تقديم تعليم ذي جودة عالية وكفاءة يعزز القيم، ومتاح للجميع، ضمن بيئة آمنة ومحفزة لإعداد أفراد فاعلين في المجتمع ومساهمين في تنمية وطن رائد عالميًا.",
+  pillars: ["التعليم للجميع", "رحلة التعلم", "جودة التعليم", "الاستدامة المالية", "التميز المؤسسي"],
+  values: ["الجودة", "الالتزام", "الإبداع", "روح الفريق", "التعلم المستمر"],
+  strategicObjectives: [
+    "ضمان وصول التعليم للجميع",
+    "تطوير بيئة مدرسية آمنة وابتكارية",
+    "تعزيز القيم والهوية الوطنية",
+    "تحسين تجربة المستفيدين",
+    "الاستثمار في الطالب والمعلم والأسر بالإبداع",
+    "تحسين أداء المدارس وتعزيز شراكتها مع المجتمع",
+    "رفع كفاءة الإنفاق وتعزيز الاستدامة المالية",
+    "تطوير كفاءات الموارد البشرية وتعزيز الثقافة المؤسسية",
+    "الارتقاء بمستوى التجربة الرقمية",
+    "تعزيز الحوكمة والالتزام وإدارة المخاطر",
+  ],
+};
+
+function jsonObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asJson(value: Record<string, unknown>): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
+
+function defaultAcademicYear() {
+  return String(new Date().getFullYear());
+}
+
+const defaultTerm = "الفصل الدراسي الأول";
+
+function ownerName(user: PortfolioActor & { name?: string | null; officialName?: string | null }) {
+  return user.officialName || user.name || "المعلم";
+}
+
+function defaultSections() {
+  return [
+    { kind: "STATIC", sectionKey: "introduction", title: "المقدمة", introText: "مدخل موجز لملف الإنجاز.", sortOrder: 10 },
+    { kind: "STATIC", sectionKey: "profile", title: "السيرة المهنية", introText: "نبذة مختصرة عن المعلم وخبراته.", sortOrder: 20 },
+    { kind: "STATIC", sectionKey: "qualifications", title: "المؤهلات والدورات", introText: "المؤهلات العلمية والدورات والشهادات.", sortOrder: 30 },
+    ...TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS.map((element, index) => ({
+      kind: "PERFORMANCE_ELEMENT",
+      sectionKey: element.key,
+      title: element.title,
+      introText: element.intro,
+      sortOrder: 100 + index * 10,
+      metadataJson: asJson({ serviceSlug: element.serviceSlug, weight: element.weight }),
+    })),
+    { kind: "STATIC", sectionKey: "closing", title: "الخاتمة", introText: "خاتمة مختصرة لملف الإنجاز.", sortOrder: 1000 },
+  ];
+}
+
+export async function ensureDefaultPortfolio(
+  user: PortfolioActor & { name?: string | null; officialName?: string | null },
+) {
+  assertTeacherActor(user);
+  const academicYear = defaultAcademicYear();
+  const existing = await prisma.achievementPortfolio.findUnique({
+    where: {
+      schoolAccountId_ownerUserId_academicYear_term: {
+        schoolAccountId: user.schoolAccountId!,
+        ownerUserId: user.id,
+        academicYear,
+        term: defaultTerm,
+      },
+    },
+  });
+  if (existing) return existing;
+
+  return prisma.achievementPortfolio.create({
+    data: {
+      schoolAccountId: user.schoolAccountId!,
+      ownerUserId: user.id,
+      title: `ملف إنجاز ${ownerName(user)}`,
+      roleKey: "TEACHER",
+      academicYear,
+      term: defaultTerm,
+      themeId: DEFAULT_PORTFOLIO_THEME_ID,
+      introText: "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي.",
+      conclusionText: "ختامًا، يمثل هذا الملف توثيقًا مختصرًا لأبرز الإنجازات وفرص التطوير القادمة.",
+      bioText: "",
+      settingsJson: asJson({ preferences: DEFAULT_PORTFOLIO_PREFERENCES, description: "" }),
+      sections: { create: defaultSections() },
+    },
+  });
+}
+
+export async function loadPortfolioForUser(
+  user: PortfolioActor & { name?: string | null; officialName?: string | null },
+  portfolioId?: string | null,
+) {
+  return portfolioId ? requireOwnedPortfolio(user, portfolioId) : ensureDefaultPortfolio(user);
+}
+
+export function readPortfolioSettings(value: unknown) {
+  const settings = jsonObject(value);
+  const preferences = jsonObject(settings.preferences);
+  return {
+    description: typeof settings.description === "string" ? settings.description : "",
+    preferences: {
+      ...DEFAULT_PORTFOLIO_PREFERENCES,
+      ...Object.fromEntries(
+        Object.entries(preferences).filter(([, item]) => typeof item === "boolean"),
+      ),
+    } as PortfolioPreferences,
+  };
+}
+
+export function readBiography(value: unknown): PortfolioBiography {
+  const metadata = jsonObject(value);
+  const biography = jsonObject(metadata.biography);
+  return Object.fromEntries(
+    Object.keys(EMPTY_PORTFOLIO_BIOGRAPHY).map((key) => [key, typeof biography[key] === "string" ? biography[key] : ""]),
+  ) as PortfolioBiography;
+}
+
+export function readEducationIdentity(value: unknown): PortfolioEducationIdentity {
+  const metadata = jsonObject(value);
+  const stored = jsonObject(metadata.educationIdentity);
+  const has = (key: keyof PortfolioEducationIdentity) => Object.prototype.hasOwnProperty.call(stored, key);
+  const text = (key: "vision" | "mission") => {
+    if (!has(key)) return DEFAULT_PORTFOLIO_EDUCATION_IDENTITY[key];
+    return typeof stored[key] === "string" ? stored[key] : "";
+  };
+  const list = (key: "pillars" | "values" | "strategicObjectives") => {
+    if (!has(key)) return [...DEFAULT_PORTFOLIO_EDUCATION_IDENTITY[key]];
+    if (!Array.isArray(stored[key])) return [];
+    return stored[key].filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+  };
+  return {
+    vision: text("vision"),
+    mission: text("mission"),
+    pillars: list("pillars"),
+    values: list("values"),
+    strategicObjectives: list("strategicObjectives"),
+  };
+}
+
+export async function updatePortfolioSettings(user: PortfolioActor, portfolioId: string, input: {
+  title: string; academicYear: string; term: string; description: string; themeId: string; preferences: PortfolioPreferences;
+}) {
+  const portfolio = await requireOwnedPortfolio(user, portfolioId);
+  const current = jsonObject(portfolio.settingsJson);
+  return prisma.achievementPortfolio.update({
+    where: { id: portfolio.id },
+    data: {
+      title: input.title,
+      academicYear: input.academicYear,
+      term: input.term,
+      themeId: input.themeId,
+      settingsJson: asJson({ ...current, description: input.description, preferences: input.preferences }),
+    },
+  });
+}
+
+export async function updatePortfolioContent(user: PortfolioActor, portfolioId: string, input: {
+  introText: string; conclusionText: string; biography: PortfolioBiography; educationIdentity: PortfolioEducationIdentity;
+}) {
+  await requireOwnedPortfolio(user, portfolioId);
+  const [profile, introduction] = await Promise.all([
+    prisma.achievementPortfolioSection.findFirst({ where: { portfolioId, sectionKey: "profile" } }),
+    prisma.achievementPortfolioSection.findFirst({ where: { portfolioId, sectionKey: "introduction" } }),
+  ]);
+  const summary = input.biography.professionalSummary;
+  await prisma.$transaction([
+    prisma.achievementPortfolio.update({
+      where: { id: portfolioId },
+      data: { introText: input.introText, conclusionText: input.conclusionText, bioText: summary },
+    }),
+    ...(profile ? [prisma.achievementPortfolioSection.update({
+      where: { id: profile.id },
+      data: { metadataJson: asJson({ ...jsonObject(profile.metadataJson), biography: input.biography }) },
+    })] : []),
+    introduction
+      ? prisma.achievementPortfolioSection.update({
+          where: { id: introduction.id },
+          data: { metadataJson: asJson({ ...jsonObject(introduction.metadataJson), educationIdentity: input.educationIdentity }) },
+        })
+      : prisma.achievementPortfolioSection.create({
+          data: {
+            portfolioId,
+            kind: "STATIC",
+            sectionKey: "introduction",
+            title: "المقدمة",
+            introText: "مدخل موجز لملف الإنجاز.",
+            sortOrder: 10,
+            metadataJson: asJson({ educationIdentity: input.educationIdentity }),
+          },
+        }),
+  ]);
+}
+
+async function qualificationSectionId(portfolioId: string) {
+  const section = await prisma.achievementPortfolioSection.findFirst({ where: { portfolioId, sectionKey: "qualifications" } });
+  if (!section) throw new PortfolioServiceError(409, "قسم المؤهلات غير مهيأ في هذا الملف.");
+  return section.id;
+}
+
+function assertPortfolioAttachmentOwnership(portfolioId: string, attachmentUrl: unknown) {
+  if (typeof attachmentUrl !== "string" || !attachmentUrl.startsWith("/uploads/portfolio/")) return;
+  if (!attachmentUrl.startsWith(`/uploads/portfolio/${portfolioId}/`)) {
+    throw new PortfolioServiceError(403, "لا يمكن إرفاق صورة مملوكة لملف إنجاز آخر.");
+  }
+}
+
+export async function createPortfolioItem(user: PortfolioActor, portfolioId: string, input: Record<string, unknown> & { type: string; title: string; isVisible: boolean }) {
+  await requireOwnedPortfolio(user, portfolioId);
+  assertPortfolioAttachmentOwnership(portfolioId, input.attachmentUrl);
+  const sectionId = await qualificationSectionId(portfolioId);
+  const last = await prisma.achievementPortfolioItem.findFirst({ where: { portfolioId, sectionId }, orderBy: { sortOrder: "desc" } });
+  const { type, title, isVisible, description, ...metadata } = input;
+  return prisma.achievementPortfolioItem.create({ data: {
+    portfolioId, sectionId, sourceType: type, title,
+    description: typeof description === "string" ? description : null,
+    isVisible, sortOrder: (last?.sortOrder || 0) + 10, metadataJson: asJson(metadata),
+  } });
+}
+
+async function ownedItem(user: PortfolioActor, portfolioId: string, itemId: string) {
+  await requireOwnedPortfolio(user, portfolioId);
+  const item = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId } });
+  if (!item) throw new PortfolioServiceError(404, "العنصر غير موجود.");
+  return item;
+}
+
+export async function updatePortfolioItem(user: PortfolioActor, portfolioId: string, itemId: string, input: Record<string, unknown>) {
+  const item = await ownedItem(user, portfolioId, itemId);
+  assertPortfolioAttachmentOwnership(portfolioId, input.attachmentUrl);
+  const metadata = { ...jsonObject(item.metadataJson), ...input };
+  return prisma.achievementPortfolioItem.update({ where: { id: item.id }, data: {
+    sourceType: typeof input.type === "string" ? input.type : item.sourceType,
+    title: typeof input.title === "string" ? input.title : item.title,
+    description: typeof input.description === "string" ? input.description : item.description,
+    isVisible: typeof input.isVisible === "boolean" ? input.isVisible : item.isVisible,
+    metadataJson: asJson(metadata),
+  } });
+}
+
+export async function deletePortfolioItem(user: PortfolioActor, portfolioId: string, itemId: string) {
+  const item = await ownedItem(user, portfolioId, itemId);
+  await prisma.achievementPortfolioItem.delete({ where: { id: item.id } });
+}
+
+async function moveOrdered(ids: string[], currentIndex: number, direction: "up" | "down", update: (id: string, sortOrder: number) => Prisma.PrismaPromise<unknown>) {
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= ids.length) return;
+  [ids[currentIndex], ids[targetIndex]] = [ids[targetIndex], ids[currentIndex]];
+  await prisma.$transaction(ids.map((id, index) => update(id, (index + 1) * 10)));
+}
+
+export async function movePortfolioItem(user: PortfolioActor, portfolioId: string, itemId: string, direction: "up" | "down") {
+  await ownedItem(user, portfolioId, itemId);
+  const items = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true } });
+  await moveOrdered(items.map((item) => item.id), items.findIndex((item) => item.id === itemId), direction, (id, sortOrder) => prisma.achievementPortfolioItem.update({ where: { id }, data: { sortOrder } }));
+}
+
+export async function updatePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, isEnabled: boolean) {
+  await requireOwnedPortfolio(user, portfolioId);
+  const section = await prisma.achievementPortfolioSection.findFirst({ where: { id: sectionId, portfolioId } });
+  if (!section) throw new PortfolioServiceError(404, "القسم غير موجود.");
+  return prisma.achievementPortfolioSection.update({ where: { id: section.id }, data: { isEnabled } });
+}
+
+export async function movePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, direction: "up" | "down") {
+  await requireOwnedPortfolio(user, portfolioId);
+  const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true } });
+  const index = sections.findIndex((section) => section.id === sectionId);
+  if (index < 0) throw new PortfolioServiceError(404, "القسم غير موجود.");
+  await moveOrdered(sections.map((section) => section.id), index, direction, (id, sortOrder) => prisma.achievementPortfolioSection.update({ where: { id }, data: { sortOrder } }));
+}
+
+export * from "@/lib/portfolio/portfolio-report-service";
+
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-types.ts
+==============================================================================================================
+import { z } from "zod";
+import { PORTFOLIO_THEME_IDS } from "@/lib/portfolio/portfolio-theme-registry";
+
+export const portfolioItemTypes = ["QUALIFICATION", "COURSE", "CERTIFICATE"] as const;
+export type PortfolioItemType = (typeof portfolioItemTypes)[number];
+
+const trimmedList = (maximumItems: number, maximumLength: number, itemMessage: string, listMessage: string) =>
+  z.array(z.string().trim().max(maximumLength, itemMessage), { error: "يجب إرسال القائمة بصيغة صحيحة." })
+    .max(maximumItems, listMessage)
+    .transform((items) => items.filter(Boolean));
+
+export const portfolioEducationIdentitySchema = z.object({
+  vision: z.string().trim().max(1000, "يجب ألا تتجاوز الرؤية 1000 حرف."),
+  mission: z.string().trim().max(1200, "يجب ألا تتجاوز الرسالة 1200 حرف."),
+  pillars: trimmedList(10, 120, "يجب ألا يتجاوز كل محور 120 حرفًا.", "يمكن إضافة 10 محاور كحد أقصى."),
+  values: trimmedList(12, 100, "يجب ألا تتجاوز كل قيمة 100 حرف.", "يمكن إضافة 12 قيمة كحد أقصى."),
+  strategicObjectives: trimmedList(20, 220, "يجب ألا يتجاوز كل هدف 220 حرفًا.", "يمكن إضافة 20 هدفًا استراتيجيًا كحد أقصى."),
+});
+
+export const portfolioSettingsSchema = z.object({
+  operation: z.literal("settings"),
+  title: z.string().trim().min(3, "عنوان الملف قصير جدًا.").max(160),
+  academicYear: z.string().trim().min(4, "العام الدراسي مطلوب.").max(30),
+  term: z.string().trim().min(2, "الفصل الدراسي مطلوب.").max(80),
+  description: z.string().trim().max(500).default(""),
+  themeId: z.enum(PORTFOLIO_THEME_IDS),
+  preferences: z.object({
+    showSchoolName: z.boolean(),
+    showPrincipalName: z.boolean(),
+    showCoverStatistics: z.boolean(),
+    showTableOfContents: z.boolean(),
+    showPerformanceDividers: z.boolean(),
+  }),
+});
+
+export const portfolioContentSchema = z.object({
+  operation: z.literal("content"),
+  introText: z.string().trim().max(5000),
+  conclusionText: z.string().trim().max(5000),
+  biography: z.object({
+    professionalSummary: z.string().trim().max(3000),
+    specialization: z.string().trim().max(200),
+    academicQualification: z.string().trim().max(300),
+    yearsOfExperience: z.string().trim().max(80),
+    skills: z.string().trim().max(1000),
+    professionalInterests: z.string().trim().max(1000),
+  }),
+  educationIdentity: portfolioEducationIdentitySchema,
+});
+
+export const portfolioPatchSchema = z.discriminatedUnion("operation", [
+  portfolioSettingsSchema,
+  portfolioContentSchema,
+]);
+
+const portfolioAttachmentUrlSchema = z.union([
+  z.literal(""),
+  z.string().regex(/^\/uploads\/[A-Za-z0-9][A-Za-z0-9/_-]*\.(?:jpe?g|png|webp)$/i, "مسار الصورة المرفقة غير صالح."),
+  z.url("رابط المرفق غير صحيح.").refine((value) => value.startsWith("https://"), "يجب أن يبدأ الرابط الخارجي بـ https://"),
+]);
+
+export const portfolioItemCreateSchema = z.object({
+  type: z.enum(portfolioItemTypes),
+  title: z.string().trim().min(2, "عنوان العنصر مطلوب.").max(200),
+  issuer: z.string().trim().max(200).default(""),
+  date: z.string().trim().max(40).default(""),
+  hours: z.string().trim().max(40).default(""),
+  description: z.string().trim().max(2000).default(""),
+  attachmentUrl: portfolioAttachmentUrlSchema.default(""),
+  attachmentMimeType: z.enum(["image/jpeg", "image/png", "image/webp", ""]).default(""),
+  attachmentKind: z.enum(["IMAGE", ""]).default(""),
+  isVisible: z.boolean().default(true),
+});
+
+export const portfolioItemPatchSchema = z.union([
+  portfolioItemCreateSchema.partial().extend({ action: z.literal("update") }),
+  z.object({ action: z.literal("move"), direction: z.enum(["up", "down"]) }),
+]);
+
+export const portfolioSectionPatchSchema = z.object({ isEnabled: z.boolean() });
+export const portfolioMoveSchema = z.object({ direction: z.enum(["up", "down"]) });
+
+export const portfolioReportVisibilitySchema = z.object({ isVisible: z.boolean() });
+export const portfolioEvidencePatchSchema = z.object({
+  isVisible: z.boolean().optional(),
+  customTitle: z.string().trim().max(200).optional(),
+  customDescription: z.string().trim().max(1000).optional(),
+}).refine((value) => Object.keys(value).length > 0, "لا توجد تغييرات للحفظ.");
+
+export const customEvidenceCreateSchema = z.object({
+  title: z.string().trim().min(2, "عنوان الشاهد مطلوب.").max(200),
+  description: z.string().trim().max(2000).default(""),
+  fileUrl: z.union([z.url("رابط الشاهد غير صحيح."), z.string().startsWith("/uploads/"), z.literal("")]),
+  mimeType: z.string().trim().max(120).default(""),
+  sectionId: z.string().trim().min(1).nullable().optional(),
+  isVisible: z.boolean().default(true),
+});
+export const customEvidencePatchSchema = customEvidenceCreateSchema.partial();
+
+export type PortfolioPreferences = z.infer<typeof portfolioSettingsSchema>["preferences"];
+export type PortfolioBiography = z.infer<typeof portfolioContentSchema>["biography"];
+export type PortfolioEducationIdentity = z.infer<typeof portfolioEducationIdentitySchema>;
+
+export type PortfolioWorkspaceItem = {
+  id: string;
+  type: PortfolioItemType;
+  title: string;
+  issuer: string;
+  date: string;
+  hours: string;
+  description: string;
+  attachmentUrl: string;
+  attachmentMimeType: "image/jpeg" | "image/png" | "image/webp" | "";
+  attachmentKind: "IMAGE" | "";
+  sortOrder: number;
+  isVisible: boolean;
+};
+
+export type PortfolioReportSourceType = "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+export type PortfolioEvidencePreference = {
+  isVisible: boolean;
+  sortOrder: number;
+  customTitle: string;
+  customDescription: string;
+};
+export type PortfolioManagedEvidence = {
+  id: string;
+  originalTitle: string;
+  title: string;
+  description: string;
+  url: string | null;
+  type: string;
+  isVisible: boolean;
+  sortOrder: number;
+};
+export type PortfolioManagedReport = {
+  itemId: string;
+  sourceId: string;
+  sourceType: PortfolioReportSourceType;
+  sectionId: string;
+  sectionKey: string;
+  title: string;
+  serviceName: string;
+  caseTitle: string | null;
+  status: string;
+  generatedAt: string | null;
+  createdAt: string;
+  previewUrl: string;
+  isVisible: boolean;
+  sortOrder: number;
+  isPersisted: boolean;
+  isAvailable: boolean;
+  evidence: PortfolioManagedEvidence[];
+};
+export type PortfolioReportGroup = {
+  sectionId: string;
+  sectionKey: string;
+  title: string;
+  weight: number;
+  isEnabled: boolean;
+  availableCount: number;
+  includedCount: number;
+  visibleEvidenceCount: number;
+  reports: PortfolioManagedReport[];
+};
+export type PortfolioCustomEvidence = {
+  id: string;
+  sectionId: string | null;
+  title: string;
+  description: string;
+  fileUrl: string;
+  mimeType: string;
+  sortOrder: number;
+  isVisible: boolean;
+};

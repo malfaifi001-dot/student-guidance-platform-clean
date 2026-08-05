@@ -8,6 +8,7 @@ export type PortfolioReportField = {
 export type PortfolioReportEvidenceItem = {
   id: string;
   title: string;
+  description?: string;
   url: string | null;
   type: string;
 };
@@ -33,14 +34,6 @@ export type PortfolioReportEvidenceSettings = {
   showCaptions: boolean;
 };
 
-export type PortfolioReportSignature = {
-  key: string;
-  label: string;
-  signerName: string;
-  signerTitle: string;
-  imageUrl: string | null;
-};
-
 export type PortfolioReportContent = {
   reportType: string;
   title: string;
@@ -59,7 +52,6 @@ export type PortfolioReportContent = {
   } | null;
   evidenceSettings: PortfolioReportEvidenceSettings;
   evidenceItems: PortfolioReportEvidenceItem[];
-  signatures: PortfolioReportSignature[];
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -87,14 +79,6 @@ type RawEvidenceSettingsInput = {
   evidenceAspectRatio?: unknown;
   showCaptions?: unknown;
   evidenceShowCaptions?: unknown;
-};
-
-type RawSignatureInput = {
-  key?: unknown;
-  label?: unknown;
-  signerName?: unknown;
-  signerTitle?: unknown;
-  imageUrl?: unknown;
 };
 
 function asRecord(value: unknown): JsonRecord {
@@ -260,35 +244,6 @@ function normalizeEvidenceSettings(value: unknown): PortfolioReportEvidenceSetti
   };
 }
 
-function normalizeSignatures(value: unknown): PortfolioReportSignature[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => {
-      const signature = asRecord(item) as RawSignatureInput;
-      const key = cleanText(signature.key);
-      const label = cleanText(signature.label) || key;
-      const signerName = cleanText(signature.signerName);
-      const signerTitle = cleanText(signature.signerTitle);
-      const imageUrl = cleanText(signature.imageUrl) || null;
-
-      if (!key && !label && !signerName && !signerTitle && !imageUrl) {
-        return null;
-      }
-
-      return {
-        key: key || label,
-        label: label || signerName || "توقيع",
-        signerName,
-        signerTitle,
-        imageUrl,
-      };
-    })
-    .filter((item): item is PortfolioReportSignature => item !== null);
-}
-
 export function normalizePortfolioReportPayload(
   payload: unknown,
 ): PortfolioReportContent | null {
@@ -334,6 +289,5 @@ export function normalizePortfolioReportPayload(
       : null,
     evidenceSettings: normalizeEvidenceSettings(evidence),
     evidenceItems: normalizeEvidenceItems(evidence.items),
-    signatures: normalizeSignatures(source.signatures),
   };
 }

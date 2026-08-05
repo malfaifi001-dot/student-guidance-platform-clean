@@ -1,0 +1,2209 @@
+PORTFOLIO THEMES REVIEW
+Generated: 2026-08-04 22:14:10
+Project: D:\student-guidance-platform-clean
+
+===== GIT STATUS =====
+ M app/dashboard/teacher/portfolio/page.tsx
+ M app/dashboard/teacher/portfolio/preview/page.tsx
+ M components/portfolio/portfolio-dashboard.tsx
+ M components/portfolio/print/ministry-elegant-portfolio-print.tsx
+ M components/portfolio/print/portfolio-print-actions.tsx
+ M lib/portfolio/portfolio-read-model.ts
+ M lib/portfolio/portfolio-report-content.ts
+ M lib/portfolio/portfolio-theme-registry.ts
+?? app/api/dashboard/portfolio/
+?? app/teacher/portfolio/
+?? assessment-print-pattern.txt
+?? components/portfolio/portfolio-content-panel.tsx
+?? components/portfolio/portfolio-design-panel.tsx
+?? components/portfolio/portfolio-feedback-pop-card.tsx
+?? components/portfolio/portfolio-qualifications-panel.tsx
+?? components/portfolio/portfolio-reports-evidence-panel.tsx
+?? components/portfolio/portfolio-sections-panel.tsx
+?? components/portfolio/portfolio-settings-panel.tsx
+?? components/portfolio/portfolio-theme-preview-card.module.css
+?? components/portfolio/portfolio-theme-preview-card.tsx
+?? components/portfolio/portfolio-workspace.tsx
+?? components/portfolio/print/portfolio-print-document.tsx
+?? components/portfolio/print/portfolio-theme-styles.ts
+?? components/portfolio/print/themes/
+?? lib/portfolio/portfolio-api.ts
+?? lib/portfolio/portfolio-authorization.ts
+?? lib/portfolio/portfolio-report-service.ts
+?? lib/portfolio/portfolio-service.ts
+?? lib/portfolio/portfolio-types.ts
+?? portfolio-feature-review.txt
+?? portfolio-print-code.txt
+?? portfolio-print-components.txt
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-0439f849-8879-4ec5-a2be-0c9a4e924d1d.jpg
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-dbb22f8f-c44f-44eb-8082-b0fdaf0f380e.jpg
+
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-theme-registry.ts
+==============================================================================================================
+export const PORTFOLIO_THEME_IDS = [
+  "ministry-elegant",
+  "executive-grid",
+  "editorial-magazine",
+  "academic-manuscript",
+  "modern-geometric",
+  "minimal-typographic",
+  "gallery-showcase",
+  "timeline-journey",
+  "split-panel",
+  "classic-heritage",
+  "soft-organic",
+] as const;
+
+export type PortfolioThemeId = (typeof PORTFOLIO_THEME_IDS)[number];
+export type PortfolioLayoutVariant = "ministry" | "grid" | "editorial" | "manuscript" | "geometric" | "minimal" | "gallery" | "timeline" | "split" | "heritage" | "organic";
+export type PortfolioCoverVariant = "centered-emblem" | "asymmetric-block" | "magazine-masthead" | "formal-title" | "diagonal-layers" | "type-only" | "identity-gallery" | "journey-start" | "dual-zone" | "ornamental-center" | "flowing-islands";
+export type PortfolioIndexVariant = "formal-table" | "number-grid" | "editorial-columns" | "chapter-list" | "shape-map" | "ruled-list" | "gallery-labels" | "vertical-timeline" | "rail-index" | "framed-chapters" | "floating-list";
+export type PortfolioDividerVariant = "hero" | "numbered-grid" | "feature-opener" | "chapter" | "giant-number" | "type-break" | "exhibition-panel" | "milestone" | "side-title" | "formal-seal" | "wave";
+export type PortfolioReportVariant = "ministry-frame" | "executive-dashboard" | "feature-article" | "academic-record" | "angular-block" | "plain-premium" | "curated-exhibit" | "milestone-card" | "side-panel" | "formal-frame" | "flowing-boundary";
+export type PortfolioEvidenceVariant = "balanced-grid" | "modular-grid" | "image-led" | "numbered-figures" | "geometric-labels" | "large-caption" | "showcase" | "milestone-media" | "split-media" | "classic-frame" | "soft-mask";
+export type PortfolioQualificationVariant = "info-cards" | "credential-grid" | "editorial-list" | "academic-table" | "angular-cards" | "text-led" | "gallery-cards" | "timeline-credentials" | "split-cards" | "certificate-cards" | "organic-islands";
+export type PortfolioHeaderVariant = "dual-label" | "rule-grid" | "masthead" | "running-head" | "corner-label" | "page-title" | "gallery-mark" | "timeline-node" | "side-rail" | "ornamental-rule" | "floating-pill";
+export type PortfolioFooterVariant = "formal-line" | "kpi-line" | "folio" | "footnote" | "angle-marker" | "bare-number" | "exhibit-label" | "journey-line" | "rail-number" | "seal-line" | "flow-line";
+export type PortfolioTypographyVariant = "formal" | "compact" | "editorial" | "academic" | "bold" | "minimal" | "display" | "narrative" | "panel" | "classic" | "calm";
+export type PortfolioOrnamentVariant = PortfolioLayoutVariant;
+
+export type PortfolioThemeDefinition = {
+  id: PortfolioThemeId;
+  name: string;
+  shortDescription: string;
+  previewClass: string;
+  palette: { primary: string; secondary: string; accent: string; muted: string };
+  layoutVariant: PortfolioLayoutVariant;
+  coverVariant: PortfolioCoverVariant;
+  indexVariant: PortfolioIndexVariant;
+  dividerVariant: PortfolioDividerVariant;
+  reportVariant: PortfolioReportVariant;
+  evidenceVariant: PortfolioEvidenceVariant;
+  qualificationVariant: PortfolioQualificationVariant;
+  headerVariant: PortfolioHeaderVariant;
+  footerVariant: PortfolioFooterVariant;
+  typographyVariant: PortfolioTypographyVariant;
+  ornamentVariant: PortfolioOrnamentVariant;
+};
+
+const theme = (definition: PortfolioThemeDefinition) => definition;
+
+export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
+  theme({ id: "ministry-elegant", name: "الوزاري الأنيق", shortDescription: "هوية تعليمية رسمية بإطار متوازن وزوايا هندسية هادئة.", previewClass: "preview-ministry", palette: { primary: "#0f766e", secondary: "#0f2a4d", accent: "#22c55e", muted: "#eef7f6" }, layoutVariant: "ministry", coverVariant: "centered-emblem", indexVariant: "formal-table", dividerVariant: "hero", reportVariant: "ministry-frame", evidenceVariant: "balanced-grid", qualificationVariant: "info-cards", headerVariant: "dual-label", footerVariant: "formal-line", typographyVariant: "formal", ornamentVariant: "ministry" }),
+  theme({ id: "executive-grid", name: "التنفيذي الشبكي", shortDescription: "شبكة مهنية صارمة، مؤشرات مضغوطة وأعمدة تنفيذية دقيقة.", previewClass: "preview-grid", palette: { primary: "#17324d", secondary: "#0b1623", accent: "#d4a72c", muted: "#edf1f4" }, layoutVariant: "grid", coverVariant: "asymmetric-block", indexVariant: "number-grid", dividerVariant: "numbered-grid", reportVariant: "executive-dashboard", evidenceVariant: "modular-grid", qualificationVariant: "credential-grid", headerVariant: "rule-grid", footerVariant: "kpi-line", typographyVariant: "compact", ornamentVariant: "grid" }),
+  theme({ id: "editorial-magazine", name: "المجلة المهنية", shortDescription: "عناوين ضخمة وأعمدة تحريرية ومعالجة غنية للصور والتعليقات.", previewClass: "preview-editorial", palette: { primary: "#b42318", secondary: "#171717", accent: "#f2b84b", muted: "#f7f1e8" }, layoutVariant: "editorial", coverVariant: "magazine-masthead", indexVariant: "editorial-columns", dividerVariant: "feature-opener", reportVariant: "feature-article", evidenceVariant: "image-led", qualificationVariant: "editorial-list", headerVariant: "masthead", footerVariant: "folio", typographyVariant: "editorial", ornamentVariant: "editorial" }),
+  theme({ id: "academic-manuscript", name: "السجل الأكاديمي", shortDescription: "سجل رسمي بفصول مرقمة وعمود قراءة ضيق وهوامش أكاديمية.", previewClass: "preview-academic", palette: { primary: "#3f3a32", secondary: "#1f1d1a", accent: "#8b6f47", muted: "#f4f0e7" }, layoutVariant: "manuscript", coverVariant: "formal-title", indexVariant: "chapter-list", dividerVariant: "chapter", reportVariant: "academic-record", evidenceVariant: "numbered-figures", qualificationVariant: "academic-table", headerVariant: "running-head", footerVariant: "footnote", typographyVariant: "academic", ornamentVariant: "manuscript" }),
+  theme({ id: "modern-geometric", name: "الهندسي الحديث", shortDescription: "أشكال جريئة وطبقات قطرية وفواصل رقمية ذات حضور قوي.", previewClass: "preview-geometric", palette: { primary: "#5b21b6", secondary: "#172554", accent: "#06b6d4", muted: "#f1efff" }, layoutVariant: "geometric", coverVariant: "diagonal-layers", indexVariant: "shape-map", dividerVariant: "giant-number", reportVariant: "angular-block", evidenceVariant: "geometric-labels", qualificationVariant: "angular-cards", headerVariant: "corner-label", footerVariant: "angle-marker", typographyVariant: "bold", ornamentVariant: "geometric" }),
+  theme({ id: "minimal-typographic", name: "الطباعي البسيط", shortDescription: "مساحات بيضاء واسعة وتسلسل طباعي فاخر بلا زخرفة زائدة.", previewClass: "preview-minimal", palette: { primary: "#111827", secondary: "#030712", accent: "#6b7280", muted: "#f9fafb" }, layoutVariant: "minimal", coverVariant: "type-only", indexVariant: "ruled-list", dividerVariant: "type-break", reportVariant: "plain-premium", evidenceVariant: "large-caption", qualificationVariant: "text-led", headerVariant: "page-title", footerVariant: "bare-number", typographyVariant: "minimal", ornamentVariant: "minimal" }),
+  theme({ id: "gallery-showcase", name: "معرض الإنجازات", shortDescription: "معرض بصري يمنح الإنجازات والصور مساحة أكبر وتكوينًا قيّميًا.", previewClass: "preview-gallery", palette: { primary: "#7c2d12", secondary: "#292524", accent: "#ea580c", muted: "#fff7ed" }, layoutVariant: "gallery", coverVariant: "identity-gallery", indexVariant: "gallery-labels", dividerVariant: "exhibition-panel", reportVariant: "curated-exhibit", evidenceVariant: "showcase", qualificationVariant: "gallery-cards", headerVariant: "gallery-mark", footerVariant: "exhibit-label", typographyVariant: "display", ornamentVariant: "gallery" }),
+  theme({ id: "timeline-journey", name: "رحلة الإنجاز", shortDescription: "رحلة زمنية بمحطات واضحة وتواريخ بارزة وخط متصل عبر الصفحات.", previewClass: "preview-timeline", palette: { primary: "#0369a1", secondary: "#164e63", accent: "#f59e0b", muted: "#ecfeff" }, layoutVariant: "timeline", coverVariant: "journey-start", indexVariant: "vertical-timeline", dividerVariant: "milestone", reportVariant: "milestone-card", evidenceVariant: "milestone-media", qualificationVariant: "timeline-credentials", headerVariant: "timeline-node", footerVariant: "journey-line", typographyVariant: "narrative", ornamentVariant: "timeline" }),
+  theme({ id: "split-panel", name: "اللوحات المقسمة", shortDescription: "منطقتان متباينتان وسكة جانبية ثابتة للمعلومات وأرقام الصفحات.", previewClass: "preview-split", palette: { primary: "#0f766e", secondary: "#1e293b", accent: "#f97316", muted: "#f1f5f9" }, layoutVariant: "split", coverVariant: "dual-zone", indexVariant: "rail-index", dividerVariant: "side-title", reportVariant: "side-panel", evidenceVariant: "split-media", qualificationVariant: "split-cards", headerVariant: "side-rail", footerVariant: "rail-number", typographyVariant: "panel", ornamentVariant: "split" }),
+  theme({ id: "classic-heritage", name: "التراث الرسمي", shortDescription: "إطار رسمي مزخرف باعتدال وفصول مركزية وبطاقات شبيهة بالشهادات.", previewClass: "preview-heritage", palette: { primary: "#6b4f2a", secondary: "#2f2418", accent: "#b08d57", muted: "#faf6ed" }, layoutVariant: "heritage", coverVariant: "ornamental-center", indexVariant: "framed-chapters", dividerVariant: "formal-seal", reportVariant: "formal-frame", evidenceVariant: "classic-frame", qualificationVariant: "certificate-cards", headerVariant: "ornamental-rule", footerVariant: "seal-line", typographyVariant: "classic", ornamentVariant: "heritage" }),
+  theme({ id: "soft-organic", name: "الانسيابي الهادئ", shortDescription: "منحنيات لطيفة وجزر معلومات مستديرة وتدفق بصري مريح.", previewClass: "preview-organic", palette: { primary: "#4d7c6f", secondary: "#35505f", accent: "#d9776a", muted: "#f0f7f4" }, layoutVariant: "organic", coverVariant: "flowing-islands", indexVariant: "floating-list", dividerVariant: "wave", reportVariant: "flowing-boundary", evidenceVariant: "soft-mask", qualificationVariant: "organic-islands", headerVariant: "floating-pill", footerVariant: "flow-line", typographyVariant: "calm", ornamentVariant: "organic" }),
+];
+
+export const DEFAULT_PORTFOLIO_THEME_ID: PortfolioThemeId = "ministry-elegant";
+
+export function isPortfolioThemeId(value: unknown): value is PortfolioThemeId {
+  return typeof value === "string" && PORTFOLIO_THEME_IDS.includes(value as PortfolioThemeId);
+}
+
+export function getPortfolioTheme(themeId?: string | null): PortfolioThemeDefinition {
+  return PORTFOLIO_THEMES.find((item) => item.id === themeId) || PORTFOLIO_THEMES[0];
+}
+
+
+==============================================================================================================
+FILE: lib\portfolio\portfolio-types.ts
+==============================================================================================================
+import { z } from "zod";
+import { PORTFOLIO_THEME_IDS } from "@/lib/portfolio/portfolio-theme-registry";
+
+export const portfolioItemTypes = ["QUALIFICATION", "COURSE", "CERTIFICATE"] as const;
+export type PortfolioItemType = (typeof portfolioItemTypes)[number];
+
+export const portfolioSettingsSchema = z.object({
+  operation: z.literal("settings"),
+  title: z.string().trim().min(3, "عنوان الملف قصير جدًا.").max(160),
+  academicYear: z.string().trim().min(4, "العام الدراسي مطلوب.").max(30),
+  term: z.string().trim().min(2, "الفصل الدراسي مطلوب.").max(80),
+  description: z.string().trim().max(500).default(""),
+  themeId: z.enum(PORTFOLIO_THEME_IDS),
+  preferences: z.object({
+    showSchoolName: z.boolean(),
+    showPrincipalName: z.boolean(),
+    showCoverStatistics: z.boolean(),
+    showTableOfContents: z.boolean(),
+    showPerformanceDividers: z.boolean(),
+  }),
+});
+
+export const portfolioContentSchema = z.object({
+  operation: z.literal("content"),
+  introText: z.string().trim().max(5000),
+  conclusionText: z.string().trim().max(5000),
+  biography: z.object({
+    professionalSummary: z.string().trim().max(3000),
+    specialization: z.string().trim().max(200),
+    academicQualification: z.string().trim().max(300),
+    yearsOfExperience: z.string().trim().max(80),
+    skills: z.string().trim().max(1000),
+    professionalInterests: z.string().trim().max(1000),
+  }),
+});
+
+export const portfolioPatchSchema = z.discriminatedUnion("operation", [
+  portfolioSettingsSchema,
+  portfolioContentSchema,
+]);
+
+export const portfolioItemCreateSchema = z.object({
+  type: z.enum(portfolioItemTypes),
+  title: z.string().trim().min(2, "عنوان العنصر مطلوب.").max(200),
+  issuer: z.string().trim().max(200).default(""),
+  date: z.string().trim().max(40).default(""),
+  hours: z.string().trim().max(40).default(""),
+  description: z.string().trim().max(2000).default(""),
+  attachmentUrl: z.union([z.url("رابط المرفق غير صحيح."), z.literal("")]).default(""),
+  isVisible: z.boolean().default(true),
+});
+
+export const portfolioItemPatchSchema = z.union([
+  portfolioItemCreateSchema.partial().extend({ action: z.literal("update") }),
+  z.object({ action: z.literal("move"), direction: z.enum(["up", "down"]) }),
+]);
+
+export const portfolioSectionPatchSchema = z.object({ isEnabled: z.boolean() });
+export const portfolioMoveSchema = z.object({ direction: z.enum(["up", "down"]) });
+
+export const portfolioReportVisibilitySchema = z.object({ isVisible: z.boolean() });
+export const portfolioEvidencePatchSchema = z.object({
+  isVisible: z.boolean().optional(),
+  customTitle: z.string().trim().max(200).optional(),
+  customDescription: z.string().trim().max(1000).optional(),
+}).refine((value) => Object.keys(value).length > 0, "لا توجد تغييرات للحفظ.");
+
+export const customEvidenceCreateSchema = z.object({
+  title: z.string().trim().min(2, "عنوان الشاهد مطلوب.").max(200),
+  description: z.string().trim().max(2000).default(""),
+  fileUrl: z.union([z.url("رابط الشاهد غير صحيح."), z.string().startsWith("/uploads/"), z.literal("")]),
+  mimeType: z.string().trim().max(120).default(""),
+  sectionId: z.string().trim().min(1).nullable().optional(),
+  isVisible: z.boolean().default(true),
+});
+export const customEvidencePatchSchema = customEvidenceCreateSchema.partial();
+
+export type PortfolioPreferences = z.infer<typeof portfolioSettingsSchema>["preferences"];
+export type PortfolioBiography = z.infer<typeof portfolioContentSchema>["biography"];
+
+export type PortfolioWorkspaceItem = {
+  id: string;
+  type: PortfolioItemType;
+  title: string;
+  issuer: string;
+  date: string;
+  hours: string;
+  description: string;
+  attachmentUrl: string;
+  sortOrder: number;
+  isVisible: boolean;
+};
+
+export type PortfolioReportSourceType = "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+export type PortfolioEvidencePreference = {
+  isVisible: boolean;
+  sortOrder: number;
+  customTitle: string;
+  customDescription: string;
+};
+export type PortfolioManagedEvidence = {
+  id: string;
+  originalTitle: string;
+  title: string;
+  description: string;
+  url: string | null;
+  type: string;
+  isVisible: boolean;
+  sortOrder: number;
+};
+export type PortfolioManagedReport = {
+  itemId: string;
+  sourceId: string;
+  sourceType: PortfolioReportSourceType;
+  sectionId: string;
+  sectionKey: string;
+  title: string;
+  serviceName: string;
+  caseTitle: string | null;
+  status: string;
+  generatedAt: string | null;
+  createdAt: string;
+  previewUrl: string;
+  isVisible: boolean;
+  sortOrder: number;
+  isPersisted: boolean;
+  isAvailable: boolean;
+  evidence: PortfolioManagedEvidence[];
+};
+export type PortfolioReportGroup = {
+  sectionId: string;
+  sectionKey: string;
+  title: string;
+  weight: number;
+  isEnabled: boolean;
+  availableCount: number;
+  includedCount: number;
+  visibleEvidenceCount: number;
+  reports: PortfolioManagedReport[];
+};
+export type PortfolioCustomEvidence = {
+  id: string;
+  sectionId: string | null;
+  title: string;
+  description: string;
+  fileUrl: string;
+  mimeType: string;
+  sortOrder: number;
+  isVisible: boolean;
+};
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-design-panel.tsx
+==============================================================================================================
+"use client";
+
+import { ExternalLink, Loader2, Palette, Save } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { PortfolioThemePreviewCard } from "@/components/portfolio/portfolio-theme-preview-card";
+import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioTheme, PORTFOLIO_THEMES, type PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
+
+export function PortfolioDesignPanel({ data, busy, onSave }: {
+  data: TeacherPortfolioWorkspace;
+  busy: boolean;
+  onSave: (body: unknown) => Promise<void>;
+}) {
+  const resolvedTheme = getPortfolioTheme(data.portfolio.themeId);
+  const [themeId, setThemeId] = useState<PortfolioThemeId>(resolvedTheme.id);
+  const [preferences, setPreferences] = useState(data.portfolio.preferences);
+  const payload = (nextThemeId = themeId, nextPreferences = preferences) => ({
+    operation: "settings",
+    title: data.portfolio.title,
+    academicYear: data.portfolio.academicYear,
+    term: data.portfolio.term,
+    description: data.portfolio.description,
+    themeId: nextThemeId,
+    preferences: nextPreferences,
+  });
+
+  async function selectTheme(nextThemeId: PortfolioThemeId) {
+    if (nextThemeId === themeId || busy) return;
+    const previous = themeId;
+    setThemeId(nextThemeId);
+    try { await onSave(payload(nextThemeId)); } catch { setThemeId(previous); }
+  }
+
+  const selectedTheme = getPortfolioTheme(themeId);
+  const preferenceOptions = [
+    ["showTableOfContents", "إظهار فهرس المحتويات"],
+    ["showPerformanceDividers", "إظهار صفحات فواصل الأداء"],
+    ["showCoverStatistics", "إظهار إحصاءات الغلاف"],
+    ["showSchoolName", "إظهار اسم المدرسة"],
+    ["showPrincipalName", "إظهار اسم مدير المدرسة"],
+  ] as const;
+
+  return <section className="space-y-6">
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-700"><Palette className="h-6 w-6" /></span><div><p className="text-xs font-black text-slate-400">التصميم المحدد</p><h2 className="text-xl font-black text-slate-950">{selectedTheme.name}</h2><p className="mt-1 text-sm font-bold text-slate-500">{selectedTheme.shortDescription}</p></div></div>
+        <Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
+      </div>
+    </div>
+
+    <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm md:p-6">
+      <div><h3 className="text-lg font-black text-slate-950">معرض التصاميم</h3><p className="mt-1 text-sm font-bold text-slate-500">اختر تكوينًا كاملًا للغلاف والفهرس والتقارير والشواهد.</p></div>
+      <div role="radiogroup" aria-label="تصميم ملف الإنجاز" className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{PORTFOLIO_THEMES.map((theme) => <PortfolioThemePreviewCard key={theme.id} theme={theme} selected={themeId === theme.id} disabled={busy} onSelect={() => void selectTheme(theme.id)} />)}</div>
+    </div>
+
+    <form onSubmit={(event) => { event.preventDefault(); void onSave(payload()); }} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-black text-slate-950">خيارات العرض</h3><p className="mt-1 text-sm font-bold text-slate-500">تُطبّق هذه الخيارات على التصميم المحدد والمعاينة والطباعة.</p>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">{preferenceOptions.map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700"><span>{label}</span><input type="checkbox" checked={preferences[key]} onChange={() => setPreferences((old) => ({ ...old, [key]: !old[key] }))} className="h-5 w-5 accent-teal-600" /></label>)}</div>
+      <button disabled={busy} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ خيارات العرض</button>
+    </form>
+  </section>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-theme-preview-card.tsx
+==============================================================================================================
+"use client";
+
+import { Check } from "lucide-react";
+import type { CSSProperties } from "react";
+import type { PortfolioThemeDefinition } from "@/lib/portfolio/portfolio-theme-registry";
+import styles from "./portfolio-theme-preview-card.module.css";
+
+export function PortfolioThemePreviewCard({ theme, selected, disabled, onSelect }: {
+  theme: PortfolioThemeDefinition;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  return <button
+    type="button"
+    aria-pressed={selected}
+    disabled={disabled}
+    onClick={onSelect}
+    className={`group rounded-[1.5rem] border p-3 text-right transition focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-wait disabled:opacity-60 ${selected ? "border-teal-600 bg-teal-50/60 ring-2 ring-teal-100" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"}`}
+  >
+    <ThemeMiniature theme={theme} />
+    <span className="mt-3 flex items-start justify-between gap-3">
+      <span><strong className="block text-sm font-black text-slate-950">{theme.name}</strong><span className="mt-1 block text-xs font-bold leading-5 text-slate-500">{theme.shortDescription}</span></span>
+      <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border ${selected ? "border-teal-600 bg-teal-600 text-white" : "border-slate-300 text-transparent"}`}><Check className="h-3.5 w-3.5" /></span>
+    </span>
+  </button>;
+}
+
+function ThemeMiniature({ theme }: { theme: PortfolioThemeDefinition }) {
+  return <span
+    aria-hidden="true"
+    className={`${styles.miniature} ${styles[theme.previewClass]}`}
+    style={{ "--mini-primary": theme.palette.primary, "--mini-secondary": theme.palette.secondary, "--mini-accent": theme.palette.accent, "--mini-muted": theme.palette.muted } as CSSProperties}
+  >
+    <i className={styles.ornament} /><i className={styles.title} /><i className={styles.subtitle} />
+    <i className={`${styles.panel} ${styles.panelA}`} /><i className={`${styles.panel} ${styles.panelB}`} /><i className={`${styles.panel} ${styles.panelC}`} />
+    <i className={styles.line} /><i className={styles.page} />
+  </span>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-theme-preview-card.module.css
+==============================================================================================================
+.miniature { position:relative; display:block; height:150px; overflow:hidden; border-radius:18px; background:var(--mini-muted); border:1px solid color-mix(in srgb,var(--mini-primary) 22%,white); }
+.miniature i { position:absolute; display:block; }
+.title { height:9px; width:46%; background:var(--mini-secondary); border-radius:9px; }
+.subtitle { height:4px; width:30%; background:var(--mini-primary); opacity:.65; border-radius:5px; }
+.panel { background:white; border:1px solid color-mix(in srgb,var(--mini-primary) 28%,white); }
+.line { background:var(--mini-accent); }
+.page { width:18px; height:7px; border-radius:8px; background:var(--mini-secondary); opacity:.65; }
+.preview-ministry { box-shadow:inset 0 0 0 7px var(--mini-primary),inset 0 0 0 9px white; }
+.preview-ministry .ornament { inset:17px 50% auto auto; translate:50% 0; width:25px; height:25px; rotate:45deg; border:4px double var(--mini-accent); }
+.preview-ministry .title { top:58px; right:27%; }.preview-ministry .subtitle{top:75px;right:35%}.preview-ministry .panelA{right:18%;bottom:18px;width:28%;height:28px}.preview-ministry .panelB{left:18%;bottom:18px;width:28%;height:28px}.preview-ministry .page{left:15px;bottom:13px}
+.preview-grid { background:linear-gradient(90deg,var(--mini-muted) 0 64%,var(--mini-secondary) 64%); }
+.preview-grid .ornament{inset:0 auto 0 64%;width:1px;background:var(--mini-accent)}.preview-grid .title{right:9%;top:30px;width:45%;height:16px}.preview-grid .subtitle{right:9%;top:55px}.preview-grid .panel{border-radius:0}.preview-grid .panelA{right:8%;bottom:20px;width:18%;height:34px}.preview-grid .panelB{right:28%;bottom:20px;width:18%;height:34px}.preview-grid .panelC{right:48%;bottom:20px;width:8%;height:34px}.preview-grid .line{left:7%;top:18px;width:20%;height:3px}.preview-grid .page{left:8%;bottom:17px}
+.preview-editorial { background:#fff; border-top:12px solid var(--mini-primary); }
+.preview-editorial .title{right:7%;top:24px;width:72%;height:22px}.preview-editorial .subtitle{right:7%;top:53px;width:48%}.preview-editorial .line{right:7%;left:7%;top:68px;height:2px}.preview-editorial .panelA{right:7%;top:80px;width:55%;height:55px;border:0;background:var(--mini-muted)}.preview-editorial .panelB{left:7%;top:80px;width:24%;height:55px;border-width:0 2px 0 0}.preview-editorial .page{left:8px;top:7px;background:white}
+.preview-academic { background:#fbf8f1; box-shadow:inset 0 0 0 1px var(--mini-primary); }
+.preview-academic .ornament{right:50%;top:16px;width:34px;height:1px;background:var(--mini-accent);translate:50%}.preview-academic .title{right:27%;top:42px}.preview-academic .subtitle{right:35%;top:59px}.preview-academic .panelA{right:22%;top:78px;width:56%;height:44px;border-width:1px 0;background:transparent}.preview-academic .line{right:28%;left:28%;bottom:17px;height:1px;background:var(--mini-primary)}.preview-academic .page{right:46%;bottom:6px;width:8%;height:4px}
+.preview-geometric { background:linear-gradient(145deg,var(--mini-secondary) 0 43%,var(--mini-muted) 43%); }
+.preview-geometric .ornament{left:-14px;top:-15px;width:75px;height:75px;border-radius:50%;background:var(--mini-accent);opacity:.8}.preview-geometric .title{right:9%;top:73px;width:48%;height:14px;transform:skew(-12deg)}.preview-geometric .subtitle{right:13%;top:96px}.preview-geometric .panelA{right:10%;bottom:-12px;width:58px;height:45px;transform:skew(-18deg);background:var(--mini-primary)}.preview-geometric .panelB{left:8%;bottom:12px;width:30px;height:30px;rotate:45deg;background:white}.preview-geometric .page{left:9px;top:9px;background:white}
+.preview-minimal { background:white; border-color:#e5e7eb; }
+.preview-minimal .title{right:9%;top:39px;width:68%;height:12px;background:#111}.preview-minimal .subtitle{right:9%;top:60px;width:34%;background:#777}.preview-minimal .line{right:9%;left:9%;top:88px;height:1px;background:#111}.preview-minimal .panelA{right:9%;top:100px;width:42%;height:21px;border-width:0 0 1px}.preview-minimal .page{left:9%;bottom:15px;width:8px;background:#111}
+.preview-gallery { background:#fff; }
+.preview-gallery .title{right:7%;top:14px;width:48%;height:14px}.preview-gallery .subtitle{right:7%;top:36px}.preview-gallery .panelA{right:7%;top:55px;width:52%;height:76px;background:var(--mini-primary)}.preview-gallery .panelB{left:7%;top:55px;width:27%;height:35px;background:var(--mini-accent)}.preview-gallery .panelC{left:7%;bottom:18px;width:27%;height:35px;background:var(--mini-muted)}.preview-gallery .page{right:10%;bottom:7px}
+.preview-timeline { background:white; }
+.preview-timeline .line{right:28%;top:12px;bottom:12px;width:3px}.preview-timeline .ornament{right:calc(28% - 6px);top:25px;width:15px;height:15px;border-radius:50%;background:var(--mini-primary);box-shadow:0 42px 0 var(--mini-accent),0 84px 0 var(--mini-primary)}.preview-timeline .title{right:39%;top:25px;width:46%}.preview-timeline .subtitle{right:39%;top:44px}.preview-timeline .panelA{right:39%;top:68px;width:45%;height:25px;border-radius:14px}.preview-timeline .panelB{right:39%;top:108px;width:32%;height:22px;border-radius:14px}.preview-timeline .page{left:8%;bottom:9px}
+.preview-split { background:linear-gradient(90deg,var(--mini-muted) 0 66%,var(--mini-secondary) 66%); }
+.preview-split .ornament{right:66%;top:0;bottom:0;width:7px;background:var(--mini-accent)}.preview-split .title{right:8%;top:36px;width:48%;height:15px}.preview-split .subtitle{right:8%;top:59px}.preview-split .panelA{right:8%;top:83px;width:48%;height:38px}.preview-split .page{left:13%;bottom:16px;background:white}.preview-split .line{left:11%;top:20px;width:12%;height:2px;background:white}
+.preview-heritage { background:#fffaf0; box-shadow:inset 0 0 0 5px var(--mini-muted),inset 0 0 0 7px var(--mini-primary),inset 0 0 0 11px #fffaf0,inset 0 0 0 12px var(--mini-accent); }
+.preview-heritage .ornament{right:45%;top:22px;width:10%;height:18px;border:2px solid var(--mini-accent);border-radius:50%}.preview-heritage .title{right:25%;top:54px;width:50%}.preview-heritage .subtitle{right:35%;top:72px}.preview-heritage .panelA{right:18%;left:18%;top:92px;height:29px;border:3px double var(--mini-accent);background:transparent}.preview-heritage .page{right:46%;bottom:9px}
+.preview-organic { background:var(--mini-muted); }
+.preview-organic .ornament{left:-18px;top:-28px;width:100px;height:90px;border-radius:45% 55% 62% 38%;background:var(--mini-accent);opacity:.55}.preview-organic .title{right:9%;top:41px;width:49%;height:13px;border-radius:12px}.preview-organic .subtitle{right:13%;top:63px}.preview-organic .panelA{right:8%;bottom:18px;width:42%;height:45px;border:0;border-radius:55% 45% 52% 48%;background:white}.preview-organic .panelB{left:11%;bottom:20px;width:28%;height:35px;border:0;border-radius:42% 58%;background:var(--mini-primary);opacity:.8}.preview-organic .page{left:9px;bottom:8px}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-workspace.tsx
+==============================================================================================================
+"use client";
+
+import { Award, BookOpenCheck, ExternalLink, FileText, Printer, UserRound } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { PortfolioContentPanel } from "@/components/portfolio/portfolio-content-panel";
+import { PortfolioDesignPanel } from "@/components/portfolio/portfolio-design-panel";
+import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
+import { PortfolioQualificationsPanel } from "@/components/portfolio/portfolio-qualifications-panel";
+import { PortfolioReportsEvidencePanel } from "@/components/portfolio/portfolio-reports-evidence-panel";
+import { PortfolioSectionsPanel } from "@/components/portfolio/portfolio-sections-panel";
+import { PortfolioSettingsPanel } from "@/components/portfolio/portfolio-settings-panel";
+import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioCustomEvidence, PortfolioWorkspaceItem } from "@/lib/portfolio/portfolio-types";
+
+const tabs = ["نظرة عامة", "إعدادات الملف", "التصميم", "المحتوى", "المؤهلات والدورات", "التقارير والشواهد", "ترتيب الأقسام", "المعاينة"] as const;
+type Tab = (typeof tabs)[number];
+
+export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfolioWorkspace }) {
+  const router = useRouter();
+  const [data, setData] = useState(initialData);
+  const [tab, setTab] = useState<Tab>("نظرة عامة");
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
+  useEffect(() => setData(initialData), [initialData]);
+  const base = `/api/dashboard/portfolio/${data.portfolio.id}`;
+
+  async function request(url: string, init: RequestInit, success = "تم حفظ التغييرات بنجاح.") {
+    setBusy(true);
+    try {
+      const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...init.headers } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر إكمال العملية.");
+      setFeedback({ type: "success", title: "تم الحفظ", description: success });
+      router.refresh();
+    } catch (error) {
+      setFeedback({ type: "error", title: "تعذر الحفظ", description: error instanceof Error ? error.message : "حاول مرة أخرى." });
+      throw error;
+    } finally { setBusy(false); }
+  }
+
+  const savePortfolio = (body: unknown) => request(base, { method: "PATCH", body: JSON.stringify(body) });
+  const createItem = (body: unknown) => request(`${base}/items`, { method: "POST", body: JSON.stringify(body) }, "تمت إضافة العنصر.");
+  const updateItem = (id: string, body: unknown) => request(`${base}/items/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const moveItem = (id: string, direction: "up" | "down") => request(`${base}/items/${id}`, { method: "PATCH", body: JSON.stringify({ action: "move", direction }) }, "تم تحديث ترتيب العناصر.");
+  const toggleSection = (id: string, isEnabled: boolean) => request(`${base}/sections/${id}`, { method: "PATCH", body: JSON.stringify({ isEnabled }) });
+  const moveSection = (id: string, direction: "up" | "down") => request(`${base}/sections/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الأقسام.");
+  const syncReports = () => request(`${base}/reports/sync`, { method: "POST" }, "تمت مزامنة التقارير المتاحة.");
+  const reportVisibility = (id: string, isVisible: boolean) => request(`${base}/reports/${id}`, { method: "PATCH", body: JSON.stringify({ isVisible }) });
+  const reportMove = (id: string, direction: "up" | "down") => request(`${base}/reports/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب التقارير.");
+  const evidenceUpdate = (itemId: string, evidenceId: string, body: unknown) => request(`${base}/reports/${itemId}/evidence/${encodeURIComponent(evidenceId)}`, { method: "PATCH", body: JSON.stringify(body) });
+  const evidenceMove = (itemId: string, evidenceId: string, direction: "up" | "down") => request(`${base}/reports/${itemId}/evidence/${encodeURIComponent(evidenceId)}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الشواهد.");
+  const customCreate = (body: unknown) => request(`${base}/custom-evidence`, { method: "POST", body: JSON.stringify(body) }, "تمت إضافة الشاهد المستقل.");
+  const customUpdate = (id: string, body: unknown) => request(`${base}/custom-evidence/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  const customMove = (id: string, direction: "up" | "down") => request(`${base}/custom-evidence/${id}/move`, { method: "POST", body: JSON.stringify({ direction }) }, "تم تحديث ترتيب الشواهد المستقلة.");
+
+  function confirmDelete(item: PortfolioWorkspaceItem) {
+    setFeedback({ type: "confirm", title: "حذف العنصر؟", description: `سيتم حذف «${item.title}» من ملف الإنجاز.`, confirmLabel: "حذف", onConfirm: () => { void request(`${base}/items/${item.id}`, { method: "DELETE" }, "تم حذف العنصر.").then(() => setFeedback(null)); } });
+  }
+
+  function confirmCustomDelete(item: PortfolioCustomEvidence) {
+    setFeedback({ type: "confirm", title: "حذف الشاهد المستقل؟", description: `سيُحذف «${item.title}» من ملف الإنجاز فقط، ولن يُحذف الملف الأصلي.`, confirmLabel: "حذف", onConfirm: () => { void request(`${base}/custom-evidence/${item.id}`, { method: "DELETE" }, "تم حذف الشاهد المستقل.").then(() => setFeedback(null)); } });
+  }
+
+  return <main dir="rtl" className="space-y-5">
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8"><div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"><div><p className="text-sm font-black text-teal-700">مساحة المعلم</p><h1 className="mt-2 text-3xl font-black text-slate-950">{data.portfolio.title}</h1><p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">{data.portfolio.description || "أدر محتوى ملف الإنجاز وترتيبه ثم راجع النسخة الحية قبل الطباعة."}</p></div><Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><Printer className="h-4 w-4" />معاينة الملف</Link></div></section>
+    <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map((item) => <button key={item} onClick={() => setTab(item)} className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-black transition ${tab === item ? "bg-teal-700 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{item}</button>)}</nav>
+    {tab === "نظرة عامة" ? <Overview data={data} /> : null}
+    {tab === "إعدادات الملف" ? <PortfolioSettingsPanel key={`${data.portfolio.id}-${data.portfolio.title}`} data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "التصميم" ? <PortfolioDesignPanel data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "المحتوى" ? <PortfolioContentPanel key={`${data.portfolio.id}-${data.portfolio.introText}`} data={data} busy={busy} onSave={savePortfolio} /> : null}
+    {tab === "المؤهلات والدورات" ? <PortfolioQualificationsPanel items={data.qualificationItems} busy={busy} onCreate={createItem} onUpdate={updateItem} onMove={moveItem} onDelete={confirmDelete} /> : null}
+    {tab === "التقارير والشواهد" ? <PortfolioReportsEvidencePanel data={data} busy={busy} onSync={syncReports} onReportVisibility={reportVisibility} onReportMove={reportMove} onEvidenceUpdate={evidenceUpdate} onEvidenceMove={evidenceMove} onCustomCreate={customCreate} onCustomUpdate={customUpdate} onCustomMove={customMove} onCustomDelete={confirmCustomDelete} /> : null}
+    {tab === "ترتيب الأقسام" ? <PortfolioSectionsPanel sections={data.sections} busy={busy} onToggle={toggleSection} onMove={moveSection} /> : null}
+    {tab === "المعاينة" ? <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black">المعاينة الحية</h2><p className="mt-2 text-sm font-bold text-slate-500">افتح المعاينة المستقلة لرؤية صفحات A4 دون ترويسة أو شريط لوحة التحكم.</p><Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />فتح المعاينة</Link></section> : null}
+    <PortfolioFeedbackPopCard feedback={feedback} loading={busy} onClose={() => !busy && setFeedback(null)} />
+  </main>;
+}
+
+function Overview({ data }: { data: TeacherPortfolioWorkspace }) {
+  const cards = [[UserRound, "صاحب الملف", data.owner.name], [BookOpenCheck, "الفصل", data.portfolio.term], [FileText, "التقارير", String(data.totals.reports)], [Award, "الشواهد", String(data.totals.evidences)]] as const;
+  return <div className="space-y-5"><section className="grid gap-4 md:grid-cols-4">{cards.map(([Icon, label, value]) => <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon className="h-6 w-6 text-teal-700" /><p className="mt-3 text-xs font-black text-slate-400">{label}</p><strong className="mt-1 block text-lg font-black text-slate-900">{value}</strong></div>)}</section><section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">عناصر الأداء</h2><div className="mt-5 grid gap-3 md:grid-cols-2">{data.performanceSections.map((section) => <div key={section.key} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><div><h3 className="text-sm font-black text-slate-900">{section.title}</h3><p className="mt-1 text-xs font-bold text-slate-400">الوزن {section.weight}% · {section.isEnabled ? "ظاهر" : "مخفي"}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{section.reports.length}</span></div></div>)}</div></section></div>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\portfolio-settings-panel.tsx
+==============================================================================================================
+"use client";
+
+import { Loader2, Save } from "lucide-react";
+import { useState } from "react";
+import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
+
+export function PortfolioSettingsPanel({ data, busy, onSave }: {
+  data: TeacherPortfolioWorkspace;
+  busy: boolean;
+  onSave: (body: unknown) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    title: data.portfolio.title,
+    academicYear: data.portfolio.academicYear,
+    term: data.portfolio.term,
+    description: data.portfolio.description,
+    themeId: getPortfolioTheme(data.portfolio.themeId).id,
+    preferences: data.portfolio.preferences,
+  });
+  const field = (key: "title" | "academicYear" | "term" | "description", value: string) => setForm((old) => ({ ...old, [key]: value }));
+  return (
+    <form onSubmit={(event) => { event.preventDefault(); void onSave({ operation: "settings", ...form }); }} className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div><h2 className="text-xl font-black text-slate-950">إعدادات الملف</h2><p className="mt-1 text-sm font-bold text-slate-500">حدّث بيانات الملف وخيارات ظهوره في المعاينة.</p></div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="text-sm font-black text-slate-700">عنوان الملف<input required minLength={3} value={form.title} onChange={(e) => field("title", e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500" /></label>
+        <label className="text-sm font-black text-slate-700">العام الدراسي<input required value={form.academicYear} onChange={(e) => field("academicYear", e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500" /></label>
+        <label className="text-sm font-black text-slate-700">الفصل الدراسي<input required value={form.term} onChange={(e) => field("term", e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500" /></label>
+        <label className="text-sm font-black text-slate-700 md:col-span-2">وصف مختصر<textarea rows={3} maxLength={500} value={form.description} onChange={(e) => field("description", e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500" /></label>
+      </div>
+      <button disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ الإعدادات</button>
+    </form>
+  );
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\print\portfolio-print-document.tsx
+==============================================================================================================
+export { MinistryElegantPortfolioPrint as PortfolioPrintDocument } from "@/components/portfolio/print/ministry-elegant-portfolio-print";
+
+
+==============================================================================================================
+FILE: components\portfolio\print\portfolio-theme-styles.ts
+==============================================================================================================
+export const PORTFOLIO_THEME_STYLES = String.raw`
+  .portfolio-print-root { counter-reset: portfolio-page; }
+  .portfolio-page,.portfolio-report-page { counter-increment:portfolio-page; }
+  .portfolio-page-number::after { content:counter(portfolio-page); }
+  .portfolio-page-number { position:absolute;z-index:8;font-size:10px;font-weight:900;color:var(--portfolio-secondary); }
+  .portfolio-page>.portfolio-page-number { left:20mm;bottom:10mm; }
+  .portfolio-report-page>.portfolio-page-number { left:18mm;bottom:7mm; }
+  .portfolio-theme-ornaments,.theme-ornament{position:absolute;display:block;pointer-events:none}.portfolio-theme-ornaments{inset:0;z-index:1;overflow:hidden}.portfolio-cover-page>.portfolio-page-body{z-index:3}
+
+  /* Executive grid: asymmetric title field, metric rail and modular content. */
+  [data-layout="grid"] .portfolio-page-body{padding:28mm 18mm 23mm;background-image:linear-gradient(90deg,transparent 49.7%,rgba(23,50,77,.08) 50%,transparent 50.3%)}
+  [data-layout="grid"] .portfolio-cover-page{background:linear-gradient(90deg,#fff 0 68%,var(--portfolio-secondary) 68%)}
+  [data-layout="grid"] .portfolio-cover-page .portfolio-page-body{width:68%;padding-right:15mm}.executive-grid-lines{inset:0;background:repeating-linear-gradient(90deg,transparent 0 31mm,rgba(212,167,44,.16) 31mm 31.3mm)}
+  [data-layout="grid"] .portfolio-main-title{text-align:right;font-size:48px;line-height:1.05;max-width:125mm}
+  [data-layout="grid"] .portfolio-cover-card,[data-layout="grid"] .portfolio-stat-grid{border-radius:0;gap:1px;background:var(--portfolio-secondary)}
+  [data-layout="grid"] .portfolio-info-card,[data-layout="grid"] .portfolio-stat{border-radius:0;border:0;background:white}
+  [data-index="number-grid"] .portfolio-index-table{display:grid;grid-template-columns:1fr 1fr;gap:3mm;border:0;background:transparent}
+  [data-index="number-grid"] .portfolio-index-row{grid-template-columns:14mm 1fr;border:1px solid #cbd5e1}.portfolio-index-row>span:last-child{display:block}
+  [data-layout="grid"] .portfolio-divider-hero{place-items:end start;text-align:right;border:1px solid var(--portfolio-secondary);padding:18mm}
+  [data-report="executive-dashboard"] .portfolio-report-frame{border:1.5px solid var(--portfolio-secondary);border-radius:0}[data-report="executive-dashboard"] .portfolio-report-band{width:8mm;right:0;left:auto}[data-report="executive-dashboard"] .portfolio-report-body{padding-right:20mm}
+  [data-evidence="modular-grid"] .portfolio-report-evidence-card{border-radius:0;border:1px solid var(--portfolio-secondary);box-shadow:none}
+
+  /* Editorial magazine: masthead, columns and image-led feature pages. */
+  [data-layout="editorial"] .portfolio-cover-page{border-top:18mm solid var(--portfolio-primary)}.editorial-masthead{top:7mm;right:18mm;left:18mm;height:1px;background:white}.editorial-issue{top:9mm;left:18mm;color:white;font-style:normal;font-weight:900;font-size:11px}
+  [data-layout="editorial"] .portfolio-main-title{text-align:right;font-size:58px;line-height:.95;letter-spacing:-2px;margin-top:12mm}[data-layout="editorial"] .portfolio-subtitle{text-align:right;font-size:18px}
+  [data-layout="editorial"] .portfolio-cover-card{display:grid;grid-template-columns:2fr 1fr;border-width:2px 0 0;border-radius:0;background:transparent}
+  [data-index="editorial-columns"] .portfolio-index-table{columns:2;column-gap:12mm;border:0;background:transparent}[data-index="editorial-columns"] .portfolio-index-row{break-inside:avoid;display:grid;grid-template-columns:12mm 1fr;margin-bottom:3mm;border-top:2px solid var(--portfolio-primary);border-bottom:0}
+  [data-divider="feature-opener"] .portfolio-divider-hero{place-items:end start;text-align:right;padding:18mm 0;border-top:8mm solid var(--portfolio-primary)}[data-divider="feature-opener"] .portfolio-divider-hero h2{font-size:60px;line-height:1}
+  [data-report="feature-article"] .portfolio-report-frame{border:0;border-top:9mm solid var(--portfolio-primary);border-radius:0}[data-report="feature-article"] .portfolio-report-header h1{font-size:34px;line-height:1.05}[data-report="feature-article"] .portfolio-report-narrative{columns:2;column-gap:9mm;text-align:justify}
+  [data-evidence="image-led"] .portfolio-report-evidence-card:first-child{grid-column:1/-1}[data-evidence="image-led"] .portfolio-report-evidence-card{border:0;border-bottom:3px solid var(--portfolio-primary);border-radius:0}
+
+  /* Academic manuscript: narrow reading measure, chapters and numbered figures. */
+  [data-layout="manuscript"]{font-family:Georgia,"Times New Roman",inherit}[data-layout="manuscript"] .portfolio-page-body{padding-right:35mm;padding-left:35mm}[data-layout="manuscript"] .portfolio-cover-page .portfolio-page-body{text-align:center}
+  .manuscript-rule{top:25mm;right:35mm;left:35mm;border-top:1px solid var(--portfolio-primary);text-align:center;font-style:normal;color:var(--portfolio-accent);padding-top:3mm}
+  [data-layout="manuscript"] .portfolio-cover-card{display:block;border:0;border-top:1px solid;border-bottom:1px solid;border-radius:0;background:transparent}[data-layout="manuscript"] .portfolio-info-card{display:flex;justify-content:space-between;border:0;border-bottom:1px dotted #aaa;border-radius:0;background:transparent}
+  [data-index="chapter-list"] .portfolio-index-table{border:0;border-radius:0;background:transparent;counter-reset:chapter}[data-index="chapter-list"] .portfolio-index-row{grid-template-columns:18mm 1fr;border-bottom:1px dotted #999;counter-increment:chapter}
+  [data-divider="chapter"] .portfolio-divider-hero{min-height:190mm;border:0;text-align:center}.portfolio-divider-page[data-page-label]{}
+  [data-report="academic-record"] .portfolio-report-frame{border:1px solid #777;border-radius:0}[data-report="academic-record"] .portfolio-report-body{padding-right:31mm;padding-left:31mm}[data-report="academic-record"] .portfolio-report-section h2{border-bottom:1px solid #777;background:transparent;color:#222}
+  [data-evidence="numbered-figures"] .portfolio-report-evidence-grid{counter-reset:figure}[data-evidence="numbered-figures"] .portfolio-report-evidence-card{counter-increment:figure;border:0;border-radius:0}[data-evidence="numbered-figures"] figcaption::before{content:"شكل " counter(figure) " — ";font-weight:900}
+  [data-footer="footnote"] .portfolio-page-footer,[data-footer="footnote"] .portfolio-report-fixed-footer{font-size:8px;border-top:1px solid #777}
+
+  /* Modern geometric: diagonals, polygons and angular report frames. */
+  [data-layout="geometric"] .portfolio-cover-page{background:linear-gradient(145deg,var(--portfolio-secondary) 0 43%,white 43%)}.geometric-polygon{width:115mm;height:92mm;left:-18mm;bottom:-12mm;background:var(--portfolio-primary);clip-path:polygon(22% 0,100% 20%,77% 100%,0 70%)}.geometric-circle{width:70mm;height:70mm;border-radius:50%;right:-25mm;top:28mm;background:var(--portfolio-accent);opacity:.25}
+  [data-layout="geometric"] .portfolio-main-title{text-align:right;font-size:50px;max-width:120mm}[data-layout="geometric"] .portfolio-cover-card{transform:skewY(-2deg);border-radius:0;border-right:7mm solid var(--portfolio-accent)}
+  [data-index="shape-map"] .portfolio-index-row{margin:3mm 0;transform:skewX(-7deg);border:0;background:var(--portfolio-muted);clip-path:polygon(0 0,96% 0,100% 50%,96% 100%,0 100%)}[data-index="shape-map"] .portfolio-index-row>*{transform:skewX(7deg)}
+  [data-divider="giant-number"] .portfolio-divider-hero{clip-path:polygon(0 0,100% 10%,92% 100%,7% 91%);background:var(--portfolio-secondary);padding:18mm;color:white}[data-divider="giant-number"] .portfolio-divider-hero h2,[data-divider="giant-number"] .portfolio-divider-hero p{color:white}
+  [data-report="angular-block"] .portfolio-report-frame{border:0;border-radius:0;clip-path:polygon(0 0,98% 0,100% 4%,100% 100%,2% 100%,0 96%)}[data-report="angular-block"] .portfolio-report-header{border-right:8mm solid var(--portfolio-accent);padding-right:5mm}
+  [data-evidence="geometric-labels"] .portfolio-report-evidence-card{border-radius:0;clip-path:polygon(0 0,94% 0,100% 8%,100% 100%,6% 100%,0 92%)}
+
+  /* Minimal typographic: type, rules and whitespace instead of cards. */
+  [data-layout="minimal"] .portfolio-corner,[data-layout="minimal"] .portfolio-national-mark,[data-layout="minimal"] .portfolio-theme-ornaments{display:none}[data-layout="minimal"] .portfolio-page-body{padding:42mm 25mm 28mm}
+  [data-layout="minimal"] .portfolio-main-title{text-align:right;font-size:62px;font-weight:800;max-width:150mm}[data-layout="minimal"] .portfolio-title-pill{background:transparent;color:#111;padding:0;border-radius:0;border-bottom:1px solid #111}
+  [data-layout="minimal"] .portfolio-cover-card,[data-layout="minimal"] .portfolio-stat-grid{border:0;border-radius:0;background:transparent;box-shadow:none}[data-layout="minimal"] .portfolio-info-card,[data-layout="minimal"] .portfolio-stat{border:0;border-radius:0;border-top:1px solid #111;background:transparent;padding-right:0}
+  [data-index="ruled-list"] .portfolio-index-table{border:0;border-radius:0;background:transparent}[data-index="ruled-list"] .portfolio-index-row{border-bottom:1px solid #111;grid-template-columns:15mm 1fr 25mm;padding:2mm 0}
+  [data-divider="type-break"] .portfolio-divider-hero{place-items:start;padding-top:50mm;text-align:right;border-top:1px solid #111}.minimal-rule{top:20mm;right:20mm;left:20mm;height:1px;background:#111}
+  [data-report="plain-premium"] .portfolio-report-frame{border:0;border-radius:0;box-shadow:none}[data-report="plain-premium"] .portfolio-report-band{display:none}[data-report="plain-premium"] .portfolio-report-detail-box,[data-report="plain-premium"] .portfolio-report-section{border-radius:0;border-width:1px 0 0;background:transparent;box-shadow:none}
+  [data-evidence="large-caption"] .portfolio-report-evidence-card{border:0;border-radius:0}[data-evidence="large-caption"] figcaption{font-size:14px;border-top:1px solid #111}
+
+  /* Gallery showcase: exhibition walls and image-led evidence. */
+  [data-layout="gallery"] .portfolio-cover-page .portfolio-page-body{display:grid;grid-template-columns:1.15fr .85fr;gap:12mm;align-items:center}[data-layout="gallery"] .portfolio-cover-page .portfolio-page-body>div{display:contents}[data-layout="gallery"] .portfolio-main-title{font-size:45px;text-align:right}[data-layout="gallery"] .portfolio-cover-card{grid-column:2;grid-row:1/5;display:flex;flex-direction:column;border:0;border-radius:0;background:var(--portfolio-muted)}
+  .gallery-block-one{width:60mm;height:70mm;left:-15mm;top:18mm;background:var(--portfolio-accent);opacity:.15}.gallery-block-two{width:42mm;height:42mm;right:10mm;bottom:15mm;background:var(--portfolio-primary);opacity:.12}
+  [data-index="gallery-labels"] .portfolio-index-table{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;border:0;background:transparent}[data-index="gallery-labels"] .portfolio-index-row{display:flex;min-height:42mm;flex-direction:column;justify-content:flex-end;border:0;border-top:6mm solid var(--portfolio-primary);background:var(--portfolio-muted)}
+  [data-divider="exhibition-panel"] .portfolio-divider-hero{place-items:end start;text-align:right;background:linear-gradient(90deg,var(--portfolio-muted) 0 62%,var(--portfolio-primary) 62%);padding:15mm}
+  [data-report="curated-exhibit"] .portfolio-report-frame{border:0;border-radius:0;background:#fafafa}[data-report="curated-exhibit"] .portfolio-report-header{min-height:35mm;align-items:end;border-bottom:4mm solid var(--portfolio-primary)}
+  [data-evidence="showcase"] .portfolio-report-evidence-card:first-child{grid-column:1/-1}[data-evidence="showcase"] .portfolio-report-evidence-card{border:8px solid white;border-radius:0;box-shadow:0 0 0 1px #bbb}
+
+  /* Timeline journey: continuous rail, milestones and date-like markers. */
+  [data-layout="timeline"] .portfolio-page-body{padding-right:32mm}.timeline-track{right:18mm;top:18mm;bottom:18mm;width:2px;background:var(--portfolio-primary)}.timeline-track b{position:absolute;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--portfolio-accent)}.timeline-track b:nth-child(1){top:22%}.timeline-track b:nth-child(2){top:50%}.timeline-track b:nth-child(3){top:78%}
+  [data-index="vertical-timeline"] .portfolio-index-table{border:0;border-radius:0;border-right:3px solid var(--portfolio-primary);padding-right:7mm;background:transparent}[data-index="vertical-timeline"] .portfolio-index-row{position:relative;border:0;margin-bottom:4mm;border-radius:15px;background:var(--portfolio-muted)}[data-index="vertical-timeline"] .portfolio-index-row::before{content:"";position:absolute;right:-9.7mm;top:50%;width:4mm;height:4mm;border-radius:50%;background:var(--portfolio-accent)}
+  [data-divider="milestone"] .portfolio-divider-hero{border-right:4px solid var(--portfolio-primary);padding-right:14mm;text-align:right}[data-divider="milestone"] .portfolio-divider-hero::before{content:"";width:18mm;height:18mm;border-radius:50%;background:var(--portfolio-accent);position:absolute;right:-9.5mm;top:45%}
+  [data-report="milestone-card"] .portfolio-report-frame{border:0;border-right:4px solid var(--portfolio-primary);border-radius:0}[data-report="milestone-card"] .portfolio-report-header::before{content:"محطة";display:grid;place-items:center;width:18mm;height:18mm;border-radius:50%;background:var(--portfolio-accent);font-weight:900;margin-left:5mm}
+  [data-evidence="milestone-media"] .portfolio-report-evidence-card{border:0;border-right:5px solid var(--portfolio-accent);border-radius:0;padding-right:3mm}
+
+  /* Split panel: fixed side rail containing running information and folio. */
+  [data-layout="split"] .portfolio-page,[data-layout="split"] .portfolio-report-page{background:linear-gradient(90deg,#fff 0 78%,var(--portfolio-secondary) 78%)}[data-layout="split"] .portfolio-page-body{padding-right:52mm;padding-left:18mm}.split-zone{right:0;top:0;bottom:0;width:46mm;background:var(--portfolio-secondary)}
+  [data-layout="split"] .portfolio-main-title,[data-layout="split"] .portfolio-subtitle{color:var(--portfolio-secondary);text-align:right}[data-layout="split"] .portfolio-title-pill{margin-right:0}
+  [data-index="rail-index"] .portfolio-index-table{border:0;border-radius:0;background:transparent}[data-index="rail-index"] .portfolio-index-row{grid-template-columns:12mm 1fr;border:0;border-right:4px solid var(--portfolio-accent);margin-bottom:3mm}
+  [data-divider="side-title"] .portfolio-divider-hero{place-items:center start;text-align:right}[data-divider="side-title"] .portfolio-divider-hero h2{writing-mode:vertical-rl;position:absolute;right:-37mm;top:28mm;color:white;max-height:170mm}
+  [data-report="side-panel"] .portfolio-report-frame{margin-right:32mm;width:calc(100% - 32mm);border:0;border-radius:0}[data-report="side-panel"] .portfolio-report-band{right:-32mm;left:auto;width:32mm;background:var(--portfolio-secondary)}
+  [data-evidence="split-media"] .portfolio-report-evidence-card{display:grid;grid-template-columns:2fr 1fr;border-radius:0}[data-evidence="split-media"] .portfolio-report-evidence-card figcaption{display:grid;place-items:center}
+  [data-footer="rail-number"] .portfolio-page-number{left:auto!important;right:17mm!important;bottom:12mm!important;color:white;font-size:16px}
+
+  /* Classic heritage: restrained double borders and certificate structures. */
+  [data-layout="heritage"] .portfolio-page,[data-layout="heritage"] .portfolio-report-page{box-shadow:inset 0 0 0 3mm white,inset 0 0 0 3.4mm var(--portfolio-accent),inset 0 0 0 6mm white,inset 0 0 0 6.4mm var(--portfolio-primary)}.heritage-frame{inset:9mm;border:1px solid var(--portfolio-accent)}.heritage-seal{top:22mm;right:50%;translate:50%;font-style:normal;color:var(--portfolio-accent);border:3px double;border-radius:50%;padding:3mm}
+  [data-layout="heritage"] .portfolio-main-title,[data-layout="heritage"] .portfolio-subtitle{text-align:center}[data-layout="heritage"] .portfolio-cover-card{border:3px double var(--portfolio-accent);border-radius:0;background:#fffaf0}
+  [data-index="framed-chapters"] .portfolio-index-table{border:4px double var(--portfolio-accent);border-radius:0;background:#fffaf0;padding:4mm}[data-index="framed-chapters"] .portfolio-index-row{border-bottom:1px dotted var(--portfolio-accent)}
+  [data-divider="formal-seal"] .portfolio-divider-hero{border:4px double var(--portfolio-accent);text-align:center;background:#fffaf0}
+  [data-report="formal-frame"] .portfolio-report-frame{border:4px double var(--portfolio-accent);border-radius:0}[data-report="formal-frame"] .portfolio-report-section{border:1px solid var(--portfolio-accent);border-radius:0;background:#fffaf0}
+  [data-evidence="classic-frame"] .portfolio-report-evidence-card{border:5px double var(--portfolio-accent);border-radius:0;background:#fffaf0}
+  [data-qualification="certificate-cards"] .portfolio-qualifications-page .portfolio-index-row{margin:4mm 0;border:4px double var(--portfolio-accent);background:#fffaf0}
+
+  /* Soft organic: flowing shapes, rounded islands and soft image masks. */
+  [data-layout="organic"] .portfolio-page{background:linear-gradient(155deg,var(--portfolio-muted) 0 18%,white 18% 82%,var(--portfolio-muted) 82%)}.organic-blob{border-radius:52% 48% 65% 35%;opacity:.18}.organic-blob-one{width:95mm;height:75mm;right:-35mm;top:-25mm;background:var(--portfolio-accent)}.organic-blob-two{width:80mm;height:95mm;left:-35mm;bottom:-35mm;background:var(--portfolio-primary)}
+  [data-layout="organic"] .portfolio-cover-card,[data-layout="organic"] .portfolio-info-card,[data-layout="organic"] .portfolio-stat{border:0;border-radius:28px;background:rgba(255,255,255,.86);box-shadow:0 8px 30px rgba(77,124,111,.12)}
+  [data-index="floating-list"] .portfolio-index-table{border:0;border-radius:0;background:transparent}[data-index="floating-list"] .portfolio-index-row{border:0;border-radius:999px;background:var(--portfolio-muted);margin:3mm 0;box-shadow:0 4px 14px rgba(0,0,0,.05)}
+  [data-divider="wave"] .portfolio-divider-hero{border:0;border-radius:46% 54% 38% 62%;background:var(--portfolio-muted);padding:18mm}
+  [data-report="flowing-boundary"] .portfolio-report-frame{border:0;border-radius:10mm 3mm 10mm 3mm;box-shadow:inset 0 0 0 1px #d7e5df}[data-report="flowing-boundary"] .portfolio-report-section{border:0;border-radius:7mm;background:var(--portfolio-muted)}
+  [data-evidence="soft-mask"] .portfolio-report-evidence-card{border:0;border-radius:12mm 4mm 12mm 4mm;overflow:hidden;background:var(--portfolio-muted)}[data-evidence="soft-mask"] .portfolio-report-evidence-card img{border-radius:10mm 3mm 0 0}
+  [data-qualification="organic-islands"] .portfolio-qualifications-page .portfolio-index-row{border:0;border-radius:999px;background:var(--portfolio-muted);margin:3mm 0}
+
+  /* Qualification strategies stay data-driven while changing their visual structure. */
+  [data-qualification="credential-grid"] .portfolio-qualifications-page .portfolio-index-table{display:grid;grid-template-columns:1fr 1fr;gap:4mm;border:0;background:transparent}[data-qualification="credential-grid"] .portfolio-qualifications-page .portfolio-index-row{display:flex;min-height:38mm;flex-direction:column;align-items:flex-start;border:1px solid var(--portfolio-secondary);border-radius:0}
+  [data-qualification="editorial-list"] .portfolio-qualifications-page .portfolio-index-table{border:0;border-radius:0;background:transparent}[data-qualification="editorial-list"] .portfolio-qualifications-page .portfolio-index-row{grid-template-columns:18mm 1fr 30mm;border-bottom:3px solid var(--portfolio-primary);padding:4mm 0}
+  [data-qualification="academic-table"] .portfolio-qualifications-page .portfolio-index-table{border:1px solid #777;border-radius:0;background:transparent}[data-qualification="academic-table"] .portfolio-qualifications-page .portfolio-index-row{border-bottom:1px dotted #777}
+  [data-qualification="angular-cards"] .portfolio-qualifications-page .portfolio-index-row{margin:3mm 0;border:0;border-right:7mm solid var(--portfolio-accent);clip-path:polygon(0 0,97% 0,100% 30%,100% 100%,3% 100%,0 70%)}
+  [data-qualification="text-led"] .portfolio-qualifications-page .portfolio-index-table{border:0;border-radius:0;background:transparent}[data-qualification="text-led"] .portfolio-qualifications-page .portfolio-index-row{border-width:1px 0 0;grid-template-columns:13mm 1fr 25mm;padding:4mm 0}
+  [data-qualification="gallery-cards"] .portfolio-qualifications-page .portfolio-index-table{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;border:0;background:transparent}[data-qualification="gallery-cards"] .portfolio-qualifications-page .portfolio-index-row{display:flex;min-height:48mm;flex-direction:column;justify-content:flex-end;border:0;border-top:8mm solid var(--portfolio-primary)}
+  [data-qualification="timeline-credentials"] .portfolio-qualifications-page .portfolio-index-table{border:0;border-right:3px solid var(--portfolio-primary);border-radius:0;padding-right:8mm;background:transparent}[data-qualification="timeline-credentials"] .portfolio-qualifications-page .portfolio-index-row{margin:4mm 0;border:0;border-radius:18px;background:var(--portfolio-muted)}
+  [data-qualification="split-cards"] .portfolio-qualifications-page .portfolio-index-row{grid-template-columns:30% 1fr;border:0;border-right:9mm solid var(--portfolio-secondary);margin:3mm 0}
+
+  /* Running heads and folios are independently selected by the registry. */
+  [data-header="rule-grid"] .portfolio-page-header{right:18mm;left:18mm;border-bottom:2px solid var(--portfolio-secondary);display:grid;grid-template-columns:1fr 1fr}[data-header="rule-grid"] .portfolio-page-header span:last-child{text-align:left}
+  [data-header="masthead"] .portfolio-page-header{top:8mm;right:18mm;left:18mm;border-top:4mm solid var(--portfolio-primary);padding-top:3mm;font-size:11px;text-transform:uppercase}
+  [data-header="running-head"] .portfolio-page-header{right:35mm;left:35mm;border-bottom:1px solid #777;font-family:Georgia,"Times New Roman",inherit;font-size:9px}
+  [data-header="corner-label"] .portfolio-page-header{right:auto;left:0;top:0;width:62mm;height:22mm;padding:6mm 8mm;background:var(--portfolio-secondary);color:white;clip-path:polygon(15% 0,100% 0,100% 100%,0 100%)}
+  [data-header="page-title"] .portfolio-page-header{top:18mm;right:25mm;left:25mm;border:0;color:#111;font-size:9px}
+  [data-header="gallery-mark"] .portfolio-page-header{right:18mm;left:auto;width:28mm;height:28mm;display:grid;place-items:center;background:var(--portfolio-primary);color:white}
+  [data-header="timeline-node"] .portfolio-page-header{right:15mm;left:20mm;border-right:3px solid var(--portfolio-primary);padding-right:8mm}
+  [data-header="side-rail"] .portfolio-page-header{right:8mm;left:auto;top:28mm;width:28mm;writing-mode:vertical-rl;color:white;flex-direction:column;gap:8mm}
+  [data-header="ornamental-rule"] .portfolio-page-header{right:24mm;left:24mm;border-top:3px double var(--portfolio-accent);border-bottom:1px solid var(--portfolio-accent);padding:3mm 0;text-align:center}
+  [data-header="floating-pill"] .portfolio-page-header{right:20mm;left:auto;border-radius:999px;background:var(--portfolio-muted);padding:3mm 7mm;gap:8mm}
+  [data-footer="kpi-line"] .portfolio-page-footer{right:18mm;left:18mm;border-top:2px solid var(--portfolio-secondary);display:grid;grid-template-columns:1fr 1fr}
+  [data-footer="folio"] .portfolio-page-footer{left:18mm;right:auto;border:0;writing-mode:vertical-rl;bottom:18mm;height:35mm}
+  [data-footer="angle-marker"] .portfolio-page-footer{right:auto;left:0;bottom:0;width:55mm;height:17mm;padding:5mm 8mm;background:var(--portfolio-secondary);color:white;clip-path:polygon(0 0,100% 30%,100% 100%,0 100%)}
+  [data-footer="bare-number"] .portfolio-page-footer{display:none}[data-footer="bare-number"] .portfolio-page-number{left:25mm;bottom:17mm;font-size:12px;color:#111}
+  [data-footer="exhibit-label"] .portfolio-page-footer{right:18mm;left:auto;width:auto;border:0;border-right:8mm solid var(--portfolio-accent);padding-right:4mm}
+  [data-footer="journey-line"] .portfolio-page-footer{right:18mm;left:20mm;border-top:3px solid var(--portfolio-primary);padding-right:8mm}
+  [data-footer="seal-line"] .portfolio-page-footer{right:24mm;left:24mm;border-top:3px double var(--portfolio-accent);justify-content:center;gap:12mm}
+  [data-footer="flow-line"] .portfolio-page-footer{right:20mm;left:20mm;border:0;border-radius:999px;background:var(--portfolio-muted);padding:2mm 6mm}
+
+  [data-typography="compact"]{letter-spacing:-.2px}[data-typography="editorial"] .portfolio-section-title{font-size:42px}[data-typography="bold"] .portfolio-section-title{font-size:40px}[data-typography="display"] .portfolio-section-title{font-size:38px}[data-typography="calm"]{line-height:1.75}
+`;
+
+
+==============================================================================================================
+FILE: components\portfolio\print\themes\portfolio-theme-ornaments.tsx
+==============================================================================================================
+import type { PortfolioOrnamentVariant } from "@/lib/portfolio/portfolio-theme-registry";
+import type { ReactNode } from "react";
+
+type Ornament = () => ReactNode;
+const ornaments: Record<PortfolioOrnamentVariant, Ornament> = {
+  ministry: () => <><i className="theme-ornament ministry-diamond" /><i className="theme-ornament ministry-rule" /></>,
+  grid: () => <i className="theme-ornament executive-grid-lines" />,
+  editorial: () => <><i className="theme-ornament editorial-masthead" /><i className="theme-ornament editorial-issue">ملف مهني</i></>,
+  manuscript: () => <i className="theme-ornament manuscript-rule">◆</i>,
+  geometric: () => <><i className="theme-ornament geometric-polygon" /><i className="theme-ornament geometric-circle" /></>,
+  minimal: () => <i className="theme-ornament minimal-rule" />,
+  gallery: () => <><i className="theme-ornament gallery-block gallery-block-one" /><i className="theme-ornament gallery-block gallery-block-two" /></>,
+  timeline: () => <i className="theme-ornament timeline-track"><b /><b /><b /></i>,
+  split: () => <i className="theme-ornament split-zone" />,
+  heritage: () => <><i className="theme-ornament heritage-frame" /><i className="theme-ornament heritage-seal">◆</i></>,
+  organic: () => <><i className="theme-ornament organic-blob organic-blob-one" /><i className="theme-ornament organic-blob organic-blob-two" /></>,
+};
+
+export function PortfolioThemeOrnaments({ variant }: { variant: PortfolioOrnamentVariant }) {
+  const Ornament = ornaments[variant];
+  return <div className="portfolio-theme-ornaments" aria-hidden="true"><Ornament /></div>;
+}
+
+
+==============================================================================================================
+FILE: components\portfolio\print\ministry-elegant-portfolio-print.tsx
+==============================================================================================================
+import type { CSSProperties, ReactNode } from "react";
+
+import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
+import { PORTFOLIO_THEME_STYLES } from "@/components/portfolio/print/portfolio-theme-styles";
+import { PortfolioThemeOrnaments } from "@/components/portfolio/print/themes/portfolio-theme-ornaments";
+
+const REPORT_PAGE_SAFE_SCORE = 190;
+const REPORT_SIGNATURE_RESERVED_SCORE = 34;
+const REPORT_SIGNATURE_PAGE_SIZE = 4;
+const REPORT_NARRATIVE_PAGE_CHAR_LIMIT = 1400;
+
+type PortfolioPrintData = {
+  portfolio: {
+    id: string;
+    title: string;
+    academicYear: string;
+    term: string;
+    themeId: string;
+    status: string;
+    introText: string;
+    conclusionText: string;
+    bioText: string;
+    description: string;
+    preferences: {
+      showSchoolName: boolean;
+      showPrincipalName: boolean;
+      showCoverStatistics: boolean;
+      showTableOfContents: boolean;
+      showPerformanceDividers: boolean;
+    };
+  };
+  owner: {
+    name: string;
+    jobTitle: string;
+  };
+  school: {
+    name: string;
+    logoUrl: string | null;
+    principalName: string | null;
+    academicYear: string | null;
+    currentSemester: string | null;
+  };
+  sections: Array<{
+    id: string;
+    key: string;
+    kind: string;
+    title: string;
+    introText: string;
+    sortOrder: number;
+    isEnabled: boolean;
+  }>;
+  biography: {
+    professionalSummary: string;
+    specialization: string;
+    academicQualification: string;
+    yearsOfExperience: string;
+    skills: string;
+    professionalInterests: string;
+  };
+  qualificationItems: Array<{
+    id: string;
+    type: "QUALIFICATION" | "COURSE" | "CERTIFICATE";
+    title: string;
+    issuer: string;
+    date: string;
+    hours: string;
+    description: string;
+    attachmentUrl: string;
+    sortOrder: number;
+    isVisible: boolean;
+  }>;
+  customEvidence: Array<{
+    id: string;
+    sectionId: string | null;
+    title: string;
+    description: string;
+    fileUrl: string;
+    mimeType: string;
+    sortOrder: number;
+    isVisible: boolean;
+  }>;
+  performanceSections: Array<{
+    id: string;
+    key: string;
+    title: string;
+    weight: number;
+    serviceSlug: string;
+    intro: string;
+    sortOrder: number;
+    isEnabled: boolean;
+    reports: Array<{
+      id: string;
+      title: string;
+      status: string;
+      generatedAt: string | null;
+      createdAt: string;
+      evidenceCount: number;
+      caseTitle: string | null;
+      serviceName: string;
+      previewUrl: string;
+      sourceType: "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+      content: PortfolioReportContent | null;
+    }>;
+  }>;
+  totals: {
+    reports: number;
+    evidences: number;
+    sections: number;
+  };
+};
+
+type ReportSectionModel =
+  | {
+      kind: "details";
+      fields: PortfolioReportContent["normalizedFields"];
+    }
+  | {
+      kind: "narrative";
+      body: string;
+    }
+  | {
+      kind: "evidence";
+      items: PortfolioReportContent["evidenceItems"];
+    };
+
+type ReportPageModel = {
+  key: string;
+  sections: ReportSectionModel[];
+  signatures: PortfolioReportContent["signatures"];
+  showEvidenceEmptyState: boolean;
+};
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  if (!items.length) return [];
+
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+function renderFieldValue(value: string | string[]) {
+  if (Array.isArray(value)) {
+    return (
+      <ul className="portfolio-report-list">
+        {value.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  return value || "غير محدد";
+}
+
+function cleanEvidenceTitle(title: string, index: number) {
+  const clean = String(title || "").trim();
+
+  if (!clean || /\.(png|jpg|jpeg|webp|gif|pdf)$/i.test(clean) || clean.length > 36) {
+    return `شاهد ${index + 1}`;
+  }
+
+  return clean;
+}
+
+function splitNarrativeIntoPages(body: string): string[] {
+  const cleanBody = body.trim();
+
+  if (!cleanBody) return [];
+
+  const paragraphs = cleanBody
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  const source = paragraphs.length ? paragraphs : [cleanBody];
+  const pages: string[] = [];
+  let current = "";
+
+  for (const paragraph of source) {
+    const next = current ? `${current}\n\n${paragraph}` : paragraph;
+
+    if (current && next.length > REPORT_NARRATIVE_PAGE_CHAR_LIMIT) {
+      pages.push(current);
+      current = paragraph;
+      continue;
+    }
+
+    current = next;
+  }
+
+  if (current) pages.push(current);
+
+  return pages;
+}
+
+function getEvidencePerPage(report: PortfolioReportContent) {
+  const { layout, aspectRatio, fit } = report.evidenceSettings;
+
+  if (layout === "ATTACHMENT_LIST") return 10;
+  if (layout === "ONE_PER_PAGE") return 1;
+  if (layout === "TWO_PER_PAGE") return 2;
+
+  if (layout === "GRID_2X2") {
+    if (aspectRatio === "PORTRAIT_3_4") return 2;
+    if (aspectRatio === "SQUARE_1_1" && fit === "cover") return 4;
+    if (aspectRatio === "SQUARE_1_1") return 4;
+    if (aspectRatio === "LANDSCAPE_16_9") return 4;
+    return 4;
+  }
+
+  return 2;
+}
+
+function getEvidenceImageHeightMm(report: PortfolioReportContent) {
+  const perPage = getEvidencePerPage(report);
+  const ratio = report.evidenceSettings.aspectRatio;
+
+  if (perPage <= 1) {
+    if (ratio === "PORTRAIT_3_4") return 185;
+    if (ratio === "SQUARE_1_1") return 160;
+    if (ratio === "LANDSCAPE_16_9") return 122;
+    return 138;
+  }
+
+  if (perPage === 2) {
+    if (ratio === "PORTRAIT_3_4") return 92;
+    if (ratio === "SQUARE_1_1") return 82;
+    if (ratio === "LANDSCAPE_16_9") return 58;
+    return 66;
+  }
+
+  if (ratio === "SQUARE_1_1") return 56;
+  if (ratio === "LANDSCAPE_16_9") return 42;
+  if (ratio === "PORTRAIT_3_4") return 82;
+  return 48;
+}
+
+function getSectionScore(section: ReportSectionModel, report: PortfolioReportContent) {
+  if (section.kind === "details") {
+    const rows = Math.max(Math.ceil(section.fields.length / 2), 1);
+    return 20 + rows * 18;
+  }
+
+  if (section.kind === "narrative") {
+    return 18 + Math.ceil(section.body.length / 90) * 6;
+  }
+
+  const perPage = getEvidencePerPage(report);
+  const shown = Math.min(section.items.length || 1, perPage);
+
+  if (perPage <= 1) return 105;
+  if (perPage === 2) return shown <= 1 ? 92 : 104;
+
+  return shown <= 2 ? 66 : 104;
+}
+
+function buildReportPages(report: PortfolioReportContent): ReportPageModel[] {
+  const pendingSections: ReportSectionModel[] = [
+    {
+      kind: "details",
+      fields: report.normalizedFields,
+    },
+    ...splitNarrativeIntoPages(report.narrative?.body || "").map((body) => ({
+      kind: "narrative" as const,
+      body,
+    })),
+    ...chunkArray(report.evidenceItems, getEvidencePerPage(report)).map((items) => ({
+      kind: "evidence" as const,
+      items,
+    })),
+  ];
+
+  const pages: ReportPageModel[] = [];
+  let currentSections: ReportSectionModel[] = [];
+  let currentScore = 0;
+
+  function pushCurrentPage() {
+    if (!currentSections.length) return;
+
+    pages.push({
+      key: `report-page-${pages.length + 1}`,
+      sections: currentSections,
+      signatures: [],
+      showEvidenceEmptyState: false,
+    });
+
+    currentSections = [];
+    currentScore = 0;
+  }
+
+  for (const section of pendingSections) {
+    const sectionScore = getSectionScore(section, report);
+
+    if (
+      currentSections.length > 0 &&
+      currentScore + sectionScore > REPORT_PAGE_SAFE_SCORE
+    ) {
+      pushCurrentPage();
+    }
+
+    currentSections.push(section);
+    currentScore += Math.min(sectionScore, REPORT_PAGE_SAFE_SCORE);
+  }
+
+  pushCurrentPage();
+
+  if (!pages.length) {
+    pages.push({
+      key: "report-page-1",
+      sections: [{ kind: "details", fields: [] }],
+      signatures: [],
+      showEvidenceEmptyState: false,
+    });
+  }
+
+  const signatureChunks = chunkArray(report.signatures, REPORT_SIGNATURE_PAGE_SIZE);
+  const lastPage = pages[pages.length - 1];
+  const lastPageScore = lastPage.sections.reduce(
+    (total, section) => total + getSectionScore(section, report),
+    0,
+  );
+
+  if (
+    signatureChunks.length <= 1 &&
+    lastPageScore + REPORT_SIGNATURE_RESERVED_SCORE <= REPORT_PAGE_SAFE_SCORE
+  ) {
+    lastPage.signatures = signatureChunks[0] || [];
+    lastPage.showEvidenceEmptyState = report.evidenceItems.length === 0;
+    return pages;
+  }
+
+  if (!signatureChunks.length) {
+    pages.push({
+      key: "report-signatures-empty",
+      sections: [],
+      signatures: [],
+      showEvidenceEmptyState: report.evidenceItems.length === 0,
+    });
+    return pages;
+  }
+
+  signatureChunks.forEach((signatures, index) => {
+    pages.push({
+      key: `report-signatures-${index + 1}`,
+      sections: [],
+      signatures,
+      showEvidenceEmptyState: report.evidenceItems.length === 0 && index === 0,
+    });
+  });
+
+  return pages;
+}
+
+function PageShell({
+  children,
+  pageLabel,
+  className = "",
+  style,
+}: {
+  children: ReactNode;
+  pageLabel: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel}>
+      <div className="portfolio-corner portfolio-corner-top" />
+      <div className="portfolio-corner portfolio-corner-bottom" />
+      <div className="portfolio-national-mark">◆</div>
+
+      <div className="portfolio-page-header">
+        <span>ملف الإنجاز</span>
+        <span>{pageLabel}</span>
+      </div>
+
+      <div className="portfolio-page-body">{children}</div>
+
+      <div className="portfolio-page-footer">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{pageLabel}</span>
+      </div>
+      <span className="portfolio-page-number" aria-hidden="true" />
+    </section>
+  );
+}
+
+function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="portfolio-info-card">
+      <span>{label}</span>
+      <strong>{value || "غير محدد"}</strong>
+    </div>
+  );
+}
+
+function PortfolioDesignedReportPage({ report }: { report: PortfolioReportContent }) {
+  const pages = buildReportPages(report);
+  const evidenceImageHeightMm = getEvidenceImageHeightMm(report);
+  const evidenceGridColumns =
+    getEvidencePerPage(report) <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+
+  return (
+    <>
+      {pages.map((page, pageIndex) => (
+        <section key={page.key} className="portfolio-report-page">
+          <div className="portfolio-report-frame">
+            <div className="portfolio-report-band" />
+
+            <div className="portfolio-report-fixed-header">
+              <span>{report.serviceName || "التقرير"}</span>
+              <span>{`صفحة ${pageIndex + 1} من ${pages.length}`}</span>
+            </div>
+
+            <main
+              className={[
+                "portfolio-report-body",
+                page.signatures.length || page.showEvidenceEmptyState
+                  ? "portfolio-report-body-with-signatures"
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <header className="portfolio-report-header">
+                <div>
+                  <h1>{report.title}</h1>
+                  <p>{report.serviceName || report.subtitle || "التقرير"}</p>
+                </div>
+              </header>
+
+              <div className="portfolio-report-sections">
+                {page.sections.map((section, sectionIndex) => {
+                  if (section.kind === "details") {
+                    return (
+                      <section
+                        key={`details-${page.key}-${sectionIndex}`}
+                        className="portfolio-report-section"
+                      >
+                        <h2>التفاصيل</h2>
+
+                        {section.fields.length === 0 ? (
+                          <div className="portfolio-report-empty">
+                            لا توجد حقول متاحة في هذا التقرير.
+                          </div>
+                        ) : (
+                          <div className="portfolio-report-detail-grid">
+                            {section.fields.map((field) => (
+                              <div
+                                key={`${field.key}-${field.label}`}
+                                className={
+                                  Array.isArray(field.value) || String(field.value).length > 80
+                                    ? "portfolio-report-detail-box portfolio-report-detail-box-wide"
+                                    : "portfolio-report-detail-box"
+                                }
+                              >
+                                <span>{field.label}</span>
+                                <strong>{renderFieldValue(field.value)}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  }
+
+                  if (section.kind === "narrative") {
+                    return (
+                      <section
+                        key={`narrative-${page.key}-${sectionIndex}`}
+                        className="portfolio-report-section"
+                      >
+                        <h2>وصف التنفيذ</h2>
+                        <p className="portfolio-report-narrative">{section.body}</p>
+                      </section>
+                    );
+                  }
+
+                  return (
+                    <section
+                      key={`evidence-${page.key}-${sectionIndex}`}
+                      className="portfolio-report-section"
+                    >
+                      <h2>الشواهد والمرفقات</h2>
+
+                      <div
+                        className="portfolio-report-evidence-grid"
+                        style={{ gridTemplateColumns: evidenceGridColumns }}
+                      >
+                        {section.items.map((item, index) => {
+                          const title = cleanEvidenceTitle(item.title, index);
+                          const isImage =
+                            item.type === "IMAGE" ||
+                            Boolean(item.url && /\.(png|jpe?g|webp|gif|svg)$/i.test(item.url));
+
+                          return (
+                            <figure
+                              key={item.id}
+                              className="portfolio-report-evidence-card"
+                              style={{
+                                minHeight: report.evidenceSettings.showCaptions
+                                  ? `${evidenceImageHeightMm + 9}mm`
+                                  : `${evidenceImageHeightMm}mm`,
+                              }}
+                            >
+                              {isImage && item.url ? (
+                                <img
+                                  src={item.url}
+                                  alt={title}
+                                  style={{
+                                    height: `${evidenceImageHeightMm}mm`,
+                                    objectFit: report.evidenceSettings.fit,
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="portfolio-report-file-card"
+                                  style={{ height: `${evidenceImageHeightMm}mm` }}
+                                >
+                                  {item.url ? "ملف مرفق" : "مرفق بدون رابط"}
+                                </div>
+                              )}
+
+                              {report.evidenceSettings.showCaptions ? (
+                                <figcaption>
+                                  {title}
+                                  {item.description ? <small style={{ display: "block", marginTop: 3, color: "#64748b" }}>{item.description}</small> : null}
+                                </figcaption>
+                              ) : null}
+                            </figure>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+
+              {page.showEvidenceEmptyState ? (
+                <section className="portfolio-report-bottom-empty">
+                  <h2>الشواهد والمرفقات</h2>
+                  <div className="portfolio-report-empty">
+                    لا توجد شواهد أو مرفقات في هذا التقرير.
+                  </div>
+                </section>
+              ) : null}
+
+              {page.signatures.length ? (
+                <section className="portfolio-report-signature-panel">
+                  <div
+                    className={[
+                      "portfolio-report-signatures",
+                      page.signatures.length === 1
+                        ? "portfolio-report-signatures-single"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {page.signatures.map((signature) => (
+                      <div
+                        key={`${signature.key}-${signature.label}`}
+                        className="portfolio-report-signature"
+                      >
+                        <div className="portfolio-report-signature-image-frame">
+                          {signature.imageUrl ? (
+                            <img src={signature.imageUrl} alt="" />
+                          ) : (
+                            <div className="portfolio-report-signature-line" />
+                          )}
+                        </div>
+
+                        <strong>{signature.signerName || signature.label}</strong>
+                        <span>{signature.signerTitle || signature.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </main>
+
+            <div className="portfolio-report-fixed-footer">
+              <span>ملف الإنجاز</span>
+              <span>{report.serviceName || "التقرير"}</span>
+            </div>
+          </div>
+          <span className="portfolio-page-number" aria-hidden="true" />
+        </section>
+      ))}
+    </>
+  );
+}
+
+export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintData }) {
+  const theme = getPortfolioTheme(data.portfolio.themeId);
+  const enabledSections = data.performanceSections
+    .filter((section) => section.isEnabled)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+  const sectionByKey = new Map(data.sections.map((section) => [section.key, section]));
+  const sectionEnabled = (key: string) => sectionByKey.get(key)?.isEnabled !== false;
+  const sectionOrder = (key: string) => sectionByKey.get(key)?.sortOrder ?? 0;
+  const visibleQualificationItems = data.qualificationItems.filter((item) => item.isVisible);
+
+  return (
+    <div
+      className="portfolio-print-root"
+      dir="rtl"
+      data-theme={theme.id}
+      data-layout={theme.layoutVariant}
+      data-cover={theme.coverVariant}
+      data-index={theme.indexVariant}
+      data-divider={theme.dividerVariant}
+      data-report={theme.reportVariant}
+      data-evidence={theme.evidenceVariant}
+      data-qualification={theme.qualificationVariant}
+      data-header={theme.headerVariant}
+      data-footer={theme.footerVariant}
+      data-typography={theme.typographyVariant}
+      style={
+        {
+          "--portfolio-primary": theme.palette.primary,
+          "--portfolio-secondary": theme.palette.secondary,
+          "--portfolio-accent": theme.palette.accent,
+          "--portfolio-muted": theme.palette.muted,
+        } as CSSProperties
+      }
+    >
+      <style>{`
+        ${PORTFOLIO_THEME_STYLES}
+        @page {
+          size: 210mm 297mm;
+          margin: 0;
+        }
+
+        @media print {
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .portfolio-print-root {
+            width: 210mm !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .portfolio-page,
+          .portfolio-report-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            break-after: page;
+            page-break-after: always;
+          }
+
+          .portfolio-page:last-child,
+          .portfolio-report-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+        }
+
+        .portfolio-print-root {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: #eef4f8;
+          padding: 24px 0;
+          color: #0f172a;
+          font-family: inherit;
+        }
+
+        .portfolio-page,
+        .portfolio-report-page {
+          position: relative;
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          margin: 0 auto 24px;
+          overflow: hidden;
+          background: white;
+          box-shadow: 0 22px 70px rgba(15, 23, 42, 0.12);
+          page-break-after: always;
+          break-after: page;
+        }
+
+        .portfolio-page-body {
+          position: relative;
+          z-index: 2;
+          padding: 34mm 20mm 24mm;
+        }
+
+        .portfolio-page-header,
+        .portfolio-page-footer {
+          position: absolute;
+          left: 18mm;
+          right: 18mm;
+          z-index: 3;
+          display: flex;
+          justify-content: space-between;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .portfolio-page-header {
+          top: 14mm;
+        }
+
+        .portfolio-page-footer {
+          bottom: 12mm;
+          border-top: 1px solid rgba(15, 118, 110, 0.22);
+          padding-top: 8px;
+          font-size: 10px;
+        }
+
+        .portfolio-corner {
+          position: absolute;
+          z-index: 1;
+          border: 2px solid rgba(15, 118, 110, 0.16);
+          transform: rotate(45deg);
+        }
+
+        .portfolio-corner-top {
+          top: -34mm;
+          right: -24mm;
+          width: 80mm;
+          height: 80mm;
+          border-radius: 22mm;
+          background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(34, 197, 94, 0.06));
+        }
+
+        .portfolio-corner-bottom {
+          bottom: -35mm;
+          left: -26mm;
+          width: 72mm;
+          height: 72mm;
+          border-radius: 20mm;
+          background: linear-gradient(135deg, rgba(15, 42, 77, 0.08), rgba(15, 118, 110, 0.08));
+        }
+
+        .portfolio-national-mark {
+          position: absolute;
+          left: 22mm;
+          bottom: 22mm;
+          color: var(--portfolio-primary);
+          opacity: 0.08;
+          font-size: 80px;
+          font-weight: 900;
+        }
+
+        .portfolio-title-pill,
+        .portfolio-section-kicker {
+          display: inline-flex;
+          border-radius: 999px;
+          background: var(--portfolio-muted);
+          padding: 8px 20px;
+          color: var(--portfolio-primary);
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .portfolio-main-title {
+          margin-top: 18px;
+          color: var(--portfolio-secondary);
+          font-size: 42px;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .portfolio-subtitle {
+          margin-top: 8px;
+          color: var(--portfolio-primary);
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .portfolio-cover-card,
+        .portfolio-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .portfolio-stat-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .portfolio-info-card,
+        .portfolio-stat {
+          border: 1px solid rgba(15, 118, 110, 0.16);
+          border-radius: 18px;
+          background: rgba(248, 250, 252, 0.82);
+          padding: 14px 16px;
+        }
+
+        .portfolio-info-card span,
+        .portfolio-stat span {
+          display: block;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .portfolio-info-card strong,
+        .portfolio-stat strong {
+          display: block;
+          margin-top: 5px;
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.7;
+        }
+
+        .portfolio-stat {
+          text-align: center;
+        }
+
+        .portfolio-stat strong {
+          color: var(--portfolio-primary);
+          font-size: 28px;
+        }
+
+        .portfolio-section-title {
+          color: var(--portfolio-secondary);
+          font-size: 30px;
+          font-weight: 950;
+          line-height: 1.45;
+        }
+
+        .portfolio-section-text {
+          margin-top: 18px;
+          color: #334155;
+          font-size: 16px;
+          font-weight: 700;
+          line-height: 2.25;
+        }
+
+        .portfolio-index-table {
+          margin-top: 26px;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          overflow: hidden;
+        }
+
+        .portfolio-index-row {
+          display: grid;
+          grid-template-columns: 64px 1fr 96px;
+          align-items: center;
+          border-bottom: 1px solid #e2e8f0;
+          min-height: 46px;
+        }
+
+        .portfolio-index-row:last-child {
+          border-bottom: 0;
+        }
+
+        .portfolio-index-row span,
+        .portfolio-index-row strong {
+          padding: 10px 14px;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .portfolio-index-row span {
+          color: #64748b;
+        }
+
+        .portfolio-index-row strong {
+          color: #0f172a;
+        }
+
+        .portfolio-divider-hero {
+          display: grid;
+          min-height: 190mm;
+          place-items: center;
+          text-align: center;
+        }
+
+        .portfolio-divider-hero h2 {
+          color: var(--portfolio-secondary);
+          font-size: 38px;
+          font-weight: 950;
+          line-height: 1.45;
+        }
+
+        .portfolio-divider-hero p {
+          margin: 18px auto 0;
+          max-width: 560px;
+          color: #64748b;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 2.1;
+        }
+
+        .portfolio-empty {
+          margin-top: 16px;
+          border-radius: 16px;
+          background: #f8fafc;
+          padding: 14px 16px;
+          color: #475569;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 2;
+        }
+
+        .portfolio-report-frame {
+          position: absolute;
+          inset: 7mm;
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+          background: white;
+        }
+
+        .portfolio-report-band {
+          position: absolute;
+          top: 0;
+          left: -20mm;
+          right: -20mm;
+          height: 10mm;
+          border-radius: 0 0 28px 28px;
+          background: linear-gradient(90deg, var(--portfolio-secondary), var(--portfolio-primary));
+        }
+
+        .portfolio-report-fixed-header,
+        .portfolio-report-fixed-footer {
+          position: absolute;
+          left: 12mm;
+          right: 12mm;
+          z-index: 10;
+          display: flex;
+          justify-content: space-between;
+          color: #94a3b8;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .portfolio-report-fixed-header {
+          top: 13mm;
+        }
+
+        .portfolio-report-fixed-footer {
+          bottom: 8mm;
+          border-top: 4px solid transparent;
+          border-image: linear-gradient(90deg, #7ccf9c, var(--portfolio-primary), var(--portfolio-secondary)) 1;
+          padding-top: 7px;
+        }
+
+        .portfolio-report-body {
+          position: relative;
+          height: 100%;
+          padding: 23mm 14mm 22mm;
+          overflow: hidden;
+        }
+
+        .portfolio-report-body-with-signatures {
+          padding-bottom: 58mm;
+        }
+
+        .portfolio-report-header h1 {
+          margin: 8px 0 2px;
+          color: var(--portfolio-secondary);
+          font-size: 28px;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .portfolio-report-header p {
+          margin: 0;
+          color: var(--portfolio-primary);
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .portfolio-report-sections {
+          display: grid;
+          gap: 2.5mm;
+          margin-top: 2mm;
+        }
+
+        .portfolio-report-section {
+          margin-top: 1mm;
+        }
+
+        .portfolio-report-section h2,
+        .portfolio-report-bottom-empty h2 {
+          display: inline-flex;
+          border-radius: 999px;
+          background: linear-gradient(90deg, var(--portfolio-secondary), var(--portfolio-primary));
+          color: white;
+          padding: 7px 22px;
+          font-size: 13px;
+          font-weight: 950;
+          margin: 0;
+        }
+
+        .portfolio-report-detail-grid {
+          margin-top: 3mm;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .portfolio-report-detail-box {
+          min-height: 17mm;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          background: rgba(248, 250, 252, 0.7);
+          padding: 8px 11px;
+        }
+
+        .portfolio-report-detail-box-wide {
+          grid-column: 1 / -1;
+        }
+
+        .portfolio-report-detail-box span {
+          display: block;
+          color: #94a3b8;
+          font-size: 10px;
+          font-weight: 950;
+          line-height: 1.5;
+        }
+
+        .portfolio-report-detail-box strong {
+          display: block;
+          margin-top: 3px;
+          color: #0f172a;
+          font-size: 11px;
+          font-weight: 950;
+          line-height: 1.7;
+        }
+
+        .portfolio-report-list {
+          margin: 0;
+          padding-inline-start: 18px;
+        }
+
+        .portfolio-report-narrative,
+        .portfolio-report-empty {
+          margin-top: 3mm;
+          border-radius: 18px;
+          padding: 12px 14px;
+          font-size: 11px;
+          line-height: 1.9;
+        }
+
+        .portfolio-report-narrative {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          color: #1e293b;
+          font-weight: 850;
+          white-space: pre-line;
+        }
+
+        .portfolio-report-empty {
+          border: 1px dashed #cbd5e1;
+          background: #f8fafc;
+          color: #64748b;
+          font-weight: 900;
+        }
+
+        .portfolio-report-bottom-empty {
+          position: absolute;
+          left: 14mm;
+          right: 14mm;
+          bottom: 36mm;
+        }
+
+        .portfolio-report-evidence-grid {
+          margin-top: 3mm;
+          display: grid;
+          gap: 12px;
+        }
+
+        .portfolio-report-evidence-card {
+          margin: 0;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          overflow: hidden;
+          background: white;
+          break-inside: avoid;
+        }
+
+        .portfolio-report-evidence-card img {
+          width: 100%;
+          object-fit: contain;
+          background: #f8fafc;
+          display: block;
+        }
+
+        .portfolio-report-evidence-card figcaption {
+          max-height: 12mm;
+          overflow: hidden;
+          border-top: 1px solid #f1f5f9;
+          padding: 6px 10px;
+          color: #475569;
+          font-size: 10px;
+          font-weight: 800;
+          line-height: 1.5;
+          text-align: center;
+        }
+
+        .portfolio-report-file-card {
+          display: grid;
+          place-items: center;
+          background: #f8fafc;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 950;
+          text-align: center;
+          padding: 8px;
+        }
+
+        .portfolio-report-signature-panel {
+          position: absolute;
+          left: 20mm;
+          right: 20mm;
+          bottom: 18mm;
+          z-index: 8;
+        }
+
+        .portfolio-report-signatures {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 24px;
+          width: 100%;
+        }
+
+        .portfolio-report-signatures-single {
+          justify-content: center;
+        }
+
+        .portfolio-report-signature {
+          width: 58mm;
+          text-align: center;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          padding: 0;
+        }
+
+        .portfolio-report-signature-image-frame {
+          display: flex;
+          height: 10mm;
+          align-items: flex-end;
+          justify-content: center;
+          background: white;
+        }
+
+        .portfolio-report-signature img {
+          max-width: 42mm;
+          max-height: 10mm;
+          object-fit: contain;
+          background: white;
+          mix-blend-mode: normal;
+          filter: none;
+        }
+
+        .portfolio-report-signature-line {
+          width: 100%;
+          margin-bottom: 1mm;
+          border-bottom: 1px dashed #94a3b8;
+        }
+
+        .portfolio-report-signature strong {
+          display: block;
+          margin-top: 1mm;
+          color: #0f172a;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .portfolio-report-signature span {
+          display: block;
+          color: #64748b;
+          font-size: 8px;
+          font-weight: 800;
+          margin-top: 0.5mm;
+        }
+
+        @media screen and (max-width: 900px) {
+          .portfolio-page,
+          .portfolio-report-page {
+            width: 100%;
+            height: auto;
+            min-height: 297mm;
+          }
+
+          .portfolio-cover-card,
+          .portfolio-stat-grid,
+          .portfolio-report-detail-grid,
+          .portfolio-report-evidence-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <section className="portfolio-page portfolio-cover-page" style={{ order: -10000 }}>
+        <PortfolioThemeOrnaments variant={theme.ornamentVariant} />
+        <div className="portfolio-corner portfolio-corner-top" />
+        <div className="portfolio-corner portfolio-corner-bottom" />
+        <div className="portfolio-national-mark">◆</div>
+
+        <div className="portfolio-page-body">
+          <div style={{ minHeight: "220mm", display: "grid", alignContent: "center" }}>
+            <div className="portfolio-title-pill">منصة التوجيه الطلابي</div>
+            <h1 className="portfolio-main-title">{data.portfolio.title}</h1>
+            <p className="portfolio-subtitle">
+              {data.owner.jobTitle} · {data.portfolio.term}
+            </p>
+
+            <div className="portfolio-cover-card">
+              <MiniInfo label="صاحب الملف" value={data.owner.name} />
+              {data.portfolio.preferences.showSchoolName ? (
+                <MiniInfo label="المدرسة" value={data.school.name} />
+              ) : null}
+              <MiniInfo label="العام" value={data.portfolio.academicYear} />
+              <MiniInfo label="الفصل الدراسي" value={data.portfolio.term} />
+            </div>
+
+            {data.portfolio.preferences.showCoverStatistics ? (
+            <div className="portfolio-stat-grid">
+              <div className="portfolio-stat">
+                <strong>{enabledSections.length}</strong>
+                <span>عنصر أداء</span>
+              </div>
+              <div className="portfolio-stat">
+                <strong>{data.totals.reports}</strong>
+                <span>تقرير</span>
+              </div>
+              <div className="portfolio-stat">
+                <strong>{data.totals.evidences}</strong>
+                <span>شاهد</span>
+              </div>
+            </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="portfolio-page-footer">
+          <span>{data.portfolio.preferences.showSchoolName ? data.school.name : ""}</span>
+          <span>ملف الإنجاز</span>
+        </div>
+        <span className="portfolio-page-number" aria-hidden="true" />
+      </section>
+
+      {data.portfolio.preferences.showTableOfContents ? (
+      <PageShell pageLabel="الفهرس" className="portfolio-index-page" style={{ order: -9999 }}>
+        <span className="portfolio-section-kicker">المحتويات</span>
+        <h2 className="portfolio-section-title">فهرس الملف</h2>
+
+        <div className="portfolio-index-table">
+          {data.sections
+            .filter((section) => section.isEnabled)
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((section, index) => (
+            <div key={section.id} className="portfolio-index-row">
+              <span>{index + 1}</span>
+              <strong>{section.title}</strong>
+              <span>قسم</span>
+            </div>
+          ))}
+        </div>
+      </PageShell>
+      ) : null}
+
+      {sectionEnabled("introduction") ? (
+      <PageShell pageLabel="المقدمة" className="portfolio-introduction-page" style={{ order: sectionOrder("introduction") }}>
+        <span className="portfolio-section-kicker">مدخل الملف</span>
+        <h2 className="portfolio-section-title">المقدمة</h2>
+        <p className="portfolio-section-text">
+          {data.portfolio.introText ||
+            "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي."}
+        </p>
+      </PageShell>
+      ) : null}
+
+      {sectionEnabled("profile") ? (
+      <PageShell pageLabel="السيرة المهنية" className="portfolio-biography-page" style={{ order: sectionOrder("profile") }}>
+        <span className="portfolio-section-kicker">صاحب الملف</span>
+        <h2 className="portfolio-section-title">السيرة المهنية</h2>
+        <div className="portfolio-cover-card">
+          <MiniInfo label="الاسم" value={data.owner.name} />
+          <MiniInfo label="المسمى" value={data.owner.jobTitle} />
+          {data.portfolio.preferences.showSchoolName ? <MiniInfo label="المدرسة" value={data.school.name} /> : null}
+          {data.portfolio.preferences.showPrincipalName ? <MiniInfo label="مدير المدرسة" value={data.school.principalName || "غير محدد"} /> : null}
+        </div>
+        {data.biography.professionalSummary ? <p className="portfolio-section-text">{data.biography.professionalSummary}</p> : null}
+        <div className="portfolio-cover-card">
+          <MiniInfo label="التخصص" value={data.biography.specialization} />
+          <MiniInfo label="المؤهل العلمي" value={data.biography.academicQualification} />
+          <MiniInfo label="سنوات الخبرة" value={data.biography.yearsOfExperience} />
+          <MiniInfo label="المهارات" value={data.biography.skills} />
+          <MiniInfo label="الاهتمامات المهنية" value={data.biography.professionalInterests} />
+        </div>
+      </PageShell>
+      ) : null}
+
+      {sectionEnabled("qualifications") ? (
+      <PageShell pageLabel="المؤهلات والدورات" className="portfolio-qualifications-page" style={{ order: sectionOrder("qualifications") }}>
+        <span className="portfolio-section-kicker">تطوير مهني</span>
+        <h2 className="portfolio-section-title">المؤهلات والدورات والشهادات</h2>
+        {visibleQualificationItems.length ? (
+          <div className="portfolio-index-table">
+            {visibleQualificationItems.map((item, index) => (
+              <div key={item.id} className="portfolio-index-row">
+                <span>{index + 1}</span>
+                <strong>{item.title}<small style={{ display: "block", marginTop: 4, color: "#64748b" }}>{[item.issuer, item.date, item.hours ? `${item.hours} ساعة` : ""].filter(Boolean).join(" · ")}</small></strong>
+                <span>{item.type === "QUALIFICATION" ? "مؤهل" : item.type === "COURSE" ? "دورة" : "شهادة"}</span>
+              </div>
+            ))}
+          </div>
+        ) : <div className="portfolio-empty">لا توجد مؤهلات أو دورات مضافة حتى الآن.</div>}
+      </PageShell>
+      ) : null}
+
+      {enabledSections.map((section, index) => (
+        <div key={section.key} style={{ order: section.sortOrder }}>
+          {data.portfolio.preferences.showPerformanceDividers ? (
+          <PageShell pageLabel={`عنصر أداء ${index + 1}`} className="portfolio-divider-page">
+            <div className="portfolio-divider-hero">
+              <div>
+                <span className="portfolio-section-kicker">عنصر أداء</span>
+                <h2>{section.title}</h2>
+                <p>{section.intro}</p>
+
+                <div className="portfolio-stat-grid">
+                  <div className="portfolio-stat">
+                    <strong>{section.weight}%</strong>
+                    <span>الوزن النسبي</span>
+                  </div>
+                  <div className="portfolio-stat">
+                    <strong>{section.reports.length}</strong>
+                    <span>تقرير</span>
+                  </div>
+                  <div className="portfolio-stat">
+                    <strong>
+                      {section.reports.reduce(
+                        (total, report) => total + report.evidenceCount,
+                        0,
+                      )}
+                    </strong>
+                    <span>شاهد</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PageShell>
+          ) : null}
+
+          {section.reports.length ? (
+            section.reports.map((report) =>
+              report.content ? (
+                <PortfolioDesignedReportPage key={report.id} report={report.content} />
+              ) : (
+                <PageShell key={report.id} pageLabel={section.title}>
+                  <span className="portfolio-section-kicker">تقرير</span>
+                  <h2 className="portfolio-section-title">{report.title}</h2>
+                  <div className="portfolio-empty">
+                    هذا التقرير من مصدر قديم وسيتم تحويله لاحقًا إلى الشكل الموحد.
+                  </div>
+                </PageShell>
+              ),
+            )
+          ) : (
+            <PageShell pageLabel={section.title}>
+              <span className="portfolio-section-kicker">التقارير والشواهد</span>
+              <h2 className="portfolio-section-title">{section.title}</h2>
+              <div className="portfolio-empty">لا توجد تقارير لهذا العنصر حتى الآن.</div>
+            </PageShell>
+          )}
+
+          {data.customEvidence
+            .filter((item) => item.sectionId === section.id && item.isVisible && item.fileUrl)
+            .sort((first, second) => first.sortOrder - second.sortOrder)
+            .map((item) => (
+              <PageShell key={item.id} pageLabel={section.title}>
+                <span className="portfolio-section-kicker">شاهد مستقل</span>
+                <h2 className="portfolio-section-title">{item.title}</h2>
+                {item.description ? <p className="portfolio-section-text">{item.description}</p> : null}
+                {/\.(png|jpe?g|webp|gif)$/i.test(item.fileUrl) || item.mimeType.startsWith("image/") ? (
+                  <img src={item.fileUrl} alt={item.title} style={{ display: "block", width: "100%", maxHeight: "175mm", objectFit: "contain", marginTop: "8mm" }} />
+                ) : (
+                  <div className="portfolio-empty">ملف مرفق: {item.fileUrl}</div>
+                )}
+              </PageShell>
+            ))}
+        </div>
+      ))}
+
+      {data.customEvidence
+        .filter((item) => !item.sectionId && item.isVisible && item.fileUrl)
+        .sort((first, second) => first.sortOrder - second.sortOrder)
+        .map((item) => (
+          <PageShell key={item.id} pageLabel="شاهد مستقل" style={{ order: 900 }}>
+            <span className="portfolio-section-kicker">شاهد مستقل</span>
+            <h2 className="portfolio-section-title">{item.title}</h2>
+            {item.description ? <p className="portfolio-section-text">{item.description}</p> : null}
+            {/\.(png|jpe?g|webp|gif)$/i.test(item.fileUrl) || item.mimeType.startsWith("image/") ? (
+              <img src={item.fileUrl} alt={item.title} style={{ display: "block", width: "100%", maxHeight: "175mm", objectFit: "contain", marginTop: "8mm" }} />
+            ) : <div className="portfolio-empty">ملف مرفق: {item.fileUrl}</div>}
+          </PageShell>
+        ))}
+
+      {sectionEnabled("closing") ? (
+      <PageShell pageLabel="الخاتمة" className="portfolio-conclusion-page" style={{ order: sectionOrder("closing") }}>
+        <span className="portfolio-section-kicker">ختام الملف</span>
+        <h2 className="portfolio-section-title">الخاتمة</h2>
+        <p className="portfolio-section-text">
+          {data.portfolio.conclusionText ||
+            "ختامًا، يمثل هذا الملف توثيقًا مختصرًا لأبرز الإنجازات وفرص التطوير القادمة."}
+        </p>
+      </PageShell>
+      ) : null}
+    </div>
+  );
+}
+
+
+==============================================================================================================
+FILE: app\teacher\portfolio\print\page.tsx
+==============================================================================================================
+import { redirect } from "next/navigation";
+
+import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
+import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+
+type TeacherPortfolioPrintPageProps = {
+  searchParams: Promise<{ portfolioId?: string | string[] }>;
+};
+
+export default async function TeacherPortfolioPrintPage({ searchParams }: TeacherPortfolioPrintPageProps) {
+  const current = await requireDashboardUser();
+
+  if (current.user.role === "ADMIN") {
+    redirect("/dashboard/admin");
+  }
+
+  if (current.user.role !== "TEACHER") {
+    redirect("/dashboard");
+  }
+
+  const query = await searchParams;
+  const portfolioId = Array.isArray(query.portfolioId) ? query.portfolioId[0] : query.portfolioId;
+  const workspace = await getTeacherPortfolioWorkspace(current.user, portfolioId);
+
+  if (!workspace.ok) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const printWorkspace = {
+    ...workspace,
+    customEvidence: workspace.customEvidence.filter(
+      (item) => item.isVisible && Boolean(item.fileUrl),
+    ),
+  };
+
+  return (
+    <main dir="rtl">
+      <PortfolioPrintActions />
+      <PortfolioPrintDocument data={printWorkspace} />
+    </main>
+  );
+}

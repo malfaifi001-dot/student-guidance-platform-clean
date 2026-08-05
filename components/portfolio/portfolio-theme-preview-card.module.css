@@ -1,0 +1,15 @@
+.miniature { position:relative; display:block; height:150px; overflow:hidden; border-radius:18px; background:var(--mini-muted); border:1px solid color-mix(in srgb,var(--mini-primary) 22%,white); }
+.miniature i { position:absolute; display:block; }
+.title { height:9px; width:46%; background:var(--mini-secondary); border-radius:9px; }
+.subtitle { height:4px; width:30%; background:var(--mini-primary); opacity:.65; border-radius:5px; }
+.panel { background:white; border:1px solid color-mix(in srgb,var(--mini-primary) 28%,white); }
+.line { background:var(--mini-accent); }
+.page { width:18px; height:7px; border-radius:8px; background:var(--mini-secondary); opacity:.65; }
+.preview-ministry { box-shadow:inset 0 0 0 7px var(--mini-primary),inset 0 0 0 9px white; }
+.preview-ministry .ornament { inset:17px 50% auto auto; translate:50% 0; width:25px; height:25px; rotate:45deg; border:4px double var(--mini-accent); }
+.preview-ministry .title { top:58px; right:27%; }
+.preview-ministry .subtitle { top:75px; right:35%; }
+.preview-ministry .panelA { right:18%; bottom:18px; width:28%; height:28px; }
+.preview-ministry .panelB { left:18%; bottom:18px; width:28%; height:28px; }
+.preview-ministry .panelC,.preview-ministry .line { display:none; }
+.preview-ministry .page { left:15px; bottom:13px; }

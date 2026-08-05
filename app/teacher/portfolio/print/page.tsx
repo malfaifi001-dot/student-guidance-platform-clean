@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
-import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
+
+import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
+import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 
-type TeacherPortfolioPageProps = {
+type TeacherPortfolioPrintPageProps = {
   searchParams: Promise<{ portfolioId?: string | string[] }>;
 };
 
-export default async function TeacherPortfolioPage({ searchParams }: TeacherPortfolioPageProps) {
+export default async function TeacherPortfolioPrintPage({ searchParams }: TeacherPortfolioPrintPageProps) {
   const current = await requireDashboardUser();
 
   if (current.user.role === "ADMIN") {
@@ -26,5 +28,17 @@ export default async function TeacherPortfolioPage({ searchParams }: TeacherPort
     redirect("/dashboard/onboarding?required=true");
   }
 
-  return <PortfolioDashboard data={workspace} />;
+  const printWorkspace = {
+    ...workspace,
+    customEvidence: workspace.customEvidence.filter(
+      (item) => item.isVisible && Boolean(item.fileUrl),
+    ),
+  };
+
+  return (
+    <main dir="rtl">
+      <PortfolioPrintActions />
+      <PortfolioPrintDocument data={printWorkspace} />
+    </main>
+  );
 }

@@ -402,7 +402,7 @@ function ExecutiveBriefReport({
             </p>
           </div>
 
-          <div className="executive-grid">
+          <div className="report-executive-layout">
             <InfoRow label="التاريخ" value={report.reportDate} />
             <InfoRow
               label="الفئة المستهدفة"
@@ -843,7 +843,7 @@ function ReportStyles() {
       }
 
       .meta-grid,
-      .executive-grid {
+      .report-executive-layout {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;

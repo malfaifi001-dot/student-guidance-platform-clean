@@ -1,7 +1,14 @@
+export const PORTFOLIO_THEME_IDS = [
+  "ministry-elegant",
+] as const;
+
+export type PortfolioThemeId = (typeof PORTFOLIO_THEME_IDS)[number];
+
 export type PortfolioThemeDefinition = {
-  id: string;
+  id: PortfolioThemeId;
   name: string;
-  description: string;
+  shortDescription: string;
+  previewClass: "preview-ministry";
   palette: {
     primary: string;
     secondary: string;
@@ -13,8 +20,9 @@ export type PortfolioThemeDefinition = {
 export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   {
     id: "ministry-elegant",
-    name: "رسمي أنيق",
-    description: "تصميم تركواز وكحلي مستوحى من الهوية التعليمية، مناسب للطباعة الرسمية.",
+    name: "الوزاري الأنيق",
+    shortDescription: "هوية تعليمية رسمية بإطار متوازن وزوايا هندسية هادئة.",
+    previewClass: "preview-ministry",
     palette: {
       primary: "#0f766e",
       secondary: "#0f2a4d",
@@ -24,11 +32,12 @@ export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   },
 ];
 
-export const DEFAULT_PORTFOLIO_THEME_ID = "ministry-elegant";
+export const DEFAULT_PORTFOLIO_THEME_ID: PortfolioThemeId = "ministry-elegant";
 
-export function getPortfolioTheme(themeId?: string | null) {
-  return (
-    PORTFOLIO_THEMES.find((theme) => theme.id === themeId) ||
-    PORTFOLIO_THEMES[0]
-  );
+export function isPortfolioThemeId(value: unknown): value is PortfolioThemeId {
+  return value === DEFAULT_PORTFOLIO_THEME_ID;
+}
+
+export function getPortfolioTheme(themeId?: string | null): PortfolioThemeDefinition {
+  return PORTFOLIO_THEMES.find((item) => item.id === themeId) || PORTFOLIO_THEMES[0];
 }
