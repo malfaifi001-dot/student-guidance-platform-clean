@@ -1,0 +1,77 @@
+.wrapper {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  direction: rtl;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6mm;
+  margin: 0 auto 9mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.light .divider {
+  background: rgba(21, 68, 90, 0.18);
+}
+
+.dark {
+  border-radius: 4mm;
+  padding: 4mm 6mm;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dark .divider {
+  background: rgba(21, 68, 90, 0.24);
+}
+
+.logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.ministryLogo {
+  width: 42mm;
+  max-width: 42mm;
+  max-height: 19mm;
+}
+
+.visionLogo {
+  width: 27mm;
+  max-width: 27mm;
+  max-height: 18mm;
+}
+
+.divider {
+  display: block;
+  width: 1px;
+  height: 15mm;
+  flex: 0 0 1px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media screen and (max-width: 600px) {
+  .wrapper {
+    gap: 4mm;
+  }
+
+  .ministryLogo {
+    width: 36mm;
+    max-width: 36mm;
+  }
+
+  .visionLogo {
+    width: 23mm;
+    max-width: 23mm;
+  }
+}

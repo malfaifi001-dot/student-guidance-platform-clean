@@ -4,6 +4,7 @@ import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-co
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import { buildPortfolioReportPages, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 
 function renderFieldValue(value: string | string[]) {
   if (Array.isArray(value)) {
@@ -1925,6 +1926,11 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
       <section className="portfolio-page portfolio-cover-page" style={{ order: -10000 }}>
         <div className="portfolio-page-body">
           <div style={{ minHeight: "220mm", display: "grid", alignContent: "center" }}>
+            <PortfolioCoverOfficialLogos
+              ministryLogoSrc="/uploads/school-logos/MOE.png"
+              visionLogoSrc="/uploads/school-logos/VISION2030.png"
+              tone="light"
+            />
             <div className="portfolio-title-pill">منصة التوجيه الطلابي</div>
             <h1 className="portfolio-main-title">{data.portfolio.title}</h1>
             <p className="portfolio-subtitle">

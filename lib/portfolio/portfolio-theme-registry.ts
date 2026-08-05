@@ -1,6 +1,8 @@
 export const PORTFOLIO_THEME_IDS = [
   "ministry-elegant",
   "moe-official-2024",
+  "editorial-atlas",
+  "geometric-horizon",
 ] as const;
 
 export type PortfolioThemeId = (typeof PORTFOLIO_THEME_IDS)[number];
@@ -9,7 +11,11 @@ export type PortfolioThemeDefinition = {
   id: PortfolioThemeId;
   name: string;
   shortDescription: string;
-  previewClass: "preview-ministry" | "preview-moe-official-2024";
+  previewClass:
+    | "preview-ministry"
+    | "preview-moe-official-2024"
+    | "preview-editorial-atlas"
+    | "preview-geometric-horizon";
   palette: {
     primary: string;
     secondary: string;
@@ -41,6 +47,32 @@ export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
       secondary: "#07A869",
       accent: "#0DA9A6",
       muted: "#F5F7F6",
+    },
+  },
+  {
+    id: "editorial-atlas",
+    name: "الأطلس التحريري",
+    shortDescription:
+      "تصميم تحريري مبتكر بشريط جانبي داكن ومدارات لونية وتكوينات مرنة.",
+    previewClass: "preview-editorial-atlas",
+    palette: {
+      primary: "#10243A",
+      secondary: "#0F9D94",
+      accent: "#E07A5F",
+      muted: "#EEF5F8",
+    },
+  },
+  {
+    id: "geometric-horizon",
+    name: "الأفق الهندسي",
+    shortDescription:
+      "تصميم هندسي عصري بأشرطة لونية جريئة وتكوينات منظمة متعددة الإيقاع.",
+    previewClass: "preview-geometric-horizon",
+    palette: {
+      primary: "#25316D",
+      secondary: "#6C5CE7",
+      accent: "#F4B942",
+      muted: "#F4F2ED",
     },
   },
 ];

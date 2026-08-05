@@ -6,6 +6,7 @@ import {
   getPortfolioEvidencePerPage,
 } from "@/components/portfolio/print/portfolio-print-pagination";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 
 const MOE_2024 = {
@@ -477,14 +478,28 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                     <div className="moe24-report-details-panel">
                       <div className="moe24-report-detail-grid">
                         {section.fields.map((field, fieldIndex) => {
+                          const fieldItems = Array.isArray(field.value)
+                            ? field.value
+                                .map((item) => item.trim())
+                                .filter(Boolean)
+                            : [];
+
                           const serializedValue = Array.isArray(field.value)
-                            ? field.value.join("\n")
-                            : String(field.value);
+                            ? fieldItems.join(" ")
+                            : String(field.value).trim();
+
+                          const isCompactArray =
+                            Array.isArray(field.value) &&
+                            fieldItems.length > 0 &&
+                            fieldItems.length <= 4 &&
+                            serializedValue.length <= 150 &&
+                            fieldItems.every((item) => item.length <= 70);
 
                           const wide =
-                            Array.isArray(field.value) ||
-                            serializedValue.length > 90 ||
-                            serializedValue.includes("\n");
+                            (!isCompactArray && Array.isArray(field.value)) ||
+                            serializedValue.length > 160 ||
+                            (!Array.isArray(field.value) &&
+                              serializedValue.includes("\n"));
 
                           const visual = getMoe24ReportFieldVisual(
                             field.label,
@@ -498,6 +513,9 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                                 "moe24-report-field",
                                 `moe24-report-field-${visual.tone}`,
                                 wide ? "moe24-report-field-wide" : "",
+                                isCompactArray
+                                  ? "moe24-report-field-compact-list"
+                                  : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
@@ -1560,6 +1578,7 @@ export function MoeOfficial2024PortfolioPrint({
         .moe24-report-detail-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-auto-flow: row dense;
           gap: 2mm 4mm;
         }
 
@@ -1594,6 +1613,33 @@ export function MoeOfficial2024PortfolioPrint({
         .moe24-report-field-wide {
           grid-column: 1 / -1;
           grid-template-columns: 9mm minmax(0, 1fr);
+        }
+
+        .moe24-report-field-compact-list {
+          align-items: start;
+          min-height: 22mm;
+        }
+
+        .moe24-report-field-compact-list .moe24-report-field-icon {
+          margin-top: 1mm;
+        }
+
+        .moe24-report-field-compact-list .moe24-report-list {
+          grid-template-columns: 1fr;
+          gap: 0.4mm;
+        }
+
+        .moe24-report-field-compact-list .moe24-report-list li {
+          padding-top: 0.25mm;
+          padding-bottom: 0.25mm;
+          font-size: 9px;
+          line-height: 1.35;
+        }
+
+        .moe24-report-field-compact-list .moe24-report-list li::before {
+          top: 2.3mm;
+          width: 1.4mm;
+          height: 1.4mm;
         }
 
         .moe24-report-field-icon {
@@ -1813,6 +1859,11 @@ export function MoeOfficial2024PortfolioPrint({
       `}</style>
 
       <MoePage sectionLabel="الغلاف" className="moe24-cover" style={{ order: -10000 }}>
+        <PortfolioCoverOfficialLogos
+          ministryLogoSrc="/uploads/school-logos/MOE.png"
+          visionLogoSrc="/uploads/school-logos/VISION2030.png"
+          tone="dark"
+        />
         <div className="moe24-cover-mark" aria-hidden="true" />
         <p className="moe24-cover-kicker">وزارة التعليم · ملف مهني موثق</p>
         <h1>{data.portfolio.title}</h1>
