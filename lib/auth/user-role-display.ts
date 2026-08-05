@@ -19,6 +19,8 @@ export function getArabicUserRoleLabel({
       return isFemale ? "المعلمة" : "المعلم";
     case "ACTIVITY_LEADER":
       return isFemale ? "رائدة النشاط" : "رائد النشاط";
+    case "PRINCIPAL":
+      return isFemale ? "مديرة المدرسة" : "مدير المدرسة";
     case "ADMIN":
       return isFemale ? "مديرة النظام" : "مدير النظام";
     case "SCHOOL_OWNER":

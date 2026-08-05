@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   repairPotentialUtf8Mojibake,
   repairPotentialWorkflowOptionValue,
-} from "./repair-utf8-mojibake.ts";
+} from "./repair-utf8-mojibake";
 
 test("keeps valid Arabic unchanged", () => {
   const value = "الفصل الدراسي الأول";

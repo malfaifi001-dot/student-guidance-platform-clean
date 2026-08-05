@@ -7,6 +7,7 @@ import {
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
 import { logAdminActivity } from "@/lib/admin/activity-log";
+import { UserRole } from "@prisma/client";
 
 function getSubscriptionStatusLabel(status?: string | null, endsAt?: Date | null) {
   if (!status) return "NO_SUBSCRIPTION";
@@ -356,6 +357,13 @@ export async function POST(request: Request) {
   const action = String(payload?.action || "").trim();
   const userId = String(payload?.userId || "").trim();
 
+  if (action === "create-principal") {
+    return NextResponse.json(
+      { error: "يتم إنشاء حساب مدير المدرسة من صفحة التسجيل العامة." },
+      { status: 403 },
+    );
+  }
+
   if (!userId) {
     return NextResponse.json(
       { error: "حدد المستخدم المطلوب." },
@@ -388,6 +396,21 @@ export async function POST(request: Request) {
 
   if (action === "activate-user" || action === "disable-user") {
     const isActive = action === "activate-user";
+
+    if (isActive && targetUser.role === "PRINCIPAL" && targetUser.schoolAccountId) {
+      const existingPrincipal = await prisma.user.findFirst({
+        where: {
+          schoolAccountId: targetUser.schoolAccountId,
+          role: "PRINCIPAL",
+          isActive: true,
+          id: { not: targetUser.id },
+        },
+        select: { id: true },
+      });
+      if (existingPrincipal) {
+        return NextResponse.json({ error: "يوجد مدير مدرسة نشط مرتبط بهذه المدرسة بالفعل." }, { status: 409 });
+      }
+    }
 
     await prisma.user.update({
       where: {
@@ -435,11 +458,18 @@ export async function POST(request: Request) {
   if (action === "set-role") {
     const role = String(payload?.role || "").trim();
 
-    if (!["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF", "TEACHER"].includes(role)) {
+    const allowedRoles: UserRole[] = ["ADMIN", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER", "PRINCIPAL", "SCHOOL_OWNER", "STAFF"];
+    if (!allowedRoles.includes(role as UserRole)) {
       return NextResponse.json(
         { error: "الدور غير صحيح." },
         { status: 400 }
       );
+    }
+
+    if (role === "PRINCIPAL") {
+      if (targetUser.role !== "PRINCIPAL") {
+        return NextResponse.json({ error: "يتم إنشاء حساب مدير المدرسة من صفحة التسجيل العامة." }, { status: 403 });
+      }
     }
 
     await prisma.user.update({
@@ -447,7 +477,7 @@ export async function POST(request: Request) {
         id: userId,
       },
       data: {
-        role: role as "ADMIN" | "COUNSELOR" | "SCHOOL_OWNER" | "STAFF" | "TEACHER",
+        role: role as UserRole,
       },
     });
 
@@ -456,7 +486,7 @@ export async function POST(request: Request) {
       targetUserId: userId,
       schoolAccountId: targetUser.schoolAccountId,
       category: "USER",
-      action: "set-role",
+      action: role === "PRINCIPAL" || targetUser.role === "PRINCIPAL" ? "principal-account-updated" : "set-role",
       severity: "WARNING",
       title: `تم تغيير دور المستخدم ${targetUser.email} إلى ${role}`,
       details: {

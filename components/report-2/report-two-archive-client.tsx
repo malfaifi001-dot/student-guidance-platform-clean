@@ -30,6 +30,7 @@ type SnapshotItem = {
 
 type ReportTwoArchiveClientProps = {
   snapshots: SnapshotItem[];
+  readOnly?: boolean;
 };
 
 type SortKey = "newest" | "oldest" | "title" | "service";
@@ -66,6 +67,7 @@ function getUniqueValues(
 
 export function ReportTwoArchiveClient({
   snapshots,
+  readOnly = false,
 }: ReportTwoArchiveClientProps) {
   const [items, setItems] = useState(snapshots);
   const [search, setSearch] = useState("");
@@ -237,7 +239,7 @@ export function ReportTwoArchiveClient({
                     <Eye className="h-4 w-4" />
                   </Link>
 
-                  <ReportTwoPdfDownloadButton
+                  {!readOnly ? <ReportTwoPdfDownloadButton
                     snapshot={{
                       caseEntryId: snapshot.caseEntryId,
                       reportTitle: snapshot.reportTitle,
@@ -247,8 +249,8 @@ export function ReportTwoArchiveClient({
                     className="grid h-10 w-10 place-items-center rounded-full bg-sky-700 text-white shadow-sm transition hover:bg-sky-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-700"
                   >
                     <Download className="h-4 w-4" />
-                  </ReportTwoPdfDownloadButton>
-                  <ReportDeleteAction
+                  </ReportTwoPdfDownloadButton> : null}
+                  {!readOnly ? <ReportDeleteAction
                     reportId={snapshot.id}
                     reportTitle={snapshot.reportTitle}
                     caseTitle={snapshot.caseTitle || undefined}
@@ -270,7 +272,7 @@ export function ReportTwoArchiveClient({
                     className="grid h-10 w-10 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-700 shadow-sm transition hover:bg-rose-100"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </ReportDeleteAction>
+                  </ReportDeleteAction> : null}
                 </div>
               </div>
 

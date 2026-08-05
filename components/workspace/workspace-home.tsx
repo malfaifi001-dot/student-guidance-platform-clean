@@ -76,6 +76,7 @@ type WorkspaceHomeProps = {
   sideHref?: string;
   sideHrefLabel?: string;
   notices?: WorkspaceNotice[];
+  welcomeText?: string;
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
@@ -137,6 +138,7 @@ export function WorkspaceHome({
   sideHref,
   sideHrefLabel,
   notices = [],
+  welcomeText = "أهلًا بك",
 }: WorkspaceHomeProps) {
   const progress = normalizePercent(sideProgressPercent);
 
@@ -158,7 +160,7 @@ export function WorkspaceHome({
                 </div>
 
                 <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
-                  أهلًا بك {getDisplayName(userName)}
+                  {welcomeText} {getDisplayName(userName)}
                 </h1>
 
                 <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">

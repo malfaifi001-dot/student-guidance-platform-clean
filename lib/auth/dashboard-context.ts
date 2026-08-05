@@ -9,6 +9,7 @@ export type DashboardRole =
   | "COUNSELOR"
   | "ACTIVITY_LEADER"
   | "TEACHER"
+  | "PRINCIPAL"
   | "SCHOOL_OWNER"
   | "STAFF";
 
@@ -106,6 +107,17 @@ export async function requireDashboardApiContext() {
     );
   }
 
+  if (context.user.role === "PRINCIPAL") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "هذه الخدمة غير متاحة لحساب مدير المدرسة.",
+        code: "FORBIDDEN",
+      },
+      { status: 403 },
+    );
+  }
+
   return context;
 }
 
@@ -130,11 +142,15 @@ export async function requireSchoolDashboardApiContext() {
   return contextOrResponse as SchoolDashboardContext;
 }
 
-export async function requireDashboardPageContext() {
+export async function requireDashboardPageContext(options: { allowPrincipal?: boolean } = {}) {
   const context = await getDashboardContext();
 
   if (!context) {
     redirect("/login");
+  }
+
+  if (context.user.role === "PRINCIPAL" && !options.allowPrincipal) {
+    redirect("/dashboard/principal");
   }
 
   return context;
@@ -203,6 +219,9 @@ export function caseOwnershipWhere(
   return {
     id: caseId,
     schoolAccountId: context.schoolAccountId,
+    ...(context.user.role === "PRINCIPAL"
+      ? { createdById: context.user.id }
+      : {}),
   };
 }
 
@@ -236,6 +255,9 @@ export function reportOwnershipWhere(
     id: reportId,
     caseEntry: {
       schoolAccountId: context.schoolAccountId,
+      ...(context.user.role === "PRINCIPAL"
+        ? { createdById: context.user.id }
+        : {}),
     },
   };
 }
@@ -258,6 +280,9 @@ export function reportEvidenceOwnershipWhere(
     report: {
       caseEntry: {
         schoolAccountId: context.schoolAccountId,
+        ...(context.user.role === "PRINCIPAL"
+          ? { createdById: context.user.id }
+          : {}),
       },
     },
   };

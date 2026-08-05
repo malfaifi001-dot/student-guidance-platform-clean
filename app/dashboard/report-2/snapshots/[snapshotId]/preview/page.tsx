@@ -165,7 +165,7 @@ export default async function ReportTwoSnapshotPreviewPage({
   params,
   searchParams,
 }: PageProps) {
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
   const { snapshotId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const printMode = firstParam(resolvedSearchParams.print) === "1";

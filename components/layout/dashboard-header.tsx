@@ -46,6 +46,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const isTeacher =
     user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
 
+  const isPrincipal =
+    user?.role === "PRINCIPAL" || pathname.startsWith("/dashboard/principal");
+
   const displayName = user?.officialName || user?.name || "حسابي";
 
   const avatar =
@@ -56,7 +59,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
   const roleText = isAdmin
     ? "مدير النظام"
-    : user?.jobTitle ||
+    : isPrincipal
+      ? user?.gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة"
+      : user?.jobTitle ||
       (isActivityLeader
         ? user?.gender === "FEMALE"
           ? "رائدة النشاط"
@@ -75,6 +80,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
       : isTeacher
         ? "ابحث في مساحة المعلم..."
+        : isPrincipal
+          ? "ابحث في مساحة مدير المدرسة..."
         : "ابحث عن طالب، خدمة، حالة أو تقرير...";
 
   const headerBadgeText = isAdmin
@@ -83,6 +90,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       ? "رياضة النشاط"
       : isTeacher
         ? "مساحة المعلم"
+        : isPrincipal
+          ? "وضع مدير المدرسة"
         : "";
 
   async function logout() {
@@ -195,7 +204,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
                   {!isAdmin ? (
                     <HeaderMenuLink
-                      href="/dashboard/subscription"
+                      href={isPrincipal ? "/dashboard/plans" : "/dashboard/subscription"}
                       icon={<WalletCards className="h-4 w-4" />}
                       label="الباقات"
                     />

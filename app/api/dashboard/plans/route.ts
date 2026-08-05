@@ -16,7 +16,7 @@ import {
 export async function GET() {
   const current = await getCurrentSessionUser();
 
-  if (!current?.user?.schoolAccountId) {
+  if (!current?.user) {
     return NextResponse.json(
       {
         error: "يجب تسجيل الدخول أولًا.",
@@ -24,6 +24,13 @@ export async function GET() {
       {
         status: 401,
       }
+    );
+  }
+
+  if (!current.user.schoolAccountId) {
+    return NextResponse.json(
+      { error: "لم يتم ربط الحساب بمدرسة." },
+      { status: 403 },
     );
   }
 
@@ -113,7 +120,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
 
-  if (!current?.user?.id || !current.user.schoolAccountId) {
+  if (!current?.user?.id) {
     return NextResponse.json(
       {
         error: "يجب تسجيل الدخول أولًا.",
@@ -121,6 +128,13 @@ export async function POST(request: Request) {
       {
         status: 401,
       }
+    );
+  }
+
+  if (!current.user.schoolAccountId) {
+    return NextResponse.json(
+      { error: "لم يتم ربط الحساب بمدرسة." },
+      { status: 403 },
     );
   }
 

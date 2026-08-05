@@ -44,6 +44,8 @@ function roleLabel(role: string) {
   if (role === "ADMIN") return "أدمن";
   if (role === "COUNSELOR") return "موجه / موجهة";
   if (role === "TEACHER") return "معلم";
+  if (role === "PRINCIPAL") return "مدير مدرسة";
+  if (role === "ACTIVITY_LEADER") return "رائد نشاط";
   if (role === "SCHOOL_OWNER") return "مالك مدرسة";
   if (role === "STAFF") return "موظف";
   return role;
@@ -320,6 +322,8 @@ export function AdminUserProfileManager({ initialUser }: Props) {
                   <option value="ADMIN">أدمن</option>
                   <option value="COUNSELOR">موجه / موجهة</option>
                   <option value="TEACHER">معلم</option>
+                  <option value="ACTIVITY_LEADER">رائد نشاط</option>
+                  {user.role === "PRINCIPAL" ? <option value="PRINCIPAL">مدير مدرسة</option> : null}
                   <option value="SCHOOL_OWNER">مالك مدرسة</option>
                   <option value="STAFF">موظف</option>
                 </select>

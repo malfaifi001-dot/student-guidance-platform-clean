@@ -39,11 +39,12 @@ type SubscriptionInfo = {
   usable?: boolean;
 };
 
-function roleLabel(role: string) {
+function roleLabel(role: string, gender?: string | null) {
   if (role === "ADMIN") return "مدير النظام";
   if (role === "COUNSELOR") return "موجه طلابي";
   if (role === "ACTIVITY_LEADER") return "رائد نشاط";
   if (role === "TEACHER") return "معلم";
+  if (role === "PRINCIPAL") return gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة";
   if (role === "SCHOOL_OWNER") return "مالك مدرسة";
   if (role === "STAFF") return "موظف";
   return role;
@@ -412,7 +413,7 @@ export default function DashboardAccountPage() {
             <h2 className="text-xl font-black text-slate-950">ملخص الحساب</h2>
 
             <div className="mt-5 space-y-3 text-sm font-bold">
-              <SummaryRow label="الدور" value={roleLabel(user?.role || "")} />
+              <SummaryRow label="الدور" value={roleLabel(user?.role || "", user?.gender)} />
               <SummaryRow label="الجنس" value={genderLabel(user?.gender || null)} />
               <SummaryRow label="المراحل" value={user?.teachingStages?.length ? user.teachingStages.join("، ") : "—"} />
               <SummaryRow label="التخصص" value={user?.teachingSpecialties?.length ? user.teachingSpecialties.join("، ") : "—"} />

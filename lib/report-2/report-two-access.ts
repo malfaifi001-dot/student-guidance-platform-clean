@@ -37,6 +37,7 @@ export function roleHasReportTwoCapability(
   capability: ReportTwoCapability,
 ) {
   if (role === "ADMIN") return true;
+  if (role === "PRINCIPAL") return capability === "REPORT_VIEW";
   if (["COUNSELOR", "ACTIVITY_LEADER", "SCHOOL_OWNER"].includes(role)) {
     return SCHOOL_REPORT_CAPABILITIES.has(capability);
   }

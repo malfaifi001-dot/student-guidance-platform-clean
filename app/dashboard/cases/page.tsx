@@ -92,13 +92,13 @@ function getViewerSchoolAccountId(context: unknown) {
 }
 
 export default async function CasesPage() {
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
 
   const viewerRole = getViewerRole(context);
   const viewerSchoolAccountId = getViewerSchoolAccountId(context);
 
   if (viewerRole !== "ADMIN" && !viewerSchoolAccountId) {
-    redirect("/dashboard/onboarding?required=true");
+    redirect(viewerRole === "PRINCIPAL" ? "/dashboard/principal" : "/dashboard/onboarding?required=true");
   }
 
   const viewerId = getViewerId(context);

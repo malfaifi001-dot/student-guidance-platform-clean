@@ -13,8 +13,8 @@ import {
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
+import type { AccountType } from "@/components/auth/register-preferences-pop-card";
 
-type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
 type Gender = "MALE" | "FEMALE";
 
 const KNOWN_EMAIL_DOMAINS = new Set([
@@ -130,6 +130,7 @@ export default function RegisterPage() {
           name: name.trim(),
           email: normalizedEmail,
           password,
+          confirmPassword,
           gender,
           accountType,
         }),
@@ -246,7 +247,7 @@ export default function RegisterPage() {
                 ) : null}
 
                 <div className="mt-7 space-y-3.5">
-                  <AuthInput label="اسم المستخدم" value={name} onChange={setName} />
+                  <AuthInput label="الاسم الكامل" value={name} onChange={setName} />
 
                   <AuthInput
                     label="البريد الإلكتروني"

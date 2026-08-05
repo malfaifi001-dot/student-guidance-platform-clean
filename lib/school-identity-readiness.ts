@@ -9,8 +9,6 @@ export type SchoolIdentityReadinessInput = {
   city?: string | null;
   district?: string | null;
   stage?: string | null;
-  academicYear?: string | null;
-  currentSemester?: string | null;
   logoUrl?: string | null;
 };
 
@@ -45,18 +43,6 @@ export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
     label: "إدارة التعليم",
     required: true,
     weight: 12,
-  },
-  {
-    key: "academicYear",
-    label: "العام الدراسي",
-    required: true,
-    weight: 10,
-  },
-  {
-    key: "currentSemester",
-    label: "الفصل الدراسي",
-    required: true,
-    weight: 8,
   },
   {
     key: "principalName",

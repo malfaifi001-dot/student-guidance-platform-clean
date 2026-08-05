@@ -107,6 +107,13 @@ export function buildCaseEntryPermissionWhere(
     };
   }
 
+  if (user.role === "PRINCIPAL") {
+    return {
+      schoolAccountId,
+      createdById: user.id || "__NO_USER__",
+    };
+  }
+
   return { schoolAccountId };
 }
 
@@ -151,6 +158,9 @@ export function resolveCaseCapabilities(
   if (["COUNSELOR", "SCHOOL_OWNER"].includes(user.role)) {
     canView = true;
     canManage = true;
+  } else if (user.role === "PRINCIPAL") {
+    canView = isOwner;
+    canManage = false;
   } else if (user.role === "ACTIVITY_LEADER") {
     canView = isActivityProgramCase(caseEntry);
     canManage = canView;

@@ -30,12 +30,15 @@ export default async function DashboardLayout({
         <main className="h-screen min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
           <DashboardHeader user={current.user} />
 
-          <DashboardOnboardingReminder
-            onboardingCompleted={current.user.onboardingCompleted}
-            onboardingSkippedAt={current.user.onboardingSkippedAt}
-          />
-
-          <CalendarLoginPopup />
+          {current.user.role !== "PRINCIPAL" ? (
+            <>
+              <DashboardOnboardingReminder
+                onboardingCompleted={current.user.onboardingCompleted}
+                onboardingSkippedAt={current.user.onboardingSkippedAt}
+              />
+              <CalendarLoginPopup />
+            </>
+          ) : null}
 
           <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
             {children}

@@ -109,6 +109,8 @@ function roleLabel(role: string) {
   if (role === "ADMIN") return "أدمن";
   if (role === "COUNSELOR") return "موجه/موجهة";
   if (role === "TEACHER") return "معلم";
+  if (role === "PRINCIPAL") return "مدير مدرسة";
+  if (role === "ACTIVITY_LEADER") return "رائد نشاط";
   if (role === "SCHOOL_OWNER") return "مالك حساب";
   if (role === "STAFF") return "موظف";
   return role;
@@ -421,6 +423,8 @@ export function AdminUsersCommandCenter() {
                 <option value="ALL">كل الأدوار</option>
                 <option value="COUNSELOR">الموجهون</option>
                 <option value="TEACHER">المعلمون</option>
+                <option value="ACTIVITY_LEADER">رواد النشاط</option>
+                <option value="PRINCIPAL">مديرو المدارس</option>
                 <option value="ADMIN">الأدمن</option>
                 <option value="SCHOOL_OWNER">ملاك الحسابات</option>
                 <option value="STAFF">الموظفون</option>

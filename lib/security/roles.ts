@@ -3,6 +3,7 @@ export const USER_ROLES = [
   "COUNSELOR",
   "ACTIVITY_LEADER",
   "TEACHER",
+  "PRINCIPAL",
   "SCHOOL_OWNER",
   "STAFF",
 ] as const;
@@ -26,6 +27,7 @@ export function isSchoolScopedRole(role?: string | null) {
     role === "COUNSELOR" ||
     role === "ACTIVITY_LEADER" ||
     role === "TEACHER" ||
+    role === "PRINCIPAL" ||
     role === "SCHOOL_OWNER" ||
     role === "STAFF"
   );

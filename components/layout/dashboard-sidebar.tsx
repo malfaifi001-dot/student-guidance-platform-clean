@@ -210,6 +210,17 @@ const teacherAccountLinks: SidebarLinkItem[] = [
   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
 ];
+const principalLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/principal", icon: Home },
+  { label: "منسوبو المدرسة", href: "/dashboard/principal/teachers", icon: Users },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+];
+const principalAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
 const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
@@ -264,6 +275,7 @@ const adminAccountLinks: SidebarLinkItem[] = [
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/dashboard/principal") return pathname === "/dashboard/principal";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -342,6 +354,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
     pathname.startsWith("/dashboard/activity-leader");
   const isTeacher =
     user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+  const isPrincipal =
+    user?.role === "PRINCIPAL" || pathname.startsWith("/dashboard/principal");
 
   const dashboardHomeHref = isAdmin
     ? "/dashboard/admin"
@@ -349,6 +363,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
       ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
       : isTeacher
         ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+        : isPrincipal
+          ? "/dashboard/principal"
         : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
 
   const dashboardTitle = isAdmin
@@ -357,6 +373,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
       ? "ريادة النشاط"
       : isTeacher
         ? "مساحة المعلم"
+        : isPrincipal
+          ? "إدارة المدرسة"
         : "التوجيه الطلابي";
 
   const dashboardSubtitle = isAdmin
@@ -365,6 +383,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
       ? "Activity Leader"
       : isTeacher
         ? "Teacher Workspace"
+        : isPrincipal
+          ? "Principal Workspace"
         : "Counselor";
 useEffect(() => {
     const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
@@ -456,11 +476,51 @@ useEffect(() => {
           <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
         ) : isTeacher ? (
           <TeacherSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isPrincipal ? (
+          <PrincipalSidebar pathname={pathname} collapsed={collapsed} />
         ) : (
           <CounselorSidebar pathname={pathname} collapsed={collapsed} />
         )}
       </div>
     </aside>
+  );
+}
+
+function PrincipalSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <nav
+      className={[
+        SIDEBAR_SCROLL_AREA_CLASS,
+        collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+      ].join(" ")}
+      aria-label="قائمة مدير المدرسة"
+    >
+      <SidebarSection title="مساحة مدير المدرسة" collapsed={collapsed}>
+        {principalLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarSection>
+      <SidebarDropdown
+        title="الحساب والباقات"
+        defaultOpen={pathname.startsWith("/dashboard/plans") || pathname.startsWith("/dashboard/account") || pathname.startsWith("/dashboard/settings")}
+        collapsed={collapsed}
+      >
+        {principalAccountLinks.map((item) => (
+          <SidebarLink key={item.href} item={item} active={isActivePath(pathname, item.href)} compact collapsed={collapsed} />
+        ))}
+      </SidebarDropdown>
+    </nav>
   );
 }
 

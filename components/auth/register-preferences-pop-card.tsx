@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   GraduationCap,
   HeartHandshake,
+  School,
   Mars,
   Sparkles,
   Trophy,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 
 type Gender = "MALE" | "FEMALE";
-type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+export type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER" | "PRINCIPAL";
 
 type RegisterPreferencesPopCardProps = {
   open: boolean;
@@ -49,6 +50,7 @@ const roleOptionsByGender: Record<Gender, RoleOption[]> = {
       title: "رائد نشاط",
       icon: Trophy,
     },
+    { value: "PRINCIPAL", title: "مدير مدرسة", icon: School },
   ],
   FEMALE: [
     {
@@ -66,6 +68,7 @@ const roleOptionsByGender: Record<Gender, RoleOption[]> = {
       title: "رائدة نشاط",
       icon: Sparkles,
     },
+    { value: "PRINCIPAL", title: "مديرة مدرسة", icon: School },
   ],
 };
 
@@ -161,7 +164,7 @@ export function RegisterPreferencesPopCard({
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {roleOptions.map((option) => (
                 <PreferenceCard
                   key={option.value}
@@ -192,7 +195,11 @@ export function RegisterPreferencesPopCard({
                 : "cursor-not-allowed bg-slate-200 text-slate-500",
             ].join(" ")}
           >
-            {loading ? "جاري إنشاء الحساب..." : "تأكيد وإنشاء الحساب"}
+            {loading
+              ? "جاري إنشاء الحساب..."
+              : selectedRole === "PRINCIPAL"
+                ? `إنشاء حساب ${selectedGender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة"}`
+                : "تأكيد وإنشاء الحساب"}
           </button>
         </div>
       </div>

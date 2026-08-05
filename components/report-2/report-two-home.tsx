@@ -3,7 +3,7 @@ import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
 import { ReportTwoArchiveClient } from "@/components/report-2/report-two-archive-client";
 
 export async function ReportTwoHome() {
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
   const snapshots = await listReportTwoSnapshots(context);
 
   return (
@@ -12,7 +12,7 @@ export async function ReportTwoHome() {
         <h1 className="text-4xl font-black">التقارير</h1>
       </section>
 
-      <ReportTwoArchiveClient snapshots={snapshots} />
+      <ReportTwoArchiveClient snapshots={snapshots} readOnly={context.user.role === "PRINCIPAL"} />
     </main>
   );
 }

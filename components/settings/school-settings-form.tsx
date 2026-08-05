@@ -152,6 +152,13 @@ export function SchoolSettingsForm() {
       messageText: string;
     }>(null);
   const [principalWhatsAppLink, setPrincipalWhatsAppLink] = useState("");
+  const accountSectionTitle =
+    form.currentUserRole === "PRINCIPAL"
+      ? `بيانات ${getArabicUserRoleLabel({
+          role: form.currentUserRole,
+          gender: form.currentUserGender,
+        })}`
+      : "بيانات الموجه/الموجهة";
 
   const requiredCompleted = useMemo(() => {
     return Boolean(
@@ -622,7 +629,7 @@ ${signatureUrl}`;
           <div>
             <p className="text-sm font-black text-blue-700">هوية الحساب</p>
             <h2 className="mt-2 text-2xl font-black text-slate-950">
-              بيانات الموجه/الموجهة
+              {accountSectionTitle}
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-500">
               هذه البيانات تظهر في التقارير الرسمية والتوقيعات.

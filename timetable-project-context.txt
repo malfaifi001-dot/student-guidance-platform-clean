@@ -1,0 +1,4806 @@
+
+===== prisma\schema.prisma =====
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  ACTIVITY_LEADER
+  TEACHER
+  PRINCIPAL
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ReferenceLibraryItemType {
+  FOLDER
+  FILE
+}
+
+enum ReferenceLibraryItemStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReferenceLibraryAudienceType {
+  ALL_USERS
+  ROLE
+  USER
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
+enum WorkflowEvidenceMode {
+  SERVICE_DEFAULT
+  ENABLED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum ActivityAssignmentStatus {
+  SENT
+  OPENED
+  SUBMITTED
+  APPROVED
+  RETURNED
+  EXPIRED
+  CANCELED
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum SurveyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum SurveyQuestionType {
+  TEXT
+  TEXTAREA
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  YES_NO
+  RATING
+  SCALE
+  NUMBER
+  DATE
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+  resultsAnalyses       ResultsAnalysis[]
+  assessmentAnalyses    AssessmentAnalysis[]
+  calendarReminders     CalendarReminder[]
+  activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
+  surveys               Survey[]               @relation("SurveysBySchool")
+  surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  achievementPortfolios AchievementPortfolio[]
+  referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name              String
+  email             String    @unique
+  phone             String?
+  passwordHash      String?
+  role              UserRole  @default(COUNSELOR)
+  gender            Gender    @default(UNKNOWN)
+  officialName      String?
+  jobTitle          String?
+  signatureUrl      String?   @db.Text
+  signatureSignedAt DateTime?
+
+  teachingStages      Json?
+  teachingSpecialties Json?
+  teachingSubjects    Json?
+  isActive            Boolean @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases                      CaseEntry[]
+  sessions                   UserSession[]
+  calendarReminders          CalendarReminder[]
+  createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  createdSurveys             Survey[]             @relation("SurveysCreatedBy")
+
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
+  caseEvidences                 CaseEvidence[]
+  createdReportTemplates        ReportTemplate[]
+  achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
+  createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
+  referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName                    String
+  principalName                 String?
+  principalPhone                String?
+  principalSignatureUrl         String?
+  principalSignatureToken       String?   @unique
+  principalSignatureRequestedAt DateTime?
+  principalSignatureSignedAt    DateTime?
+
+  activityLeaderName         String?
+  activityLeaderSignatureUrl String?
+  activityLeaderSignedAt     DateTime?
+
+  counselorSignatureUrl String?
+  counselorSignedAt     DateTime?
+
+  educationDepartment     String?
+  educationOffice         String?
+  schoolStatisticalNumber String? @db.VarChar(50)
+  city                    String?
+  district                String?
+  stage                   String?
+  academicYear            String?
+  currentSemester         String?
+  logoUrl                 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model ReferenceLibraryItem {
+  id String @id @default(cuid())
+
+  parentId String?
+  parent   ReferenceLibraryItem?  @relation("ReferenceLibraryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children ReferenceLibraryItem[] @relation("ReferenceLibraryHierarchy")
+
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation("ReferenceLibrarySchool", fields: [schoolAccountId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("ReferenceLibraryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  title       String  @db.VarChar(200)
+  description String? @db.Text
+
+  itemType ReferenceLibraryItemType
+  status   ReferenceLibraryItemStatus @default(DRAFT)
+
+  sortOrder     Int     @default(0)
+  allowDownload Boolean @default(true)
+
+  originalFileName   String? @db.VarChar(255)
+  storageKey         String? @unique @db.VarChar(255)
+  originalStorageKey String? @unique @db.VarChar(255)
+
+  mimeType      String? @db.VarChar(150)
+  fileExtension String? @db.VarChar(20)
+  sizeBytes     Int?
+
+  pdfFileName   String? @db.VarChar(255)
+  pdfStorageKey String? @unique @db.VarChar(255)
+  pdfMimeType   String? @db.VarChar(150)
+  pdfSizeBytes  Int?
+
+  docxFileName   String? @db.VarChar(255)
+  docxStorageKey String? @unique @db.VarChar(255)
+  docxMimeType   String? @db.VarChar(150)
+  docxSizeBytes  Int?
+
+  previewStorageKey  String?   @unique @db.VarChar(255)
+  previewMimeType    String?   @db.VarChar(150)
+  previewSizeBytes   Int?
+  previewGeneratedAt DateTime?
+
+  pdfCoverApplied Boolean @default(false)
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  audiences ReferenceLibraryAudience[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([itemType])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([createdAt])
+}
+
+model ReferenceLibraryAudience {
+  id String @id @default(cuid())
+
+  itemId String
+  item   ReferenceLibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  audienceType ReferenceLibraryAudienceType
+
+  userId String?
+  user   User?   @relation("ReferenceLibraryAudienceUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  role UserRole?
+
+  createdAt DateTime @default(now())
+
+  @@index([itemId])
+  @@index([audienceType])
+  @@index([userId])
+  @@index([role])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows           Workflow[]
+  cases               CaseEntry[]
+  access              ServiceAccess[]
+  calendarReminders   CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  surveys             Survey[]             @relation("SurveysService")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+  activeKey    String?        @unique @db.VarChar(255)
+
+  originalFileName       String?   @db.VarChar(255)
+  originalFileStorageKey String?   @unique @db.VarChar(255)
+  originalFileMimeType   String?   @db.VarChar(150)
+  originalFileSize       Int?
+  originalFileUploadedAt DateTime?
+
+  studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+  evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+  steps               WorkflowStep[]
+  cases               CaseEntry[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String    @db.Text
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  defaultValue         String? @db.Text
+  defaultJson          Json?
+  autoSelectWhenLinked Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String  @db.Text
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values             CaseValue[]
+  evidences          Evidence[]
+  calendarReminders  CalendarReminder[]
+  activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ActivityAssignment {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("ActivityAssignmentsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String
+  service   Service @relation("ActivityAssignmentsService", fields: [serviceId], references: [id])
+
+  workflowId String
+  workflow   Workflow @relation("ActivityAssignmentsWorkflow", fields: [workflowId], references: [id])
+
+  caseEntryId String?    @unique
+  caseEntry   CaseEntry? @relation("ActivityAssignmentCaseEntry", fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  domainSlug  String
+  domainTitle String
+
+  teacherName  String
+  teacherPhone String
+  teacherEmail String?
+
+  teacherSignatureUrl String?
+  teacherSignedName   String?
+  teacherSignedAt     DateTime?
+
+  dueDate DateTime?
+  note    String?   @db.Text
+
+  submittedValues        Json?
+  submittedEvidenceItems Json?
+  returnedReason         String? @db.Text
+
+  token          String    @unique
+  tokenExpiresAt DateTime?
+
+  openedAt    DateTime?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  returnedAt  DateTime?
+  canceledAt  DateTime?
+
+  status ActivityAssignmentStatus @default(SENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([domainSlug])
+  @@index([teacherPhone])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+  isPublic     Boolean @default(true)
+  isArchived   Boolean @default(false)
+  visibleRoles Json?
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  invoice Invoice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model AssessmentAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title      String
+  sourceFile String?
+  status     String  @default("COMPLETED")
+  uploadMode String  @default("GENERAL")
+
+  totalStudents     Int    @default(0)
+  totalRows         Int    @default(0)
+  totalSubjects     Int    @default(0)
+  averagePercentage Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTwoStatus {
+  DRAFT
+  APPROVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String  @db.LongText
+  renderedContent String? @db.LongText
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportSnapshot {
+  id              String  @id @default(cuid())
+  caseEntryId     String
+  schoolAccountId String?
+  serviceSlug     String?
+  serviceName     String?
+  reportTitle     String
+  templateId      String?
+  templateName    String?
+  variantId       String?
+
+  snapshotPayload      Json
+  snapshotTemplateJson Json?
+  snapshotPagesJson    Json?
+  snapshotHtml         String  @db.LongText
+  pdfUrl               String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([approvedAt])
+  @@index([approvedById])
+}
+
+model ReportTwoActive {
+  id              String  @id @default(cuid())
+  caseEntryId     String  @unique
+  schoolAccountId String
+  serviceSlug     String?
+  serviceName     String?
+
+  status       ReportTwoStatus @default(DRAFT)
+  reportTitle  String
+  templateId   String?
+  templateName String?
+  variantId    String?
+
+  sourcePayload Json
+  editorState   Json?
+  templateJson  Json?
+  pagesJson     Json?
+  renderedHtml  String  @db.LongText
+  renderContext Json?
+  previewCase   Json?
+  pdfUrl        String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime?
+  savedAt        DateTime  @default(now())
+  lastSyncedAt   DateTime?
+  syncMeta       Json?
+  version        Int       @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([approvedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type    ReportTemplateType @default(SYSTEM)
+  content String?            @db.LongText
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(cuid())
+  singletonKey           String   @unique @default("default")
+  sellerName             String   @default("منصة التوجيه الطلابي")
+  sellerDomain           String?  @default("smstudents.com")
+  sellerCountry          String?  @default("المملكة العربية السعودية")
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+  vatEnabled             Boolean  @default(false)
+  vatRate                Int      @default(0)
+  invoicePrefix          String   @default("INV")
+  invoiceNote            String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model InvoiceNumberSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model Invoice {
+  id                   String             @id @default(cuid())
+  invoiceNumber        String             @unique
+  paymentTransactionId String             @unique
+  paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+  issuedById           String?
+  status               String             @default("ISSUED")
+
+  sellerName             String
+  sellerDomain           String?
+  sellerCountry          String?
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+
+  buyerName        String
+  buyerEmail       String?
+  buyerJobTitle    String?
+  buyerSchoolName  String?
+  buyerAccountName String?
+
+  itemTitle      String
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  pdfUrl       String?
+  snapshotJson Json?
+  creditNotes  CreditNote[]
+  issuedAt     DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([paymentTransactionId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model CreditNote {
+  id               String  @id @default(cuid())
+  creditNoteNumber String  @unique
+  invoiceId        String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  issuedById String?
+  status     String  @default("ISSUED")
+  reason     String? @db.Text
+
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  snapshotJson Json?
+  issuedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model AssessmentInterventionRule {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+
+  title            String
+  sourceType       String @default("ASSESSMENT_RISK_STUDENT")
+  interventionType String @default("ACADEMIC_RISK")
+
+  targetServiceId  String
+  targetWorkflowId String?
+
+  isEnabled Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  conditionJson    Json?
+  fieldMappingJson Json?
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([sourceType])
+  @@index([interventionType])
+  @@index([targetServiceId])
+  @@index([targetWorkflowId])
+  @@index([isEnabled])
+  @@index([isDefault])
+}
+
+model AssessmentInterventionWorkflowTarget {
+  id String @id @default(cuid())
+
+  serviceId  String
+  workflowId String
+  targetType String
+
+  isEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workflowId, targetType])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([targetType])
+  @@index([isEnabled])
+}
+
+model Survey {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveysBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String?
+  service   Service? @relation("SurveysService", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String? @db.Text
+
+  audienceType String  @default("GENERAL")
+  ownerRole    String?
+  boardPath    String?
+
+  isAnonymous Boolean @default(false)
+  token       String  @unique
+
+  status      SurveyStatus @default(DRAFT)
+  endsAt      DateTime?
+  publishedAt DateTime?
+  closedAt    DateTime?
+  opensAt     DateTime?
+
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([status])
+  @@index([audienceType])
+}
+
+model SurveyQuestion {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  key      String
+  label    String
+  type     SurveyQuestionType
+  helpText String?            @db.Text
+
+  isRequired Boolean @default(false)
+  order      Int
+
+  scaleMin Int?
+  scaleMax Int?
+
+  options SurveyOption[]
+  answers SurveyAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([surveyId, key])
+  @@index([surveyId])
+  @@index([order])
+}
+
+model SurveyOption {
+  id String @id @default(cuid())
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  label String
+  value String
+  order Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+  @@index([order])
+}
+
+model SurveyResponse {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveyResponsesBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  respondentType  String  @default("GENERAL")
+  respondentName  String?
+  respondentPhone String?
+  metadata        Json?
+
+  answers SurveyAnswer[]
+
+  submittedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([surveyId])
+  @@index([schoolAccountId])
+  @@index([respondentType])
+  @@index([submittedAt])
+}
+
+model SurveyAnswer {
+  id String @id @default(cuid())
+
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([responseId, questionId])
+  @@index([questionId])
+}
+
+model CertificateTemplate {
+  id String @id @default(cuid())
+
+  key         String  @unique
+  name        String
+  description String?
+
+  status      String @default("ACTIVE") @db.VarChar(30)
+  pageSize    String @default("A4") @db.VarChar(20)
+  orientation String @default("LANDSCAPE") @db.VarChar(20)
+
+  templatePath     String?
+  previewImagePath String?
+
+  isSystem        Boolean @default(false)
+  schoolAccountId String?
+  createdById     String?
+
+  themeJson Json?
+
+  issuedCertificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model CertificateBatch {
+  id String @id @default(cuid())
+
+  batchNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  sourceType String  @default("BULK_IMPORT") @db.VarChar(40)
+  sourceId   String?
+
+  status      String @default("DRAFT") @db.VarChar(30)
+  totalCount  Int    @default(0)
+  issuedCount Int    @default(0)
+  failedCount Int    @default(0)
+
+  fileName    String?
+  notes       String? @db.Text
+  optionsJson Json?
+
+  certificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model IssuedCertificate {
+  id String @id @default(cuid())
+
+  certificateNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  templateId String?
+  template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  batchId String?
+  batch   CertificateBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  certificateType String @db.VarChar(50)
+  recipientType   String @db.VarChar(50)
+
+  recipientName      String
+  recipientIdentity  String?
+  recipientStudentId String?
+
+  title  String
+  reason String? @db.Text
+  body   String  @db.Text
+
+  issueDate DateTime @default(now())
+  status    String   @default("ISSUED") @db.VarChar(30)
+
+  sourceType String  @default("MANUAL") @db.VarChar(40)
+  sourceId   String?
+
+  pdfUrl       String?
+  htmlSnapshot String? @db.LongText
+  dataJson     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  certificateAttachments CertificateAttachment[]
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([batchId])
+  @@index([recipientStudentId])
+  @@index([sourceType, sourceId])
+  @@index([status])
+}
+
+model CertificateAttachment {
+  id              String  @id @default(cuid())
+  schoolAccountId String
+  targetType      String  @db.VarChar(60)
+  targetId        String
+  certificateId   String
+  sortOrder       Int     @default(0)
+  createdById     String?
+
+  certificate IssuedCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, targetType, targetId, certificateId], map: "CertificateAttachment_scope_certificate_key")
+  @@index([schoolAccountId, targetType, targetId], map: "CertificateAttachment_target_idx")
+  @@index([certificateId], map: "CertificateAttachment_certificate_idx")
+  @@index([createdById], map: "CertificateAttachment_createdBy_idx")
+}
+
+model CustomReportTemplate {
+  id              String   @id @default(cuid())
+  schoolAccountId String?
+  createdById     String
+  title           String
+  description     String?  @db.Text
+  prompt          String?  @db.Text
+  schemaJson      Json
+  source          String   @default("AI")
+  status          String   @default("ACTIVE")
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([isArchived])
+  @@index([status])
+}
+
+model CustomReportEntry {
+  id                 String   @id @default(cuid())
+  schoolAccountId    String?
+  createdById        String
+  templateId         String?
+  title              String
+  valuesJson         Json
+  snapshotSchemaJson Json
+  status             String   @default("DRAFT")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([status])
+}
+
+model DashboardResourceLink {
+  id              String  @id @default(cuid())
+  schoolAccountId String
+  sourceType      String  @db.VarChar(60)
+  sourceId        String
+  targetType      String  @db.VarChar(60)
+  targetId        String
+  sortOrder       Int     @default(0)
+  createdById     String?
+  metadataJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, sourceType, sourceId, targetType, targetId], map: "DashboardResourceLink_scope_target_key")
+  @@index([schoolAccountId, sourceType, sourceId], map: "DashboardResourceLink_source_idx")
+  @@index([schoolAccountId, targetType, targetId], map: "DashboardResourceLink_target_idx")
+  @@index([createdById], map: "DashboardResourceLink_createdBy_idx")
+}
+
+model AchievementPortfolio {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  ownerUserId String
+  owner       User   @relation("AchievementPortfolioOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  title        String
+  roleKey      String @default("TEACHER")
+  academicYear String
+  term         String
+  themeId      String @default("ministry-elegant")
+  status       String @default("DRAFT")
+
+  introText      String? @db.Text
+  conclusionText String? @db.Text
+  visionText     String? @db.Text
+  missionText    String? @db.Text
+  bioText        String? @db.Text
+
+  qualificationsJson Json?
+  coursesJson        Json?
+  certificatesJson   Json?
+  settingsJson       Json?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sections AchievementPortfolioSection[]
+  items    AchievementPortfolioItem[]
+
+  @@unique([schoolAccountId, ownerUserId, academicYear, term])
+  @@index([schoolAccountId])
+  @@index([ownerUserId])
+  @@index([roleKey])
+  @@index([status])
+  @@index([themeId])
+}
+
+model AchievementPortfolioSection {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  kind       String
+  sectionKey String
+  title      String
+  introText  String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isEnabled    Boolean @default(true)
+  metadataJson Json?
+
+  items AchievementPortfolioItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([portfolioId, sectionKey])
+  @@index([portfolioId])
+  @@index([kind])
+  @@index([sortOrder])
+}
+
+model AchievementPortfolioItem {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  sectionId String?
+  section   AchievementPortfolioSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  sourceType String
+  sourceId   String?
+
+  title       String
+  description String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isVisible    Boolean @default(true)
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioId])
+  @@index([sectionId])
+  @@index([sourceType])
+  @@index([sourceId])
+  @@index([isVisible])
+  @@index([sortOrder])
+}
+
+model StatisticalReport {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+  createdById     String
+  serviceId       String
+
+  serviceSlugSnapshot String @db.VarChar(191)
+  serviceNameSnapshot String @db.VarChar(191)
+  title               String @db.VarChar(255)
+
+  dateFrom DateTime?
+  dateTo   DateTime?
+
+  filtersJson              Json
+  deterministicMetricsJson Json
+  aiAnalysisJson           Json?
+
+  sourceCaseCount     Int  @default(0)
+  sourceReportCount   Int  @default(0)
+  sourceReportIdsJson Json
+
+  analysisMode     String    @default("DETERMINISTIC") @db.VarChar(40)
+  reportTemplateId String?
+  archivedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([serviceSlugSnapshot])
+  @@index([dateFrom, dateTo])
+  @@index([archivedAt])
+  @@index([createdAt])
+}
+
+
+===== package.json =====
+
+{
+    "name": "student-guidance-platform-clean",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "prisma generate && next build",
+        "start": "next start -H 0.0.0.0 -p 3000",
+        "lint": "eslint",
+        "postinstall": "prisma generate"
+    },
+    "dependencies": {
+        "@hookform/resolvers": "^5.4.0",
+        "@prisma/adapter-better-sqlite3": "^7.8.0",
+        "@prisma/adapter-mariadb": "^7.8.0",
+        "@prisma/client": "^7.8.0",
+        "@types/qrcode": "^1.5.6",
+        "bcryptjs": "^3.0.3",
+        "better-sqlite3": "^12.10.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "date-fns": "^4.3.0",
+        "exceljs": "^4.4.0",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^4.2.1",
+        "lucide-react": "^1.16.0",
+        "mariadb": "^3.5.2",
+        "next": "16.2.6",
+        "pdf-lib": "^1.17.1",
+        "playwright": "^1.60.0",
+        "prisma": "^7.8.0",
+        "puppeteer": "^25.1.0",
+        "qrcode": "^1.5.4",
+        "radix-ui": "^1.4.3",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "react-hook-form": "^7.76.1",
+        "recharts": "^3.8.1",
+        "shadcn": "^4.8.2",
+        "sharp": "^0.35.3",
+        "tailwind-merge": "^3.6.0",
+        "tw-animate-css": "^1.4.0",
+        "xlsx": "^0.18.5",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "dotenv": "^17.4.2",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.6",
+        "tailwindcss": "^4",
+        "typescript": "^5"
+    }
+}
+
+
+===== lib\prisma.ts =====
+
+import { PrismaClient } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+function ensureSearchParam(url: URL, key: string, value: string) {
+  if (!url.searchParams.has(key)) {
+    url.searchParams.set(key, value);
+  }
+}
+
+function createPrismaClient() {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is not defined");
+  }
+
+  const url = new URL(databaseUrl);
+
+  ensureSearchParam(url, "connectionLimit", process.env.PRISMA_CONNECTION_LIMIT || "2");
+  ensureSearchParam(url, "acquireTimeout", process.env.PRISMA_POOL_TIMEOUT_MS || "30000");
+  ensureSearchParam(url, "connectTimeout", process.env.PRISMA_CONNECT_TIMEOUT_MS || "15000");
+  ensureSearchParam(url, "prepareCacheLength", "0");
+
+  const adapter = new PrismaMariaDb(url.toString());
+
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+
+globalForPrisma.prisma = prisma;
+
+
+===== lib\auth\current-user.ts =====
+
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+===== lib\auth\dashboard-context.ts =====
+
+import "server-only";
+
+import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export type DashboardRole =
+  | "ADMIN"
+  | "COUNSELOR"
+  | "ACTIVITY_LEADER"
+  | "TEACHER"
+  | "PRINCIPAL"
+  | "SCHOOL_OWNER"
+  | "STAFF";
+
+export type DashboardAuthUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: DashboardRole | string;
+  schoolAccountId: string | null;
+  isActive?: boolean | null;
+};
+
+export type DashboardContext = {
+  user: DashboardAuthUser;
+  schoolAccountId: string | null;
+  isAdmin: boolean;
+};
+
+export type SchoolDashboardContext = DashboardContext & {
+  schoolAccountId: string;
+};
+
+type RawSessionUser = {
+  id?: unknown;
+  name?: unknown;
+  email?: unknown;
+  role?: unknown;
+  schoolAccountId?: unknown;
+  isActive?: unknown;
+};
+
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const clean = value.trim();
+  return clean ? clean : null;
+}
+
+function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
+  const user = value as RawSessionUser | null | undefined;
+
+  const id = toNullableString(user?.id);
+  const email = toNullableString(user?.email);
+  const role = toNullableString(user?.role) || "COUNSELOR";
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    role,
+    name: toNullableString(user?.name),
+    schoolAccountId: toNullableString(user?.schoolAccountId),
+    isActive:
+      typeof user?.isActive === "boolean" ? user.isActive : null,
+  };
+}
+
+function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+  return {
+    user,
+    schoolAccountId: user.schoolAccountId,
+    isAdmin: user.role === "ADMIN",
+  };
+}
+
+export async function getDashboardContext(): Promise<DashboardContext | null> {
+  const current = await getCurrentSessionUser();
+  const user = normalizeDashboardUser(current?.user);
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.isActive === false) {
+    return null;
+  }
+
+  return toDashboardContext(user);
+}
+
+export async function requireDashboardApiContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  if (context.user.role === "PRINCIPAL") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "هذه الخدمة غير متاحة لحساب مدير المدرسة.",
+        code: "FORBIDDEN",
+      },
+      { status: 403 },
+    );
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardApiContext() {
+  const contextOrResponse = await requireDashboardApiContext();
+
+  if (contextOrResponse instanceof NextResponse) {
+    return contextOrResponse;
+  }
+
+  if (!contextOrResponse.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  return contextOrResponse as SchoolDashboardContext;
+}
+
+export async function requireDashboardPageContext(options: { allowPrincipal?: boolean } = {}) {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    redirect("/login");
+  }
+
+  if (context.user.role === "PRINCIPAL" && !options.allowPrincipal) {
+    redirect("/dashboard/principal");
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardPageContext() {
+  const context = await requireDashboardPageContext();
+
+  if (!context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return context as SchoolDashboardContext;
+}
+
+export function canAccessSchool(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (context.isAdmin) return true;
+
+  return Boolean(
+    schoolAccountId &&
+      context.schoolAccountId &&
+      schoolAccountId === context.schoolAccountId
+  );
+}
+
+export function requireSameSchoolApi(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (canAccessSchool(context, schoolAccountId)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+      code: "NOT_FOUND",
+    },
+    { status: 404 }
+  );
+}
+
+export function requireSameSchoolPage(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (!canAccessSchool(context, schoolAccountId)) {
+    notFound();
+  }
+}
+
+export function caseOwnershipWhere(
+  context: DashboardContext,
+  caseId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId: context.schoolAccountId,
+    ...(context.user.role === "PRINCIPAL"
+      ? { createdById: context.user.id }
+      : {}),
+  };
+}
+
+export function studentOwnershipWhere(
+  context: DashboardContext,
+  studentId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: studentId,
+    };
+  }
+
+  return {
+    id: studentId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function reportOwnershipWhere(
+  context: DashboardContext,
+  reportId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportId,
+    };
+  }
+
+  return {
+    id: reportId,
+    caseEntry: {
+      schoolAccountId: context.schoolAccountId,
+      ...(context.user.role === "PRINCIPAL"
+        ? { createdById: context.user.id }
+        : {}),
+    },
+  };
+}
+
+export function reportEvidenceOwnershipWhere(
+  context: DashboardContext,
+  reportEvidenceId: string,
+  reportId?: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportEvidenceId,
+      ...(reportId ? { reportId } : {}),
+    };
+  }
+
+  return {
+    id: reportEvidenceId,
+    ...(reportId ? { reportId } : {}),
+    report: {
+      caseEntry: {
+        schoolAccountId: context.schoolAccountId,
+        ...(context.user.role === "PRINCIPAL"
+          ? { createdById: context.user.id }
+          : {}),
+      },
+    },
+  };
+}
+
+export function schoolScopedWhere(context: DashboardContext) {
+  if (context.isAdmin) {
+    return {};
+  }
+
+  return {
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+
+===== lib\principal\principal-page-guard.ts =====
+
+import { redirect } from "next/navigation";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
+
+export async function requirePrincipalPage() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role !== "PRINCIPAL") {
+    redirect(getDashboardHomePath(current.user.role));
+  }
+
+  return {
+    current,
+    user: current.user,
+    schoolAccountId: current.user.schoolAccountId ?? null,
+  };
+}
+
+
+===== lib\principal\principal-api-guard.ts =====
+
+import { NextResponse } from "next/server";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requirePrincipalApi(options: { requireSchool?: boolean } = {}) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { success: false, error: "يجب تسجيل الدخول.", code: "UNAUTHENTICATED" },
+        { status: 401 },
+      ),
+    };
+  }
+
+  if (current.user.role !== "PRINCIPAL") {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { success: false, error: "هذه الخدمة مخصصة لمدير المدرسة.", code: "FORBIDDEN" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  if (options.requireSchool !== false && !current.user.schoolAccountId) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { success: false, error: "حساب مدير المدرسة غير مرتبط بمدرسة.", code: "SCHOOL_REQUIRED" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    ok: true as const,
+    current,
+    user: current.user,
+    schoolAccountId: current.user.schoolAccountId ?? null,
+  };
+}
+
+
+===== lib\principal\principal-school-service.ts =====
+
+import "server-only";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+export function normalizeStatisticalNumber(value: unknown) {
+  const normalized = String(value ?? "")
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[\s-]+/g, "")
+    .trim();
+
+  if (!normalized || !/^\d{3,50}$/.test(normalized)) {
+    throw new Error("INVALID_STATISTICAL_NUMBER");
+  }
+
+  return normalized;
+}
+
+export async function findSchoolByStatisticalNumber(
+  value: unknown,
+  client: typeof prisma | Prisma.TransactionClient = prisma,
+) {
+  const schoolStatisticalNumber = normalizeStatisticalNumber(value);
+
+  return client.schoolProfile.findFirst({
+    where: { schoolStatisticalNumber },
+    select: {
+      schoolAccountId: true,
+      schoolName: true,
+      schoolStatisticalNumber: true,
+    },
+  });
+}
+
+export async function getPrincipalSchoolContext() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user || current.user.role !== "PRINCIPAL") {
+    throw new Error("PRINCIPAL_REQUIRED");
+  }
+
+  const schoolAccountId = current.user.schoolAccountId;
+  const schoolAccount = schoolAccountId
+    ? await prisma.schoolAccount.findUnique({
+        where: { id: schoolAccountId },
+        include: { profile: true },
+      })
+    : null;
+
+  return { current, user: current.user, schoolAccountId, schoolAccount };
+}
+
+export async function getPrincipalSchoolProfile() {
+  const context = await getPrincipalSchoolContext();
+  return context.schoolAccount?.profile ?? null;
+}
+
+export function isPrincipalSchoolProfileComplete(profile: {
+  schoolName?: string | null;
+  principalName?: string | null;
+  schoolStatisticalNumber?: string | null;
+  educationDepartment?: string | null;
+  city?: string | null;
+  stage?: string | null;
+} | null | undefined) {
+  return Boolean(
+    profile &&
+      profile.schoolName?.trim() &&
+      profile.principalName?.trim() &&
+      profile.schoolStatisticalNumber?.trim() &&
+      profile.educationDepartment?.trim() &&
+      profile.city?.trim() &&
+      profile.stage?.trim(),
+  );
+}
+
+export function createPrincipalSchoolSlug(name: string) {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+
+===== lib\principal\principal-teachers-service.ts =====
+
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import { getPrincipalSchoolContext } from "@/lib/principal/principal-school-service";
+import type { UserRole } from "@prisma/client";
+
+const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
+  "TEACHER",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+] satisfies UserRole[];
+
+export type PrincipalTeacherCardData = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER";
+  gender: "MALE" | "FEMALE" | "UNKNOWN";
+  isActive: boolean;
+  reportsCount: number;
+  evidenceCount: number;
+  lastActivityAt: string | null;
+};
+
+async function querySchoolTeachers(schoolAccountId: string) {
+  const teachers = await prisma.user.findMany({
+    where: {
+      schoolAccountId,
+      role: { in: PRINCIPAL_SCHOOL_MEMBER_ROLES },
+    },
+    orderBy: [{ isActive: "desc" }, { officialName: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      officialName: true,
+      email: true,
+      role: true,
+      gender: true,
+      isActive: true,
+      sessions: {
+        orderBy: { lastSeenAt: "desc" },
+        take: 1,
+        select: { lastSeenAt: true },
+      },
+      _count: {
+        select: {
+          caseEvidences: {
+            where: { caseEntry: { schoolAccountId } },
+          },
+        },
+      },
+    },
+  });
+
+  const caseEntries = teachers.length
+    ? await prisma.caseEntry.findMany({
+        where: {
+          schoolAccountId,
+          createdById: { in: teachers.map((teacher) => teacher.id) },
+        },
+        select: {
+          id: true,
+          createdById: true,
+          guidanceReports: { select: { id: true } },
+          _count: { select: { evidences: true } },
+        },
+      })
+    : [];
+  const caseOwnerById = new Map(
+    caseEntries.map((caseEntry) => [caseEntry.id, caseEntry.createdById]),
+  );
+  const reportTwoCaseIds = caseEntries.map((caseEntry) => caseEntry.id);
+  const [activeReports, reportSnapshots] = reportTwoCaseIds.length
+    ? await Promise.all([
+        prisma.reportTwoActive.findMany({
+          where: { schoolAccountId, caseEntryId: { in: reportTwoCaseIds } },
+          select: { id: true, caseEntryId: true },
+        }),
+        prisma.reportSnapshot.findMany({
+          where: {
+            caseEntryId: { in: reportTwoCaseIds },
+            OR: [{ schoolAccountId }, { schoolAccountId: null }],
+          },
+          select: { id: true, caseEntryId: true },
+        }),
+      ])
+    : [[], []];
+  const reportIdsByUserId = new Map<string, Set<string>>();
+  const caseEvidenceCountByUserId = new Map<string, number>();
+
+  for (const caseEntry of caseEntries) {
+    if (!caseEntry.createdById) continue;
+    const reportIds = reportIdsByUserId.get(caseEntry.createdById) ?? new Set();
+    for (const report of caseEntry.guidanceReports) {
+      reportIds.add(`guidance:${report.id}`);
+    }
+    reportIdsByUserId.set(caseEntry.createdById, reportIds);
+    caseEvidenceCountByUserId.set(
+      caseEntry.createdById,
+      (caseEvidenceCountByUserId.get(caseEntry.createdById) ?? 0) +
+        caseEntry._count.evidences,
+    );
+  }
+  for (const report of [...activeReports, ...reportSnapshots]) {
+    const ownerId = caseOwnerById.get(report.caseEntryId);
+    if (!ownerId) continue;
+    const reportIds = reportIdsByUserId.get(ownerId) ?? new Set();
+    reportIds.add(`report-two:${report.id}`);
+    reportIdsByUserId.set(ownerId, reportIds);
+  }
+
+  return teachers.map((teacher): PrincipalTeacherCardData => ({
+    id: teacher.id,
+    fullName: teacher.officialName || teacher.name,
+    email: teacher.email,
+    role: teacher.role as PrincipalTeacherCardData["role"],
+    gender: teacher.gender,
+    isActive: teacher.isActive,
+    // All supported report records inherit ownership from CaseEntry.createdById.
+    reportsCount: reportIdsByUserId.get(teacher.id)?.size ?? 0,
+    // Evidence belongs to a creator-owned case; CaseEvidence has direct uploader ownership.
+    evidenceCount:
+      (caseEvidenceCountByUserId.get(teacher.id) ?? 0) +
+      teacher._count.caseEvidences,
+    lastActivityAt: teacher.sessions[0]?.lastSeenAt.toISOString() ?? null,
+  }));
+}
+
+export async function getPrincipalSchoolTeachers() {
+  const context = await getPrincipalSchoolContext();
+  if (!context.schoolAccountId || !context.schoolAccount) return [];
+  return querySchoolTeachers(context.schoolAccountId);
+}
+
+export async function getPrincipalTeachersOverview() {
+  const context = await getPrincipalSchoolContext();
+  if (!context.schoolAccountId || !context.schoolAccount) {
+    return {
+      linked: false as const,
+      school: null,
+      teachers: [] as PrincipalTeacherCardData[],
+    };
+  }
+
+  const teachers = await querySchoolTeachers(context.schoolAccountId);
+  return {
+    linked: true as const,
+    school: {
+      name: context.schoolAccount.profile?.schoolName || context.schoolAccount.name,
+      statisticalNumber:
+        context.schoolAccount.profile?.schoolStatisticalNumber || null,
+    },
+    teachers,
+  };
+}
+
+
+===== lib\security\permissions.ts =====
+
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+  "subscription:manage",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const COUNSELOR_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+];
+
+const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "subscription:read",
+];
+
+const TEACHER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "subscription:read",
+];
+
+const PRINCIPAL_PERMISSIONS: Permission[] = ["dashboard:read"];
+
+const STAFF_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "cases:read",
+  "evidence:read",
+  "reports:read",
+  "results-analysis:read",
+  "subscription:read",
+];
+
+const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
+  ...COUNSELOR_PERMISSIONS,
+  "workflows:read",
+  "subscription:manage",
+];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  COUNSELOR: COUNSELOR_PERMISSIONS,
+  ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
+  TEACHER: TEACHER_PERMISSIONS,
+  PRINCIPAL: PRINCIPAL_PERMISSIONS,
+  SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
+  STAFF: STAFF_PERMISSIONS,
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+export function getRolePermissions(role: UserRole) {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+
+===== components\layout\dashboard-sidebar.tsx =====
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  BrainCircuit,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  Medal,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  shortLabel?: string;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+const SIDEBAR_SCROLL_AREA_CLASS =
+  "dashboard-sidebar-scroll mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-4";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "برامج التوجيه الطلابي",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلبة والمواقف اليومية الطارئة",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "خدمات التوجيه الطلابي",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "إشعار ولي الأمر",
+    href: "/dashboard/guardian-summons",
+    icon: UserRound,
+    shortLabel: "الإشعار",
+  },
+  {
+    label: "تحليل النتائج",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+  {
+    label: "مكتبة الموجه الطلابي",
+    href: "/dashboard/counselor-reference-library",
+    icon: BookOpen,
+  },
+  {
+    label: "الإحصائيات",
+    href: "/dashboard/statistics",
+    icon: BarChart3,
+  },];
+
+
+const assessmentCenterLinks: SidebarLinkItem[] = [
+  {
+    label: "لوحة المركز",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "ربط الطلاب",
+    href: "/dashboard/assessment-center/linking",
+    icon: GitBranch,
+  },
+  {
+    label: "الموجه الذكي",
+    href: "/dashboard/assessment-center/smart-counselor",
+    icon: Sparkles,
+  },
+];
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const activityLeaderImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
+  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const activityProgramDomainLinks: SidebarLinkItem[] = [
+  {
+    label: "كل برامج النشاط",
+    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+    icon: ClipboardList,
+    shortLabel: "البرامج",
+  },
+  ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+    label: domain.title,
+    href: `/dashboard/activity-leader/programs/${domain.slug}`,
+    icon: ClipboardList,
+    shortLabel: domain.shortLabel,
+  })),
+];
+const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
+  { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+  { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
+];
+
+const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const teacherServiceLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "الإحصائيات", href: "/dashboard/statistics", icon: BarChart3 },
+  { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
+  ];
+
+const teacherPerformanceLinks: SidebarLinkItem[] = [
+  ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
+    label: service.title,
+    href: service.href,
+    icon: ClipboardList,
+    shortLabel: service.shortTitle,
+  })),
+  { label: "تقرير مخصص", href: "/dashboard/ai-report", icon: Sparkles, shortLabel: "مخصص" },
+  { label: "التقرير الذكي التجريبي", href: "/dashboard/teacher/ai-report2", icon: BrainCircuit, shortLabel: "تجريبي" },
+  { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+];
+
+const teacherAdditionalLinks: SidebarLinkItem[] = [
+  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+];
+
+const teacherAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+const principalLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/principal", icon: Home },
+  { label: "منسوبو المدرسة", href: "/dashboard/principal/teachers", icon: Users },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+];
+const principalAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
+  {
+    label: "إدارة مكتبة الموجه الطلابي",
+    href: "/dashboard/admin/counselor-reference-library",
+    icon: BookOpen,
+  },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/dashboard/principal") return pathname === "/dashboard/principal";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+const collapsedLabelByLabel: Record<string, string> = {
+  "الرئيسية": "الرئيسية",
+  "الحالات": "الحالات",
+  "مركز الأنشطة": "الأنشطة",
+  "متابعة أنشطة المعلمين": "المعلمون",
+  "التقارير": "التقارير",
+  "تقرير خاص": "خاص",
+  "تقرير مخصص": "مخصص",
+  "التقويم والتنبيهات": "التقويم",
+
+  "برامج التوجيه الطلابي": "البرامج",
+  "اللجان والاجتماعات": "اللجان",
+  "متابعة الطلبة والمواقف اليومية الطارئة": "المتابعة",
+  "خدمات التوجيه الطلابي": "التوجيه",
+  "مكتبة الموجه الطلابي": "المكتبة",
+  "الإحصائيات": "إحصائيات",
+  "تحليل النتائج": "التحليل",
+  "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور": "الأسرة",
+
+  "لوحة المركز": "المركز",
+  "تحليل جديد": "تحليل جديد",
+  "التحليلات السابقة": "السابقة",
+  "تحليل المواد": "المواد",
+  "تحليل الصفوف والفصول": "الصفوف",
+  "الطلاب المعرضون للخطر": "الخطر",
+  "التوصيات العلاجية": "التوصيات",
+  "تقارير التحليل": "تقارير",
+
+  "رفع بيانات الطلاب": "رفع الطلاب",
+  "الباقات": "الباقات",
+  "حسابي": "حسابي",
+  "إعدادات المدرسة": "المدرسة",
+
+  "مركز الإدارة": "الإدارة",
+  "صحة النظام": "الصحة",
+  "المستخدمين": "المستخدمون",
+  "سجل العمليات": "السجل",
+  "التفعيلات": "التفعيلات",
+  "الاشتراكات": "الاشتراكات",
+  "المشتركين": "المشتركون",
+  "Workflows": "Workflows",
+
+  "عمليات الدفع": "الدفع",
+  "مزودو الدفع": "المزودون",
+  "التسوية المالية": "التسوية",
+  "الفواتير": "الفواتير",
+  "إعدادات الفواتير والضريبة": "الضريبة",
+
+  "مصمم Workflow": "المصمم",
+  "قوالب التقارير": "القوالب",
+  "قالب تقرير جديد": "قالب جديد",
+  "حساب الأدمن": "حساب الأدمن",
+  "هوية المنصة": "الهوية",
+};
+
+function getCollapsedLabel(item: SidebarLinkItem) {
+  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+  const isPrincipal =
+    user?.role === "PRINCIPAL" || pathname.startsWith("/dashboard/principal");
+
+  const dashboardHomeHref = isAdmin
+    ? "/dashboard/admin"
+    : isActivityLeader
+      ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
+      : isTeacher
+        ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+        : isPrincipal
+          ? "/dashboard/principal"
+        : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
+
+  const dashboardTitle = isAdmin
+    ? "إدارة المنصة"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
+        : isPrincipal
+          ? "إدارة المدرسة"
+        : "التوجيه الطلابي";
+
+  const dashboardSubtitle = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "Activity Leader"
+      : isTeacher
+        ? "Teacher Workspace"
+        : isPrincipal
+          ? "Principal Workspace"
+        : "Counselor";
+useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "sticky top-0 hidden h-screen shrink-0 overflow-hidden bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+        collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex shrink-0 items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
+            collapsed ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          <Link
+            href={dashboardHomeHref}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin
+                ? "hover:bg-slate-50 dark:hover:bg-slate-900"
+                : "hover:bg-sky-50/60 dark:hover:bg-sky-500/10",
+            ].join(" ")}
+            title={dashboardTitle}
+          >
+            <div
+              className={[
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-slate-200"
+                  : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
+
+            {!collapsed ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950 dark:text-white">
+                  {dashboardTitle}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400 dark:text-slate-500">
+                  {dashboardSubtitle}
+                </p>
+              </div>
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isActivityLeader ? (
+          <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isTeacher ? (
+          <TeacherSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isPrincipal ? (
+          <PrincipalSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function PrincipalSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <nav
+      className={[
+        SIDEBAR_SCROLL_AREA_CLASS,
+        collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+      ].join(" ")}
+      aria-label="قائمة مدير المدرسة"
+    >
+      <SidebarSection title="مساحة مدير المدرسة" collapsed={collapsed}>
+        {principalLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarSection>
+      <SidebarDropdown
+        title="الحساب والباقات"
+        defaultOpen={pathname.startsWith("/dashboard/plans") || pathname.startsWith("/dashboard/account") || pathname.startsWith("/dashboard/settings")}
+        collapsed={collapsed}
+      >
+        {principalAccountLinks.map((item) => (
+          <SidebarLink key={item.href} item={item} active={isActivePath(pathname, item.href)} compact collapsed={collapsed} />
+        ))}
+      </SidebarDropdown>
+    </nav>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          SIDEBAR_SCROLL_AREA_CLASS,
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+
+function ActivityLeaderSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          SIDEBAR_SCROLL_AREA_CLASS,
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {activityLeaderImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="برامج النشاط"
+          defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+          collapsed={collapsed}
+        >
+          {activityProgramDomainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/activity-leader/programs"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarSection title="إدارة النشاط" collapsed={collapsed}>
+          {activityLeaderServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {activityLeaderAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+function TeacherSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          SIDEBAR_SCROLL_AREA_CLASS,
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="مساحة المعلم" collapsed={collapsed}>
+          {teacherServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="تقييم أداء المعلم"
+          defaultOpen={teacherPerformanceLinks.some((item) => isActivePath(pathname, item.href))}
+          collapsed={collapsed}
+        >
+          {teacherPerformanceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="خدمات إضافية"
+          defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
+          collapsed={collapsed}
+        >
+          {teacherAdditionalLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {teacherAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          SIDEBAR_SCROLL_AREA_CLASS,
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400 dark:text-slate-500">
+          {title}
+        </p>
+      ) : null}
+
+      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-1.5">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-500 dark:hover:bg-sky-500/10 dark:hover:text-sky-200",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " "
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1.5">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+  const collapsedLabel = getCollapsedLabel(item);
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed
+          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+            : "bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-500/15 dark:text-sky-200 dark:ring-1 dark:ring-sky-400/20"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
+      ].join(" ")}
+    >
+      {active && !collapsed ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white dark:bg-slate-950" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white dark:bg-slate-950/10 dark:text-slate-950"
+              : "bg-white text-sky-600 dark:bg-sky-400/15 dark:text-sky-200"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600 dark:bg-slate-900 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-sky-300",
+        ].join(" ")}
+      >
+        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+          {item.label}
+        </span>
+      ) : (
+        <>
+          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">
+            {collapsedLabel}
+          </span>
+
+          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block dark:border dark:border-slate-700 dark:bg-slate-900">
+            {item.label}
+          </span>
+        </>
+      )}
+    </Link>
+  );
+}
+
+
+===== app\dashboard\principal\page.tsx =====
+
+import { PrincipalDashboard } from "@/components/principal/principal-dashboard";
+import { getPrincipalSchoolContext } from "@/lib/principal/principal-school-service";
+
+export default async function PrincipalPage() {
+  const context = await getPrincipalSchoolContext();
+  const isFemale = context.user.gender === "FEMALE";
+  const roleLabel = isFemale ? "مديرة المدرسة" : "مدير المدرسة";
+  return <PrincipalDashboard principalName={context.user.officialName || context.user.name || roleLabel} roleLabel={roleLabel} schoolName={context.schoolAccount?.profile?.schoolName || context.schoolAccount?.name || null} isFemale={isFemale} />;
+}
+
+
+===== components\principal\principal-dashboard.tsx =====
+
+import { WorkspaceHome } from "@/components/workspace/workspace-home";
+import type { WorkspaceModule } from "@/lib/workspace/workspace-modules";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+
+type PrincipalDashboardProps = {
+  principalName: string;
+  roleLabel: string;
+  schoolName: string | null;
+  isFemale: boolean;
+};
+
+const principalModules: WorkspaceModule[] = [
+  {
+    title: "منسوبو المدرسة",
+    description: "عرض المعلمين والموجهين الطلابيين ورواد النشاط المرتبطين بالمدرسة.",
+    href: "/dashboard/principal/teachers",
+    icon: "students",
+    status: "available",
+  },
+  {
+    title: "الحالات",
+    description: "استعراض الحالات المتاحة ضمن نطاق المدرسة.",
+    href: OFFICIAL_WORKSPACE_ROUTES.cases,
+    icon: "assignments",
+    status: "available",
+  },
+  {
+    title: "التقارير",
+    description: "استعراض التقارير المتاحة من المسار المشترك.",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    icon: "reports",
+    status: "available",
+  },
+  {
+    title: "الباقات",
+    description: "الاطلاع على الباقات المتاحة للحساب.",
+    href: "/dashboard/plans",
+    icon: "subscription",
+    status: "available",
+  },
+  {
+    title: "حسابي",
+    description: "مراجعة بيانات الحساب والجلسات.",
+    href: "/dashboard/account",
+    icon: "account",
+    status: "available",
+  },
+  {
+    title: "إعدادات المدرسة",
+    description: "مراجعة هوية المدرسة وإعداداتها الحالية.",
+    href: "/dashboard/settings/school",
+    icon: "schoolSettings",
+    status: "available",
+  },
+];
+
+export function PrincipalDashboard({
+  principalName,
+  roleLabel,
+  schoolName,
+  isFemale,
+}: PrincipalDashboardProps) {
+  return (
+    <WorkspaceHome
+      eyebrow={roleLabel}
+      title="خدمات مدير المدرسة"
+      description={
+        schoolName
+          ? `مساحة العمل الموحدة لمدير مدرسة ${schoolName}.`
+          : "مساحة العمل الموحدة لمدير المدرسة."
+      }
+      userName={principalName}
+      welcomeText={isFemale ? "أهلًا بكِ" : "أهلًا بك"}
+      modules={principalModules}
+      sideTitle={roleLabel}
+      sideDescription={
+        schoolName ||
+        "استخدم الروابط المتاحة للوصول إلى المعلمين والحالات والتقارير والحساب وإعدادات المدرسة."
+      }
+    />
+  );
+}
+
+
+===== app\dashboard\principal\teachers\page.tsx =====
+
+import { PrincipalTeachersPage } from "@/components/principal/principal-teachers-page";
+import { getPrincipalTeachersOverview } from "@/lib/principal/principal-teachers-service";
+
+export const dynamic = "force-dynamic";
+
+export default async function PrincipalTeachersRoute() {
+  const overview = await getPrincipalTeachersOverview();
+  return <PrincipalTeachersPage overview={overview} />;
+}
+
+
+===== components\principal\principal-teachers-page.tsx =====
+
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import {
+  Building2,
+  FileText,
+  FolderOpen,
+  Hash,
+  Mail,
+  Search,
+  Users,
+} from "lucide-react";
+import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
+
+type TeacherCardData = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER";
+  gender: "MALE" | "FEMALE" | "UNKNOWN";
+  isActive: boolean;
+  reportsCount: number;
+  evidenceCount: number;
+  lastActivityAt: string | null;
+};
+
+type TeachersOverview = {
+  linked: boolean;
+  school: { name: string; statisticalNumber: string | null } | null;
+  teachers: TeacherCardData[];
+};
+
+const numberFormatter = new Intl.NumberFormat("ar-SA");
+const dateFormatter = new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" });
+
+function formatLastActivity(value: string | null) {
+  if (!value) return "غير متوفر";
+  const date = new Date(value);
+  const today = new Date();
+  if (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  ) {
+    return "اليوم";
+  }
+  return dateFormatter.format(date);
+}
+
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("") || "م";
+}
+
+function getSchoolMemberRoleLabel(member: TeacherCardData) {
+  return getArabicUserRoleLabel({ role: member.role, gender: member.gender })
+    .replace(/^ال/, "")
+    .replace(/\sال/g, " ");
+}
+
+const roleToneClasses: Record<TeacherCardData["role"], {
+  card: string;
+  avatar: string;
+  role: string;
+}> = {
+  TEACHER: {
+    card: "border-sky-200 bg-sky-50/35 dark:border-sky-900 dark:bg-sky-950/20",
+    avatar: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+    role: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  },
+  COUNSELOR: {
+    card: "border-violet-200 bg-violet-50/35 dark:border-violet-900 dark:bg-violet-950/20",
+    avatar: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+    role: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  },
+  ACTIVITY_LEADER: {
+    card: "border-amber-200 bg-amber-50/35 dark:border-amber-900 dark:bg-amber-950/20",
+    avatar: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+    role: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  },
+};
+
+export function PrincipalTeachersPage({ overview }: { overview: TeachersOverview }) {
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState<"all" | TeacherCardData["role"]>("all");
+  const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+
+  const filteredTeachers = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("ar");
+    return overview.teachers.filter((teacher) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        teacher.fullName.toLocaleLowerCase("ar").includes(normalizedQuery) ||
+        teacher.email.toLocaleLowerCase().includes(normalizedQuery);
+      const matchesStatus =
+        status === "all" ||
+        (status === "active" && teacher.isActive) ||
+        (status === "inactive" && !teacher.isActive);
+      const matchesRole = role === "all" || teacher.role === role;
+      return matchesQuery && matchesRole && matchesStatus;
+    });
+  }, [overview.teachers, query, role, status]);
+
+  if (!overview.linked || !overview.school) {
+    return (
+      <section dir="rtl" className="grid min-h-[28rem] place-items-center rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="max-w-xl">
+          <Building2 className="mx-auto h-12 w-12 text-teal-600" />
+          <h1 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">أكمل بيانات المدرسة</h1>
+          <p className="mt-3 font-bold leading-8 text-slate-500 dark:text-slate-400">يلزم إكمال بيانات المدرسة قبل عرض المنسوبين المرتبطين بها.</p>
+          <Link href="/dashboard/settings/school" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-700 px-5 text-sm font-black text-white transition hover:bg-teal-800">
+            الانتقال إلى إعدادات المدرسة
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <div dir="rtl" className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-black text-teal-700 dark:text-teal-400">إدارة المدرسة</p>
+            <h1 className="mt-2 text-3xl font-black text-slate-950 dark:text-white">منسوبو المدرسة</h1>
+            <p className="mt-3 max-w-2xl font-bold leading-8 text-slate-500 dark:text-slate-400">المعلمون والموجهون الطلابيون ورواد النشاط المرتبطون بمدرستك والمسجلون ضمن الحساب المدرسي نفسه.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <SummaryItem icon={Building2} label="المدرسة" value={overview.school.name} />
+            <SummaryItem icon={Hash} label="الرقم الإحصائي" value={overview.school.statisticalNumber || "غير محدد"} />
+            <SummaryItem icon={Users} label="المنسوبون المرتبطون" value={numberFormatter.format(overview.teachers.length)} />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem_12rem]">
+          <label className="relative block">
+            <span className="sr-only">البحث عن معلم</span>
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث بالاسم أو البريد الإلكتروني" className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-teal-950" />
+          </label>
+          <label>
+            <span className="sr-only">تصفية حسب الدور</span>
+            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900">
+              <option value="all">الكل</option>
+              <option value="TEACHER">المعلمون</option>
+              <option value="COUNSELOR">التوجيه الطلابي</option>
+              <option value="ACTIVITY_LEADER">ريادة النشاط</option>
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">تصفية حسب حالة الحساب</span>
+            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900">
+              <option value="all">الكل</option>
+              <option value="active">نشط</option>
+              <option value="inactive">غير نشط</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {filteredTeachers.length ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredTeachers.map((teacher) => <TeacherCard key={teacher.id} teacher={teacher} />)}
+        </section>
+      ) : (
+        <section className="grid min-h-64 place-items-center rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-950">
+          <div>
+            <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+            <h2 className="mt-4 text-xl font-black text-slate-950 dark:text-white">لا يوجد منسوبون مرتبطون حاليًا</h2>
+            <p className="mt-2 font-bold leading-7 text-slate-500 dark:text-slate-400">ستظهر هنا حسابات المعلمين والموجهين الطلابيين ورواد النشاط المرتبطة بنفس المدرسة.</p>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SummaryItem({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string }) {
+  return (
+    <div className="min-w-40 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+      <div className="flex items-center gap-2 text-xs font-black text-slate-400"><Icon className="h-4 w-4" />{label}</div>
+      <p className="mt-2 truncate text-sm font-black text-slate-800 dark:text-slate-100" title={value}>{value}</p>
+    </div>
+  );
+}
+
+function TeacherCard({ teacher }: { teacher: TeacherCardData }) {
+  const tone = roleToneClasses[teacher.role];
+
+  return (
+    <article className={`rounded-[1.75rem] border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tone.card}`}>
+      <div className="flex items-start gap-4">
+        <div aria-hidden="true" className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black ${tone.avatar}`}>{getInitials(teacher.fullName)}</div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="truncate text-lg font-black text-slate-950 dark:text-white">{teacher.fullName}</h2>
+            <span className={teacher.isActive ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300"}>{teacher.isActive ? "نشط" : "غير نشط"}</span>
+          </div>
+          <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${tone.role}`}>{getSchoolMemberRoleLabel(teacher)}</p>
+        </div>
+      </div>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400"><Mail className="h-4 w-4 shrink-0" /><span className="truncate" dir="ltr">{teacher.email}</span></div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Metric icon={FileText} label="التقارير" value={`${numberFormatter.format(teacher.reportsCount)} تقريرًا`} />
+        <Metric icon={FolderOpen} label="الشواهد" value={`${numberFormatter.format(teacher.evidenceCount)} شاهدًا`} />
+      </div>
+      <p className="mt-4 text-xs font-bold text-slate-400">آخر نشاط: {formatLastActivity(teacher.lastActivityAt)}</p>
+    </article>
+  );
+}
+
+function Metric({ icon: Icon, label, value }: { icon: typeof FileText; label: string; value: string }) {
+  return <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><div className="flex items-center gap-2 text-xs font-bold text-slate-400"><Icon className="h-4 w-4" />{label}</div><p className="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">{value}</p></div>;
+}
+
+
+===== app\dashboard\settings\school\page.tsx =====
+
+import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function SchoolSettingsPage() {
+  await requireDashboardUser();
+
+  return (
+    <main className="mx-auto max-w-6xl space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-black text-blue-700">إعدادات المنصة</p>
+        <h1 className="mt-2 text-3xl font-black text-slate-950">
+          هوية المدرسة والحساب
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-500">
+          أكمل هذه البيانات مرة واحدة لتظهر تلقائيًا في التقارير الرسمية وملفات PDF، ولتفعيل الميزات الحساسة مثل رفع بيانات الطلاب وإصدار التقارير الرسمية.
+        </p>
+      </section>
+
+      <SchoolSettingsForm />
+    </main>
+  );
+}
+
+
+===== app\api\dashboard\settings\school\route.ts =====
+
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+import {
+  createPrincipalSchoolSlug,
+  normalizeStatisticalNumber,
+} from "@/lib/principal/principal-school-service";
+import { schoolSettingsPatchSchema } from "@/lib/settings/school-settings-api-schema";
+
+const LINKABLE_SCHOOL_MEMBER_ROLES = [
+  "TEACHER",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+] as const;
+
+function schoolProfileCompleteness(profile: {
+  schoolName: string;
+  principalName: string | null;
+  educationDepartment: string | null;
+  city: string | null;
+  stage: string | null;
+}) {
+  return [
+    profile.schoolName,
+    profile.principalName,
+    profile.educationDepartment,
+    profile.city,
+    profile.stage,
+  ].filter((value) => value?.trim()).length;
+}
+
+function safelyNormalizeStatisticalNumber(value: string | null | undefined) {
+  if (!value?.trim()) return "";
+  try {
+    return normalizeStatisticalNumber(value);
+  } catch {
+    return "";
+  }
+}
+
+export async function GET() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json(
+      { success: false, error: "يلزم تسجيل الدخول." },
+      { status: 401 },
+    );
+  }
+
+  const profile = current.user.schoolAccount?.profile;
+  const signatureKind =
+    current.user.role === "COUNSELOR"
+      ? "counselor"
+      : current.user.role === "ACTIVITY_LEADER"
+        ? "activityLeader"
+        : current.user.role === "TEACHER"
+          ? "teacher"
+        : "";
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      officialName: current.user.officialName || current.user.name || "",
+      currentUserName: current.user.officialName || current.user.name || "صاحب الحساب",
+      currentUserRole: current.user.role,
+      currentUserGender: current.user.gender,
+      currentUserSignatureKind: signatureKind,
+      currentUserSignatureUrl:
+        signatureKind === "teacher"
+          ? current.user.signatureUrl || ""
+          : signatureKind === "counselor"
+          ? profile?.counselorSignatureUrl || ""
+          : signatureKind === "activityLeader"
+            ? profile?.activityLeaderSignatureUrl || ""
+            : "",
+      currentUserSignedAt:
+        signatureKind === "teacher"
+          ? current.user.signatureSignedAt?.toISOString() || ""
+          : signatureKind === "counselor"
+          ? profile?.counselorSignedAt?.toISOString() || ""
+          : signatureKind === "activityLeader"
+            ? profile?.activityLeaderSignedAt?.toISOString() || ""
+            : "",
+      jobTitle: current.user.jobTitle || "",
+      phone: current.user.phone || "",
+      schoolName: profile?.schoolName || "",
+      schoolStatisticalNumber: profile?.schoolStatisticalNumber || "",
+      principalName: profile?.principalName || "",
+      principalPhone: profile?.principalPhone || "",
+      principalSignatureUrl: profile?.principalSignatureUrl || "",
+      principalSignatureRequestedAt:
+        profile?.principalSignatureRequestedAt?.toISOString() || "",
+      principalSignatureSignedAt:
+        profile?.principalSignatureSignedAt?.toISOString() || "",
+      activityLeaderName: profile?.activityLeaderName || "",
+      activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
+      activityLeaderSignedAt:
+        profile?.activityLeaderSignedAt?.toISOString() || "",
+      counselorSignatureUrl: profile?.counselorSignatureUrl || "",
+      counselorSignedAt: profile?.counselorSignedAt?.toISOString() || "",
+      educationDepartment: profile?.educationDepartment || "",
+      educationOffice: profile?.educationOffice || "",
+      city: profile?.city || "",
+      district: profile?.district || "",
+      stage: profile?.stage || "",
+      logoUrl: profile?.logoUrl || "",
+      onboardingCompleted: current.user.onboardingCompleted,
+    },
+  });
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current) {
+      return NextResponse.json(
+        { success: false, error: "يلزم تسجيل الدخول." },
+        { status: 401 },
+      );
+    }
+
+    if (!current.user.schoolAccountId) {
+      return NextResponse.json(
+        { success: false, error: "لا يوجد حساب مدرسي مرتبط بالمستخدم." },
+        { status: 403 },
+      );
+    }
+
+    if (current.user.role !== "PRINCIPAL") {
+      const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+      if (subscriptionGuard instanceof Response) {
+        return subscriptionGuard;
+      }
+    }
+
+    const rawBody = await request.json().catch(() => null);
+    let body = rawBody;
+
+    if (
+      rawBody &&
+      typeof rawBody === "object" &&
+      "schoolStatisticalNumber" in rawBody &&
+      String(rawBody.schoolStatisticalNumber ?? "").trim()
+    ) {
+      try {
+        body = {
+          ...rawBody,
+          schoolStatisticalNumber: normalizeStatisticalNumber(
+            rawBody.schoolStatisticalNumber,
+          ),
+        };
+      } catch {
+        return NextResponse.json(
+          { success: false, error: "الرقم الإحصائي للمدرسة غير صالح." },
+          { status: 400 },
+        );
+      }
+    }
+
+    const payloadResult = schoolSettingsPatchSchema.safeParse(body);
+
+    if (!payloadResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            payloadResult.error.issues[0]?.message ||
+            "بيانات المدرسة غير صالحة.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const {
+      officialName,
+      jobTitle,
+      phone,
+      schoolName,
+      schoolStatisticalNumber,
+      principalName,
+      principalPhone,
+      activityLeaderName,
+      educationDepartment,
+      educationOffice,
+      city,
+      district,
+      stage,
+      logoUrl,
+    } = payloadResult.data;
+
+    await prisma.$transaction(async (tx) => {
+      const authenticatedUser = await tx.user.findUniqueOrThrow({
+        where: { id: current.user.id },
+        select: {
+          role: true,
+          schoolAccountId: true,
+          schoolAccount: {
+            select: {
+              name: true,
+              profile: true,
+              users: {
+                where: { role: "PRINCIPAL", isActive: true },
+                select: { id: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!authenticatedUser.schoolAccountId) {
+        throw new Error("SCHOOL_ACCOUNT_REQUIRED");
+      }
+
+      const schoolCandidates = schoolStatisticalNumber
+        ? await tx.schoolProfile.findMany({
+            where: {
+              schoolStatisticalNumber: { not: null },
+              schoolAccountId: { not: authenticatedUser.schoolAccountId },
+            },
+            select: {
+              schoolAccountId: true,
+              schoolStatisticalNumber: true,
+              schoolName: true,
+              principalName: true,
+              educationDepartment: true,
+              city: true,
+              stage: true,
+              schoolAccount: {
+                select: {
+                  users: {
+                    where: { role: "PRINCIPAL", isActive: true },
+                    select: { id: true },
+                  },
+                },
+              },
+            },
+          })
+        : [];
+      const matchingSchools = schoolCandidates.filter((candidate) => {
+        try {
+          return (
+            normalizeStatisticalNumber(candidate.schoolStatisticalNumber ?? "") ===
+            schoolStatisticalNumber
+          );
+        } catch {
+          return false;
+        }
+      });
+      const matchingSchool = matchingSchools.sort((left, right) => {
+        const principalDifference =
+          right.schoolAccount.users.length - left.schoolAccount.users.length;
+        if (principalDifference) return principalDifference;
+        return schoolProfileCompleteness(right) - schoolProfileCompleteness(left);
+      })[0] ?? null;
+      const isLinkableSchoolMember = LINKABLE_SCHOOL_MEMBER_ROLES.some(
+        (role) => role === authenticatedUser.role,
+      );
+      const currentSchoolIsPrincipalManaged = Boolean(
+        authenticatedUser.schoolAccount?.users.length,
+      );
+      const currentStatisticalNumber = safelyNormalizeStatisticalNumber(
+        authenticatedUser.schoolAccount?.profile?.schoolStatisticalNumber,
+      );
+      const staysWithCurrentPrincipalSchool =
+        isLinkableSchoolMember &&
+        currentSchoolIsPrincipalManaged &&
+        schoolStatisticalNumber === currentStatisticalNumber;
+
+      await tx.user.update({
+        where: { id: current.user.id },
+        data: {
+          officialName,
+          jobTitle,
+          phone,
+          onboardingCompleted: true,
+          onboardingCompletedAt: new Date(),
+          ...(matchingSchool && isLinkableSchoolMember && !staysWithCurrentPrincipalSchool
+            ? { schoolAccountId: matchingSchool.schoolAccountId }
+            : {}),
+        },
+      });
+
+      if (staysWithCurrentPrincipalSchool) {
+        return;
+      }
+
+      if (matchingSchool && isLinkableSchoolMember) {
+        return;
+      }
+
+      if (isLinkableSchoolMember && currentSchoolIsPrincipalManaged) {
+        const separateSchool = await tx.schoolAccount.create({
+          data: {
+            name: schoolName,
+            slug: createPrincipalSchoolSlug(schoolName),
+            profile: {
+              create: {
+                schoolName,
+                schoolStatisticalNumber: schoolStatisticalNumber || null,
+                principalName,
+                principalPhone,
+                activityLeaderName,
+                educationDepartment,
+                educationOffice,
+                city,
+                district,
+                stage,
+                logoUrl,
+              },
+            },
+          },
+          select: { id: true },
+        });
+
+        await tx.user.update({
+          where: { id: current.user.id },
+          data: { schoolAccountId: separateSchool.id },
+        });
+        return;
+      }
+
+      if (authenticatedUser.role === "PRINCIPAL") {
+        const principalChangedStatisticalNumber =
+          currentStatisticalNumber !== schoolStatisticalNumber;
+        const linkedSchoolMembers = principalChangedStatisticalNumber
+          ? await tx.user.findMany({
+              where: {
+                schoolAccountId: authenticatedUser.schoolAccountId,
+                role: { in: [...LINKABLE_SCHOOL_MEMBER_ROLES] },
+              },
+              select: { id: true },
+            })
+          : [];
+
+        if (linkedSchoolMembers.length > 0) {
+          const previousProfile = authenticatedUser.schoolAccount?.profile;
+          const previousSchool = await tx.schoolAccount.create({
+            data: {
+              name: previousProfile?.schoolName || authenticatedUser.schoolAccount?.name || schoolName,
+              slug: createPrincipalSchoolSlug(
+                previousProfile?.schoolName || authenticatedUser.schoolAccount?.name || schoolName,
+              ),
+              profile: previousProfile
+                ? {
+                    create: {
+                      schoolName: previousProfile.schoolName,
+                      principalName: previousProfile.principalName,
+                      principalPhone: previousProfile.principalPhone,
+                      activityLeaderName: previousProfile.activityLeaderName,
+                      educationDepartment: previousProfile.educationDepartment,
+                      educationOffice: previousProfile.educationOffice,
+                      schoolStatisticalNumber: previousProfile.schoolStatisticalNumber,
+                      city: previousProfile.city,
+                      district: previousProfile.district,
+                      stage: previousProfile.stage,
+                      academicYear: previousProfile.academicYear,
+                      currentSemester: previousProfile.currentSemester,
+                      logoUrl: previousProfile.logoUrl,
+                    },
+                  }
+                : undefined,
+            },
+            select: { id: true },
+          });
+
+          await tx.user.updateMany({
+            where: { id: { in: linkedSchoolMembers.map((member) => member.id) } },
+            data: { schoolAccountId: previousSchool.id },
+          });
+        }
+      }
+
+      await tx.schoolAccount.update({
+        where: { id: authenticatedUser.schoolAccountId },
+        data: { name: schoolName },
+      });
+      await tx.schoolProfile.upsert({
+        where: { schoolAccountId: authenticatedUser.schoolAccountId },
+        update: {
+          schoolName,
+          schoolStatisticalNumber,
+          principalName,
+          principalPhone,
+          activityLeaderName,
+          educationDepartment,
+          educationOffice,
+          city,
+          district,
+          stage,
+          logoUrl,
+        },
+        create: {
+          schoolAccountId: authenticatedUser.schoolAccountId,
+          schoolName,
+          schoolStatisticalNumber,
+          principalName,
+          principalPhone,
+          activityLeaderName,
+          educationDepartment,
+          educationOffice,
+          city,
+          district,
+          stage,
+          logoUrl,
+        },
+      });
+
+      if (authenticatedUser.role === "PRINCIPAL" && matchingSchools.length > 0) {
+        await tx.user.updateMany({
+          where: {
+            role: { in: [...LINKABLE_SCHOOL_MEMBER_ROLES] },
+            schoolAccountId: {
+              in: matchingSchools.map((school) => school.schoolAccountId),
+            },
+          },
+          data: { schoolAccountId: authenticatedUser.schoolAccountId },
+        });
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم حفظ بيانات المدرسة والحساب.",
+    });
+  } catch (error) {
+    console.error("SCHOOL_SETTINGS_SAVE_ERROR", error);
+
+    return NextResponse.json(
+      { success: false, error: "حدث خطأ أثناء حفظ إعدادات المدرسة." },
+      { status: 500 },
+    );
+  }
+}
+
+
+===== EXISTING TIMETABLE FILES =====

@@ -13,7 +13,7 @@ type PageProps = {
 
 export default async function CaseDetailsPage({ params }: PageProps) {
   const { caseId } = await params;
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
 
   if (!context.isAdmin && !context.schoolAccountId) {
     redirect("/dashboard/onboarding?required=true");

@@ -21,7 +21,8 @@ export default async function DashboardPage() {
   if (
     current.user.role === "ADMIN" ||
     current.user.role === "ACTIVITY_LEADER" ||
-    current.user.role === "TEACHER"
+    current.user.role === "TEACHER" ||
+    current.user.role === "PRINCIPAL"
   ) {
     redirect(getDashboardHomePath(current.user.role));
   }
