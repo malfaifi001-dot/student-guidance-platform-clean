@@ -213,6 +213,7 @@ model SchoolAccount {
   updatedAt             DateTime               @updatedAt
   achievementPortfolios AchievementPortfolio[]
   referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
+  timetableProjects     TimetableProject[]
 }
 
 model User {
@@ -253,6 +254,8 @@ model User {
   achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
   createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
   referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
+  createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
+  timetableTeacherProfiles      TimetableTeacher[]
 
   @@index([schoolAccountId])
 }
@@ -2049,4 +2052,170 @@ model StatisticalReport {
   @@index([dateFrom, dateTo])
   @@index([archivedAt])
   @@index([createdAt])
+}
+
+enum TimetableProjectStatus {
+  DRAFT
+  READY
+  GENERATED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+model TimetableProject {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("TimetableProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  name         String
+  academicYear String
+  semester     String
+
+  status TimetableProjectStatus @default(DRAFT)
+
+  daysJson     Json
+  periodsJson  Json
+  settingsJson Json?
+
+  teachers      TimetableTeacher[]
+  classes       TimetableClass[]
+  subjects      TimetableSubject[]
+  classSubjects TimetableClassSubject[]
+  assignments   TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TimetableTeacher {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name          String
+  specialty     String?
+  maxWeeklyLoad Int     @default(24)
+  isActive      Boolean @default(true)
+
+  unavailableSlotsJson Json?
+
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+model TimetableClass {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name     String
+  isActive Boolean @default(true)
+
+  subjects    TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+model TimetableSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name       String
+  catalogKey String?
+  isActive   Boolean @default(true)
+
+  classes     TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([catalogKey])
+  @@index([isActive])
+}
+
+model TimetableClassSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  weeklyLessons Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, classId, subjectId])
+  @@index([projectId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+model TimetableAssignment {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  assignedLessons Int
+  singlePeriods   Int @default(0)
+  doublePeriods   Int @default(0)
+
+  fixedSlotsJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, teacherId, classId, subjectId])
+  @@index([projectId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
 }

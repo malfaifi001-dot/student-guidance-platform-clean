@@ -1,0 +1,5604 @@
+﻿==================== prisma\schema.prisma ====================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  ACTIVITY_LEADER
+  TEACHER
+  PRINCIPAL
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ReferenceLibraryItemType {
+  FOLDER
+  FILE
+}
+
+enum ReferenceLibraryItemStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReferenceLibraryAudienceType {
+  ALL_USERS
+  ROLE
+  USER
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
+enum WorkflowEvidenceMode {
+  SERVICE_DEFAULT
+  ENABLED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum ActivityAssignmentStatus {
+  SENT
+  OPENED
+  SUBMITTED
+  APPROVED
+  RETURNED
+  EXPIRED
+  CANCELED
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum SurveyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum SurveyQuestionType {
+  TEXT
+  TEXTAREA
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  YES_NO
+  RATING
+  SCALE
+  NUMBER
+  DATE
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+  resultsAnalyses       ResultsAnalysis[]
+  assessmentAnalyses    AssessmentAnalysis[]
+  calendarReminders     CalendarReminder[]
+  activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
+  surveys               Survey[]               @relation("SurveysBySchool")
+  surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  achievementPortfolios AchievementPortfolio[]
+  referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
+  timetableProjects     TimetableProject[]
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name              String
+  email             String    @unique
+  phone             String?
+  passwordHash      String?
+  role              UserRole  @default(COUNSELOR)
+  gender            Gender    @default(UNKNOWN)
+  officialName      String?
+  jobTitle          String?
+  signatureUrl      String?   @db.Text
+  signatureSignedAt DateTime?
+
+  teachingStages      Json?
+  teachingSpecialties Json?
+  teachingSubjects    Json?
+  isActive            Boolean @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases                      CaseEntry[]
+  sessions                   UserSession[]
+  calendarReminders          CalendarReminder[]
+  createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  createdSurveys             Survey[]             @relation("SurveysCreatedBy")
+
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
+  caseEvidences                 CaseEvidence[]
+  createdReportTemplates        ReportTemplate[]
+  achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
+  createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
+  referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
+  createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
+  timetableTeacherProfiles      TimetableTeacher[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName                    String
+  principalName                 String?
+  principalPhone                String?
+  principalSignatureUrl         String?
+  principalSignatureToken       String?   @unique
+  principalSignatureRequestedAt DateTime?
+  principalSignatureSignedAt    DateTime?
+
+  activityLeaderName         String?
+  activityLeaderSignatureUrl String?
+  activityLeaderSignedAt     DateTime?
+
+  counselorSignatureUrl String?
+  counselorSignedAt     DateTime?
+
+  educationDepartment     String?
+  educationOffice         String?
+  schoolStatisticalNumber String? @db.VarChar(50)
+  city                    String?
+  district                String?
+  stage                   String?
+  academicYear            String?
+  currentSemester         String?
+  logoUrl                 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model ReferenceLibraryItem {
+  id String @id @default(cuid())
+
+  parentId String?
+  parent   ReferenceLibraryItem?  @relation("ReferenceLibraryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children ReferenceLibraryItem[] @relation("ReferenceLibraryHierarchy")
+
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation("ReferenceLibrarySchool", fields: [schoolAccountId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("ReferenceLibraryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  title       String  @db.VarChar(200)
+  description String? @db.Text
+
+  itemType ReferenceLibraryItemType
+  status   ReferenceLibraryItemStatus @default(DRAFT)
+
+  sortOrder     Int     @default(0)
+  allowDownload Boolean @default(true)
+
+  originalFileName   String? @db.VarChar(255)
+  storageKey         String? @unique @db.VarChar(255)
+  originalStorageKey String? @unique @db.VarChar(255)
+
+  mimeType      String? @db.VarChar(150)
+  fileExtension String? @db.VarChar(20)
+  sizeBytes     Int?
+
+  pdfFileName   String? @db.VarChar(255)
+  pdfStorageKey String? @unique @db.VarChar(255)
+  pdfMimeType   String? @db.VarChar(150)
+  pdfSizeBytes  Int?
+
+  docxFileName   String? @db.VarChar(255)
+  docxStorageKey String? @unique @db.VarChar(255)
+  docxMimeType   String? @db.VarChar(150)
+  docxSizeBytes  Int?
+
+  previewStorageKey  String?   @unique @db.VarChar(255)
+  previewMimeType    String?   @db.VarChar(150)
+  previewSizeBytes   Int?
+  previewGeneratedAt DateTime?
+
+  pdfCoverApplied Boolean @default(false)
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  audiences ReferenceLibraryAudience[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([itemType])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([createdAt])
+}
+
+model ReferenceLibraryAudience {
+  id String @id @default(cuid())
+
+  itemId String
+  item   ReferenceLibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  audienceType ReferenceLibraryAudienceType
+
+  userId String?
+  user   User?   @relation("ReferenceLibraryAudienceUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  role UserRole?
+
+  createdAt DateTime @default(now())
+
+  @@index([itemId])
+  @@index([audienceType])
+  @@index([userId])
+  @@index([role])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows           Workflow[]
+  cases               CaseEntry[]
+  access              ServiceAccess[]
+  calendarReminders   CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  surveys             Survey[]             @relation("SurveysService")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+  activeKey    String?        @unique @db.VarChar(255)
+
+  originalFileName       String?   @db.VarChar(255)
+  originalFileStorageKey String?   @unique @db.VarChar(255)
+  originalFileMimeType   String?   @db.VarChar(150)
+  originalFileSize       Int?
+  originalFileUploadedAt DateTime?
+
+  studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+  evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+  steps               WorkflowStep[]
+  cases               CaseEntry[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String    @db.Text
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  defaultValue         String? @db.Text
+  defaultJson          Json?
+  autoSelectWhenLinked Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String  @db.Text
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values             CaseValue[]
+  evidences          Evidence[]
+  calendarReminders  CalendarReminder[]
+  activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ActivityAssignment {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("ActivityAssignmentsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String
+  service   Service @relation("ActivityAssignmentsService", fields: [serviceId], references: [id])
+
+  workflowId String
+  workflow   Workflow @relation("ActivityAssignmentsWorkflow", fields: [workflowId], references: [id])
+
+  caseEntryId String?    @unique
+  caseEntry   CaseEntry? @relation("ActivityAssignmentCaseEntry", fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  domainSlug  String
+  domainTitle String
+
+  teacherName  String
+  teacherPhone String
+  teacherEmail String?
+
+  teacherSignatureUrl String?
+  teacherSignedName   String?
+  teacherSignedAt     DateTime?
+
+  dueDate DateTime?
+  note    String?   @db.Text
+
+  submittedValues        Json?
+  submittedEvidenceItems Json?
+  returnedReason         String? @db.Text
+
+  token          String    @unique
+  tokenExpiresAt DateTime?
+
+  openedAt    DateTime?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  returnedAt  DateTime?
+  canceledAt  DateTime?
+
+  status ActivityAssignmentStatus @default(SENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([domainSlug])
+  @@index([teacherPhone])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+  isPublic     Boolean @default(true)
+  isArchived   Boolean @default(false)
+  visibleRoles Json?
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  invoice Invoice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model AssessmentAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title      String
+  sourceFile String?
+  status     String  @default("COMPLETED")
+  uploadMode String  @default("GENERAL")
+
+  totalStudents     Int    @default(0)
+  totalRows         Int    @default(0)
+  totalSubjects     Int    @default(0)
+  averagePercentage Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTwoStatus {
+  DRAFT
+  APPROVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String  @db.LongText
+  renderedContent String? @db.LongText
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportSnapshot {
+  id              String  @id @default(cuid())
+  caseEntryId     String
+  schoolAccountId String?
+  serviceSlug     String?
+  serviceName     String?
+  reportTitle     String
+  templateId      String?
+  templateName    String?
+  variantId       String?
+
+  snapshotPayload      Json
+  snapshotTemplateJson Json?
+  snapshotPagesJson    Json?
+  snapshotHtml         String  @db.LongText
+  pdfUrl               String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([approvedAt])
+  @@index([approvedById])
+}
+
+model ReportTwoActive {
+  id              String  @id @default(cuid())
+  caseEntryId     String  @unique
+  schoolAccountId String
+  serviceSlug     String?
+  serviceName     String?
+
+  status       ReportTwoStatus @default(DRAFT)
+  reportTitle  String
+  templateId   String?
+  templateName String?
+  variantId    String?
+
+  sourcePayload Json
+  editorState   Json?
+  templateJson  Json?
+  pagesJson     Json?
+  renderedHtml  String  @db.LongText
+  renderContext Json?
+  previewCase   Json?
+  pdfUrl        String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime?
+  savedAt        DateTime  @default(now())
+  lastSyncedAt   DateTime?
+  syncMeta       Json?
+  version        Int       @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([approvedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type    ReportTemplateType @default(SYSTEM)
+  content String?            @db.LongText
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(cuid())
+  singletonKey           String   @unique @default("default")
+  sellerName             String   @default("Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ")
+  sellerDomain           String?  @default("smstudents.com")
+  sellerCountry          String?  @default("Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø§Ù„Ø³Ø¹ÙˆØ¯ÙŠØ©")
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+  vatEnabled             Boolean  @default(false)
+  vatRate                Int      @default(0)
+  invoicePrefix          String   @default("INV")
+  invoiceNote            String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model InvoiceNumberSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model Invoice {
+  id                   String             @id @default(cuid())
+  invoiceNumber        String             @unique
+  paymentTransactionId String             @unique
+  paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+  issuedById           String?
+  status               String             @default("ISSUED")
+
+  sellerName             String
+  sellerDomain           String?
+  sellerCountry          String?
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+
+  buyerName        String
+  buyerEmail       String?
+  buyerJobTitle    String?
+  buyerSchoolName  String?
+  buyerAccountName String?
+
+  itemTitle      String
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  pdfUrl       String?
+  snapshotJson Json?
+  creditNotes  CreditNote[]
+  issuedAt     DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([paymentTransactionId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model CreditNote {
+  id               String  @id @default(cuid())
+  creditNoteNumber String  @unique
+  invoiceId        String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  issuedById String?
+  status     String  @default("ISSUED")
+  reason     String? @db.Text
+
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  snapshotJson Json?
+  issuedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model AssessmentInterventionRule {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+
+  title            String
+  sourceType       String @default("ASSESSMENT_RISK_STUDENT")
+  interventionType String @default("ACADEMIC_RISK")
+
+  targetServiceId  String
+  targetWorkflowId String?
+
+  isEnabled Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  conditionJson    Json?
+  fieldMappingJson Json?
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([sourceType])
+  @@index([interventionType])
+  @@index([targetServiceId])
+  @@index([targetWorkflowId])
+  @@index([isEnabled])
+  @@index([isDefault])
+}
+
+model AssessmentInterventionWorkflowTarget {
+  id String @id @default(cuid())
+
+  serviceId  String
+  workflowId String
+  targetType String
+
+  isEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workflowId, targetType])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([targetType])
+  @@index([isEnabled])
+}
+
+model Survey {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveysBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String?
+  service   Service? @relation("SurveysService", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String? @db.Text
+
+  audienceType String  @default("GENERAL")
+  ownerRole    String?
+  boardPath    String?
+
+  isAnonymous Boolean @default(false)
+  token       String  @unique
+
+  status      SurveyStatus @default(DRAFT)
+  endsAt      DateTime?
+  publishedAt DateTime?
+  closedAt    DateTime?
+  opensAt     DateTime?
+
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([status])
+  @@index([audienceType])
+}
+
+model SurveyQuestion {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  key      String
+  label    String
+  type     SurveyQuestionType
+  helpText String?            @db.Text
+
+  isRequired Boolean @default(false)
+  order      Int
+
+  scaleMin Int?
+  scaleMax Int?
+
+  options SurveyOption[]
+  answers SurveyAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([surveyId, key])
+  @@index([surveyId])
+  @@index([order])
+}
+
+model SurveyOption {
+  id String @id @default(cuid())
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  label String
+  value String
+  order Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+  @@index([order])
+}
+
+model SurveyResponse {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveyResponsesBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  respondentType  String  @default("GENERAL")
+  respondentName  String?
+  respondentPhone String?
+  metadata        Json?
+
+  answers SurveyAnswer[]
+
+  submittedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([surveyId])
+  @@index([schoolAccountId])
+  @@index([respondentType])
+  @@index([submittedAt])
+}
+
+model SurveyAnswer {
+  id String @id @default(cuid())
+
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([responseId, questionId])
+  @@index([questionId])
+}
+
+model CertificateTemplate {
+  id String @id @default(cuid())
+
+  key         String  @unique
+  name        String
+  description String?
+
+  status      String @default("ACTIVE") @db.VarChar(30)
+  pageSize    String @default("A4") @db.VarChar(20)
+  orientation String @default("LANDSCAPE") @db.VarChar(20)
+
+  templatePath     String?
+  previewImagePath String?
+
+  isSystem        Boolean @default(false)
+  schoolAccountId String?
+  createdById     String?
+
+  themeJson Json?
+
+  issuedCertificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model CertificateBatch {
+  id String @id @default(cuid())
+
+  batchNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  sourceType String  @default("BULK_IMPORT") @db.VarChar(40)
+  sourceId   String?
+
+  status      String @default("DRAFT") @db.VarChar(30)
+  totalCount  Int    @default(0)
+  issuedCount Int    @default(0)
+  failedCount Int    @default(0)
+
+  fileName    String?
+  notes       String? @db.Text
+  optionsJson Json?
+
+  certificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model IssuedCertificate {
+  id String @id @default(cuid())
+
+  certificateNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  templateId String?
+  template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  batchId String?
+  batch   CertificateBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  certificateType String @db.VarChar(50)
+  recipientType   String @db.VarChar(50)
+
+  recipientName      String
+  recipientIdentity  String?
+  recipientStudentId String?
+
+  title  String
+  reason String? @db.Text
+  body   String  @db.Text
+
+  issueDate DateTime @default(now())
+  status    String   @default("ISSUED") @db.VarChar(30)
+
+  sourceType String  @default("MANUAL") @db.VarChar(40)
+  sourceId   String?
+
+  pdfUrl       String?
+  htmlSnapshot String? @db.LongText
+  dataJson     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  certificateAttachments CertificateAttachment[]
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([batchId])
+  @@index([recipientStudentId])
+  @@index([sourceType, sourceId])
+  @@index([status])
+}
+
+model CertificateAttachment {
+  id              String  @id @default(cuid())
+  schoolAccountId String
+  targetType      String  @db.VarChar(60)
+  targetId        String
+  certificateId   String
+  sortOrder       Int     @default(0)
+  createdById     String?
+
+  certificate IssuedCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, targetType, targetId, certificateId], map: "CertificateAttachment_scope_certificate_key")
+  @@index([schoolAccountId, targetType, targetId], map: "CertificateAttachment_target_idx")
+  @@index([certificateId], map: "CertificateAttachment_certificate_idx")
+  @@index([createdById], map: "CertificateAttachment_createdBy_idx")
+}
+
+model CustomReportTemplate {
+  id              String   @id @default(cuid())
+  schoolAccountId String?
+  createdById     String
+  title           String
+  description     String?  @db.Text
+  prompt          String?  @db.Text
+  schemaJson      Json
+  source          String   @default("AI")
+  status          String   @default("ACTIVE")
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([isArchived])
+  @@index([status])
+}
+
+model CustomReportEntry {
+  id                 String   @id @default(cuid())
+  schoolAccountId    String?
+  createdById        String
+  templateId         String?
+  title              String
+  valuesJson         Json
+  snapshotSchemaJson Json
+  status             String   @default("DRAFT")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([status])
+}
+
+model DashboardResourceLink {
+  id              String  @id @default(cuid())
+  schoolAccountId String
+  sourceType      String  @db.VarChar(60)
+  sourceId        String
+  targetType      String  @db.VarChar(60)
+  targetId        String
+  sortOrder       Int     @default(0)
+  createdById     String?
+  metadataJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, sourceType, sourceId, targetType, targetId], map: "DashboardResourceLink_scope_target_key")
+  @@index([schoolAccountId, sourceType, sourceId], map: "DashboardResourceLink_source_idx")
+  @@index([schoolAccountId, targetType, targetId], map: "DashboardResourceLink_target_idx")
+  @@index([createdById], map: "DashboardResourceLink_createdBy_idx")
+}
+
+model AchievementPortfolio {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  ownerUserId String
+  owner       User   @relation("AchievementPortfolioOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  title        String
+  roleKey      String @default("TEACHER")
+  academicYear String
+  term         String
+  themeId      String @default("ministry-elegant")
+  status       String @default("DRAFT")
+
+  introText      String? @db.Text
+  conclusionText String? @db.Text
+  visionText     String? @db.Text
+  missionText    String? @db.Text
+  bioText        String? @db.Text
+
+  qualificationsJson Json?
+  coursesJson        Json?
+  certificatesJson   Json?
+  settingsJson       Json?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sections AchievementPortfolioSection[]
+  items    AchievementPortfolioItem[]
+
+  @@unique([schoolAccountId, ownerUserId, academicYear, term])
+  @@index([schoolAccountId])
+  @@index([ownerUserId])
+  @@index([roleKey])
+  @@index([status])
+  @@index([themeId])
+}
+
+model AchievementPortfolioSection {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  kind       String
+  sectionKey String
+  title      String
+  introText  String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isEnabled    Boolean @default(true)
+  metadataJson Json?
+
+  items AchievementPortfolioItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([portfolioId, sectionKey])
+  @@index([portfolioId])
+  @@index([kind])
+  @@index([sortOrder])
+}
+
+model AchievementPortfolioItem {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  sectionId String?
+  section   AchievementPortfolioSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  sourceType String
+  sourceId   String?
+
+  title       String
+  description String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isVisible    Boolean @default(true)
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioId])
+  @@index([sectionId])
+  @@index([sourceType])
+  @@index([sourceId])
+  @@index([isVisible])
+  @@index([sortOrder])
+}
+
+model StatisticalReport {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+  createdById     String
+  serviceId       String
+
+  serviceSlugSnapshot String @db.VarChar(191)
+  serviceNameSnapshot String @db.VarChar(191)
+  title               String @db.VarChar(255)
+
+  dateFrom DateTime?
+  dateTo   DateTime?
+
+  filtersJson              Json
+  deterministicMetricsJson Json
+  aiAnalysisJson           Json?
+
+  sourceCaseCount     Int  @default(0)
+  sourceReportCount   Int  @default(0)
+  sourceReportIdsJson Json
+
+  analysisMode     String    @default("DETERMINISTIC") @db.VarChar(40)
+  reportTemplateId String?
+  archivedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([serviceSlugSnapshot])
+  @@index([dateFrom, dateTo])
+  @@index([archivedAt])
+  @@index([createdAt])
+}
+
+enum TimetableProjectStatus {
+  DRAFT
+  READY
+  GENERATED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+model TimetableProject {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("TimetableProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  name         String
+  academicYear String
+  semester     String
+
+  status TimetableProjectStatus @default(DRAFT)
+
+  daysJson     Json
+  periodsJson  Json
+  settingsJson Json?
+
+  teachers      TimetableTeacher[]
+  classes       TimetableClass[]
+  subjects      TimetableSubject[]
+  classSubjects TimetableClassSubject[]
+  assignments   TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TimetableTeacher {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name          String
+  specialty     String?
+  maxWeeklyLoad Int     @default(24)
+  isActive      Boolean @default(true)
+
+  unavailableSlotsJson Json?
+
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+model TimetableClass {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name     String
+  isActive Boolean @default(true)
+
+  subjects    TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+model TimetableSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name       String
+  catalogKey String?
+  isActive   Boolean @default(true)
+
+  classes     TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([catalogKey])
+  @@index([isActive])
+}
+
+model TimetableClassSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  weeklyLessons Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, classId, subjectId])
+  @@index([projectId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+model TimetableAssignment {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  assignedLessons Int
+  singlePeriods   Int @default(0)
+  doublePeriods   Int @default(0)
+
+  fixedSlotsJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, teacherId, classId, subjectId])
+  @@index([projectId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+
+
+==================== lib\timetable\timetable-generation-service.ts ====================
+
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import { validateTimetableProject } from "@/lib/timetable/timetable-validation-service";
+
+type Day = {
+  id: string;
+  label: string;
+  order: number;
+};
+
+type Period = {
+  id: string;
+  label: string;
+  order: number;
+  isBreak?: boolean;
+};
+
+type UnavailableSlot = {
+  dayId: string;
+  periodId: string;
+};
+
+type FixedSlot = {
+  dayId: string;
+  periodId: string;
+  isLocked?: boolean;
+};
+
+type LessonTask = {
+  id: string;
+  assignmentId: string;
+  teacherId: string;
+  teacherName: string;
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  length: 1 | 2;
+  fixedSlot?: FixedSlot;
+};
+
+export type GeneratedTimetableSession = {
+  id: string;
+  assignmentId: string;
+  teacherId: string;
+  teacherName: string;
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  dayId: string;
+  dayLabel: string;
+  periodId: string;
+  periodLabel: string;
+  periodOrder: number;
+  blockIndex: number;
+  blockLength: number;
+};
+
+export async function generateTimetable(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const validation = await validateTimetableProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  if (!validation.found) {
+    return {
+      found: false as const,
+      success: false as const,
+      errors: ["Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ø¬Ø¯ÙˆÙ„ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯."],
+      sessions: [] as GeneratedTimetableSession[],
+    };
+  }
+
+  const blockingErrors = validation.issues.filter(
+    (issue) => issue.level === "ERROR",
+  );
+
+  if (blockingErrors.length) {
+    return {
+      found: true as const,
+      success: false as const,
+      errors: blockingErrors.map((issue) => issue.message),
+      sessions: [] as GeneratedTimetableSession[],
+    };
+  }
+
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    include: {
+      teachers: true,
+      assignments: {
+        include: {
+          teacher: true,
+          class: true,
+          subject: true,
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    return {
+      found: false as const,
+      success: false as const,
+      errors: ["Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ø¬Ø¯ÙˆÙ„ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯."],
+      sessions: [] as GeneratedTimetableSession[],
+    };
+  }
+
+  const days = normalizeDays(project.daysJson);
+  const periods = normalizePeriods(project.periodsJson)
+    .filter((period) => !period.isBreak)
+    .sort((first, second) => first.order - second.order);
+
+  const unavailableByTeacher = new Map<string, Set<string>>();
+
+  for (const teacher of project.teachers) {
+    const slots = normalizeUnavailableSlots(
+      teacher.unavailableSlotsJson,
+    );
+
+    unavailableByTeacher.set(
+      teacher.id,
+      new Set(
+        slots.map(
+          (slot) => `${slot.dayId}:${slot.periodId}`,
+        ),
+      ),
+    );
+  }
+
+  const tasks: LessonTask[] = [];
+
+  for (const assignment of project.assignments) {
+    const fixedSlots = normalizeFixedSlots(
+      assignment.fixedSlotsJson,
+    );
+
+    let fixedIndex = 0;
+
+    for (
+      let blockNumber = 0;
+      blockNumber < assignment.doublePeriods;
+      blockNumber += 1
+    ) {
+      tasks.push({
+        id: `${assignment.id}:double:${blockNumber}`,
+        assignmentId: assignment.id,
+        teacherId: assignment.teacherId,
+        teacherName: assignment.teacher.name,
+        classId: assignment.classId,
+        className: assignment.class.name,
+        subjectId: assignment.subjectId,
+        subjectName: assignment.subject.name,
+        length: 2,
+        fixedSlot: fixedSlots[fixedIndex],
+      });
+
+      fixedIndex += 1;
+    }
+
+    for (
+      let lessonNumber = 0;
+      lessonNumber < assignment.singlePeriods;
+      lessonNumber += 1
+    ) {
+      tasks.push({
+        id: `${assignment.id}:single:${lessonNumber}`,
+        assignmentId: assignment.id,
+        teacherId: assignment.teacherId,
+        teacherName: assignment.teacher.name,
+        classId: assignment.classId,
+        className: assignment.class.name,
+        subjectId: assignment.subjectId,
+        subjectName: assignment.subject.name,
+        length: 1,
+        fixedSlot: fixedSlots[fixedIndex],
+      });
+
+      fixedIndex += 1;
+    }
+  }
+
+  tasks.sort((first, second) => {
+    if (first.fixedSlot && !second.fixedSlot) return -1;
+    if (!first.fixedSlot && second.fixedSlot) return 1;
+
+    if (first.length !== second.length) {
+      return second.length - first.length;
+    }
+
+    const firstUnavailable =
+      unavailableByTeacher.get(first.teacherId)?.size || 0;
+
+    const secondUnavailable =
+      unavailableByTeacher.get(second.teacherId)?.size || 0;
+
+    return secondUnavailable - firstUnavailable;
+  });
+
+  const teacherBusy = new Set<string>();
+  const classBusy = new Set<string>();
+  const subjectDayCount = new Map<string, number>();
+  const placements = new Map<
+    string,
+    Array<{
+      day: Day;
+      periods: Period[];
+    }>
+  >();
+
+  const deadline = Date.now() + 8000;
+
+  function placeTask(index: number): boolean {
+    if (index >= tasks.length) {
+      return true;
+    }
+
+    if (Date.now() > deadline) {
+      return false;
+    }
+
+    const task = tasks[index];
+
+    const candidates = createCandidates(
+      task,
+      days,
+      periods,
+    ).sort((first, second) => {
+      const firstSubjectCount =
+        subjectDayCount.get(
+          `${task.classId}:${task.subjectId}:${first.day.id}`,
+        ) || 0;
+
+      const secondSubjectCount =
+        subjectDayCount.get(
+          `${task.classId}:${task.subjectId}:${second.day.id}`,
+        ) || 0;
+
+      return firstSubjectCount - secondSubjectCount;
+    });
+
+    for (const candidate of candidates) {
+      if (
+        !canPlace(
+          task,
+          candidate.day,
+          candidate.periods,
+          unavailableByTeacher,
+          teacherBusy,
+          classBusy,
+        )
+      ) {
+        continue;
+      }
+
+      occupy(
+        task,
+        candidate.day,
+        candidate.periods,
+        teacherBusy,
+        classBusy,
+        subjectDayCount,
+      );
+
+      placements.set(task.id, [candidate]);
+
+      if (placeTask(index + 1)) {
+        return true;
+      }
+
+      placements.delete(task.id);
+
+      release(
+        task,
+        candidate.day,
+        candidate.periods,
+        teacherBusy,
+        classBusy,
+        subjectDayCount,
+      );
+    }
+
+    return false;
+  }
+
+  const solved = placeTask(0);
+
+  if (!solved) {
+    return {
+      found: true as const,
+      success: false as const,
+      errors: [
+        "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø¬Ø¯ÙˆÙ„ ÙƒØ§Ù…Ù„. Ø±Ø§Ø¬Ø¹ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø£Ùˆ ØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø­ØµØµ.",
+      ],
+      sessions: [] as GeneratedTimetableSession[],
+    };
+  }
+
+  const sessions: GeneratedTimetableSession[] = [];
+
+  for (const task of tasks) {
+    const taskPlacements = placements.get(task.id) || [];
+
+    for (const placement of taskPlacements) {
+      placement.periods.forEach((period, blockIndex) => {
+        sessions.push({
+          id: `${task.id}:${blockIndex}`,
+          assignmentId: task.assignmentId,
+          teacherId: task.teacherId,
+          teacherName: task.teacherName,
+          classId: task.classId,
+          className: task.className,
+          subjectId: task.subjectId,
+          subjectName: task.subjectName,
+          dayId: placement.day.id,
+          dayLabel: placement.day.label,
+          periodId: period.id,
+          periodLabel: period.label,
+          periodOrder: period.order,
+          blockIndex,
+          blockLength: task.length,
+        });
+      });
+    }
+  }
+
+  sessions.sort((first, second) => {
+    const firstDay =
+      days.findIndex((day) => day.id === first.dayId);
+
+    const secondDay =
+      days.findIndex((day) => day.id === second.dayId);
+
+    if (firstDay !== secondDay) {
+      return firstDay - secondDay;
+    }
+
+    return first.periodOrder - second.periodOrder;
+  });
+
+  return {
+    found: true as const,
+    success: true as const,
+    errors: [] as string[],
+    sessions,
+  };
+}
+
+function createCandidates(
+  task: LessonTask,
+  days: Day[],
+  periods: Period[],
+) {
+  if (task.fixedSlot) {
+    const day = days.find(
+      (item) => item.id === task.fixedSlot?.dayId,
+    );
+
+    const periodIndex = periods.findIndex(
+      (item) => item.id === task.fixedSlot?.periodId,
+    );
+
+    if (!day || periodIndex < 0) {
+      return [];
+    }
+
+    const selectedPeriods =
+      task.length === 2
+        ? periods.slice(periodIndex, periodIndex + 2)
+        : periods.slice(periodIndex, periodIndex + 1);
+
+    if (selectedPeriods.length !== task.length) {
+      return [];
+    }
+
+    return [
+      {
+        day,
+        periods: selectedPeriods,
+      },
+    ];
+  }
+
+  const candidates: Array<{
+    day: Day;
+    periods: Period[];
+  }> = [];
+
+  for (const day of days) {
+    for (
+      let periodIndex = 0;
+      periodIndex < periods.length;
+      periodIndex += 1
+    ) {
+      const selectedPeriods =
+        task.length === 2
+          ? periods.slice(periodIndex, periodIndex + 2)
+          : periods.slice(periodIndex, periodIndex + 1);
+
+      if (selectedPeriods.length !== task.length) {
+        continue;
+      }
+
+      candidates.push({
+        day,
+        periods: selectedPeriods,
+      });
+    }
+  }
+
+  return candidates;
+}
+
+function canPlace(
+  task: LessonTask,
+  day: Day,
+  periods: Period[],
+  unavailableByTeacher: Map<string, Set<string>>,
+  teacherBusy: Set<string>,
+  classBusy: Set<string>,
+) {
+  const unavailable =
+    unavailableByTeacher.get(task.teacherId) ||
+    new Set<string>();
+
+  for (const period of periods) {
+    const slot = `${day.id}:${period.id}`;
+
+    if (unavailable.has(slot)) {
+      return false;
+    }
+
+    if (
+      teacherBusy.has(`${task.teacherId}:${slot}`) ||
+      classBusy.has(`${task.classId}:${slot}`)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function occupy(
+  task: LessonTask,
+  day: Day,
+  periods: Period[],
+  teacherBusy: Set<string>,
+  classBusy: Set<string>,
+  subjectDayCount: Map<string, number>,
+) {
+  for (const period of periods) {
+    const slot = `${day.id}:${period.id}`;
+
+    teacherBusy.add(`${task.teacherId}:${slot}`);
+    classBusy.add(`${task.classId}:${slot}`);
+  }
+
+  const subjectDayKey =
+    `${task.classId}:${task.subjectId}:${day.id}`;
+
+  subjectDayCount.set(
+    subjectDayKey,
+    (subjectDayCount.get(subjectDayKey) || 0) + 1,
+  );
+}
+
+function release(
+  task: LessonTask,
+  day: Day,
+  periods: Period[],
+  teacherBusy: Set<string>,
+  classBusy: Set<string>,
+  subjectDayCount: Map<string, number>,
+) {
+  for (const period of periods) {
+    const slot = `${day.id}:${period.id}`;
+
+    teacherBusy.delete(`${task.teacherId}:${slot}`);
+    classBusy.delete(`${task.classId}:${slot}`);
+  }
+
+  const subjectDayKey =
+    `${task.classId}:${task.subjectId}:${day.id}`;
+
+  const nextCount =
+    (subjectDayCount.get(subjectDayKey) || 1) - 1;
+
+  if (nextCount <= 0) {
+    subjectDayCount.delete(subjectDayKey);
+  } else {
+    subjectDayCount.set(subjectDayKey, nextCount);
+  }
+}
+
+function normalizeDays(value: unknown): Day[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const valueItem = item as Record<string, unknown>;
+    const id = String(valueItem.id || "");
+    const label = String(valueItem.label || "");
+
+    if (!id || !label) {
+      return [];
+    }
+
+    return [{
+      id,
+      label,
+      order:
+        typeof valueItem.order === "number"
+          ? valueItem.order
+          : index,
+    }];
+  });
+}
+
+function normalizePeriods(value: unknown): Period[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const valueItem = item as Record<string, unknown>;
+    const id = String(valueItem.id || "");
+    const label = String(valueItem.label || "");
+
+    if (!id || !label) {
+      return [];
+    }
+
+    return [{
+      id,
+      label,
+      order:
+        typeof valueItem.order === "number"
+          ? valueItem.order
+          : index,
+      isBreak: valueItem.isBreak === true,
+    }];
+  });
+}
+
+function normalizeUnavailableSlots(
+  value: unknown,
+): UnavailableSlot[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const valueItem = item as Record<string, unknown>;
+    const dayId = String(valueItem.dayId || "");
+    const periodId = String(valueItem.periodId || "");
+
+    if (!dayId || !periodId) {
+      return [];
+    }
+
+    return [{ dayId, periodId }];
+  });
+}
+
+function normalizeFixedSlots(
+  value: unknown,
+): FixedSlot[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const valueItem = item as Record<string, unknown>;
+    const dayId = String(valueItem.dayId || "");
+    const periodId = String(valueItem.periodId || "");
+
+    if (!dayId || !periodId) {
+      return [];
+    }
+
+    return [{
+      dayId,
+      periodId,
+      isLocked: valueItem.isLocked === true,
+    }];
+  });
+}
+export async function saveGeneratedTimetable(
+  projectId: string,
+  schoolAccountId: string,
+  sessions: GeneratedTimetableSession[],
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+      settingsJson: true,
+    },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  const currentSettings =
+    project.settingsJson &&
+    typeof project.settingsJson === "object" &&
+    !Array.isArray(project.settingsJson)
+      ? project.settingsJson
+      : {};
+
+  return prisma.timetableProject.update({
+    where: {
+      id: project.id,
+    },
+    data: {
+      status: "GENERATED",
+      settingsJson: {
+        ...currentSettings,
+        generatedSchedule: sessions,
+        generatedAt: new Date().toISOString(),
+      },
+    },
+  });
+}
+
+export async function getSavedGeneratedTimetable(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+      status: true,
+      settingsJson: true,
+    },
+  });
+
+  if (!project) {
+    return {
+      found: false as const,
+      sessions: [] as GeneratedTimetableSession[],
+      generatedAt: null as string | null,
+      status: null as string | null,
+    };
+  }
+
+  const settings =
+    project.settingsJson &&
+    typeof project.settingsJson === "object" &&
+    !Array.isArray(project.settingsJson)
+      ? (project.settingsJson as Record<string, unknown>)
+      : {};
+
+  const sessions = Array.isArray(
+    settings.generatedSchedule,
+  )
+    ? (settings.generatedSchedule as GeneratedTimetableSession[])
+    : [];
+
+  return {
+    found: true as const,
+    sessions,
+    generatedAt:
+      typeof settings.generatedAt === "string"
+        ? settings.generatedAt
+        : null,
+    status: project.status,
+  };
+}
+
+
+==================== lib\timetable\timetable-validation-service.ts ====================
+
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import type {
+  TimetableValidationIssue,
+} from "@/lib/timetable/timetable-types";
+
+type DayValue = {
+  id?: unknown;
+};
+
+type PeriodValue = {
+  id?: unknown;
+  isBreak?: unknown;
+};
+
+type UnavailableSlot = {
+  dayId?: unknown;
+  periodId?: unknown;
+};
+
+export async function validateTimetableProject(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    include: {
+      teachers: true,
+      classes: true,
+      subjects: true,
+      classSubjects: {
+        include: {
+          class: true,
+          subject: true,
+        },
+      },
+      assignments: {
+        include: {
+          teacher: true,
+          class: true,
+          subject: true,
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    return {
+      found: false as const,
+      issues: [] as TimetableValidationIssue[],
+      summary: null,
+    };
+  }
+
+  const issues: TimetableValidationIssue[] = [];
+
+  const days = Array.isArray(project.daysJson)
+    ? (project.daysJson as DayValue[])
+    : [];
+
+  const periods = Array.isArray(project.periodsJson)
+    ? (project.periodsJson as PeriodValue[])
+    : [];
+
+  const teachingPeriods = periods.filter(
+    (period) => period.isBreak !== true,
+  );
+
+  const weeklyCapacity =
+    days.length * teachingPeriods.length;
+
+  if (!days.length) {
+    issues.push({
+      level: "ERROR",
+      code: "PROJECT_DAYS_REQUIRED",
+      message: "ÙŠØ¬Ø¨ ØªØ­Ø¯ÙŠØ¯ ÙŠÙˆÙ… Ø¯Ø±Ø§Ø³ÙŠ ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      entityId: project.id,
+    });
+  }
+
+  if (!teachingPeriods.length) {
+    issues.push({
+      level: "ERROR",
+      code: "PROJECT_PERIODS_REQUIRED",
+      message: "ÙŠØ¬Ø¨ ØªØ­Ø¯ÙŠØ¯ Ø­ØµØ© Ø¯Ø±Ø§Ø³ÙŠØ© ÙˆØ§Ø­Ø¯Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      entityId: project.id,
+    });
+  }
+
+  if (!project.teachers.some((teacher) => teacher.isActive)) {
+    issues.push({
+      level: "ERROR",
+      code: "TEACHER_REQUIRED",
+      message: "Ø£Ø¶Ù Ù…Ø¹Ù„Ù…Ù‹Ø§ ÙˆØ§Ø­Ø¯Ù‹Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      entityId: project.id,
+    });
+  }
+
+  if (!project.classes.some((classItem) => classItem.isActive)) {
+    issues.push({
+      level: "ERROR",
+      code: "CLASS_REQUIRED",
+      message: "Ø£Ø¶Ù ÙØµÙ„Ù‹Ø§ ÙˆØ§Ø­Ø¯Ù‹Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      entityId: project.id,
+    });
+  }
+
+  if (!project.subjects.some((subject) => subject.isActive)) {
+    issues.push({
+      level: "ERROR",
+      code: "SUBJECT_REQUIRED",
+      message: "Ø£Ø¶Ù Ù…Ø§Ø¯Ø© ÙˆØ§Ø­Ø¯Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      entityId: project.id,
+    });
+  }
+
+  for (const classSubject of project.classSubjects) {
+    const assignedLessons = project.assignments
+      .filter(
+        (assignment) =>
+          assignment.classId === classSubject.classId &&
+          assignment.subjectId === classSubject.subjectId,
+      )
+      .reduce(
+        (total, assignment) =>
+          total + assignment.assignedLessons,
+        0,
+      );
+
+    if (assignedLessons < classSubject.weeklyLessons) {
+      issues.push({
+        level: "ERROR",
+        code: "UNASSIGNED_SUBJECT",
+        message:
+          `Ù…Ø§Ø¯Ø© ${classSubject.subject.name} Ù„Ù„ÙØµÙ„ ` +
+          `${classSubject.class.name} ØºÙŠØ± Ù…ÙƒØªÙ…Ù„Ø© Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯: ` +
+          `${assignedLessons} Ù…Ù† ${classSubject.weeklyLessons} Ø­ØµØµ.`,
+        entityId: classSubject.id,
+      });
+    }
+
+    if (assignedLessons > classSubject.weeklyLessons) {
+      issues.push({
+        level: "ERROR",
+        code: "ASSIGNMENT_PERIODS_INVALID",
+        message:
+          `Ø¥Ø³Ù†Ø§Ø¯ Ù…Ø§Ø¯Ø© ${classSubject.subject.name} Ù„Ù„ÙØµÙ„ ` +
+          `${classSubject.class.name} Ø£ÙƒØ¨Ø± Ù…Ù† Ø¹Ø¯Ø¯ Ø­ØµØµÙ‡Ø§ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠØ©.`,
+        entityId: classSubject.id,
+      });
+    }
+  }
+
+  for (const teacher of project.teachers) {
+    if (!teacher.isActive) {
+      continue;
+    }
+
+    const assignedLessons = project.assignments
+      .filter(
+        (assignment) =>
+          assignment.teacherId === teacher.id,
+      )
+      .reduce(
+        (total, assignment) =>
+          total + assignment.assignedLessons,
+        0,
+      );
+
+    if (assignedLessons > teacher.maxWeeklyLoad) {
+      issues.push({
+        level: "ERROR",
+        code: "TEACHER_QUOTA_EXCEEDED",
+        message:
+          `Ø§Ù„Ù…Ø¹Ù„Ù… ${teacher.name} ØªØ¬Ø§ÙˆØ² Ù†ØµØ§Ø¨Ù‡ Ø¨Ù€ ` +
+          `${assignedLessons - teacher.maxWeeklyLoad} Ø­ØµØ©.`,
+        entityId: teacher.id,
+      });
+    }
+
+    const unavailableSlots = normalizeUnavailableSlots(
+      teacher.unavailableSlotsJson,
+    );
+
+    const availableSlots =
+      weeklyCapacity - unavailableSlots.length;
+
+    if (assignedLessons > availableSlots) {
+      issues.push({
+        level: "ERROR",
+        code: "TEACHER_CONSTRAINT_UNSOLVABLE",
+        message:
+          `Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù… ${teacher.name} Ù„Ø§ ØªØ³Ù…Ø­ Ø¨ØªÙˆØ²ÙŠØ¹ ` +
+          `${assignedLessons} Ø­ØµØ© Ø¶Ù…Ù† Ø§Ù„Ø£ÙˆÙ‚Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©.`,
+        entityId: teacher.id,
+      });
+    }
+  }
+
+  for (const classItem of project.classes) {
+    if (!classItem.isActive) {
+      continue;
+    }
+
+    const requiredLessons = project.classSubjects
+      .filter(
+        (classSubject) =>
+          classSubject.classId === classItem.id,
+      )
+      .reduce(
+        (total, classSubject) =>
+          total + classSubject.weeklyLessons,
+        0,
+      );
+
+    if (requiredLessons > weeklyCapacity) {
+      issues.push({
+        level: "ERROR",
+        code: "CLASS_CAPACITY_OVERFLOW",
+        message:
+          `Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø­ØµØµ Ø§Ù„ÙØµÙ„ ${classItem.name} Ù‡Ùˆ ` +
+          `${requiredLessons} Ø¨ÙŠÙ†Ù…Ø§ Ø§Ù„Ø³Ø¹Ø© Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠØ© ` +
+          `${weeklyCapacity} Ø­ØµØ©.`,
+        entityId: classItem.id,
+      });
+    }
+
+    if (
+      weeklyCapacity > 0 &&
+      requiredLessons < weeklyCapacity
+    ) {
+      issues.push({
+        level: "WARNING",
+        code: "CLASS_CAPACITY_UNDERFLOW",
+        message:
+          `Ø§Ù„ÙØµÙ„ ${classItem.name} Ù„Ø¯ÙŠÙ‡ ` +
+          `${weeklyCapacity - requiredLessons} Ø®Ø§Ù†Ø§Øª ÙØ§Ø±ØºØ© Ø£Ø³Ø¨ÙˆØ¹ÙŠÙ‹Ø§.`,
+        entityId: classItem.id,
+      });
+    }
+  }
+
+  for (const assignment of project.assignments) {
+    const calculatedLessons =
+      assignment.singlePeriods +
+      assignment.doublePeriods * 2;
+
+    if (
+      calculatedLessons !== assignment.assignedLessons
+    ) {
+      issues.push({
+        level: "ERROR",
+        code: "ASSIGNMENT_PERIODS_INVALID",
+        message:
+          `ØªÙˆØ²ÙŠØ¹ ${assignment.subject.name} Ù„Ù„ÙØµÙ„ ` +
+          `${assignment.class.name} Ù…Ø¹ Ø§Ù„Ù…Ø¹Ù„Ù… ` +
+          `${assignment.teacher.name} ØºÙŠØ± ØµØ­ÙŠØ­.`,
+        entityId: assignment.id,
+      });
+    }
+
+    if (
+      assignment.doublePeriods > 0 &&
+      teachingPeriods.length < 2
+    ) {
+      issues.push({
+        level: "ERROR",
+        code: "ASSIGNMENT_PERIODS_INVALID",
+        message:
+          `Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ù†Ø´Ø§Ø¡ Ø­ØµØ© Ù…Ø²Ø¯ÙˆØ¬Ø© Ù„Ù…Ø§Ø¯Ø© ` +
+          `${assignment.subject.name} Ù„Ø£Ù† Ø§Ù„ÙŠÙˆÙ… ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø£Ù‚Ù„ Ù…Ù† Ø­ØµØªÙŠÙ†.`,
+        entityId: assignment.id,
+      });
+    }
+  }
+
+  const errors = issues.filter(
+    (issue) => issue.level === "ERROR",
+  );
+
+  const warnings = issues.filter(
+    (issue) => issue.level === "WARNING",
+  );
+
+  return {
+    found: true as const,
+    issues,
+    summary: {
+      ready: errors.length === 0,
+      errorsCount: errors.length,
+      warningsCount: warnings.length,
+      teachersCount: project.teachers.filter(
+        (teacher) => teacher.isActive,
+      ).length,
+      classesCount: project.classes.filter(
+        (classItem) => classItem.isActive,
+      ).length,
+      subjectsCount: project.subjects.filter(
+        (subject) => subject.isActive,
+      ).length,
+      assignmentsCount: project.assignments.length,
+      weeklyCapacity,
+    },
+  };
+}
+
+function normalizeUnavailableSlots(
+  value: unknown,
+): Array<{
+  dayId: string;
+  periodId: string;
+}> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const unique = new Map<
+    string,
+    {
+      dayId: string;
+      periodId: string;
+    }
+  >();
+
+  for (const item of value) {
+    const slot = item as UnavailableSlot;
+
+    const dayId =
+      typeof slot?.dayId === "string"
+        ? slot.dayId
+        : "";
+
+    const periodId =
+      typeof slot?.periodId === "string"
+        ? slot.periodId
+        : "";
+
+    if (!dayId || !periodId) {
+      continue;
+    }
+
+    unique.set(
+      `${dayId}:${periodId}`,
+      {
+        dayId,
+        periodId,
+      },
+    );
+  }
+
+  return Array.from(unique.values());
+}
+
+
+==================== lib\timetable\timetable-data-service.ts ====================
+
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import type {
+  TimetableAssignmentInput,
+  TimetableClassInput,
+  TimetableClassSubjectInput,
+  TimetableSubjectInput,
+  TimetableTeacherInput,
+} from "@/lib/timetable/timetable-schemas";
+
+export const timetableResourceNames = [
+  "teachers",
+  "classes",
+  "subjects",
+  "class-subjects",
+  "assignments",
+] as const;
+
+export type TimetableResourceName =
+  (typeof timetableResourceNames)[number];
+
+export function isTimetableResourceName(
+  value: string,
+): value is TimetableResourceName {
+  return timetableResourceNames.includes(
+    value as TimetableResourceName,
+  );
+}
+
+export async function findScopedProject(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  return prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+      name: true,
+      academicYear: true,
+      semester: true,
+      status: true,
+      daysJson: true,
+      periodsJson: true,
+      settingsJson: true,
+    },
+  });
+}
+
+export async function getTimetableProjectData(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    include: {
+      teachers: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      classes: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      subjects: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      classSubjects: {
+        include: {
+          class: true,
+          subject: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      assignments: {
+        include: {
+          teacher: true,
+          class: true,
+          subject: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  return project;
+}
+
+export async function createTimetableTeacher(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableTeacherInput,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  return prisma.timetableTeacher.create({
+    data: {
+      projectId,
+      userId: input.userId || null,
+      name: input.name,
+      specialty: input.specialty || null,
+      maxWeeklyLoad: input.maxWeeklyLoad,
+      isActive: input.isActive,
+      unavailableSlotsJson: input.unavailableSlots,
+    },
+  });
+}
+
+export async function createTimetableClass(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableClassInput,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  return prisma.timetableClass.create({
+    data: {
+      projectId,
+      name: input.name,
+      isActive: input.isActive,
+    },
+  });
+}
+
+export async function createTimetableSubject(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableSubjectInput,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  return prisma.timetableSubject.create({
+    data: {
+      projectId,
+      name: input.name,
+      catalogKey: input.catalogKey || null,
+      isActive: input.isActive,
+    },
+  });
+}
+
+export async function createTimetableClassSubject(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableClassSubjectInput,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  const [classItem, subject] = await Promise.all([
+    prisma.timetableClass.findFirst({
+      where: {
+        id: input.classId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    }),
+    prisma.timetableSubject.findFirst({
+      where: {
+        id: input.subjectId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    }),
+  ]);
+
+  if (!classItem || !subject) {
+    throw new Error("PROJECT_RESOURCE_MISMATCH");
+  }
+
+  return prisma.timetableClassSubject.create({
+    data: {
+      projectId,
+      classId: input.classId,
+      subjectId: input.subjectId,
+      weeklyLessons: input.weeklyLessons,
+    },
+    include: {
+      class: true,
+      subject: true,
+    },
+  });
+}
+
+export async function createTimetableAssignment(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableAssignmentInput,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  const [teacher, classItem, subject, classSubject] =
+    await Promise.all([
+      prisma.timetableTeacher.findFirst({
+        where: {
+          id: input.teacherId,
+          projectId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.timetableClass.findFirst({
+        where: {
+          id: input.classId,
+          projectId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.timetableSubject.findFirst({
+        where: {
+          id: input.subjectId,
+          projectId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.timetableClassSubject.findFirst({
+        where: {
+          projectId,
+          classId: input.classId,
+          subjectId: input.subjectId,
+        },
+        select: {
+          id: true,
+          weeklyLessons: true,
+        },
+      }),
+    ]);
+
+  if (!teacher || !classItem || !subject || !classSubject) {
+    throw new Error("PROJECT_RESOURCE_MISMATCH");
+  }
+
+  if (input.assignedLessons > classSubject.weeklyLessons) {
+    throw new Error("ASSIGNED_LESSONS_OVERFLOW");
+  }
+
+  return prisma.timetableAssignment.create({
+    data: {
+      projectId,
+      teacherId: input.teacherId,
+      classId: input.classId,
+      subjectId: input.subjectId,
+      assignedLessons: input.assignedLessons,
+      singlePeriods: input.singlePeriods,
+      doublePeriods: input.doublePeriods,
+      fixedSlotsJson: input.fixedSlots,
+    },
+    include: {
+      teacher: true,
+      class: true,
+      subject: true,
+    },
+  });
+}
+
+export async function deleteTimetableResource(
+  projectId: string,
+  schoolAccountId: string,
+  resource: TimetableResourceName,
+  id: string,
+) {
+  await assertScopedProject(projectId, schoolAccountId);
+
+  if (resource === "teachers") {
+    return prisma.timetableTeacher.deleteMany({
+      where: {
+        id,
+        projectId,
+      },
+    });
+  }
+
+  if (resource === "classes") {
+    return prisma.timetableClass.deleteMany({
+      where: {
+        id,
+        projectId,
+      },
+    });
+  }
+
+  if (resource === "subjects") {
+    return prisma.timetableSubject.deleteMany({
+      where: {
+        id,
+        projectId,
+      },
+    });
+  }
+
+  if (resource === "class-subjects") {
+    return prisma.timetableClassSubject.deleteMany({
+      where: {
+        id,
+        projectId,
+      },
+    });
+  }
+
+  return prisma.timetableAssignment.deleteMany({
+    where: {
+      id,
+      projectId,
+    },
+  });
+}
+
+async function assertScopedProject(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!project) {
+    throw new Error("PROJECT_NOT_FOUND");
+  }
+}
+export async function updateTeacherUnavailableSlots(
+  projectId: string,
+  schoolAccountId: string,
+  teacherId: string,
+  unavailableSlots: Array<{
+    dayId: string;
+    periodId: string;
+  }>,
+) {
+  const project = await prisma.timetableProject.findFirst({
+    where: {
+      id: projectId,
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+      daysJson: true,
+      periodsJson: true,
+    },
+  });
+
+  if (!project) {
+    throw new Error("PROJECT_NOT_FOUND");
+  }
+
+  const teacher = await prisma.timetableTeacher.findFirst({
+    where: {
+      id: teacherId,
+      projectId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!teacher) {
+    throw new Error("TEACHER_NOT_FOUND");
+  }
+
+  const days = Array.isArray(project.daysJson)
+    ? (project.daysJson as Array<{ id?: unknown }>)
+    : [];
+
+  const periods = Array.isArray(project.periodsJson)
+    ? (project.periodsJson as Array<{
+        id?: unknown;
+        isBreak?: unknown;
+      }>)
+    : [];
+
+  const validDayIds = new Set(
+    days
+      .map((day) =>
+        typeof day.id === "string" ? day.id : "",
+      )
+      .filter(Boolean),
+  );
+
+  const validPeriodIds = new Set(
+    periods
+      .filter((period) => period.isBreak !== true)
+      .map((period) =>
+        typeof period.id === "string" ? period.id : "",
+      )
+      .filter(Boolean),
+  );
+
+  const uniqueSlots = new Map<
+    string,
+    {
+      dayId: string;
+      periodId: string;
+    }
+  >();
+
+  for (const slot of unavailableSlots) {
+    if (
+      !validDayIds.has(slot.dayId) ||
+      !validPeriodIds.has(slot.periodId)
+    ) {
+      throw new Error("INVALID_SLOT");
+    }
+
+    uniqueSlots.set(
+      `${slot.dayId}:${slot.periodId}`,
+      slot,
+    );
+  }
+
+  return prisma.timetableTeacher.update({
+    where: {
+      id: teacherId,
+    },
+    data: {
+      unavailableSlotsJson: Array.from(
+        uniqueSlots.values(),
+      ),
+    },
+  });
+}
+
+
+
+==================== lib\timetable\timetable-schemas.ts ====================
+
+import { z } from "zod";
+
+const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export const timetableDayIdSchema = z.enum([
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+]);
+
+export const timetableDaySchema = z.object({
+  id: timetableDayIdSchema,
+  label: z.string().trim().min(1, "Ø§Ø³Ù… Ø§Ù„ÙŠÙˆÙ… Ù…Ø·Ù„ÙˆØ¨.").max(30),
+  order: z.number().int().min(0).max(6),
+});
+
+export const timetablePeriodSchema = z
+  .object({
+    id: z.string().trim().min(1).max(60),
+    label: z.string().trim().min(1, "Ø§Ø³Ù… Ø§Ù„Ø­ØµØ© Ù…Ø·Ù„ÙˆØ¨.").max(60),
+    order: z.number().int().min(0).max(30),
+    startTime: z
+      .string()
+      .regex(timePattern, "ÙˆÙ‚Øª Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ø­ØµØ© ØºÙŠØ± ØµØ§Ù„Ø­."),
+    endTime: z
+      .string()
+      .regex(timePattern, "ÙˆÙ‚Øª Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø­ØµØ© ØºÙŠØ± ØµØ§Ù„Ø­."),
+    isBreak: z.boolean().default(false),
+  })
+  .superRefine((value, context) => {
+    const start = timeToMinutes(value.startTime);
+    const end = timeToMinutes(value.endTime);
+
+    if (end <= start) {
+      context.addIssue({
+        code: "custom",
+        path: ["endTime"],
+        message: "ÙˆÙ‚Øª Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø­ØµØ© ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø¨Ø¹Ø¯ ÙˆÙ‚Øª Ø§Ù„Ø¨Ø¯Ø§ÙŠØ©.",
+      });
+    }
+  });
+
+export const timetableProjectSettingsSchema = z.object({
+  startTime: z
+    .string()
+    .regex(timePattern, "ÙˆÙ‚Øª Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ø¯ÙˆØ§Ù… ØºÙŠØ± ØµØ§Ù„Ø­."),
+  lessonDurationMinutes: z
+    .number()
+    .int()
+    .min(20, "Ù…Ø¯Ø© Ø§Ù„Ø­ØµØ© Ù„Ø§ ØªÙ‚Ù„ Ø¹Ù† 20 Ø¯Ù‚ÙŠÙ‚Ø©.")
+    .max(120, "Ù…Ø¯Ø© Ø§Ù„Ø­ØµØ© Ù„Ø§ ØªØ²ÙŠØ¯ Ø¹Ù† 120 Ø¯Ù‚ÙŠÙ‚Ø©."),
+  breakAfterPeriod: z
+    .number()
+    .int()
+    .min(0)
+    .max(12),
+  breakDurationMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(60),
+});
+
+export const timetableProjectInputSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Ø§Ø³Ù… Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ù…Ø·Ù„ÙˆØ¨.")
+      .max(120),
+    academicYear: z
+      .string()
+      .trim()
+      .min(1, "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ù…Ø·Ù„ÙˆØ¨.")
+      .max(30),
+    semester: z
+      .string()
+      .trim()
+      .min(1, "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ù…Ø·Ù„ÙˆØ¨.")
+      .max(50),
+    days: z
+      .array(timetableDaySchema)
+      .min(1, "Ø§Ø®ØªØ± ÙŠÙˆÙ…Ù‹Ø§ Ø¯Ø±Ø§Ø³ÙŠÙ‹Ø§ ÙˆØ§Ø­Ø¯Ù‹Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.")
+      .max(7),
+    periods: z
+      .array(timetablePeriodSchema)
+      .min(1, "Ø£Ø¶Ù Ø­ØµØ© Ø¯Ø±Ø§Ø³ÙŠØ© ÙˆØ§Ø­Ø¯Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.")
+      .max(20),
+    settings: timetableProjectSettingsSchema,
+  })
+  .superRefine((value, context) => {
+    const dayIds = new Set<string>();
+    const periodIds = new Set<string>();
+
+    for (const day of value.days) {
+      if (dayIds.has(day.id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["days"],
+          message: "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªÙƒØ±Ø§Ø± Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ.",
+        });
+      }
+
+      dayIds.add(day.id);
+    }
+
+    for (const period of value.periods) {
+      if (periodIds.has(period.id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["periods"],
+          message: "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªÙƒØ±Ø§Ø± Ù…Ø¹Ø±Ù Ø§Ù„Ø­ØµØ©.",
+        });
+      }
+
+      periodIds.add(period.id);
+    }
+
+    const teachingPeriods = value.periods.filter(
+      (period) => !period.isBreak,
+    );
+
+    if (teachingPeriods.length < 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["periods"],
+        message: "ÙŠØ¬Ø¨ ÙˆØ¬ÙˆØ¯ Ø­ØµØ© Ø¯Ø±Ø§Ø³ÙŠØ© ÙˆØ§Ø­Ø¯Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      });
+    }
+
+    if (
+      value.settings.breakAfterPeriod >
+      teachingPeriods.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["settings", "breakAfterPeriod"],
+        message: "Ù…ÙˆØ¶Ø¹ Ø§Ù„ÙØ³Ø­Ø© Ø£ÙƒØ¨Ø± Ù…Ù† Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ.",
+      });
+    }
+  });
+
+export const timetableTeacherInputSchema = z.object({
+  userId: z.string().trim().min(1).nullable().optional(),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Ø§Ø³Ù… Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ø·Ù„ÙˆØ¨.")
+    .max(120),
+  specialty: z
+    .string()
+    .trim()
+    .max(120)
+    .nullable()
+    .optional(),
+  maxWeeklyLoad: z
+    .number()
+    .int()
+    .min(1, "Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ Ù„Ø§ ÙŠÙ‚Ù„ Ø¹Ù† Ø­ØµØ© ÙˆØ§Ø­Ø¯Ø©.")
+    .max(40, "Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ ØºÙŠØ± ØµØ§Ù„Ø­."),
+  isActive: z.boolean().default(true),
+  unavailableSlots: z
+    .array(
+      z.object({
+        dayId: timetableDayIdSchema,
+        periodId: z.string().trim().min(1).max(60),
+      }),
+    )
+    .max(100)
+    .default([]),
+});
+
+export const timetableClassInputSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Ø§Ø³Ù… Ø§Ù„ÙØµÙ„ Ù…Ø·Ù„ÙˆØ¨.")
+    .max(100),
+  isActive: z.boolean().default(true),
+});
+
+export const timetableSubjectInputSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Ø§Ø³Ù… Ø§Ù„Ù…Ø§Ø¯Ø© Ù…Ø·Ù„ÙˆØ¨.")
+    .max(100),
+  catalogKey: z
+    .string()
+    .trim()
+    .max(100)
+    .nullable()
+    .optional(),
+  isActive: z.boolean().default(true),
+});
+
+export const timetableClassSubjectInputSchema = z.object({
+  classId: z.string().trim().min(1, "Ø§Ù„ÙØµÙ„ Ù…Ø·Ù„ÙˆØ¨."),
+  subjectId: z.string().trim().min(1, "Ø§Ù„Ù…Ø§Ø¯Ø© Ù…Ø·Ù„ÙˆØ¨Ø©."),
+  weeklyLessons: z
+    .number()
+    .int()
+    .min(1, "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ù„Ø§ ÙŠÙ‚Ù„ Ø¹Ù† Ø­ØµØ© ÙˆØ§Ø­Ø¯Ø©.")
+    .max(20, "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠØ© ØºÙŠØ± ØµØ§Ù„Ø­."),
+});
+
+export const timetableAssignmentInputSchema = z
+  .object({
+    teacherId: z.string().trim().min(1, "Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ø·Ù„ÙˆØ¨."),
+    classId: z.string().trim().min(1, "Ø§Ù„ÙØµÙ„ Ù…Ø·Ù„ÙˆØ¨."),
+    subjectId: z.string().trim().min(1, "Ø§Ù„Ù…Ø§Ø¯Ø© Ù…Ø·Ù„ÙˆØ¨Ø©."),
+    assignedLessons: z
+      .number()
+      .int()
+      .min(1, "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø³Ù†Ø¯Ø© Ù…Ø·Ù„ÙˆØ¨.")
+      .max(20),
+    singlePeriods: z.number().int().min(0).max(20),
+    doublePeriods: z.number().int().min(0).max(10),
+    fixedSlots: z
+      .array(
+        z.object({
+          dayId: timetableDayIdSchema,
+          periodId: z.string().trim().min(1).max(60),
+          isLocked: z.boolean().default(true),
+        }),
+      )
+      .max(20)
+      .default([]),
+  })
+  .superRefine((value, context) => {
+    const calculatedLessons =
+      value.singlePeriods + value.doublePeriods * 2;
+
+    if (calculatedLessons !== value.assignedLessons) {
+      context.addIssue({
+        code: "custom",
+        path: ["assignedLessons"],
+        message:
+          "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­ØµØµ ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ³Ø§ÙˆÙŠ Ø§Ù„ÙØ±Ø¯ÙŠØ© + Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø²Ø¯ÙˆØ¬Ø© Ã— 2.",
+      });
+    }
+
+    if (value.fixedSlots.length > value.assignedLessons) {
+      context.addIssue({
+        code: "custom",
+        path: ["fixedSlots"],
+        message:
+          "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø«Ø¨ØªØ© Ø£ÙƒØ¨Ø± Ù…Ù† Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø³Ù†Ø¯Ø©.",
+      });
+    }
+  });
+
+export type TimetableProjectInput = z.infer<
+  typeof timetableProjectInputSchema
+>;
+
+export type TimetableTeacherInput = z.infer<
+  typeof timetableTeacherInputSchema
+>;
+
+export type TimetableClassInput = z.infer<
+  typeof timetableClassInputSchema
+>;
+
+export type TimetableSubjectInput = z.infer<
+  typeof timetableSubjectInputSchema
+>;
+
+export type TimetableClassSubjectInput = z.infer<
+  typeof timetableClassSubjectInputSchema
+>;
+
+export type TimetableAssignmentInput = z.infer<
+  typeof timetableAssignmentInputSchema
+>;
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+export const timetableTeacherUnavailableSlotsInputSchema = z.object({
+  teacherId: z.string().trim().min(1, "Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ø·Ù„ÙˆØ¨."),
+  unavailableSlots: z
+    .array(
+      z.object({
+        dayId: timetableDayIdSchema,
+        periodId: z.string().trim().min(1).max(60),
+      }),
+    )
+    .max(100, "Ø¹Ø¯Ø¯ Ø§Ù„Ù‚ÙŠÙˆØ¯ Ø£ÙƒØ¨Ø± Ù…Ù† Ø§Ù„Ù…Ø³Ù…ÙˆØ­."),
+});
+
+export type TimetableTeacherUnavailableSlotsInput = z.infer<
+  typeof timetableTeacherUnavailableSlotsInputSchema
+>;
+
+
+==================== components\timetable\timetable-teacher-constraints.tsx ====================
+
+"use client";
+
+import { useMemo, useState } from "react";
+
+type Day = {
+  id: string;
+  label: string;
+};
+
+type Period = {
+  id: string;
+  label: string;
+  isBreak?: boolean;
+};
+
+type Slot = {
+  dayId: string;
+  periodId: string;
+};
+
+type Teacher = {
+  id: string;
+  name: string;
+  unavailableSlotsJson?: unknown;
+};
+
+export function TimetableTeacherConstraints({
+  projectId,
+  teachers,
+  days,
+  periods,
+  onSaved,
+}: {
+  projectId: string;
+  teachers: Teacher[];
+  days: Day[];
+  periods: Period[];
+  onSaved: () => Promise<void>;
+}) {
+  const teachingPeriods = useMemo(
+    () => periods.filter((period) => !period.isBreak),
+    [periods],
+  );
+
+  const [teacherId, setTeacherId] = useState(
+    teachers[0]?.id || "",
+  );
+  const [dayId, setDayId] = useState(days[0]?.id || "");
+  const [periodId, setPeriodId] = useState(
+    teachingPeriods[0]?.id || "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const selectedTeacher = teachers.find(
+    (teacher) => teacher.id === teacherId,
+  );
+
+  const slots = normalizeSlots(
+    selectedTeacher?.unavailableSlotsJson,
+  );
+
+  async function saveSlots(nextSlots: Slot[]) {
+    if (!teacherId) {
+      setMessage("Ø§Ø®ØªØ± Ø§Ù„Ù…Ø¹Ù„Ù….");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    const response = await fetch(
+      `/api/dashboard/principal/timetable/projects/${projectId}/teacher-unavailability`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          teacherId,
+          unavailableSlots: nextSlots,
+        }),
+      },
+    );
+
+    const result = await response.json();
+    setBusy(false);
+
+    if (!response.ok) {
+      setMessage(
+        result.error || "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù….",
+      );
+      return;
+    }
+
+    await onSaved();
+    setMessage("ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù‚ÙŠÙˆØ¯.");
+  }
+
+  async function addSlot() {
+    if (!teacherId || !dayId || !periodId) {
+      setMessage("Ø§Ø®ØªØ± Ø§Ù„Ù…Ø¹Ù„Ù… ÙˆØ§Ù„ÙŠÙˆÙ… ÙˆØ§Ù„Ø­ØµØ©.");
+      return;
+    }
+
+    const exists = slots.some(
+      (slot) =>
+        slot.dayId === dayId &&
+        slot.periodId === periodId,
+    );
+
+    if (exists) {
+      setMessage("Ù‡Ø°Ø§ Ø§Ù„ÙˆÙ‚Øª Ù…Ø³Ø¬Ù„ Ù…Ø³Ø¨Ù‚Ù‹Ø§.");
+      return;
+    }
+
+    await saveSlots([
+      ...slots,
+      {
+        dayId,
+        periodId,
+      },
+    ]);
+  }
+
+  async function removeSlot(slotToRemove: Slot) {
+    await saveSlots(
+      slots.filter(
+        (slot) =>
+          !(
+            slot.dayId === slotToRemove.dayId &&
+            slot.periodId === slotToRemove.periodId
+          ),
+      ),
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-lg font-black text-slate-950">
+        Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†
+      </h2>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Ø­Ø¯Ø¯ Ø§Ù„Ø£ÙˆÙ‚Ø§Øª Ø§Ù„ØªÙŠ Ù„Ø§ ÙŠØ³ØªØ·ÙŠØ¹ Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„ØªØ¯Ø±ÙŠØ³ ÙÙŠÙ‡Ø§.
+      </p>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <Select
+          label="Ø§Ù„Ù…Ø¹Ù„Ù…"
+          value={teacherId}
+          onChange={setTeacherId}
+          options={teachers.map((teacher) => ({
+            value: teacher.id,
+            label: teacher.name,
+          }))}
+        />
+
+        <Select
+          label="Ø§Ù„ÙŠÙˆÙ…"
+          value={dayId}
+          onChange={setDayId}
+          options={days.map((day) => ({
+            value: day.id,
+            label: day.label,
+          }))}
+        />
+
+        <Select
+          label="Ø§Ù„Ø­ØµØ©"
+          value={periodId}
+          onChange={setPeriodId}
+          options={teachingPeriods.map((period) => ({
+            value: period.id,
+            label: period.label,
+          }))}
+        />
+
+        <button
+          type="button"
+          disabled={
+            busy ||
+            !teacherId ||
+            !dayId ||
+            !periodId
+          }
+          onClick={() => void addSlot()}
+          className="self-end rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+        >
+          {busy ? "Ø¬Ø§Ø±Ù Ø§Ù„Ø­ÙØ¸..." : "Ø¥Ø¶Ø§ÙØ© Ø¹Ø¯Ù… ØªÙˆÙØ±"}
+        </button>
+      </div>
+
+      {message ? (
+        <p className="mt-4 text-sm font-bold text-sky-700">
+          {message}
+        </p>
+      ) : null}
+
+      {!teacherId ? (
+        <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+          Ø£Ø¶Ù Ù…Ø¹Ù„Ù…Ù‹Ø§ Ø£ÙˆÙ„Ù‹Ø§.
+        </p>
+      ) : !slots.length ? (
+        <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+          Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙˆØ¯ Ù„Ù‡Ø°Ø§ Ø§Ù„Ù…Ø¹Ù„Ù….
+        </p>
+      ) : (
+        <div className="mt-5 space-y-2">
+          {slots.map((slot) => {
+            const day = days.find(
+              (item) => item.id === slot.dayId,
+            );
+
+            const period = teachingPeriods.find(
+              (item) => item.id === slot.periodId,
+            );
+
+            return (
+              <div
+                key={`${slot.dayId}:${slot.periodId}`}
+                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
+              >
+                <div>
+                  <p className="font-black text-slate-900">
+                    {selectedTeacher?.name}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    {day?.label || slot.dayId} â€”{" "}
+                    {period?.label || slot.periodId}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void removeSlot(slot)
+                  }
+                  className="text-sm font-black text-rose-600 disabled:opacity-40"
+                >
+                  Ø­Ø°Ù
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function normalizeSlots(value: unknown): Slot[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("dayId" in item) ||
+      !("periodId" in item)
+    ) {
+      return [];
+    }
+
+    const dayId = String(item.dayId || "");
+    const periodId = String(item.periodId || "");
+
+    if (!dayId || !periodId) {
+      return [];
+    }
+
+    return [
+      {
+        dayId,
+        periodId,
+      },
+    ];
+  });
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-bold">
+      <span>{label}</span>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        className="rounded-xl border border-slate-200 px-3 py-2.5"
+      >
+        <option value="">Ø§Ø®ØªØ±</option>
+
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+
+==================== components\timetable\timetable-data-editor.tsx ====================
+
+"use client";
+
+import { useState } from "react";
+import {
+  SAUDI_SCHOOL_GRADES,
+  SAUDI_SCHOOL_SECTIONS,
+  getSaudiSchoolGrade,
+} from "@/lib/timetable/catalog/saudi-school-grades";
+import { getSubjectsForGrade } from "@/lib/timetable/catalog/saudi-school-subjects";
+import { TimetableTeacherConstraints } from "./timetable-teacher-constraints";
+import { TimetableValidationPanel } from "./timetable-validation-panel";
+import { TimetableGenerationPanel } from "./timetable-generation-panel";
+
+type Teacher = {
+  id: string;
+  name: string;
+  specialty?: string | null;
+  maxWeeklyLoad: number;
+  unavailableSlotsJson?: unknown;
+};
+
+type ClassItem = {
+  id: string;
+  name: string;
+};
+
+type Subject = {
+  id: string;
+  name: string;
+  catalogKey?: string | null;
+};
+
+type ClassSubject = {
+  id: string;
+  classId: string;
+  subjectId: string;
+  weeklyLessons: number;
+  class: ClassItem;
+  subject: Subject;
+};
+
+type Assignment = {
+  id: string;
+  assignedLessons: number;
+  singlePeriods: number;
+  doublePeriods: number;
+  teacher: Teacher;
+  class: ClassItem;
+  subject: Subject;
+};
+
+type ProjectData = {
+  id: string;
+  name: string;
+  academicYear: string;
+  semester: string;
+  daysJson: unknown;
+  periodsJson: unknown;
+  teachers: Teacher[];
+  classes: ClassItem[];
+  subjects: Subject[];
+  classSubjects: ClassSubject[];
+  assignments: Assignment[];
+};
+
+const tabs = [
+  "Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ†",
+  "Ø§Ù„ÙØµÙˆÙ„",
+  "Ø§Ù„Ù…ÙˆØ§Ø¯",
+  "Ù…ÙˆØ§Ø¯ Ø§Ù„ÙØµÙˆÙ„",
+  "Ø§Ù„Ø¹Ù„Ø§Ù‚Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³ÙŠØ©",
+  "Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†",
+  "ÙØ­Øµ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª",
+  "Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„",
+] as const;
+
+export function TimetableDataEditor({
+  initialProject,
+}: {
+  initialProject: ProjectData;
+}) {
+  const [project, setProject] = useState(initialProject);
+  const [tab, setTab] =
+    useState<(typeof tabs)[number]>("Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ†");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function reload() {
+    const response = await fetch(
+      `/api/dashboard/principal/timetable/projects/${project.id}/data`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      setProject(result.project);
+    }
+  }
+
+  async function create(
+    resource: string,
+    data: Record<string, unknown>,
+  ) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/principal/timetable/projects/${project.id}/resources`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resource,
+            data,
+          }),
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(result.error || "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.");
+        return false;
+      }
+
+      await reload();
+      setMessage("ØªÙ… Ø­ÙØ¸ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.");
+      return true;
+    } catch {
+      setMessage("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù…. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(resource: string, id: string) {
+    setBusy(true);
+    setMessage("");
+
+    const response = await fetch(
+      `/api/dashboard/principal/timetable/projects/${project.id}/resources?resource=${resource}&id=${id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    const result = await response.json();
+    setBusy(false);
+
+    if (!response.ok) {
+      setMessage(result.error || "ØªØ¹Ø°Ø± Ø§Ù„Ø­Ø°Ù.");
+      return;
+    }
+
+    await reload();
+    setMessage("ØªÙ… Ø§Ù„Ø­Ø°Ù.");
+  }
+
+  return (
+    <main className="space-y-5" dir="rtl">
+      <header className="rounded-3xl border border-slate-200 bg-white p-5">
+        <a
+          href="/dashboard/principal/timetable"
+          className="text-sm font-black text-sky-700"
+        >
+          Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ Ø§Ù„Ø¬Ø¯Ø§ÙˆÙ„
+        </a>
+
+        <h1 className="mt-3 text-2xl font-black text-slate-950">
+          {project.name}
+        </h1>
+
+        <p className="mt-1 text-sm text-slate-500">
+          {project.academicYear} â€” {project.semester}
+        </p>
+      </header>
+
+      <nav className="flex flex-wrap gap-2">
+        {tabs.map((item) => (
+          <button
+            type="button"
+            key={item}
+            onClick={() => {
+              setTab(item);
+              setMessage("");
+            }}
+            className={[
+              "rounded-xl px-4 py-2 text-sm font-black",
+              tab === item
+                ? "bg-sky-700 text-white"
+                : "border border-slate-200 bg-white text-slate-600",
+            ].join(" ")}
+          >
+            {item}
+          </button>
+        ))}
+      </nav>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        {tab === "Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ†" ? (
+          <TeachersPanel
+            items={project.teachers}
+            busy={busy}
+            create={create}
+            remove={remove}
+          />
+        ) : null}
+
+        {tab === "Ø§Ù„ÙØµÙˆÙ„" ? (
+          <ClassesPanel
+            items={project.classes}
+            busy={busy}
+            create={create}
+            remove={remove}
+          />
+        ) : null}
+
+        {tab === "Ø§Ù„Ù…ÙˆØ§Ø¯" ? (
+          <SubjectsPanel
+            items={project.subjects}
+            busy={busy}
+            create={create}
+            remove={remove}
+          />
+        ) : null}
+
+        {tab === "Ù…ÙˆØ§Ø¯ Ø§Ù„ÙØµÙˆÙ„" ? (
+          <ClassSubjectsPanel
+            items={project.classSubjects}
+            classes={project.classes}
+            subjects={project.subjects}
+            busy={busy}
+            create={create}
+            remove={remove}
+          />
+        ) : null}
+
+        {tab === "Ø§Ù„Ø¹Ù„Ø§Ù‚Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³ÙŠØ©" ? (
+          <AssignmentsPanel
+            items={project.assignments}
+            teachers={project.teachers}
+            classSubjects={project.classSubjects}
+            busy={busy}
+            create={create}
+            remove={remove}
+          />
+        ) : null}
+
+        {tab === "Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†" ? (
+          <TimetableTeacherConstraints
+            projectId={project.id}
+            teachers={project.teachers}
+            days={normalizeDays(project.daysJson)}
+            periods={normalizePeriods(project.periodsJson)}
+            onSaved={reload}
+          />
+        ) : null}
+
+        {tab === "ÙØ­Øµ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª" ? (
+          <TimetableValidationPanel
+            projectId={project.id}
+          />
+        ) : null}
+
+        {tab === "Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„" ? (
+          <TimetableGenerationPanel
+            projectId={project.id}
+            days={normalizeDays(project.daysJson)}
+            periods={normalizePeriods(project.periodsJson)}
+            classes={project.classes}
+            teachers={project.teachers}
+          />
+        ) : null}
+
+        {message ? (
+          <p className="mt-4 text-sm font-bold text-sky-700">
+            {message}
+          </p>
+        ) : null}
+      </section>
+    </main>
+  );
+}
+
+function TeachersPanel({
+  items,
+  busy,
+  create,
+  remove,
+}: {
+  items: Teacher[];
+  busy: boolean;
+  create: (
+    resource: string,
+    data: Record<string, unknown>,
+  ) => Promise<boolean>;
+  remove: (resource: string, id: string) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [maxWeeklyLoad, setMaxWeeklyLoad] = useState(24);
+
+  async function submit() {
+    const success = await create("teachers", {
+      name,
+      specialty: specialty || null,
+      maxWeeklyLoad,
+      isActive: true,
+      unavailableSlots: [],
+    });
+
+    if (success) {
+      setName("");
+      setSpecialty("");
+      setMaxWeeklyLoad(24);
+    }
+  }
+
+  return (
+    <Panel title="Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ†">
+      <div className="grid gap-3 md:grid-cols-4">
+        <Input
+          label="Ø§Ø³Ù… Ø§Ù„Ù…Ø¹Ù„Ù…"
+          value={name}
+          onChange={setName}
+        />
+
+        <Input
+          label="Ø§Ù„ØªØ®ØµØµ"
+          value={specialty}
+          onChange={setSpecialty}
+        />
+
+        <NumberInput
+          label="Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ"
+          value={maxWeeklyLoad}
+          onChange={setMaxWeeklyLoad}
+        />
+
+        <SaveButton
+          busy={busy}
+          disabled={!name.trim()}
+          onClick={submit}
+        />
+      </div>
+
+      <SimpleList
+        items={items.map((item) => ({
+          id: item.id,
+          title: item.name,
+          subtitle: `${item.specialty || "Ø¨Ø¯ÙˆÙ† ØªØ®ØµØµ"} â€” Ø§Ù„Ù†ØµØ§Ø¨ ${item.maxWeeklyLoad}`,
+        }))}
+        onRemove={(id) => remove("teachers", id)}
+      />
+    </Panel>
+  );
+}
+
+function ClassesPanel({
+  items,
+  busy,
+  create,
+  remove,
+}: {
+  items: ClassItem[];
+  busy: boolean;
+  create: (
+    resource: string,
+    data: Record<string, unknown>,
+  ) => Promise<boolean>;
+  remove: (resource: string, id: string) => Promise<void>;
+}) {
+  const [gradeKey, setGradeKey] = useState(
+    SAUDI_SCHOOL_GRADES[0]?.key || "",
+  );
+  const [section, setSection] = useState<string>(
+    SAUDI_SCHOOL_SECTIONS[0],
+  );
+
+  const grade = getSaudiSchoolGrade(gradeKey);
+  const generatedName = grade
+    ? `${grade.label} - ${section}`
+    : "";
+  const isDuplicate = items.some(
+    (item) => item.name.trim() === generatedName,
+  );
+
+  async function submit() {
+    if (!generatedName || isDuplicate) {
+      return;
+    }
+
+    const success = await create("classes", {
+      name: generatedName,
+      isActive: true,
+    });
+
+    if (success) {
+      setSection(SAUDI_SCHOOL_SECTIONS[0]);
+    }
+  }
+
+  return (
+    <Panel title="Ø§Ù„ÙØµÙˆÙ„">
+      <div className="grid gap-3 md:grid-cols-3">
+        <Select
+          label="Ø§Ù„ØµÙ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ"
+          value={gradeKey}
+          onChange={setGradeKey}
+          options={SAUDI_SCHOOL_GRADES.map((item) => ({
+            value: item.key,
+            label: item.label,
+          }))}
+        />
+
+        <Select
+          label="Ø§Ù„Ø´Ø¹Ø¨Ø©"
+          value={section}
+          onChange={setSection}
+          options={SAUDI_SCHOOL_SECTIONS.map((item) => ({
+            value: item,
+            label: item,
+          }))}
+        />
+
+        <SaveButton
+          busy={busy}
+          disabled={!generatedName || isDuplicate}
+          onClick={submit}
+        />
+      </div>
+
+      {isDuplicate ? (
+        <p className="mt-3 text-sm font-bold text-amber-700">
+          Ù‡Ø°Ø§ Ø§Ù„ØµÙ ÙˆØ§Ù„Ø´Ø¹Ø¨Ø© Ù…Ø¶Ø§ÙØ§Ù† Ù…Ø³Ø¨Ù‚Ù‹Ø§.
+        </p>
+      ) : null}
+
+      <SimpleList
+        items={items.map((item) => ({
+          id: item.id,
+          title: item.name,
+        }))}
+        onRemove={(id) => remove("classes", id)}
+      />
+    </Panel>
+  );
+}
+
+function SubjectsPanel({
+  items,
+  busy,
+  create,
+  remove,
+}: {
+  items: Subject[];
+  busy: boolean;
+  create: (
+    resource: string,
+    data: Record<string, unknown>,
+  ) => Promise<boolean>;
+  remove: (resource: string, id: string) => Promise<void>;
+}) {
+  const [gradeKey, setGradeKey] = useState(
+    SAUDI_SCHOOL_GRADES[0]?.key || "",
+  );
+  const [query, setQuery] = useState("");
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [customName, setCustomName] = useState("");
+
+  const availableSubjects = getSubjectsForGrade(gradeKey).filter(
+    (item) =>
+      !query.trim() ||
+      item.name.includes(query.trim()),
+  );
+
+  function toggleSubject(catalogKey: string) {
+    setSelectedKeys((current) =>
+      current.includes(catalogKey)
+        ? current.filter((key) => key !== catalogKey)
+        : [...current, catalogKey],
+    );
+  }
+
+  async function submit() {
+    const catalogSubjects = getSubjectsForGrade(gradeKey).filter(
+      (item) => selectedKeys.includes(item.catalogKey),
+    );
+    const customSubjectName = customName.trim();
+    const additions = [
+      ...catalogSubjects.map((item) => ({
+        name: item.name,
+        catalogKey: item.catalogKey,
+      })),
+      ...(customSubjectName
+        ? [{ name: customSubjectName, catalogKey: null }]
+        : []),
+    ].filter(
+      (item) =>
+        !items.some(
+          (existing) =>
+            existing.name.trim() === item.name ||
+            (item.catalogKey &&
+              existing.catalogKey === item.catalogKey),
+        ),
+    );
+
+    for (const item of additions) {
+      const success = await create("subjects", {
+        ...item,
+        isActive: true,
+      });
+
+      if (!success) {
+        return;
+      }
+    }
+
+    setSelectedKeys([]);
+    setCustomName("");
+  }
+
+  return (
+    <Panel title="Ø§Ù„Ù…ÙˆØ§Ø¯">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Select
+          label="Ø§Ù„ØµÙ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ"
+          value={gradeKey}
+          onChange={(value) => {
+            setGradeKey(value);
+            setSelectedKeys([]);
+          }}
+          options={SAUDI_SCHOOL_GRADES.map((item) => ({
+            value: item.key,
+            label: item.label,
+          }))}
+        />
+
+        <Input
+          label="Ø§Ù„Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù…ÙˆØ§Ø¯"
+          value={query}
+          onChange={setQuery}
+          placeholder="Ø§Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ù…Ø§Ø¯Ø©"
+        />
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {availableSubjects.map((item) => {
+          const alreadyAdded = items.some(
+            (existing) =>
+              existing.catalogKey === item.catalogKey ||
+              existing.name.trim() === item.name,
+          );
+          const checked = selectedKeys.includes(item.catalogKey);
+
+          return (
+            <label
+              key={item.catalogKey}
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
+            >
+              <input
+                type="checkbox"
+                checked={checked || alreadyAdded}
+                disabled={alreadyAdded || busy}
+                onChange={() => toggleSubject(item.catalogKey)}
+              />
+              <span>{item.name}</span>
+              {alreadyAdded ? (
+                <span className="mr-auto text-xs text-slate-400">
+                  Ù…Ø¶Ø§ÙØ©
+                </span>
+              ) : null}
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Input
+          label="Ù…Ø§Ø¯Ø© Ù…Ø®ØµØµØ© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)"
+          value={customName}
+          onChange={setCustomName}
+          placeholder="Ø§ÙƒØªØ¨ Ø§Ø³Ù… Ø§Ù„Ù…Ø§Ø¯Ø© ØºÙŠØ± Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"
+        />
+
+        <SaveButton
+          busy={busy}
+          disabled={!selectedKeys.length && !customName.trim()}
+          onClick={submit}
+        />
+      </div>
+
+      <SimpleList
+        items={items.map((item) => ({
+          id: item.id,
+          title: item.name,
+        }))}
+        onRemove={(id) => remove("subjects", id)}
+      />
+    </Panel>
+  );
+}
+
+function ClassSubjectsPanel({
+  items,
+  classes,
+  subjects,
+  busy,
+  create,
+  remove,
+}: {
+  items: ClassSubject[];
+  classes: ClassItem[];
+  subjects: Subject[];
+  busy: boolean;
+  create: (
+    resource: string,
+    data: Record<string, unknown>,
+  ) => Promise<boolean>;
+  remove: (resource: string, id: string) => Promise<void>;
+}) {
+  const [classId, setClassId] = useState(classes[0]?.id || "");
+  const [subjectId, setSubjectId] =
+    useState(subjects[0]?.id || "");
+  const [weeklyLessons, setWeeklyLessons] = useState(1);
+
+  async function submit() {
+    await create("class-subjects", {
+      classId,
+      subjectId,
+      weeklyLessons,
+    });
+  }
+
+  return (
+    <Panel title="Ù…ÙˆØ§Ø¯ Ø§Ù„ÙØµÙˆÙ„">
+      <div className="grid gap-3 md:grid-cols-4">
+        <Select
+          label="Ø§Ù„ÙØµÙ„"
+          value={classId}
+          onChange={setClassId}
+          options={classes.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }))}
+        />
+
+        <Select
+          label="Ø§Ù„Ù…Ø§Ø¯Ø©"
+          value={subjectId}
+          onChange={setSubjectId}
+          options={subjects.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }))}
+        />
+
+        <NumberInput
+          label="Ø§Ù„Ø­ØµØµ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠØ©"
+          value={weeklyLessons}
+          onChange={setWeeklyLessons}
+        />
+
+        <SaveButton
+          busy={busy}
+          disabled={!classId || !subjectId}
+          onClick={submit}
+        />
+      </div>
+
+      <SimpleList
+        items={items.map((item) => ({
+          id: item.id,
+          title: `${item.class.name} â€” ${item.subject.name}`,
+          subtitle: `${item.weeklyLessons} Ø­ØµØµ Ø£Ø³Ø¨ÙˆØ¹ÙŠÙ‹Ø§`,
+        }))}
+        onRemove={(id) => remove("class-subjects", id)}
+      />
+    </Panel>
+  );
+}
+
+function AssignmentsPanel({
+  items,
+  teachers,
+  classSubjects,
+  busy,
+  create,
+  remove,
+}: {
+  items: Assignment[];
+  teachers: Teacher[];
+  classSubjects: ClassSubject[];
+  busy: boolean;
+  create: (
+    resource: string,
+    data: Record<string, unknown>,
+  ) => Promise<boolean>;
+  remove: (resource: string, id: string) => Promise<void>;
+}) {
+  const [teacherId, setTeacherId] =
+    useState(teachers[0]?.id || "");
+  const [classSubjectId, setClassSubjectId] =
+    useState(classSubjects[0]?.id || "");
+  const [singlePeriods, setSinglePeriods] = useState(1);
+  const [doublePeriods, setDoublePeriods] = useState(0);
+
+  const selected = classSubjects.find(
+    (item) => item.id === classSubjectId,
+  );
+
+  async function submit() {
+    if (!selected) {
+      return;
+    }
+
+    await create("assignments", {
+      teacherId,
+      classId: selected.classId,
+      subjectId: selected.subjectId,
+      assignedLessons:
+        singlePeriods + doublePeriods * 2,
+      singlePeriods,
+      doublePeriods,
+      fixedSlots: [],
+    });
+  }
+
+  return (
+    <Panel title="Ø§Ù„Ø¹Ù„Ø§Ù‚Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³ÙŠØ©">
+      <div className="grid gap-3 md:grid-cols-5">
+        <Select
+          label="Ø§Ù„Ù…Ø¹Ù„Ù…"
+          value={teacherId}
+          onChange={setTeacherId}
+          options={teachers.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }))}
+        />
+
+        <Select
+          label="Ø§Ù„ÙØµÙ„ ÙˆØ§Ù„Ù…Ø§Ø¯Ø©"
+          value={classSubjectId}
+          onChange={setClassSubjectId}
+          options={classSubjects.map((item) => ({
+            value: item.id,
+            label: `${item.class.name} â€” ${item.subject.name}`,
+          }))}
+        />
+
+        <NumberInput
+          label="Ø­ØµØµ ÙØ±Ø¯ÙŠØ©"
+          value={singlePeriods}
+          onChange={setSinglePeriods}
+        />
+
+        <NumberInput
+          label="ÙƒØªÙ„ Ù…Ø²Ø¯ÙˆØ¬Ø©"
+          value={doublePeriods}
+          onChange={setDoublePeriods}
+        />
+
+        <SaveButton
+          busy={busy}
+          disabled={!teacherId || !selected}
+          onClick={submit}
+        />
+      </div>
+
+      <p className="mt-3 text-sm text-slate-500">
+        Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ: {singlePeriods + doublePeriods * 2} Ø­ØµØ©
+      </p>
+
+      <SimpleList
+        items={items.map((item) => ({
+          id: item.id,
+          title: `${item.teacher.name} â€” ${item.subject.name}`,
+          subtitle: `${item.class.name} â€” ${item.assignedLessons} Ø­ØµØµ`,
+        }))}
+        onRemove={(id) => remove("assignments", id)}
+      />
+    </Panel>
+  );
+}
+
+function Panel({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h2 className="text-lg font-black text-slate-950">
+        {title}
+      </h2>
+
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-bold">
+      <span>{label}</span>
+
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-xl border border-slate-200 px-3 py-2.5"
+      />
+    </label>
+  );
+}
+
+function NumberInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-bold">
+      <span>{label}</span>
+
+      <input
+        type="number"
+        min={0}
+        value={value}
+        onChange={(event) =>
+          onChange(Number(event.target.value))
+        }
+        className="rounded-xl border border-slate-200 px-3 py-2.5"
+      />
+    </label>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-bold">
+      <span>{label}</span>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-xl border border-slate-200 px-3 py-2.5"
+      >
+        <option value="">Ø§Ø®ØªØ±</option>
+
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SaveButton({
+  busy,
+  disabled,
+  onClick,
+}: {
+  busy: boolean;
+  disabled: boolean;
+  onClick: () => Promise<void>;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={busy || disabled}
+      onClick={() => void onClick()}
+      className="self-end rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+    >
+      Ø¥Ø¶Ø§ÙØ©
+    </button>
+  );
+}
+
+function SimpleList({
+  items,
+  onRemove,
+}: {
+  items: Array<{
+    id: string;
+    title: string;
+    subtitle?: string;
+  }>;
+  onRemove: (id: string) => Promise<void>;
+}) {
+  if (!items.length) {
+    return (
+      <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+        Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø¶Ø§ÙØ©.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-5 space-y-2">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
+        >
+          <div>
+            <p className="font-black text-slate-900">
+              {item.title}
+            </p>
+
+            {item.subtitle ? (
+              <p className="mt-1 text-sm text-slate-500">
+                {item.subtitle}
+              </p>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void onRemove(item.id)}
+            className="text-sm font-black text-rose-600"
+          >
+            Ø­Ø°Ù
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+function normalizeDays(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("id" in item) ||
+      !("label" in item)
+    ) {
+      return [];
+    }
+
+    return [{
+      id: String(item.id || ""),
+      label: String(item.label || ""),
+    }];
+  });
+}
+
+function normalizePeriods(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("id" in item) ||
+      !("label" in item)
+    ) {
+      return [];
+    }
+
+    return [{
+      id: String(item.id || ""),
+      label: String(item.label || ""),
+      isBreak:
+        "isBreak" in item && item.isBreak === true,
+    }];
+  });
+}
+
+
+
+==================== app\api\dashboard\principal\timetable\projects\[projectId]\teacher-unavailability\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+import { requireTimetableApiAccess } from "@/lib/timetable/timetable-access";
+import { updateTeacherUnavailableSlots } from "@/lib/timetable/timetable-data-service";
+import { timetableTeacherUnavailableSlotsInputSchema } from "@/lib/timetable/timetable-schemas";
+
+type Context = {
+  params: Promise<{
+    projectId: string;
+  }>;
+};
+
+export async function PATCH(
+  request: Request,
+  context: Context,
+) {
+  const access = await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const { projectId } = await context.params;
+  const body = await request.json().catch(() => null);
+
+  const parsed =
+    timetableTeacherUnavailableSlotsInputSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          parsed.error.issues[0]?.message ||
+          "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù‚ÙŠÙˆØ¯ ØºÙŠØ± ØµØ§Ù„Ø­Ø©.",
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const teacher = await updateTeacherUnavailableSlots(
+      projectId,
+      access.schoolAccountId!,
+      parsed.data.teacherId,
+      parsed.data.unavailableSlots,
+    );
+
+    return NextResponse.json({
+      success: true,
+      teacher,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "";
+
+    if (
+      message === "PROJECT_NOT_FOUND" ||
+      message === "TEACHER_NOT_FOUND"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø£Ùˆ Ø§Ù„Ù…Ø¹Ù„Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+        },
+        { status: 404 },
+      );
+    }
+
+    if (message === "INVALID_SLOT") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„ÙŠÙˆÙ… Ø£Ùˆ Ø§Ù„Ø­ØµØ© ØºÙŠØ± ØµØ§Ù„Ø­ÙŠÙ†.",
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø¹Ù„Ù….",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\principal\timetable\projects\[projectId]\generate\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+import { requireTimetableApiAccess } from "@/lib/timetable/timetable-access";
+import {
+  generateTimetable,
+  getSavedGeneratedTimetable,
+  saveGeneratedTimetable,
+} from "@/lib/timetable/timetable-generation-service";
+
+type Context = {
+  params: Promise<{
+    projectId: string;
+  }>;
+};
+
+export async function GET(
+  _request: Request,
+  context: Context,
+) {
+  const access = await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const { projectId } = await context.params;
+
+  const result = await getSavedGeneratedTimetable(
+    projectId,
+    access.schoolAccountId!,
+  );
+
+  if (!result.found) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ø¬Ø¯ÙˆÙ„ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+      },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    sessions: result.sessions,
+    generatedAt: result.generatedAt,
+    status: result.status,
+  });
+}
+
+export async function POST(
+  _request: Request,
+  context: Context,
+) {
+  const access = await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const { projectId } = await context.params;
+
+  const result = await generateTimetable(
+    projectId,
+    access.schoolAccountId!,
+  );
+
+  if (!result.found) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ø¬Ø¯ÙˆÙ„ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+      },
+      { status: 404 },
+    );
+  }
+
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        errors: result.errors,
+      },
+      { status: 422 },
+    );
+  }
+
+  const saved = await saveGeneratedTimetable(
+    projectId,
+    access.schoolAccountId!,
+    result.sessions,
+  );
+
+  if (!saved) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ù†Ø§ØªØ¬.",
+      },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    sessions: result.sessions,
+    generatedAt: new Date().toISOString(),
+  });
+}
+
+

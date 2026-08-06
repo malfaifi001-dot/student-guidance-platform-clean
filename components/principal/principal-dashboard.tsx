@@ -18,6 +18,13 @@ const principalModules: WorkspaceModule[] = [
     status: "available",
   },
   {
+    title: "School Timetable",
+    description: "Manage the school timetable.",
+    href: "/dashboard/principal/timetable",
+    icon: "calendar",
+    status: "available",
+  },
+  {
     title: "الحالات",
     description: "استعراض الحالات المتاحة ضمن نطاق المدرسة.",
     href: OFFICIAL_WORKSPACE_ROUTES.cases,

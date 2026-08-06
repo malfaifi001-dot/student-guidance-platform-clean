@@ -213,6 +213,7 @@ const teacherAccountLinks: SidebarLinkItem[] = [
 const principalLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard/principal", icon: Home },
   { label: "منسوبو المدرسة", href: "/dashboard/principal/teachers", icon: Users },
+  { label: "School Timetable", href: "/dashboard/principal/timetable", icon: CalendarDays },
   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
 ];

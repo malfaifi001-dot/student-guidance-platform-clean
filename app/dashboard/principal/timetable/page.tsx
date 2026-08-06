@@ -1,9 +1,16 @@
-import { PrincipalComingSoonPage } from "@/components/principal/principal-coming-soon-page";
-import { PrincipalSchoolSetupRequired } from "@/components/principal/principal-school-setup-required";
-import { getPrincipalSchoolProfile, isPrincipalSchoolProfileComplete } from "@/lib/principal/principal-school-service";
+import { TimetableSetup } from "@/components/timetable/timetable-setup";
+import { requireTimetablePageAccess } from "@/lib/timetable/timetable-access";
+import { listTimetableProjects } from "@/lib/timetable/timetable-project-service";
 
-export default async function PrincipalTimetablePage() {
-  const profile = await getPrincipalSchoolProfile();
-  if (!isPrincipalSchoolProfileComplete(profile)) return <PrincipalSchoolSetupRequired />;
-  return <PrincipalComingSoonPage title="الجدول المدرسي" />;
+export const dynamic = "force-dynamic";
+
+export default async function TimetablePage() {
+  const access = await requireTimetablePageAccess();
+  const projects = await listTimetableProjects(access.schoolAccountId);
+
+  return (
+    <TimetableSetup
+      initialProjects={JSON.parse(JSON.stringify(projects))}
+    />
+  );
 }
