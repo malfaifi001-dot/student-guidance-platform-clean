@@ -86,7 +86,7 @@ CREATE TABLE `TimetableTeachingAssignment` (
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` DATETIME(3) NOT NULL,
 
-  UNIQUE INDEX `TimetableTeachingAssignment_projectId_teacherId_classId_subjectId_key` (`projectId`, `teacherId`, `classId`, `subjectId`),
+  UNIQUE INDEX `TTAssignment_project_teacher_class_subject_key` (`projectId`, `teacherId`, `classId`, `subjectId`),
   INDEX `TimetableTeachingAssignment_projectId_idx` (`projectId`),
   INDEX `TimetableTeachingAssignment_teacherId_idx` (`teacherId`),
   INDEX `TimetableTeachingAssignment_classId_idx` (`classId`),
