@@ -5,11 +5,15 @@ import {
   useMemo,
   useState,
 } from "react";
+import { Beaker, Building2, Trash2 } from "lucide-react";
+
+import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
 
 import type {
   TimetableConstraint,
   TimetableRoom,
 } from "@/lib/timetable/timetable-constraint-types";
+import { getConstraintTypeArabicLabel } from "@/lib/timetable/timetable-constraint-labels";
 
 type NamedItem = {
   id: string;
@@ -45,43 +49,43 @@ const advancedTypes: Array<{
 }> = [
   {
     value: "TEACHER_WORKING_DAYS",
-    label: "أيام عمل المعلم",
+    label: getConstraintTypeArabicLabel("TEACHER_WORKING_DAYS"),
   },
   {
     value: "TEACHER_MIN_DAILY_PERIODS",
-    label: "الحد الأدنى لحصص المعلم يوميًا",
+    label: getConstraintTypeArabicLabel("TEACHER_MIN_DAILY_PERIODS"),
   },
   {
     value: "TEACHER_NO_SINGLE_PERIOD_DAY",
-    label: "منع الحصة الوحيدة للمعلم",
+    label: getConstraintTypeArabicLabel("TEACHER_NO_SINGLE_PERIOD_DAY"),
   },
   {
     value: "SUBJECT_MIN_DISTRIBUTION_DAYS",
-    label: "الحد الأدنى لأيام توزيع المادة",
+    label: getConstraintTypeArabicLabel("SUBJECT_MIN_DISTRIBUTION_DAYS"),
   },
   {
     value: "NO_CONSECUTIVE_HEAVY_SUBJECTS",
-    label: "منع مادتين ثقيلتين متتاليتين",
+    label: getConstraintTypeArabicLabel("NO_CONSECUTIVE_HEAVY_SUBJECTS"),
   },
   {
     value: "SUBJECT_REQUIRED_DOUBLE_PERIODS",
-    label: "عدد الحصص المزدوجة للمادة",
+    label: getConstraintTypeArabicLabel("SUBJECT_REQUIRED_DOUBLE_PERIODS"),
   },
   {
     value: "CLASS_MAX_PERIODS_ON_DAY",
-    label: "يوم قصير لفصل",
+    label: getConstraintTypeArabicLabel("CLASS_MAX_PERIODS_ON_DAY"),
   },
   {
     value: "SCHOOL_MAX_PERIODS_ON_DAY",
-    label: "يوم قصير للمدرسة",
+    label: getConstraintTypeArabicLabel("SCHOOL_MAX_PERIODS_ON_DAY"),
   },
   {
     value: "SUBJECT_ROOM_REQUIREMENT",
-    label: "ربط المادة بغرفة أو معمل",
+    label: getConstraintTypeArabicLabel("SUBJECT_ROOM_REQUIREMENT"),
   },
   {
     value: "ROOM_UNAVAILABLE_SLOT",
-    label: "الغرفة غير متاحة في وقت",
+    label: getConstraintTypeArabicLabel("ROOM_UNAVAILABLE_SLOT"),
   },
 ];
 
@@ -534,42 +538,41 @@ export function TimetableAdvancedConstraintsPanel({
           </button>
         </div>
 
-        <div className="mt-4 space-y-2">
+        {rooms.length ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rooms.map((room) => (
-            <div
+            <TimetableDataCard
               key={room.id}
-              className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
-            >
-              <div>
-                <p className="font-black">
-                  {room.name}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {
-                    roomTypes.find(
-                      (item) =>
-                        item.value === room.roomType,
-                    )?.label
-                  }
-                  {room.capacity
-                    ? ` — السعة ${room.capacity}`
-                    : ""}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  void removeRoom(room.id)
-                }
-                className="text-sm font-black text-rose-600"
-              >
-                حذف
-              </button>
-            </div>
+              icon={<Beaker className="h-5 w-5" />}
+              eyebrow="غرفة أو مرفق"
+              title={room.name}
+              tone={room.isActive ? "sky" : "slate"}
+              badges={[
+                roomTypes.find(
+                  (item) => item.value === room.roomType,
+                )?.label || "مرفق",
+                room.isActive ? "مفعّلة" : "معطّلة",
+              ]}
+              metrics={room.capacity ? [{ label: "السعة", value: `${room.capacity} مستفيدًا` }] : []}
+              actions={
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void removeRoom(room.id)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  حذف
+                </button>
+              }
+            />
           ))}
-        </div>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <TimetableEmptyState icon={<Beaker className="h-6 w-6" />} title="لا توجد غرف أو معامل" description="ستظهر الغرف والمعامل هنا بعد إضافتها." />
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -760,16 +763,15 @@ export function TimetableAdvancedConstraintsPanel({
           </p>
         ) : null}
 
-        <div className="mt-5 space-y-2">
+        {advancedConstraints.length ? (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {advancedConstraints.map(
             (constraint) => (
-              <div
+              <TimetableDataCard
                 key={constraint.id}
-                className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
-              >
-                <div>
-                  <p className="font-black">
-                    {describeConstraint(
+                icon={<Building2 className="h-5 w-5" />}
+                eyebrow="قيد متقدم"
+                title={describeConstraint(
                       constraint,
                       teachers,
                       classes,
@@ -778,31 +780,28 @@ export function TimetableAdvancedConstraintsPanel({
                       days,
                       teachingPeriods,
                     )}
-                  </p>
-
-                  <p className="text-xs font-bold text-slate-500">
-                    {constraint.level === "HARD"
-                      ? "إلزامي"
-                      : "تفضيلي"}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void removeConstraint(
-                      constraint.id,
-                    )
-                  }
-                  className="text-sm font-black text-rose-600"
-                >
-                  حذف
-                </button>
-              </div>
+                tone={constraint.type.startsWith("TEACHER_") ? "sky" : constraint.type.startsWith("SUBJECT_") ? "amber" : constraint.type.startsWith("CLASS_") ? "violet" : "slate"}
+                badges={[constraint.level === "HARD" ? "إلزامي" : "تفضيلي"]}
+                actions={
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void removeConstraint(constraint.id)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    حذف
+                  </button>
+                }
+              />
             ),
           )}
-        </div>
+          </div>
+        ) : (
+          <div className="mt-5">
+            <TimetableEmptyState icon={<Building2 className="h-6 w-6" />} title="لا توجد قيود متقدمة" description="ستظهر القيود المتقدمة هنا بعد إضافتها." />
+          </div>
+        )}
       </section>
 
       <style jsx>{`

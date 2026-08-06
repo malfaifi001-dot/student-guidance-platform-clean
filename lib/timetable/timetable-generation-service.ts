@@ -191,6 +191,23 @@ export async function generateTimetable(
     hardConstraints,
   );
 
+  const teacherTaskCounts = new Map<string, number>();
+  const classTaskCounts = new Map<string, number>();
+
+  for (const task of tasks) {
+    teacherTaskCounts.set(
+      task.teacherId,
+      (teacherTaskCounts.get(task.teacherId) || 0) +
+        task.length,
+    );
+
+    classTaskCounts.set(
+      task.classId,
+      (classTaskCounts.get(task.classId) || 0) +
+        task.length,
+    );
+  }
+
   tasks.sort((first, second) => {
     if (first.fixedSlot && !second.fixedSlot) {
       return -1;
@@ -198,10 +215,6 @@ export async function generateTimetable(
 
     if (!first.fixedSlot && second.fixedSlot) {
       return 1;
-    }
-
-    if (first.length !== second.length) {
-      return second.length - first.length;
     }
 
     const firstUnavailable =
@@ -212,7 +225,35 @@ export async function generateTimetable(
       unavailableByTeacher.get(second.teacherId)?.size ||
       0;
 
-    return secondUnavailable - firstUnavailable;
+    if (firstUnavailable !== secondUnavailable) {
+      return secondUnavailable - firstUnavailable;
+    }
+
+    const firstTeacherLoad =
+      teacherTaskCounts.get(first.teacherId) || 0;
+
+    const secondTeacherLoad =
+      teacherTaskCounts.get(second.teacherId) || 0;
+
+    if (firstTeacherLoad !== secondTeacherLoad) {
+      return secondTeacherLoad - firstTeacherLoad;
+    }
+
+    const firstClassLoad =
+      classTaskCounts.get(first.classId) || 0;
+
+    const secondClassLoad =
+      classTaskCounts.get(second.classId) || 0;
+
+    if (firstClassLoad !== secondClassLoad) {
+      return secondClassLoad - firstClassLoad;
+    }
+
+    if (first.length !== second.length) {
+      return second.length - first.length;
+    }
+
+    return first.id.localeCompare(second.id);
   });
 
   const state: GenerationState = {
@@ -227,10 +268,12 @@ export async function generateTimetable(
   };
 
   const placements = new Map<string, Placement>();
-  const deadline = Date.now() + 12000;
+  const deadline = Date.now() + 60000;
+  let timedOut = false;
 
   function placeTask(index: number): boolean {
     if (Date.now() > deadline) {
+      timedOut = true;
       return false;
     }
 
@@ -292,6 +335,7 @@ export async function generateTimetable(
         state,
         hardConstraints,
         periods,
+        periodIndexById,
       );
 
       placements.set(task.id, candidate);
@@ -308,6 +352,7 @@ export async function generateTimetable(
         state,
         hardConstraints,
         periods,
+        periodIndexById,
       );
     }
 
@@ -321,7 +366,9 @@ export async function generateTimetable(
       found: true as const,
       success: false as const,
       errors: [
-        "تعذر إنشاء جدول يحقق جميع القيود الإلزامية. راجع القيود المتعارضة أو خفف بعضها إلى تفضيلية.",
+        timedOut
+          ? "انتهت مهلة البحث قبل الوصول إلى حل. حاول مرة أخرى أو خفف عدد القيود الإلزامية."
+          : "تعذر إنشاء جدول يحقق جميع القيود الإلزامية. راجع القيود المتعارضة أو خفف بعضها إلى تفضيلية.",
       ],
       sessions: [] as GeneratedTimetableSession[],
     };
@@ -901,9 +948,54 @@ function scoreCandidate(
   const subjectDayKey =
     `${task.classId}:${task.subjectId}:${candidate.day.id}`;
 
+  const teacherDayKey =
+    `${task.teacherId}:${candidate.day.id}`;
+
+  const classDayKey =
+    `${task.classId}:${candidate.day.id}`;
+
+  const teacherDayLoad =
+    state.teacherDayPeriods.get(teacherDayKey)?.size || 0;
+
+  const classDayLoad =
+    state.classDayPeriods.get(classDayKey)?.size || 0;
+
   score +=
     (state.subjectDayCount.get(subjectDayKey) || 0) *
-    8;
+    12;
+
+  score += teacherDayLoad * 3;
+  score += classDayLoad * 2;
+
+  const candidateIndexes = candidate.periods
+    .map((period) => periodIndexById.get(period.id))
+    .filter(
+      (value): value is number =>
+        value !== undefined,
+    );
+
+  if (candidateIndexes.length) {
+    const teacherPeriods =
+      state.teacherDayPeriods.get(teacherDayKey) ||
+      new Set<number>();
+
+    const classPeriods =
+      state.classDayPeriods.get(classDayKey) ||
+      new Set<number>();
+
+    const nextTeacherPeriods = new Set([
+      ...teacherPeriods,
+      ...candidateIndexes,
+    ]);
+
+    const nextClassPeriods = new Set([
+      ...classPeriods,
+      ...candidateIndexes,
+    ]);
+
+    score += countGaps(nextTeacherPeriods) * 2;
+    score += countGaps(nextClassPeriods) * 4;
+  }
 
   for (const constraint of preferredConstraints) {
     if (
@@ -1125,6 +1217,7 @@ function occupy(
   state: GenerationState,
   hardConstraints: TimetableConstraint[],
   periods: Period[],
+  periodIndexById: Map<string, number>,
 ) {
   for (const period of candidate.periods) {
     const slot =
@@ -1138,17 +1231,22 @@ function occupy(
       `${task.classId}:${slot}`,
     );
 
-    addPeriodIndex(
-      state.teacherDayPeriods,
-      `${task.teacherId}:${candidate.day.id}`,
-      period.order,
-    );
+    const periodIndex =
+      periodIndexById.get(period.id);
 
-    addPeriodIndex(
-      state.classDayPeriods,
-      `${task.classId}:${candidate.day.id}`,
-      period.order,
-    );
+    if (periodIndex !== undefined) {
+      addPeriodIndex(
+        state.teacherDayPeriods,
+        `${task.teacherId}:${candidate.day.id}`,
+        periodIndex,
+      );
+
+      addPeriodIndex(
+        state.classDayPeriods,
+        `${task.classId}:${candidate.day.id}`,
+        periodIndex,
+      );
+    }
   }
 
   const subjectDayKey =
@@ -1212,6 +1310,7 @@ function release(
   state: GenerationState,
   hardConstraints: TimetableConstraint[],
   periods: Period[],
+  periodIndexById: Map<string, number>,
 ) {
   for (const period of candidate.periods) {
     const slot =
@@ -1225,17 +1324,22 @@ function release(
       `${task.classId}:${slot}`,
     );
 
-    removePeriodIndex(
-      state.teacherDayPeriods,
-      `${task.teacherId}:${candidate.day.id}`,
-      period.order,
-    );
+    const periodIndex =
+      periodIndexById.get(period.id);
 
-    removePeriodIndex(
-      state.classDayPeriods,
-      `${task.classId}:${candidate.day.id}`,
-      period.order,
-    );
+    if (periodIndex !== undefined) {
+      removePeriodIndex(
+        state.teacherDayPeriods,
+        `${task.teacherId}:${candidate.day.id}`,
+        periodIndex,
+      );
+
+      removePeriodIndex(
+        state.classDayPeriods,
+        `${task.classId}:${candidate.day.id}`,
+        periodIndex,
+      );
+    }
   }
 
   const subjectDayKey =

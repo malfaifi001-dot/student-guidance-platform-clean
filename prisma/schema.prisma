@@ -196,24 +196,27 @@ model SchoolAccount {
   studentImportSessions StudentImportSession[]
   users                 User[]
 
-  profile               SchoolProfile?
-  students              Student[]
-  guardians             Guardian[]
-  staff                 StaffMember[]
-  services              ServiceAccess[]
-  cases                 CaseEntry[]
-  subscription          Subscription?
-  resultsAnalyses       ResultsAnalysis[]
-  assessmentAnalyses    AssessmentAnalysis[]
-  calendarReminders     CalendarReminder[]
-  activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
-  surveys               Survey[]               @relation("SurveysBySchool")
-  surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  achievementPortfolios AchievementPortfolio[]
-  referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
-  timetableProjects     TimetableProject[]
+  profile                    SchoolProfile?
+  students                   Student[]
+  guardians                  Guardian[]
+  staff                      StaffMember[]
+  services                   ServiceAccess[]
+  cases                      CaseEntry[]
+  subscription               Subscription?
+  resultsAnalyses            ResultsAnalysis[]
+  assessmentAnalyses         AssessmentAnalysis[]
+  calendarReminders          CalendarReminder[]
+  activityAssignments        ActivityAssignment[]       @relation("ActivityAssignmentsBySchool")
+  surveys                    Survey[]                   @relation("SurveysBySchool")
+  surveyResponses            SurveyResponse[]           @relation("SurveyResponsesBySchool")
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  achievementPortfolios      AchievementPortfolio[]
+  referenceLibraryItems      ReferenceLibraryItem[]     @relation("ReferenceLibrarySchool")
+  timetableProjects          TimetableProject[]
+  timetableDailyAbsences     TimetableDailyAbsence[]
+  timetableSubstitutions     TimetableSubstitution[]
+  timetableSupervisionDuties TimetableSupervisionDuty[]
 }
 
 model User {
@@ -1461,9 +1464,9 @@ model NoorImportCycle {
 model InvoiceSettings {
   id                     String   @id @default(cuid())
   singletonKey           String   @unique @default("default")
-  sellerName             String   @default("منصة التوجيه الطلابي")
+  sellerName             String   @default("Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ")
   sellerDomain           String?  @default("smstudents.com")
-  sellerCountry          String?  @default("المملكة العربية السعودية")
+  sellerCountry          String?  @default("Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø§Ù„Ø³Ø¹ÙˆØ¯ÙŠØ©")
   sellerAddress          String?
   commercialRegistration String?
   taxNumber              String?
@@ -2063,6 +2066,49 @@ enum TimetableProjectStatus {
   ARCHIVED
 }
 
+enum TimetableAbsenceType {
+  FULL_DAY
+  SELECTED_PERIODS
+  LATE_ARRIVAL
+  EARLY_DEPARTURE
+}
+
+enum TimetableAbsenceStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELED
+}
+
+enum TimetableSubstitutionStatus {
+  PENDING
+  SUGGESTED
+  ASSIGNED
+  NOTIFIED
+  COMPLETED
+  DECLINED
+  REASSIGNED
+  CANCELED
+}
+
+enum TimetableSupervisionType {
+  MORNING
+  BREAK
+  GATE
+  END_OF_DAY
+  PRAYER
+  BUS
+  FLOOR
+  CUSTOM
+}
+
+enum TimetableSupervisionStatus {
+  DRAFT
+  ASSIGNED
+  COMPLETED
+  CANCELED
+}
+
 model TimetableProject {
   id String @id @default(cuid())
 
@@ -2082,11 +2128,15 @@ model TimetableProject {
   periodsJson  Json
   settingsJson Json?
 
-  teachers      TimetableTeacher[]
-  classes       TimetableClass[]
-  subjects      TimetableSubject[]
-  classSubjects TimetableClassSubject[]
-  assignments   TimetableAssignment[]
+  teachers          TimetableTeacher[]
+  classes           TimetableClass[]
+  subjects          TimetableSubject[]
+  classSubjects     TimetableClassSubject[]
+  assignments       TimetableAssignment[]
+  waitingPolicy     TimetableWaitingPolicy?
+  dailyAbsences     TimetableDailyAbsence[]
+  substitutions     TimetableSubstitution[]
+  supervisionDuties TimetableSupervisionDuty[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2113,7 +2163,11 @@ model TimetableTeacher {
 
   unavailableSlotsJson Json?
 
-  assignments TimetableAssignment[]
+  assignments            TimetableAssignment[]
+  dailyAbsences          TimetableDailyAbsence[]
+  originalSubstitutions  TimetableSubstitution[]          @relation("OriginalSubstitutionTeacher")
+  assignedSubstitutions  TimetableSubstitution[]          @relation("AssignedSubstitutionTeacher")
+  supervisionAssignments TimetableSupervisionAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2218,4 +2272,211 @@ model TimetableAssignment {
   @@index([teacherId])
   @@index([classId])
   @@index([subjectId])
+}
+
+model TimetableWaitingPolicy {
+  id String @id @default(cuid())
+
+  projectId String           @unique
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  candidateCount Int @default(6)
+
+  maxDailySubstitutions  Int @default(1)
+  maxWeeklySubstitutions Int @default(5)
+
+  allowBeforeFirstLesson Boolean @default(false)
+  allowAfterLastLesson   Boolean @default(false)
+  allowInsideGap         Boolean @default(true)
+
+  preferInsideGap Boolean @default(true)
+
+  allowOnGoldenDay   Boolean @default(false)
+  goldenDayEmergency Boolean @default(false)
+
+  allowAfterLateArrival Boolean @default(true)
+  excludeLateArrivalDay Boolean @default(false)
+
+  allowBeforeEarlyDeparture Boolean @default(true)
+
+  preventConsecutiveSubstitutions Boolean @default(true)
+  preventFirstPeriod              Boolean @default(false)
+  preventLastPeriod               Boolean @default(false)
+
+  requireMatchingSpecialty Boolean @default(false)
+  preferMatchingSpecialty  Boolean @default(true)
+
+  weeklyLoadWeight        Int @default(100)
+  weeklyWaitingWeight     Int @default(40)
+  dailyWaitingWeight      Int @default(60)
+  gapPreferenceWeight     Int @default(20)
+  specialtyWeight         Int @default(15)
+  firstLastFairnessWeight Int @default(10)
+
+  settingsJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model TimetableDailyAbsence {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  absenceDate DateTime               @db.Date
+  absenceType TimetableAbsenceType
+  status      TimetableAbsenceStatus @default(ACTIVE)
+
+  periodIdsJson Json?
+
+  arrivalPeriodId   String?
+  departurePeriodId String?
+
+  reason String? @db.Text
+  note   String? @db.Text
+
+  createdById String?
+
+  substitutions TimetableSubstitution[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, teacherId, absenceDate])
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([teacherId])
+  @@index([absenceDate])
+  @@index([status])
+}
+
+model TimetableSubstitution {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  absenceId String
+  absence   TimetableDailyAbsence @relation(fields: [absenceId], references: [id], onDelete: Cascade)
+
+  substitutionDate DateTime @db.Date
+
+  originalSessionId String
+  dayId             String
+  periodId          String
+
+  classId     String
+  className   String
+  subjectId   String
+  subjectName String
+
+  originalTeacherId String
+  originalTeacher   TimetableTeacher @relation("OriginalSubstitutionTeacher", fields: [originalTeacherId], references: [id], onDelete: Cascade)
+
+  substituteTeacherId String?
+  substituteTeacher   TimetableTeacher? @relation("AssignedSubstitutionTeacher", fields: [substituteTeacherId], references: [id], onDelete: SetNull)
+
+  status TimetableSubstitutionStatus @default(PENDING)
+
+  candidateRank  Int?
+  candidateScore Int?
+
+  candidatesJson  Json?
+  selectionReason String? @db.Text
+  overrideReason  String? @db.Text
+
+  assignedAt  DateTime?
+  notifiedAt  DateTime?
+  completedAt DateTime?
+  declinedAt  DateTime?
+  canceledAt  DateTime?
+
+  createdById String?
+  updatedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, substitutionDate, originalSessionId], map: "TimetableSubstitution_project_date_session_key")
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([absenceId])
+  @@index([substitutionDate])
+  @@index([originalTeacherId])
+  @@index([substituteTeacherId])
+  @@index([status])
+  @@index([dayId, periodId])
+}
+
+model TimetableSupervisionDuty {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title    String
+  dutyType TimetableSupervisionType
+  status   TimetableSupervisionStatus @default(DRAFT)
+
+  dayId     String
+  periodId  String?
+  startTime String?
+  endTime   String?
+
+  location         String?
+  requiredTeachers Int     @default(1)
+
+  note String? @db.Text
+
+  assignments TimetableSupervisionAssignment[]
+
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([dayId])
+  @@index([periodId])
+  @@index([dutyType])
+  @@index([status])
+}
+
+model TimetableSupervisionAssignment {
+  id String @id @default(cuid())
+
+  dutyId String
+  duty   TimetableSupervisionDuty @relation(fields: [dutyId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  note        String?   @db.Text
+
+  @@unique([dutyId, teacherId])
+  @@index([dutyId])
+  @@index([teacherId])
+  @@index([isPrimary])
 }

@@ -1,3 +1,4 @@
+import { TimetableIdentityShell } from "@/components/timetable/timetable-identity-shell";
 import { TimetableSetup } from "@/components/timetable/timetable-setup";
 import { requireTimetablePageAccess } from "@/lib/timetable/timetable-access";
 import { listTimetableProjects } from "@/lib/timetable/timetable-project-service";
@@ -9,8 +10,10 @@ export default async function TimetablePage() {
   const projects = await listTimetableProjects(access.schoolAccountId);
 
   return (
-    <TimetableSetup
-      initialProjects={JSON.parse(JSON.stringify(projects))}
-    />
+    <TimetableIdentityShell>
+      <TimetableSetup
+        initialProjects={JSON.parse(JSON.stringify(projects))}
+      />
+    </TimetableIdentityShell>
   );
 }

@@ -2,6 +2,21 @@
 
 import { useState } from "react";
 import {
+  BookOpen,
+  GraduationCap,
+  Link2,
+  Trash2,
+  UserRound,
+  Waypoints,
+} from "lucide-react";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import {
+  TimetableDataCard,
+  TimetableEmptyState,
+  type TimetableCardMetric,
+  type TimetableCardTone,
+} from "@/components/timetable/timetable-data-card";
+import {
   SAUDI_SCHOOL_GRADES,
   SAUDI_SCHOOL_SECTIONS,
   getSaudiSchoolGrade,
@@ -9,6 +24,7 @@ import {
 import { getSubjectsForGrade } from "@/lib/timetable/catalog/saudi-school-subjects";
 import { TimetableConstraintsCenter } from "./timetable-constraints-center";
 import { TimetableAdvancedConstraintsPanel } from "./timetable-advanced-constraints-panel";
+import { TimetableAiAnalysisPanel } from "./timetable-ai-analysis-panel";
 import { TimetableValidationPanel } from "./timetable-validation-panel";
 import { TimetableGenerationPanel } from "./timetable-generation-panel";
 
@@ -166,24 +182,82 @@ export function TimetableDataEditor({
 
   return (
     <main className="space-y-5" dir="rtl">
-      <header className="rounded-3xl border border-slate-200 bg-white p-5">
-        <a
-          href="/dashboard/principal/timetable"
-          className="text-sm font-black text-sky-700"
-        >
-          العودة إلى الجداول
-        </a>
+      <header className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+          <div>
+            <a
+              href="/dashboard/principal/timetable"
+              className="inline-flex rounded-2xl bg-white/15 px-3 py-1.5 text-xs font-black text-white transition hover:bg-white/25"
+            >
+              العودة إلى الجداول
+            </a>
 
-        <h1 className="mt-3 text-2xl font-black text-slate-950">
-          {project.name}
-        </h1>
+            <p className="mt-4 text-xs font-black text-sky-100">
+              مشروع الجدول الدراسي
+            </p>
 
-        <p className="mt-1 text-sm text-slate-500">
-          {project.academicYear} — {project.semester}
-        </p>
+            <h1 className="mt-1 text-4xl font-black text-white">
+              {project.name}
+            </h1>
+
+            <p className="mt-2 text-sm font-bold text-sky-100">
+              {project.academicYear} — {project.semester}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <span className="rounded-2xl bg-white/15 px-4 py-3 text-center">
+              <span className="block text-lg font-black">
+                {project.teachers.length}
+              </span>
+              <span className="text-[11px] font-bold text-sky-100">
+                معلم
+              </span>
+              </span>
+
+              <span className="rounded-2xl bg-white/15 px-4 py-3 text-center">
+              <span className="block text-lg font-black">
+                {project.classes.length}
+              </span>
+              <span className="text-[11px] font-bold text-sky-100">
+                فصل
+              </span>
+              </span>
+
+              <span className="rounded-2xl bg-white/15 px-4 py-3 text-center">
+              <span className="block text-lg font-black">
+                {project.subjects.length}
+              </span>
+              <span className="text-[11px] font-bold text-sky-100">
+                مادة
+              </span>
+              </span>
+
+              <span className="rounded-2xl bg-white/15 px-4 py-3 text-center">
+              <span className="block text-lg font-black">
+                {project.assignments.length}
+              </span>
+              <span className="text-[11px] font-bold text-sky-100">
+                إسناد
+              </span>
+              </span>
+            </div>
+
+            <a
+              href={`/dashboard/principal/timetable/${project.id}/operations`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-sky-900 shadow-sm transition hover:bg-sky-50 sm:w-auto"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-sky-100 text-sky-800">
+                ◷
+              </span>
+              التشغيل اليومي للغياب والانتظار
+            </a>
+          </div>
+        </div>
       </header>
 
-      <nav className="flex flex-wrap gap-2">
+      <nav className="flex flex-wrap gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-2 shadow-sm">
         {tabs.map((item) => (
           <button
             type="button"
@@ -193,10 +267,10 @@ export function TimetableDataEditor({
               setMessage("");
             }}
             className={[
-              "rounded-xl px-4 py-2 text-sm font-black",
+              "rounded-full px-4 py-2.5 text-sm font-black transition",
               tab === item
-                ? "bg-sky-700 text-white"
-                : "border border-slate-200 bg-white text-slate-600",
+                ? "bg-slate-950 text-white shadow-md"
+                : "border border-transparent bg-transparent text-slate-600 hover:bg-sky-50 hover:text-sky-700",
             ].join(" ")}
           >
             {item}
@@ -204,7 +278,7 @@ export function TimetableDataEditor({
         ))}
       </nav>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         {tab === "المعلمون" ? (
           <TeachersPanel
             items={project.teachers}
@@ -217,6 +291,8 @@ export function TimetableDataEditor({
         {tab === "الفصول" ? (
           <ClassesPanel
             items={project.classes}
+            classSubjects={project.classSubjects}
+            assignments={project.assignments}
             busy={busy}
             create={create}
             remove={remove}
@@ -226,6 +302,7 @@ export function TimetableDataEditor({
         {tab === "المواد" ? (
           <SubjectsPanel
             items={project.subjects}
+            classSubjects={project.classSubjects}
             busy={busy}
             create={create}
             remove={remove}
@@ -266,9 +343,15 @@ export function TimetableDataEditor({
         ) : null}
 
         {tab === "فحص البيانات" ? (
-          <TimetableValidationPanel
-            projectId={project.id}
-          />
+          <>
+  <TimetableValidationPanel
+    projectId={project.id}
+  />
+
+  <TimetableAiAnalysisPanel
+    projectId={project.id}
+  />
+</>
         ) : null}
 
         {tab === "إنشاء الجدول" ? (
@@ -281,12 +364,18 @@ export function TimetableDataEditor({
           />
         ) : null}
 
-        {message ? (
-          <p className="mt-4 text-sm font-bold text-sky-700">
-            {message}
-          </p>
-        ) : null}
       </section>
+
+      <SmartFeedbackModal
+        open={Boolean(message)}
+        type={message.startsWith("تم") ? "success" : "error"}
+        title={message.startsWith("تم") ? "تمت العملية" : "تعذر إكمال العملية"}
+        description={message}
+        primaryActionLabel="حسنًا"
+        onOpenChange={(open) => {
+          if (!open) setMessage("");
+        }}
+      />
     </main>
   );
 }
@@ -357,7 +446,17 @@ function TeachersPanel({
         items={items.map((item) => ({
           id: item.id,
           title: item.name,
-          subtitle: `${item.specialty || "بدون تخصص"} — النصاب ${item.maxWeeklyLoad}`,
+          subtitle: item.specialty || "بدون تخصص",
+          icon: <UserRound className="h-5 w-5" />,
+          tone: "sky" as const,
+          badges: ["معلم"],
+          metrics: [
+            { label: "النصاب الأسبوعي", value: `${item.maxWeeklyLoad} حصة` },
+            {
+              label: "قيود عدم التوفر",
+              value: `${countUnavailableSlots(item.unavailableSlotsJson)} قيد`,
+            },
+          ],
         }))}
         onRemove={(id) => remove("teachers", id)}
       />
@@ -367,11 +466,15 @@ function TeachersPanel({
 
 function ClassesPanel({
   items,
+  classSubjects,
+  assignments,
   busy,
   create,
   remove,
 }: {
   items: ClassItem[];
+  classSubjects: ClassSubject[];
+  assignments: Assignment[];
   busy: boolean;
   create: (
     resource: string,
@@ -423,7 +526,7 @@ function ClassesPanel({
         />
 
         <Select
-          label="الشعبة"
+          label="الصف"
           value={section}
           onChange={setSection}
           options={SAUDI_SCHOOL_SECTIONS.map((item) => ({
@@ -441,7 +544,7 @@ function ClassesPanel({
 
       {isDuplicate ? (
         <p className="mt-3 text-sm font-bold text-amber-700">
-          هذا الصف والشعبة مضافان مسبقًا.
+          هذا الصف مضاف مسبقًا بالرمز نفسه.
         </p>
       ) : null}
 
@@ -449,6 +552,22 @@ function ClassesPanel({
         items={items.map((item) => ({
           id: item.id,
           title: item.name,
+          subtitle: splitClassName(item.name).grade,
+          icon: <GraduationCap className="h-5 w-5" />,
+          tone: "violet" as const,
+          badges: splitClassName(item.name).section
+            ? [`الصف ${splitClassName(item.name).section}`]
+            : [],
+          metrics: [
+            {
+              label: "المواد المرتبطة",
+              value: classSubjects.filter((entry) => entry.classId === item.id).length,
+            },
+            {
+              label: "الإسنادات",
+              value: assignments.filter((entry) => entry.class.id === item.id).length,
+            },
+          ],
         }))}
         onRemove={(id) => remove("classes", id)}
       />
@@ -458,11 +577,13 @@ function ClassesPanel({
 
 function SubjectsPanel({
   items,
+  classSubjects,
   busy,
   create,
   remove,
 }: {
   items: Subject[];
+  classSubjects: ClassSubject[];
   busy: boolean;
   create: (
     resource: string,
@@ -603,6 +724,26 @@ function SubjectsPanel({
         items={items.map((item) => ({
           id: item.id,
           title: item.name,
+          subtitle: item.catalogKey ? "مادة من المنهج" : "مادة مخصصة",
+          icon: <BookOpen className="h-5 w-5" />,
+          tone: "amber" as const,
+          badges: item.catalogKey ? ["معتمدة في الدليل"] : ["مخصصة"],
+          metrics: [
+            {
+              label: "الفصول المرتبطة",
+              value: new Set(
+                classSubjects
+                  .filter((entry) => entry.subjectId === item.id)
+                  .map((entry) => entry.classId),
+              ).size,
+            },
+            {
+              label: "الحصص الأسبوعية",
+              value: classSubjects
+                .filter((entry) => entry.subjectId === item.id)
+                .reduce((total, entry) => total + entry.weeklyLessons, 0),
+            },
+          ],
         }))}
         onRemove={(id) => remove("subjects", id)}
       />
@@ -681,7 +822,13 @@ function ClassSubjectsPanel({
         items={items.map((item) => ({
           id: item.id,
           title: `${item.class.name} — ${item.subject.name}`,
-          subtitle: `${item.weeklyLessons} حصص أسبوعيًا`,
+          subtitle: "ارتباط مادة بفصل",
+          icon: <Link2 className="h-5 w-5" />,
+          tone: "emerald" as const,
+          metrics: [
+            { label: "الحصص الأسبوعية", value: `${item.weeklyLessons} حصص` },
+            { label: "الفصل", value: item.class.name },
+          ],
         }))}
         onRemove={(id) => remove("class-subjects", id)}
       />
@@ -737,7 +884,7 @@ function AssignmentsPanel({
 
   return (
     <Panel title="العلاقات التدريسية">
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(280px,2fr)_minmax(140px,0.7fr)_minmax(140px,0.7fr)_minmax(150px,0.8fr)]">
         <Select
           label="المعلم"
           value={teacherId}
@@ -785,7 +932,15 @@ function AssignmentsPanel({
         items={items.map((item) => ({
           id: item.id,
           title: `${item.teacher.name} — ${item.subject.name}`,
-          subtitle: `${item.class.name} — ${item.assignedLessons} حصص`,
+          subtitle: item.class.name,
+          icon: <Waypoints className="h-5 w-5" />,
+          tone: "sky" as const,
+          badges: [item.subject.name, item.class.name],
+          metrics: [
+            { label: "إجمالي الحصص", value: item.assignedLessons },
+            { label: "حصص فردية", value: item.singlePeriods },
+            { label: "كتل مزدوجة", value: item.doublePeriods },
+          ],
         }))}
         onRemove={(id) => remove("assignments", id)}
       />
@@ -802,11 +957,23 @@ function Panel({
 }) {
   return (
     <div>
-      <h2 className="text-lg font-black text-slate-950">
-        {title}
-      </h2>
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-50 text-sm font-black text-sky-700">
+          ◇
+        </span>
 
-      <div className="mt-4">{children}</div>
+        <div>
+          <p className="text-[11px] font-black text-sky-700">
+            بيانات الجدول
+          </p>
+
+          <h2 className="mt-0.5 text-xl font-black text-slate-950">
+            {title}
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-5">{children}</div>
     </div>
   );
 }
@@ -823,14 +990,14 @@ function Input({
   placeholder?: string;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold">
+    <label className="grid min-w-0 gap-2 text-sm font-bold">
       <span>{label}</span>
 
       <input
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border border-slate-200 px-3 py-2.5"
+        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
       />
     </label>
   );
@@ -846,7 +1013,7 @@ function NumberInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold">
+    <label className="grid min-w-0 gap-2 text-sm font-bold">
       <span>{label}</span>
 
       <input
@@ -856,7 +1023,7 @@ function NumberInput({
         onChange={(event) =>
           onChange(Number(event.target.value))
         }
-        className="rounded-xl border border-slate-200 px-3 py-2.5"
+        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
       />
     </label>
   );
@@ -877,13 +1044,13 @@ function Select({
   }>;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold">
+    <label className="grid min-w-0 gap-2 text-sm font-bold">
       <span>{label}</span>
 
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border border-slate-200 px-3 py-2.5"
+        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
       >
         <option value="">اختر</option>
 
@@ -914,7 +1081,7 @@ function SaveButton({
       type="button"
       disabled={busy || disabled}
       onClick={() => void onClick()}
-      className="self-end rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40"
+      className="self-end rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-sky-800 disabled:opacity-40"
     >
       إضافة
     </button>
@@ -929,47 +1096,59 @@ function SimpleList({
     id: string;
     title: string;
     subtitle?: string;
+    icon: React.ReactNode;
+    tone?: TimetableCardTone;
+    badges?: React.ReactNode[];
+    metrics?: TimetableCardMetric[];
   }>;
   onRemove: (id: string) => Promise<void>;
 }) {
   if (!items.length) {
     return (
-      <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-        لا توجد بيانات مضافة.
-      </p>
+      <div className="mt-5">
+        <TimetableEmptyState
+          icon={<BookOpen className="h-6 w-6" />}
+          title="لا توجد بيانات مضافة"
+          description="ستظهر السجلات هنا بعد إضافتها."
+        />
+      </div>
     );
   }
 
   return (
-    <div className="mt-5 space-y-2">
+    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
-        <div
+        <TimetableDataCard
           key={item.id}
-          className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
-        >
-          <div>
-            <p className="font-black text-slate-900">
-              {item.title}
-            </p>
-
-            {item.subtitle ? (
-              <p className="mt-1 text-sm text-slate-500">
-                {item.subtitle}
-              </p>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void onRemove(item.id)}
-            className="text-sm font-black text-rose-600"
-          >
-            حذف
-          </button>
-        </div>
+          icon={item.icon}
+          title={item.title}
+          description={item.subtitle}
+          tone={item.tone}
+          badges={item.badges}
+          metrics={item.metrics}
+          actions={
+            <button
+              type="button"
+              onClick={() => void onRemove(item.id)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              حذف
+            </button>
+          }
+        />
       ))}
     </div>
   );
+}
+
+function countUnavailableSlots(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function splitClassName(name: string) {
+  const [grade, section = ""] = name.split(/\s*-\s*/);
+  return { grade: grade || name, section };
 }
 function normalizeDays(value: unknown) {
   if (!Array.isArray(value)) {

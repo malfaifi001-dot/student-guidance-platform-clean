@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { TimetableDataCard } from "@/components/timetable/timetable-data-card";
 
 type ValidationIssue = {
   level: "ERROR" | "WARNING";
@@ -81,40 +85,32 @@ export function TimetableValidationPanel({
         </button>
       </div>
 
-      {message ? (
-        <p className="mt-4 text-sm font-bold text-rose-600">
-          {message}
-        </p>
-      ) : null}
+      <SmartFeedbackModal
+        open={Boolean(message)}
+        type="error"
+        title="تعذر فحص البيانات"
+        description={message}
+        primaryActionLabel="حسنًا"
+        onOpenChange={(open) => {
+          if (!open) setMessage("");
+        }}
+      />
 
       {summary ? (
-        <div
-          className={[
-            "mt-5 rounded-2xl border p-4",
-            summary.ready
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-rose-200 bg-rose-50",
-          ].join(" ")}
-        >
-          <p
-            className={[
-              "font-black",
-              summary.ready
-                ? "text-emerald-800"
-                : "text-rose-800",
-            ].join(" ")}
-          >
-            {summary.ready
-              ? "البيانات جاهزة لإنشاء الجدول."
-              : "توجد أخطاء يجب إصلاحها قبل التوليد."}
-          </p>
-
-          <p className="mt-2 text-sm text-slate-600">
-            {summary.teachersCount} معلمين —{" "}
-            {summary.classesCount} فصول —{" "}
-            {summary.subjectsCount} مواد —{" "}
-            {summary.assignmentsCount} علاقات تدريسية
-          </p>
+        <div className="mt-5">
+          <TimetableDataCard
+            icon={summary.ready ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+            eyebrow="نتيجة فحص الجاهزية"
+            title={summary.ready ? "البيانات جاهزة لإنشاء الجدول" : "توجد أخطاء يجب إصلاحها قبل التوليد"}
+            tone={summary.ready ? "emerald" : "amber"}
+            badges={[summary.ready ? "جاهز" : "يتطلب معالجة"]}
+            metrics={[
+              { label: "المعلمون", value: summary.teachersCount },
+              { label: "الفصول", value: summary.classesCount },
+              { label: "المواد", value: summary.subjectsCount },
+              { label: "العلاقات", value: summary.assignmentsCount },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -125,34 +121,16 @@ export function TimetableValidationPanel({
       ) : null}
 
       {issues.length ? (
-        <div className="mt-5 space-y-2">
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
           {issues.map((issue, index) => (
-            <div
+            <TimetableDataCard
               key={`${issue.code}:${issue.entityId || index}`}
-              className={[
-                "rounded-2xl border px-4 py-3",
-                issue.level === "ERROR"
-                  ? "border-rose-200 bg-rose-50"
-                  : "border-amber-200 bg-amber-50",
-              ].join(" ")}
-            >
-              <p
-                className={[
-                  "text-sm font-black",
-                  issue.level === "ERROR"
-                    ? "text-rose-800"
-                    : "text-amber-800",
-                ].join(" ")}
-              >
-                {issue.level === "ERROR"
-                  ? "خطأ"
-                  : "تنبيه"}
-              </p>
-
-              <p className="mt-1 text-sm text-slate-700">
-                {issue.message}
-              </p>
-            </div>
+              icon={<AlertTriangle className="h-5 w-5" />}
+              eyebrow={issue.level === "ERROR" ? "خطأ مانع" : "تنبيه"}
+              title={issue.message}
+              tone={issue.level === "ERROR" ? "rose" : "amber"}
+              badges={[issue.level === "ERROR" ? "خطأ" : "تنبيه", issue.code]}
+            />
           ))}
         </div>
       ) : null}

@@ -87,21 +87,20 @@ export function TimetablePrintView({
   }
 
   return (
-    <>
+    <div className="timetable-print-root">
       <div className="print-toolbar">
-        <button
-          type="button"
-          onClick={() => window.print()}
-        >
-          طباعة الجدول
-        </button>
-
-        <button
-          type="button"
-          onClick={() => window.close()}
-        >
-          إغلاق
-        </button>
+        <div>
+          <span>معاينة الطباعة</span>
+          <strong>{title}</strong>
+        </div>
+        <div className="print-toolbar-actions">
+          <button type="button" onClick={() => window.print()}>
+            طباعة / حفظ PDF
+          </button>
+          <button type="button" onClick={() => window.close()}>
+            إغلاق
+          </button>
+        </div>
       </div>
 
       <main className="print-sheet" dir="rtl">
@@ -227,39 +226,68 @@ export function TimetablePrintView({
       </main>
 
       <style jsx global>{`
-        * {
+        .timetable-print-root,
+        .timetable-print-root * {
           box-sizing: border-box;
         }
 
-        body {
-          margin: 0;
+        .timetable-print-root {
+          min-height: 100vh;
+          padding: 24px;
           background: #eef2f7;
           color: #0f172a;
-          font-family:
-            Tahoma,
-            Arial,
-            sans-serif;
         }
 
         .print-toolbar {
           display: flex;
-          justify-content: center;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          width: min(297mm, 100%);
+          margin: 0 auto 20px;
+          padding: 20px;
+          border: 1px solid #e2e8f0;
+          border-radius: 2rem;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
+        }
+
+        .print-toolbar span,
+        .print-toolbar strong {
+          display: block;
+        }
+
+        .print-toolbar span {
+          color: #0369a1;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .print-toolbar strong {
+          margin-top: 5px;
+          color: #0f172a;
+          font-size: 20px;
+          font-weight: 900;
+        }
+
+        .print-toolbar-actions {
+          display: flex;
+          flex-wrap: wrap;
           gap: 10px;
-          padding: 16px;
         }
 
         .print-toolbar button {
           border: 0;
-          border-radius: 10px;
-          background: #0369a1;
+          border-radius: 16px;
+          background: #059669;
           color: white;
           cursor: pointer;
-          font-weight: 700;
-          padding: 10px 18px;
+          font-weight: 900;
+          padding: 12px 20px;
         }
 
         .print-toolbar button:last-child {
-          background: #475569;
+          background: #0f172a;
         }
 
         .print-sheet {
@@ -268,7 +296,7 @@ export function TimetablePrintView({
           margin: 0 auto 24px;
           padding: 12mm;
           background: white;
-          box-shadow: 0 8px 28px rgb(15 23 42 / 10%);
+          box-shadow: 0 20px 45px rgb(15 23 42 / 12%);
         }
 
         .document-header {
@@ -277,7 +305,7 @@ export function TimetablePrintView({
           justify-content: space-between;
           gap: 24px;
           padding-bottom: 12px;
-          border-bottom: 2px solid #0f6f91;
+          border-bottom: 1px solid #cbd5e1;
         }
 
         .platform-name {
@@ -333,8 +361,8 @@ export function TimetablePrintView({
         }
 
         thead th {
-          background: #e0f2fe;
-          color: #0c4a6e;
+          background: #0f172a;
+          color: #ffffff;
           font-size: 12px;
         }
 
@@ -363,8 +391,9 @@ export function TimetablePrintView({
           min-height: 18mm;
           place-content: center;
           gap: 4px;
-          border-radius: 6px;
+          border-radius: 8px;
           background: #f0f9ff;
+          border: 1px solid #bae6fd;
           padding: 5px;
         }
 
@@ -406,8 +435,10 @@ export function TimetablePrintView({
         }
 
         @media print {
-          body {
+          .timetable-print-root {
             background: white;
+            min-height: auto;
+            padding: 0;
           }
 
           .print-toolbar {
@@ -422,6 +453,12 @@ export function TimetablePrintView({
             box-shadow: none;
           }
 
+          .lesson-card,
+          thead th {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
           thead {
             display: table-header-group;
           }
@@ -434,7 +471,7 @@ export function TimetablePrintView({
           }
         }
       `}</style>
-    </>
+    </div>
   );
 }
 

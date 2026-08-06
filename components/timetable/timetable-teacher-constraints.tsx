@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CalendarX2, Trash2, UserRound } from "lucide-react";
+
+import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
 
 type Day = {
   id: string;
@@ -198,15 +201,15 @@ export function TimetableTeacherConstraints({
       ) : null}
 
       {!teacherId ? (
-        <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-          أضف معلمًا أولًا.
-        </p>
+        <div className="mt-5">
+          <TimetableEmptyState icon={<UserRound className="h-6 w-6" />} title="أضف معلمًا أولًا" description="اختر معلمًا بعد إضافته لتحديد أوقات عدم التوفر." />
+        </div>
       ) : !slots.length ? (
-        <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-          لا توجد قيود لهذا المعلم.
-        </p>
+        <div className="mt-5">
+          <TimetableEmptyState icon={<CalendarX2 className="h-6 w-6" />} title="لا توجد قيود لهذا المعلم" description="ستظهر أوقات عدم التوفر هنا بعد إضافتها." />
+        </div>
       ) : (
-        <div className="mt-5 space-y-2">
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {slots.map((slot) => {
             const day = days.find(
               (item) => item.id === slot.dayId,
@@ -217,32 +220,26 @@ export function TimetableTeacherConstraints({
             );
 
             return (
-              <div
+              <TimetableDataCard
                 key={`${slot.dayId}:${slot.periodId}`}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
-              >
-                <div>
-                  <p className="font-black text-slate-900">
-                    {selectedTeacher?.name}
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {day?.label || slot.dayId} —{" "}
-                    {period?.label || slot.periodId}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void removeSlot(slot)
-                  }
-                  className="text-sm font-black text-rose-600 disabled:opacity-40"
-                >
-                  حذف
-                </button>
-              </div>
+                icon={<CalendarX2 className="h-5 w-5" />}
+                eyebrow="عدم توفر المعلم"
+                title={selectedTeacher?.name || "المعلم"}
+                description={`${day?.label || slot.dayId} — ${period?.label || slot.periodId}`}
+                tone="sky"
+                badges={[day?.label || slot.dayId, period?.label || slot.periodId]}
+                actions={
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void removeSlot(slot)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-40"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    حذف
+                  </button>
+                }
+              />
             );
           })}
         </div>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { TimetableDataEditor } from "@/components/timetable/timetable-data-editor";
+import { TimetableIdentityShell } from "@/components/timetable/timetable-identity-shell";
 import { requireTimetablePageAccess } from "@/lib/timetable/timetable-access";
 import { getTimetableProjectData } from "@/lib/timetable/timetable-data-service";
 
@@ -28,8 +29,10 @@ export default async function TimetableProjectPage({
   }
 
   return (
-    <TimetableDataEditor
-      initialProject={JSON.parse(JSON.stringify(project))}
-    />
+    <TimetableIdentityShell>
+      <TimetableDataEditor
+        initialProject={JSON.parse(JSON.stringify(project))}
+      />
+    </TimetableIdentityShell>
   );
 }

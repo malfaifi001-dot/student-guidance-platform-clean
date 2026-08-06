@@ -5,12 +5,17 @@ import {
   useMemo,
   useState,
 } from "react";
+import { BookOpen, Building2, GraduationCap, Trash2, UserRound } from "lucide-react";
+
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
 
 import type {
   TimetableConstraint,
   TimetableConstraintLevel,
   TimetableConstraintType,
 } from "@/lib/timetable/timetable-constraint-types";
+import { getConstraintTypeArabicLabel } from "@/lib/timetable/timetable-constraint-labels";
 
 type NamedItem = {
   id: string;
@@ -43,77 +48,77 @@ const definitions: Array<{
   {
     type: "TEACHER_UNAVAILABLE_SLOT",
     category: "TEACHER",
-    label: "المعلم غير متاح في يوم وحصة",
+    label: getConstraintTypeArabicLabel("TEACHER_UNAVAILABLE_SLOT"),
   },
   {
     type: "TEACHER_DAY_OFF",
     category: "TEACHER",
-    label: "يوم راحة للمعلم",
+    label: getConstraintTypeArabicLabel("TEACHER_DAY_OFF"),
   },
   {
     type: "TEACHER_NOT_BEFORE_PERIOD",
     category: "TEACHER",
-    label: "المعلم لا يدرس قبل حصة",
+    label: getConstraintTypeArabicLabel("TEACHER_NOT_BEFORE_PERIOD"),
   },
   {
     type: "TEACHER_NOT_AFTER_PERIOD",
     category: "TEACHER",
-    label: "المعلم لا يدرس بعد حصة",
+    label: getConstraintTypeArabicLabel("TEACHER_NOT_AFTER_PERIOD"),
   },
   {
     type: "TEACHER_MAX_DAILY_PERIODS",
     category: "TEACHER",
-    label: "الحد الأعلى لحصص المعلم يوميًا",
+    label: getConstraintTypeArabicLabel("TEACHER_MAX_DAILY_PERIODS"),
   },
   {
     type: "TEACHER_MAX_CONSECUTIVE_PERIODS",
     category: "TEACHER",
-    label: "الحد الأعلى للحصص المتتالية",
+    label: getConstraintTypeArabicLabel("TEACHER_MAX_CONSECUTIVE_PERIODS"),
   },
   {
     type: "TEACHER_MAX_DAILY_GAPS",
     category: "TEACHER",
-    label: "الحد الأعلى للفجوات اليومية",
+    label: getConstraintTypeArabicLabel("TEACHER_MAX_DAILY_GAPS"),
   },
   {
     type: "SUBJECT_FORBIDDEN_SLOT",
     category: "SUBJECT",
-    label: "منع مادة في حصة أو يوم",
+    label: getConstraintTypeArabicLabel("SUBJECT_FORBIDDEN_SLOT"),
   },
   {
     type: "SUBJECT_FIXED_SLOT",
     category: "SUBJECT",
-    label: "تثبيت مادة في يوم وحصة",
+    label: getConstraintTypeArabicLabel("SUBJECT_FIXED_SLOT"),
   },
   {
     type: "SUBJECT_MAX_DAILY_OCCURRENCES",
     category: "SUBJECT",
-    label: "الحد اليومي لتكرار المادة",
+    label: getConstraintTypeArabicLabel("SUBJECT_MAX_DAILY_OCCURRENCES"),
   },
   {
     type: "SCHOOL_BLOCKED_SLOT",
     category: "TIME",
-    label: "إغلاق خانة على المدرسة كاملة",
+    label: getConstraintTypeArabicLabel("SCHOOL_BLOCKED_SLOT"),
   },
   {
     type: "CLASS_NO_INTERNAL_GAPS",
     category: "CLASS",
-    label: "منع الفراغ داخل جدول الفصل",
+    label: getConstraintTypeArabicLabel("CLASS_NO_INTERNAL_GAPS"),
   },
   {
     type: "CLASS_MAX_HEAVY_SUBJECTS_DAILY",
     category: "CLASS",
-    label: "حد المواد الثقيلة يوميًا",
+    label: getConstraintTypeArabicLabel("CLASS_MAX_HEAVY_SUBJECTS_DAILY"),
   },
   {
     type: "FAIR_FIRST_PERIODS",
     category: "FAIRNESS",
-    label: "عدالة توزيع الحصة الأولى",
+    label: getConstraintTypeArabicLabel("FAIR_FIRST_PERIODS"),
   },
   {
     type: "FAIR_LAST_PERIODS",
     category: "FAIRNESS",
-    label: "عدالة توزيع الحصة الأخيرة",
+    label: getConstraintTypeArabicLabel("FAIR_LAST_PERIODS"),
   },
 ];
 
@@ -125,7 +130,7 @@ const categories: Array<{
   { value: "SUBJECT", label: "قيود المواد" },
   { value: "TIME", label: "قيود الوقت" },
   { value: "CLASS", label: "قيود الفصول" },
-  { value: "FAIRNESS", label: "العدالة" },
+  { value: "FAIRNESS", label: "تكافؤ التوزيع" },
 ];
 
 export function TimetableConstraintsCenter({
@@ -703,11 +708,16 @@ export function TimetableConstraintsCenter({
         </button>
       </div>
 
-      {message ? (
-        <p className="mt-4 rounded-xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
-          {message}
-        </p>
-      ) : null}
+      <SmartFeedbackModal
+        open={Boolean(message)}
+        type={message.startsWith("تم") ? "success" : "error"}
+        title={message.startsWith("تم") ? "تم الحفظ" : "تعذر إكمال العملية"}
+        description={message}
+        primaryActionLabel="حسنًا"
+        onOpenChange={(open) => {
+          if (!open) setMessage("");
+        }}
+      />
 
       {loading ? (
         <p className="mt-5 text-sm text-slate-500">
@@ -716,81 +726,79 @@ export function TimetableConstraintsCenter({
       ) : null}
 
       {!loading && !constraints.length ? (
-        <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
-          لا توجد قيود مضافة.
-        </p>
+        <div className="mt-5">
+          <TimetableEmptyState
+            icon={<Building2 className="h-6 w-6" />}
+            title="لا توجد قيود مضافة"
+            description="ستظهر القيود هنا بعد إضافتها."
+          />
+        </div>
       ) : null}
 
       {constraints.length ? (
-        <div className="mt-5 space-y-2">
-          {constraints.map((constraint) => (
-            <div
-              key={constraint.id}
-              className={[
-                "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3",
-                constraint.isEnabled
-                  ? "border-slate-200 bg-white"
-                  : "border-slate-100 bg-slate-50 opacity-60",
-              ].join(" ")}
-            >
-              <div>
-                <p className="font-black text-slate-900">
-                  {describeConstraint(
-                    constraint,
-                    teachers,
-                    classes,
-                    subjects,
-                    days,
-                    teachingPeriods,
-                  )}
-                </p>
-
-                <p className="mt-1 text-xs font-bold text-slate-500">
-                  {constraint.level === "HARD"
-                    ? "إلزامي"
-                    : "تفضيلي"}
-                  {" — "}
-                  {constraint.isEnabled
-                    ? "مفعّل"
-                    : "معطّل"}
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void toggleConstraint(
-                      constraint,
-                    )
-                  }
-                  className="text-sm font-black text-amber-700"
-                >
-                  {constraint.isEnabled
-                    ? "تعطيل"
-                    : "تفعيل"}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void removeConstraint(
-                      constraint.id,
-                    )
-                  }
-                  className="text-sm font-black text-rose-600"
-                >
-                  حذف
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {constraints.map((constraint) => {
+            const presentation = getConstraintPresentation(constraint.type);
+            return (
+              <TimetableDataCard
+                key={constraint.id}
+                icon={presentation.icon}
+                eyebrow={presentation.label}
+                title={describeConstraint(
+                  constraint,
+                  teachers,
+                  classes,
+                  subjects,
+                  days,
+                  teachingPeriods,
+                )}
+                tone={presentation.tone}
+                badges={[
+                  constraint.level === "HARD" ? "إلزامي" : "تفضيلي",
+                  constraint.isEnabled ? "مفعّل" : "معطّل",
+                ]}
+                className={constraint.isEnabled ? "" : "opacity-65"}
+                actions={
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void toggleConstraint(constraint)}
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"
+                    >
+                      {constraint.isEnabled ? "تعطيل" : "تفعيل"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void removeConstraint(constraint.id)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      حذف
+                    </button>
+                  </>
+                }
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>
   );
+}
+
+function getConstraintPresentation(type: TimetableConstraintType) {
+  if (type.startsWith("TEACHER_")) {
+    return { label: "قيد المعلم", tone: "sky" as const, icon: <UserRound className="h-5 w-5" /> };
+  }
+  if (type.startsWith("SUBJECT_")) {
+    return { label: "قيد المادة", tone: "amber" as const, icon: <BookOpen className="h-5 w-5" /> };
+  }
+  if (type.startsWith("CLASS_")) {
+    return { label: "قيد الفصل", tone: "violet" as const, icon: <GraduationCap className="h-5 w-5" /> };
+  }
+  return { label: "قيد المدرسة", tone: "slate" as const, icon: <Building2 className="h-5 w-5" /> };
 }
 
 function Select({
@@ -925,10 +933,10 @@ function describeConstraint(
       return `${className}: بحد أقصى ${constraint.value} مواد ثقيلة يوميًا`;
 
     case "FAIR_FIRST_PERIODS":
-      return `توزيع الحصص الأولى بعدالة`;
+      return `تكافؤ توزيع الحصص الأولى`;
 
     case "FAIR_LAST_PERIODS":
-      return `توزيع الحصص الأخيرة بعدالة`;
+      return `تكافؤ توزيع الحصص الأخيرة`;
 
     default:
       return "قيد جدول";
