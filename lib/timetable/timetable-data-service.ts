@@ -275,6 +275,125 @@ export async function createTimetableAssignment(
   });
 }
 
+export async function updateTimetableResource(
+  projectId: string,
+  schoolAccountId: string,
+  resource: TimetableResourceName,
+  id: string,
+  input:
+    | TimetableTeacherInput
+    | TimetableClassInput
+    | TimetableSubjectInput
+    | TimetableClassSubjectInput
+    | TimetableAssignmentInput,
+) {
+  const project = await assertScopedProject(projectId, schoolAccountId);
+  const scheduleMayNeedRegeneration = hasGeneratedSchedule(project.settingsJson);
+
+  if (resource === "teachers") {
+    const data = input as TimetableTeacherInput;
+    const teacher = await prisma.timetableTeacher.findFirst({
+      where: { id, projectId },
+      select: {
+        id: true,
+        assignments: { select: { assignedLessons: true } },
+      },
+    });
+    if (!teacher) throw new Error("RESOURCE_NOT_FOUND");
+    const assignedLessons = teacher.assignments.reduce(
+      (total, assignment) => total + assignment.assignedLessons,
+      0,
+    );
+    if (data.maxWeeklyLoad < assignedLessons) {
+      throw new Error("WEEKLY_LOAD_BELOW_ASSIGNED");
+    }
+    const item = await prisma.timetableTeacher.update({
+      where: { id: teacher.id },
+      data: {
+        name: data.name,
+        specialty: data.specialty || null,
+        maxWeeklyLoad: data.maxWeeklyLoad,
+      },
+    });
+    return { item, scheduleMayNeedRegeneration };
+  }
+
+  if (resource === "classes") {
+    const data = input as TimetableClassInput;
+    const current = await prisma.timetableClass.findFirst({ where: { id, projectId }, select: { id: true } });
+    if (!current) throw new Error("RESOURCE_NOT_FOUND");
+    const item = await prisma.timetableClass.update({
+      where: { id: current.id },
+      data: { name: data.name },
+    });
+    return { item, scheduleMayNeedRegeneration };
+  }
+
+  if (resource === "subjects") {
+    const data = input as TimetableSubjectInput;
+    const current = await prisma.timetableSubject.findFirst({ where: { id, projectId }, select: { id: true } });
+    if (!current) throw new Error("RESOURCE_NOT_FOUND");
+    const item = await prisma.timetableSubject.update({
+      where: { id: current.id },
+      data: { name: data.name },
+    });
+    return { item, scheduleMayNeedRegeneration };
+  }
+
+  if (resource === "class-subjects") {
+    const data = input as TimetableClassSubjectInput;
+    const current = await prisma.timetableClassSubject.findFirst({
+      where: { id, projectId },
+      select: {
+        id: true,
+        classId: true,
+        subjectId: true,
+      },
+    });
+    if (!current) throw new Error("RESOURCE_NOT_FOUND");
+    const assigned = await prisma.timetableAssignment.aggregate({
+      where: { projectId, classId: current.classId, subjectId: current.subjectId },
+      _sum: { assignedLessons: true },
+    });
+    if ((assigned._sum.assignedLessons || 0) > data.weeklyLessons) {
+      throw new Error("WEEKLY_LESSONS_BELOW_ASSIGNED");
+    }
+    const item = await prisma.timetableClassSubject.update({
+      where: { id: current.id },
+      data: { weeklyLessons: data.weeklyLessons },
+      include: { class: true, subject: true },
+    });
+    return { item, scheduleMayNeedRegeneration };
+  }
+
+  const data = input as TimetableAssignmentInput;
+  const [current, teacher, classSubject] = await Promise.all([
+    prisma.timetableAssignment.findFirst({ where: { id, projectId }, select: { id: true } }),
+    prisma.timetableTeacher.findFirst({ where: { id: data.teacherId, projectId }, select: { id: true } }),
+    prisma.timetableClassSubject.findFirst({
+      where: { projectId, classId: data.classId, subjectId: data.subjectId },
+      select: { id: true, weeklyLessons: true },
+    }),
+  ]);
+  if (!current || !teacher || !classSubject) throw new Error("PROJECT_RESOURCE_MISMATCH");
+  if (data.assignedLessons > classSubject.weeklyLessons) {
+    throw new Error("ASSIGNED_LESSONS_OVERFLOW");
+  }
+  const item = await prisma.timetableAssignment.update({
+    where: { id: current.id },
+    data: {
+      teacherId: data.teacherId,
+      classId: data.classId,
+      subjectId: data.subjectId,
+      assignedLessons: data.assignedLessons,
+      singlePeriods: data.singlePeriods,
+      doublePeriods: data.doublePeriods,
+    },
+    include: { teacher: true, class: true, subject: true },
+  });
+  return { item, scheduleMayNeedRegeneration };
+}
+
 export async function deleteTimetableResource(
   projectId: string,
   schoolAccountId: string,
@@ -338,12 +457,22 @@ async function assertScopedProject(
     },
     select: {
       id: true,
+      settingsJson: true,
     },
   });
 
   if (!project) {
     throw new Error("PROJECT_NOT_FOUND");
   }
+
+  return project;
+}
+
+function hasGeneratedSchedule(settingsJson: unknown) {
+  if (!settingsJson || typeof settingsJson !== "object" || Array.isArray(settingsJson)) {
+    return false;
+  }
+  return "generatedSchedule" in settingsJson && Array.isArray(settingsJson.generatedSchedule) && settingsJson.generatedSchedule.length > 0;
 }
 export async function updateTeacherUnavailableSlots(
   projectId: string,

@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { BookOpen, Building2, GraduationCap, Trash2, UserRound } from "lucide-react";
+import { BookOpen, Building2, GraduationCap, Pencil, Trash2, UserRound } from "lucide-react";
 
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
@@ -189,6 +189,7 @@ export function TimetableConstraintsCenter({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadConstraints();
@@ -197,10 +198,10 @@ export function TimetableConstraintsCenter({
   useEffect(() => {
     const first = availableDefinitions[0];
 
-    if (first) {
+    if (first && !editingConstraintId) {
       setType(first.type);
     }
-  }, [category]);
+  }, [category, editingConstraintId]);
 
   async function loadConstraints() {
     setLoading(true);
@@ -261,10 +262,36 @@ export function TimetableConstraintsCenter({
       return;
     }
 
-    await persist([
-      ...constraints,
-      constraint,
-    ]);
+    const current = editingConstraintId
+      ? constraints.find((item) => item.id === editingConstraintId)
+      : null;
+    const nextConstraint = current
+      ? { ...constraint, id: current.id, isEnabled: current.isEnabled }
+      : constraint;
+    const success = await persist(
+      current
+        ? constraints.map((item) => item.id === current.id ? nextConstraint : item)
+        : [...constraints, nextConstraint],
+    );
+    if (success && current) {
+      setEditingConstraintId(null);
+      setMessage("تم حفظ التعديل، وقد يحتاج الجدول المولد إلى إعادة التوليد لتطبيق التغييرات.");
+    }
+  }
+
+  function editConstraint(constraint: TimetableConstraint) {
+    setEditingConstraintId(constraint.id);
+    setCategory(getConstraintCategory(constraint.type));
+    setType(constraint.type);
+    setLevel(constraint.level);
+    setTeacherId(constraint.teacherId || "");
+    setClassId(constraint.classId || "");
+    setSubjectId(constraint.subjectId || "");
+    setDayId(constraint.dayId || "");
+    setPeriodId(constraint.periodId || "");
+    setValue(constraint.value ?? constraint.weight ?? 1);
+    setSubjectIds(constraint.subjectIds || []);
+    setMessage("");
   }
 
   function buildConstraint():
@@ -704,8 +731,20 @@ export function TimetableConstraintsCenter({
         >
           {busy
             ? "جارٍ الحفظ..."
-            : "إضافة القيد"}
+            : editingConstraintId
+              ? "حفظ تعديل القيد"
+              : "إضافة القيد"}
         </button>
+        {editingConstraintId ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setEditingConstraintId(null)}
+            className="self-end rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-600"
+          >
+            إلغاء التعديل
+          </button>
+        ) : null}
       </div>
 
       <SmartFeedbackModal
@@ -763,6 +802,15 @@ export function TimetableConstraintsCenter({
                     <button
                       type="button"
                       disabled={busy}
+                      onClick={() => editConstraint(constraint)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      تعديل
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
                       onClick={() => void toggleConstraint(constraint)}
                       className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"
                     >
@@ -799,6 +847,14 @@ function getConstraintPresentation(type: TimetableConstraintType) {
     return { label: "قيد الفصل", tone: "violet" as const, icon: <GraduationCap className="h-5 w-5" /> };
   }
   return { label: "قيد المدرسة", tone: "slate" as const, icon: <Building2 className="h-5 w-5" /> };
+}
+
+function getConstraintCategory(type: TimetableConstraintType): ConstraintCategory {
+  if (type.startsWith("TEACHER_")) return "TEACHER";
+  if (type.startsWith("SUBJECT_")) return "SUBJECT";
+  if (type.startsWith("CLASS_")) return "CLASS";
+  if (type === "FAIR_FIRST_PERIODS" || type === "FAIR_LAST_PERIODS") return "FAIRNESS";
+  return "TIME";
 }
 
 function Select({

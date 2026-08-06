@@ -144,6 +144,12 @@ export const timetableProjectInputSchema = z
     }
   });
 
+export const timetableProjectMetadataSchema = z.object({
+  name: z.string().trim().min(2, "اسم الجدول مطلوب.").max(120),
+  academicYear: z.string().trim().min(1, "العام الدراسي مطلوب.").max(30),
+  semester: z.string().trim().min(1, "الفصل الدراسي مطلوب.").max(50),
+});
+
 export const timetableTeacherInputSchema = z.object({
   userId: z.string().trim().min(1).nullable().optional(),
   name: z
@@ -256,6 +262,10 @@ export const timetableAssignmentInputSchema = z
 
 export type TimetableProjectInput = z.infer<
   typeof timetableProjectInputSchema
+>;
+
+export type TimetableProjectMetadataInput = z.infer<
+  typeof timetableProjectMetadataSchema
 >;
 
 export type TimetableTeacherInput = z.infer<

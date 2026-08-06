@@ -5,11 +5,13 @@ import {
   BookOpen,
   GraduationCap,
   Link2,
+  Pencil,
   Trash2,
   UserRound,
   Waypoints,
 } from "lucide-react";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import {
   TimetableDataCard,
   TimetableEmptyState,
@@ -27,6 +29,7 @@ import { TimetableAdvancedConstraintsPanel } from "./timetable-advanced-constrai
 import { TimetableAiAnalysisPanel } from "./timetable-ai-analysis-panel";
 import { TimetableValidationPanel } from "./timetable-validation-panel";
 import { TimetableGenerationPanel } from "./timetable-generation-panel";
+import { TimetableProjectEditDialog } from "./timetable-project-actions";
 
 type Teacher = {
   id: string;
@@ -66,6 +69,13 @@ type Assignment = {
   subject: Subject;
 };
 
+type ResourceEditTarget =
+  | { resource: "teachers"; item: Teacher }
+  | { resource: "classes"; item: ClassItem }
+  | { resource: "subjects"; item: Subject }
+  | { resource: "class-subjects"; item: ClassSubject }
+  | { resource: "assignments"; item: Assignment };
+
 type ProjectData = {
   id: string;
   name: string;
@@ -101,6 +111,8 @@ export function TimetableDataEditor({
     useState<(typeof tabs)[number]>("المعلمون");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editingProject, setEditingProject] = useState(false);
+  const [editTarget, setEditTarget] = useState<ResourceEditTarget | null>(null);
 
   async function reload() {
     const response = await fetch(
@@ -180,6 +192,42 @@ export function TimetableDataEditor({
     setMessage("تم الحذف.");
   }
 
+  async function update(
+    target: ResourceEditTarget,
+    data: Record<string, unknown>,
+  ) {
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/dashboard/principal/timetable/projects/${project.id}/resources`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resource: target.resource, id: target.item.id, data }),
+        },
+      );
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(result.error || "تعذر حفظ التعديلات.");
+        return false;
+      }
+      await reload();
+      setEditTarget(null);
+      setMessage(
+        result.scheduleMayNeedRegeneration
+          ? "تم حفظ التعديل، وقد يحتاج الجدول المولد إلى إعادة التوليد لتطبيق التغييرات."
+          : "تم حفظ التعديلات.",
+      );
+      return true;
+    } catch {
+      setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="space-y-5" dir="rtl">
       <header className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
@@ -203,6 +251,15 @@ export function TimetableDataEditor({
             <p className="mt-2 text-sm font-bold text-sky-100">
               {project.academicYear} — {project.semester}
             </p>
+
+            <button
+              type="button"
+              onClick={() => setEditingProject(true)}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-black text-white transition hover:bg-white/20"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              تعديل بيانات المشروع
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -285,6 +342,7 @@ export function TimetableDataEditor({
             busy={busy}
             create={create}
             remove={remove}
+            edit={(item) => setEditTarget({ resource: "teachers", item })}
           />
         ) : null}
 
@@ -296,6 +354,7 @@ export function TimetableDataEditor({
             busy={busy}
             create={create}
             remove={remove}
+            edit={(item) => setEditTarget({ resource: "classes", item })}
           />
         ) : null}
 
@@ -306,6 +365,7 @@ export function TimetableDataEditor({
             busy={busy}
             create={create}
             remove={remove}
+            edit={(item) => setEditTarget({ resource: "subjects", item })}
           />
         ) : null}
 
@@ -317,6 +377,7 @@ export function TimetableDataEditor({
             busy={busy}
             create={create}
             remove={remove}
+            edit={(item) => setEditTarget({ resource: "class-subjects", item })}
           />
         ) : null}
 
@@ -328,6 +389,7 @@ export function TimetableDataEditor({
             busy={busy}
             create={create}
             remove={remove}
+            edit={(item) => setEditTarget({ resource: "assignments", item })}
           />
         ) : null}
 
@@ -376,6 +438,25 @@ export function TimetableDataEditor({
           if (!open) setMessage("");
         }}
       />
+      <TimetableProjectEditDialog
+        project={project}
+        open={editingProject}
+        onClose={() => setEditingProject(false)}
+        onSaved={(updated) => {
+          setProject((current) => ({ ...current, ...updated }));
+          setMessage("تم حفظ بيانات المشروع.");
+        }}
+      />
+      {editTarget ? (
+        <ResourceEditDialog
+          target={editTarget}
+          teachers={project.teachers}
+          classSubjects={project.classSubjects}
+          busy={busy}
+          onClose={() => setEditTarget(null)}
+          onSave={(data) => update(editTarget, data)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -385,6 +466,7 @@ function TeachersPanel({
   busy,
   create,
   remove,
+  edit,
 }: {
   items: Teacher[];
   busy: boolean;
@@ -393,6 +475,7 @@ function TeachersPanel({
     data: Record<string, unknown>,
   ) => Promise<boolean>;
   remove: (resource: string, id: string) => Promise<void>;
+  edit: (item: Teacher) => void;
 }) {
   const [name, setName] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -459,6 +542,10 @@ function TeachersPanel({
           ],
         }))}
         onRemove={(id) => remove("teachers", id)}
+        onEdit={(id) => {
+          const item = items.find((entry) => entry.id === id);
+          if (item) edit(item);
+        }}
       />
     </Panel>
   );
@@ -471,6 +558,7 @@ function ClassesPanel({
   busy,
   create,
   remove,
+  edit,
 }: {
   items: ClassItem[];
   classSubjects: ClassSubject[];
@@ -481,6 +569,7 @@ function ClassesPanel({
     data: Record<string, unknown>,
   ) => Promise<boolean>;
   remove: (resource: string, id: string) => Promise<void>;
+  edit: (item: ClassItem) => void;
 }) {
   const [gradeKey, setGradeKey] = useState(
     SAUDI_SCHOOL_GRADES[0]?.key || "",
@@ -570,6 +659,10 @@ function ClassesPanel({
           ],
         }))}
         onRemove={(id) => remove("classes", id)}
+        onEdit={(id) => {
+          const item = items.find((entry) => entry.id === id);
+          if (item) edit(item);
+        }}
       />
     </Panel>
   );
@@ -581,6 +674,7 @@ function SubjectsPanel({
   busy,
   create,
   remove,
+  edit,
 }: {
   items: Subject[];
   classSubjects: ClassSubject[];
@@ -590,6 +684,7 @@ function SubjectsPanel({
     data: Record<string, unknown>,
   ) => Promise<boolean>;
   remove: (resource: string, id: string) => Promise<void>;
+  edit: (item: Subject) => void;
 }) {
   const [gradeKey, setGradeKey] = useState(
     SAUDI_SCHOOL_GRADES[0]?.key || "",
@@ -746,6 +841,10 @@ function SubjectsPanel({
           ],
         }))}
         onRemove={(id) => remove("subjects", id)}
+        onEdit={(id) => {
+          const item = items.find((entry) => entry.id === id);
+          if (item) edit(item);
+        }}
       />
     </Panel>
   );
@@ -758,6 +857,7 @@ function ClassSubjectsPanel({
   busy,
   create,
   remove,
+  edit,
 }: {
   items: ClassSubject[];
   classes: ClassItem[];
@@ -768,6 +868,7 @@ function ClassSubjectsPanel({
     data: Record<string, unknown>,
   ) => Promise<boolean>;
   remove: (resource: string, id: string) => Promise<void>;
+  edit: (item: ClassSubject) => void;
 }) {
   const [classId, setClassId] = useState(classes[0]?.id || "");
   const [subjectId, setSubjectId] =
@@ -831,6 +932,10 @@ function ClassSubjectsPanel({
           ],
         }))}
         onRemove={(id) => remove("class-subjects", id)}
+        onEdit={(id) => {
+          const item = items.find((entry) => entry.id === id);
+          if (item) edit(item);
+        }}
       />
     </Panel>
   );
@@ -843,6 +948,7 @@ function AssignmentsPanel({
   busy,
   create,
   remove,
+  edit,
 }: {
   items: Assignment[];
   teachers: Teacher[];
@@ -853,6 +959,7 @@ function AssignmentsPanel({
     data: Record<string, unknown>,
   ) => Promise<boolean>;
   remove: (resource: string, id: string) => Promise<void>;
+  edit: (item: Assignment) => void;
 }) {
   const [teacherId, setTeacherId] =
     useState(teachers[0]?.id || "");
@@ -943,6 +1050,10 @@ function AssignmentsPanel({
           ],
         }))}
         onRemove={(id) => remove("assignments", id)}
+        onEdit={(id) => {
+          const item = items.find((entry) => entry.id === id);
+          if (item) edit(item);
+        }}
       />
     </Panel>
   );
@@ -1091,6 +1202,7 @@ function SaveButton({
 function SimpleList({
   items,
   onRemove,
+  onEdit,
 }: {
   items: Array<{
     id: string;
@@ -1102,7 +1214,11 @@ function SimpleList({
     metrics?: TimetableCardMetric[];
   }>;
   onRemove: (id: string) => Promise<void>;
+  onEdit?: (id: string) => void;
 }) {
+  const [pendingDelete, setPendingDelete] = useState<(typeof items)[number] | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   if (!items.length) {
     return (
       <div className="mt-5">
@@ -1116,6 +1232,7 @@ function SimpleList({
   }
 
   return (
+    <>
     <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
         <TimetableDataCard
@@ -1127,18 +1244,190 @@ function SimpleList({
           badges={item.badges}
           metrics={item.metrics}
           actions={
-            <button
-              type="button"
-              onClick={() => void onRemove(item.id)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              حذف
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {onEdit ? (
+                <button
+                  type="button"
+                  onClick={() => onEdit(item.id)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  تعديل
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setPendingDelete(item)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                حذف
+              </button>
+            </div>
           }
         />
       ))}
     </div>
+    <SmartActionModal
+      open={Boolean(pendingDelete)}
+      title="تأكيد حذف العنصر"
+      description={pendingDelete ? `سيتم حذف «${pendingDelete.title}» من مشروع الجدول. لا يتأثر أي مستخدم أو سجل خارج المشروع.` : ""}
+      variant="danger"
+      confirmLabel="تأكيد الحذف"
+      cancelLabel="إلغاء"
+      loading={deleting}
+      onConfirm={() => {
+        if (!pendingDelete) return;
+        setDeleting(true);
+        void onRemove(pendingDelete.id).finally(() => {
+          setDeleting(false);
+          setPendingDelete(null);
+        });
+      }}
+      onClose={() => setPendingDelete(null)}
+    />
+    </>
+  );
+}
+
+function ResourceEditDialog({
+  target,
+  teachers,
+  classSubjects,
+  busy,
+  onClose,
+  onSave,
+}: {
+  target: ResourceEditTarget;
+  teachers: Teacher[];
+  classSubjects: ClassSubject[];
+  busy: boolean;
+  onClose: () => void;
+  onSave: (data: Record<string, unknown>) => Promise<boolean>;
+}) {
+  const teacher = target.resource === "teachers" ? target.item : null;
+  const classItem = target.resource === "classes" ? target.item : null;
+  const subject = target.resource === "subjects" ? target.item : null;
+  const classSubject = target.resource === "class-subjects" ? target.item : null;
+  const assignment = target.resource === "assignments" ? target.item : null;
+
+  const initialGrade = classItem
+    ? SAUDI_SCHOOL_GRADES.find((grade) => classItem.name.startsWith(grade.label))?.key || SAUDI_SCHOOL_GRADES[0]?.key || ""
+    : "";
+  const initialSection = classItem ? splitClassName(classItem.name).section || SAUDI_SCHOOL_SECTIONS[0] : "";
+  const assignmentClassSubject = assignment
+    ? classSubjects.find(
+        (item) => item.classId === assignment.class.id && item.subjectId === assignment.subject.id,
+      )
+    : null;
+
+  const [name, setName] = useState(teacher?.name || subject?.name || "");
+  const [specialty, setSpecialty] = useState(teacher?.specialty || "");
+  const [maxWeeklyLoad, setMaxWeeklyLoad] = useState(teacher?.maxWeeklyLoad || 24);
+  const [gradeKey, setGradeKey] = useState(initialGrade);
+  const [section, setSection] = useState(initialSection);
+  const [weeklyLessons, setWeeklyLessons] = useState(classSubject?.weeklyLessons || 1);
+  const [teacherId, setTeacherId] = useState(assignment?.teacher.id || teachers[0]?.id || "");
+  const [classSubjectId, setClassSubjectId] = useState(assignmentClassSubject?.id || classSubjects[0]?.id || "");
+  const [singlePeriods, setSinglePeriods] = useState(assignment?.singlePeriods || 0);
+  const [doublePeriods, setDoublePeriods] = useState(assignment?.doublePeriods || 0);
+  const [localError, setLocalError] = useState("");
+
+  async function save() {
+    setLocalError("");
+    if (target.resource === "teachers") {
+      if (!name.trim()) return setLocalError("اسم المعلم مطلوب.");
+      await onSave({ name, specialty: specialty || null, maxWeeklyLoad, isActive: true, unavailableSlots: [] });
+      return;
+    }
+    if (target.resource === "classes") {
+      const grade = getSaudiSchoolGrade(gradeKey);
+      if (!grade || !section) return setLocalError("اختر الصف الدراسي والصف.");
+      await onSave({ name: `${grade.label} - ${section}`, isActive: true });
+      return;
+    }
+    if (target.resource === "subjects") {
+      if (!name.trim()) return setLocalError("اسم المادة مطلوب.");
+      await onSave({ name, catalogKey: subject?.catalogKey || null, isActive: true });
+      return;
+    }
+    if (target.resource === "class-subjects" && classSubject) {
+      await onSave({
+        classId: classSubject.classId,
+        subjectId: classSubject.subjectId,
+        weeklyLessons,
+      });
+      return;
+    }
+    const selected = classSubjects.find((item) => item.id === classSubjectId);
+    if (!selected || !teacherId) return setLocalError("اختر المعلم والفصل والمادة.");
+    const assignedLessons = singlePeriods + doublePeriods * 2;
+    if (assignedLessons < 1) return setLocalError("إجمالي الحصص يجب أن يكون حصة واحدة على الأقل.");
+    await onSave({
+      teacherId,
+      classId: selected.classId,
+      subjectId: selected.subjectId,
+      assignedLessons,
+      singlePeriods,
+      doublePeriods,
+      fixedSlots: [],
+    });
+  }
+
+  const title = target.resource === "teachers"
+    ? "تعديل بيانات المعلم"
+    : target.resource === "classes"
+      ? "تعديل بيانات الفصل"
+      : target.resource === "subjects"
+        ? "تعديل بيانات المادة"
+        : target.resource === "class-subjects"
+          ? "تعديل حصص مادة الفصل"
+          : "تعديل العلاقة التدريسية";
+
+  return (
+    <SmartActionModal
+      open
+      title={title}
+      description="تُحفظ التعديلات على هذا المشروع فقط مع الحفاظ على العلاقات الحالية."
+      confirmLabel="حفظ التعديلات"
+      cancelLabel="إلغاء"
+      loading={busy}
+      onConfirm={() => void save()}
+      onClose={onClose}
+    >
+      <div className="grid gap-4">
+        {teacher ? (
+          <>
+            <Input label="اسم المعلم" value={name} onChange={setName} />
+            <Input label="التخصص" value={specialty} onChange={setSpecialty} />
+            <NumberInput label="النصاب الأسبوعي" value={maxWeeklyLoad} onChange={setMaxWeeklyLoad} />
+          </>
+        ) : null}
+        {classItem ? (
+          <>
+            <Select label="الصف الدراسي" value={gradeKey} onChange={setGradeKey} options={SAUDI_SCHOOL_GRADES.map((item) => ({ value: item.key, label: item.label }))} />
+            <Select label="الصف" value={section} onChange={setSection} options={SAUDI_SCHOOL_SECTIONS.map((item) => ({ value: item, label: item }))} />
+          </>
+        ) : null}
+        {subject ? <Input label="اسم المادة" value={name} onChange={setName} /> : null}
+        {classSubject ? <NumberInput label="الحصص الأسبوعية" value={weeklyLessons} onChange={setWeeklyLessons} /> : null}
+        {assignment ? (
+          <>
+            <Select label="المعلم" value={teacherId} onChange={setTeacherId} options={teachers.map((item) => ({ value: item.id, label: item.name }))} />
+            <Select label="الفصل والمادة" value={classSubjectId} onChange={setClassSubjectId} options={classSubjects.map((item) => ({ value: item.id, label: `${item.class.name} — ${item.subject.name}` }))} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <NumberInput label="حصص فردية" value={singlePeriods} onChange={setSinglePeriods} />
+              <NumberInput label="كتل مزدوجة" value={doublePeriods} onChange={setDoublePeriods} />
+            </div>
+            <p className="text-xs font-bold text-slate-500">الإجمالي: {singlePeriods + doublePeriods * 2} حصة</p>
+          </>
+        ) : null}
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-6 text-amber-800">
+          قد يحتاج الجدول المولد إلى إعادة التوليد لتطبيق التغييرات التي تمس الإسنادات أو السعة.
+        </p>
+        {localError ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{localError}</p> : null}
+      </div>
+    </SmartActionModal>
   );
 }
 

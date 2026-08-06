@@ -14,6 +14,7 @@ import {
   type WaitingPolicy,
 } from "@/components/timetable/timetable-operations-settings-panels";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 type Teacher = {
   id: string;
@@ -143,6 +144,8 @@ export function TimetableDailyOperationsCenter({
   const [workingKey, setWorkingKey] = useState("");
   const [notice, setNotice] =
     useState<Notice | null>(null);
+  const [absencePendingDeletion, setAbsencePendingDeletion] =
+    useState<string | null>(null);
 
   const [
     workspaceSection,
@@ -562,7 +565,9 @@ export function TimetableDailyOperationsCenter({
         "تم حذف سجل الغياب",
         "حُذف السجل وحصص الانتظار التابعة له.",
       );
+      setAbsencePendingDeletion(null);
     } catch (error) {
+      setAbsencePendingDeletion(null);
       showNotice(
         "error",
         "تعذر حذف الغياب",
@@ -1027,7 +1032,9 @@ export function TimetableDailyOperationsCenter({
                       onUpdateStatus={
                         updateStatus
                       }
-                      onDelete={deleteAbsence}
+                      onDelete={async (absenceId) => {
+                        setAbsencePendingDeletion(absenceId);
+                      }}
                     />
                   ),
                 )}
@@ -1150,6 +1157,19 @@ export function TimetableDailyOperationsCenter({
           if (!open) setNotice(null);
         }}
       />
+      <SmartActionModal
+        open={Boolean(absencePendingDeletion)}
+        title="حذف سجل الغياب"
+        description="سيتم حذف سجل غياب المعلم والحصص البديلة المرتبطة به فقط، ولن يتأثر الجدول الأساسي."
+        variant="danger"
+        confirmLabel="تأكيد الحذف"
+        cancelLabel="إلغاء"
+        loading={Boolean(absencePendingDeletion && workingKey === `delete:${absencePendingDeletion}`)}
+        onConfirm={() => {
+          if (absencePendingDeletion) void deleteAbsence(absencePendingDeletion);
+        }}
+        onClose={() => setAbsencePendingDeletion(null)}
+      />
     </main>
   );
 }
@@ -1251,7 +1271,7 @@ function AbsenceCard({
             }
             className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
           >
-            حذف السجل
+            حذف سجل الغياب
           </button>
         </div>
       </header>

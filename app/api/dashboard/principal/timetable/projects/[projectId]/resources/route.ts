@@ -11,6 +11,7 @@ import {
   deleteTimetableResource,
   findScopedProject,
   isTimetableResourceName,
+  updateTimetableResource,
 } from "@/lib/timetable/timetable-data-service";
 import {
   timetableAssignmentInputSchema,
@@ -263,6 +264,70 @@ export async function DELETE(
           "لا يمكن حذف العنصر قبل حذف البيانات المرتبطة به.",
       },
       { status: 409 },
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: Context) {
+  const access = await requireTimetableApiAccess();
+  if (!access.ok) return access.response;
+
+  const { projectId } = await context.params;
+  const project = await findScopedProject(projectId, access.schoolAccountId!);
+  if (!project) {
+    return NextResponse.json({ success: false, error: "مشروع الجدول غير موجود." }, { status: 404 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const resource = String(body?.resource || "");
+  const id = String(body?.id || "");
+  if (!isTimetableResourceName(resource) || !id) {
+    return invalid("طلب التعديل غير صالح.");
+  }
+
+  const schema = resource === "teachers"
+    ? timetableTeacherInputSchema
+    : resource === "classes"
+      ? timetableClassInputSchema
+      : resource === "subjects"
+        ? timetableSubjectInputSchema
+        : resource === "class-subjects"
+          ? timetableClassSubjectInputSchema
+          : timetableAssignmentInputSchema;
+  const parsed = schema.safeParse(body?.data);
+  if (!parsed.success) return invalid(parsed.error.issues[0]?.message);
+
+  try {
+    const result = await updateTimetableResource(
+      projectId,
+      access.schoolAccountId!,
+      resource,
+      id,
+      parsed.data,
+    );
+    return NextResponse.json({ success: true, ...result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const messages: Record<string, string> = {
+      RESOURCE_NOT_FOUND: "العنصر غير موجود.",
+      PROJECT_RESOURCE_MISMATCH: "المعلم أو الفصل أو المادة لا تتبع مشروع الجدول.",
+      ASSIGNED_LESSONS_OVERFLOW: "عدد الحصص المسندة أكبر من حصص المادة في الفصل.",
+      WEEKLY_LOAD_BELOW_ASSIGNED: "لا يمكن خفض النصاب الأسبوعي عن عدد الحصص المسندة حاليًا.",
+      WEEKLY_LESSONS_BELOW_ASSIGNED: "لا يمكن خفض حصص المادة عن مجموع الحصص المسندة حاليًا.",
+    };
+    if (messages[message]) return invalid(messages[message]);
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return invalid("توجد بيانات أخرى بالقيمة نفسها داخل المشروع.");
+    }
+    console.error("TIMETABLE_RESOURCE_UPDATE_FAILED", {
+      projectId,
+      resource,
+      id,
+      error,
+    });
+    return NextResponse.json(
+      { success: false, error: "تعذر حفظ التعديلات الآن." },
+      { status: 500 },
     );
   }
 }

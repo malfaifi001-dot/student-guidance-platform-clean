@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Clock3, FolderOpen, Plus } from "lucide-react";
+import { CalendarDays, Clock3, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { TimetableDataCard } from "@/components/timetable/timetable-data-card";
+import {
+  TimetableProjectDeleteDialog,
+  TimetableProjectEditDialog,
+  type TimetableProjectSummary,
+} from "@/components/timetable/timetable-project-actions";
 
 type ProjectItem = {
   id: string;
@@ -38,6 +43,8 @@ export function TimetableSetup({
   const [breakDuration, setBreakDuration] = useState(20);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [editProject, setEditProject] = useState<ProjectItem | null>(null);
+  const [deleteProject, setDeleteProject] = useState<ProjectItem | null>(null);
 
   async function save() {
     setBusy(true);
@@ -207,12 +214,30 @@ export function TimetableSetup({
                   { label: "الفصل الدراسي", value: project.semester },
                 ]}
                 actions={
-                  <a
-                    href={`/dashboard/principal/timetable/${project.id}`}
-                    className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800"
-                  >
-                    فتح المشروع
-                  </a>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={`/dashboard/principal/timetable/${project.id}`}
+                      className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800"
+                    >
+                      فتح المشروع
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setEditProject(project)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      تعديل
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteProject(project)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      حذف المشروع
+                    </button>
+                  </div>
                 }
               />
             ))}
@@ -241,6 +266,30 @@ export function TimetableSetup({
           if (!open) setMessage("");
         }}
       />
+      {editProject ? (
+        <TimetableProjectEditDialog
+          project={editProject}
+          open
+          onClose={() => setEditProject(null)}
+          onSaved={(updated: TimetableProjectSummary) => {
+            setProjects((current) =>
+              current.map((item) => item.id === updated.id ? { ...item, ...updated } : item),
+            );
+            setMessage("تم حفظ بيانات المشروع.");
+          }}
+        />
+      ) : null}
+      {deleteProject ? (
+        <TimetableProjectDeleteDialog
+          project={deleteProject}
+          open
+          onClose={() => setDeleteProject(null)}
+          onDeleted={() => {
+            setProjects((current) => current.filter((item) => item.id !== deleteProject.id));
+            setMessage("تم حذف مشروع الجدول وبياناته التابعة.");
+          }}
+        />
+      ) : null}
     </main>
   );
 }

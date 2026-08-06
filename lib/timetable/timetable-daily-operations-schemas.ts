@@ -134,6 +134,11 @@ export const dailyOperationsRequestSchema =
       data: supervisionDutySchema,
     }),
     z.object({
+      action: z.literal("UPDATE_SUPERVISION"),
+      dutyId: z.string().min(1),
+      data: supervisionDutySchema,
+    }),
+    z.object({
       action: z.literal("DELETE_ABSENCE"),
       absenceId: z.string().min(1),
     }),

@@ -1072,6 +1072,73 @@ export async function createSupervisionDuty(
   });
 }
 
+export async function updateSupervisionDuty(
+  projectId: string,
+  schoolAccountId: string,
+  dutyId: string,
+  input: SupervisionDutyInput,
+) {
+  const [project, duty, validTeachers] = await Promise.all([
+    prisma.timetableProject.findFirst({
+      where: { id: projectId, schoolAccountId },
+      select: { id: true, settingsJson: true },
+    }),
+    prisma.timetableSupervisionDuty.findFirst({
+      where: { id: dutyId, projectId, schoolAccountId },
+      select: { id: true },
+    }),
+    prisma.timetableTeacher.findMany({
+      where: { projectId, id: { in: input.teacherIds }, isActive: true },
+      select: { id: true },
+    }),
+  ]);
+  if (!project) throw new Error("PROJECT_NOT_FOUND");
+  if (!duty) throw new Error("SUPERVISION_NOT_FOUND");
+  if (validTeachers.length !== new Set(input.teacherIds).size) {
+    throw new Error("INVALID_TEACHERS");
+  }
+
+  if (input.periodId) {
+    const schedule = normalizeSchedule(normalizeRecord(project.settingsJson).generatedSchedule);
+    const hasConflict = validTeachers.some((teacher) =>
+      schedule.some(
+        (session) =>
+          session.teacherId === teacher.id &&
+          session.dayId === input.dayId &&
+          session.periodId === input.periodId,
+      ),
+    );
+    if (hasConflict) throw new Error("SUPERVISION_SCHEDULE_CONFLICT");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.timetableSupervisionAssignment.deleteMany({ where: { dutyId: duty.id } });
+    return tx.timetableSupervisionDuty.update({
+      where: { id: duty.id },
+      data: {
+        title: input.title,
+        dutyType: input.dutyType,
+        status: input.teacherIds.length ? "ASSIGNED" : "DRAFT",
+        dayId: input.dayId,
+        periodId: input.periodId || null,
+        startTime: input.startTime || null,
+        endTime: input.endTime || null,
+        location: input.location || null,
+        requiredTeachers: input.requiredTeachers,
+        note: input.note || null,
+        assignments: {
+          create: input.teacherIds.map((teacherId, index) => ({
+            teacherId,
+            isPrimary: index < input.requiredTeachers,
+            sortOrder: index,
+          })),
+        },
+      },
+      include: { assignments: { include: { teacher: true } } },
+    });
+  });
+}
+
 export async function deleteDailyAbsence(
   projectId: string,
   schoolAccountId: string,

@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { ShieldCheck, UserRound } from "lucide-react";
+import { Pencil, ShieldCheck, UserRound } from "lucide-react";
 
 import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
 
@@ -227,6 +227,8 @@ export function TimetableOperationsSettingsPanels({
 
   const [supervisionNote, setSupervisionNote] =
     useState("");
+  const [editingDutyId, setEditingDutyId] =
+    useState<string | null>(null);
 
   const teachingPeriods = useMemo(
     () =>
@@ -418,7 +420,8 @@ export function TimetableOperationsSettingsPanels({
 
     try {
       await request({
-        action: "CREATE_SUPERVISION",
+        action: editingDutyId ? "UPDATE_SUPERVISION" : "CREATE_SUPERVISION",
+        ...(editingDutyId ? { dutyId: editingDutyId } : {}),
         data: {
           title: title.trim(),
           dutyType,
@@ -447,13 +450,16 @@ export function TimetableOperationsSettingsPanels({
       setRequiredTeachers(1);
       setTeacherIds([]);
       setSupervisionNote("");
+      setEditingDutyId(null);
 
       await onReload();
 
       onNotice(
         "success",
-        "تم حفظ المناوبة",
-        "حُفظت المناوبة وربطت بالمعلمين المحددين، وستُستبعد من تعارضات الانتظار.",
+        editingDutyId ? "تم تعديل المناوبة" : "تم حفظ المناوبة",
+        editingDutyId
+          ? "حُفظت التعديلات وتكليفات المعلمين المرتبطة بها."
+          : "حُفظت المناوبة وربطت بالمعلمين المحددين، وستُستبعد من تعارضات الانتظار.",
       );
     } catch (error) {
       onNotice(
@@ -464,6 +470,32 @@ export function TimetableOperationsSettingsPanels({
     } finally {
       setSaving(false);
     }
+  }
+
+  function editSupervision(duty: SupervisionDuty) {
+    setEditingDutyId(duty.id);
+    setTitle(duty.title);
+    setDutyType(duty.dutyType);
+    setDayId(duty.dayId);
+    setPeriodId(duty.periodId || "");
+    setStartTime(duty.startTime || "");
+    setEndTime(duty.endTime || "");
+    setLocation(duty.location || "");
+    setRequiredTeachers(duty.requiredTeachers);
+    setTeacherIds(duty.assignments.map((assignment) => assignment.teacherId));
+    setSupervisionNote(duty.note || "");
+  }
+
+  function cancelSupervisionEdit() {
+    setEditingDutyId(null);
+    setTitle("");
+    setPeriodId("");
+    setStartTime("");
+    setEndTime("");
+    setLocation("");
+    setRequiredTeachers(1);
+    setTeacherIds([]);
+    setSupervisionNote("");
   }
 
   async function deleteSupervision(
@@ -1396,8 +1428,20 @@ export function TimetableOperationsSettingsPanels({
               >
                 {saving
                   ? "جارٍ الحفظ..."
-                  : "حفظ المناوبة"}
+                  : editingDutyId
+                    ? "حفظ تعديل المناوبة"
+                    : "حفظ المناوبة"}
               </button>
+              {editingDutyId ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={cancelSupervisionEdit}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 disabled:opacity-50"
+                >
+                  إلغاء التعديل
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -1479,18 +1523,25 @@ export function TimetableOperationsSettingsPanels({
                           </p>
                         </div>
 
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() =>
-                            void deleteSupervision(
-                              duty.id,
-                            )
-                          }
-                          className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
-                        >
-                          حذف
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => editSupervision(duty)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 disabled:opacity-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            تعديل
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => void deleteSupervision(duty.id)}
+                            className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
+                          >
+                            حذف
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">

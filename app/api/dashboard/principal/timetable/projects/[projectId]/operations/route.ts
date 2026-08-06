@@ -15,6 +15,7 @@ import {
   getDailyOperationsDashboard,
   saveWaitingPolicy,
   updateSubstitutionStatus,
+  updateSupervisionDuty,
 } from "@/lib/timetable/timetable-daily-operations-service";
 
 type Context = {
@@ -236,6 +237,16 @@ export async function POST(
       );
     }
 
+    if (parsed.data.action === "UPDATE_SUPERVISION") {
+      const duty = await updateSupervisionDuty(
+        projectId,
+        access.schoolAccountId!,
+        parsed.data.dutyId,
+        parsed.data.data,
+      );
+      return NextResponse.json({ success: true, duty });
+    }
+
     if (
       parsed.data.action ===
       "DELETE_ABSENCE"
@@ -284,6 +295,8 @@ export async function POST(
     > = {
       PROJECT_NOT_FOUND:
         "مشروع الجدول غير موجود.",
+      SUPERVISION_NOT_FOUND:
+        "سجل المناوبة غير موجود.",
       TEACHER_NOT_FOUND:
         "المعلم غير موجود.",
       GENERATED_SCHEDULE_REQUIRED:

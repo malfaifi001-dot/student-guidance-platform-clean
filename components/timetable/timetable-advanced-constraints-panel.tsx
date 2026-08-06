@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Beaker, Building2, Trash2 } from "lucide-react";
+import { Beaker, Building2, Pencil, Trash2 } from "lucide-react";
 
 import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
 
@@ -151,6 +151,7 @@ export function TimetableAdvancedConstraintsPanel({
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadData();
@@ -293,10 +294,37 @@ export function TimetableAdvancedConstraintsPanel({
       return;
     }
 
-    await saveConstraints([
-      ...constraints,
-      next,
-    ]);
+    const current = editingConstraintId
+      ? constraints.find((constraint) => constraint.id === editingConstraintId)
+      : null;
+    const nextConstraint = current
+      ? { ...next, id: current.id, isEnabled: current.isEnabled }
+      : next;
+    const saved = await saveConstraints(
+      current
+        ? constraints.map((constraint) => constraint.id === current.id ? nextConstraint : constraint)
+        : [...constraints, nextConstraint],
+    );
+    if (saved && current) {
+      setEditingConstraintId(null);
+      setMessage("تم حفظ التعديل، وقد يحتاج الجدول المولد إلى إعادة التوليد لتطبيق التغييرات.");
+    }
+  }
+
+  function editConstraint(constraint: TimetableConstraint) {
+    setEditingConstraintId(constraint.id);
+    setType(constraint.type as AdvancedType);
+    setLevel(constraint.level);
+    setTeacherId(constraint.teacherId || "");
+    setSubjectId(constraint.subjectId || "");
+    setClassId(constraint.classId || "");
+    setRoomId(constraint.roomId || "");
+    setDayId(constraint.dayId || "");
+    setPeriodId(constraint.periodId || "");
+    setDayIds(constraint.dayIds || []);
+    setSubjectIds(constraint.subjectIds || []);
+    setValue(constraint.value ?? 1);
+    setMessage("");
   }
 
   function buildConstraint():
@@ -754,8 +782,18 @@ export function TimetableAdvancedConstraintsPanel({
           onClick={() => void addConstraint()}
           className="mt-4 rounded-xl bg-sky-700 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
         >
-          إضافة القيد
+          {editingConstraintId ? "حفظ تعديل القيد" : "إضافة القيد"}
         </button>
+        {editingConstraintId ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setEditingConstraintId(null)}
+            className="mt-4 mr-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600"
+          >
+            إلغاء التعديل
+          </button>
+        ) : null}
 
         {message ? (
           <p className="mt-4 rounded-xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
@@ -783,15 +821,26 @@ export function TimetableAdvancedConstraintsPanel({
                 tone={constraint.type.startsWith("TEACHER_") ? "sky" : constraint.type.startsWith("SUBJECT_") ? "amber" : constraint.type.startsWith("CLASS_") ? "violet" : "slate"}
                 badges={[constraint.level === "HARD" ? "إلزامي" : "تفضيلي"]}
                 actions={
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void removeConstraint(constraint.id)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    حذف
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => editConstraint(constraint)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      تعديل
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void removeConstraint(constraint.id)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      حذف
+                    </button>
+                  </div>
                 }
               />
             ),

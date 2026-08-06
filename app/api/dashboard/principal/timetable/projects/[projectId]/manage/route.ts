@@ -6,6 +6,11 @@ import {
   changeTimetableStatus,
   saveEditedTimetable,
 } from "@/lib/timetable/timetable-manage-service";
+import {
+  deleteTimetableProject,
+  updateTimetableProjectMetadata,
+} from "@/lib/timetable/timetable-project-service";
+import { timetableProjectMetadataSchema } from "@/lib/timetable/timetable-schemas";
 
 const sessionSchema = z.object({
   id: z.string().min(1),
@@ -35,7 +40,15 @@ const requestSchema = z.discriminatedUnion("action", [
     action: z.literal("STATUS"),
     status: z.enum(["APPROVED", "PUBLISHED"]),
   }),
+  z.object({
+    action: z.literal("METADATA"),
+    data: timetableProjectMetadataSchema,
+  }),
 ]);
+
+const deleteSchema = z.object({
+  projectName: z.string().trim().min(1).max(120),
+});
 
 type Context = {
   params: Promise<{
@@ -82,6 +95,16 @@ export async function PATCH(
         success: true,
         status: "GENERATED",
       });
+    }
+
+    if (parsed.data.action === "METADATA") {
+      const project = await updateTimetableProjectMetadata(
+        projectId,
+        access.schoolAccountId!,
+        parsed.data.data,
+      );
+
+      return NextResponse.json({ success: true, project });
     }
 
     const project = await changeTimetableStatus(
@@ -158,6 +181,49 @@ export async function PATCH(
         error: "تعذر حفظ تعديل الجدول.",
       },
       { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request, context: Context) {
+  const access = await requireTimetableApiAccess();
+  if (!access.ok) return access.response;
+
+  const body = await request.json().catch(() => null);
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: "اكتب اسم المشروع لتأكيد الحذف." },
+      { status: 400 },
+    );
+  }
+
+  const { projectId } = await context.params;
+  try {
+    await deleteTimetableProject(
+      projectId,
+      access.schoolAccountId!,
+      parsed.data.projectName,
+    );
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "PROJECT_NOT_FOUND") {
+      return NextResponse.json(
+        { success: false, error: "مشروع الجدول غير موجود." },
+        { status: 404 },
+      );
+    }
+    if (code === "PROJECT_NAME_MISMATCH") {
+      return NextResponse.json(
+        { success: false, error: "اسم المشروع غير مطابق." },
+        { status: 400 },
+      );
+    }
+    console.error("TIMETABLE_PROJECT_DELETE_FAILED", { projectId, error });
+    return NextResponse.json(
+      { success: false, error: "تعذر حذف المشروع وبياناته التابعة." },
+      { status: 409 },
     );
   }
 }
