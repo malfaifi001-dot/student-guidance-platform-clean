@@ -1,0 +1,2001 @@
+﻿
+===== _prisma_migrations =====
+[
+  {
+    "migration_name": "20260806150000_add_timetable_daily_operations",
+    "started_at": "2026-08-06T14:48:17.518Z",
+    "finished_at": null,
+    "rolled_back_at": null,
+    "applied_steps_count": 0
+  }
+]
+
+===== information_schema.TABLES =====
+[
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ENGINE": "InnoDB",
+    "TABLE_COLLATION": "utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE SchoolAccount =====
+[
+  {
+    "Table": "SchoolAccount",
+    "Create Table": "CREATE TABLE `SchoolAccount` (\n  `id` varchar(191) NOT NULL,\n  `name` varchar(191) NOT NULL,\n  `slug` varchar(191) NOT NULL,\n  `isActive` tinyint(1) NOT NULL DEFAULT 1,\n  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `updatedAt` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `SchoolAccount_slug_key` (`slug`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE TimetableProject =====
+{
+  "exists": false
+}
+
+===== SHOW CREATE TABLE TimetableTeacher =====
+{
+  "exists": false
+}
+
+===== SHOW CREATE TABLE TimetableWaitingPolicy =====
+[
+  {
+    "Table": "TimetableWaitingPolicy",
+    "Create Table": "CREATE TABLE `TimetableWaitingPolicy` (\n  `id` varchar(191) NOT NULL,\n  `projectId` varchar(191) NOT NULL,\n  `candidateCount` int(11) NOT NULL DEFAULT 6,\n  `maxDailySubstitutions` int(11) NOT NULL DEFAULT 1,\n  `maxWeeklySubstitutions` int(11) NOT NULL DEFAULT 5,\n  `allowBeforeFirstLesson` tinyint(1) NOT NULL DEFAULT 0,\n  `allowAfterLastLesson` tinyint(1) NOT NULL DEFAULT 0,\n  `allowInsideGap` tinyint(1) NOT NULL DEFAULT 1,\n  `preferInsideGap` tinyint(1) NOT NULL DEFAULT 1,\n  `allowOnGoldenDay` tinyint(1) NOT NULL DEFAULT 0,\n  `goldenDayEmergency` tinyint(1) NOT NULL DEFAULT 0,\n  `allowAfterLateArrival` tinyint(1) NOT NULL DEFAULT 1,\n  `excludeLateArrivalDay` tinyint(1) NOT NULL DEFAULT 0,\n  `allowBeforeEarlyDeparture` tinyint(1) NOT NULL DEFAULT 1,\n  `preventConsecutiveSubstitutions` tinyint(1) NOT NULL DEFAULT 1,\n  `preventFirstPeriod` tinyint(1) NOT NULL DEFAULT 0,\n  `preventLastPeriod` tinyint(1) NOT NULL DEFAULT 0,\n  `requireMatchingSpecialty` tinyint(1) NOT NULL DEFAULT 0,\n  `preferMatchingSpecialty` tinyint(1) NOT NULL DEFAULT 1,\n  `weeklyLoadWeight` int(11) NOT NULL DEFAULT 100,\n  `weeklyWaitingWeight` int(11) NOT NULL DEFAULT 40,\n  `dailyWaitingWeight` int(11) NOT NULL DEFAULT 60,\n  `gapPreferenceWeight` int(11) NOT NULL DEFAULT 20,\n  `specialtyWeight` int(11) NOT NULL DEFAULT 15,\n  `firstLastFairnessWeight` int(11) NOT NULL DEFAULT 10,\n  `settingsJson` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`settingsJson`)),\n  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `updatedAt` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `TimetableWaitingPolicy_projectId_key` (`projectId`),\n  KEY `TimetableWaitingPolicy_projectId_idx` (`projectId`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE TimetableDailyAbsence =====
+[
+  {
+    "Table": "TimetableDailyAbsence",
+    "Create Table": "CREATE TABLE `TimetableDailyAbsence` (\n  `id` varchar(191) NOT NULL,\n  `schoolAccountId` varchar(191) NOT NULL,\n  `projectId` varchar(191) NOT NULL,\n  `teacherId` varchar(191) NOT NULL,\n  `absenceDate` date NOT NULL,\n  `absenceType` enum('FULL_DAY','SELECTED_PERIODS','LATE_ARRIVAL','EARLY_DEPARTURE') NOT NULL,\n  `status` enum('DRAFT','ACTIVE','CLOSED','CANCELED') NOT NULL DEFAULT 'ACTIVE',\n  `periodIdsJson` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`periodIdsJson`)),\n  `arrivalPeriodId` varchar(191) DEFAULT NULL,\n  `departurePeriodId` varchar(191) DEFAULT NULL,\n  `reason` text DEFAULT NULL,\n  `note` text DEFAULT NULL,\n  `createdById` varchar(191) DEFAULT NULL,\n  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `updatedAt` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `TimetableDailyAbsence_projectId_teacherId_absenceDate_key` (`projectId`,`teacherId`,`absenceDate`),\n  KEY `TimetableDailyAbsence_schoolAccountId_idx` (`schoolAccountId`),\n  KEY `TimetableDailyAbsence_projectId_idx` (`projectId`),\n  KEY `TimetableDailyAbsence_teacherId_idx` (`teacherId`),\n  KEY `TimetableDailyAbsence_absenceDate_idx` (`absenceDate`),\n  KEY `TimetableDailyAbsence_status_idx` (`status`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE TimetableSubstitution =====
+[
+  {
+    "Table": "TimetableSubstitution",
+    "Create Table": "CREATE TABLE `TimetableSubstitution` (\n  `id` varchar(191) NOT NULL,\n  `schoolAccountId` varchar(191) NOT NULL,\n  `projectId` varchar(191) NOT NULL,\n  `absenceId` varchar(191) NOT NULL,\n  `substitutionDate` date NOT NULL,\n  `originalSessionId` varchar(191) NOT NULL,\n  `dayId` varchar(191) NOT NULL,\n  `periodId` varchar(191) NOT NULL,\n  `classId` varchar(191) NOT NULL,\n  `className` varchar(191) NOT NULL,\n  `subjectId` varchar(191) NOT NULL,\n  `subjectName` varchar(191) NOT NULL,\n  `originalTeacherId` varchar(191) NOT NULL,\n  `substituteTeacherId` varchar(191) DEFAULT NULL,\n  `status` enum('PENDING','SUGGESTED','ASSIGNED','NOTIFIED','COMPLETED','DECLINED','REASSIGNED','CANCELED') NOT NULL DEFAULT 'PENDING',\n  `candidateRank` int(11) DEFAULT NULL,\n  `candidateScore` int(11) DEFAULT NULL,\n  `candidatesJson` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`candidatesJson`)),\n  `selectionReason` text DEFAULT NULL,\n  `overrideReason` text DEFAULT NULL,\n  `assignedAt` datetime(3) DEFAULT NULL,\n  `notifiedAt` datetime(3) DEFAULT NULL,\n  `completedAt` datetime(3) DEFAULT NULL,\n  `declinedAt` datetime(3) DEFAULT NULL,\n  `canceledAt` datetime(3) DEFAULT NULL,\n  `createdById` varchar(191) DEFAULT NULL,\n  `updatedById` varchar(191) DEFAULT NULL,\n  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `updatedAt` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `TimetableSubstitution_project_date_session_key` (`projectId`,`substitutionDate`,`originalSessionId`),\n  KEY `TimetableSubstitution_schoolAccountId_idx` (`schoolAccountId`),\n  KEY `TimetableSubstitution_projectId_idx` (`projectId`),\n  KEY `TimetableSubstitution_absenceId_idx` (`absenceId`),\n  KEY `TimetableSubstitution_substitutionDate_idx` (`substitutionDate`),\n  KEY `TimetableSubstitution_originalTeacherId_idx` (`originalTeacherId`),\n  KEY `TimetableSubstitution_substituteTeacherId_idx` (`substituteTeacherId`),\n  KEY `TimetableSubstitution_status_idx` (`status`),\n  KEY `TimetableSubstitution_dayId_periodId_idx` (`dayId`,`periodId`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE TimetableSupervisionDuty =====
+[
+  {
+    "Table": "TimetableSupervisionDuty",
+    "Create Table": "CREATE TABLE `TimetableSupervisionDuty` (\n  `id` varchar(191) NOT NULL,\n  `schoolAccountId` varchar(191) NOT NULL,\n  `projectId` varchar(191) NOT NULL,\n  `title` varchar(191) NOT NULL,\n  `dutyType` enum('MORNING','BREAK','GATE','END_OF_DAY','PRAYER','BUS','FLOOR','CUSTOM') NOT NULL,\n  `status` enum('DRAFT','ASSIGNED','COMPLETED','CANCELED') NOT NULL DEFAULT 'DRAFT',\n  `dayId` varchar(191) NOT NULL,\n  `periodId` varchar(191) DEFAULT NULL,\n  `startTime` varchar(191) DEFAULT NULL,\n  `endTime` varchar(191) DEFAULT NULL,\n  `location` varchar(191) DEFAULT NULL,\n  `requiredTeachers` int(11) NOT NULL DEFAULT 1,\n  `note` text DEFAULT NULL,\n  `createdById` varchar(191) DEFAULT NULL,\n  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `updatedAt` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `TimetableSupervisionDuty_schoolAccountId_idx` (`schoolAccountId`),\n  KEY `TimetableSupervisionDuty_projectId_idx` (`projectId`),\n  KEY `TimetableSupervisionDuty_dayId_idx` (`dayId`),\n  KEY `TimetableSupervisionDuty_periodId_idx` (`periodId`),\n  KEY `TimetableSupervisionDuty_dutyType_idx` (`dutyType`),\n  KEY `TimetableSupervisionDuty_status_idx` (`status`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== SHOW CREATE TABLE TimetableSupervisionAssignment =====
+[
+  {
+    "Table": "TimetableSupervisionAssignment",
+    "Create Table": "CREATE TABLE `TimetableSupervisionAssignment` (\n  `id` varchar(191) NOT NULL,\n  `dutyId` varchar(191) NOT NULL,\n  `teacherId` varchar(191) NOT NULL,\n  `isPrimary` tinyint(1) NOT NULL DEFAULT 1,\n  `sortOrder` int(11) NOT NULL DEFAULT 0,\n  `assignedAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),\n  `completedAt` datetime(3) DEFAULT NULL,\n  `note` text DEFAULT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `TimetableSupervisionAssignment_dutyId_teacherId_key` (`dutyId`,`teacherId`),\n  KEY `TimetableSupervisionAssignment_dutyId_idx` (`dutyId`),\n  KEY `TimetableSupervisionAssignment_teacherId_idx` (`teacherId`),\n  KEY `TimetableSupervisionAssignment_isPrimary_idx` (`isPrimary`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  }
+]
+
+===== information_schema.COLUMNS =====
+[
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "name",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "slug",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "isActive",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "createdAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "updatedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "schoolAccountId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "projectId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "teacherId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "absenceDate",
+    "COLUMN_TYPE": "date",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "absenceType",
+    "COLUMN_TYPE": "enum('FULL_DAY','SELECTED_PERIODS','LATE_ARRIVAL','EARLY_DEPARTURE')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "7",
+    "COLUMN_NAME": "status",
+    "COLUMN_TYPE": "enum('DRAFT','ACTIVE','CLOSED','CANCELED')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "'ACTIVE'",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "8",
+    "COLUMN_NAME": "periodIdsJson",
+    "COLUMN_TYPE": "longtext",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_bin",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "9",
+    "COLUMN_NAME": "arrivalPeriodId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "10",
+    "COLUMN_NAME": "departurePeriodId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "11",
+    "COLUMN_NAME": "reason",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "12",
+    "COLUMN_NAME": "note",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "13",
+    "COLUMN_NAME": "createdById",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "14",
+    "COLUMN_NAME": "createdAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "ORDINAL_POSITION": "15",
+    "COLUMN_NAME": "updatedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "schoolAccountId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "projectId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "absenceId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "substitutionDate",
+    "COLUMN_TYPE": "date",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "originalSessionId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "7",
+    "COLUMN_NAME": "dayId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "8",
+    "COLUMN_NAME": "periodId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "9",
+    "COLUMN_NAME": "classId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "10",
+    "COLUMN_NAME": "className",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "11",
+    "COLUMN_NAME": "subjectId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "12",
+    "COLUMN_NAME": "subjectName",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "13",
+    "COLUMN_NAME": "originalTeacherId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "14",
+    "COLUMN_NAME": "substituteTeacherId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "15",
+    "COLUMN_NAME": "status",
+    "COLUMN_TYPE": "enum('PENDING','SUGGESTED','ASSIGNED','NOTIFIED','COMPLETED','DECLINED','REASSIGNED','CANCELED')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "'PENDING'",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "16",
+    "COLUMN_NAME": "candidateRank",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "17",
+    "COLUMN_NAME": "candidateScore",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "18",
+    "COLUMN_NAME": "candidatesJson",
+    "COLUMN_TYPE": "longtext",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_bin",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "19",
+    "COLUMN_NAME": "selectionReason",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "20",
+    "COLUMN_NAME": "overrideReason",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "21",
+    "COLUMN_NAME": "assignedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "22",
+    "COLUMN_NAME": "notifiedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "23",
+    "COLUMN_NAME": "completedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "24",
+    "COLUMN_NAME": "declinedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "25",
+    "COLUMN_NAME": "canceledAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "26",
+    "COLUMN_NAME": "createdById",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "27",
+    "COLUMN_NAME": "updatedById",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "28",
+    "COLUMN_NAME": "createdAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "ORDINAL_POSITION": "29",
+    "COLUMN_NAME": "updatedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "dutyId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "teacherId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "isPrimary",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "sortOrder",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "assignedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "7",
+    "COLUMN_NAME": "completedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "ORDINAL_POSITION": "8",
+    "COLUMN_NAME": "note",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "schoolAccountId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "projectId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "title",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "dutyType",
+    "COLUMN_TYPE": "enum('MORNING','BREAK','GATE','END_OF_DAY','PRAYER','BUS','FLOOR','CUSTOM')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "status",
+    "COLUMN_TYPE": "enum('DRAFT','ASSIGNED','COMPLETED','CANCELED')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "'DRAFT'",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "7",
+    "COLUMN_NAME": "dayId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "8",
+    "COLUMN_NAME": "periodId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "9",
+    "COLUMN_NAME": "startTime",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "10",
+    "COLUMN_NAME": "endTime",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "11",
+    "COLUMN_NAME": "location",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "12",
+    "COLUMN_NAME": "requiredTeachers",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "13",
+    "COLUMN_NAME": "note",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "14",
+    "COLUMN_NAME": "createdById",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "15",
+    "COLUMN_NAME": "createdAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "ORDINAL_POSITION": "16",
+    "COLUMN_NAME": "updatedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "2",
+    "COLUMN_NAME": "projectId",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_unicode_ci",
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "3",
+    "COLUMN_NAME": "candidateCount",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "6",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "4",
+    "COLUMN_NAME": "maxDailySubstitutions",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "5",
+    "COLUMN_NAME": "maxWeeklySubstitutions",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "5",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "6",
+    "COLUMN_NAME": "allowBeforeFirstLesson",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "7",
+    "COLUMN_NAME": "allowAfterLastLesson",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "8",
+    "COLUMN_NAME": "allowInsideGap",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "9",
+    "COLUMN_NAME": "preferInsideGap",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "10",
+    "COLUMN_NAME": "allowOnGoldenDay",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "11",
+    "COLUMN_NAME": "goldenDayEmergency",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "12",
+    "COLUMN_NAME": "allowAfterLateArrival",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "13",
+    "COLUMN_NAME": "excludeLateArrivalDay",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "14",
+    "COLUMN_NAME": "allowBeforeEarlyDeparture",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "15",
+    "COLUMN_NAME": "preventConsecutiveSubstitutions",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "16",
+    "COLUMN_NAME": "preventFirstPeriod",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "17",
+    "COLUMN_NAME": "preventLastPeriod",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "18",
+    "COLUMN_NAME": "requireMatchingSpecialty",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "19",
+    "COLUMN_NAME": "preferMatchingSpecialty",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "20",
+    "COLUMN_NAME": "weeklyLoadWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "100",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "21",
+    "COLUMN_NAME": "weeklyWaitingWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "40",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "22",
+    "COLUMN_NAME": "dailyWaitingWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "60",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "23",
+    "COLUMN_NAME": "gapPreferenceWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "20",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "24",
+    "COLUMN_NAME": "specialtyWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "15",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "25",
+    "COLUMN_NAME": "firstLastFairnessWeight",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "10",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "26",
+    "COLUMN_NAME": "settingsJson",
+    "COLUMN_TYPE": "longtext",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "NULL",
+    "CHARACTER_SET_NAME": "utf8mb4",
+    "COLLATION_NAME": "utf8mb4_bin",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "27",
+    "COLUMN_NAME": "createdAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "current_timestamp(3)",
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "ORDINAL_POSITION": "28",
+    "COLUMN_NAME": "updatedAt",
+    "COLUMN_TYPE": "datetime(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "CHARACTER_SET_NAME": null,
+    "COLLATION_NAME": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  }
+]
+
+===== information_schema.TABLE_CONSTRAINTS =====
+[
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "CONSTRAINT_NAME": "SchoolAccount_slug_key",
+    "CONSTRAINT_TYPE": "UNIQUE"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "periodIdsJson",
+    "CONSTRAINT_TYPE": "CHECK"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "CONSTRAINT_TYPE": "UNIQUE"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "candidatesJson",
+    "CONSTRAINT_TYPE": "CHECK"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "TimetableSubstitution_project_date_session_key",
+    "CONSTRAINT_TYPE": "UNIQUE"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "CONSTRAINT_NAME": "TimetableSupervisionAssignment_dutyId_teacherId_key",
+    "CONSTRAINT_TYPE": "UNIQUE"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "CONSTRAINT_NAME": "settingsJson",
+    "CONSTRAINT_TYPE": "CHECK"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "CONSTRAINT_TYPE": "PRIMARY KEY"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "CONSTRAINT_NAME": "TimetableWaitingPolicy_projectId_key",
+    "CONSTRAINT_TYPE": "UNIQUE"
+  }
+]
+
+===== information_schema.KEY_COLUMN_USAGE =====
+[
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "CONSTRAINT_NAME": "SchoolAccount_slug_key",
+    "COLUMN_NAME": "slug",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "COLUMN_NAME": "projectId",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "COLUMN_NAME": "teacherId",
+    "ORDINAL_POSITION": "2",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "CONSTRAINT_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "COLUMN_NAME": "absenceDate",
+    "ORDINAL_POSITION": "3",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "TimetableSubstitution_project_date_session_key",
+    "COLUMN_NAME": "projectId",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "TimetableSubstitution_project_date_session_key",
+    "COLUMN_NAME": "substitutionDate",
+    "ORDINAL_POSITION": "2",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "CONSTRAINT_NAME": "TimetableSubstitution_project_date_session_key",
+    "COLUMN_NAME": "originalSessionId",
+    "ORDINAL_POSITION": "3",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "CONSTRAINT_NAME": "TimetableSupervisionAssignment_dutyId_teacherId_key",
+    "COLUMN_NAME": "dutyId",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "CONSTRAINT_NAME": "TimetableSupervisionAssignment_dutyId_teacherId_key",
+    "COLUMN_NAME": "teacherId",
+    "ORDINAL_POSITION": "2",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "CONSTRAINT_NAME": "TimetableWaitingPolicy_projectId_key",
+    "COLUMN_NAME": "projectId",
+    "ORDINAL_POSITION": "1",
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  }
+]
+
+===== information_schema.STATISTICS =====
+[
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "SchoolAccount",
+    "INDEX_NAME": "SchoolAccount_slug_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "slug"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_absenceDate_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "absenceDate"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_projectId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 2,
+    "COLUMN_NAME": "teacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_projectId_teacherId_absenceDate_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 3,
+    "COLUMN_NAME": "absenceDate"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_schoolAccountId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "schoolAccountId"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_status_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "status"
+  },
+  {
+    "TABLE_NAME": "TimetableDailyAbsence",
+    "INDEX_NAME": "TimetableDailyAbsence_teacherId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "teacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_absenceId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "absenceId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_dayId_periodId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "dayId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_dayId_periodId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 2,
+    "COLUMN_NAME": "periodId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_originalTeacherId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "originalTeacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_projectId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_project_date_session_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_project_date_session_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 2,
+    "COLUMN_NAME": "substitutionDate"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_project_date_session_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 3,
+    "COLUMN_NAME": "originalSessionId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_schoolAccountId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "schoolAccountId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_status_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "status"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_substituteTeacherId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "substituteTeacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableSubstitution",
+    "INDEX_NAME": "TimetableSubstitution_substitutionDate_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "substitutionDate"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "TimetableSupervisionAssignment_dutyId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "dutyId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "TimetableSupervisionAssignment_dutyId_teacherId_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "dutyId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "TimetableSupervisionAssignment_dutyId_teacherId_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 2,
+    "COLUMN_NAME": "teacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "TimetableSupervisionAssignment_isPrimary_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "isPrimary"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionAssignment",
+    "INDEX_NAME": "TimetableSupervisionAssignment_teacherId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "teacherId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_dayId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "dayId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_dutyType_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "dutyType"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_periodId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "periodId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_projectId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_schoolAccountId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "schoolAccountId"
+  },
+  {
+    "TABLE_NAME": "TimetableSupervisionDuty",
+    "INDEX_NAME": "TimetableSupervisionDuty_status_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "status"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "INDEX_NAME": "PRIMARY",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "id"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "INDEX_NAME": "TimetableWaitingPolicy_projectId_idx",
+    "NON_UNIQUE": "1",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  },
+  {
+    "TABLE_NAME": "TimetableWaitingPolicy",
+    "INDEX_NAME": "TimetableWaitingPolicy_projectId_key",
+    "NON_UNIQUE": "0",
+    "SEQ_IN_INDEX": 1,
+    "COLUMN_NAME": "projectId"
+  }
+]
+
+===== FOREIGN KEY COMPATIBILITY =====
+[
+  {
+    "constraintName": "TimetableWaitingPolicy_projectId_fkey",
+    "child": "TimetableWaitingPolicy.projectId",
+    "childNullable": "NO",
+    "parent": "TimetableProject.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableDailyAbsence_schoolAccountId_fkey",
+    "child": "TimetableDailyAbsence.schoolAccountId",
+    "childNullable": "NO",
+    "parent": "SchoolAccount.id",
+    "parentNullable": "NO",
+    "foreignKeyExists": false,
+    "compatibleDefinitions": true,
+    "mismatches": []
+  },
+  {
+    "constraintName": "TimetableDailyAbsence_projectId_fkey",
+    "child": "TimetableDailyAbsence.projectId",
+    "childNullable": "NO",
+    "parent": "TimetableProject.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableDailyAbsence_teacherId_fkey",
+    "child": "TimetableDailyAbsence.teacherId",
+    "childNullable": "NO",
+    "parent": "TimetableTeacher.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableSubstitution_schoolAccountId_fkey",
+    "child": "TimetableSubstitution.schoolAccountId",
+    "childNullable": "NO",
+    "parent": "SchoolAccount.id",
+    "parentNullable": "NO",
+    "foreignKeyExists": false,
+    "compatibleDefinitions": true,
+    "mismatches": []
+  },
+  {
+    "constraintName": "TimetableSubstitution_projectId_fkey",
+    "child": "TimetableSubstitution.projectId",
+    "childNullable": "NO",
+    "parent": "TimetableProject.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableSubstitution_absenceId_fkey",
+    "child": "TimetableSubstitution.absenceId",
+    "childNullable": "NO",
+    "parent": "TimetableDailyAbsence.id",
+    "parentNullable": "NO",
+    "foreignKeyExists": false,
+    "compatibleDefinitions": true,
+    "mismatches": []
+  },
+  {
+    "constraintName": "TimetableSubstitution_originalTeacherId_fkey",
+    "child": "TimetableSubstitution.originalTeacherId",
+    "childNullable": "NO",
+    "parent": "TimetableTeacher.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableSubstitution_substituteTeacherId_fkey",
+    "child": "TimetableSubstitution.substituteTeacherId",
+    "childNullable": "YES",
+    "parent": "TimetableTeacher.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableSupervisionDuty_schoolAccountId_fkey",
+    "child": "TimetableSupervisionDuty.schoolAccountId",
+    "childNullable": "NO",
+    "parent": "SchoolAccount.id",
+    "parentNullable": "NO",
+    "foreignKeyExists": false,
+    "compatibleDefinitions": true,
+    "mismatches": []
+  },
+  {
+    "constraintName": "TimetableSupervisionDuty_projectId_fkey",
+    "child": "TimetableSupervisionDuty.projectId",
+    "childNullable": "NO",
+    "parent": "TimetableProject.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  },
+  {
+    "constraintName": "TimetableSupervisionAssignment_dutyId_fkey",
+    "child": "TimetableSupervisionAssignment.dutyId",
+    "childNullable": "NO",
+    "parent": "TimetableSupervisionDuty.id",
+    "parentNullable": "NO",
+    "foreignKeyExists": false,
+    "compatibleDefinitions": true,
+    "mismatches": []
+  },
+  {
+    "constraintName": "TimetableSupervisionAssignment_teacherId_fkey",
+    "child": "TimetableSupervisionAssignment.teacherId",
+    "childNullable": "NO",
+    "parent": "TimetableTeacher.id",
+    "parentNullable": null,
+    "foreignKeyExists": false,
+    "compatibleDefinitions": false,
+    "mismatches": [
+      "parent column is missing",
+      "storage engine: InnoDB != missing"
+    ]
+  }
+]
+
+===== INSPECTION SUMMARY =====
+{
+  "databaseName": "u253346148_smstudents",
+  "migrationTablesExpected": [
+    "TimetableWaitingPolicy",
+    "TimetableDailyAbsence",
+    "TimetableSubstitution",
+    "TimetableSupervisionDuty",
+    "TimetableSupervisionAssignment"
+  ],
+  "migrationTablesAlreadyPresent": [
+    "TimetableWaitingPolicy",
+    "TimetableDailyAbsence",
+    "TimetableSubstitution",
+    "TimetableSupervisionDuty",
+    "TimetableSupervisionAssignment"
+  ],
+  "expectedForeignKeyCount": 13,
+  "existingCompatibleForeignKeyCount": 0,
+  "suggestedStrategy": "B_PARTIAL_OBJECTS_REQUIRE_CONTROLLED_REPAIR"
+}
