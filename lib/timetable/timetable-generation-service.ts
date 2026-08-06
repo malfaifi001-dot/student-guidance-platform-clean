@@ -1,6 +1,9 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import type {
+  TimetableConstraint,
+} from "@/lib/timetable/timetable-constraint-types";
 import { validateTimetableProject } from "@/lib/timetable/timetable-validation-service";
 
 type Day = {
@@ -40,6 +43,27 @@ type LessonTask = {
   fixedSlot?: FixedSlot;
 };
 
+type Candidate = {
+  day: Day;
+  periods: Period[];
+};
+
+type Placement = {
+  day: Day;
+  periods: Period[];
+};
+
+type GenerationState = {
+  teacherBusy: Set<string>;
+  classBusy: Set<string>;
+  subjectDayCount: Map<string, number>;
+  teacherDayPeriods: Map<string, Set<number>>;
+  classDayPeriods: Map<string, Set<number>>;
+  heavySubjectDayCount: Map<string, number>;
+  firstPeriodCount: Map<string, number>;
+  lastPeriodCount: Map<string, number>;
+};
+
 export type GeneratedTimetableSession = {
   id: string;
   assignmentId: string;
@@ -56,6 +80,7 @@ export type GeneratedTimetableSession = {
   periodOrder: number;
   blockIndex: number;
   blockLength: number;
+  isLocked?: boolean;
 };
 
 export async function generateTimetable(
@@ -84,7 +109,9 @@ export async function generateTimetable(
     return {
       found: true as const,
       success: false as const,
-      errors: blockingErrors.map((issue) => issue.message),
+      errors: blockingErrors.map(
+        (issue) => issue.message,
+      ),
       sessions: [] as GeneratedTimetableSession[],
     };
   }
@@ -115,32 +142,274 @@ export async function generateTimetable(
     };
   }
 
-  const days = normalizeDays(project.daysJson);
+  const days = normalizeDays(project.daysJson)
+    .sort((first, second) => first.order - second.order);
+
   const periods = normalizePeriods(project.periodsJson)
     .filter((period) => !period.isBreak)
     .sort((first, second) => first.order - second.order);
 
-  const unavailableByTeacher = new Map<string, Set<string>>();
+  const periodIndexById = new Map(
+    periods.map((period, index) => [
+      period.id,
+      index,
+    ]),
+  );
 
-  for (const teacher of project.teachers) {
-    const slots = normalizeUnavailableSlots(
-      teacher.unavailableSlotsJson,
+  const settings = normalizeRecord(
+    project.settingsJson,
+  );
+
+  const constraintsSettings = normalizeRecord(
+    settings.constraints,
+  );
+
+  const constraints = normalizeConstraints(
+    constraintsSettings.items,
+  ).filter((constraint) => constraint.isEnabled);
+
+  const hardConstraints = constraints.filter(
+    (constraint) => constraint.level === "HARD",
+  );
+
+  const preferredConstraints = constraints.filter(
+    (constraint) =>
+      constraint.level === "PREFERRED",
+  );
+
+  const unavailableByTeacher =
+    createTeacherUnavailableMap(
+      project.teachers,
+      hardConstraints,
+      days,
+      periods,
+      periodIndexById,
     );
 
-    unavailableByTeacher.set(
-      teacher.id,
-      new Set(
-        slots.map(
-          (slot) => `${slot.dayId}:${slot.periodId}`,
+  const tasks = createTasks(
+    project.assignments,
+    hardConstraints,
+  );
+
+  tasks.sort((first, second) => {
+    if (first.fixedSlot && !second.fixedSlot) {
+      return -1;
+    }
+
+    if (!first.fixedSlot && second.fixedSlot) {
+      return 1;
+    }
+
+    if (first.length !== second.length) {
+      return second.length - first.length;
+    }
+
+    const firstUnavailable =
+      unavailableByTeacher.get(first.teacherId)?.size ||
+      0;
+
+    const secondUnavailable =
+      unavailableByTeacher.get(second.teacherId)?.size ||
+      0;
+
+    return secondUnavailable - firstUnavailable;
+  });
+
+  const state: GenerationState = {
+    teacherBusy: new Set(),
+    classBusy: new Set(),
+    subjectDayCount: new Map(),
+    teacherDayPeriods: new Map(),
+    classDayPeriods: new Map(),
+    heavySubjectDayCount: new Map(),
+    firstPeriodCount: new Map(),
+    lastPeriodCount: new Map(),
+  };
+
+  const placements = new Map<string, Placement>();
+  const deadline = Date.now() + 12000;
+
+  function placeTask(index: number): boolean {
+    if (Date.now() > deadline) {
+      return false;
+    }
+
+    if (index >= tasks.length) {
+      return passesFinalHardConstraints(
+        state,
+        hardConstraints,
+        days,
+        periods,
+      );
+    }
+
+    const task = tasks[index];
+
+    const candidates = createCandidates(
+      task,
+      days,
+      periods,
+    );
+
+    candidates.sort(
+      (first, second) =>
+        scoreCandidate(
+          task,
+          first,
+          state,
+          preferredConstraints,
+          periods,
+          periodIndexById,
+        ) -
+        scoreCandidate(
+          task,
+          second,
+          state,
+          preferredConstraints,
+          periods,
+          periodIndexById,
         ),
-      ),
+    );
+
+    for (const candidate of candidates) {
+      if (
+        !canPlace(
+          task,
+          candidate,
+          state,
+          unavailableByTeacher,
+          hardConstraints,
+          periods,
+          periodIndexById,
+        )
+      ) {
+        continue;
+      }
+
+      occupy(
+        task,
+        candidate,
+        state,
+        hardConstraints,
+        periods,
+      );
+
+      placements.set(task.id, candidate);
+
+      if (placeTask(index + 1)) {
+        return true;
+      }
+
+      placements.delete(task.id);
+
+      release(
+        task,
+        candidate,
+        state,
+        hardConstraints,
+        periods,
+      );
+    }
+
+    return false;
+  }
+
+  const solved = placeTask(0);
+
+  if (!solved) {
+    return {
+      found: true as const,
+      success: false as const,
+      errors: [
+        "تعذر إنشاء جدول يحقق جميع القيود الإلزامية. راجع القيود المتعارضة أو خفف بعضها إلى تفضيلية.",
+      ],
+      sessions: [] as GeneratedTimetableSession[],
+    };
+  }
+
+  const sessions: GeneratedTimetableSession[] = [];
+
+  for (const task of tasks) {
+    const placement = placements.get(task.id);
+
+    if (!placement) {
+      continue;
+    }
+
+    placement.periods.forEach(
+      (period, blockIndex) => {
+        sessions.push({
+          id: `${task.id}:${blockIndex}`,
+          assignmentId: task.assignmentId,
+          teacherId: task.teacherId,
+          teacherName: task.teacherName,
+          classId: task.classId,
+          className: task.className,
+          subjectId: task.subjectId,
+          subjectName: task.subjectName,
+          dayId: placement.day.id,
+          dayLabel: placement.day.label,
+          periodId: period.id,
+          periodLabel: period.label,
+          periodOrder: period.order,
+          blockIndex,
+          blockLength: task.length,
+          isLocked:
+            task.fixedSlot?.isLocked === true,
+        });
+      },
     );
   }
 
+  sessions.sort((first, second) => {
+    const firstDay = days.findIndex(
+      (day) => day.id === first.dayId,
+    );
+
+    const secondDay = days.findIndex(
+      (day) => day.id === second.dayId,
+    );
+
+    if (firstDay !== secondDay) {
+      return firstDay - secondDay;
+    }
+
+    return first.periodOrder - second.periodOrder;
+  });
+
+  return {
+    found: true as const,
+    success: true as const,
+    errors: [] as string[],
+    sessions,
+  };
+}
+
+function createTasks(
+  assignments: Array<{
+    id: string;
+    teacherId: string;
+    classId: string;
+    subjectId: string;
+    singlePeriods: number;
+    doublePeriods: number;
+    fixedSlotsJson: unknown;
+    teacher: {
+      name: string;
+    };
+    class: {
+      name: string;
+    };
+    subject: {
+      name: string;
+    };
+  }>,
+  hardConstraints: TimetableConstraint[],
+) {
   const tasks: LessonTask[] = [];
 
-  for (const assignment of project.assignments) {
-    const fixedSlots = normalizeFixedSlots(
+  for (const assignment of assignments) {
+    const existingFixedSlots = normalizeFixedSlots(
       assignment.fixedSlotsJson,
     );
 
@@ -161,7 +430,7 @@ export async function generateTimetable(
         subjectId: assignment.subjectId,
         subjectName: assignment.subject.name,
         length: 2,
-        fixedSlot: fixedSlots[fixedIndex],
+        fixedSlot: existingFixedSlots[fixedIndex],
       });
 
       fixedIndex += 1;
@@ -182,203 +451,183 @@ export async function generateTimetable(
         subjectId: assignment.subjectId,
         subjectName: assignment.subject.name,
         length: 1,
-        fixedSlot: fixedSlots[fixedIndex],
+        fixedSlot: existingFixedSlots[fixedIndex],
       });
 
       fixedIndex += 1;
     }
   }
 
-  tasks.sort((first, second) => {
-    if (first.fixedSlot && !second.fixedSlot) return -1;
-    if (!first.fixedSlot && second.fixedSlot) return 1;
+  const fixedSubjectConstraints = hardConstraints.filter(
+    (constraint) =>
+      constraint.type === "SUBJECT_FIXED_SLOT" &&
+      constraint.subjectId &&
+      constraint.dayId &&
+      constraint.periodId,
+  );
 
-    if (first.length !== second.length) {
-      return second.length - first.length;
+  for (const constraint of fixedSubjectConstraints) {
+    const task = tasks.find(
+      (item) =>
+        !item.fixedSlot &&
+        item.subjectId === constraint.subjectId &&
+        (
+          !constraint.classId ||
+          item.classId === constraint.classId
+        ),
+    );
+
+    if (!task) {
+      continue;
     }
 
-    const firstUnavailable =
-      unavailableByTeacher.get(first.teacherId)?.size || 0;
-
-    const secondUnavailable =
-      unavailableByTeacher.get(second.teacherId)?.size || 0;
-
-    return secondUnavailable - firstUnavailable;
-  });
-
-  const teacherBusy = new Set<string>();
-  const classBusy = new Set<string>();
-  const subjectDayCount = new Map<string, number>();
-  const placements = new Map<
-    string,
-    Array<{
-      day: Day;
-      periods: Period[];
-    }>
-  >();
-
-  const deadline = Date.now() + 8000;
-
-  function placeTask(index: number): boolean {
-    if (index >= tasks.length) {
-      return true;
-    }
-
-    if (Date.now() > deadline) {
-      return false;
-    }
-
-    const task = tasks[index];
-
-    const candidates = createCandidates(
-      task,
-      days,
-      periods,
-    ).sort((first, second) => {
-      const firstSubjectCount =
-        subjectDayCount.get(
-          `${task.classId}:${task.subjectId}:${first.day.id}`,
-        ) || 0;
-
-      const secondSubjectCount =
-        subjectDayCount.get(
-          `${task.classId}:${task.subjectId}:${second.day.id}`,
-        ) || 0;
-
-      return firstSubjectCount - secondSubjectCount;
-    });
-
-    for (const candidate of candidates) {
-      if (
-        !canPlace(
-          task,
-          candidate.day,
-          candidate.periods,
-          unavailableByTeacher,
-          teacherBusy,
-          classBusy,
-        )
-      ) {
-        continue;
-      }
-
-      occupy(
-        task,
-        candidate.day,
-        candidate.periods,
-        teacherBusy,
-        classBusy,
-        subjectDayCount,
-      );
-
-      placements.set(task.id, [candidate]);
-
-      if (placeTask(index + 1)) {
-        return true;
-      }
-
-      placements.delete(task.id);
-
-      release(
-        task,
-        candidate.day,
-        candidate.periods,
-        teacherBusy,
-        classBusy,
-        subjectDayCount,
-      );
-    }
-
-    return false;
-  }
-
-  const solved = placeTask(0);
-
-  if (!solved) {
-    return {
-      found: true as const,
-      success: false as const,
-      errors: [
-        "تعذر إنشاء جدول كامل. راجع قيود المعلمين أو توزيع الحصص.",
-      ],
-      sessions: [] as GeneratedTimetableSession[],
+    task.fixedSlot = {
+      dayId: constraint.dayId!,
+      periodId: constraint.periodId!,
+      isLocked: constraint.isLocked !== false,
     };
   }
 
-  const sessions: GeneratedTimetableSession[] = [];
+  return tasks;
+}
 
-  for (const task of tasks) {
-    const taskPlacements = placements.get(task.id) || [];
+function createTeacherUnavailableMap(
+  teachers: Array<{
+    id: string;
+    unavailableSlotsJson: unknown;
+  }>,
+  hardConstraints: TimetableConstraint[],
+  days: Day[],
+  periods: Period[],
+  periodIndexById: Map<string, number>,
+) {
+  const result = new Map<string, Set<string>>();
 
-    for (const placement of taskPlacements) {
-      placement.periods.forEach((period, blockIndex) => {
-        sessions.push({
-          id: `${task.id}:${blockIndex}`,
-          assignmentId: task.assignmentId,
-          teacherId: task.teacherId,
-          teacherName: task.teacherName,
-          classId: task.classId,
-          className: task.className,
-          subjectId: task.subjectId,
-          subjectName: task.subjectName,
-          dayId: placement.day.id,
-          dayLabel: placement.day.label,
-          periodId: period.id,
-          periodLabel: period.label,
-          periodOrder: period.order,
-          blockIndex,
-          blockLength: task.length,
-        });
-      });
+  for (const teacher of teachers) {
+    const unavailable = new Set(
+      normalizeUnavailableSlots(
+        teacher.unavailableSlotsJson,
+      ).map(
+        (slot) =>
+          `${slot.dayId}:${slot.periodId}`,
+      ),
+    );
+
+    const teacherConstraints =
+      hardConstraints.filter(
+        (constraint) =>
+          constraint.teacherId === teacher.id,
+      );
+
+    for (const constraint of teacherConstraints) {
+      if (
+        constraint.type ===
+          "TEACHER_UNAVAILABLE_SLOT" &&
+        constraint.dayId &&
+        constraint.periodId
+      ) {
+        unavailable.add(
+          `${constraint.dayId}:${constraint.periodId}`,
+        );
+      }
+
+      if (
+        constraint.type === "TEACHER_DAY_OFF" &&
+        constraint.dayId
+      ) {
+        for (const period of periods) {
+          unavailable.add(
+            `${constraint.dayId}:${period.id}`,
+          );
+        }
+      }
+
+      if (
+        constraint.type ===
+          "TEACHER_NOT_BEFORE_PERIOD" &&
+        constraint.periodId
+      ) {
+        const limit =
+          periodIndexById.get(
+            constraint.periodId,
+          );
+
+        if (limit !== undefined) {
+          for (const day of days) {
+            for (
+              let index = 0;
+              index < limit;
+              index += 1
+            ) {
+              unavailable.add(
+                `${day.id}:${periods[index].id}`,
+              );
+            }
+          }
+        }
+      }
+
+      if (
+        constraint.type ===
+          "TEACHER_NOT_AFTER_PERIOD" &&
+        constraint.periodId
+      ) {
+        const limit =
+          periodIndexById.get(
+            constraint.periodId,
+          );
+
+        if (limit !== undefined) {
+          for (const day of days) {
+            for (
+              let index = limit + 1;
+              index < periods.length;
+              index += 1
+            ) {
+              unavailable.add(
+                `${day.id}:${periods[index].id}`,
+              );
+            }
+          }
+        }
+      }
     }
+
+    result.set(teacher.id, unavailable);
   }
 
-  sessions.sort((first, second) => {
-    const firstDay =
-      days.findIndex((day) => day.id === first.dayId);
-
-    const secondDay =
-      days.findIndex((day) => day.id === second.dayId);
-
-    if (firstDay !== secondDay) {
-      return firstDay - secondDay;
-    }
-
-    return first.periodOrder - second.periodOrder;
-  });
-
-  return {
-    found: true as const,
-    success: true as const,
-    errors: [] as string[],
-    sessions,
-  };
+  return result;
 }
 
 function createCandidates(
   task: LessonTask,
   days: Day[],
   periods: Period[],
-) {
+): Candidate[] {
   if (task.fixedSlot) {
     const day = days.find(
-      (item) => item.id === task.fixedSlot?.dayId,
+      (item) =>
+        item.id === task.fixedSlot?.dayId,
     );
 
     const periodIndex = periods.findIndex(
-      (item) => item.id === task.fixedSlot?.periodId,
+      (item) =>
+        item.id === task.fixedSlot?.periodId,
     );
 
     if (!day || periodIndex < 0) {
       return [];
     }
 
-    const selectedPeriods =
-      task.length === 2
-        ? periods.slice(periodIndex, periodIndex + 2)
-        : periods.slice(periodIndex, periodIndex + 1);
+    const selectedPeriods = periods.slice(
+      periodIndex,
+      periodIndex + task.length,
+    );
 
-    if (selectedPeriods.length !== task.length) {
+    if (
+      selectedPeriods.length !== task.length ||
+      !arePeriodsConsecutive(selectedPeriods)
+    ) {
       return [];
     }
 
@@ -390,23 +639,23 @@ function createCandidates(
     ];
   }
 
-  const candidates: Array<{
-    day: Day;
-    periods: Period[];
-  }> = [];
+  const candidates: Candidate[] = [];
 
   for (const day of days) {
     for (
-      let periodIndex = 0;
-      periodIndex < periods.length;
-      periodIndex += 1
+      let index = 0;
+      index < periods.length;
+      index += 1
     ) {
-      const selectedPeriods =
-        task.length === 2
-          ? periods.slice(periodIndex, periodIndex + 2)
-          : periods.slice(periodIndex, periodIndex + 1);
+      const selectedPeriods = periods.slice(
+        index,
+        index + task.length,
+      );
 
-      if (selectedPeriods.length !== task.length) {
+      if (
+        selectedPeriods.length !== task.length ||
+        !arePeriodsConsecutive(selectedPeriods)
+      ) {
         continue;
       }
 
@@ -422,26 +671,161 @@ function createCandidates(
 
 function canPlace(
   task: LessonTask,
-  day: Day,
-  periods: Period[],
+  candidate: Candidate,
+  state: GenerationState,
   unavailableByTeacher: Map<string, Set<string>>,
-  teacherBusy: Set<string>,
-  classBusy: Set<string>,
+  hardConstraints: TimetableConstraint[],
+  periods: Period[],
+  periodIndexById: Map<string, number>,
 ) {
   const unavailable =
     unavailableByTeacher.get(task.teacherId) ||
     new Set<string>();
 
-  for (const period of periods) {
-    const slot = `${day.id}:${period.id}`;
+  for (const period of candidate.periods) {
+    const slot =
+      `${candidate.day.id}:${period.id}`;
 
     if (unavailable.has(slot)) {
       return false;
     }
 
     if (
-      teacherBusy.has(`${task.teacherId}:${slot}`) ||
-      classBusy.has(`${task.classId}:${slot}`)
+      state.teacherBusy.has(
+        `${task.teacherId}:${slot}`,
+      ) ||
+      state.classBusy.has(
+        `${task.classId}:${slot}`,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      hardConstraints.some(
+        (constraint) =>
+          constraint.type ===
+            "SCHOOL_BLOCKED_SLOT" &&
+          constraint.dayId === candidate.day.id &&
+          constraint.periodId === period.id,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      hardConstraints.some(
+        (constraint) =>
+          constraint.type ===
+            "SUBJECT_FORBIDDEN_SLOT" &&
+          constraint.subjectId === task.subjectId &&
+          (
+            !constraint.dayId ||
+            constraint.dayId === candidate.day.id
+          ) &&
+          constraint.periodId === period.id,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  const teacherDayKey =
+    `${task.teacherId}:${candidate.day.id}`;
+
+  const existingTeacherPeriods =
+    state.teacherDayPeriods.get(teacherDayKey) ||
+    new Set<number>();
+
+  const nextTeacherPeriods = new Set(
+    existingTeacherPeriods,
+  );
+
+  for (const period of candidate.periods) {
+    const index = periodIndexById.get(period.id);
+
+    if (index !== undefined) {
+      nextTeacherPeriods.add(index);
+    }
+  }
+
+  const maxDailyConstraint = findConstraint(
+    hardConstraints,
+    "TEACHER_MAX_DAILY_PERIODS",
+    "teacherId",
+    task.teacherId,
+  );
+
+  if (
+    maxDailyConstraint?.value !== undefined &&
+    nextTeacherPeriods.size >
+      maxDailyConstraint.value
+  ) {
+    return false;
+  }
+
+  const maxConsecutiveConstraint = findConstraint(
+    hardConstraints,
+    "TEACHER_MAX_CONSECUTIVE_PERIODS",
+    "teacherId",
+    task.teacherId,
+  );
+
+  if (
+    maxConsecutiveConstraint?.value !== undefined &&
+    getMaxConsecutive(nextTeacherPeriods) >
+      maxConsecutiveConstraint.value
+  ) {
+    return false;
+  }
+
+  const subjectDailyConstraints =
+    hardConstraints.filter(
+      (constraint) =>
+        constraint.type ===
+          "SUBJECT_MAX_DAILY_OCCURRENCES" &&
+        constraint.subjectId === task.subjectId,
+    );
+
+  for (const constraint of subjectDailyConstraints) {
+    const key =
+      `${task.classId}:${task.subjectId}:${candidate.day.id}`;
+
+    const nextCount =
+      (state.subjectDayCount.get(key) || 0) +
+      candidate.periods.length;
+
+    if (
+      constraint.value !== undefined &&
+      nextCount > constraint.value
+    ) {
+      return false;
+    }
+  }
+
+  const heavyConstraints = hardConstraints.filter(
+    (constraint) =>
+      constraint.type ===
+        "CLASS_MAX_HEAVY_SUBJECTS_DAILY" &&
+      (
+        !constraint.classId ||
+        constraint.classId === task.classId
+      ) &&
+      constraint.subjectIds?.includes(
+        task.subjectId,
+      ),
+  );
+
+  for (const constraint of heavyConstraints) {
+    const key =
+      `${task.classId}:${candidate.day.id}:${constraint.id}`;
+
+    const current =
+      state.heavySubjectDayCount.get(key) || 0;
+
+    if (
+      constraint.value !== undefined &&
+      current + 1 > constraint.value
     ) {
       return false;
     }
@@ -450,194 +834,488 @@ function canPlace(
   return true;
 }
 
+function passesFinalHardConstraints(
+  state: GenerationState,
+  hardConstraints: TimetableConstraint[],
+  days: Day[],
+  periods: Period[],
+) {
+  for (const constraint of hardConstraints) {
+    if (
+      constraint.type ===
+        "TEACHER_MAX_DAILY_GAPS" &&
+      constraint.teacherId &&
+      constraint.value !== undefined
+    ) {
+      for (const day of days) {
+        const indexes =
+          state.teacherDayPeriods.get(
+            `${constraint.teacherId}:${day.id}`,
+          ) || new Set<number>();
+
+        if (
+          countGaps(indexes) >
+          constraint.value
+        ) {
+          return false;
+        }
+      }
+    }
+
+    if (
+      constraint.type ===
+      "CLASS_NO_INTERNAL_GAPS"
+    ) {
+      const classIds = constraint.classId
+        ? [constraint.classId]
+        : getClassIdsFromState(state);
+
+      for (const classId of classIds) {
+        for (const day of days) {
+          const indexes =
+            state.classDayPeriods.get(
+              `${classId}:${day.id}`,
+            ) || new Set<number>();
+
+          if (countGaps(indexes) > 0) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  return periods.length > 0;
+}
+
+function scoreCandidate(
+  task: LessonTask,
+  candidate: Candidate,
+  state: GenerationState,
+  preferredConstraints: TimetableConstraint[],
+  periods: Period[],
+  periodIndexById: Map<string, number>,
+) {
+  let score = 0;
+
+  const subjectDayKey =
+    `${task.classId}:${task.subjectId}:${candidate.day.id}`;
+
+  score +=
+    (state.subjectDayCount.get(subjectDayKey) || 0) *
+    8;
+
+  for (const constraint of preferredConstraints) {
+    if (
+      constraint.type ===
+        "TEACHER_UNAVAILABLE_SLOT" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.dayId === candidate.day.id &&
+      candidate.periods.some(
+        (period) =>
+          period.id === constraint.periodId,
+      )
+    ) {
+      score += 100;
+    }
+
+    if (
+      constraint.type ===
+        "TEACHER_DAY_OFF" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.dayId === candidate.day.id
+    ) {
+      score += 100;
+    }
+
+    if (
+      constraint.type ===
+        "TEACHER_NOT_BEFORE_PERIOD" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.periodId
+    ) {
+      const limit = periodIndexById.get(
+        constraint.periodId,
+      );
+
+      if (
+        limit !== undefined &&
+        candidate.periods.some(
+          (period) =>
+            (periodIndexById.get(period.id) || 0) <
+            limit,
+        )
+      ) {
+        score += 70;
+      }
+    }
+
+    if (
+      constraint.type ===
+        "TEACHER_NOT_AFTER_PERIOD" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.periodId
+    ) {
+      const limit = periodIndexById.get(
+        constraint.periodId,
+      );
+
+      if (
+        limit !== undefined &&
+        candidate.periods.some(
+          (period) =>
+            (periodIndexById.get(period.id) || 0) >
+            limit,
+        )
+      ) {
+        score += 70;
+      }
+    }
+
+    if (
+      constraint.type ===
+        "TEACHER_MAX_DAILY_PERIODS" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.value !== undefined
+    ) {
+      const key =
+        `${task.teacherId}:${candidate.day.id}`;
+
+      const current =
+        state.teacherDayPeriods.get(key)?.size || 0;
+
+      if (
+        current + candidate.periods.length >
+        constraint.value
+      ) {
+        score += 60;
+      }
+    }
+
+    if (
+      constraint.type ===
+        "TEACHER_MAX_CONSECUTIVE_PERIODS" &&
+      constraint.teacherId === task.teacherId &&
+      constraint.value !== undefined
+    ) {
+      const key =
+        `${task.teacherId}:${candidate.day.id}`;
+
+      const next = new Set(
+        state.teacherDayPeriods.get(key) ||
+        [],
+      );
+
+      for (const period of candidate.periods) {
+        const index =
+          periodIndexById.get(period.id);
+
+        if (index !== undefined) {
+          next.add(index);
+        }
+      }
+
+      if (
+        getMaxConsecutive(next) >
+        constraint.value
+      ) {
+        score += 60;
+      }
+    }
+
+    if (
+      constraint.type ===
+        "SUBJECT_FORBIDDEN_SLOT" &&
+      constraint.subjectId === task.subjectId &&
+      (
+        !constraint.dayId ||
+        constraint.dayId === candidate.day.id
+      ) &&
+      candidate.periods.some(
+        (period) =>
+          period.id === constraint.periodId,
+      )
+    ) {
+      score += 100;
+    }
+
+    if (
+      constraint.type ===
+        "SUBJECT_MAX_DAILY_OCCURRENCES" &&
+      constraint.subjectId === task.subjectId &&
+      constraint.value !== undefined
+    ) {
+      const current =
+        state.subjectDayCount.get(
+          subjectDayKey,
+        ) || 0;
+
+      if (
+        current + candidate.periods.length >
+        constraint.value
+      ) {
+        score += 50;
+      }
+    }
+
+    if (
+      constraint.type ===
+        "CLASS_NO_INTERNAL_GAPS" &&
+      (
+        !constraint.classId ||
+        constraint.classId === task.classId
+      )
+    ) {
+      const key =
+        `${task.classId}:${candidate.day.id}`;
+
+      const next = new Set(
+        state.classDayPeriods.get(key) || [],
+      );
+
+      for (const period of candidate.periods) {
+        const index =
+          periodIndexById.get(period.id);
+
+        if (index !== undefined) {
+          next.add(index);
+        }
+      }
+
+      score += countGaps(next) * 20;
+    }
+
+    if (
+      constraint.type ===
+        "FAIR_FIRST_PERIODS" &&
+      candidate.periods.some(
+        (period) => period.id === periods[0]?.id,
+      )
+    ) {
+      score +=
+        (state.firstPeriodCount.get(
+          task.teacherId,
+        ) || 0) *
+        (constraint.weight || 10);
+    }
+
+    if (
+      constraint.type ===
+        "FAIR_LAST_PERIODS" &&
+      candidate.periods.some(
+        (period) =>
+          period.id ===
+          periods[periods.length - 1]?.id,
+      )
+    ) {
+      score +=
+        (state.lastPeriodCount.get(
+          task.teacherId,
+        ) || 0) *
+        (constraint.weight || 10);
+    }
+  }
+
+  return score;
+}
+
 function occupy(
   task: LessonTask,
-  day: Day,
+  candidate: Candidate,
+  state: GenerationState,
+  hardConstraints: TimetableConstraint[],
   periods: Period[],
-  teacherBusy: Set<string>,
-  classBusy: Set<string>,
-  subjectDayCount: Map<string, number>,
 ) {
-  for (const period of periods) {
-    const slot = `${day.id}:${period.id}`;
+  for (const period of candidate.periods) {
+    const slot =
+      `${candidate.day.id}:${period.id}`;
 
-    teacherBusy.add(`${task.teacherId}:${slot}`);
-    classBusy.add(`${task.classId}:${slot}`);
+    state.teacherBusy.add(
+      `${task.teacherId}:${slot}`,
+    );
+
+    state.classBusy.add(
+      `${task.classId}:${slot}`,
+    );
+
+    addPeriodIndex(
+      state.teacherDayPeriods,
+      `${task.teacherId}:${candidate.day.id}`,
+      period.order,
+    );
+
+    addPeriodIndex(
+      state.classDayPeriods,
+      `${task.classId}:${candidate.day.id}`,
+      period.order,
+    );
   }
 
   const subjectDayKey =
-    `${task.classId}:${task.subjectId}:${day.id}`;
+    `${task.classId}:${task.subjectId}:${candidate.day.id}`;
 
-  subjectDayCount.set(
+  state.subjectDayCount.set(
     subjectDayKey,
-    (subjectDayCount.get(subjectDayKey) || 0) + 1,
+    (state.subjectDayCount.get(subjectDayKey) || 0) +
+      candidate.periods.length,
   );
+
+  for (const constraint of hardConstraints) {
+    if (
+      constraint.type ===
+        "CLASS_MAX_HEAVY_SUBJECTS_DAILY" &&
+      (
+        !constraint.classId ||
+        constraint.classId === task.classId
+      ) &&
+      constraint.subjectIds?.includes(task.subjectId)
+    ) {
+      const key =
+        `${task.classId}:${candidate.day.id}:${constraint.id}`;
+
+      state.heavySubjectDayCount.set(
+        key,
+        (state.heavySubjectDayCount.get(key) || 0) +
+          1,
+      );
+    }
+  }
+
+  if (
+    candidate.periods.some(
+      (period) => period.id === periods[0]?.id,
+    )
+  ) {
+    incrementMap(
+      state.firstPeriodCount,
+      task.teacherId,
+    );
+  }
+
+  if (
+    candidate.periods.some(
+      (period) =>
+        period.id ===
+        periods[periods.length - 1]?.id,
+    )
+  ) {
+    incrementMap(
+      state.lastPeriodCount,
+      task.teacherId,
+    );
+  }
 }
 
 function release(
   task: LessonTask,
-  day: Day,
+  candidate: Candidate,
+  state: GenerationState,
+  hardConstraints: TimetableConstraint[],
   periods: Period[],
-  teacherBusy: Set<string>,
-  classBusy: Set<string>,
-  subjectDayCount: Map<string, number>,
 ) {
-  for (const period of periods) {
-    const slot = `${day.id}:${period.id}`;
+  for (const period of candidate.periods) {
+    const slot =
+      `${candidate.day.id}:${period.id}`;
 
-    teacherBusy.delete(`${task.teacherId}:${slot}`);
-    classBusy.delete(`${task.classId}:${slot}`);
+    state.teacherBusy.delete(
+      `${task.teacherId}:${slot}`,
+    );
+
+    state.classBusy.delete(
+      `${task.classId}:${slot}`,
+    );
+
+    removePeriodIndex(
+      state.teacherDayPeriods,
+      `${task.teacherId}:${candidate.day.id}`,
+      period.order,
+    );
+
+    removePeriodIndex(
+      state.classDayPeriods,
+      `${task.classId}:${candidate.day.id}`,
+      period.order,
+    );
   }
 
   const subjectDayKey =
-    `${task.classId}:${task.subjectId}:${day.id}`;
+    `${task.classId}:${task.subjectId}:${candidate.day.id}`;
 
-  const nextCount =
-    (subjectDayCount.get(subjectDayKey) || 1) - 1;
+  decrementMap(
+    state.subjectDayCount,
+    subjectDayKey,
+    candidate.periods.length,
+  );
 
-  if (nextCount <= 0) {
-    subjectDayCount.delete(subjectDayKey);
-  } else {
-    subjectDayCount.set(subjectDayKey, nextCount);
+  for (const constraint of hardConstraints) {
+    if (
+      constraint.type ===
+        "CLASS_MAX_HEAVY_SUBJECTS_DAILY" &&
+      (
+        !constraint.classId ||
+        constraint.classId === task.classId
+      ) &&
+      constraint.subjectIds?.includes(task.subjectId)
+    ) {
+      decrementMap(
+        state.heavySubjectDayCount,
+        `${task.classId}:${candidate.day.id}:${constraint.id}`,
+        1,
+      );
+    }
+  }
+
+  if (
+    candidate.periods.some(
+      (period) => period.id === periods[0]?.id,
+    )
+  ) {
+    decrementMap(
+      state.firstPeriodCount,
+      task.teacherId,
+      1,
+    );
+  }
+
+  if (
+    candidate.periods.some(
+      (period) =>
+        period.id ===
+        periods[periods.length - 1]?.id,
+    )
+  ) {
+    decrementMap(
+      state.lastPeriodCount,
+      task.teacherId,
+      1,
+    );
   }
 }
 
-function normalizeDays(value: unknown): Day[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((item, index) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-
-    const valueItem = item as Record<string, unknown>;
-    const id = String(valueItem.id || "");
-    const label = String(valueItem.label || "");
-
-    if (!id || !label) {
-      return [];
-    }
-
-    return [{
-      id,
-      label,
-      order:
-        typeof valueItem.order === "number"
-          ? valueItem.order
-          : index,
-    }];
-  });
-}
-
-function normalizePeriods(value: unknown): Period[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((item, index) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-
-    const valueItem = item as Record<string, unknown>;
-    const id = String(valueItem.id || "");
-    const label = String(valueItem.label || "");
-
-    if (!id || !label) {
-      return [];
-    }
-
-    return [{
-      id,
-      label,
-      order:
-        typeof valueItem.order === "number"
-          ? valueItem.order
-          : index,
-      isBreak: valueItem.isBreak === true,
-    }];
-  });
-}
-
-function normalizeUnavailableSlots(
-  value: unknown,
-): UnavailableSlot[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-
-    const valueItem = item as Record<string, unknown>;
-    const dayId = String(valueItem.dayId || "");
-    const periodId = String(valueItem.periodId || "");
-
-    if (!dayId || !periodId) {
-      return [];
-    }
-
-    return [{ dayId, periodId }];
-  });
-}
-
-function normalizeFixedSlots(
-  value: unknown,
-): FixedSlot[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-
-    const valueItem = item as Record<string, unknown>;
-    const dayId = String(valueItem.dayId || "");
-    const periodId = String(valueItem.periodId || "");
-
-    if (!dayId || !periodId) {
-      return [];
-    }
-
-    return [{
-      dayId,
-      periodId,
-      isLocked: valueItem.isLocked === true,
-    }];
-  });
-}
 export async function saveGeneratedTimetable(
   projectId: string,
   schoolAccountId: string,
   sessions: GeneratedTimetableSession[],
 ) {
-  const project = await prisma.timetableProject.findFirst({
-    where: {
-      id: projectId,
-      schoolAccountId,
-    },
-    select: {
-      id: true,
-      settingsJson: true,
-    },
-  });
+  const project =
+    await prisma.timetableProject.findFirst({
+      where: {
+        id: projectId,
+        schoolAccountId,
+      },
+      select: {
+        id: true,
+        settingsJson: true,
+      },
+    });
 
   if (!project) {
     return null;
   }
 
-  const currentSettings =
-    project.settingsJson &&
-    typeof project.settingsJson === "object" &&
-    !Array.isArray(project.settingsJson)
-      ? project.settingsJson
-      : {};
+  const currentSettings = normalizeRecord(
+    project.settingsJson,
+  );
 
   return prisma.timetableProject.update({
     where: {
@@ -658,17 +1336,18 @@ export async function getSavedGeneratedTimetable(
   projectId: string,
   schoolAccountId: string,
 ) {
-  const project = await prisma.timetableProject.findFirst({
-    where: {
-      id: projectId,
-      schoolAccountId,
-    },
-    select: {
-      id: true,
-      status: true,
-      settingsJson: true,
-    },
-  });
+  const project =
+    await prisma.timetableProject.findFirst({
+      where: {
+        id: projectId,
+        schoolAccountId,
+      },
+      select: {
+        id: true,
+        status: true,
+        settingsJson: true,
+      },
+    });
 
   if (!project) {
     return {
@@ -679,17 +1358,17 @@ export async function getSavedGeneratedTimetable(
     };
   }
 
-  const settings =
-    project.settingsJson &&
-    typeof project.settingsJson === "object" &&
-    !Array.isArray(project.settingsJson)
-      ? (project.settingsJson as Record<string, unknown>)
-      : {};
+  const settings = normalizeRecord(
+    project.settingsJson,
+  );
 
   const sessions = Array.isArray(
     settings.generatedSchedule,
   )
-    ? (settings.generatedSchedule as GeneratedTimetableSession[])
+    ? (
+        settings.generatedSchedule as
+          GeneratedTimetableSession[]
+      )
     : [];
 
   return {
@@ -701,4 +1380,291 @@ export async function getSavedGeneratedTimetable(
         : null,
     status: project.status,
   };
+}
+
+function findConstraint(
+  constraints: TimetableConstraint[],
+  type: TimetableConstraint["type"],
+  field: "teacherId" | "subjectId" | "classId",
+  value: string,
+) {
+  return constraints.find(
+    (constraint) =>
+      constraint.type === type &&
+      constraint[field] === value,
+  );
+}
+
+function addPeriodIndex(
+  map: Map<string, Set<number>>,
+  key: string,
+  index: number,
+) {
+  const values = new Set(map.get(key) || []);
+  values.add(index);
+  map.set(key, values);
+}
+
+function removePeriodIndex(
+  map: Map<string, Set<number>>,
+  key: string,
+  index: number,
+) {
+  const values = new Set(map.get(key) || []);
+  values.delete(index);
+
+  if (values.size) {
+    map.set(key, values);
+  } else {
+    map.delete(key);
+  }
+}
+
+function incrementMap(
+  map: Map<string, number>,
+  key: string,
+) {
+  map.set(key, (map.get(key) || 0) + 1);
+}
+
+function decrementMap(
+  map: Map<string, number>,
+  key: string,
+  amount: number,
+) {
+  const next = (map.get(key) || 0) - amount;
+
+  if (next <= 0) {
+    map.delete(key);
+  } else {
+    map.set(key, next);
+  }
+}
+
+function getMaxConsecutive(values: Set<number>) {
+  const sorted = Array.from(values).sort(
+    (first, second) => first - second,
+  );
+
+  let maximum = 0;
+  let current = 0;
+  let previous: number | null = null;
+
+  for (const value of sorted) {
+    if (
+      previous !== null &&
+      value === previous + 1
+    ) {
+      current += 1;
+    } else {
+      current = 1;
+    }
+
+    maximum = Math.max(maximum, current);
+    previous = value;
+  }
+
+  return maximum;
+}
+
+function countGaps(values: Set<number>) {
+  if (values.size < 2) {
+    return 0;
+  }
+
+  const sorted = Array.from(values).sort(
+    (first, second) => first - second,
+  );
+
+  return (
+    sorted[sorted.length - 1] -
+    sorted[0] +
+    1 -
+    sorted.length
+  );
+}
+
+function getClassIdsFromState(
+  state: GenerationState,
+) {
+  return Array.from(
+    new Set(
+      Array.from(state.classDayPeriods.keys()).map(
+        (key) => key.split(":")[0],
+      ),
+    ),
+  );
+}
+
+function arePeriodsConsecutive(
+  periods: Period[],
+) {
+  return periods.every(
+    (period, index) =>
+      index === 0 ||
+      period.order === periods[index - 1].order + 1,
+  );
+}
+
+function normalizeConstraints(
+  value: unknown,
+): TimetableConstraint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (item): item is TimetableConstraint =>
+      Boolean(
+        item &&
+          typeof item === "object" &&
+          "id" in item &&
+          "type" in item &&
+          "isEnabled" in item,
+      ),
+  );
+}
+
+function normalizeRecord(
+  value: unknown,
+): Record<string, unknown> {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeDays(
+  value: unknown,
+): Day[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const record =
+      item as Record<string, unknown>;
+
+    const id = String(record.id || "");
+    const label = String(record.label || "");
+
+    if (!id || !label) {
+      return [];
+    }
+
+    return [{
+      id,
+      label,
+      order:
+        typeof record.order === "number"
+          ? record.order
+          : index,
+    }];
+  });
+}
+
+function normalizePeriods(
+  value: unknown,
+): Period[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const record =
+      item as Record<string, unknown>;
+
+    const id = String(record.id || "");
+    const label = String(record.label || "");
+
+    if (!id || !label) {
+      return [];
+    }
+
+    return [{
+      id,
+      label,
+      order:
+        typeof record.order === "number"
+          ? record.order
+          : index,
+      isBreak: record.isBreak === true,
+    }];
+  });
+}
+
+function normalizeUnavailableSlots(
+  value: unknown,
+): UnavailableSlot[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const record =
+      item as Record<string, unknown>;
+
+    const dayId = String(record.dayId || "");
+    const periodId = String(
+      record.periodId || "",
+    );
+
+    if (!dayId || !periodId) {
+      return [];
+    }
+
+    return [{
+      dayId,
+      periodId,
+    }];
+  });
+}
+
+function normalizeFixedSlots(
+  value: unknown,
+): FixedSlot[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+
+    const record =
+      item as Record<string, unknown>;
+
+    const dayId = String(record.dayId || "");
+    const periodId = String(
+      record.periodId || "",
+    );
+
+    if (!dayId || !periodId) {
+      return [];
+    }
+
+    return [{
+      dayId,
+      periodId,
+      isLocked: record.isLocked === true,
+    }];
+  });
 }

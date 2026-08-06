@@ -7,7 +7,8 @@ import {
   getSaudiSchoolGrade,
 } from "@/lib/timetable/catalog/saudi-school-grades";
 import { getSubjectsForGrade } from "@/lib/timetable/catalog/saudi-school-subjects";
-import { TimetableTeacherConstraints } from "./timetable-teacher-constraints";
+import { TimetableConstraintsCenter } from "./timetable-constraints-center";
+import { TimetableAdvancedConstraintsPanel } from "./timetable-advanced-constraints-panel";
 import { TimetableValidationPanel } from "./timetable-validation-panel";
 import { TimetableGenerationPanel } from "./timetable-generation-panel";
 
@@ -69,7 +70,7 @@ const tabs = [
   "المواد",
   "مواد الفصول",
   "العلاقات التدريسية",
-  "قيود المعلمين",
+  "القيود",
   "فحص البيانات",
   "إنشاء الجدول",
 ] as const;
@@ -253,13 +254,14 @@ export function TimetableDataEditor({
           />
         ) : null}
 
-        {tab === "قيود المعلمين" ? (
-          <TimetableTeacherConstraints
+        {tab === "القيود" ? (
+          <TimetableConstraintsCenter
             projectId={project.id}
             teachers={project.teachers}
+            classes={project.classes}
+            subjects={project.subjects}
             days={normalizeDays(project.daysJson)}
             periods={normalizePeriods(project.periodsJson)}
-            onSaved={reload}
           />
         ) : null}
 
