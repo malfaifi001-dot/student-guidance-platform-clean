@@ -14,6 +14,7 @@ import {
   deleteSupervisionDuty,
   getDailyOperationsDashboard,
   saveWaitingPolicy,
+  saveWaitingPolicyAndReevaluate,
   updateSubstitutionStatus,
   updateSupervisionDuty,
 } from "@/lib/timetable-v2/daily-operations/daily-operations-service";
@@ -129,14 +130,14 @@ export async function POST(
       parsed.data.action ===
       "SAVE_POLICY"
     ) {
-      const policy =
-        await saveWaitingPolicy(
+      const result =
+        await saveWaitingPolicyAndReevaluate(
           projectId,
           access.schoolAccountId!,
           parsed.data.data,
         );
 
-      if (!policy) {
+      if (!result) {
         return NextResponse.json(
           {
             success: false,
@@ -150,8 +151,19 @@ export async function POST(
       }
 
       return NextResponse.json({
-        success: true,
-        policy,
+        success:
+          true,
+
+        policy:
+          result.policy,
+
+        reevaluation:
+          result.reevaluation,
+
+        message:
+          result.reevaluation.updated > 0
+            ? `تم حفظ الضوابط وإعادة تحليل ${result.reevaluation.updated} حصة انتظار.`
+            : "تم حفظ ضوابط الانتظار.",
       });
     }
 

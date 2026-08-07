@@ -518,6 +518,666 @@ export async function saveWaitingPolicy(
   });
 }
 
+export type WaitingCandidatesReevaluationResult = {
+  scanned: number;
+  updated: number;
+  unlocked: number;
+  stillBlocked: number;
+  skipped: number;
+};
+
+/**
+ * Re-evaluates only open waiting substitutions.
+ *
+ * Important:
+ * - PENDING / SUGGESTED only.
+ * - Never changes an assigned/completed substitution.
+ * - Uses the current published V2 schedule.
+ * - Uses the current waiting policy.
+ * - Reuses rankCandidates as the single source of truth.
+ */
+export async function reevaluateOpenWaitingCandidates(
+  projectId: string,
+  schoolAccountId: string,
+): Promise<WaitingCandidatesReevaluationResult> {
+  const project =
+    await prisma.timetableProject.findFirst({
+      where: {
+        id:
+          projectId,
+
+        schoolAccountId,
+      },
+
+      include: {
+        teachers: {
+          where: {
+            isActive:
+              true,
+          },
+
+          include: {
+            assignments: {
+              select: {
+                assignedLessons:
+                  true,
+              },
+            },
+          },
+        },
+
+        waitingPolicy:
+          true,
+
+        supervisionDuties: {
+          where: {
+            status: {
+              not:
+                "CANCELED",
+            },
+          },
+
+          include: {
+            assignments:
+              true,
+          },
+        },
+      },
+    });
+
+  if (!project) {
+    throw new Error(
+      "PROJECT_NOT_FOUND",
+    );
+  }
+
+  const schedule =
+    await loadPublishedSchedule(
+      projectId,
+      schoolAccountId,
+    );
+
+  if (
+    schedule.length ===
+    0
+  ) {
+    throw new Error(
+      "PUBLISHED_SCHEDULE_REQUIRED",
+    );
+  }
+
+  const policy =
+    project.waitingPolicy ??
+    {
+      id:
+        "",
+
+      projectId,
+
+      ...defaultPolicy,
+
+      settingsJson:
+        {},
+
+      createdAt:
+        new Date(),
+
+      updatedAt:
+        new Date(),
+    };
+
+  const periods =
+    normalizePeriods(
+      project.periodsJson,
+    ).filter(
+      (period) =>
+        !period.isBreak,
+    );
+
+  const teacherLoads =
+    new Map(
+      project.teachers.map(
+        (teacher) => [
+          teacher.id,
+
+          teacher.assignments.reduce(
+            (
+              total,
+              assignment,
+            ) =>
+              total +
+              assignment.assignedLessons,
+            0,
+          ),
+        ],
+      ),
+    );
+
+  const policySettings =
+    normalizeRecord(
+      policy.settingsJson,
+    );
+
+  const configuredReferenceLoad =
+    readNumber(
+      policySettings.referenceLoad,
+    );
+
+  const highestActualLoad =
+    Math.max(
+      0,
+      ...Array.from(
+        teacherLoads.values(),
+      ),
+    );
+
+  const referenceLoad =
+    configuredReferenceLoad &&
+    configuredReferenceLoad >
+      0
+      ? configuredReferenceLoad
+      : highestActualLoad;
+
+  const candidateCount =
+    Math.min(
+      10,
+      Math.max(
+        1,
+        policy.candidateCount,
+      ),
+    );
+
+  const openSubstitutions =
+    await prisma.timetableSubstitution.findMany({
+      where: {
+        projectId,
+
+        schoolAccountId,
+
+        status: {
+          in: [
+            "PENDING",
+            "SUGGESTED",
+          ],
+        },
+
+        substituteTeacherId:
+          null,
+
+        absence: {
+          status:
+            "ACTIVE",
+        },
+      },
+
+      select: {
+        id:
+          true,
+
+        substitutionDate:
+          true,
+
+        originalSessionId:
+          true,
+
+        dayId:
+          true,
+
+        periodId:
+          true,
+
+        candidatesJson:
+          true,
+      },
+    });
+
+  if (
+    openSubstitutions.length ===
+    0
+  ) {
+    return {
+      scanned:
+        0,
+
+      updated:
+        0,
+
+      unlocked:
+        0,
+
+      stillBlocked:
+        0,
+
+      skipped:
+        0,
+    };
+  }
+
+  const scheduleById =
+    new Map(
+      schedule.map(
+        (session) => [
+          session.id,
+          session,
+        ],
+      ),
+    );
+
+  type RuntimeContext = {
+    activeAbsences:
+      Array<{
+        teacherId:
+          string;
+
+        absenceType:
+          string;
+
+        arrivalPeriodId:
+          string | null;
+
+        departurePeriodId:
+          string | null;
+
+        periodIdsJson:
+          unknown;
+      }>;
+
+    weeklySubstitutions:
+      Array<{
+        substituteTeacherId:
+          string | null;
+
+        periodId:
+          string;
+
+        substitutionDate:
+          Date;
+      }>;
+
+    dailySubstitutions:
+      Array<{
+        substituteTeacherId:
+          string | null;
+
+        periodId:
+          string;
+      }>;
+  };
+
+  const runtimeCache =
+    new Map<
+      string,
+      RuntimeContext
+    >();
+
+  async function getRuntimeContext(
+    date: Date,
+  ): Promise<RuntimeContext> {
+    const key =
+      date
+        .toISOString()
+        .slice(
+          0,
+          10,
+        );
+
+    const cached =
+      runtimeCache.get(
+        key,
+      );
+
+    if (cached) {
+      return cached;
+    }
+
+    const dayRange =
+      getDayRange(
+        date,
+      );
+
+    const weekRange =
+      getWeekRange(
+        date,
+      );
+
+    const [
+      activeAbsences,
+      weeklySubstitutions,
+      dailySubstitutions,
+    ] =
+      await Promise.all([
+        prisma.timetableDailyAbsence.findMany({
+          where: {
+            projectId,
+
+            schoolAccountId,
+
+            absenceDate: {
+              gte:
+                dayRange.start,
+
+              lte:
+                dayRange.end,
+            },
+
+            status:
+              "ACTIVE",
+          },
+
+          select: {
+            teacherId:
+              true,
+
+            absenceType:
+              true,
+
+            arrivalPeriodId:
+              true,
+
+            departurePeriodId:
+              true,
+
+            periodIdsJson:
+              true,
+          },
+        }),
+
+        prisma.timetableSubstitution.findMany({
+          where: {
+            projectId,
+
+            schoolAccountId,
+
+            substitutionDate: {
+              gte:
+                weekRange.start,
+
+              lte:
+                weekRange.end,
+            },
+
+            status: {
+              in: [
+                "ASSIGNED",
+                "NOTIFIED",
+                "COMPLETED",
+                "REASSIGNED",
+              ],
+            },
+
+            substituteTeacherId: {
+              not:
+                null,
+            },
+          },
+
+          select: {
+            substituteTeacherId:
+              true,
+
+            periodId:
+              true,
+
+            substitutionDate:
+              true,
+          },
+        }),
+
+        prisma.timetableSubstitution.findMany({
+          where: {
+            projectId,
+
+            schoolAccountId,
+
+            substitutionDate: {
+              gte:
+                dayRange.start,
+
+              lte:
+                dayRange.end,
+            },
+
+            status: {
+              in: [
+                "ASSIGNED",
+                "NOTIFIED",
+                "COMPLETED",
+                "REASSIGNED",
+              ],
+            },
+
+            substituteTeacherId: {
+              not:
+                null,
+            },
+          },
+
+          select: {
+            substituteTeacherId:
+              true,
+
+            periodId:
+              true,
+          },
+        }),
+      ]);
+
+    const context = {
+      activeAbsences,
+      weeklySubstitutions,
+      dailySubstitutions,
+    };
+
+    runtimeCache.set(
+      key,
+      context,
+    );
+
+    return context;
+  }
+
+  let updated =
+    0;
+
+  let unlocked =
+    0;
+
+  let stillBlocked =
+    0;
+
+  let skipped =
+    0;
+
+  for (
+    const substitution of
+    openSubstitutions
+  ) {
+    const session =
+      scheduleById.get(
+        substitution.originalSessionId,
+      );
+
+    /*
+     * لا نخمن الحصة إذا لم تعد موجودة
+     * في النسخة المنشورة.
+     */
+    if (!session) {
+      skipped +=
+        1;
+
+      continue;
+    }
+
+    const context =
+      await getRuntimeContext(
+        substitution.substitutionDate,
+      );
+
+    const result =
+      rankCandidates({
+        session,
+
+        date:
+          substitution.substitutionDate,
+
+        dayId:
+          substitution.dayId,
+
+        schedule,
+
+        periods,
+
+        teachers:
+          project.teachers,
+
+        teacherLoads,
+
+        referenceLoad,
+
+        policy,
+
+        policySettings,
+
+        activeAbsences:
+          context.activeAbsences,
+
+        weeklySubstitutions:
+          context.weeklySubstitutions,
+
+        dailySubstitutions:
+          context.dailySubstitutions,
+
+        supervisionDuties:
+          project.supervisionDuties,
+      });
+
+    const previousCandidates =
+      readCandidates(
+        substitution.candidatesJson,
+      );
+
+    const nextCandidates =
+      result.candidates.slice(
+        0,
+        candidateCount,
+      );
+
+    if (
+      previousCandidates.length ===
+        0 &&
+      nextCandidates.length >
+        0
+    ) {
+      unlocked +=
+        1;
+    }
+
+    if (
+      nextCandidates.length ===
+      0
+    ) {
+      stillBlocked +=
+        1;
+    }
+
+    await prisma.timetableSubstitution.update({
+      where: {
+        id:
+          substitution.id,
+      },
+
+      data: {
+        /*
+         * تبقى SUGGESTED حتى عند عدم وجود مرشح.
+         * candidatesJson هو الذي يوضح الحالة
+         * والأسباب الحالية.
+         */
+        status:
+          "SUGGESTED",
+
+        candidatesJson: {
+          candidates:
+            nextCandidates,
+
+          excluded:
+            result.excluded,
+
+          reevaluatedAt:
+            new Date().toISOString(),
+
+          reevaluationSource:
+            "WAITING_POLICY_CHANGED",
+        } as Prisma.InputJsonValue,
+
+        /*
+         * هذه الحقول يجب أن تكون فارغة أصلًا
+         * للحالات المفتوحة، ونثبت ذلك.
+         */
+        candidateRank:
+          null,
+
+        candidateScore:
+          null,
+
+        selectionReason:
+          null,
+
+        overrideReason:
+          null,
+      },
+    });
+
+    updated +=
+      1;
+  }
+
+  return {
+    scanned:
+      openSubstitutions.length,
+
+    updated,
+
+    unlocked,
+
+    stillBlocked,
+
+    skipped,
+  };
+}
+
+/**
+ * Saves policy + synchronously refreshes every open candidate list.
+ *
+ * Keeping saveWaitingPolicy unchanged preserves compatibility
+ * with any existing caller that only wants policy persistence.
+ */
+export async function saveWaitingPolicyAndReevaluate(
+  projectId: string,
+  schoolAccountId: string,
+  input: WaitingPolicyInput,
+) {
+  const policy =
+    await saveWaitingPolicy(
+      projectId,
+      schoolAccountId,
+      input,
+    );
+
+  if (!policy) {
+    return null;
+  }
+
+  const reevaluation =
+    await reevaluateOpenWaitingCandidates(
+      projectId,
+      schoolAccountId,
+    );
+
+  return {
+    policy,
+    reevaluation,
+  };
+}
 export async function createAbsenceWithSuggestions(
   projectId: string,
   schoolAccountId: string,
