@@ -26,7 +26,7 @@ import type {
 } from "./generation-domain";
 
 export const ENGINE_VERSION =
-  "timetable-v2-engine-1.2.0";
+  "timetable-v2-engine-1.3.1";
 
 type PreparedConstraint =
   GenerationConstraint & {
@@ -40,6 +40,8 @@ type Candidate = {
 
   periodIds: string[];
   periodOrders: number[];
+
+  staticRank: number;
 
   penalty: number;
 
@@ -2040,8 +2042,14 @@ function candidatePenalty(
       ),
     ) ?? 0;
 
+  /*
+   * توزيع المادة على الأيام عنصر مهم جدًا.
+   * رفع الوزن هنا لا يغير HARD constraints،
+   * بل يجعل المحرك يفضّل عدم تكديس المادة
+   * في يوم واحد إذا وُجد بديل جيد.
+   */
   penalty +=
-    subjectToday * 3;
+    subjectToday * 6;
 
   const teacherOrders =
     new Set([
@@ -2061,24 +2069,111 @@ function candidatePenalty(
       teacherOrders,
     ) * 2;
 
+  /*
+   * Engine 1.3 كان يهتم بفجوة المعلم أثناء
+   * الاختيار، لكن جودة الجدول النهائي تقيس
+   * فجوات الفصل أيضًا.
+   *
+   * نجعل Search Heuristic أقرب إلى Final Score.
+   */
+  const classOrders =
+    new Set([
+      ...(
+        state.classDayPeriods.get(
+          classDayKey(
+            task.classId,
+            candidate.dayId,
+          ),
+        ) ?? []
+      ),
+      ...candidate.periodOrders,
+    ]);
+
+  penalty +=
+    countGaps(
+      classOrders,
+    ) * 3;
+
+  /*
+   * موازنة الحصص الأولى والأخيرة بين المعلمين.
+   * لا تمنع الحصة، فقط تفضّل المعلم الأقل حصولًا
+   * عليها عند وجود بدائل متقاربة.
+   */
+  if (
+    firstOrder !==
+      undefined &&
+    candidate.periodOrders.includes(
+      firstOrder,
+    )
+  ) {
+    penalty +=
+      (
+        state.teacherFirstCount.get(
+          task.teacherId,
+        ) ??
+        0
+      ) * 2;
+  }
+
+  if (
+    lastOrder !==
+      undefined &&
+    candidate.periodOrders.includes(
+      lastOrder,
+    )
+  ) {
+    penalty +=
+      (
+        state.teacherLastCount.get(
+          task.teacherId,
+        ) ??
+        0
+      ) * 2;
+  }
+
   return penalty;
 }
 
-function getCandidates(
+type StaticCandidate = {
+  dayId: string;
+
+  periodIds: string[];
+  periodOrders: number[];
+
+  staticRank: number;
+
+  source:
+    GeneratedSession["source"];
+
+  locked: boolean;
+};
+
+type PreparedSearchTask = {
+  task:
+    GenerationTask;
+
+  staticCandidates:
+    StaticCandidate[];
+
+  difficulty:
+    number;
+
+  previousEquivalentTaskId?:
+    string;
+};
+
+function createStaticCandidates(
   problem:
     GenerationProblem,
-  constraints:
-    PreparedConstraint[],
-  state:
-    EngineState,
   task:
     GenerationTask,
-  random:
-    () => number,
-) {
+): StaticCandidate[] {
   const candidates:
-    Candidate[] =
+    StaticCandidate[] =
       [];
+
+  let staticRank =
+    0;
 
   for (
     const day of
@@ -2123,72 +2218,396 @@ function getCandidates(
         continue;
       }
 
-      const candidate:
-        Candidate = {
-          dayId:
-            day.id,
+      candidates.push({
+        dayId:
+          day.id,
 
-          periodIds:
-            block.map(
-              (item) =>
-                item.id,
-            ),
+        periodIds:
+          block.map(
+            (item) =>
+              item.id,
+          ),
 
-          periodOrders:
-            block.map(
-              (item) =>
-                item.order,
-            ),
+        periodOrders:
+          block.map(
+            (item) =>
+              item.order,
+          ),
 
-          penalty: 0,
+        staticRank,
 
-          source:
-            task.fixedSource ??
-            (
-              task.fixedSlot
-                ? "FIXED_ASSIGNMENT_JSON"
-                : "GENERATED"
-            ),
-
-          locked:
+        source:
+          task.fixedSource ??
+          (
             task.fixedSlot
-              ?.isLocked ===
-              true,
-        };
+              ? "FIXED_ASSIGNMENT_JSON"
+              : "GENERATED"
+          ),
 
-      if (
-        !hardAllows(
-          problem,
-          constraints,
-          state,
-          task,
-          candidate,
-        )
-      ) {
-        continue;
-      }
+        locked:
+          task.fixedSlot
+            ?.isLocked ===
+            true,
+      });
 
-      candidate.penalty =
-        candidatePenalty(
-          problem,
-          constraints,
-          state,
-          task,
-          candidate,
-        ) +
-        random() *
-          0.25;
-
-      candidates.push(
-        candidate,
-      );
+      staticRank +=
+        1;
     }
   }
 
+  return candidates;
+}
+
+function prepareSearchTasks(
+  problem:
+    GenerationProblem,
+  constraints:
+    PreparedConstraint[],
+  tasks:
+    GenerationTask[],
+): PreparedSearchTask[] {
+  const teacherLoad =
+    new Map<
+      string,
+      number
+    >();
+
+  const classLoad =
+    new Map<
+      string,
+      number
+    >();
+
+  for (
+    const task of
+    tasks
+  ) {
+    teacherLoad.set(
+      task.teacherId,
+      (
+        teacherLoad.get(
+          task.teacherId,
+        ) ??
+        0
+      ) +
+      task.length,
+    );
+
+    classLoad.set(
+      task.classId,
+      (
+        classLoad.get(
+          task.classId,
+        ) ??
+        0
+      ) +
+      task.length,
+    );
+  }
+
+  const prepared =
+    tasks.map(
+      (
+        task,
+      ): PreparedSearchTask => {
+        const staticCandidates =
+          createStaticCandidates(
+            problem,
+            task,
+          );
+
+        /*
+         * نستخدم القيود هنا كضغط ترتيب فقط.
+         * لا نحكم على صلاحية Candidate هنا.
+         *
+         * hardAllows سيظل المصدر الحقيقي للحكم
+         * أثناء البحث باستخدام الحالة الفعلية.
+         */
+        const hardConstraintPressure =
+          constraints.reduce(
+            (
+              count,
+              constraint,
+            ) => {
+              if (
+                constraint.strength !==
+                "HARD"
+              ) {
+                return count;
+              }
+
+              const schoolWide =
+                [
+                  "SCHOOL_BLOCKED_SLOT",
+                  "SCHOOL_NO_TEACHING_SLOT",
+                  "SCHOOL_FIXED_EVENT",
+                ].includes(
+                  constraint.type,
+                );
+
+              if (
+                schoolWide ||
+                matchesTask(
+                  constraint,
+                  task,
+                )
+              ) {
+                return (
+                  count + 1
+                );
+              }
+
+              return count;
+            },
+            0,
+          );
+
+        const teacherPressure =
+          teacherLoad.get(
+            task.teacherId,
+          ) ??
+          0;
+
+        const classPressure =
+          classLoad.get(
+            task.classId,
+          ) ??
+          0;
+
+        const fixedPressure =
+          task.fixedSlot
+            ? 1000000
+            : task.fixedDayId
+              ? 500000
+              : 0;
+
+        const doublePressure =
+          task.length === 2
+            ? 50000
+            : 0;
+
+        const constraintPressure =
+          hardConstraintPressure *
+          5000;
+
+        const loadPressure =
+          teacherPressure *
+            100 +
+          classPressure *
+            50;
+
+        return {
+          task,
+
+          staticCandidates,
+
+          difficulty:
+            fixedPressure +
+            doublePressure +
+            constraintPressure +
+            loadPressure,
+        };
+      },
+    );
+
+  /*
+   * Static MRV:
+   * المجال الأقل أولاً، لكن مرة واحدة فقط.
+   *
+   * لا نعيد حساب جميع remaining tasks
+   * داخل كل عقدة كما كان Engine 1.2.
+   */
+  prepared.sort(
+    (
+      first,
+      second,
+    ) => {
+      if (
+        first.staticCandidates
+          .length !==
+        second.staticCandidates
+          .length
+      ) {
+        return (
+          first.staticCandidates
+            .length -
+          second.staticCandidates
+            .length
+        );
+      }
+
+      if (
+        first.difficulty !==
+        second.difficulty
+      ) {
+        return (
+          second.difficulty -
+          first.difficulty
+        );
+      }
+
+      return (
+        first.task.id.localeCompare(
+          second.task.id,
+        )
+      );
+    },
+  );
+
+  /*
+   * Symmetry Breaking
+   *
+   * حصة 1 وحصة 2 وحصة 3 من نفس الإسناد
+   * وطول الكتلة نفسه متكافئة منطقيًا.
+   *
+   * بدون هذا الشرط يمكن للـbacktracking
+   * تجربة:
+   *
+   * A في الأحد1 و B في الاثنين2
+   * ثم
+   * B في الأحد1 و A في الاثنين2
+   *
+   * رغم أن الجدولين متطابقان فعليًا.
+   */
+  const previousEquivalent =
+    new Map<
+      string,
+      string
+    >();
+
+  for (
+    const item of
+    prepared
+  ) {
+    const task =
+      item.task;
+
+    if (
+      task.fixedSlot ||
+      task.fixedDayId
+    ) {
+      continue;
+    }
+
+    const key =
+      `${task.assignmentId}:${task.length}`;
+
+    const previous =
+      previousEquivalent.get(
+        key,
+      );
+
+    if (previous) {
+      item.previousEquivalentTaskId =
+        previous;
+    }
+
+    previousEquivalent.set(
+      key,
+      task.id,
+    );
+  }
+
+  return prepared;
+}
+
+function materializeCandidates(
+  problem:
+    GenerationProblem,
+  constraints:
+    PreparedConstraint[],
+  state:
+    EngineState,
+  preparedTask:
+    PreparedSearchTask,
+  random:
+    () => number,
+  minimumStaticRank:
+    number | null,
+) {
+  const task =
+    preparedTask.task;
+
+  const candidates:
+    Candidate[] =
+      [];
+
+  for (
+    const staticCandidate of
+    preparedTask.staticCandidates
+  ) {
+    /*
+     * Canonical ordering للحصص المتطابقة.
+     */
+    if (
+      minimumStaticRank !==
+        null &&
+      staticCandidate.staticRank <=
+        minimumStaticRank
+    ) {
+      continue;
+    }
+
+    const candidate:
+      Candidate = {
+        ...staticCandidate,
+
+        penalty:
+          0,
+      };
+
+    /*
+     * الحكم الحقيقي يبقى ديناميكيًا.
+     * لم ننقل أو نخفف أي HARD constraint.
+     */
+    if (
+      !hardAllows(
+        problem,
+        constraints,
+        state,
+        task,
+        candidate,
+      )
+    ) {
+      continue;
+    }
+
+    candidate.penalty =
+      candidatePenalty(
+        problem,
+        constraints,
+        state,
+        task,
+        candidate,
+      ) +
+      random() * 4;
+
+    candidates.push(
+      candidate,
+    );
+  }
+
   candidates.sort(
-    (a, b) =>
-      a.penalty -
-      b.penalty,
+    (
+      first,
+      second,
+    ) => {
+      const penaltyOrder =
+        first.penalty -
+        second.penalty;
+
+      if (
+        penaltyOrder !==
+        0
+      ) {
+        return penaltyOrder;
+      }
+
+      return (
+        first.staticRank -
+        second.staticRank
+      );
+    },
   );
 
   return candidates;
@@ -2472,12 +2891,44 @@ function releaseCandidate(
     );
   }
 
-  state.sessions =
-    state.sessions.filter(
-      (session) =>
-        session.blockId !==
-        task.id,
+  const releaseCount =
+    candidate.periodIds.length;
+
+  const releaseStart =
+    state.sessions.length -
+    releaseCount;
+
+  if (
+    releaseStart < 0
+  ) {
+    throw new Error(
+      "INVALID_BACKTRACK_SESSION_STACK",
     );
+  }
+
+  for (
+    let index =
+      releaseStart;
+    index <
+      state.sessions.length;
+    index += 1
+  ) {
+    if (
+      state.sessions[
+        index
+      ]?.blockId !==
+        task.id
+    ) {
+      throw new Error(
+        "INVALID_BACKTRACK_SESSION_STACK",
+      );
+    }
+  }
+
+  state.sessions.splice(
+    releaseStart,
+    releaseCount,
+  );
 
   subtractCount(
     state.teacherDayCount,
@@ -2650,6 +3101,547 @@ function variance(
   );
 }
 
+function scoreSoftConstraints(
+  problem:
+    GenerationProblem,
+  constraints:
+    PreparedConstraint[],
+  sessions:
+    GeneratedSession[],
+) {
+  let penalty =
+    0;
+
+  for (
+    const constraint of
+    constraints
+  ) {
+    if (
+      constraint.strength !==
+      "SOFT"
+    ) {
+      continue;
+    }
+
+    const weight =
+      getWeight(
+        constraint,
+      );
+
+    const type =
+      constraint.type;
+
+    /*
+     * Preferred slots.
+     */
+    if (
+      [
+        "TEACHER_PREFERRED",
+        "TEACHER_PREFERRED_DAY",
+        "SUBJECT_PREFERRED",
+        "CLASS_PREFERRED_SLOT",
+        "ASSIGNMENT_PREFERRED_SLOT",
+      ].includes(
+        type,
+      )
+    ) {
+      if (
+        constraint.effectiveSlots
+          .size === 0
+      ) {
+        continue;
+      }
+
+      for (
+        const session of
+        sessions
+      ) {
+        if (
+          !matchesTarget(
+            constraint.teacherIds,
+            session.teacherId,
+          ) ||
+          !matchesTarget(
+            constraint.subjectIds,
+            session.subjectId,
+          ) ||
+          !matchesTarget(
+            constraint.classIds,
+            session.classId,
+          )
+        ) {
+          continue;
+        }
+
+        if (
+          !constraint.effectiveSlots.has(
+            slotKey(
+              session.dayId,
+              session.periodId,
+            ),
+          )
+        ) {
+          penalty +=
+            weight;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Preferred early periods.
+     */
+    if (
+      type ===
+        "SUBJECT_EARLY_PERIODS"
+    ) {
+      if (
+        constraint.periodIds.length ===
+        0
+      ) {
+        continue;
+      }
+
+      for (
+        const session of
+        sessions
+      ) {
+        if (
+          !matchesTarget(
+            constraint.teacherIds,
+            session.teacherId,
+          ) ||
+          !matchesTarget(
+            constraint.subjectIds,
+            session.subjectId,
+          ) ||
+          !matchesTarget(
+            constraint.classIds,
+            session.classId,
+          )
+        ) {
+          continue;
+        }
+
+        if (
+          !constraint.periodIds.includes(
+            session.periodId,
+          )
+        ) {
+          penalty +=
+            weight;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Teacher max daily.
+     */
+    if (
+      type ===
+        "TEACHER_MAX_DAILY" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const teacherId of
+        constraint.teacherIds
+      ) {
+        for (
+          const day of
+          problem.days
+        ) {
+          const count =
+            sessions.filter(
+              (session) =>
+                session.teacherId ===
+                  teacherId &&
+                session.dayId ===
+                  day.id,
+            ).length;
+
+          penalty +=
+            Math.max(
+              0,
+              count -
+                constraint.valueInt,
+            ) *
+            weight *
+            4;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Teacher min daily.
+     * اليوم الذي لا يعمل فيه المعلم لا يعاقب.
+     */
+    if (
+      type ===
+        "TEACHER_MIN_DAILY" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const teacherId of
+        constraint.teacherIds
+      ) {
+        for (
+          const day of
+          problem.days
+        ) {
+          const count =
+            sessions.filter(
+              (session) =>
+                session.teacherId ===
+                  teacherId &&
+                session.dayId ===
+                  day.id,
+            ).length;
+
+          if (
+            count > 0 &&
+            count <
+              constraint.valueInt
+          ) {
+            penalty +=
+              (
+                constraint.valueInt -
+                count
+              ) *
+              weight *
+              3;
+          }
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Teacher max consecutive.
+     */
+    if (
+      type ===
+        "TEACHER_MAX_CONSECUTIVE" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const teacherId of
+        constraint.teacherIds
+      ) {
+        for (
+          const day of
+          problem.days
+        ) {
+          const orders =
+            sessions
+              .filter(
+                (session) =>
+                  session.teacherId ===
+                    teacherId &&
+                  session.dayId ===
+                    day.id,
+              )
+              .map(
+                (session) =>
+                  session.periodOrder,
+              );
+
+          const excess =
+            Math.max(
+              0,
+              longestConsecutive(
+                orders,
+              ) -
+                constraint.valueInt,
+            );
+
+          penalty +=
+            excess *
+            weight *
+            4;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Subject max daily per class.
+     */
+    if (
+      type ===
+        "SUBJECT_MAX_DAILY" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const subjectId of
+        constraint.subjectIds
+      ) {
+        for (
+          const classItem of
+          problem.classes
+        ) {
+          if (
+            !matchesTarget(
+              constraint.classIds,
+              classItem.id,
+            )
+          ) {
+            continue;
+          }
+
+          for (
+            const day of
+            problem.days
+          ) {
+            const count =
+              sessions.filter(
+                (session) =>
+                  session.subjectId ===
+                    subjectId &&
+                  session.classId ===
+                    classItem.id &&
+                  session.dayId ===
+                    day.id,
+              ).length;
+
+            penalty +=
+              Math.max(
+                0,
+                count -
+                  constraint.valueInt,
+              ) *
+              weight *
+              4;
+          }
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Class max daily.
+     */
+    if (
+      type ===
+        "CLASS_MAX_DAILY" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const classId of
+        constraint.classIds
+      ) {
+        for (
+          const day of
+          problem.days
+        ) {
+          const count =
+            sessions.filter(
+              (session) =>
+                session.classId ===
+                  classId &&
+                session.dayId ===
+                  day.id,
+            ).length;
+
+          penalty +=
+            Math.max(
+              0,
+              count -
+                constraint.valueInt,
+            ) *
+            weight *
+            4;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Class max consecutive.
+     */
+    if (
+      type ===
+        "CLASS_MAX_CONSECUTIVE" &&
+      constraint.valueInt !==
+        null
+    ) {
+      for (
+        const classId of
+        constraint.classIds
+      ) {
+        for (
+          const day of
+          problem.days
+        ) {
+          const orders =
+            sessions
+              .filter(
+                (session) =>
+                  session.classId ===
+                    classId &&
+                  session.dayId ===
+                    day.id,
+              )
+              .map(
+                (session) =>
+                  session.periodOrder,
+              );
+
+          const excess =
+            Math.max(
+              0,
+              longestConsecutive(
+                orders,
+              ) -
+                constraint.valueInt,
+            );
+
+          penalty +=
+            excess *
+            weight *
+            4;
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * No isolated subject period.
+     */
+    if (
+      type ===
+        "NO_ISOLATED_PERIOD"
+    ) {
+      for (
+        const subjectId of
+        constraint.subjectIds
+      ) {
+        for (
+          const classItem of
+          problem.classes
+        ) {
+          if (
+            !matchesTarget(
+              constraint.classIds,
+              classItem.id,
+            )
+          ) {
+            continue;
+          }
+
+          for (
+            const day of
+            problem.days
+          ) {
+            const count =
+              sessions.filter(
+                (session) =>
+                  session.subjectId ===
+                    subjectId &&
+                  session.classId ===
+                    classItem.id &&
+                  session.dayId ===
+                    day.id,
+              ).length;
+
+            if (
+              count === 1
+            ) {
+              penalty +=
+                weight * 3;
+            }
+          }
+        }
+      }
+
+      continue;
+    }
+
+    /*
+     * Explicit even distribution.
+     */
+    if (
+      type ===
+        "FAIR_SUBJECT_SPREAD"
+    ) {
+      for (
+        const subjectId of
+        constraint.subjectIds
+      ) {
+        for (
+          const classItem of
+          problem.classes
+        ) {
+          if (
+            !matchesTarget(
+              constraint.classIds,
+              classItem.id,
+            )
+          ) {
+            continue;
+          }
+
+          const related =
+            sessions.filter(
+              (session) =>
+                session.subjectId ===
+                  subjectId &&
+                session.classId ===
+                  classItem.id,
+            );
+
+          if (
+            related.length ===
+            0
+          ) {
+            continue;
+          }
+
+          const distinctDays =
+            new Set(
+              related.map(
+                (session) =>
+                  session.dayId,
+              ),
+            ).size;
+
+          const idealDays =
+            Math.min(
+              problem.days.length,
+              related.length,
+            );
+
+          penalty +=
+            Math.max(
+              0,
+              idealDays -
+                distinctDays,
+            ) *
+            weight;
+        }
+      }
+    }
+  }
+
+  return Math.round(
+    penalty,
+  );
+}
+
 function scoreSchedule(
   problem:
     GenerationProblem,
@@ -2658,12 +3650,17 @@ function scoreSchedule(
   sessions:
     GeneratedSession[],
 ): GenerationScoreBreakdown {
+  /*
+   * Engine 1.3.1:
+   *
+   * Final Quality لا يعتمد على placementScore.
+   * placementScore خاص باختيار مسار البحث فقط.
+   */
   let preferencePenalty =
-    sessions.reduce(
-      (sum, session) =>
-        sum +
-        session.placementScore,
-      0,
+    scoreSoftConstraints(
+      problem,
+      constraints,
+      sessions,
     );
 
   let teacherGapPenalty =
@@ -2678,13 +3675,16 @@ function scoreSchedule(
   let dailyLoadPenalty =
     0;
 
+  /*
+   * Teacher gaps + daily load balance.
+   */
   for (
     const teacher of
     problem.teachers
   ) {
     const dayLoads:
       number[] =
-      [];
+        [];
 
     for (
       const day of
@@ -2720,6 +3720,9 @@ function scoreSchedule(
       );
   }
 
+  /*
+   * Class gaps.
+   */
   for (
     const classItem of
     problem.classes
@@ -2747,6 +3750,12 @@ function scoreSchedule(
     }
   }
 
+  /*
+   * Baseline subject spread quality.
+   *
+   * هذا تقييم جودة عام حتى لو لم يضف المستخدم
+   * قيد EVEN_DISTRIBUTION صراحة.
+   */
   const assignmentKeys =
     new Set(
       problem.assignments.map(
@@ -2762,11 +3771,27 @@ function scoreSchedule(
     const key of
     assignmentKeys
   ) {
-    const [
-      classId,
-      subjectId,
-    ] =
-      key.split(":");
+    const separator =
+      key.indexOf(
+        ":",
+      );
+
+    if (
+      separator < 0
+    ) {
+      continue;
+    }
+
+    const classId =
+      key.slice(
+        0,
+        separator,
+      );
+
+    const subjectId =
+      key.slice(
+        separator + 1,
+      );
 
     const related =
       sessions.filter(
@@ -2847,196 +3872,32 @@ function scoreSchedule(
       ) * 2,
     );
 
+  /*
+   * Legacy/extended fairness rule إن وُجد في بيانات قديمة.
+   */
   for (
     const constraint of
     constraints
   ) {
     if (
-      constraint.strength ===
-      "HARD"
+      constraint.strength !==
+        "SOFT" ||
+      constraint.type !==
+        "FAIR_TEACHER_GAPS"
     ) {
       continue;
     }
 
-    if (
-      constraint.type ===
-        "TEACHER_MIN_DAILY" &&
-      constraint.valueInt !==
-        null
-    ) {
-      const weight =
-        getWeight(
-          constraint,
-        );
-
-      for (
-        const teacherId of
-        constraint.teacherIds
-      ) {
-        for (
-          const day of
-          problem.days
-        ) {
-          const count =
-            sessions.filter(
-              (session) =>
-                session.teacherId ===
-                  teacherId &&
-                session.dayId ===
-                  day.id,
-            ).length;
-
-          if (
-            count > 0 &&
-            count <
-              constraint.valueInt
-          ) {
-            preferencePenalty +=
-              (
-                constraint.valueInt -
-                count
-              ) *
-              weight *
-              3;
-          }
-        }
-      }
-    }
-
-    if (
-      constraint.type ===
-        "NO_ISOLATED_PERIOD"
-    ) {
-      const weight =
-        getWeight(
-          constraint,
-        );
-
-      for (
-        const subjectId of
-        constraint.subjectIds
-      ) {
-        for (
-          const classItem of
-          problem.classes
-        ) {
-          if (
-            constraint.classIds.length >
-              0 &&
-            !constraint.classIds.includes(
-              classItem.id,
-            )
-          ) {
-            continue;
-          }
-
-          for (
-            const day of
-            problem.days
-          ) {
-            const count =
-              sessions.filter(
-                (session) =>
-                  session.subjectId ===
-                    subjectId &&
-                  session.classId ===
-                    classItem.id &&
-                  session.dayId ===
-                    day.id,
-              ).length;
-
-            if (
-              count === 1
-            ) {
-              preferencePenalty +=
-                weight * 3;
-            }
-          }
-        }
-      }
-    }
-
-    if (
-      constraint.type ===
-        "FAIR_SUBJECT_SPREAD"
-    ) {
-      const weight =
-        getWeight(
-          constraint,
-        );
-
-      for (
-        const subjectId of
-        constraint.subjectIds
-      ) {
-        for (
-          const classItem of
-          problem.classes
-        ) {
-          if (
-            constraint.classIds.length >
-              0 &&
-            !constraint.classIds.includes(
-              classItem.id,
-            )
-          ) {
-            continue;
-          }
-
-          const related =
-            sessions.filter(
-              (session) =>
-                session.subjectId ===
-                  subjectId &&
-                session.classId ===
-                  classItem.id,
-            );
-
-          if (
-            related.length === 0
-          ) {
-            continue;
-          }
-
-          const days =
-            new Set(
-              related.map(
-                (session) =>
-                  session.dayId,
-              ),
-            ).size;
-
-          const ideal =
-            Math.min(
-              problem.days.length,
-              related.length,
-            );
-
-          preferencePenalty +=
-            Math.max(
-              0,
-              ideal - days,
-            ) *
-            weight;
-        }
-      }
-    }
-
-    if (
-      constraint.type ===
-        "FAIR_TEACHER_GAPS"
-    ) {
-      teacherGapPenalty +=
-        Math.round(
-          teacherGapPenalty *
-            (
-              getWeight(
-                constraint,
-              ) /
-              100
-            ),
-        );
-    }
+    teacherGapPenalty +=
+      Math.round(
+        teacherGapPenalty *
+        (
+          getWeight(
+            constraint,
+          ) /
+          100
+        ),
+      );
   }
 
   preferencePenalty =
@@ -3199,13 +4060,22 @@ function runAttempt(
     GenerationOptions,
 ): GenerationAttemptResult {
   const random =
-    createRandom(seed);
+    createRandom(
+      seed,
+    );
 
   const state =
     createState();
 
-  const remaining =
-    [...allTasks];
+  /*
+   * تخطيط البحث مرة واحدة فقط.
+   */
+  const searchTasks =
+    prepareSearchTasks(
+      problem,
+      constraints,
+      allTasks,
+    );
 
   const maxNodes =
     options.maxNodesPerAttempt ??
@@ -3215,16 +4085,156 @@ function runAttempt(
     options.maxCandidatesPerTask ??
     8;
 
-  let nodes = 0;
+  let nodes =
+    0;
+
+  let candidateEvaluations =
+    0;
+
+  let backtracks =
+    0;
+
+  let budgetExhausted =
+    false;
 
   let bestPartial:
     GeneratedSession[] =
       [];
 
-  function search():
-    boolean {
-    nodes += 1;
+  /*
+   * rank آخر حصة متكافئة موضوعة.
+   * يستخدم فقط لكسر التماثل.
+   */
+  const placementRankByTask =
+    new Map<
+      string,
+      number
+    >();
 
+  const impossibleTask =
+    searchTasks.find(
+      (item) =>
+        item.staticCandidates
+          .length === 0,
+    );
+
+  if (impossibleTask) {
+    const requiredSessions =
+      problem.assignments.reduce(
+        (
+          sum,
+          assignment,
+        ) =>
+          sum +
+          assignment.assignedLessons,
+        0,
+      );
+
+    const scoreBreakdown =
+      scoreSchedule(
+        problem,
+        constraints,
+        [],
+      );
+
+    return {
+      complete:
+        false,
+
+      sessions:
+        [],
+
+      requiredSessions,
+
+      scheduledSessions:
+        0,
+
+      unscheduledSessions:
+        requiredSessions,
+
+      completeness:
+        0,
+
+      softPenalty:
+        scoreBreakdown.totalPenalty,
+
+      score:
+        scoreBreakdown.score,
+
+      scoreBreakdown,
+
+      validation: {
+        valid:
+          false,
+
+        hardViolationCount:
+          requiredSessions,
+
+        issues:
+          [],
+      },
+
+      diagnostics: [
+        {
+          code:
+            "TASK_HAS_NO_STATIC_DOMAIN",
+
+          level:
+            "WARNING",
+
+          title:
+            "حصة بلا مجال زمني",
+
+          description:
+            `الإسناد ${impossibleTask.task.teacherName} / ${impossibleTask.task.subjectName} / ${impossibleTask.task.className} لا يملك أي خلية زمنية صالحة من حيث بنية الأيام والحصص.`,
+
+          assignmentId:
+            impossibleTask.task.assignmentId,
+        },
+      ],
+    };
+  }
+
+  function search(
+    taskIndex:
+      number,
+  ): boolean {
+    /*
+     * إذا وصلنا للنهاية:
+     * الـValidator المستقل هو بوابة النجاح.
+     *
+     * إذا وجد مخالفة نهائية نرجع للخلف
+     * ونبحث عن توزيع آخر.
+     */
+    if (
+      taskIndex >=
+      searchTasks.length
+    ) {
+      return (
+        validateGeneratedTimetableV2(
+          problem,
+          state.sessions,
+        ).valid
+      );
+    }
+
+    nodes +=
+      1;
+
+    if (
+      nodes >
+      maxNodes
+    ) {
+      budgetExhausted =
+        true;
+
+      return false;
+    }
+
+    /*
+     * bestPartial لا يحتاج النسخ إلا عندما
+     * نصل إلى عمق جديد لأول مرة.
+     */
     if (
       state.sessions.length >
       bestPartial.length
@@ -3237,98 +4247,65 @@ function runAttempt(
         );
     }
 
-    if (
-      remaining.length ===
-      0
-    ) {
-      return (
-        validateGeneratedTimetableV2(
-          problem,
-          state.sessions,
-        ).valid
-      );
-    }
+    const preparedTask =
+      searchTasks[
+        taskIndex
+      ];
+
+    const task =
+      preparedTask.task;
+
+    let minimumStaticRank:
+      number | null =
+        null;
 
     if (
-      nodes >
-      maxNodes
+      preparedTask
+        .previousEquivalentTaskId
     ) {
-      return false;
-    }
-
-    let selectedIndex =
-      -1;
-
-    let selectedCandidates:
-      Candidate[] | null =
-      null;
-
-    for (
-      let index = 0;
-      index <
-      remaining.length;
-      index += 1
-    ) {
-      const task =
-        remaining[index];
-
-      const candidates =
-        getCandidates(
-          problem,
-          constraints,
-          state,
-          task,
-          random,
+      const previousRank =
+        placementRankByTask.get(
+          preparedTask
+            .previousEquivalentTaskId,
         );
 
       if (
-        candidates.length ===
-        0
+        previousRank !==
+        undefined
       ) {
-        return false;
-      }
-
-      if (
-        selectedCandidates ===
-          null ||
-        candidates.length <
-          selectedCandidates.length
-      ) {
-        selectedIndex =
-          index;
-
-        selectedCandidates =
-          candidates;
-
-        if (
-          candidates.length ===
-          1
-        ) {
-          break;
-        }
+        minimumStaticRank =
+          previousRank;
       }
     }
+
+    const candidates =
+      materializeCandidates(
+        problem,
+        constraints,
+        state,
+        preparedTask,
+        random,
+        minimumStaticRank,
+      );
+
+    candidateEvaluations +=
+      preparedTask.staticCandidates
+        .length;
 
     if (
-      selectedIndex <
-        0 ||
-      !selectedCandidates
+      candidates.length ===
+      0
     ) {
+      backtracks +=
+        1;
+
       return false;
     }
-
-    const [
-      task,
-    ] =
-      remaining.splice(
-        selectedIndex,
-        1,
-      );
 
     const limit =
       Math.min(
         maxCandidates,
-        selectedCandidates.length,
+        candidates.length,
       );
 
     for (
@@ -3337,7 +4314,7 @@ function runAttempt(
       index += 1
     ) {
       const candidate =
-        selectedCandidates[
+        candidates[
           index
         ];
 
@@ -3348,11 +4325,22 @@ function runAttempt(
         candidate,
       );
 
+      placementRankByTask.set(
+        task.id,
+        candidate.staticRank,
+      );
+
       if (
-        search()
+        search(
+          taskIndex + 1,
+        )
       ) {
         return true;
       }
+
+      placementRankByTask.delete(
+        task.id,
+      );
 
       releaseCandidate(
         problem,
@@ -3361,25 +4349,23 @@ function runAttempt(
         candidate,
       );
 
+      backtracks +=
+        1;
+
       if (
-        nodes >
-        maxNodes
+        budgetExhausted
       ) {
         break;
       }
     }
 
-    remaining.splice(
-      selectedIndex,
-      0,
-      task,
-    );
-
     return false;
   }
 
   const solved =
-    search();
+    search(
+      0,
+    );
 
   const sessions =
     solved
@@ -3388,7 +4374,10 @@ function runAttempt(
 
   const requiredSessions =
     problem.assignments.reduce(
-      (sum, assignment) =>
+      (
+        sum,
+        assignment,
+      ) =>
         sum +
         assignment.assignedLessons,
       0,
@@ -3431,10 +4420,14 @@ function runAttempt(
           sessions,
         )
       : {
-          valid: false,
+          valid:
+            false,
+
           hardViolationCount:
             unscheduledSessions,
-          issues: [],
+
+          issues:
+            [],
         };
 
   const scoreBreakdown =
@@ -3461,8 +4454,7 @@ function runAttempt(
   if (!solved) {
     diagnostics.push({
       code:
-        nodes >
-        maxNodes
+        budgetExhausted
           ? "SEARCH_BUDGET_EXHAUSTED"
           : "NO_COMPLETE_SOLUTION",
 
@@ -3470,13 +4462,12 @@ function runAttempt(
         "WARNING",
 
       title:
-        nodes >
-        maxNodes
+        budgetExhausted
           ? "انتهت ميزانية البحث"
           : "لم تكتمل المحاولة",
 
       description:
-        `تم توزيع ${scheduledSessions} من ${requiredSessions} حصة في هذه المحاولة.`,
+        `تم توزيع ${scheduledSessions} من ${requiredSessions} حصة. عقد البحث: ${nodes}، فحوص المجالات: ${candidateEvaluations}، التراجعات: ${backtracks}.`,
     });
   }
 
@@ -3505,7 +4496,9 @@ function runAttempt(
     sessions,
 
     requiredSessions,
+
     scheduledSessions,
+
     unscheduledSessions,
 
     completeness,
