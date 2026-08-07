@@ -3,16 +3,16 @@ import {
 } from "next/navigation";
 
 import {
-  TimetableV2ProjectHome,
-} from "@/components/timetable-v2/project-home";
+  TimetableV2GenerationWorkspace,
+} from "@/components/timetable-v2/generation/generation-workspace";
 
 import {
   requireTimetablePageAccess,
 } from "@/lib/timetable/timetable-access";
 
 import {
-  getTimetableV2ProjectDashboard,
-} from "@/lib/timetable-v2/project-dashboard-service";
+  getTimetableV2GenerationWorkspace,
+} from "@/lib/timetable-v2/generation/generation-service";
 
 export const dynamic =
   "force-dynamic";
@@ -23,7 +23,7 @@ type PageProps = {
   }>;
 };
 
-export default async function TimetableV2ProjectPage({
+export default async function TimetableV2GeneratePage({
   params,
 }: PageProps) {
   const access =
@@ -31,17 +31,19 @@ export default async function TimetableV2ProjectPage({
 
   const {
     projectId,
-  } = await params;
+  } =
+    await params;
 
-  let data;
+  let workspace;
 
   try {
-    data =
-      await getTimetableV2ProjectDashboard(
+    workspace =
+      await getTimetableV2GenerationWorkspace(
         projectId,
         access.schoolAccountId,
       );
-  } catch (error) {
+  }
+  catch (error) {
     if (
       error instanceof Error &&
       error.message ===
@@ -55,10 +57,10 @@ export default async function TimetableV2ProjectPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-      <TimetableV2ProjectHome
-        data={JSON.parse(
+      <TimetableV2GenerationWorkspace
+        workspace={JSON.parse(
           JSON.stringify(
-            data,
+            workspace,
           ),
         )}
       />

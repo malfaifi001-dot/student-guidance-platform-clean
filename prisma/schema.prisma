@@ -2139,8 +2139,9 @@ model TimetableProject {
   supervisionDuties TimetableSupervisionDuty[]
   constraints       TimetableConstraint[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  schedules TimetableSchedule[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
 
   @@index([schoolAccountId])
   @@index([createdById])
@@ -2591,4 +2592,86 @@ model TimetableConstraintSlot {
 
   @@unique([constraintId, dayId, periodId], map: "TCL_constraint_slot_key")
   @@index([dayId, periodId], map: "TCL_slot_idx")
+}
+
+model TimetableSchedule {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "TS_project_fk")
+
+  version   Int
+  status    String  @default("GENERATED")
+  isCurrent Boolean @default(false)
+
+  score          Int @default(0)
+  completeness   Int @default(0)
+  hardViolations Int @default(0)
+  softPenalty    Int @default(0)
+
+  attemptCount Int
+  seed         Int
+  durationMs   Int @default(0)
+
+  engineVersion   String
+  dataFingerprint String @db.VarChar(64)
+
+  diagnosticsJson Json?
+  configJson      Json?
+
+  createdById String?
+
+  entries TimetableScheduleEntry[]
+
+  generatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, version], map: "TS_project_version_key")
+  @@index([projectId, isCurrent], map: "TS_project_current_idx")
+  @@index([projectId, status], map: "TS_project_status_idx")
+  @@index([generatedAt], map: "TS_generated_idx")
+}
+
+model TimetableScheduleEntry {
+  id String @id @default(cuid())
+
+  scheduleId String
+  schedule   TimetableSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade, map: "TSE_schedule_fk")
+
+  assignmentId String?
+
+  teacherId   String
+  teacherName String
+
+  classId   String
+  className String
+
+  subjectId   String
+  subjectName String
+
+  dayId    String
+  dayLabel String
+
+  periodId    String
+  periodLabel String
+  periodOrder Int
+
+  isLocked Boolean @default(false)
+  source   String  @default("GENERATED")
+
+  placementScore Int @default(0)
+
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scheduleId, classId, dayId, periodId], map: "TSE_schedule_class_slot_key")
+  @@unique([scheduleId, teacherId, dayId, periodId], map: "TSE_schedule_teacher_slot_key")
+  @@index([scheduleId], map: "TSE_schedule_idx")
+  @@index([teacherId, dayId, periodId], map: "TSE_teacher_slot_idx")
+  @@index([classId, dayId, periodId], map: "TSE_class_slot_idx")
+  @@index([subjectId], map: "TSE_subject_idx")
+  @@index([assignmentId], map: "TSE_assignment_idx")
 }

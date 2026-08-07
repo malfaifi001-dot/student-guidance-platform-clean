@@ -114,9 +114,16 @@ function uniqueSlots(
 }
 
 async function validateTargets(
-  projectId: string,
+  project: {
+    id: string;
+    daysJson: unknown;
+    periodsJson: unknown;
+  },
   input: TimetableV2ConstraintInput,
 ) {
+  const projectId =
+    project.id;
+
   const teacherIds =
     unique(
       input.teacherIds,
@@ -131,6 +138,83 @@ async function validateTargets(
     unique(
       input.classIds,
     );
+
+  const dayIds =
+    unique(
+      input.dayIds,
+    );
+
+  const periodIds =
+    unique(
+      input.periodIds,
+    );
+
+  const slots =
+    uniqueSlots(
+      input.slots,
+    );
+
+  const validDayIds =
+    new Set(
+      Array.isArray(
+        project.daysJson,
+      )
+        ? (
+            project.daysJson as Array<{
+              id: string;
+            }>
+          ).map((day) => day.id)
+        : [],
+    );
+
+  const validPeriodIds =
+    new Set(
+      Array.isArray(
+        project.periodsJson,
+      )
+        ? (
+            project.periodsJson as Array<{
+              id: string;
+            }>
+          ).map((period) => period.id)
+        : [],
+    );
+
+  const invalidDayId =
+    [
+      ...dayIds,
+      ...slots.map(
+        (slot) => slot.dayId,
+      ),
+    ].find(
+      (dayId) =>
+        !validDayIds.has(dayId),
+    );
+
+  if (invalidDayId) {
+    throw new Error(
+      "INVALID_DAY_TARGET",
+    );
+  }
+
+  const invalidPeriodId =
+    [
+      ...periodIds,
+      ...slots.map(
+        (slot) => slot.periodId,
+      ),
+    ].find(
+      (periodId) =>
+        !validPeriodIds.has(
+          periodId,
+        ),
+    );
+
+  if (invalidPeriodId) {
+    throw new Error(
+      "INVALID_PERIOD_TARGET",
+    );
+  }
 
   const [
     teacherCount,
@@ -198,21 +282,73 @@ async function validateTargets(
     );
   }
 
+  if (
+    input.valueInt !== null &&
+    input.valueInt !== undefined &&
+    (!Number.isInteger(
+      input.valueInt,
+    ) ||
+      input.valueInt < 0 ||
+      input.valueInt > 60)
+  ) {
+    throw new Error(
+      "INVALID_CONSTRAINT_VALUE",
+    );
+  }
+
+  const config = input.configJson as
+    | Record<string, unknown>
+    | null
+    | undefined;
+
+  if (
+    config &&
+    typeof config === "object" &&
+    "weight" in config
+  ) {
+    const weight = config.weight;
+
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight < 0 ||
+      weight > 100
+    ) {
+      throw new Error(
+        "INVALID_WEIGHT",
+      );
+    }
+  }
+
   return {
     teacherIds,
     subjectIds,
     classIds,
-    dayIds:
-      unique(input.dayIds),
-    periodIds:
-      unique(
-        input.periodIds,
-      ),
-    slots:
-      uniqueSlots(
-        input.slots,
-      ),
+    dayIds,
+    periodIds,
+    slots,
   };
+}
+
+function validateInputShape(
+  input: TimetableV2ConstraintInput,
+) {
+  if (
+    !input.type?.trim()
+  ) {
+    throw new Error(
+      "CONSTRAINT_TYPE_REQUIRED",
+    );
+  }
+
+  if (
+    input.strength !== "HARD" &&
+    input.strength !== "SOFT"
+  ) {
+    throw new Error(
+      "INVALID_STRENGTH",
+    );
+  }
 }
 
 const constraintInclude = {
@@ -346,24 +482,19 @@ export async function createTimetableV2Constraint(
   schoolAccountId: string,
   input: TimetableV2ConstraintInput,
 ) {
-  await requireProject(
-    projectId,
-    schoolAccountId,
-  );
+  const project =
+    await requireProject(
+      projectId,
+      schoolAccountId,
+    );
+
+  validateInputShape(input);
 
   const targets =
     await validateTargets(
-      projectId,
+      project,
       input,
     );
-
-  if (
-    !input.type?.trim()
-  ) {
-    throw new Error(
-      "CONSTRAINT_TYPE_REQUIRED",
-    );
-  }
 
   return prisma.timetableConstraint.create({
     data: {
@@ -446,6 +577,212 @@ export async function createTimetableV2Constraint(
             }),
           ),
       },
+    },
+    include:
+      constraintInclude,
+  });
+}
+
+export async function updateTimetableV2Constraint(
+  projectId: string,
+  constraintId: string,
+  schoolAccountId: string,
+  input: TimetableV2ConstraintInput,
+) {
+  const project =
+    await requireProject(
+      projectId,
+      schoolAccountId,
+    );
+
+  const existing =
+    await prisma.timetableConstraint.findFirst({
+      where: {
+        id: constraintId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "CONSTRAINT_NOT_FOUND",
+    );
+  }
+
+  validateInputShape(input);
+
+  const targets =
+    await validateTargets(
+      project,
+      input,
+    );
+
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.timetableConstraintTeacher.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintSubject.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintClass.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintDay.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintPeriod.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintSlot.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      return tx.timetableConstraint.update({
+        where: {
+          id: constraintId,
+        },
+        data: {
+          type:
+            input.type.trim(),
+          strength:
+            input.strength,
+          title:
+            normalizeText(
+              input.title,
+            ),
+          valueInt:
+            input.valueInt ??
+            null,
+          notes:
+            normalizeText(
+              input.notes,
+            ),
+          isActive:
+            input.isActive ??
+            true,
+          configJson:
+            input.configJson ??
+            undefined,
+
+          teachers: {
+            create:
+              targets.teacherIds.map(
+                (teacherId) => ({
+                  teacherId,
+                }),
+              ),
+          },
+
+          subjects: {
+            create:
+              targets.subjectIds.map(
+                (subjectId) => ({
+                  subjectId,
+                }),
+              ),
+          },
+
+          classes: {
+            create:
+              targets.classIds.map(
+                (classId) => ({
+                  classId,
+                }),
+              ),
+          },
+
+          days: {
+            create:
+              targets.dayIds.map(
+                (dayId) => ({
+                  dayId,
+                }),
+              ),
+          },
+
+          periods: {
+            create:
+              targets.periodIds.map(
+                (periodId) => ({
+                  periodId,
+                }),
+              ),
+          },
+
+          slots: {
+            create:
+              targets.slots.map(
+                (slot) => ({
+                  dayId:
+                    slot.dayId,
+                  periodId:
+                    slot.periodId,
+                }),
+              ),
+          },
+        },
+        include:
+          constraintInclude,
+      });
+    },
+  );
+}
+
+export async function setTimetableV2ConstraintActive(
+  projectId: string,
+  constraintId: string,
+  schoolAccountId: string,
+  isActive: boolean,
+) {
+  await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  const existing =
+    await prisma.timetableConstraint.findFirst({
+      where: {
+        id: constraintId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "CONSTRAINT_NOT_FOUND",
+    );
+  }
+
+  return prisma.timetableConstraint.update({
+    where: {
+      id: constraintId,
+    },
+    data: {
+      isActive,
     },
     include:
       constraintInclude,

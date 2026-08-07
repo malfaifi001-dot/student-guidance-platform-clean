@@ -14,6 +14,8 @@ import {
   createTimetableV2Constraint,
   deleteTimetableV2Constraint,
   saveTimetableV2Periods,
+  setTimetableV2ConstraintActive,
+  updateTimetableV2Constraint,
 } from "@/lib/timetable-v2/constraint-service";
 
 type RouteContext = {
@@ -31,6 +33,82 @@ const slotSchema =
       z.string().min(1),
   });
 
+const constraintFields = {
+  type:
+    z.string().min(1),
+
+  strength:
+    z.enum([
+      "HARD",
+      "SOFT",
+    ]),
+
+  title:
+    z.string()
+      .max(160)
+      .nullable()
+      .optional(),
+
+  valueInt:
+    z.number()
+      .int()
+      .nullable()
+      .optional(),
+
+  notes:
+    z.string()
+      .max(1000)
+      .nullable()
+      .optional(),
+
+  configJson:
+    z.any()
+      .nullable()
+      .optional(),
+
+  teacherIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  subjectIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  classIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  dayIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(20)
+      .optional(),
+
+  periodIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(30)
+      .optional(),
+
+  slots:
+    z.array(
+      slotSchema,
+    )
+      .max(500)
+      .optional(),
+} as const;
+
 const constraintSchema =
   z.object({
     action:
@@ -38,74 +116,34 @@ const constraintSchema =
         "CREATE_CONSTRAINT",
       ),
 
-    type:
+    ...constraintFields,
+  });
+
+const updateConstraintSchema =
+  z.object({
+    action:
+      z.literal(
+        "UPDATE_CONSTRAINT",
+      ),
+
+    constraintId:
       z.string().min(1),
 
-    strength:
-      z.enum([
-        "HARD",
-        "SOFT",
-      ]),
+    ...constraintFields,
+  });
 
-    title:
-      z.string()
-        .max(160)
-        .nullable()
-        .optional(),
+const toggleConstraintSchema =
+  z.object({
+    action:
+      z.literal(
+        "TOGGLE_CONSTRAINT",
+      ),
 
-    valueInt:
-      z.number()
-        .int()
-        .nullable()
-        .optional(),
+    constraintId:
+      z.string().min(1),
 
-    notes:
-      z.string()
-        .max(1000)
-        .nullable()
-        .optional(),
-
-    teacherIds:
-      z.array(
-        z.string().min(1),
-      )
-        .max(200)
-        .optional(),
-
-    subjectIds:
-      z.array(
-        z.string().min(1),
-      )
-        .max(200)
-        .optional(),
-
-    classIds:
-      z.array(
-        z.string().min(1),
-      )
-        .max(200)
-        .optional(),
-
-    dayIds:
-      z.array(
-        z.string().min(1),
-      )
-        .max(20)
-        .optional(),
-
-    periodIds:
-      z.array(
-        z.string().min(1),
-      )
-        .max(30)
-        .optional(),
-
-    slots:
-      z.array(
-        slotSchema,
-      )
-        .max(500)
-        .optional(),
+    isActive:
+      z.boolean(),
   });
 
 const periodsSchema =
@@ -150,6 +188,16 @@ const deleteSchema =
       z.string().min(1),
   });
 
+const patchSchema =
+  z.discriminatedUnion(
+    "action",
+    [
+      updateConstraintSchema,
+      toggleConstraintSchema,
+      periodsSchema,
+    ],
+  );
+
 function message(
   error: unknown,
 ) {
@@ -173,6 +221,21 @@ function message(
 
     INVALID_CLASS_TARGET:
       "يوجد فصل غير صالح داخل القيد.",
+
+    INVALID_DAY_TARGET:
+      "يوجد يوم غير صالح داخل القيد.",
+
+    INVALID_PERIOD_TARGET:
+      "توجد حصة غير صالحة داخل القيد.",
+
+    INVALID_CONSTRAINT_VALUE:
+      "القيمة العددية للقيد غير صالحة.",
+
+    INVALID_WEIGHT:
+      "وزن القيد غير صالح.",
+
+    INVALID_STRENGTH:
+      "درجة القيد غير صالحة.",
 
     CONSTRAINT_TYPE_REQUIRED:
       "نوع القيد مطلوب.",
@@ -284,7 +347,7 @@ export async function PATCH(
       .catch(() => null);
 
   const parsed =
-    periodsSchema.safeParse(
+    patchSchema.safeParse(
       body,
     );
 
@@ -293,7 +356,7 @@ export async function PATCH(
       {
         success: false,
         error:
-          "بيانات أوقات اليوم غير صالحة.",
+          "بيانات العملية غير صالحة.",
       },
       {
         status: 400,
@@ -302,6 +365,48 @@ export async function PATCH(
   }
 
   try {
+    if (
+      parsed.data.action ===
+      "UPDATE_CONSTRAINT"
+    ) {
+      const {
+        action: _action,
+        constraintId,
+        ...input
+      } = parsed.data;
+
+      const constraint =
+        await updateTimetableV2Constraint(
+          projectId,
+          constraintId,
+          access.schoolAccountId!,
+          input,
+        );
+
+      return NextResponse.json({
+        success: true,
+        constraint,
+      });
+    }
+
+    if (
+      parsed.data.action ===
+      "TOGGLE_CONSTRAINT"
+    ) {
+      const constraint =
+        await setTimetableV2ConstraintActive(
+          projectId,
+          parsed.data.constraintId,
+          access.schoolAccountId!,
+          parsed.data.isActive,
+        );
+
+      return NextResponse.json({
+        success: true,
+        constraint,
+      });
+    }
+
     const project =
       await saveTimetableV2Periods(
         projectId,

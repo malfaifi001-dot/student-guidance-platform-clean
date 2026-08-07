@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  Prisma,
+} from "@prisma/client";
+
+import {
   prisma,
 } from "@/lib/prisma";
 
@@ -14,6 +18,7 @@ async function requireOwnedProject(
         id: projectId,
         schoolAccountId,
       },
+
       select: {
         id: true,
         name: true,
@@ -52,9 +57,11 @@ export async function getTimetableV2AssignmentsWorkspace(
         projectId,
         isActive: true,
       },
+
       orderBy: {
         createdAt: "asc",
       },
+
       select: {
         id: true,
         name: true,
@@ -67,9 +74,11 @@ export async function getTimetableV2AssignmentsWorkspace(
       where: {
         projectId,
       },
+
       orderBy: {
         createdAt: "asc",
       },
+
       select: {
         id: true,
         weeklyLessons: true,
@@ -96,15 +105,19 @@ export async function getTimetableV2AssignmentsWorkspace(
       where: {
         projectId,
       },
+
       orderBy: {
         createdAt: "asc",
       },
+
       select: {
         id: true,
         teacherId: true,
         classId: true,
         subjectId: true,
+
         assignedLessons: true,
+
         singlePeriods: true,
         doublePeriods: true,
       },
@@ -124,12 +137,59 @@ export type TimetableV2AssignmentShareInput = {
   assignedLessons: number;
 };
 
+function hasValidPeriodComposition(
+  assignedLessons: number,
+  singlePeriods: number,
+  doublePeriods: number,
+) {
+  if (
+    !Number.isInteger(
+      assignedLessons,
+    ) ||
+    !Number.isInteger(
+      singlePeriods,
+    ) ||
+    !Number.isInteger(
+      doublePeriods,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    assignedLessons < 0 ||
+    singlePeriods < 0 ||
+    doublePeriods < 0
+  ) {
+    return false;
+  }
+
+  return (
+    singlePeriods +
+      doublePeriods * 2 ===
+    assignedLessons
+  );
+}
+
+function defaultPeriodComposition(
+  assignedLessons: number,
+) {
+  return {
+    singlePeriods:
+      assignedLessons,
+
+    doublePeriods:
+      0,
+  };
+}
+
 export async function saveTimetableV2SharedAssignments(
   projectId: string,
   schoolAccountId: string,
   input: {
     classSubjectId: string;
-    shares: TimetableV2AssignmentShareInput[];
+    shares:
+      TimetableV2AssignmentShareInput[];
   },
 ) {
   await requireOwnedProject(
@@ -140,9 +200,12 @@ export async function saveTimetableV2SharedAssignments(
   const classSubject =
     await prisma.timetableClassSubject.findFirst({
       where: {
-        id: input.classSubjectId,
+        id:
+          input.classSubjectId,
+
         projectId,
       },
+
       select: {
         id: true,
         classId: true,
@@ -161,14 +224,18 @@ export async function saveTimetableV2SharedAssignments(
     input.shares
       .filter(
         (share) =>
-          share.assignedLessons > 0,
+          share.assignedLessons >
+          0,
       )
-      .map((share) => ({
-        teacherId:
-          share.teacherId,
-        assignedLessons:
-          share.assignedLessons,
-      }));
+      .map(
+        (share) => ({
+          teacherId:
+            share.teacherId,
+
+          assignedLessons:
+            share.assignedLessons,
+        }),
+      );
 
   const teacherIds =
     shares.map(
@@ -188,13 +255,15 @@ export async function saveTimetableV2SharedAssignments(
   }
 
   for (
-    const share of shares
+    const share of
+    shares
   ) {
     if (
       !Number.isInteger(
         share.assignedLessons,
       ) ||
-      share.assignedLessons < 1 ||
+      share.assignedLessons <
+        1 ||
       share.assignedLessons >
         classSubject.weeklyLessons
     ) {
@@ -222,17 +291,23 @@ export async function saveTimetableV2SharedAssignments(
   }
 
   if (
-    teacherIds.length > 0
+    teacherIds.length >
+    0
   ) {
     const teachers =
       await prisma.timetableTeacher.findMany({
         where: {
           projectId,
-          isActive: true,
+
+          isActive:
+            true,
+
           id: {
-            in: teacherIds,
+            in:
+              teacherIds,
           },
         },
+
         select: {
           id: true,
         },
@@ -250,41 +325,175 @@ export async function saveTimetableV2SharedAssignments(
 
   return prisma.$transaction(
     async (tx) => {
-      await tx.timetableAssignment.deleteMany({
-        where: {
-          projectId,
-          classId:
-            classSubject.classId,
-          subjectId:
-            classSubject.subjectId,
-        },
-      });
+      const existing =
+        await tx.timetableAssignment.findMany({
+          where: {
+            projectId,
+
+            classId:
+              classSubject.classId,
+
+            subjectId:
+              classSubject.subjectId,
+          },
+
+          select: {
+            id: true,
+            teacherId: true,
+
+            assignedLessons:
+              true,
+
+            singlePeriods:
+              true,
+
+            doublePeriods:
+              true,
+
+            fixedSlotsJson:
+              true,
+          },
+        });
+
+      const existingByTeacher =
+        new Map(
+          existing.map(
+            (assignment) => [
+              assignment.teacherId,
+              assignment,
+            ],
+          ),
+        );
+
+      const incomingTeacherIds =
+        new Set(
+          teacherIds,
+        );
+
+      const removedIds =
+        existing
+          .filter(
+            (assignment) =>
+              !incomingTeacherIds.has(
+                assignment.teacherId,
+              ),
+          )
+          .map(
+            (assignment) =>
+              assignment.id,
+          );
 
       if (
-        shares.length > 0
+        removedIds.length >
+        0
       ) {
-        await tx.timetableAssignment.createMany({
-          data:
-            shares.map(
-              (share) => ({
-                projectId,
+        await tx.timetableAssignment.deleteMany({
+          where: {
+            id: {
+              in:
+                removedIds,
+            },
+          },
+        });
+      }
 
-                teacherId:
-                  share.teacherId,
+      for (
+        const share of
+        shares
+      ) {
+        const current =
+          existingByTeacher.get(
+            share.teacherId,
+          );
 
-                classId:
-                  classSubject.classId,
+        if (!current) {
+          const composition =
+            defaultPeriodComposition(
+              share.assignedLessons,
+            );
 
-                subjectId:
-                  classSubject.subjectId,
+          await tx.timetableAssignment.create({
+            data: {
+              projectId,
 
-                assignedLessons:
-                  share.assignedLessons,
+              teacherId:
+                share.teacherId,
 
-                singlePeriods: 0,
-                doublePeriods: 0,
-              }),
-            ),
+              classId:
+                classSubject.classId,
+
+              subjectId:
+                classSubject.subjectId,
+
+              assignedLessons:
+                share.assignedLessons,
+
+              singlePeriods:
+                composition.singlePeriods,
+
+              doublePeriods:
+                composition.doublePeriods,
+
+              fixedSlotsJson:
+                Prisma.JsonNull,
+            },
+          });
+
+          continue;
+        }
+
+        const sameLessonCount =
+          current.assignedLessons ===
+          share.assignedLessons;
+
+        const currentCompositionValid =
+          hasValidPeriodComposition(
+            current.assignedLessons,
+            current.singlePeriods,
+            current.doublePeriods,
+          );
+
+        if (
+          sameLessonCount &&
+          currentCompositionValid
+        ) {
+          /*
+           * لا نلمس تركيب الحصص ولا التثبيتات.
+           * نفس المعلم ونفس عدد الحصص، لذلك الإعداد الحالي
+           * ما زال صالحًا.
+           */
+          continue;
+        }
+
+        const composition =
+          defaultPeriodComposition(
+            share.assignedLessons,
+          );
+
+        await tx.timetableAssignment.update({
+          where: {
+            id:
+              current.id,
+          },
+
+          data: {
+            assignedLessons:
+              share.assignedLessons,
+
+            singlePeriods:
+              composition.singlePeriods,
+
+            doublePeriods:
+              composition.doublePeriods,
+
+            /*
+             * عدد الحصص تغير أو التركيب القديم غير صالح.
+             * أي تثبيت قديم قد يشير إلى Blocks لم تعد موجودة،
+             * لذلك نمسحه بدل الاحتفاظ ببيانات غير متناسقة.
+             */
+            fixedSlotsJson:
+              Prisma.JsonNull,
+          },
         });
       }
 
@@ -292,30 +501,44 @@ export async function saveTimetableV2SharedAssignments(
         await tx.timetableAssignment.findMany({
           where: {
             projectId,
+
             classId:
               classSubject.classId,
+
             subjectId:
               classSubject.subjectId,
           },
+
           orderBy: {
-            createdAt: "asc",
+            createdAt:
+              "asc",
           },
+
           select: {
             id: true,
             teacherId: true,
             classId: true,
             subjectId: true,
-            assignedLessons: true,
-            singlePeriods: true,
-            doublePeriods: true,
+
+            assignedLessons:
+              true,
+
+            singlePeriods:
+              true,
+
+            doublePeriods:
+              true,
           },
         });
 
       return {
         assignments,
+
         totalAssigned,
+
         weeklyLessons:
           classSubject.weeklyLessons,
+
         remainingLessons:
           classSubject.weeklyLessons -
           totalAssigned,
