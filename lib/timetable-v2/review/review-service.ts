@@ -25,6 +25,8 @@ export type TimetableReviewEntry = {
   isLocked: boolean;
   source: string;
   placementScore: number;
+
+  metadataJson: Prisma.JsonValue | null;
 };
 
 export type TimetableReviewWorkspace = {
@@ -462,6 +464,9 @@ export async function getTimetableReviewWorkspace(
 
           placementScore:
             entry.placementScore,
+
+          metadataJson:
+            entry.metadataJson,
         }),
       ),
   };
@@ -846,6 +851,9 @@ export async function saveTimetableReviewVersion(
 
           placementScore:
             entry.placementScore,
+
+          metadataJson:
+            entry.metadataJson,
         }),
       );
 
@@ -1025,7 +1033,13 @@ export async function saveTimetableReviewVersion(
                         entry.placementScore,
 
                       metadataJson:
-                        Prisma.JsonNull,
+                        entry.metadataJson ===
+                          null
+                          ? Prisma.JsonNull
+                          : (
+                              entry.metadataJson as
+                                Prisma.InputJsonValue
+                            ),
                     })),
               },
             },
@@ -1036,17 +1050,29 @@ export async function saveTimetableReviewVersion(
             },
           });
 
-        await tx.timetableProject.update({
-          where: {
-            id:
-              projectId,
-          },
+        /*
+         * إذا كان للمشروع جدول منشور فعليًا،
+         * يبقى المشروع PUBLISHED أثناء تجهيز نسخة مراجعة جديدة.
+         *
+         * النسخة الجديدة تكون current للمراجعة فقط،
+         * لكن التشغيل اليومي لا يتغير حتى PUBLISH.
+         */
+        if (
+          project.status !==
+          "PUBLISHED"
+        ) {
+          await tx.timetableProject.update({
+            where: {
+              id:
+                projectId,
+            },
 
-          data: {
-            status:
-              "GENERATED",
-          },
-        });
+            data: {
+              status:
+                "GENERATED",
+            },
+          });
+        }
 
         return created;
       },

@@ -747,6 +747,7 @@ async function assertFreshSchedule(
 ) {
   const {
     fingerprint,
+    problem,
   } =
     await loadProblem(
       projectId,
@@ -772,6 +773,75 @@ async function assertFreshSchedule(
         dataFingerprint: true,
         hardViolations: true,
         completeness: true,
+
+        entries: {
+          orderBy: [
+            {
+              dayId:
+                "asc",
+            },
+            {
+              periodOrder:
+                "asc",
+            },
+            {
+              className:
+                "asc",
+            },
+          ],
+
+          select: {
+            id: true,
+
+            assignmentId:
+              true,
+
+            teacherId:
+              true,
+
+            teacherName:
+              true,
+
+            classId:
+              true,
+
+            className:
+              true,
+
+            subjectId:
+              true,
+
+            subjectName:
+              true,
+
+            dayId:
+              true,
+
+            dayLabel:
+              true,
+
+            periodId:
+              true,
+
+            periodLabel:
+              true,
+
+            periodOrder:
+              true,
+
+            isLocked:
+              true,
+
+            source:
+              true,
+
+            placementScore:
+              true,
+
+            metadataJson:
+              true,
+          },
+        },
       },
     });
 
@@ -798,6 +868,166 @@ async function assertFreshSchedule(
   ) {
     throw new Error(
       "SCHEDULE_VALIDATION_FAILED",
+    );
+  }
+
+  /*
+   * الحصص المزدوجة تحتاج block metadata.
+   *
+   * النسخ الجديدة والمولدة أصلًا تحفظ:
+   * blockId / blockIndex / blockLength.
+   *
+   * لو وجدنا نسخة قديمة معدلة يدويًا فقدت هذه البيانات،
+   * لا نعتمدها إذا كان المشروع يستخدم double periods.
+   */
+  const projectHasDoublePeriods =
+    problem.assignments.some(
+      (assignment) =>
+        assignment.doublePeriods >
+        0,
+    );
+
+  const missingRequiredBlockMetadata =
+    projectHasDoublePeriods &&
+    schedule.entries.some(
+      (entry) => {
+        const metadata =
+          normalizeRecord(
+            entry.metadataJson,
+          );
+
+        return (
+          typeof metadata.blockId !==
+            "string" ||
+          typeof metadata.blockIndex !==
+            "number" ||
+          typeof metadata.blockLength !==
+            "number"
+        );
+      },
+    );
+
+  if (
+    missingRequiredBlockMetadata
+  ) {
+    throw new Error(
+      "SCHEDULE_BLOCK_METADATA_REQUIRED",
+    );
+  }
+
+  const {
+    validateGeneratedTimetableV2,
+  } =
+    await import(
+      "./generation-validator"
+    );
+
+  const sessions =
+    schedule.entries.map(
+      (
+        entry,
+        index,
+      ) => {
+        const metadata =
+          normalizeRecord(
+            entry.metadataJson,
+          );
+
+        const blockId =
+          typeof metadata.blockId ===
+            "string"
+            ? metadata.blockId
+            : entry.id;
+
+        const blockIndex =
+          typeof metadata.blockIndex ===
+            "number"
+            ? metadata.blockIndex
+            : 0;
+
+        const blockLength =
+          metadata.blockLength ===
+            2
+            ? 2
+            : 1;
+
+        return {
+          temporaryId:
+            entry.id ||
+            `${schedule.id}:${index}`,
+
+          blockId,
+
+          blockIndex,
+
+          blockLength,
+
+          assignmentId:
+            entry.assignmentId ??
+            "",
+
+          teacherId:
+            entry.teacherId,
+
+          teacherName:
+            entry.teacherName,
+
+          classId:
+            entry.classId,
+
+          className:
+            entry.className,
+
+          subjectId:
+            entry.subjectId,
+
+          subjectName:
+            entry.subjectName,
+
+          dayId:
+            entry.dayId,
+
+          dayLabel:
+            entry.dayLabel,
+
+          periodId:
+            entry.periodId,
+
+          periodLabel:
+            entry.periodLabel,
+
+          periodOrder:
+            entry.periodOrder,
+
+          isLocked:
+            entry.isLocked,
+
+          /*
+           * المصدر لا يدخل في منطق الـvalidator.
+           * قد تكون القيمة GENERATED أو MANUAL_MOVE أو MANUAL_SWAP.
+           */
+          source:
+            entry.source,
+
+          placementScore:
+            entry.placementScore,
+        };
+      },
+    ) as Parameters<
+      typeof validateGeneratedTimetableV2
+    >[1];
+
+  const validation =
+    validateGeneratedTimetableV2(
+      problem,
+      sessions,
+    );
+
+  if (
+    !validation.valid
+  ) {
+    throw new Error(
+      "SCHEDULE_RUNTIME_VALIDATION_FAILED",
     );
   }
 

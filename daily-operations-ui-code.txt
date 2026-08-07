@@ -1,0 +1,3656 @@
+﻿===== daily-operations-center.tsx =====
+
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  TimetableOperationsSettingsPanels,
+  type OperationsWorkspaceSection,
+  type SupervisionDuty,
+  type WaitingPolicy,
+} from "@/components/timetable-v2/daily-operations/daily-operations-settings-panels";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
+
+type Teacher = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  maxWeeklyLoad: number;
+  weeklyLoad: number;
+};
+
+type DayItem = {
+  id: string;
+  label: string;
+  order: number;
+};
+
+type Period = {
+  id: string;
+  label: string;
+  order: number;
+  isBreak?: boolean;
+};
+
+type Candidate = {
+  teacherId: string;
+  teacherName: string;
+  specialty: string | null;
+  weeklyLoad: number;
+  referenceLoad: number;
+  basicBalance: number;
+  weeklyExecuted: number;
+  dailyExecuted: number;
+  remainingBalance: number;
+  score: number;
+  rank: number;
+  reasons: string[];
+  reasonLabels: string[];
+};
+
+type CandidatePayload = {
+  candidates?: Candidate[];
+};
+
+type Substitution = {
+  id: string;
+  periodId: string;
+  className: string;
+  subjectName: string;
+  status: string;
+  candidateRank: number | null;
+  candidateScore: number | null;
+  selectionReason: string | null;
+  candidatesJson: CandidatePayload | null;
+  substituteTeacherId: string | null;
+  substituteTeacher: {
+    id: string;
+    name: string;
+    specialty: string | null;
+  } | null;
+};
+
+type Absence = {
+  id: string;
+  teacherId: string;
+  absenceDate: string;
+  absenceType: string;
+  status: string;
+  reason: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  teacher: {
+    id: string;
+    name: string;
+    specialty: string | null;
+  };
+  substitutions: Substitution[];
+};
+
+type Dashboard = {
+  project: {
+    id: string;
+    name: string;
+    academicYear: string;
+    semester: string;
+    status: string;
+  };
+  teachers: Teacher[];
+  days: DayItem[];
+  periods: Period[];
+  schedule: unknown[];
+  policy: WaitingPolicy | null;
+  absences: Absence[];
+  supervisionDuties: SupervisionDuty[];
+};
+
+type AbsenceType =
+  | "FULL_DAY"
+  | "SELECTED_PERIODS"
+  | "LATE_ARRIVAL"
+  | "EARLY_DEPARTURE";
+
+type Notice = {
+  tone: "success" | "error" | "info";
+  title: string;
+  message: string;
+};
+
+const dayByWeekday: Record<number, string> = {
+  0: "sunday",
+  1: "monday",
+  2: "tuesday",
+  3: "wednesday",
+  4: "thursday",
+  5: "friday",
+  6: "saturday",
+};
+
+export function TimetableV2DailyOperationsCenter({
+  projectId,
+}: {
+  projectId: string;
+}) {
+  const [dashboard, setDashboard] =
+    useState<Dashboard | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [workingKey, setWorkingKey] = useState("");
+  const [notice, setNotice] =
+    useState<Notice | null>(null);
+  const [absencePendingDeletion, setAbsencePendingDeletion] =
+    useState<string | null>(null);
+
+  const [
+    workspaceSection,
+    setWorkspaceSection,
+  ] = useState<OperationsWorkspaceSection>(
+    "ABSENCE",
+  );
+
+  const [teacherId, setTeacherId] = useState("");
+  const [absenceDate, setAbsenceDate] =
+    useState(getTodayValue());
+
+  const [dayId, setDayId] = useState(
+    getDayIdFromDate(getTodayValue()),
+  );
+
+  const [absenceType, setAbsenceType] =
+    useState<AbsenceType>("FULL_DAY");
+
+  const [periodIds, setPeriodIds] = useState<string[]>([]);
+  const [arrivalPeriodId, setArrivalPeriodId] =
+    useState("");
+
+  const [departurePeriodId, setDeparturePeriodId] =
+    useState("");
+
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+
+  const endpoint =
+    `/api/dashboard/timetable-v2/projects/${projectId}/daily-operations`;
+
+  const teachingPeriods = useMemo(
+    () =>
+      (dashboard?.periods || [])
+        .filter((period) => !period.isBreak)
+        .sort(
+          (first, second) =>
+            first.order - second.order,
+        ),
+    [dashboard?.periods],
+  );
+
+  const sortedAbsences = useMemo(
+    () =>
+      [...(dashboard?.absences || [])].sort(
+        (first, second) =>
+          new Date(second.absenceDate).getTime() -
+          new Date(first.absenceDate).getTime(),
+      ),
+    [dashboard?.absences],
+  );
+
+  const selectedDateAbsences = useMemo(
+    () =>
+      sortedAbsences.filter(
+        (absence) =>
+          dateOnly(absence.absenceDate) ===
+          absenceDate,
+      ),
+    [absenceDate, sortedAbsences],
+  );
+
+  const metrics = useMemo(() => {
+    const substitutions =
+      selectedDateAbsences.flatMap(
+        (absence) => absence.substitutions,
+      );
+
+    const covered = substitutions.filter(
+      (item) =>
+        item.status === "ASSIGNED" ||
+        item.status === "NOTIFIED" ||
+        item.status === "COMPLETED" ||
+        item.status === "REASSIGNED",
+    ).length;
+
+    const completed = substitutions.filter(
+      (item) => item.status === "COMPLETED",
+    ).length;
+
+    return {
+      absences: selectedDateAbsences.length,
+      affected: substitutions.length,
+      covered,
+      uncovered:
+        substitutions.length - covered,
+      completed,
+    };
+  }, [selectedDateAbsences]);
+
+  const loadDashboard = useCallback(
+    async (silent = false) => {
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          cache: "no-store",
+        });
+
+        const result = await response
+          .json()
+          .catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ.",
+          );
+        }
+
+        const nextDashboard =
+          result.dashboard as Dashboard;
+
+        setDashboard(nextDashboard);
+
+        setTeacherId((current) =>
+          current ||
+          nextDashboard.teachers[0]?.id ||
+          "",
+        );
+
+        setDayId((current) => {
+          const derived =
+            getDayIdFromDate(absenceDate);
+
+          return nextDashboard.days.some(
+            (day) => day.id === derived,
+          )
+            ? derived
+            : current ||
+                nextDashboard.days[0]?.id ||
+                "";
+        });
+      } catch (error) {
+        showNotice(
+          "error",
+          "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª",
+          getErrorMessage(error),
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [absenceDate, endpoint],
+  );
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  function showNotice(
+    tone: Notice["tone"],
+    title: string,
+    message: string,
+  ) {
+    setNotice({
+      tone,
+      title,
+      message,
+    });
+  }
+
+  function handleDateChange(value: string) {
+    setAbsenceDate(value);
+
+    const nextDay = getDayIdFromDate(value);
+
+    if (
+      dashboard?.days.some(
+        (day) => day.id === nextDay,
+      )
+    ) {
+      setDayId(nextDay);
+    }
+  }
+
+  function togglePeriod(periodId: string) {
+    setPeriodIds((current) =>
+      current.includes(periodId)
+        ? current.filter(
+            (item) => item !== periodId,
+          )
+        : [...current, periodId],
+    );
+  }
+
+  async function postAction(
+    payload: Record<string, unknown>,
+    workingId: string,
+  ) {
+    setWorkingKey(workingId);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+            "ØªØ¹Ø°Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø¹Ù…Ù„ÙŠØ©.",
+        );
+      }
+
+      return result;
+    } finally {
+      setWorkingKey("");
+    }
+  }
+
+  async function createAbsence() {
+    if (!teacherId) {
+      showNotice(
+        "error",
+        "Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ø·Ù„ÙˆØ¨",
+        "Ø§Ø®ØªØ± Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„Ù…Ø±Ø§Ø¯ ØªØ³Ø¬ÙŠÙ„ ØºÙŠØ§Ø¨Ù‡.",
+      );
+      return;
+    }
+
+    if (!absenceDate || !dayId) {
+      showNotice(
+        "error",
+        "Ø§Ù„ØªØ§Ø±ÙŠØ® ØºÙŠØ± Ù…ÙƒØªÙ…Ù„",
+        "Ø­Ø¯Ø¯ ØªØ§Ø±ÙŠØ® Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØ§Ù„ÙŠÙˆÙ… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ.",
+      );
+      return;
+    }
+
+    if (
+      absenceType === "SELECTED_PERIODS" &&
+      !periodIds.length
+    ) {
+      showNotice(
+        "error",
+        "Ø§Ù„Ø­ØµØµ Ù…Ø·Ù„ÙˆØ¨Ø©",
+        "Ø§Ø®ØªØ± Ø­ØµØ© ÙˆØ§Ø­Ø¯Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
+      );
+      return;
+    }
+
+    if (
+      absenceType === "LATE_ARRIVAL" &&
+      !arrivalPeriodId
+    ) {
+      showNotice(
+        "error",
+        "Ø­ØµØ© Ø§Ù„Ø­Ø¶ÙˆØ± Ù…Ø·Ù„ÙˆØ¨Ø©",
+        "Ø­Ø¯Ø¯ Ø§Ù„Ø­ØµØ© Ø§Ù„ØªÙŠ Ø³ÙŠØ­Ø¶Ø± Ø¹Ù†Ø¯Ù‡Ø§ Ø§Ù„Ù…Ø¹Ù„Ù….",
+      );
+      return;
+    }
+
+    if (
+      absenceType === "EARLY_DEPARTURE" &&
+      !departurePeriodId
+    ) {
+      showNotice(
+        "error",
+        "Ø­ØµØ© Ø§Ù„Ø§Ù†ØµØ±Ø§Ù Ù…Ø·Ù„ÙˆØ¨Ø©",
+        "Ø­Ø¯Ø¯ Ø¢Ø®Ø± Ø­ØµØ© Ù‚Ø¨Ù„ Ø§Ù†ØµØ±Ø§Ù Ø§Ù„Ù…Ø¹Ù„Ù….",
+      );
+      return;
+    }
+
+    try {
+      await postAction(
+        {
+          action: "CREATE_ABSENCE",
+          data: {
+            teacherId,
+            absenceDate,
+            dayId,
+            absenceType,
+            periodIds:
+              absenceType ===
+              "SELECTED_PERIODS"
+                ? periodIds
+                : [],
+            arrivalPeriodId:
+              absenceType === "LATE_ARRIVAL"
+                ? arrivalPeriodId
+                : undefined,
+            departurePeriodId:
+              absenceType ===
+              "EARLY_DEPARTURE"
+                ? departurePeriodId
+                : undefined,
+            reason: reason.trim() || undefined,
+            note: note.trim() || undefined,
+          },
+        },
+        "create-absence",
+      );
+
+      await loadDashboard(true);
+
+      setPeriodIds([]);
+      setArrivalPeriodId("");
+      setDeparturePeriodId("");
+      setReason("");
+      setNote("");
+
+      showNotice(
+        "success",
+        "ØªÙ… Ø­ÙØ¸ Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+        "Ø­ÙÙØ¸ Ø³Ø¬Ù„ Ø§Ù„ØºÙŠØ§Ø¨ØŒ ÙˆØªÙ… ØªØ­Ù„ÙŠÙ„ Ø­ØµØµ Ø§Ù„Ù…Ø¹Ù„Ù… ÙˆØ¥Ù†Ø´Ø§Ø¡ Ù…Ø±Ø´Ø­ÙŠ Ø§Ù„Ø¨Ø¯Ù„Ø§Ø¡ Ø¯ÙˆÙ† ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ.",
+      );
+    } catch (error) {
+      showNotice(
+        "error",
+        "ØªØ¹Ø°Ø± ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØºÙŠØ§Ø¨",
+        getErrorMessage(error),
+      );
+    }
+  }
+
+  async function assignCandidate(
+    substitutionId: string,
+    candidate: Candidate,
+  ) {
+    try {
+      await postAction(
+        {
+          action: "ASSIGN_SUBSTITUTE",
+          data: {
+            substitutionId,
+            substituteTeacherId:
+              candidate.teacherId,
+          },
+        },
+        `assign:${substitutionId}`,
+      );
+
+      await loadDashboard(true);
+
+      showNotice(
+        "success",
+        "ØªÙ… Ø¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„Ø¨Ø¯ÙŠÙ„",
+        `Ø£ÙØ³Ù†Ø¯Øª Ø§Ù„Ø­ØµØ© Ø¥Ù„Ù‰ ${candidate.teacherName} ÙˆØ­ÙÙØ¸ Ø§Ù„ØªÙƒÙ„ÙŠÙ ÙƒØ³Ø¬Ù„ ÙØ¹Ù„ÙŠ.`,
+      );
+    } catch (error) {
+      showNotice(
+        "error",
+        "ØªØ¹Ø°Ø± Ø¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ø¨Ø¯ÙŠÙ„",
+        getErrorMessage(error),
+      );
+    }
+  }
+
+  async function updateStatus(
+    substitutionId: string,
+    status:
+      | "NOTIFIED"
+      | "COMPLETED"
+      | "CANCELED",
+  ) {
+    try {
+      await postAction(
+        {
+          action: "UPDATE_SUBSTITUTION",
+          data: {
+            substitutionId,
+            status,
+          },
+        },
+        `status:${substitutionId}`,
+      );
+
+      await loadDashboard(true);
+
+      showNotice(
+        "success",
+        "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙƒÙ„ÙŠÙ",
+        status === "NOTIFIED"
+          ? "ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„Ø¨Ø¯ÙŠÙ„."
+          : status === "COMPLETED"
+            ? "ØªÙ… ØªØ³Ø¬ÙŠÙ„ ØªÙ†ÙÙŠØ° Ø­ØµØ© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±."
+            : "ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªÙƒÙ„ÙŠÙ.",
+      );
+    } catch (error) {
+      showNotice(
+        "error",
+        "ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙƒÙ„ÙŠÙ",
+        getErrorMessage(error),
+      );
+    }
+  }
+
+  async function deleteAbsence(
+    absenceId: string,
+  ) {
+    try {
+      await postAction(
+        {
+          action: "DELETE_ABSENCE",
+          absenceId,
+        },
+        `delete:${absenceId}`,
+      );
+
+      await loadDashboard(true);
+
+      showNotice(
+        "success",
+        "ØªÙ… Ø­Ø°Ù Ø³Ø¬Ù„ Ø§Ù„ØºÙŠØ§Ø¨",
+        "Ø­ÙØ°Ù Ø§Ù„Ø³Ø¬Ù„ ÙˆØ­ØµØµ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„ØªØ§Ø¨Ø¹Ø© Ù„Ù‡.",
+      );
+      setAbsencePendingDeletion(null);
+    } catch (error) {
+      setAbsencePendingDeletion(null);
+      showNotice(
+        "error",
+        "ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„ØºÙŠØ§Ø¨",
+        getErrorMessage(error),
+      );
+    }
+  }
+
+  if (loading && !dashboard) {
+    return (
+      <div
+        dir="rtl"
+        className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm"
+      >
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-sky-100 border-t-sky-700" />
+        <p className="mt-4 text-sm font-bold text-slate-500">
+          Ø¬Ø§Ø±Ù ØªØ­Ù…ÙŠÙ„ Ù…Ø±ÙƒØ² Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ...
+        </p>
+      </div>
+    );
+  }
+
+  if (!dashboard) {
+    return null;
+  }
+
+  return (
+    <main
+      dir="rtl"
+      className="space-y-6 pb-10"
+    >
+      <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
+        <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-sm font-black text-cyan-100">
+              Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ù„Ù„Ø¬Ø¯ÙˆÙ„
+            </p>
+
+            <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+              Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØ§Ù„Ø§Ù†ØªØ¸Ø§Ø± ÙˆØ§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-sky-100">
+              Ø³Ø¬Ù‘Ù„ ØºÙŠØ§Ø¨ Ø§Ù„Ù…Ø¹Ù„Ù…ØŒ Ø§Ø³ØªØ®Ø±Ø¬ Ø§Ù„Ø­ØµØµ
+              Ø§Ù„Ù…ØªØ£Ø«Ø±Ø©ØŒ Ø«Ù… Ø§Ø¹ØªÙ…Ø¯ Ø§Ù„Ø¨Ø¯Ù„Ø§Ø¡ Ù…Ø¹
+              Ø§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø±Ø³ÙŠ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+              <span className="rounded-full bg-white/15 px-3 py-1.5">
+                {dashboard.project.name}
+              </span>
+
+              <span className="rounded-full bg-white/15 px-3 py-1.5">
+                {dashboard.project.academicYear}
+              </span>
+
+              <span className="rounded-full bg-white/15 px-3 py-1.5">
+                {dashboard.project.semester}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`/dashboard/principal/timetable/${projectId}`}
+              className="rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              Ø§Ù„Ø¹ÙˆØ¯Ø© Ø¥Ù„Ù‰ Ø¥Ø¹Ø¯Ø§Ø¯ Ø§Ù„Ø¬Ø¯ÙˆÙ„
+            </a>
+
+            <button
+              type="button"
+              onClick={() =>
+                void loadDashboard()
+              }
+              disabled={loading}
+              className="rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:bg-sky-50 disabled:opacity-60"
+            >
+              {loading
+                ? "Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ø¯ÙŠØ«..."
+                : "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard
+          label="ØºÙŠØ§Ø¨ Ø§Ù„ÙŠÙˆÙ…"
+          value={metrics.absences}
+          hint="Ø³Ø¬Ù„Ø§Øª Ù…Ø­ÙÙˆØ¸Ø©"
+        />
+
+        <MetricCard
+          label="Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…ØªØ£Ø«Ø±Ø©"
+          value={metrics.affected}
+          hint="ØªÙ… Ø§Ø³ØªØ®Ø±Ø§Ø¬Ù‡Ø§ Ù…Ù† Ø§Ù„Ø¬Ø¯ÙˆÙ„"
+        />
+
+        <MetricCard
+          label="ØªÙ…Øª Ø§Ù„ØªØºØ·ÙŠØ©"
+          value={metrics.covered}
+          hint="Ø¨Ø¯ÙŠÙ„ Ù…Ø³Ù†Ø¯"
+          tone="success"
+        />
+
+        <MetricCard
+          label="Ø¨Ø¯ÙˆÙ† Ø¨Ø¯ÙŠÙ„"
+          value={metrics.uncovered}
+          hint="ØªØ­ØªØ§Ø¬ Ù‚Ø±Ø§Ø±Ù‹Ø§"
+          tone={
+            metrics.uncovered
+              ? "danger"
+              : "default"
+          }
+        />
+
+        <MetricCard
+          label="ØªÙ… Ø§Ù„ØªÙ†ÙÙŠØ°"
+          value={metrics.completed}
+          hint="Ø­ØµØµ Ù…ÙƒØªÙ…Ù„Ø©"
+          tone="success"
+        />
+      </section>
+
+      <TimetableOperationsSettingsPanels
+        endpoint={endpoint}
+        policy={dashboard.policy}
+        teachers={dashboard.teachers}
+        days={dashboard.days}
+        periods={dashboard.periods}
+        supervisionDuties={
+          dashboard.supervisionDuties || []
+        }
+        activeSection={workspaceSection}
+        onSectionChange={
+          setWorkspaceSection
+        }
+        onReload={() =>
+          loadDashboard(true)
+        }
+        onNotice={showNotice}
+        absenceContent={
+          <>
+      <section className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
+        <div className="h-fit rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-sky-700">
+                Ø§Ù„Ø®Ø·ÙˆØ© Ø§Ù„Ø£ÙˆÙ„Ù‰
+              </p>
+
+              <h2 className="mt-1 text-xl font-black text-slate-950">
+                ØªØ³Ø¬ÙŠÙ„ ØºÙŠØ§Ø¨ Ù…Ø¹Ù„Ù…
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Ø§Ù„Ø­ÙØ¸ ÙŠÙ†Ø´Ø¦ Ø³Ø¬Ù„ ØºÙŠØ§Ø¨ ÙØ¹Ù„ÙŠÙ‹Ø§
+                ÙˆÙŠÙˆÙ„Ø¯ Ù…Ø±Ø´Ø­ÙŠ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ù…Ø¨Ø§Ø´Ø±Ø©.
+              </p>
+            </div>
+
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-xl">
+              â—·
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <Field label="Ø§Ù„ØªØ§Ø±ÙŠØ®">
+              <input
+                type="date"
+                value={absenceDate}
+                onChange={(event) =>
+                  handleDateChange(
+                    event.target.value,
+                  )
+                }
+                className={inputClassName}
+              />
+            </Field>
+
+            <Field label="Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ">
+              <select
+                value={dayId}
+                onChange={(event) =>
+                  setDayId(event.target.value)
+                }
+                className={inputClassName}
+              >
+                {dashboard.days.map((day) => (
+                  <option
+                    key={day.id}
+                    value={day.id}
+                  >
+                    {day.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Ø§Ù„Ù…Ø¹Ù„Ù…">
+              <select
+                value={teacherId}
+                onChange={(event) =>
+                  setTeacherId(
+                    event.target.value,
+                  )
+                }
+                className={inputClassName}
+              >
+                <option value="">
+                  Ø§Ø®ØªØ± Ø§Ù„Ù…Ø¹Ù„Ù…
+                </option>
+
+                {dashboard.teachers.map(
+                  (teacher) => (
+                    <option
+                      key={teacher.id}
+                      value={teacher.id}
+                    >
+                      {teacher.name}
+                      {" â€” "}
+                      {teacher.weeklyLoad}/
+                      {teacher.maxWeeklyLoad}
+                    </option>
+                  ),
+                )}
+              </select>
+            </Field>
+
+            <Field label="Ù†ÙˆØ¹ Ø§Ù„ØºÙŠØ§Ø¨">
+              <select
+                value={absenceType}
+                onChange={(event) => {
+                  setAbsenceType(
+                    event.target
+                      .value as AbsenceType,
+                  );
+
+                  setPeriodIds([]);
+                  setArrivalPeriodId("");
+                  setDeparturePeriodId("");
+                }}
+                className={inputClassName}
+              >
+                <option value="FULL_DAY">
+                  ØºÙŠØ§Ø¨ ÙŠÙˆÙ… ÙƒØ§Ù…Ù„
+                </option>
+
+                <option value="SELECTED_PERIODS">
+                  Ø­ØµØµ Ù…Ø­Ø¯Ø¯Ø©
+                </option>
+
+                <option value="LATE_ARRIVAL">
+                  Ø­Ø¶ÙˆØ± Ù…ØªØ£Ø®Ø±
+                </option>
+
+                <option value="EARLY_DEPARTURE">
+                  Ø§Ù†ØµØ±Ø§Ù Ù…Ø¨ÙƒØ±
+                </option>
+              </select>
+            </Field>
+
+            {absenceType ===
+            "SELECTED_PERIODS" ? (
+              <Field label="Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…ØªØ£Ø«Ø±Ø©">
+                <div className="flex flex-wrap gap-2">
+                  {teachingPeriods.map(
+                    (period) => {
+                      const selected =
+                        periodIds.includes(
+                          period.id,
+                        );
+
+                      return (
+                        <button
+                          key={period.id}
+                          type="button"
+                          onClick={() =>
+                            togglePeriod(
+                              period.id,
+                            )
+                          }
+                          className={
+                            selected
+                              ? "rounded-full bg-sky-700 px-3 py-2 text-xs font-black text-white"
+                              : "rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600"
+                          }
+                        >
+                          {period.label}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </Field>
+            ) : null}
+
+            {absenceType ===
+            "LATE_ARRIVAL" ? (
+              <Field label="ÙŠØ¨Ø¯Ø£ Ø­Ø¶ÙˆØ±Ù‡ Ù…Ù†">
+                <select
+                  value={arrivalPeriodId}
+                  onChange={(event) =>
+                    setArrivalPeriodId(
+                      event.target.value,
+                    )
+                  }
+                  className={inputClassName}
+                >
+                  <option value="">
+                    Ø§Ø®ØªØ± Ø§Ù„Ø­ØµØ©
+                  </option>
+
+                  {teachingPeriods.map(
+                    (period) => (
+                      <option
+                        key={period.id}
+                        value={period.id}
+                      >
+                        {period.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </Field>
+            ) : null}
+
+            {absenceType ===
+            "EARLY_DEPARTURE" ? (
+              <Field label="Ø¢Ø®Ø± Ø­ØµØ© Ù‚Ø¨Ù„ Ø§Ù„Ø§Ù†ØµØ±Ø§Ù">
+                <select
+                  value={departurePeriodId}
+                  onChange={(event) =>
+                    setDeparturePeriodId(
+                      event.target.value,
+                    )
+                  }
+                  className={inputClassName}
+                >
+                  <option value="">
+                    Ø§Ø®ØªØ± Ø§Ù„Ø­ØµØ©
+                  </option>
+
+                  {teachingPeriods.map(
+                    (period) => (
+                      <option
+                        key={period.id}
+                        value={period.id}
+                      >
+                        {period.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </Field>
+            ) : null}
+
+            <Field label="Ø³Ø¨Ø¨ Ø§Ù„ØºÙŠØ§Ø¨">
+              <input
+                value={reason}
+                onChange={(event) =>
+                  setReason(event.target.value)
+                }
+                placeholder="Ø§Ø®ØªÙŠØ§Ø±ÙŠ"
+                className={inputClassName}
+              />
+            </Field>
+
+            <Field label="Ù…Ù„Ø§Ø­Ø¸Ø§Øª">
+              <textarea
+                value={note}
+                onChange={(event) =>
+                  setNote(event.target.value)
+                }
+                placeholder="Ø£ÙŠ ØªÙØ§ØµÙŠÙ„ ØªØ³Ø§Ø¹Ø¯ ÙÙŠ Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ"
+                rows={3}
+                className={`${inputClassName} resize-none`}
+              />
+            </Field>
+
+            <button
+              type="button"
+              onClick={() =>
+                void createAbsence()
+              }
+              disabled={
+                workingKey ===
+                "create-absence"
+              }
+              className="w-full rounded-2xl bg-sky-700 px-5 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {workingKey ===
+              "create-absence"
+                ? "Ø¬Ø§Ø±Ù Ø§Ù„Ø­ÙØ¸ ÙˆØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±..."
+                : "Ø­ÙØ¸ Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"}
+            </button>
+
+            <p className="text-center text-xs font-bold leading-5 text-slate-400">
+              Ù„Ø§ ÙŠØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø±Ø³ÙŠ
+              Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ› ÙŠÙÙ†Ø´Ø£ Ø¬Ø¯ÙˆÙ„ ØªØ´ØºÙŠÙ„ ÙŠÙˆÙ…ÙŠ
+              Ù…Ø³ØªÙ‚Ù„.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-xs font-black text-sky-700">
+                  Ø§Ù„Ø®Ø·ÙˆØªØ§Ù† Ø§Ù„Ø«Ø§Ù†ÙŠØ© ÙˆØ§Ù„Ø«Ø§Ù„Ø«Ø©
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  Ø®Ø·Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„ÙŠÙˆÙ…ÙŠØ©
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  {formatArabicDate(
+                    absenceDate,
+                  )}
+                </p>
+              </div>
+
+              <StatusBadge
+                label={
+                  metrics.uncovered
+                    ? `${metrics.uncovered} Ø­ØµØ© ØªØ­ØªØ§Ø¬ Ø¨Ø¯ÙŠÙ„Ù‹Ø§`
+                    : metrics.affected
+                      ? "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­ØµØµ Ù…ØºØ·Ø§Ø©"
+                      : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­ØµØµ Ù…ØªØ£Ø«Ø±Ø©"
+                }
+                tone={
+                  metrics.uncovered
+                    ? "danger"
+                    : metrics.affected
+                      ? "success"
+                      : "neutral"
+                }
+              />
+            </div>
+
+            {!selectedDateAbsences.length ? (
+              <EmptyState
+                title="Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø§Ù„Ø§Øª ØºÙŠØ§Ø¨ ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„ØªØ§Ø±ÙŠØ®"
+                description="Ø³Ø¬Ù‘Ù„ ØºÙŠØ§Ø¨ Ù…Ø¹Ù„Ù… Ù…Ù† Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ØŒ ÙˆØ³ÙŠØ¸Ù‡Ø± Ù‡Ù†Ø§ Ø³Ø¬Ù„ Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØ­ØµØµ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ù…Ù‚ØªØ±Ø­Ø©."
+              />
+            ) : (
+              <div className="mt-6 space-y-5">
+                {selectedDateAbsences.map(
+                  (absence) => (
+                    <AbsenceCard
+                      key={absence.id}
+                      absence={absence}
+                      periods={teachingPeriods}
+                      workingKey={workingKey}
+                      onAssign={
+                        assignCandidate
+                      }
+                      onUpdateStatus={
+                        updateStatus
+                      }
+                      onDelete={async (absenceId) => {
+                        setAbsencePendingDeletion(absenceId);
+                      }}
+                    />
+                  ),
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div>
+              <p className="text-xs font-black text-sky-700">
+                Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ
+              </p>
+
+              <h2 className="mt-1 text-xl font-black text-slate-950">
+                Ø¢Ø®Ø± Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØºÙŠØ§Ø¨
+              </h2>
+            </div>
+
+            {!sortedAbsences.length ? (
+              <EmptyState
+                title="Ø§Ù„Ø³Ø¬Ù„ ÙØ§Ø±Øº"
+                description="Ø³ØªØ¸Ù‡Ø± Ù‡Ù†Ø§ Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØºÙŠØ§Ø¨ Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ø¹ Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ ÙˆØ­Ø§Ù„Ø© Ø§Ù„ØªØºØ·ÙŠØ©."
+              />
+            ) : (
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {sortedAbsences
+                  .slice(0, 10)
+                  .map((absence) => {
+                    const covered =
+                      absence.substitutions.filter(
+                        (item) =>
+                          item.status ===
+                            "ASSIGNED" ||
+                          item.status ===
+                            "NOTIFIED" ||
+                          item.status ===
+                            "COMPLETED" ||
+                          item.status ===
+                            "REASSIGNED",
+                      ).length;
+
+                    return (
+                      <button
+                        key={absence.id}
+                        type="button"
+                        onClick={() =>
+                          handleDateChange(
+                            dateOnly(
+                              absence.absenceDate,
+                            ),
+                          )
+                        }
+                        className="rounded-[1.75rem] border border-sky-200 bg-sky-50/35 p-5 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-black text-slate-950">
+                              {
+                                absence.teacher
+                                  .name
+                              }
+                            </p>
+
+                            <p className="mt-1 text-xs font-bold text-slate-500">
+                              {formatArabicDate(
+                                dateOnly(
+                                  absence.absenceDate,
+                                ),
+                              )}
+                            </p>
+                          </div>
+
+                          <StatusBadge
+                            label={absenceTypeLabel(
+                              absence.absenceType,
+                            )}
+                            tone="neutral"
+                          />
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                          <span className="rounded-full bg-white px-3 py-1.5 text-slate-600">
+                            {
+                              absence
+                                .substitutions
+                                .length
+                            }{" "}
+                            Ø­ØµØ©
+                          </span>
+
+                          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">
+                            {covered} Ù…ØºØ·Ø§Ø©
+                          </span>
+
+                          <span className="rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+                            {absence.substitutions
+                              .length -
+                              covered}{" "}
+                            Ù…ØªØ¨Ù‚ÙŠØ©
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+          </>
+        }
+      />
+      <SmartFeedbackModal
+        open={Boolean(notice)}
+        type={notice?.tone || "info"}
+        title={notice?.title || ""}
+        description={notice?.message}
+        primaryActionLabel="Ø­Ø³Ù†Ù‹Ø§"
+        onOpenChange={(open) => {
+          if (!open) setNotice(null);
+        }}
+      />
+      <SmartActionModal
+        open={Boolean(absencePendingDeletion)}
+        title="Ø­Ø°Ù Ø³Ø¬Ù„ Ø§Ù„ØºÙŠØ§Ø¨"
+        description="Ø³ÙŠØªÙ… Ø­Ø°Ù Ø³Ø¬Ù„ ØºÙŠØ§Ø¨ Ø§Ù„Ù…Ø¹Ù„Ù… ÙˆØ§Ù„Ø­ØµØµ Ø§Ù„Ø¨Ø¯ÙŠÙ„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡ ÙÙ‚Ø·ØŒ ÙˆÙ„Ù† ÙŠØªØ£Ø«Ø± Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ."
+        variant="danger"
+        confirmLabel="ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù"
+        cancelLabel="Ø¥Ù„ØºØ§Ø¡"
+        loading={Boolean(absencePendingDeletion && workingKey === `delete:${absencePendingDeletion}`)}
+        onConfirm={() => {
+          if (absencePendingDeletion) void deleteAbsence(absencePendingDeletion);
+        }}
+        onClose={() => setAbsencePendingDeletion(null)}
+      />
+    </main>
+  );
+}
+
+function AbsenceCard({
+  absence,
+  periods,
+  workingKey,
+  onAssign,
+  onUpdateStatus,
+  onDelete,
+}: {
+  absence: Absence;
+  periods: Period[];
+  workingKey: string;
+  onAssign: (
+    substitutionId: string,
+    candidate: Candidate,
+  ) => Promise<void>;
+  onUpdateStatus: (
+    substitutionId: string,
+    status:
+      | "NOTIFIED"
+      | "COMPLETED"
+      | "CANCELED",
+  ) => Promise<void>;
+  onDelete: (
+    absenceId: string,
+  ) => Promise<void>;
+}) {
+  const periodMap = new Map(
+    periods.map((period) => [
+      period.id,
+      period.label,
+    ]),
+  );
+
+  const covered =
+    absence.substitutions.filter(
+      (item) =>
+        item.status === "ASSIGNED" ||
+        item.status === "NOTIFIED" ||
+        item.status === "COMPLETED" ||
+        item.status === "REASSIGNED",
+    ).length;
+
+  return (
+    <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50/70">
+      <header className="flex flex-col justify-between gap-4 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-lg font-black text-sky-700">
+            {absence.teacher.name
+              .trim()
+              .charAt(0)}
+          </div>
+
+          <div>
+            <h3 className="font-black text-slate-950">
+              {absence.teacher.name}
+            </h3>
+
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              {absenceTypeLabel(
+                absence.absenceType,
+              )}
+              {" Â· "}
+              {formatArabicDate(dateOnly(absence.absenceDate))}
+              {" Â· "}
+              {covered} Ù…Ù†{" "}
+              {absence.substitutions.length} Ù…ØºØ·Ø§Ø©
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge
+            label={
+              covered ===
+              absence.substitutions.length
+                ? "Ù…ÙƒØªÙ…Ù„ Ø§Ù„ØªØºØ·ÙŠØ©"
+                : "Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©"
+            }
+            tone={
+              covered ===
+              absence.substitutions.length
+                ? "success"
+                : "warning"
+            }
+          />
+
+          <button
+            type="button"
+            disabled={
+              workingKey ===
+              `delete:${absence.id}`
+            }
+            onClick={() =>
+              void onDelete(absence.id)
+            }
+            className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
+          >
+            Ø­Ø°Ù Ø³Ø¬Ù„ Ø§Ù„ØºÙŠØ§Ø¨
+          </button>
+        </div>
+      </header>
+
+      {absence.reason || absence.note ? (
+        <div className="border-b border-slate-200 px-4 py-3 text-xs font-bold leading-6 text-slate-600">
+          {absence.reason ? (
+            <p>
+              <span className="text-slate-950">
+                Ø§Ù„Ø³Ø¨Ø¨:
+              </span>{" "}
+              {absence.reason}
+            </p>
+          ) : null}
+
+          {absence.note ? (
+            <p>
+              <span className="text-slate-950">
+                Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø©:
+              </span>{" "}
+              {absence.note}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="space-y-3 p-4">
+        {absence.substitutions.map(
+          (substitution) => (
+            <SubstitutionCard
+              key={substitution.id}
+              substitution={substitution}
+              periodLabel={
+                periodMap.get(
+                  substitution.periodId,
+                ) ||
+                substitution.periodId
+              }
+              workingKey={workingKey}
+              onAssign={onAssign}
+              onUpdateStatus={
+                onUpdateStatus
+              }
+            />
+          ),
+        )}
+      </div>
+    </article>
+  );
+}
+
+function SubstitutionCard({
+  substitution,
+  periodLabel,
+  workingKey,
+  onAssign,
+  onUpdateStatus,
+}: {
+  substitution: Substitution;
+  periodLabel: string;
+  workingKey: string;
+  onAssign: (
+    substitutionId: string,
+    candidate: Candidate,
+  ) => Promise<void>;
+  onUpdateStatus: (
+    substitutionId: string,
+    status:
+      | "NOTIFIED"
+      | "COMPLETED"
+      | "CANCELED",
+  ) => Promise<void>;
+}) {
+  const candidates = Array.isArray(
+    substitution.candidatesJson
+      ?.candidates,
+  )
+    ? substitution.candidatesJson!
+        .candidates!
+    : [];
+
+  const assigned =
+    substitution.substituteTeacher;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white">
+              {periodLabel}
+            </span>
+
+            <span className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700">
+              {substitution.className}
+            </span>
+
+            <span className="text-xs font-bold text-slate-500">
+              {substitution.subjectName}
+            </span>
+          </div>
+
+          {assigned ? (
+            <div className="mt-3">
+              <p className="text-sm font-black text-emerald-700">
+                Ø§Ù„Ø¨Ø¯ÙŠÙ„: {assigned.name}
+              </p>
+
+              {substitution.candidateRank ? (
+                <p className="mt-1 text-xs font-black text-sky-700">
+                  ØªØ±ØªÙŠØ¨ Ø§Ù„Ù…Ø±Ø´Ø­: #{substitution.candidateRank}
+                </p>
+              ) : null}
+
+              {substitution.selectionReason ? (
+                <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
+                  {
+                    substitution.selectionReason
+                  }
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm font-black text-amber-700">
+              Ù„Ù… ÙŠÙØ¹ØªÙ…Ø¯ Ù…Ø¹Ù„Ù… Ø¨Ø¯ÙŠÙ„ Ø¨Ø¹Ø¯
+            </p>
+          )}
+        </div>
+
+        <StatusBadge
+          label={substitutionStatusLabel(
+            substitution.status,
+          )}
+          tone={substitutionStatusTone(
+            substitution.status,
+          )}
+        />
+      </div>
+
+      {!assigned ? (
+        candidates.length ? (
+          <div className="mt-4 grid gap-2 lg:grid-cols-2">
+            {candidates
+              .slice(0, 6)
+              .map((candidate) => (
+                <button
+                  key={candidate.teacherId}
+                  type="button"
+                  disabled={
+                    workingKey ===
+                    `assign:${substitution.id}`
+                  }
+                  onClick={() =>
+                    void onAssign(
+                      substitution.id,
+                      candidate,
+                    )
+                  }
+                  className="group rounded-2xl border border-slate-200 bg-slate-50 p-3 text-right transition hover:border-sky-300 hover:bg-sky-50 disabled:opacity-50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-slate-950">
+                        #{candidate.rank}{" "}
+                        {candidate.teacherName}
+                      </p>
+
+                      <p className="mt-1 text-[11px] font-bold text-slate-500">
+                        Ø§Ù„Ù†ØµØ§Ø¨{" "}
+                        {candidate.weeklyLoad}/
+                        {
+                          candidate.referenceLoad
+                        }
+                        {" Â· "}
+                        Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹{" "}
+                        {
+                          candidate.weeklyExecuted
+                        }
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-sky-700 shadow-sm">
+                      {candidate.score}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+                    {candidate.reasonLabels
+                      .join("ØŒ ") ||
+                      "Ù…ØªØ§Ø­ ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø­ØµØ©"}
+                  </p>
+
+                  <p className="mt-2 text-[11px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100">
+                    Ø§Ø¶ØºØ· Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„Ø¨Ø¯ÙŠÙ„
+                  </p>
+                </button>
+              ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-xs font-black text-rose-700">
+            Ù„Ù… ÙŠØ¹Ø«Ø± Ø§Ù„Ù†Ø¸Ø§Ù… Ø¹Ù„Ù‰ Ø¨Ø¯ÙŠÙ„ ÙŠØ­Ù‚Ù‚
+            Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+          </p>
+        )
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {substitution.status ===
+          "ASSIGNED" ? (
+            <button
+              type="button"
+              disabled={
+                workingKey ===
+                `status:${substitution.id}`
+              }
+              onClick={() =>
+                void onUpdateStatus(
+                  substitution.id,
+                  "NOTIFIED",
+                )
+              }
+              className="rounded-full bg-sky-700 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
+            >
+              ØªØ³Ø¬ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„Ù…Ø¹Ù„Ù…
+            </button>
+          ) : null}
+
+          {substitution.status ===
+            "ASSIGNED" ||
+          substitution.status ===
+            "NOTIFIED" ? (
+            <button
+              type="button"
+              disabled={
+                workingKey ===
+                `status:${substitution.id}`
+              }
+              onClick={() =>
+                void onUpdateStatus(
+                  substitution.id,
+                  "COMPLETED",
+                )
+              }
+              className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
+            >
+              ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØªÙ†ÙÙŠØ°
+            </button>
+          ) : null}
+
+          {substitution.status !==
+          "COMPLETED" ? (
+            <button
+              type="button"
+              disabled={
+                workingKey ===
+                `status:${substitution.id}`
+              }
+              onClick={() =>
+                void onUpdateStatus(
+                  substitution.id,
+                  "CANCELED",
+                )
+              }
+              className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
+            >
+              Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªÙƒÙ„ÙŠÙ
+            </button>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  tone?:
+    | "default"
+    | "success"
+    | "danger";
+}) {
+  const valueClass =
+    tone === "success"
+      ? "text-emerald-700"
+      : tone === "danger"
+        ? "text-rose-700"
+        : "text-slate-950";
+
+  return (
+    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-black text-slate-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 text-3xl font-black ${valueClass}`}
+      >
+        {value.toLocaleString("ar-SA")}
+      </p>
+
+      <p className="mt-2 text-xs font-bold text-slate-500">
+        {hint}
+      </p>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-black text-slate-700">
+        {label}
+      </span>
+
+      {children}
+    </label>
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mt-6 rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-xl shadow-sm">
+        â—Œ
+      </div>
+
+      <h3 className="mt-4 font-black text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+function StatusBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone:
+    | "success"
+    | "danger"
+    | "warning"
+    | "neutral";
+}) {
+  const className =
+    tone === "success"
+      ? "bg-emerald-50 text-emerald-700"
+      : tone === "danger"
+        ? "bg-rose-50 text-rose-700"
+        : tone === "warning"
+          ? "bg-amber-50 text-amber-700"
+          : "bg-slate-100 text-slate-600";
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ${className}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function absenceTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    FULL_DAY: "ØºÙŠØ§Ø¨ ÙŠÙˆÙ… ÙƒØ§Ù…Ù„",
+    SELECTED_PERIODS: "Ø­ØµØµ Ù…Ø­Ø¯Ø¯Ø©",
+    LATE_ARRIVAL: "Ø­Ø¶ÙˆØ± Ù…ØªØ£Ø®Ø±",
+    EARLY_DEPARTURE: "Ø§Ù†ØµØ±Ø§Ù Ù…Ø¨ÙƒØ±",
+  };
+
+  return labels[type] || type;
+}
+
+function substitutionStatusLabel(
+  status: string,
+) {
+  const labels: Record<string, string> = {
+    PENDING: "Ø¨Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©",
+    SUGGESTED: "Ù…Ø±Ø´Ø­ÙˆÙ† Ø¬Ø§Ù‡Ø²ÙˆÙ†",
+    ASSIGNED: "ØªÙ… Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯",
+    NOTIFIED: "ØªÙ… Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±",
+    COMPLETED: "ØªÙ… Ø§Ù„ØªÙ†ÙÙŠØ°",
+    DECLINED: "ØªÙ… Ø§Ù„Ø§Ø¹ØªØ°Ø§Ø±",
+    REASSIGNED: "Ø£Ø¹ÙŠØ¯ Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯",
+    CANCELED: "Ù…Ù„ØºÙŠ",
+  };
+
+  return labels[status] || status;
+}
+
+function substitutionStatusTone(
+  status: string,
+):
+  | "success"
+  | "danger"
+  | "warning"
+  | "neutral" {
+  if (
+    status === "COMPLETED" ||
+    status === "NOTIFIED"
+  ) {
+    return "success";
+  }
+
+  if (
+    status === "CANCELED" ||
+    status === "DECLINED"
+  ) {
+    return "danger";
+  }
+
+  if (
+    status === "SUGGESTED" ||
+    status === "PENDING"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function getTodayValue() {
+  const now = new Date();
+  const offset =
+    now.getTimezoneOffset() * 60_000;
+
+  return new Date(now.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function getDayIdFromDate(value: string) {
+  if (!value) {
+    return "sunday";
+  }
+
+  const date = new Date(`${value}T12:00:00`);
+
+  return dayByWeekday[date.getDay()] ||
+    "sunday";
+}
+
+function dateOnly(value: string) {
+  return String(value).slice(0, 10);
+}
+
+function formatArabicDate(value: string) {
+  const date = new Date(
+    `${dateOnly(value)}T12:00:00`,
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "ar-SA",
+    {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    },
+  ).format(date);
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Ø­Ø¯Ø« Ø®Ø·Ø£ ØºÙŠØ± Ù…ØªÙˆÙ‚Ø¹.";
+}
+
+const inputClassName =
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100";
+
+
+===== daily-operations-settings-panels.tsx =====
+
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Pencil, ShieldCheck, UserRound } from "lucide-react";
+
+import { TimetableDataCard, TimetableEmptyState } from "@/components/timetable/timetable-data-card";
+
+export type WaitingPolicy = {
+  candidateCount: number;
+  maxDailySubstitutions: number;
+  maxWeeklySubstitutions: number;
+
+  allowBeforeFirstLesson: boolean;
+  allowAfterLastLesson: boolean;
+  allowInsideGap: boolean;
+  preferInsideGap: boolean;
+
+  allowOnGoldenDay: boolean;
+  goldenDayEmergency: boolean;
+
+  allowAfterLateArrival: boolean;
+  excludeLateArrivalDay: boolean;
+  allowBeforeEarlyDeparture: boolean;
+
+  preventConsecutiveSubstitutions: boolean;
+  preventFirstPeriod: boolean;
+  preventLastPeriod: boolean;
+
+  requireMatchingSpecialty: boolean;
+  preferMatchingSpecialty: boolean;
+
+  weeklyLoadWeight: number;
+  weeklyWaitingWeight: number;
+  dailyWaitingWeight: number;
+  gapPreferenceWeight: number;
+  specialtyWeight: number;
+  firstLastFairnessWeight: number;
+
+  settingsJson?: {
+    referenceLoad?: number;
+    goldenDaysByTeacher?: Record<
+      string,
+      string[]
+    >;
+    excludedDaysByTeacher?: Record<
+      string,
+      string[]
+    >;
+    excludedPeriodsByTeacher?: Record<
+      string,
+      string[]
+    >;
+    priorityByTeacher?: Record<
+      string,
+      number
+    >;
+    notesByTeacher?: Record<
+      string,
+      string
+    >;
+  };
+};
+
+type Teacher = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  maxWeeklyLoad: number;
+  weeklyLoad: number;
+};
+
+type DayItem = {
+  id: string;
+  label: string;
+  order: number;
+};
+
+type Period = {
+  id: string;
+  label: string;
+  order: number;
+  isBreak?: boolean;
+};
+
+type SupervisionAssignment = {
+  id: string;
+  teacherId: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  teacher: {
+    id: string;
+    name: string;
+    specialty: string | null;
+  };
+};
+
+export type SupervisionDuty = {
+  id: string;
+  title: string;
+  dutyType: string;
+  status: string;
+  dayId: string;
+  periodId: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  requiredTeachers: number;
+  note: string | null;
+  assignments: SupervisionAssignment[];
+};
+
+type NoticeTone =
+  | "success"
+  | "error"
+  | "info";
+
+export type OperationsWorkspaceSection =
+  | "ABSENCE"
+  | "POLICY"
+  | "TEACHERS"
+  | "SUPERVISION";
+
+const defaultPolicy: WaitingPolicy = {
+  candidateCount: 6,
+  maxDailySubstitutions: 1,
+  maxWeeklySubstitutions: 5,
+
+  allowBeforeFirstLesson: false,
+  allowAfterLastLesson: false,
+  allowInsideGap: true,
+  preferInsideGap: true,
+
+  allowOnGoldenDay: false,
+  goldenDayEmergency: false,
+
+  allowAfterLateArrival: true,
+  excludeLateArrivalDay: false,
+  allowBeforeEarlyDeparture: true,
+
+  preventConsecutiveSubstitutions: true,
+  preventFirstPeriod: false,
+  preventLastPeriod: false,
+
+  requireMatchingSpecialty: false,
+  preferMatchingSpecialty: true,
+
+  weeklyLoadWeight: 100,
+  weeklyWaitingWeight: 40,
+  dailyWaitingWeight: 60,
+  gapPreferenceWeight: 20,
+  specialtyWeight: 15,
+  firstLastFairnessWeight: 10,
+
+  settingsJson: {},
+};
+
+export function TimetableOperationsSettingsPanels({
+  endpoint,
+  policy: initialPolicy,
+  teachers,
+  days,
+  periods,
+  supervisionDuties,
+  activeSection,
+  onSectionChange,
+  absenceContent,
+  onReload,
+  onNotice,
+}: {
+  endpoint: string;
+  policy: WaitingPolicy | null;
+  teachers: Teacher[];
+  days: DayItem[];
+  periods: Period[];
+  supervisionDuties: SupervisionDuty[];
+  activeSection: OperationsWorkspaceSection;
+  onSectionChange: (
+    section: OperationsWorkspaceSection,
+  ) => void;
+  absenceContent: React.ReactNode;
+  onReload: () => Promise<void>;
+  onNotice: (
+    tone: NoticeTone,
+    title: string,
+    message: string,
+  ) => void;
+}) {
+  const [policy, setPolicy] =
+    useState<WaitingPolicy>(
+      normalizePolicy(initialPolicy),
+    );
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [selectedTeacherId, setSelectedTeacherId] =
+    useState(teachers[0]?.id || "");
+
+  const [title, setTitle] = useState("");
+  const [dutyType, setDutyType] =
+    useState("BREAK");
+
+  const [dayId, setDayId] =
+    useState(days[0]?.id || "");
+
+  const [periodId, setPeriodId] =
+    useState("");
+
+  const [startTime, setStartTime] =
+    useState("");
+
+  const [endTime, setEndTime] =
+    useState("");
+
+  const [location, setLocation] =
+    useState("");
+
+  const [requiredTeachers, setRequiredTeachers] =
+    useState(1);
+
+  const [teacherIds, setTeacherIds] =
+    useState<string[]>([]);
+
+  const [supervisionNote, setSupervisionNote] =
+    useState("");
+  const [editingDutyId, setEditingDutyId] =
+    useState<string | null>(null);
+
+  const teachingPeriods = useMemo(
+    () =>
+      periods
+        .filter((period) => !period.isBreak)
+        .sort(
+          (first, second) =>
+            first.order - second.order,
+        ),
+    [periods],
+  );
+
+  const selectedTeacher =
+    teachers.find(
+      (teacher) =>
+        teacher.id === selectedTeacherId,
+    ) || teachers[0];
+
+  useEffect(() => {
+    setPolicy(
+      normalizePolicy(initialPolicy),
+    );
+  }, [initialPolicy]);
+
+  useEffect(() => {
+    if (
+      selectedTeacherId &&
+      teachers.some(
+        (teacher) =>
+          teacher.id === selectedTeacherId,
+      )
+    ) {
+      return;
+    }
+
+    setSelectedTeacherId(
+      teachers[0]?.id || "",
+    );
+  }, [selectedTeacherId, teachers]);
+
+  function updatePolicy<
+    Key extends keyof WaitingPolicy,
+  >(
+    key: Key,
+    value: WaitingPolicy[Key],
+  ) {
+    setPolicy((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function updateSettings(
+    updater: (
+      settings: NonNullable<
+        WaitingPolicy["settingsJson"]
+      >,
+    ) => NonNullable<
+      WaitingPolicy["settingsJson"]
+    >,
+  ) {
+    setPolicy((current) => ({
+      ...current,
+      settingsJson: updater({
+        ...(current.settingsJson || {}),
+      }),
+    }));
+  }
+
+  function toggleTeacherSetting(
+    field:
+      | "goldenDaysByTeacher"
+      | "excludedDaysByTeacher"
+      | "excludedPeriodsByTeacher",
+    teacherId: string,
+    value: string,
+  ) {
+    updateSettings((settings) => {
+      const currentMap = {
+        ...(settings[field] || {}),
+      };
+
+      const currentValues =
+        currentMap[teacherId] || [];
+
+      currentMap[teacherId] =
+        currentValues.includes(value)
+          ? currentValues.filter(
+              (item) => item !== value,
+            )
+          : [...currentValues, value];
+
+      return {
+        ...settings,
+        [field]: currentMap,
+      };
+    });
+  }
+
+  async function request(
+    payload: Record<string, unknown>,
+  ) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+          "ØªØ¹Ø°Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø¹Ù…Ù„ÙŠØ©.",
+      );
+    }
+
+    return result;
+  }
+
+  async function savePolicy() {
+    setSaving(true);
+
+    try {
+      await request({
+        action: "SAVE_POLICY",
+        data: {
+          ...policy,
+          settingsJson:
+            policy.settingsJson || {},
+        },
+      });
+
+      await onReload();
+
+      onNotice(
+        "success",
+        "ØªÙ… Ø­ÙØ¸ Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+        "Ø³ØªÙØ·Ø¨Ù‚ Ø§Ù„Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ø¹Ù„Ù‰ Ø­Ø§Ù„Ø§Øª Ø§Ù„ØºÙŠØ§Ø¨ Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙˆØªØ±Ø´ÙŠØ­ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„Ø¨Ø¯Ù„Ø§Ø¡.",
+      );
+    } catch (error) {
+      onNotice(
+        "error",
+        "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„Ø¶ÙˆØ§Ø¨Ø·",
+        getErrorMessage(error),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createSupervision() {
+    if (!title.trim()) {
+      onNotice(
+        "error",
+        "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø© Ù…Ø·Ù„ÙˆØ¨",
+        "Ø§ÙƒØªØ¨ Ø§Ø³Ù…Ù‹Ø§ ÙˆØ§Ø¶Ø­Ù‹Ø§ Ù„Ù„Ù…Ù†Ø§ÙˆØ¨Ø© Ø£Ùˆ Ø§Ù„Ø¥Ø´Ø±Ø§Ù.",
+      );
+      return;
+    }
+
+    if (!dayId) {
+      onNotice(
+        "error",
+        "Ø§Ù„ÙŠÙˆÙ… Ù…Ø·Ù„ÙˆØ¨",
+        "Ø§Ø®ØªØ± Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø°ÙŠ Ø³ØªÙ†ÙØ° ÙÙŠÙ‡ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©.",
+      );
+      return;
+    }
+
+    if (
+      teacherIds.length <
+      requiredTeachers
+    ) {
+      onNotice(
+        "error",
+        "Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† ØºÙŠØ± Ù…ÙƒØªÙ…Ù„",
+        `Ø§Ø®ØªØ± ${requiredTeachers} Ù…Ø¹Ù„Ù…Ù‹Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.`,
+      );
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await request({
+        action: editingDutyId ? "UPDATE_SUPERVISION" : "CREATE_SUPERVISION",
+        ...(editingDutyId ? { dutyId: editingDutyId } : {}),
+        data: {
+          title: title.trim(),
+          dutyType,
+          dayId,
+          periodId:
+            periodId || undefined,
+          startTime:
+            startTime || undefined,
+          endTime:
+            endTime || undefined,
+          location:
+            location.trim() || undefined,
+          requiredTeachers,
+          teacherIds,
+          note:
+            supervisionNote.trim() ||
+            undefined,
+        },
+      });
+
+      setTitle("");
+      setPeriodId("");
+      setStartTime("");
+      setEndTime("");
+      setLocation("");
+      setRequiredTeachers(1);
+      setTeacherIds([]);
+      setSupervisionNote("");
+      setEditingDutyId(null);
+
+      await onReload();
+
+      onNotice(
+        "success",
+        editingDutyId ? "ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©" : "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©",
+        editingDutyId
+          ? "Ø­ÙÙØ¸Øª Ø§Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª ÙˆØªÙƒÙ„ÙŠÙØ§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§."
+          : "Ø­ÙÙØ¸Øª Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø© ÙˆØ±Ø¨Ø·Øª Ø¨Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„Ù…Ø­Ø¯Ø¯ÙŠÙ†ØŒ ÙˆØ³ØªÙØ³ØªØ¨Ø¹Ø¯ Ù…Ù† ØªØ¹Ø§Ø±Ø¶Ø§Øª Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±.",
+      );
+    } catch (error) {
+      onNotice(
+        "error",
+        "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©",
+        getErrorMessage(error),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function editSupervision(duty: SupervisionDuty) {
+    setEditingDutyId(duty.id);
+    setTitle(duty.title);
+    setDutyType(duty.dutyType);
+    setDayId(duty.dayId);
+    setPeriodId(duty.periodId || "");
+    setStartTime(duty.startTime || "");
+    setEndTime(duty.endTime || "");
+    setLocation(duty.location || "");
+    setRequiredTeachers(duty.requiredTeachers);
+    setTeacherIds(duty.assignments.map((assignment) => assignment.teacherId));
+    setSupervisionNote(duty.note || "");
+  }
+
+  function cancelSupervisionEdit() {
+    setEditingDutyId(null);
+    setTitle("");
+    setPeriodId("");
+    setStartTime("");
+    setEndTime("");
+    setLocation("");
+    setRequiredTeachers(1);
+    setTeacherIds([]);
+    setSupervisionNote("");
+  }
+
+  async function deleteSupervision(
+    dutyId: string,
+  ) {
+    setSaving(true);
+
+    try {
+      await request({
+        action: "DELETE_SUPERVISION",
+        dutyId,
+      });
+
+      await onReload();
+
+      onNotice(
+        "success",
+        "ØªÙ… Ø­Ø°Ù Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©",
+        "Ø­ÙØ°ÙØª Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø© ÙˆØªÙƒÙ„ÙŠÙØ§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„ØªØ§Ø¨Ø¹Ø© Ù„Ù‡Ø§.",
+      );
+    } catch (error) {
+      onNotice(
+        "error",
+        "ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©",
+        getErrorMessage(error),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      dir="rtl"
+      className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
+    >
+      <header className="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-xs font-black text-sky-700">
+              Ù…Ø±ÙƒØ² Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ
+            </p>
+
+            <h2 className="mt-1 text-xl font-black text-slate-950">
+              {activeSection === "ABSENCE"
+                ? "Ø±ØµØ¯ Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØ®Ø·Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+                : activeSection === "POLICY"
+                  ? "Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+                  : activeSection === "TEACHERS"
+                    ? "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†"
+                    : "Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª ÙˆØ§Ù„Ø¥Ø´Ø±Ø§Ù"}
+            </h2>
+
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+              {activeSection === "ABSENCE"
+                ? "Ø³Ø¬Ù‘Ù„ Ø§Ù„ØºÙŠØ§Ø¨ ÙˆØ§Ø³ØªØ¹Ø±Ø¶ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…ØªØ£Ø«Ø±Ø© ÙˆØ§Ø¹ØªÙ…Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„Ø¨Ø¯Ù„Ø§Ø¡."
+                : activeSection === "POLICY"
+                  ? "ØªØ­ÙƒÙ… ÙÙŠ Ø¢Ù„ÙŠØ© Ø§Ù„Ù…ÙØ§Ø¶Ù„Ø© ÙˆØ­Ø¯ÙˆØ¯ ØªØ±Ø´ÙŠØ­ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø±."
+                  : activeSection === "TEACHERS"
+                    ? "Ø­Ø¯Ø¯ Ø§Ù„Ø£ÙŠØ§Ù… ÙˆØ§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø³ØªØ¨Ø¹Ø¯Ø© ÙˆØ£ÙˆÙ„ÙˆÙŠØ© ÙƒÙ„ Ù…Ø¹Ù„Ù…."
+                    : "Ø£Ù†Ø´Ø¦ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª ÙˆØ§Ø±Ø¨Ø·Ù‡Ø§ Ø¨Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† ÙˆÙØªØ±Ø§Øª Ø§Ù„Ø¯ÙˆØ§Ù…."}
+            </p>
+          </div>
+
+          <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-white p-1 sm:flex sm:w-auto sm:flex-wrap">
+            <TabButton
+              active={
+                activeSection === "ABSENCE"
+              }
+              onClick={() =>
+                onSectionChange("ABSENCE")
+              }
+            >
+              Ø±ØµØ¯ Ø§Ù„ØºÙŠØ§Ø¨
+            </TabButton>
+
+            <TabButton
+              active={
+                activeSection === "POLICY"
+              }
+              onClick={() =>
+                onSectionChange("POLICY")
+              }
+            >
+              Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±
+            </TabButton>
+
+            <TabButton
+              active={
+                activeSection === "TEACHERS"
+              }
+              onClick={() =>
+                onSectionChange("TEACHERS")
+              }
+            >
+              Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†
+            </TabButton>
+
+            <TabButton
+              active={
+                activeSection === "SUPERVISION"
+              }
+              onClick={() =>
+                onSectionChange("SUPERVISION")
+              }
+            >
+              Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª ÙˆØ§Ù„Ø¥Ø´Ø±Ø§Ù
+            </TabButton>
+          </div>
+        </div>
+      </header>
+
+      {activeSection === "ABSENCE" ? (
+        <div className="p-4 sm:p-6">
+          {absenceContent}
+        </div>
+      ) : null}
+
+      {activeSection === "POLICY" ? (
+        <div className="space-y-6 p-5 sm:p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <NumberField
+              label="Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø±Ø´Ø­ÙŠÙ† Ù„ÙƒÙ„ Ø­ØµØ©"
+              value={policy.candidateCount}
+              min={1}
+              max={10}
+              onChange={(value) =>
+                updatePolicy(
+                  "candidateCount",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="Ø§Ù„Ø­Ø¯ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+              value={
+                policy.maxDailySubstitutions
+              }
+              min={1}
+              max={10}
+              onChange={(value) =>
+                updatePolicy(
+                  "maxDailySubstitutions",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+              value={
+                policy.maxWeeklySubstitutions
+              }
+              min={1}
+              max={10}
+              onChange={(value) =>
+                updatePolicy(
+                  "maxWeeklySubstitutions",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠ"
+              value={
+                policy.settingsJson
+                  ?.referenceLoad || 24
+              }
+              min={1}
+              max={40}
+              onChange={(value) =>
+                updateSettings(
+                  (settings) => ({
+                    ...settings,
+                    referenceLoad: value,
+                  }),
+                )
+              }
+            />
+          </div>
+
+          <SettingsGroup
+            title="Ø­Ø¯ÙˆØ¯ Ù…ÙˆÙ‚Ø¹ Ø­ØµØ© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+            description="Ø­Ø¯Ø¯ Ù…ØªÙ‰ ÙŠÙØ³Ù…Ø­ Ø¨Ø¥Ø¶Ø§ÙØ© Ø­ØµØ© Ø§Ù†ØªØ¸Ø§Ø± Ø¥Ù„Ù‰ ÙŠÙˆÙ… Ø§Ù„Ù…Ø¹Ù„Ù…."
+          >
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ Ù‚Ø¨Ù„ Ø£ÙˆÙ„ Ø­ØµØ©"
+              description="ØªØ±Ø´ÙŠØ­ Ø§Ù„Ù…Ø¹Ù„Ù… Ù‚Ø¨Ù„ Ø¨Ø¯Ø§ÙŠØ© Ø¬Ø¯ÙˆÙ„Ù‡ Ø§Ù„ÙŠÙˆÙ…ÙŠ."
+              checked={
+                policy.allowBeforeFirstLesson
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowBeforeFirstLesson",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø¹Ø¯ Ø¢Ø®Ø± Ø­ØµØ©"
+              description="ØªØ±Ø´ÙŠØ­ Ø§Ù„Ù…Ø¹Ù„Ù… Ø¨Ø¹Ø¯ Ù†Ù‡Ø§ÙŠØ© Ø¬Ø¯ÙˆÙ„Ù‡ Ø§Ù„ÙŠÙˆÙ…ÙŠ."
+              checked={
+                policy.allowAfterLastLesson
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowAfterLastLesson",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ Ø¯Ø§Ø®Ù„ Ø§Ù„ÙØ±Ø§Øº"
+              description="Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø­ØµØµ Ø§Ù„ÙØ§Ø±ØºØ© Ø§Ù„ÙˆØ§Ù‚Ø¹Ø© Ø¨ÙŠÙ† Ø­ØµØµ Ø§Ù„Ù…Ø¹Ù„Ù…."
+              checked={
+                policy.allowInsideGap
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowInsideGap",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="ØªÙØ¶ÙŠÙ„ Ø§Ù„ÙØ±Ø§Øº Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ"
+              description="Ø±ÙØ¹ Ø£ÙˆÙ„ÙˆÙŠØ© Ø§Ù„Ù…Ø¹Ù„Ù… Ø¥Ø°Ø§ ÙƒØ§Ù†Øª Ø§Ù„Ø­ØµØ© Ø¯Ø§Ø®Ù„ ÙØ±Ø§Øº."
+              checked={
+                policy.preferInsideGap
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "preferInsideGap",
+                  checked,
+                )
+              }
+            />
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Ù‚ÙŠÙˆØ¯ ØªÙƒØ§ÙØ¤ Ø§Ù„ØªÙˆØ²ÙŠØ¹ ÙˆØ§Ù„ØªÙ†ÙÙŠØ°"
+            description="Ø¶ÙˆØ§Ø¨Ø· ØªÙ…Ù†Ø¹ Ø¥Ø±Ù‡Ø§Ù‚ Ø§Ù„Ù…Ø¹Ù„Ù… ÙˆØªØ­Ø§ÙØ¸ Ø¹Ù„Ù‰ ØªÙƒØ§ÙØ¤ Ø§Ù„ØªÙˆØ²ÙŠØ¹."
+          >
+            <Toggle
+              label="Ù…Ù†Ø¹ Ø§Ù†ØªØ¸Ø§Ø±ÙŠÙ† Ù…ØªØªØ§Ù„ÙŠÙŠÙ†"
+              description="Ø¹Ø¯Ù… Ø¥Ø³Ù†Ø§Ø¯ Ø­ØµØªÙŠ Ø§Ù†ØªØ¸Ø§Ø± Ù…ØªØ¬Ø§ÙˆØ±ØªÙŠÙ† Ù„Ù„Ù…Ø¹Ù„Ù… Ù†ÙØ³Ù‡."
+              checked={
+                policy.preventConsecutiveSubstitutions
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "preventConsecutiveSubstitutions",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ù…Ù†Ø¹ Ø§Ù„Ø­ØµØ© Ø§Ù„Ø£ÙˆÙ„Ù‰"
+              description="Ø¹Ø¯Ù… ØªØ±Ø´ÙŠØ­ Ø£ÙŠ Ù…Ø¹Ù„Ù… Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø± ÙÙŠ Ø§Ù„Ø­ØµØ© Ø§Ù„Ø£ÙˆÙ„Ù‰."
+              checked={
+                policy.preventFirstPeriod
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "preventFirstPeriod",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ù…Ù†Ø¹ Ø§Ù„Ø­ØµØ© Ø§Ù„Ø£Ø®ÙŠØ±Ø©"
+              description="Ø¹Ø¯Ù… ØªØ±Ø´ÙŠØ­ Ø£ÙŠ Ù…Ø¹Ù„Ù… Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø± ÙÙŠ Ø§Ù„Ø­ØµØ© Ø§Ù„Ø£Ø®ÙŠØ±Ø©."
+              checked={
+                policy.preventLastPeriod
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "preventLastPeriod",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ ÙÙŠ Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø°Ù‡Ø¨ÙŠ"
+              description="Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙŠÙˆÙ… Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„Ù…Ø³ØªØ«Ù†Ù‰."
+              checked={
+                policy.allowOnGoldenDay
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowOnGoldenDay",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø·ÙˆØ§Ø±Ø¦ Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø°Ù‡Ø¨ÙŠ"
+              description="Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø§Ù„ØªØ±Ø´ÙŠØ­ Ø¹Ù†Ø¯ Ø¹Ø¯Ù… ÙˆØ¬ÙˆØ¯ Ø¨Ø¯Ø§Ø¦Ù„ Ø£Ø®Ø±Ù‰."
+              checked={
+                policy.goldenDayEmergency
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "goldenDayEmergency",
+                  checked,
+                )
+              }
+            />
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Ø§Ù„Ø­Ø¶ÙˆØ± ÙˆØ§Ù„Ø§Ù†ØµØ±Ø§Ù ÙˆØ§Ù„ØªØ®ØµØµ"
+            description="ØªØ·Ø¨ÙŠÙ‚ Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„ØªØ£Ø®Ø± ÙˆØ§Ù„Ø§Ù†ØµØ±Ø§Ù ÙˆÙ…Ø¯Ù‰ Ù…Ø·Ø§Ø¨Ù‚Ø© Ø§Ù„ØªØ®ØµØµ."
+          >
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø¹Ø¯ Ø§Ù„Ø­Ø¶ÙˆØ± Ø§Ù„Ù…ØªØ£Ø®Ø±"
+              description="Ø¥ØªØ§Ø­Ø© Ø§Ù„Ù…Ø¹Ù„Ù… Ù„Ù„Ø­ØµØµ Ø§Ù„ØªØ§Ù„ÙŠØ© Ù„ÙˆØµÙˆÙ„Ù‡."
+              checked={
+                policy.allowAfterLateArrival
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowAfterLateArrival",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ ÙŠÙˆÙ… Ø§Ù„ØªØ£Ø®Ø± ÙƒØ§Ù…Ù„Ù‹Ø§"
+              description="Ø¹Ø¯Ù… ØªØ±Ø´ÙŠØ­ Ø§Ù„Ù…Ø¹Ù„Ù… ÙÙŠ ÙŠÙˆÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØªØ£Ø®Ø±."
+              checked={
+                policy.excludeLateArrivalDay
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "excludeLateArrivalDay",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ù„Ø³Ù…Ø§Ø­ Ù‚Ø¨Ù„ Ø§Ù„Ø§Ù†ØµØ±Ø§Ù Ø§Ù„Ù…Ø¨ÙƒØ±"
+              description="Ø¥ØªØ§Ø­Ø© Ø§Ù„Ù…Ø¹Ù„Ù… Ù„Ù„Ø­ØµØµ Ø§Ù„ÙˆØ§Ù‚Ø¹Ø© Ù‚Ø¨Ù„ ÙˆÙ‚Øª Ø§Ù†ØµØ±Ø§ÙÙ‡."
+              checked={
+                policy.allowBeforeEarlyDeparture
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "allowBeforeEarlyDeparture",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="Ø§Ø´ØªØ±Ø§Ø· ØªØ·Ø§Ø¨Ù‚ Ø§Ù„ØªØ®ØµØµ"
+              description="Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù… Ø¥Ø°Ø§ ÙƒØ§Ù† ØªØ®ØµØµÙ‡ ØºÙŠØ± Ù…Ø·Ø§Ø¨Ù‚."
+              checked={
+                policy.requireMatchingSpecialty
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "requireMatchingSpecialty",
+                  checked,
+                )
+              }
+            />
+
+            <Toggle
+              label="ØªÙØ¶ÙŠÙ„ ØªØ·Ø§Ø¨Ù‚ Ø§Ù„ØªØ®ØµØµ"
+              description="Ø±ÙØ¹ Ø¯Ø±Ø¬Ø© Ø§Ù„Ù…Ø±Ø´Ø­ Ø¹Ù†Ø¯ ØªØ·Ø§Ø¨Ù‚ Ø§Ù„ØªØ®ØµØµ."
+              checked={
+                policy.preferMatchingSpecialty
+              }
+              onChange={(checked) =>
+                updatePolicy(
+                  "preferMatchingSpecialty",
+                  checked,
+                )
+              }
+            />
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Ø£ÙˆØ²Ø§Ù† Ø§Ù„Ù…ÙØ§Ø¶Ù„Ø©"
+            description="ÙƒÙ„Ù…Ø§ Ø²Ø§Ø¯ Ø§Ù„ÙˆØ²Ù† Ø§Ø±ØªÙØ¹ ØªØ£Ø«ÙŠØ± Ø§Ù„Ø¹Ø§Ù…Ù„ ÙÙŠ ØªØ±ØªÙŠØ¨ Ø§Ù„Ù…Ø±Ø´Ø­ÙŠÙ†."
+          >
+            <NumberField
+              label="ÙˆØ²Ù† Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ"
+              value={
+                policy.weeklyLoadWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "weeklyLoadWeight",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="ÙˆØ²Ù† Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹"
+              value={
+                policy.weeklyWaitingWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "weeklyWaitingWeight",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="ÙˆØ²Ù† Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„ÙŠÙˆÙ…"
+              value={
+                policy.dailyWaitingWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "dailyWaitingWeight",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="ÙˆØ²Ù† Ø§Ù„ÙØ±Ø§Øº Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ"
+              value={
+                policy.gapPreferenceWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "gapPreferenceWeight",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="ÙˆØ²Ù† Ø§Ù„ØªØ®ØµØµ"
+              value={
+                policy.specialtyWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "specialtyWeight",
+                  value,
+                )
+              }
+            />
+
+            <NumberField
+              label="ÙˆØ²Ù† ØªÙƒØ§ÙØ¤ ØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø­ØµØªÙŠÙ† Ø§Ù„Ø£ÙˆÙ„Ù‰ ÙˆØ§Ù„Ø£Ø®ÙŠØ±Ø©"
+              value={
+                policy.firstLastFairnessWeight
+              }
+              min={0}
+              max={1000}
+              onChange={(value) =>
+                updatePolicy(
+                  "firstLastFairnessWeight",
+                  value,
+                )
+              }
+            />
+          </SettingsGroup>
+
+          <SaveBar
+            busy={saving}
+            text="Ø­ÙØ¸ Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+            onClick={() =>
+              void savePolicy()
+            }
+          />
+        </div>
+      ) : null}
+
+      {activeSection === "TEACHERS" ? (
+        <div className="space-y-6 p-5 sm:p-6">
+          <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+              <label className="block text-xs font-black text-slate-700">
+                Ø§Ù„Ù…Ø¹Ù„Ù…
+              </label>
+
+              <select
+                value={
+                  selectedTeacher?.id || ""
+                }
+                onChange={(event) =>
+                  setSelectedTeacherId(
+                    event.target.value,
+                  )
+                }
+                className={inputClassName}
+              >
+                {teachers.map((teacher) => (
+                  <option
+                    key={teacher.id}
+                    value={teacher.id}
+                  >
+                    {teacher.name}
+                  </option>
+                ))}
+              </select>
+
+              {selectedTeacher ? (
+                <div className="mt-4">
+                  <TimetableDataCard
+                    icon={<UserRound className="h-5 w-5" />}
+                    eyebrow="Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+                    title={selectedTeacher.name}
+                    description={selectedTeacher.specialty || "Ø¯ÙˆÙ† ØªØ®ØµØµ Ù…Ø­Ø¯Ø¯"}
+                    tone="sky"
+                    metrics={[
+                      { label: "Ø§Ù„Ù†ØµØ§Ø¨ Ø§Ù„Ø­Ø§Ù„ÙŠ", value: selectedTeacher.weeklyLoad },
+                      { label: "Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ", value: selectedTeacher.maxWeeklyLoad },
+                    ]}
+                    className="p-4"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {selectedTeacher ? (
+              <div className="space-y-5">
+                <TeacherOptionsGroup
+                  title="Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø°Ù‡Ø¨ÙŠ"
+                  description="Ù„Ø§ ÙŠØ±Ø´Ø­ Ø§Ù„Ù…Ø¹Ù„Ù… ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø£ÙŠØ§Ù… Ø¥Ù„Ø§ Ø¥Ø°Ø§ Ø³Ù…Ø­Øª Ø§Ù„Ø¶ÙˆØ§Ø¨Ø· Ø¨Ø°Ù„Ùƒ."
+                  options={days.map(
+                    (day) => ({
+                      id: day.id,
+                      label: day.label,
+                    }),
+                  )}
+                  selected={
+                    policy.settingsJson
+                      ?.goldenDaysByTeacher?.[
+                      selectedTeacher.id
+                    ] || []
+                  }
+                  onToggle={(value) =>
+                    toggleTeacherSetting(
+                      "goldenDaysByTeacher",
+                      selectedTeacher.id,
+                      value,
+                    )
+                  }
+                />
+
+                <TeacherOptionsGroup
+                  title="Ø§Ù„Ø£ÙŠØ§Ù… Ø§Ù„Ù…Ø³ØªØ¨Ø¹Ø¯Ø©"
+                  description="Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù… Ù†Ù‡Ø§Ø¦ÙŠÙ‹Ø§ Ù…Ù† Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± ÙÙŠ Ø§Ù„Ø£ÙŠØ§Ù… Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©."
+                  options={days.map(
+                    (day) => ({
+                      id: day.id,
+                      label: day.label,
+                    }),
+                  )}
+                  selected={
+                    policy.settingsJson
+                      ?.excludedDaysByTeacher?.[
+                      selectedTeacher.id
+                    ] || []
+                  }
+                  onToggle={(value) =>
+                    toggleTeacherSetting(
+                      "excludedDaysByTeacher",
+                      selectedTeacher.id,
+                      value,
+                    )
+                  }
+                />
+
+                <TeacherOptionsGroup
+                  title="Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø³ØªØ¨Ø¹Ø¯Ø©"
+                  description="Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ù† Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± ÙÙŠ Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©."
+                  options={teachingPeriods.map(
+                    (period) => ({
+                      id: period.id,
+                      label: period.label,
+                    }),
+                  )}
+                  selected={
+                    policy.settingsJson
+                      ?.excludedPeriodsByTeacher?.[
+                      selectedTeacher.id
+                    ] || []
+                  }
+                  onToggle={(value) =>
+                    toggleTeacherSetting(
+                      "excludedPeriodsByTeacher",
+                      selectedTeacher.id,
+                      value,
+                    )
+                  }
+                />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <NumberField
+                    label="Ø§Ù„Ø£ÙˆÙ„ÙˆÙŠØ© Ø§Ù„ÙŠØ¯ÙˆÙŠØ©"
+                    value={
+                      policy.settingsJson
+                        ?.priorityByTeacher?.[
+                        selectedTeacher.id
+                      ] || 0
+                    }
+                    min={-100}
+                    max={100}
+                    onChange={(value) =>
+                      updateSettings(
+                        (settings) => ({
+                          ...settings,
+                          priorityByTeacher: {
+                            ...(settings.priorityByTeacher ||
+                              {}),
+                            [selectedTeacher.id]:
+                              value,
+                          },
+                        }),
+                      )
+                    }
+                  />
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-black text-slate-700">
+                      Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„Ù…Ø¹Ù„Ù…
+                    </span>
+
+                    <textarea
+                      rows={3}
+                      value={
+                        policy.settingsJson
+                          ?.notesByTeacher?.[
+                          selectedTeacher.id
+                        ] || ""
+                      }
+                      onChange={(event) =>
+                        updateSettings(
+                          (settings) => ({
+                            ...settings,
+                            notesByTeacher: {
+                              ...(settings.notesByTeacher ||
+                                {}),
+                              [selectedTeacher.id]:
+                                event.target
+                                  .value,
+                            },
+                          }),
+                        )
+                      }
+                      className={`${inputClassName} resize-none`}
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <SaveBar
+            busy={saving}
+            text="Ø­ÙØ¸ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†"
+            onClick={() =>
+              void savePolicy()
+            }
+          />
+        </div>
+      ) : null}
+
+      {activeSection === "SUPERVISION" ? (
+        <div className="grid gap-6 p-5 sm:p-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <div className="h-fit rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-xs font-black text-sky-700">
+              Ø¥Ø¶Ø§ÙØ© ØªÙƒÙ„ÙŠÙ
+            </p>
+
+            <h3 className="mt-1 text-lg font-black text-slate-950">
+              Ù…Ù†Ø§ÙˆØ¨Ø© Ø£Ùˆ Ø¥Ø´Ø±Ø§Ù Ø¬Ø¯ÙŠØ¯
+            </h3>
+
+            <div className="mt-5 space-y-4">
+              <Field label="Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©">
+                <input
+                  value={title}
+                  onChange={(event) =>
+                    setTitle(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Ù…Ø«Ø§Ù„: Ø¥Ø´Ø±Ø§Ù Ø§Ù„ÙØ³Ø­Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰"
+                  className={inputClassName}
+                />
+              </Field>
+
+              <Field label="Ù†ÙˆØ¹ Ø§Ù„ØªÙƒÙ„ÙŠÙ">
+                <select
+                  value={dutyType}
+                  onChange={(event) =>
+                    setDutyType(
+                      event.target.value,
+                    )
+                  }
+                  className={inputClassName}
+                >
+                  <option value="MORNING">
+                    Ø¥Ø´Ø±Ø§Ù ØµØ¨Ø§Ø­ÙŠ
+                  </option>
+                  <option value="BREAK">
+                    Ø¥Ø´Ø±Ø§Ù Ø§Ù„ÙØ³Ø­Ø©
+                  </option>
+                  <option value="GATE">
+                    Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©
+                  </option>
+                  <option value="END_OF_DAY">
+                    Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø¯ÙˆØ§Ù…
+                  </option>
+                  <option value="PRAYER">
+                    Ø§Ù„ØµÙ„Ø§Ø©
+                  </option>
+                  <option value="BUS">
+                    Ø§Ù„Ø­Ø§ÙÙ„Ø§Øª
+                  </option>
+                  <option value="FLOOR">
+                    Ø¥Ø´Ø±Ø§Ù Ø§Ù„Ø£Ø¯ÙˆØ§Ø±
+                  </option>
+                  <option value="CUSTOM">
+                    ØªÙƒÙ„ÙŠÙ Ù…Ø®ØµØµ
+                  </option>
+                </select>
+              </Field>
+
+              <Field label="Ø§Ù„ÙŠÙˆÙ…">
+                <select
+                  value={dayId}
+                  onChange={(event) =>
+                    setDayId(
+                      event.target.value,
+                    )
+                  }
+                  className={inputClassName}
+                >
+                  {days.map((day) => (
+                    <option
+                      key={day.id}
+                      value={day.id}
+                    >
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Ø§Ù„Ø­ØµØ© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø©">
+                <select
+                  value={periodId}
+                  onChange={(event) =>
+                    setPeriodId(
+                      event.target.value,
+                    )
+                  }
+                  className={inputClassName}
+                >
+                  <option value="">
+                    Ø¯ÙˆÙ† Ø­ØµØ© Ù…Ø­Ø¯Ø¯Ø©
+                  </option>
+
+                  {teachingPeriods.map(
+                    (period) => (
+                      <option
+                        key={period.id}
+                        value={period.id}
+                      >
+                        {period.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="ÙˆÙ‚Øª Ø§Ù„Ø¨Ø¯Ø§ÙŠØ©">
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(event) =>
+                      setStartTime(
+                        event.target.value,
+                      )
+                    }
+                    className={inputClassName}
+                  />
+                </Field>
+
+                <Field label="ÙˆÙ‚Øª Ø§Ù„Ù†Ù‡Ø§ÙŠØ©">
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(event) =>
+                      setEndTime(
+                        event.target.value,
+                      )
+                    }
+                    className={inputClassName}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Ø§Ù„Ù…ÙˆÙ‚Ø¹">
+                <input
+                  value={location}
+                  onChange={(event) =>
+                    setLocation(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Ø§Ù„Ø³Ø§Ø­Ø© Ø£Ùˆ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©"
+                  className={inputClassName}
+                />
+              </Field>
+
+              <NumberField
+                label="Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† Ø§Ù„Ù…Ø·Ù„ÙˆØ¨"
+                value={requiredTeachers}
+                min={1}
+                max={20}
+                onChange={
+                  setRequiredTeachers
+                }
+              />
+
+              <Field label="Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ† Ø§Ù„Ù…ÙƒÙ„ÙÙˆÙ†">
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3">
+                  {teachers.map((teacher) => {
+                    const checked =
+                      teacherIds.includes(
+                        teacher.id,
+                      );
+
+                    return (
+                      <label
+                        key={teacher.id}
+                        className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 transition hover:bg-sky-50"
+                      >
+                        <span>
+                          <span className="block text-sm font-black text-slate-950">
+                            {teacher.name}
+                          </span>
+
+                          <span className="text-[11px] font-bold text-slate-500">
+                            {teacher.weeklyLoad}/
+                            {
+                              teacher.maxWeeklyLoad
+                            }
+                            {" Â· "}
+                            {teacher.specialty ||
+                              "Ø¯ÙˆÙ† ØªØ®ØµØµ"}
+                          </span>
+                        </span>
+
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setTeacherIds(
+                              (current) =>
+                                checked
+                                  ? current.filter(
+                                      (
+                                        item,
+                                      ) =>
+                                        item !==
+                                        teacher.id,
+                                    )
+                                  : [
+                                      ...current,
+                                      teacher.id,
+                                    ],
+                            )
+                          }
+                          className="h-5 w-5 accent-sky-700"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </Field>
+
+              <Field label="Ù…Ù„Ø§Ø­Ø¸Ø§Øª">
+                <textarea
+                  rows={3}
+                  value={supervisionNote}
+                  onChange={(event) =>
+                    setSupervisionNote(
+                      event.target.value,
+                    )
+                  }
+                  className={`${inputClassName} resize-none`}
+                />
+              </Field>
+
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() =>
+                  void createSupervision()
+                }
+                className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {saving
+                  ? "Ø¬Ø§Ø±Ù Ø§Ù„Ø­ÙØ¸..."
+                  : editingDutyId
+                    ? "Ø­ÙØ¸ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©"
+                    : "Ø­ÙØ¸ Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø©"}
+              </button>
+              {editingDutyId ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={cancelSupervisionEdit}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 disabled:opacity-50"
+                >
+                  Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black text-sky-700">
+                  Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„Ø­Ø§Ù„ÙŠ
+                </p>
+
+                <h3 className="mt-1 text-lg font-black text-slate-950">
+                  Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª ÙˆØ§Ù„Ø¥Ø´Ø±Ø§Ù
+                </h3>
+              </div>
+
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                {
+                  supervisionDuties.length
+                }{" "}
+                ØªÙƒÙ„ÙŠÙ
+              </span>
+            </div>
+
+            {!supervisionDuties.length ? (
+              <div className="mt-5">
+                <TimetableEmptyState
+                  icon={<ShieldCheck className="h-6 w-6" />}
+                  title="Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†Ø§ÙˆØ¨Ø§Øª Ù…Ø­ÙÙˆØ¸Ø©"
+                  description="Ø£Ø¶Ù Ø§Ù„Ù…Ù†Ø§ÙˆØ¨Ø§Øª Ù„ØªØ¯Ø®Ù„ Ø¶Ù…Ù† ÙØ­Øµ ØªØ¹Ø§Ø±Ø¶Ø§Øª Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†."
+                />
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {supervisionDuties.map(
+                  (duty) => (
+                    <article
+                      key={duty.id}
+                      className="rounded-[1.75rem] border border-sky-200 bg-sky-50/35 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                              {dutyTypeLabel(
+                                duty.dutyType,
+                              )}
+                            </span>
+
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                              {dayLabel(
+                                duty.dayId,
+                                days,
+                              )}
+                            </span>
+
+                            {duty.periodId ? (
+                              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                                {periodLabel(
+                                  duty.periodId,
+                                  teachingPeriods,
+                                )}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <h4 className="mt-3 font-black text-slate-950">
+                            {duty.title}
+                          </h4>
+
+                          <p className="mt-1 text-xs font-bold text-slate-500">
+                            {duty.location ||
+                              "Ø¯ÙˆÙ† Ù…ÙˆÙ‚Ø¹ Ù…Ø­Ø¯Ø¯"}
+                            {duty.startTime
+                              ? ` Â· ${duty.startTime}`
+                              : ""}
+                            {duty.endTime
+                              ? ` - ${duty.endTime}`
+                              : ""}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => editSupervision(duty)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 disabled:opacity-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            ØªØ¹Ø¯ÙŠÙ„
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => void deleteSupervision(duty.id)}
+                            className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
+                          >
+                            Ø­Ø°Ù
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {duty.assignments.map(
+                          (assignment) => (
+                            <span
+                              key={
+                                assignment.id
+                              }
+                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700"
+                            >
+                              {
+                                assignment
+                                  .teacher.name
+                              }
+                              {assignment.isPrimary
+                                ? " Â· Ø£Ø³Ø§Ø³ÙŠ"
+                                : ""}
+                            </span>
+                          ),
+                        )}
+                      </div>
+
+                      {duty.note ? (
+                        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold leading-5 text-slate-600">
+                          {duty.note}
+                        </p>
+                      ) : null}
+                    </article>
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function SettingsGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+      <h3 className="font-black text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
+        {description}
+      </p>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <span>
+        <span className="block text-sm font-black text-slate-950">
+          {label}
+        </span>
+
+        <span className="mt-1 block text-xs font-bold leading-5 text-slate-500">
+          {description}
+        </span>
+      </span>
+
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1 h-5 w-5 shrink-0 accent-sky-700"
+      />
+    </label>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-black text-slate-700">
+        {label}
+      </span>
+
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => {
+          const next =
+            Number(event.target.value);
+
+          onChange(
+            Number.isFinite(next)
+              ? Math.min(
+                  max,
+                  Math.max(min, next),
+                )
+              : min,
+          );
+        }}
+        className={inputClassName}
+      />
+    </label>
+  );
+}
+
+function TeacherOptionsGroup({
+  title,
+  description,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  description: string;
+  options: Array<{
+    id: string;
+    label: string;
+  }>;
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-black text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
+        {description}
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active =
+            selected.includes(option.id);
+
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() =>
+                onToggle(option.id)
+              }
+              className={
+                active
+                  ? "rounded-full bg-sky-700 px-4 py-2 text-xs font-black text-white"
+                  : "rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+              }
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SaveBar({
+  busy,
+  text,
+  onClick,
+}: {
+  busy: boolean;
+  text: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="sticky bottom-4 z-10 flex flex-col justify-between gap-3 rounded-2xl border border-sky-100 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-center">
+      <div>
+        <p className="text-sm font-black text-slate-950">
+          ØªÙˆØ¬Ø¯ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„Ø­ÙØ¸
+        </p>
+
+        <p className="mt-1 text-xs font-bold text-slate-500">
+          ØªØ·Ø¨Ù‚ Ø§Ù„ØªØºÙŠÙŠØ±Ø§Øª Ø¹Ù„Ù‰ Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„ØªØ±Ø´ÙŠØ­
+          Ø§Ù„Ù‚Ø§Ø¯Ù…Ø©.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onClick}
+        className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50"
+      >
+        {busy
+          ? "Ø¬Ø§Ø±Ù Ø§Ù„Ø­ÙØ¸..."
+          : text}
+      </button>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-xl bg-slate-950 px-4 py-3 text-xs font-black text-white shadow-sm"
+          : "rounded-xl px-4 py-3 text-xs font-black text-slate-600 transition hover:bg-slate-50 hover:text-sky-700"
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-black text-slate-700">
+        {label}
+      </span>
+
+      {children}
+    </label>
+  );
+}
+
+function normalizePolicy(
+  policy: WaitingPolicy | null,
+): WaitingPolicy {
+  return {
+    ...defaultPolicy,
+    ...(policy || {}),
+    settingsJson: {
+      ...(defaultPolicy.settingsJson ||
+        {}),
+      ...(policy?.settingsJson || {}),
+    },
+  };
+}
+
+function dutyTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    MORNING: "Ø¥Ø´Ø±Ø§Ù ØµØ¨Ø§Ø­ÙŠ",
+    BREAK: "Ø¥Ø´Ø±Ø§Ù Ø§Ù„ÙØ³Ø­Ø©",
+    GATE: "Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    END_OF_DAY: "Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø¯ÙˆØ§Ù…",
+    PRAYER: "Ø§Ù„ØµÙ„Ø§Ø©",
+    BUS: "Ø§Ù„Ø­Ø§ÙÙ„Ø§Øª",
+    FLOOR: "Ø¥Ø´Ø±Ø§Ù Ø§Ù„Ø£Ø¯ÙˆØ§Ø±",
+    CUSTOM: "ØªÙƒÙ„ÙŠÙ Ù…Ø®ØµØµ",
+  };
+
+  return labels[type] || type;
+}
+
+function dayLabel(
+  dayId: string,
+  days: DayItem[],
+) {
+  return (
+    days.find(
+      (day) => day.id === dayId,
+    )?.label || dayId
+  );
+}
+
+function periodLabel(
+  periodId: string,
+  periods: Period[],
+) {
+  return (
+    periods.find(
+      (period) =>
+        period.id === periodId,
+    )?.label || periodId
+  );
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Ø­Ø¯Ø« Ø®Ø·Ø£ ØºÙŠØ± Ù…ØªÙˆÙ‚Ø¹.";
+}
+
+const inputClassName =
+  "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
+
