@@ -1,3 +1,826 @@
+
+============================================================
+PRISMA MODEL: TimetableProject
+============================================================
+model TimetableProject {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("TimetableProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  name         String
+  academicYear String
+  semester     String
+
+  status TimetableProjectStatus @default(DRAFT)
+
+  daysJson     Json
+  periodsJson  Json
+  settingsJson Json?
+
+  teachers          TimetableTeacher[]
+  classes           TimetableClass[]
+  subjects          TimetableSubject[]
+  classSubjects     TimetableClassSubject[]
+  assignments       TimetableAssignment[]
+  waitingPolicy     TimetableWaitingPolicy?
+  dailyAbsences     TimetableDailyAbsence[]
+  substitutions     TimetableSubstitution[]
+  supervisionDuties TimetableSupervisionDuty[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+============================================================
+PRISMA MODEL: TimetableTeacher
+============================================================
+model TimetableTeacher {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name          String
+  specialty     String?
+  maxWeeklyLoad Int     @default(24)
+  isActive      Boolean @default(true)
+
+  unavailableSlotsJson Json?
+
+  assignments            TimetableAssignment[]
+  dailyAbsences          TimetableDailyAbsence[]
+  originalSubstitutions  TimetableSubstitution[]          @relation("OriginalSubstitutionTeacher")
+  assignedSubstitutions  TimetableSubstitution[]          @relation("AssignedSubstitutionTeacher")
+  supervisionAssignments TimetableSupervisionAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+============================================================
+PRISMA MODEL: TimetableClass
+============================================================
+model TimetableClass {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name     String
+  isActive Boolean @default(true)
+
+  subjects    TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+============================================================
+PRISMA MODEL: TimetableSubject
+============================================================
+model TimetableSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name       String
+  catalogKey String?
+  isActive   Boolean @default(true)
+
+  classes     TimetableClassSubject[]
+  assignments TimetableAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([catalogKey])
+  @@index([isActive])
+}
+
+============================================================
+PRISMA MODEL: TimetableClassSubject
+============================================================
+model TimetableClassSubject {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  weeklyLessons Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, classId, subjectId])
+  @@index([projectId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+============================================================
+PRISMA MODEL: TimetableAssignment
+============================================================
+model TimetableAssignment {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  assignedLessons Int
+  singlePeriods   Int @default(0)
+  doublePeriods   Int @default(0)
+
+  fixedSlotsJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, teacherId, classId, subjectId])
+  @@index([projectId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+============================================================
+PRISMA MODEL: TimetableWaitingPolicy
+============================================================
+model TimetableWaitingPolicy {
+  id String @id @default(cuid())
+
+  projectId String           @unique
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  candidateCount Int @default(6)
+
+  maxDailySubstitutions  Int @default(1)
+  maxWeeklySubstitutions Int @default(5)
+
+  allowBeforeFirstLesson Boolean @default(false)
+  allowAfterLastLesson   Boolean @default(false)
+  allowInsideGap         Boolean @default(true)
+
+  preferInsideGap Boolean @default(true)
+
+  allowOnGoldenDay   Boolean @default(false)
+  goldenDayEmergency Boolean @default(false)
+
+  allowAfterLateArrival Boolean @default(true)
+  excludeLateArrivalDay Boolean @default(false)
+
+  allowBeforeEarlyDeparture Boolean @default(true)
+
+  preventConsecutiveSubstitutions Boolean @default(true)
+  preventFirstPeriod              Boolean @default(false)
+  preventLastPeriod               Boolean @default(false)
+
+  requireMatchingSpecialty Boolean @default(false)
+  preferMatchingSpecialty  Boolean @default(true)
+
+  weeklyLoadWeight        Int @default(100)
+  weeklyWaitingWeight     Int @default(40)
+  dailyWaitingWeight      Int @default(60)
+  gapPreferenceWeight     Int @default(20)
+  specialtyWeight         Int @default(15)
+  firstLastFairnessWeight Int @default(10)
+
+  settingsJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+============================================================
+PRISMA MODEL: TimetableDailyAbsence
+============================================================
+model TimetableDailyAbsence {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  absenceDate DateTime               @db.Date
+  absenceType TimetableAbsenceType
+  status      TimetableAbsenceStatus @default(ACTIVE)
+
+  periodIdsJson Json?
+
+  arrivalPeriodId   String?
+  departurePeriodId String?
+
+  reason String? @db.Text
+  note   String? @db.Text
+
+  createdById String?
+
+  substitutions TimetableSubstitution[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, teacherId, absenceDate])
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([teacherId])
+  @@index([absenceDate])
+  @@index([status])
+}
+
+============================================================
+PRISMA MODEL: TimetableSubstitution
+============================================================
+model TimetableSubstitution {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  absenceId String
+  absence   TimetableDailyAbsence @relation(fields: [absenceId], references: [id], onDelete: Cascade)
+
+  substitutionDate DateTime @db.Date
+
+  originalSessionId String
+  dayId             String
+  periodId          String
+
+  classId     String
+  className   String
+  subjectId   String
+  subjectName String
+
+  originalTeacherId String
+  originalTeacher   TimetableTeacher @relation("OriginalSubstitutionTeacher", fields: [originalTeacherId], references: [id], onDelete: Cascade)
+
+  substituteTeacherId String?
+  substituteTeacher   TimetableTeacher? @relation("AssignedSubstitutionTeacher", fields: [substituteTeacherId], references: [id], onDelete: SetNull)
+
+  status TimetableSubstitutionStatus @default(PENDING)
+
+  candidateRank  Int?
+  candidateScore Int?
+
+  candidatesJson  Json?
+  selectionReason String? @db.Text
+  overrideReason  String? @db.Text
+
+  assignedAt  DateTime?
+  notifiedAt  DateTime?
+  completedAt DateTime?
+  declinedAt  DateTime?
+  canceledAt  DateTime?
+
+  createdById String?
+  updatedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, substitutionDate, originalSessionId], map: "TimetableSubstitution_project_date_session_key")
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([absenceId])
+  @@index([substitutionDate])
+  @@index([originalTeacherId])
+  @@index([substituteTeacherId])
+  @@index([status])
+  @@index([dayId, periodId])
+}
+
+============================================================
+PRISMA MODEL: TimetableSupervisionDuty
+============================================================
+model TimetableSupervisionDuty {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title    String
+  dutyType TimetableSupervisionType
+  status   TimetableSupervisionStatus @default(DRAFT)
+
+  dayId     String
+  periodId  String?
+  startTime String?
+  endTime   String?
+
+  location         String?
+  requiredTeachers Int     @default(1)
+
+  note String? @db.Text
+
+  assignments TimetableSupervisionAssignment[]
+
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([projectId])
+  @@index([dayId])
+  @@index([periodId])
+  @@index([dutyType])
+  @@index([status])
+}
+
+============================================================
+PRISMA MODEL: TimetableSupervisionAssignment
+============================================================
+model TimetableSupervisionAssignment {
+  id String @id @default(cuid())
+
+  dutyId String
+  duty   TimetableSupervisionDuty @relation(fields: [dutyId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  note        String?   @db.Text
+
+  @@unique([dutyId, teacherId])
+  @@index([dutyId])
+  @@index([teacherId])
+  @@index([isPrimary])
+}
+
+============================================================
+TIMETABLE ACCESS
+============================================================
+import "server-only";
+
+import { redirect } from "next/navigation";
+import { requirePrincipalApi } from "@/lib/principal/principal-api-guard";
+import { requirePrincipalPage } from "@/lib/principal/principal-page-guard";
+
+export async function requireTimetablePageAccess() {
+  const access = await requirePrincipalPage();
+
+  if (!access.schoolAccountId) {
+    redirect("/dashboard/settings/school");
+  }
+
+  return {
+    current: access.current,
+    user: access.user,
+    schoolAccountId: access.schoolAccountId,
+  };
+}
+
+export async function requireTimetableApiAccess() {
+  return requirePrincipalApi({ requireSchool: true });
+}
+
+============================================================
+OLD TIMETABLE PROJECT API
+============================================================
+import { NextResponse } from "next/server";
+
+import { requireTimetableApiAccess } from "@/lib/timetable/timetable-access";
+import {
+  createTimetableProject,
+  listTimetableProjects,
+} from "@/lib/timetable/timetable-project-service";
+import { timetableProjectInputSchema } from "@/lib/timetable/timetable-schemas";
+
+export async function GET() {
+  const access = await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const projects = await listTimetableProjects(access.schoolAccountId!);
+
+  return NextResponse.json({
+    success: true,
+    projects,
+  });
+}
+
+export async function POST(request: Request) {
+  const access = await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const body = await request.json().catch(() => null);
+  const parsed = timetableProjectInputSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          parsed.error.issues[0]?.message ||
+          "بيانات الجدول غير صالحة.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const project = await createTimetableProject(
+    access.schoolAccountId!,
+    access.user.id,
+    parsed.data,
+  );
+
+  return NextResponse.json(
+    {
+      success: true,
+      project,
+    },
+    { status: 201 },
+  );
+}
+
+============================================================
+SUBSCRIPTION API GUARD
+============================================================
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+export async function requireActiveSubscriptionApi() {
+  const result = await requireActiveSubscriptionForCurrentUser();
+  return result instanceof Response ? result : null;
+}
+
+export async function requireServiceAccessApi(serviceSlug: string) {
+  const result = await requireServiceAccessForCurrentUser(serviceSlug);
+  return result instanceof Response ? result : null;
+}
+
+
+============================================================
+DASHBOARD CONTEXT
+============================================================
+import "server-only";
+
+import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export type DashboardRole =
+  | "ADMIN"
+  | "COUNSELOR"
+  | "ACTIVITY_LEADER"
+  | "TEACHER"
+  | "PRINCIPAL"
+  | "SCHOOL_OWNER"
+  | "STAFF";
+
+export type DashboardAuthUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: DashboardRole | string;
+  schoolAccountId: string | null;
+  isActive?: boolean | null;
+};
+
+export type DashboardContext = {
+  user: DashboardAuthUser;
+  schoolAccountId: string | null;
+  isAdmin: boolean;
+};
+
+export type SchoolDashboardContext = DashboardContext & {
+  schoolAccountId: string;
+};
+
+type RawSessionUser = {
+  id?: unknown;
+  name?: unknown;
+  email?: unknown;
+  role?: unknown;
+  schoolAccountId?: unknown;
+  isActive?: unknown;
+};
+
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const clean = value.trim();
+  return clean ? clean : null;
+}
+
+function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
+  const user = value as RawSessionUser | null | undefined;
+
+  const id = toNullableString(user?.id);
+  const email = toNullableString(user?.email);
+  const role = toNullableString(user?.role) || "COUNSELOR";
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    role,
+    name: toNullableString(user?.name),
+    schoolAccountId: toNullableString(user?.schoolAccountId),
+    isActive:
+      typeof user?.isActive === "boolean" ? user.isActive : null,
+  };
+}
+
+function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+  return {
+    user,
+    schoolAccountId: user.schoolAccountId,
+    isAdmin: user.role === "ADMIN",
+  };
+}
+
+export async function getDashboardContext(): Promise<DashboardContext | null> {
+  const current = await getCurrentSessionUser();
+  const user = normalizeDashboardUser(current?.user);
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.isActive === false) {
+    return null;
+  }
+
+  return toDashboardContext(user);
+}
+
+export async function requireDashboardApiContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  if (context.user.role === "PRINCIPAL") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "هذه الخدمة غير متاحة لحساب مدير المدرسة.",
+        code: "FORBIDDEN",
+      },
+      { status: 403 },
+    );
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardApiContext() {
+  const contextOrResponse = await requireDashboardApiContext();
+
+  if (contextOrResponse instanceof NextResponse) {
+    return contextOrResponse;
+  }
+
+  if (!contextOrResponse.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  return contextOrResponse as SchoolDashboardContext;
+}
+
+export async function requireDashboardPageContext(options: { allowPrincipal?: boolean } = {}) {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    redirect("/login");
+  }
+
+  if (context.user.role === "PRINCIPAL" && !options.allowPrincipal) {
+    redirect("/dashboard/principal");
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardPageContext() {
+  const context = await requireDashboardPageContext();
+
+  if (!context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return context as SchoolDashboardContext;
+}
+
+export function canAccessSchool(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (context.isAdmin) return true;
+
+  return Boolean(
+    schoolAccountId &&
+      context.schoolAccountId &&
+      schoolAccountId === context.schoolAccountId
+  );
+}
+
+export function requireSameSchoolApi(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (canAccessSchool(context, schoolAccountId)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+      code: "NOT_FOUND",
+    },
+    { status: 404 }
+  );
+}
+
+export function requireSameSchoolPage(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (!canAccessSchool(context, schoolAccountId)) {
+    notFound();
+  }
+}
+
+export function caseOwnershipWhere(
+  context: DashboardContext,
+  caseId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId: context.schoolAccountId,
+    ...(context.user.role === "PRINCIPAL"
+      ? { createdById: context.user.id }
+      : {}),
+  };
+}
+
+export function studentOwnershipWhere(
+  context: DashboardContext,
+  studentId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: studentId,
+    };
+  }
+
+  return {
+    id: studentId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function reportOwnershipWhere(
+  context: DashboardContext,
+  reportId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportId,
+    };
+  }
+
+  return {
+    id: reportId,
+    caseEntry: {
+      schoolAccountId: context.schoolAccountId,
+      ...(context.user.role === "PRINCIPAL"
+        ? { createdById: context.user.id }
+        : {}),
+    },
+  };
+}
+
+export function reportEvidenceOwnershipWhere(
+  context: DashboardContext,
+  reportEvidenceId: string,
+  reportId?: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportEvidenceId,
+      ...(reportId ? { reportId } : {}),
+    };
+  }
+
+  return {
+    id: reportEvidenceId,
+    ...(reportId ? { reportId } : {}),
+    report: {
+      caseEntry: {
+        schoolAccountId: context.schoolAccountId,
+        ...(context.user.role === "PRINCIPAL"
+          ? { createdById: context.user.id }
+          : {}),
+      },
+    },
+  };
+}
+
+export function schoolScopedWhere(context: DashboardContext) {
+  if (context.isAdmin) {
+    return {};
+  }
+
+  return {
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+
+============================================================
+CURRENT V2 PROJECT SETUP WIZARD
+============================================================
 "use client";
 
 import {
@@ -5,10 +828,6 @@ import {
   useMemo,
   useState,
 } from "react";
-
-import {
-  useRouter,
-} from "next/navigation";
 
 import {
   TIMETABLE_V2_CURRICULUM_TRACK_LABELS,
@@ -318,7 +1137,6 @@ function SubjectPlanTable({
 }
 
 export function TimetableV2ProjectSetupWizard() {
-  const router = useRouter();
   const [state, setState] =
     useState<SetupState>({
       name: "جدول المدرسة",
@@ -355,11 +1173,6 @@ export function TimetableV2ProjectSetupWizard() {
   ] = useState<ProjectPreview | null>(
     null,
   );
-
-  const [
-    creating,
-    setCreating,
-  ] = useState(false);
 
   const toggleStage = (
     stageId: TimetableV2StageId,
@@ -932,123 +1745,6 @@ export function TimetableV2ProjectSetupWizard() {
           ? error.message
           : "تعذر تجهيز المشروع.",
       );
-    }
-  };
-
-  const createProject = async () => {
-    if (creating) {
-      return;
-    }
-
-    try {
-      setCreating(true);
-      setPreviewError(null);
-
-      const expectedClassCount =
-        state.grades.reduce(
-          (sum, grade) =>
-            sum +
-            grade.sectionNames.length,
-          0,
-        );
-
-      if (
-        classResolutions.length !==
-        expectedClassCount
-      ) {
-        throw new Error(
-          "اختر خطة دراسية لكل فصل قبل إنشاء المشروع.",
-        );
-      }
-
-      const response = await fetch(
-        "/api/dashboard/principal/timetable-v2/projects",
-        {
-          method: "POST",
-
-          headers: {
-            "content-type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            name: state.name,
-
-            academicYear:
-              state.academicYear,
-
-            semester:
-              state.semester,
-
-            stageIds:
-              state.stageIds,
-
-            teacherCount:
-              state.teacherCount,
-
-            weeklyPeriodTarget:
-              state.weeklyPeriodTarget,
-
-            studyDays:
-              state.studyDays,
-
-            periodsPerDay:
-              state.periodsPerDay,
-
-            classes:
-              classResolutions.map(
-                (resolution) => ({
-                  gradeId:
-                    resolution.gradeId,
-
-                  sectionIndex:
-                    resolution.sectionIndex,
-
-                  sectionName:
-                    resolution.sectionName,
-
-                  planSourceId:
-                    resolution.planSourceId,
-                }),
-              ),
-          }),
-        },
-      );
-
-      const data =
-        await response
-          .json()
-          .catch(() => null);
-
-      if (
-        !response.ok ||
-        !data?.success ||
-        !data?.project?.id
-      ) {
-        throw new Error(
-          data?.error ||
-            "تعذر إنشاء المشروع.",
-        );
-      }
-
-      router.push(
-        `/dashboard/timetable-v2/${data.project.id}`,
-      );
-
-      router.refresh();
-    } catch (error) {
-      setPreviewError(
-        error instanceof Error
-          ? error.message
-          : "تعذر إنشاء المشروع.",
-      );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    } finally {
-      setCreating(false);
     }
   };
 
@@ -1992,30 +2688,1349 @@ export function TimetableV2ProjectSetupWizard() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="font-black text-slate-900">
-                جاهز للحفظ
-              </div>
-
-              <div className="mt-1 text-xs leading-6 text-slate-500">
-                سيتم إنشاء المشروع والفصول والمواد وخطط الحصص والمعلمين داخل عملية واحدة آمنة.
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={creating}
-              onClick={createProject}
-              className="h-12 shrink-0 rounded-xl bg-emerald-700 px-7 font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {creating
-                ? "جاري إنشاء المشروع..."
-                : "إنشاء المشروع الآن"}
-            </button>
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-white px-5 py-4 text-sm text-slate-600">
+            في الخطوة القادمة زر
+            الإنشاء سيبني المشروع
+            والفصول والمواد وخطط
+            الحصص في Transaction
+            واحدة آمنة، ثم ينقلك إلى
+            شاشة المعلمين والإسناد.
           </div>
         </section>
       ) : null}
     </div>
   );
 }
+
+
+============================================================
+TIMETABLE V2 CORE: curriculum-catalog.ts
+============================================================
+import {
+  TIMETABLE_V2_RAW_COURSE_GROUPS,
+} from "./data/raw-course-groups";
+
+import {
+  getTimetableV2Grade,
+  type TimetableV2StageId,
+} from "./project-setup";
+
+export const TIMETABLE_V2_CURRICULUM_TRACK_IDS = [
+  "GENERAL",
+  "QURAN",
+  "CHINESE",
+  "COMPUTER_ENGINEERING",
+  "SHARIA",
+  "BUSINESS",
+  "HEALTH_LIFE",
+  "SCIENTIFIC_INSTITUTE",
+] as const;
+
+export type TimetableV2CurriculumTrackId =
+  (typeof TIMETABLE_V2_CURRICULUM_TRACK_IDS)[number];
+
+export const TIMETABLE_V2_SEMESTER_IDS = [
+  "FIRST",
+  "SECOND",
+] as const;
+
+export type TimetableV2SemesterId =
+  (typeof TIMETABLE_V2_SEMESTER_IDS)[number];
+
+export type TimetableV2CurriculumSubject = {
+  sourceName: string;
+  canonicalName: string;
+
+  oddClasses: number;
+  evenClasses: number;
+  weeklyPeriods: number;
+};
+
+export type TimetableV2CurriculumPlan = {
+  sourceId: string;
+  sourceName: string;
+
+  stageId: TimetableV2StageId;
+  gradeId: string;
+
+  trackId: TimetableV2CurriculumTrackId;
+  semesterId: TimetableV2SemesterId | null;
+
+  subjects: TimetableV2CurriculumSubject[];
+
+  totalWeeklyPeriods: number;
+};
+
+export const TIMETABLE_V2_CURRICULUM_TRACK_LABELS: Record<
+  TimetableV2CurriculumTrackId,
+  string
+> = {
+  GENERAL: "عام",
+  QURAN: "تحفيظ القرآن",
+  CHINESE: "تطبيق اللغة الصينية",
+  COMPUTER_ENGINEERING: "علوم الحاسب والهندسة",
+  SHARIA: "المسار الشرعي",
+  BUSINESS: "إدارة الأعمال",
+  HEALTH_LIFE: "الصحة والحياة",
+  SCIENTIFIC_INSTITUTE: "المعاهد العلمية",
+};
+
+export const TIMETABLE_V2_SEMESTER_LABELS: Record<
+  TimetableV2SemesterId,
+  string
+> = {
+  FIRST: "الفصل الأول",
+  SECOND: "الفصل الثاني",
+};
+
+function normalizeArabicText(value: string) {
+  return value
+    .trim()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ");
+}
+
+const SUBJECT_CANONICAL_ALIASES: Record<string, string> = {
+  الاسلاميه: "الدراسات الإسلامية",
+  "الدراسات الاسلاميه": "الدراسات الإسلامية",
+
+  الانجليزيه: "اللغة الإنجليزية",
+  الانجليزي: "اللغة الإنجليزية",
+  انجليزي: "اللغة الإنجليزية",
+  "اللغه الانجليزيه": "اللغة الإنجليزية",
+
+  العربيه: "اللغة العربية",
+  "اللغه العربيه": "اللغة العربية",
+
+  البدنيه: "التربية البدنية",
+  "التربيه البدنيه": "التربية البدنية",
+
+  الفنيه: "التربية الفنية",
+  "التربيه الفنيه": "التربية الفنية",
+
+  الاجتماعيه: "الدراسات الاجتماعية",
+  "الدراسات الاجتماعيه": "الدراسات الاجتماعية",
+
+  الحياتيه: "المهارات الحياتية",
+  حياتيه: "المهارات الحياتية",
+  "مهارات حياتيه": "المهارات الحياتية",
+  "المهارات الحياتيه": "المهارات الحياتية",
+
+  الرقميه: "المهارات الرقمية",
+  "المهارات الرقميه": "المهارات الرقمية",
+};
+
+export function getTimetableV2CanonicalSubjectName(
+  sourceName: string,
+) {
+  const normalized = normalizeArabicText(sourceName);
+
+  return (
+    SUBJECT_CANONICAL_ALIASES[normalized] ??
+    sourceName.trim()
+  );
+}
+
+function detectStageId(
+  name: string,
+): TimetableV2StageId {
+  if (name.includes("ابتدائي")) {
+    return "ELEMENTARY";
+  }
+
+  if (name.includes("متوسط")) {
+    return "MIDDLE";
+  }
+
+  if (
+    name.includes("ثانوي") ||
+    name.includes("المعاهد العلمية")
+  ) {
+    return "HIGH";
+  }
+
+  throw new Error(
+    `تعذر تحديد المرحلة للخطة: ${name}`,
+  );
+}
+
+function detectGradeNumber(
+  name: string,
+): 1 | 2 | 3 | 4 | 5 | 6 {
+  const normalized = normalizeArabicText(name);
+
+  if (
+    normalized.includes("اول ") ||
+    normalized.startsWith("اول")
+  ) {
+    return 1;
+  }
+
+  if (
+    normalized.includes("ثاني ") ||
+    normalized.includes("الثاني ")
+  ) {
+    return 2;
+  }
+
+  if (
+    normalized.includes("ثالث ") ||
+    normalized.includes("الثالث ")
+  ) {
+    return 3;
+  }
+
+  if (
+    normalized.includes("رابع ") ||
+    normalized.includes("الرابع ")
+  ) {
+    return 4;
+  }
+
+  if (
+    normalized.includes("خامس ") ||
+    normalized.includes("الخامس ")
+  ) {
+    return 5;
+  }
+
+  if (
+    normalized.includes("سادس ") ||
+    normalized.includes("السادس ")
+  ) {
+    return 6;
+  }
+
+  throw new Error(
+    `تعذر تحديد الصف للخطة: ${name}`,
+  );
+}
+
+function buildGradeId(
+  stageId: TimetableV2StageId,
+  gradeNumber: number,
+) {
+  if (stageId === "ELEMENTARY") {
+    return `ELEMENTARY_${gradeNumber}`;
+  }
+
+  if (stageId === "MIDDLE") {
+    return `MIDDLE_${gradeNumber}`;
+  }
+
+  return `HIGH_${gradeNumber}`;
+}
+
+function detectTrackId(
+  name: string,
+): TimetableV2CurriculumTrackId {
+  if (name.includes("تحفيظ")) {
+    return "QURAN";
+  }
+
+  if (name.includes("اللغة الصينية")) {
+    return "CHINESE";
+  }
+
+  if (name.includes("علوم الحاسب والهندسة")) {
+    return "COMPUTER_ENGINEERING";
+  }
+
+  if (name.includes("الشرعي")) {
+    return "SHARIA";
+  }
+
+  if (name.includes("إدارة الأعمال")) {
+    return "BUSINESS";
+  }
+
+  if (name.includes("الصحة والحياة")) {
+    return "HEALTH_LIFE";
+  }
+
+  if (name.includes("المعاهد العلمية")) {
+    return "SCIENTIFIC_INSTITUTE";
+  }
+
+  return "GENERAL";
+}
+
+function detectSemesterId(
+  name: string,
+): TimetableV2SemesterId | null {
+  if (
+    name.includes("الفصل الدراسي الأول") ||
+    name.includes("الفصل الأول")
+  ) {
+    return "FIRST";
+  }
+
+  if (
+    name.includes("الفصل الدراسي الثاني") ||
+    name.includes("الفصل الثاني")
+  ) {
+    return "SECOND";
+  }
+
+  return null;
+}
+
+function buildCurriculumPlan(
+  group: (typeof TIMETABLE_V2_RAW_COURSE_GROUPS.groups)[number],
+): TimetableV2CurriculumPlan {
+  const stageId = detectStageId(group.name);
+  const gradeNumber = detectGradeNumber(group.name);
+  const gradeId = buildGradeId(
+    stageId,
+    gradeNumber,
+  );
+
+  const grade = getTimetableV2Grade(gradeId);
+
+  if (!grade) {
+    throw new Error(
+      `الخطة ${group.name} تشير إلى صف غير معروف: ${gradeId}`,
+    );
+  }
+
+  const subjects: TimetableV2CurriculumSubject[] =
+    group.subjects.map((subject) => ({
+      sourceName: subject.name,
+      canonicalName:
+        getTimetableV2CanonicalSubjectName(
+          subject.name,
+        ),
+      oddClasses: subject.oddClasses,
+      evenClasses: subject.evenClasses,
+      weeklyPeriods: subject.weeklyPeriods,
+    }));
+
+  const calculatedTotal = subjects.reduce(
+    (sum, subject) =>
+      sum + subject.weeklyPeriods,
+    0,
+  );
+
+  if (
+    calculatedTotal !==
+    group.totalWeeklyPeriods
+  ) {
+    throw new Error(
+      `مجموع حصص الخطة ${group.name} غير متطابق.`,
+    );
+  }
+
+  return {
+    sourceId: group.id,
+    sourceName: group.name,
+
+    stageId,
+    gradeId,
+
+    trackId: detectTrackId(group.name),
+    semesterId: detectSemesterId(
+      group.name,
+    ),
+
+    subjects,
+
+    totalWeeklyPeriods:
+      group.totalWeeklyPeriods,
+  };
+}
+
+export const TIMETABLE_V2_CURRICULUM_PLANS:
+  TimetableV2CurriculumPlan[] =
+  TIMETABLE_V2_RAW_COURSE_GROUPS.groups.map(
+    buildCurriculumPlan,
+  );
+
+export type TimetableV2CurriculumPlanQuery = {
+  stageIds?: TimetableV2StageId[];
+  gradeId?: string;
+  trackId?: TimetableV2CurriculumTrackId;
+  semesterId?: TimetableV2SemesterId | null;
+};
+
+export function findTimetableV2CurriculumPlans(
+  query: TimetableV2CurriculumPlanQuery = {},
+) {
+  return TIMETABLE_V2_CURRICULUM_PLANS.filter(
+    (plan) => {
+      if (
+        query.stageIds?.length &&
+        !query.stageIds.includes(plan.stageId)
+      ) {
+        return false;
+      }
+
+      if (
+        query.gradeId &&
+        plan.gradeId !== query.gradeId
+      ) {
+        return false;
+      }
+
+      if (
+        query.trackId &&
+        plan.trackId !== query.trackId
+      ) {
+        return false;
+      }
+
+      if (
+        query.semesterId !== undefined &&
+        plan.semesterId !== query.semesterId
+      ) {
+        return false;
+      }
+
+      return true;
+    },
+  );
+}
+
+export function getTimetableV2CurriculumPlanBySourceId(
+  sourceId: string,
+) {
+  return (
+    TIMETABLE_V2_CURRICULUM_PLANS.find(
+      (plan) => plan.sourceId === sourceId,
+    ) ?? null
+  );
+}
+
+export function getTimetableV2DefaultCurriculumPlan(
+  gradeId: string,
+  semesterId?: TimetableV2SemesterId | null,
+) {
+  const grade = getTimetableV2Grade(gradeId);
+
+  if (!grade) {
+    return null;
+  }
+
+  const plans =
+    findTimetableV2CurriculumPlans({
+      gradeId,
+    });
+
+  if (plans.length === 0) {
+    return null;
+  }
+
+  if (grade.stageId === "HIGH") {
+    if (!semesterId) {
+      return null;
+    }
+
+    return (
+      plans.find(
+        (plan) =>
+          plan.trackId === "GENERAL" &&
+          plan.semesterId === semesterId,
+      ) ?? null
+    );
+  }
+
+  return (
+    plans.find(
+      (plan) =>
+        plan.trackId === "GENERAL" &&
+        plan.semesterId === null,
+    ) ?? null
+  );
+}
+
+export function getTimetableV2AvailableTracksForGrade(
+  gradeId: string,
+) {
+  const values = new Set(
+    findTimetableV2CurriculumPlans({
+      gradeId,
+    }).map((plan) => plan.trackId),
+  );
+
+  return [...values];
+}
+
+export function getTimetableV2CatalogStats() {
+  const subjectNames = new Set<string>();
+  const canonicalNames = new Set<string>();
+
+  for (
+    const plan of TIMETABLE_V2_CURRICULUM_PLANS
+  ) {
+    for (const subject of plan.subjects) {
+      subjectNames.add(subject.sourceName);
+      canonicalNames.add(
+        subject.canonicalName,
+      );
+    }
+  }
+
+  return {
+    plansCount:
+      TIMETABLE_V2_CURRICULUM_PLANS.length,
+
+    elementaryPlans:
+      TIMETABLE_V2_CURRICULUM_PLANS.filter(
+        (plan) =>
+          plan.stageId === "ELEMENTARY",
+      ).length,
+
+    middlePlans:
+      TIMETABLE_V2_CURRICULUM_PLANS.filter(
+        (plan) => plan.stageId === "MIDDLE",
+      ).length,
+
+    highPlans:
+      TIMETABLE_V2_CURRICULUM_PLANS.filter(
+        (plan) => plan.stageId === "HIGH",
+      ).length,
+
+    originalSubjectNamesCount:
+      subjectNames.size,
+
+    canonicalSubjectNamesCount:
+      canonicalNames.size,
+  };
+}
+
+============================================================
+TIMETABLE V2 CORE: index.ts
+============================================================
+export * from "./project-setup";
+export * from "./project-validation";
+export * from "./project-blueprint";
+export * from "./curriculum-catalog";
+export * from "./project-curriculum";
+
+============================================================
+TIMETABLE V2 CORE: project-blueprint.ts
+============================================================
+import {
+  TIMETABLE_V2_DAY_LABELS,
+  getTimetableV2Grade,
+  getTimetableV2Stage,
+  type TimetableV2ProjectSetupInput,
+  type TimetableV2StageId,
+  type TimetableV2StudyDayId,
+} from "./project-setup";
+
+import {
+  validateTimetableV2ProjectSetup,
+} from "./project-validation";
+
+export type TimetableV2BlueprintStage = {
+  id: TimetableV2StageId;
+  name: string;
+};
+
+export type TimetableV2BlueprintDay = {
+  id: TimetableV2StudyDayId;
+  name: string;
+  sortOrder: number;
+};
+
+export type TimetableV2BlueprintPeriod = {
+  id: string;
+  number: number;
+  name: string;
+};
+
+export type TimetableV2BlueprintClass = {
+  gradeId: string;
+  stageId: TimetableV2StageId;
+  gradeName: string;
+  sectionName: string;
+  className: string;
+  sortOrder: number;
+};
+
+export type TimetableV2ProjectBlueprint = {
+  name: string;
+  academicYear: string;
+  semester: string;
+
+  stages: TimetableV2BlueprintStage[];
+
+  teacherCount: number;
+
+  weeklyPeriodTarget: number | null;
+
+  studyDays: TimetableV2BlueprintDay[];
+
+  periods: TimetableV2BlueprintPeriod[];
+
+  classes: TimetableV2BlueprintClass[];
+
+  metrics: {
+    stagesCount: number;
+    gradesCount: number;
+    classesCount: number;
+    teacherCount: number;
+    studyDaysCount: number;
+    periodsPerDay: number;
+    availablePeriodsPerClassPerWeek: number;
+    totalSchoolClassSlotsPerWeek: number;
+  };
+};
+
+function normalizeSectionName(
+  value: string,
+) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function createTimetableV2ProjectBlueprint(
+  input: TimetableV2ProjectSetupInput,
+): TimetableV2ProjectBlueprint {
+  const normalizedInput: TimetableV2ProjectSetupInput = {
+    ...input,
+    name: input.name.trim(),
+    academicYear: input.academicYear.trim(),
+    semester: input.semester.trim(),
+    stageIds: [...new Set(input.stageIds)],
+    studyDays: [...new Set(input.studyDays)],
+    grades: input.grades.map((grade) => ({
+      gradeId: grade.gradeId,
+      sectionNames: grade.sectionNames.map(
+        normalizeSectionName,
+      ),
+    })),
+  };
+
+  const validation =
+    validateTimetableV2ProjectSetup(normalizedInput);
+
+  if (!validation.valid) {
+    const message = validation.errors
+      .map((error) => error.message)
+      .join(" ");
+
+    throw new Error(message);
+  }
+
+  const stages = normalizedInput.stageIds.map(
+    (stageId) => {
+      const stage = getTimetableV2Stage(stageId);
+
+      if (!stage) {
+        throw new Error(
+          `المرحلة غير موجودة: ${stageId}`,
+        );
+      }
+
+      return {
+        id: stage.id,
+        name: stage.name,
+      };
+    },
+  );
+
+  const studyDays = normalizedInput.studyDays.map(
+    (dayId, index) => ({
+      id: dayId,
+      name: TIMETABLE_V2_DAY_LABELS[dayId],
+      sortOrder: index + 1,
+    }),
+  );
+
+  const periods = Array.from(
+    {
+      length: normalizedInput.periodsPerDay,
+    },
+    (_, index) => ({
+      id: `PERIOD_${index + 1}`,
+      number: index + 1,
+      name: `الحصة ${index + 1}`,
+    }),
+  );
+
+  let classSortOrder = 0;
+
+  const classes: TimetableV2BlueprintClass[] = [];
+
+  for (const gradeSetup of normalizedInput.grades) {
+    const grade = getTimetableV2Grade(
+      gradeSetup.gradeId,
+    );
+
+    if (!grade) {
+      continue;
+    }
+
+    for (const sectionName of gradeSetup.sectionNames) {
+      classSortOrder += 1;
+
+      classes.push({
+        gradeId: grade.id,
+        stageId: grade.stageId,
+        gradeName: grade.name,
+        sectionName,
+        className: `${grade.name} ${sectionName}`,
+        sortOrder: classSortOrder,
+      });
+    }
+  }
+
+  const gradesCount = new Set(
+    classes.map((item) => item.gradeId),
+  ).size;
+
+  const availablePeriodsPerClassPerWeek =
+    studyDays.length * periods.length;
+
+  return {
+    name: normalizedInput.name,
+    academicYear: normalizedInput.academicYear,
+    semester: normalizedInput.semester,
+
+    stages,
+
+    teacherCount: normalizedInput.teacherCount,
+
+    weeklyPeriodTarget:
+      normalizedInput.weeklyPeriodTarget ?? null,
+
+    studyDays,
+
+    periods,
+
+    classes,
+
+    metrics: {
+      stagesCount: stages.length,
+      gradesCount,
+      classesCount: classes.length,
+      teacherCount: normalizedInput.teacherCount,
+      studyDaysCount: studyDays.length,
+      periodsPerDay: periods.length,
+      availablePeriodsPerClassPerWeek,
+      totalSchoolClassSlotsPerWeek:
+        availablePeriodsPerClassPerWeek *
+        classes.length,
+    },
+  };
+}
+
+============================================================
+TIMETABLE V2 CORE: project-curriculum.ts
+============================================================
+import {
+  getTimetableV2Grade,
+  type TimetableV2GradeSetup,
+} from "./project-setup";
+
+import {
+  findTimetableV2CurriculumPlans,
+  getTimetableV2DefaultCurriculumPlan,
+  type TimetableV2CurriculumPlan,
+  type TimetableV2CurriculumTrackId,
+  type TimetableV2SemesterId,
+} from "./curriculum-catalog";
+
+export type TimetableV2GradeCurriculumSelection = {
+  gradeId: string;
+
+  planSourceId: string | null;
+
+  trackId: TimetableV2CurriculumTrackId | null;
+
+  semesterId: TimetableV2SemesterId | null;
+
+  status:
+    | "AUTO_SELECTED"
+    | "NEEDS_SELECTION"
+    | "NO_PLAN";
+};
+
+export function createTimetableV2InitialCurriculumSelections(
+  grades: TimetableV2GradeSetup[],
+  semesterId?: TimetableV2SemesterId | null,
+): TimetableV2GradeCurriculumSelection[] {
+  return grades.map((gradeSetup) => {
+    const grade =
+      getTimetableV2Grade(
+        gradeSetup.gradeId,
+      );
+
+    if (!grade) {
+      return {
+        gradeId: gradeSetup.gradeId,
+        planSourceId: null,
+        trackId: null,
+        semesterId: null,
+        status: "NO_PLAN",
+      };
+    }
+
+    const plans =
+      findTimetableV2CurriculumPlans({
+        gradeId: grade.id,
+      });
+
+    if (plans.length === 0) {
+      return {
+        gradeId: grade.id,
+        planSourceId: null,
+        trackId: null,
+        semesterId: null,
+        status: "NO_PLAN",
+      };
+    }
+
+    const defaultPlan =
+      getTimetableV2DefaultCurriculumPlan(
+        grade.id,
+        grade.stageId === "HIGH"
+          ? semesterId
+          : null,
+      );
+
+    if (defaultPlan) {
+      return {
+        gradeId: grade.id,
+        planSourceId:
+          defaultPlan.sourceId,
+        trackId: defaultPlan.trackId,
+        semesterId:
+          defaultPlan.semesterId,
+        status: "AUTO_SELECTED",
+      };
+    }
+
+    return {
+      gradeId: grade.id,
+      planSourceId: null,
+      trackId: null,
+      semesterId:
+        grade.stageId === "HIGH"
+          ? semesterId ?? null
+          : null,
+      status: "NEEDS_SELECTION",
+    };
+  });
+}
+
+export function calculateTimetableV2PlanDemand(
+  plan: TimetableV2CurriculumPlan,
+  sectionCount: number,
+) {
+  const safeSectionCount = Math.max(
+    0,
+    Math.floor(sectionCount),
+  );
+
+  return {
+    sectionCount: safeSectionCount,
+
+    weeklyPeriodsPerSection:
+      plan.totalWeeklyPeriods,
+
+    totalWeeklyPeriods:
+      plan.totalWeeklyPeriods *
+      safeSectionCount,
+
+    subjects: plan.subjects.map(
+      (subject) => ({
+        ...subject,
+
+        totalWeeklyPeriods:
+          subject.weeklyPeriods *
+          safeSectionCount,
+      }),
+    ),
+  };
+}
+
+============================================================
+TIMETABLE V2 CORE: project-setup.ts
+============================================================
+export const TIMETABLE_V2_STAGE_IDS = [
+  "ELEMENTARY",
+  "MIDDLE",
+  "HIGH",
+] as const;
+
+export type TimetableV2StageId =
+  (typeof TIMETABLE_V2_STAGE_IDS)[number];
+
+export const TIMETABLE_V2_STUDY_DAY_IDS = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+] as const;
+
+export type TimetableV2StudyDayId =
+  (typeof TIMETABLE_V2_STUDY_DAY_IDS)[number];
+
+export type TimetableV2GradeDefinition = {
+  id: string;
+  stageId: TimetableV2StageId;
+  name: string;
+  shortName: string;
+  sortOrder: number;
+};
+
+export type TimetableV2StageDefinition = {
+  id: TimetableV2StageId;
+  name: string;
+  shortName: string;
+  grades: TimetableV2GradeDefinition[];
+};
+
+export type TimetableV2GradeSetup = {
+  gradeId: string;
+  sectionNames: string[];
+};
+
+export type TimetableV2ProjectSetupInput = {
+  name: string;
+  academicYear: string;
+  semester: string;
+
+  stageIds: TimetableV2StageId[];
+
+  teacherCount: number;
+
+  /**
+   * قيمة إرشادية فقط ولا تعتبر قيداً ثابتاً.
+   * مثال: 35 حصة أسبوعياً.
+   */
+  weeklyPeriodTarget?: number | null;
+
+  studyDays: TimetableV2StudyDayId[];
+
+  periodsPerDay: number;
+
+  grades: TimetableV2GradeSetup[];
+};
+
+export const TIMETABLE_V2_DEFAULT_SECTION_NAMES = [
+  "أ",
+  "ب",
+  "ج",
+  "د",
+  "هـ",
+  "ح",
+] as const;
+
+export const TIMETABLE_V2_DEFAULT_STUDY_DAYS: TimetableV2StudyDayId[] = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+];
+
+export const TIMETABLE_V2_DAY_LABELS: Record<
+  TimetableV2StudyDayId,
+  string
+> = {
+  SUNDAY: "الأحد",
+  MONDAY: "الاثنين",
+  TUESDAY: "الثلاثاء",
+  WEDNESDAY: "الأربعاء",
+  THURSDAY: "الخميس",
+};
+
+export const TIMETABLE_V2_STAGES: TimetableV2StageDefinition[] = [
+  {
+    id: "ELEMENTARY",
+    name: "المرحلة الابتدائية",
+    shortName: "ابتدائي",
+    grades: [
+      {
+        id: "ELEMENTARY_1",
+        stageId: "ELEMENTARY",
+        name: "أول ابتدائي",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "ELEMENTARY_2",
+        stageId: "ELEMENTARY",
+        name: "ثاني ابتدائي",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "ELEMENTARY_3",
+        stageId: "ELEMENTARY",
+        name: "ثالث ابتدائي",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+      {
+        id: "ELEMENTARY_4",
+        stageId: "ELEMENTARY",
+        name: "رابع ابتدائي",
+        shortName: "الرابع",
+        sortOrder: 4,
+      },
+      {
+        id: "ELEMENTARY_5",
+        stageId: "ELEMENTARY",
+        name: "خامس ابتدائي",
+        shortName: "الخامس",
+        sortOrder: 5,
+      },
+      {
+        id: "ELEMENTARY_6",
+        stageId: "ELEMENTARY",
+        name: "سادس ابتدائي",
+        shortName: "السادس",
+        sortOrder: 6,
+      },
+    ],
+  },
+  {
+    id: "MIDDLE",
+    name: "المرحلة المتوسطة",
+    shortName: "متوسط",
+    grades: [
+      {
+        id: "MIDDLE_1",
+        stageId: "MIDDLE",
+        name: "أول متوسط",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "MIDDLE_2",
+        stageId: "MIDDLE",
+        name: "ثاني متوسط",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "MIDDLE_3",
+        stageId: "MIDDLE",
+        name: "ثالث متوسط",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+    ],
+  },
+  {
+    id: "HIGH",
+    name: "المرحلة الثانوية",
+    shortName: "ثانوي",
+    grades: [
+      {
+        id: "HIGH_1",
+        stageId: "HIGH",
+        name: "أول ثانوي",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "HIGH_2",
+        stageId: "HIGH",
+        name: "ثاني ثانوي",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "HIGH_3",
+        stageId: "HIGH",
+        name: "ثالث ثانوي",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+    ],
+  },
+];
+
+export function isTimetableV2StageId(
+  value: string,
+): value is TimetableV2StageId {
+  return TIMETABLE_V2_STAGE_IDS.includes(
+    value as TimetableV2StageId,
+  );
+}
+
+export function isTimetableV2StudyDayId(
+  value: string,
+): value is TimetableV2StudyDayId {
+  return TIMETABLE_V2_STUDY_DAY_IDS.includes(
+    value as TimetableV2StudyDayId,
+  );
+}
+
+export function getTimetableV2Stage(
+  stageId: TimetableV2StageId,
+) {
+  return (
+    TIMETABLE_V2_STAGES.find(
+      (stage) => stage.id === stageId,
+    ) ?? null
+  );
+}
+
+export function getTimetableV2Grade(
+  gradeId: string,
+) {
+  for (const stage of TIMETABLE_V2_STAGES) {
+    const grade = stage.grades.find(
+      (item) => item.id === gradeId,
+    );
+
+    if (grade) {
+      return grade;
+    }
+  }
+
+  return null;
+}
+
+export function getTimetableV2GradesForStages(
+  stageIds: TimetableV2StageId[],
+) {
+  const selected = new Set(stageIds);
+
+  return TIMETABLE_V2_STAGES
+    .filter((stage) => selected.has(stage.id))
+    .flatMap((stage) => stage.grades);
+}
+
+export function createTimetableV2GradeSetups(
+  stageIds: TimetableV2StageId[],
+): TimetableV2GradeSetup[] {
+  return getTimetableV2GradesForStages(stageIds).map(
+    (grade) => ({
+      gradeId: grade.id,
+      sectionNames: ["أ"],
+    }),
+  );
+}
+
+export function createTimetableV2DefaultSetup(): TimetableV2ProjectSetupInput {
+  return {
+    name: "",
+    academicYear: "",
+    semester: "",
+    stageIds: [],
+    teacherCount: 0,
+    weeklyPeriodTarget: null,
+    studyDays: [...TIMETABLE_V2_DEFAULT_STUDY_DAYS],
+    periodsPerDay: 7,
+    grades: [],
+  };
+}
+
+============================================================
+TIMETABLE V2 CORE: project-validation.ts
+============================================================
+import {
+  getTimetableV2Grade,
+  isTimetableV2StageId,
+  isTimetableV2StudyDayId,
+  type TimetableV2ProjectSetupInput,
+} from "./project-setup";
+
+export type TimetableV2SetupValidationError = {
+  field: string;
+  message: string;
+};
+
+export type TimetableV2SetupValidationResult = {
+  valid: boolean;
+  errors: TimetableV2SetupValidationError[];
+};
+
+export function validateTimetableV2ProjectSetup(
+  input: TimetableV2ProjectSetupInput,
+): TimetableV2SetupValidationResult {
+  const errors: TimetableV2SetupValidationError[] = [];
+
+  if (!input.name.trim()) {
+    errors.push({
+      field: "name",
+      message: "اسم مشروع الجدول مطلوب.",
+    });
+  }
+
+  if (!input.academicYear.trim()) {
+    errors.push({
+      field: "academicYear",
+      message: "العام الدراسي مطلوب.",
+    });
+  }
+
+  if (!input.semester.trim()) {
+    errors.push({
+      field: "semester",
+      message: "الفصل الدراسي مطلوب.",
+    });
+  }
+
+  if (input.stageIds.length === 0) {
+    errors.push({
+      field: "stageIds",
+      message: "اختر مرحلة دراسية واحدة على الأقل.",
+    });
+  }
+
+  const uniqueStages = new Set(input.stageIds);
+
+  if (uniqueStages.size !== input.stageIds.length) {
+    errors.push({
+      field: "stageIds",
+      message: "لا يمكن تكرار المرحلة الدراسية.",
+    });
+  }
+
+  for (const stageId of input.stageIds) {
+    if (!isTimetableV2StageId(stageId)) {
+      errors.push({
+        field: "stageIds",
+        message: `مرحلة غير مدعومة: ${stageId}`,
+      });
+    }
+  }
+
+  if (
+    !Number.isInteger(input.teacherCount) ||
+    input.teacherCount < 1 ||
+    input.teacherCount > 500
+  ) {
+    errors.push({
+      field: "teacherCount",
+      message: "عدد المعلمين يجب أن يكون بين 1 و500.",
+    });
+  }
+
+  if (
+    input.weeklyPeriodTarget !== null &&
+    input.weeklyPeriodTarget !== undefined &&
+    (
+      !Number.isInteger(input.weeklyPeriodTarget) ||
+      input.weeklyPeriodTarget < 1 ||
+      input.weeklyPeriodTarget > 100
+    )
+  ) {
+    errors.push({
+      field: "weeklyPeriodTarget",
+      message: "عدد الحصص الأسبوعية يجب أن يكون بين 1 و100.",
+    });
+  }
+
+  if (input.studyDays.length === 0) {
+    errors.push({
+      field: "studyDays",
+      message: "اختر يوم دراسة واحداً على الأقل.",
+    });
+  }
+
+  const uniqueDays = new Set(input.studyDays);
+
+  if (uniqueDays.size !== input.studyDays.length) {
+    errors.push({
+      field: "studyDays",
+      message: "لا يمكن تكرار يوم الدراسة.",
+    });
+  }
+
+  for (const dayId of input.studyDays) {
+    if (!isTimetableV2StudyDayId(dayId)) {
+      errors.push({
+        field: "studyDays",
+        message: `يوم دراسة غير مدعوم: ${dayId}`,
+      });
+    }
+  }
+
+  if (
+    !Number.isInteger(input.periodsPerDay) ||
+    input.periodsPerDay < 1 ||
+    input.periodsPerDay > 12
+  ) {
+    errors.push({
+      field: "periodsPerDay",
+      message: "عدد الحصص اليومية يجب أن يكون بين 1 و12.",
+    });
+  }
+
+  if (input.grades.length === 0) {
+    errors.push({
+      field: "grades",
+      message: "لا توجد صفوف مضافة للمشروع.",
+    });
+  }
+
+  const selectedStages = new Set(input.stageIds);
+  const seenGrades = new Set<string>();
+
+  for (const gradeSetup of input.grades) {
+    const grade = getTimetableV2Grade(gradeSetup.gradeId);
+
+    if (!grade) {
+      errors.push({
+        field: "grades",
+        message: `صف غير معروف: ${gradeSetup.gradeId}`,
+      });
+
+      continue;
+    }
+
+    if (!selectedStages.has(grade.stageId)) {
+      errors.push({
+        field: "grades",
+        message: `الصف ${grade.name} لا يتبع المراحل المختارة.`,
+      });
+    }
+
+    if (seenGrades.has(gradeSetup.gradeId)) {
+      errors.push({
+        field: "grades",
+        message: `تم تكرار الصف ${grade.name}.`,
+      });
+    }
+
+    seenGrades.add(gradeSetup.gradeId);
+
+    if (gradeSetup.sectionNames.length === 0) {
+      errors.push({
+        field: `grades.${gradeSetup.gradeId}.sectionNames`,
+        message: `أضف فصلًا واحدًا على الأقل للصف ${grade.name}.`,
+      });
+    }
+
+    const normalizedSections = gradeSetup.sectionNames
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    if (
+      normalizedSections.length !==
+      gradeSetup.sectionNames.length
+    ) {
+      errors.push({
+        field: `grades.${gradeSetup.gradeId}.sectionNames`,
+        message: `يوجد اسم فصل فارغ في الصف ${grade.name}.`,
+      });
+    }
+
+    if (
+      new Set(normalizedSections).size !==
+      normalizedSections.length
+    ) {
+      errors.push({
+        field: `grades.${gradeSetup.gradeId}.sectionNames`,
+        message: `يوجد اسم فصل مكرر في الصف ${grade.name}.`,
+      });
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+

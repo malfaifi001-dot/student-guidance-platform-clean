@@ -2137,6 +2137,7 @@ model TimetableProject {
   dailyAbsences     TimetableDailyAbsence[]
   substitutions     TimetableSubstitution[]
   supervisionDuties TimetableSupervisionDuty[]
+  constraints       TimetableConstraint[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2168,6 +2169,7 @@ model TimetableTeacher {
   originalSubstitutions  TimetableSubstitution[]          @relation("OriginalSubstitutionTeacher")
   assignedSubstitutions  TimetableSubstitution[]          @relation("AssignedSubstitutionTeacher")
   supervisionAssignments TimetableSupervisionAssignment[]
+  constraintLinks        TimetableConstraintTeacher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2187,8 +2189,9 @@ model TimetableClass {
   name     String
   isActive Boolean @default(true)
 
-  subjects    TimetableClassSubject[]
-  assignments TimetableAssignment[]
+  subjects        TimetableClassSubject[]
+  assignments     TimetableAssignment[]
+  constraintLinks TimetableConstraintClass[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2208,8 +2211,9 @@ model TimetableSubject {
   catalogKey String?
   isActive   Boolean @default(true)
 
-  classes     TimetableClassSubject[]
-  assignments TimetableAssignment[]
+  classes         TimetableClassSubject[]
+  assignments     TimetableAssignment[]
+  constraintLinks TimetableConstraintSubject[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2479,4 +2483,112 @@ model TimetableSupervisionAssignment {
   @@index([dutyId])
   @@index([teacherId])
   @@index([isPrimary])
+}
+
+model TimetableConstraint {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "TC_project_fk")
+
+  type     String
+  strength String @default("HARD")
+
+  title    String?
+  valueInt Int?
+  notes    String? @db.Text
+
+  configJson Json?
+
+  isActive Boolean @default(true)
+
+  teachers TimetableConstraintTeacher[]
+  subjects TimetableConstraintSubject[]
+  classes  TimetableConstraintClass[]
+  days     TimetableConstraintDay[]
+  periods  TimetableConstraintPeriod[]
+  slots    TimetableConstraintSlot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId], map: "TC_project_idx")
+  @@index([projectId, type], map: "TC_project_type_idx")
+  @@index([projectId, isActive], map: "TC_project_active_idx")
+}
+
+model TimetableConstraintTeacher {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCT_constraint_fk")
+
+  teacherId String
+  teacher   TimetableTeacher @relation(fields: [teacherId], references: [id], onDelete: Cascade, map: "TCT_teacher_fk")
+
+  @@unique([constraintId, teacherId], map: "TCT_constraint_teacher_key")
+  @@index([teacherId], map: "TCT_teacher_idx")
+}
+
+model TimetableConstraintSubject {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCS_constraint_fk")
+
+  subjectId String
+  subject   TimetableSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade, map: "TCS_subject_fk")
+
+  @@unique([constraintId, subjectId], map: "TCS_constraint_subject_key")
+  @@index([subjectId], map: "TCS_subject_idx")
+}
+
+model TimetableConstraintClass {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCC_constraint_fk")
+
+  classId String
+  class   TimetableClass @relation(fields: [classId], references: [id], onDelete: Cascade, map: "TCC_class_fk")
+
+  @@unique([constraintId, classId], map: "TCC_constraint_class_key")
+  @@index([classId], map: "TCC_class_idx")
+}
+
+model TimetableConstraintDay {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCD_constraint_fk")
+
+  dayId String
+
+  @@unique([constraintId, dayId], map: "TCD_constraint_day_key")
+  @@index([dayId], map: "TCD_day_idx")
+}
+
+model TimetableConstraintPeriod {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCP_constraint_fk")
+
+  periodId String
+
+  @@unique([constraintId, periodId], map: "TCP_constraint_period_key")
+  @@index([periodId], map: "TCP_period_idx")
+}
+
+model TimetableConstraintSlot {
+  id String @id @default(cuid())
+
+  constraintId String
+  constraint   TimetableConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade, map: "TCL_constraint_fk")
+
+  dayId    String
+  periodId String
+
+  @@unique([constraintId, dayId, periodId], map: "TCL_constraint_slot_key")
+  @@index([dayId, periodId], map: "TCL_slot_idx")
 }

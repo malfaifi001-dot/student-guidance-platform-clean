@@ -1,0 +1,2307 @@
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
+type Teacher = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  maxWeeklyLoad: number;
+};
+
+type ClassSubject = {
+  id: string;
+  weeklyLessons: number;
+  classId: string;
+  subjectId: string;
+
+  class: {
+    id: string;
+    name: string;
+  };
+
+  subject: {
+    id: string;
+    name: string;
+  };
+};
+
+type Assignment = {
+  id: string;
+  teacherId: string;
+  classId: string;
+  subjectId: string;
+  assignedLessons: number;
+  singlePeriods: number;
+  doublePeriods: number;
+};
+
+type ShareDraft = {
+  teacherId: string;
+  assignedLessons: number;
+};
+
+type Props = {
+  project: {
+    id: string;
+    name: string;
+    academicYear: string;
+    semester: string;
+  };
+
+  teachers: Teacher[];
+  classSubjects: ClassSubject[];
+  initialAssignments: Assignment[];
+
+  initialSelectedTeacherId?: string | null;
+};
+
+type ViewMode =
+  | "GRID"
+  | "LIST";
+
+type FilterMode =
+  | "ALL"
+  | "UNASSIGNED"
+  | "SHARED"
+  | "OVERLOADED";
+
+function rowKey(
+  classId: string,
+  subjectId: string,
+) {
+  return `${classId}:${subjectId}`;
+}
+
+function normalizeArabic(
+  value: string,
+) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function buildInitialDrafts(
+  classSubjects: ClassSubject[],
+  assignments: Assignment[],
+) {
+  const result: Record<
+    string,
+    ShareDraft[]
+  > = {};
+
+  for (
+    const row of
+    classSubjects
+  ) {
+    result[row.id] =
+      assignments
+        .filter(
+          (item) =>
+            item.classId ===
+              row.classId &&
+            item.subjectId ===
+              row.subjectId,
+        )
+        .map(
+          (item) => ({
+            teacherId:
+              item.teacherId,
+
+            assignedLessons:
+              item.assignedLessons,
+          }),
+        );
+  }
+
+  return result;
+}
+
+function signature(
+  shares: ShareDraft[],
+) {
+  return shares
+    .filter(
+      (share) =>
+        share.assignedLessons >
+        0,
+    )
+    .map(
+      (share) =>
+        `${share.teacherId}:${share.assignedLessons}`,
+    )
+    .sort()
+    .join("|");
+}
+
+function ProgressBar({
+  value,
+  danger = false,
+}: {
+  value: number;
+  danger?: boolean;
+}) {
+  const width =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        value,
+      ),
+    );
+
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+      <div
+        className={[
+          "h-full rounded-full transition-all duration-300",
+          danger
+            ? "bg-rose-500"
+            : "bg-teal-600",
+        ].join(" ")}
+        style={{
+          width: `${width}%`,
+        }}
+      />
+    </div>
+  );
+}
+
+export function TimetableV2AssignmentsWorkspace({
+  project,
+  teachers,
+  classSubjects,
+  initialAssignments,
+  initialSelectedTeacherId = null,
+}: Props) {
+  const router =
+    useRouter();
+
+  const [
+    assignments,
+    setAssignments,
+  ] = useState(
+    initialAssignments,
+  );
+
+  const [
+    drafts,
+    setDrafts,
+  ] = useState<
+    Record<
+      string,
+      ShareDraft[]
+    >
+  >(() =>
+    buildInitialDrafts(
+      classSubjects,
+      initialAssignments,
+    ),
+  );
+
+  const [
+    viewMode,
+    setViewMode,
+  ] = useState<ViewMode>(
+    "GRID",
+  );
+
+  const [
+    filterMode,
+    setFilterMode,
+  ] = useState<FilterMode>(
+    "ALL",
+  );
+
+  const [
+    search,
+    setSearch,
+  ] = useState("");
+
+  const [
+    selectedTeacherId,
+    setSelectedTeacherId,
+  ] = useState<
+    string | null
+  >(
+    initialSelectedTeacherId &&
+      teachers.some(
+        (teacher) =>
+          teacher.id ===
+          initialSelectedTeacherId,
+      )
+      ? initialSelectedTeacherId
+      : null,
+  );
+
+  const [
+    selectedRowId,
+    setSelectedRowId,
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    addTeacherId,
+    setAddTeacherId,
+  ] = useState("");
+
+  const [
+    busyRowId,
+    setBusyRowId,
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    savingAll,
+    setSavingAll,
+  ] = useState(false);
+
+  const [
+    message,
+    setMessage,
+  ] = useState<{
+    tone:
+      | "success"
+      | "error"
+      | "info";
+    text: string;
+  } | null>(
+    initialSelectedTeacherId
+      ? {
+          tone: "info",
+          text:
+            "تم فتح شبكة الإسناد على المعلم المحدد. يمكنك مشاركته في أي مقرر.",
+        }
+      : null,
+  );
+
+  const savedSharesByRow =
+    useMemo(() => {
+      const result =
+        new Map<
+          string,
+          ShareDraft[]
+        >();
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        result.set(
+          row.id,
+          assignments
+            .filter(
+              (assignment) =>
+                assignment.classId ===
+                  row.classId &&
+                assignment.subjectId ===
+                  row.subjectId,
+            )
+            .map(
+              (assignment) => ({
+                teacherId:
+                  assignment.teacherId,
+
+                assignedLessons:
+                  assignment.assignedLessons,
+              }),
+            ),
+        );
+      }
+
+      return result;
+    }, [
+      assignments,
+      classSubjects,
+    ]);
+
+  const changedRows =
+    useMemo(() => {
+      const changed =
+        new Set<string>();
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        const current =
+          drafts[row.id] ??
+          [];
+
+        const saved =
+          savedSharesByRow.get(
+            row.id,
+          ) ?? [];
+
+        if (
+          signature(current) !==
+          signature(saved)
+        ) {
+          changed.add(
+            row.id,
+          );
+        }
+      }
+
+      return changed;
+    }, [
+      classSubjects,
+      drafts,
+      savedSharesByRow,
+    ]);
+
+  const projectedLoads =
+    useMemo(() => {
+      const loads =
+        new Map<
+          string,
+          number
+        >();
+
+      for (
+        const teacher of
+        teachers
+      ) {
+        loads.set(
+          teacher.id,
+          0,
+        );
+      }
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        for (
+          const share of
+          drafts[row.id] ??
+          []
+        ) {
+          loads.set(
+            share.teacherId,
+            (
+              loads.get(
+                share.teacherId,
+              ) ?? 0
+            ) +
+              share.assignedLessons,
+          );
+        }
+      }
+
+      return loads;
+    }, [
+      classSubjects,
+      drafts,
+      teachers,
+    ]);
+
+  const classes =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          string
+        >();
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        map.set(
+          row.classId,
+          row.class.name,
+        );
+      }
+
+      return [
+        ...map.entries(),
+      ].map(
+        ([id, name]) => ({
+          id,
+          name,
+        }),
+      );
+    }, [
+      classSubjects,
+    ]);
+
+  const subjects =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          string
+        >();
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        map.set(
+          row.subjectId,
+          row.subject.name,
+        );
+      }
+
+      return [
+        ...map.entries(),
+      ].map(
+        ([id, name]) => ({
+          id,
+          name,
+        }),
+      );
+    }, [
+      classSubjects,
+    ]);
+
+  const classSubjectByKey =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          ClassSubject
+        >();
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        map.set(
+          rowKey(
+            row.classId,
+            row.subjectId,
+          ),
+          row,
+        );
+      }
+
+      return map;
+    }, [
+      classSubjects,
+    ]);
+
+  const getTeacher =
+    (teacherId: string) =>
+      teachers.find(
+        (teacher) =>
+          teacher.id ===
+          teacherId,
+      ) ?? null;
+
+  const rowTotal =
+    (rowId: string) =>
+      (
+        drafts[rowId] ??
+        []
+      ).reduce(
+        (sum, share) =>
+          sum +
+          share.assignedLessons,
+        0,
+      );
+
+  const stats =
+    useMemo(() => {
+      let required = 0;
+      let assigned = 0;
+      let assignedRows = 0;
+      let sharedRows = 0;
+
+      for (
+        const row of
+        classSubjects
+      ) {
+        required +=
+          row.weeklyLessons;
+
+        const shares =
+          drafts[row.id] ??
+          [];
+
+        const total =
+          shares.reduce(
+            (sum, share) =>
+              sum +
+              share.assignedLessons,
+            0,
+          );
+
+        assigned += total;
+
+        if (
+          shares.length > 0
+        ) {
+          assignedRows += 1;
+        }
+
+        if (
+          shares.length > 1
+        ) {
+          sharedRows += 1;
+        }
+      }
+
+      const overloaded =
+        teachers.filter(
+          (teacher) =>
+            (
+              projectedLoads.get(
+                teacher.id,
+              ) ?? 0
+            ) >
+            teacher.maxWeeklyLoad,
+        ).length;
+
+      return {
+        required,
+        assigned,
+
+        remaining:
+          required -
+          assigned,
+
+        assignedRows,
+
+        totalRows:
+          classSubjects.length,
+
+        sharedRows,
+
+        overloaded,
+
+        progress:
+          required > 0
+            ? Math.min(
+                100,
+                Math.round(
+                  (assigned /
+                    required) *
+                    100,
+                ),
+              )
+            : 0,
+      };
+    }, [
+      classSubjects,
+      drafts,
+      projectedLoads,
+      teachers,
+    ]);
+
+  const selectedRow =
+    useMemo(
+      () =>
+        classSubjects.find(
+          (row) =>
+            row.id ===
+            selectedRowId,
+        ) ?? null,
+      [
+        classSubjects,
+        selectedRowId,
+      ],
+    );
+
+  const visibleClasses =
+    useMemo(() => {
+      const query =
+        normalizeArabic(
+          search,
+        );
+
+      return classes.filter(
+        (classItem) => {
+          const rows =
+            classSubjects.filter(
+              (row) =>
+                row.classId ===
+                classItem.id,
+            );
+
+          if (
+            query &&
+            !rows.some(
+              (row) => {
+                const teacherNames =
+                  (
+                    drafts[
+                      row.id
+                    ] ?? []
+                  )
+                    .map(
+                      (share) =>
+                        getTeacher(
+                          share.teacherId,
+                        )?.name ??
+                        "",
+                    )
+                    .join(" ");
+
+                return normalizeArabic(
+                  [
+                    row.class.name,
+                    row.subject.name,
+                    teacherNames,
+                  ].join(" "),
+                ).includes(
+                  query,
+                );
+              },
+            )
+          ) {
+            return false;
+          }
+
+          return rows.some(
+            (row) => {
+              const shares =
+                drafts[
+                  row.id
+                ] ?? [];
+
+              if (
+                filterMode ===
+                "UNASSIGNED"
+              ) {
+                return (
+                  shares.length ===
+                  0
+                );
+              }
+
+              if (
+                filterMode ===
+                "SHARED"
+              ) {
+                return (
+                  shares.length >
+                  1
+                );
+              }
+
+              if (
+                filterMode ===
+                "OVERLOADED"
+              ) {
+                return shares.some(
+                  (share) => {
+                    const teacher =
+                      getTeacher(
+                        share.teacherId,
+                      );
+
+                    return Boolean(
+                      teacher &&
+                        (
+                          projectedLoads.get(
+                            teacher.id,
+                          ) ?? 0
+                        ) >
+                          teacher.maxWeeklyLoad,
+                    );
+                  },
+                );
+              }
+
+              return true;
+            },
+          );
+        },
+      );
+    }, [
+      classes,
+      classSubjects,
+      drafts,
+      filterMode,
+      projectedLoads,
+      search,
+      teachers,
+    ]);
+
+  const cellVisible =
+    (
+      row: ClassSubject,
+    ) => {
+      const shares =
+        drafts[row.id] ??
+        [];
+
+      if (
+        filterMode ===
+        "UNASSIGNED"
+      ) {
+        return (
+          shares.length ===
+          0
+        );
+      }
+
+      if (
+        filterMode ===
+        "SHARED"
+      ) {
+        return (
+          shares.length >
+          1
+        );
+      }
+
+      if (
+        filterMode ===
+        "OVERLOADED"
+      ) {
+        return shares.some(
+          (share) => {
+            const teacher =
+              getTeacher(
+                share.teacherId,
+              );
+
+            return Boolean(
+              teacher &&
+                (
+                  projectedLoads.get(
+                    teacher.id,
+                  ) ?? 0
+                ) >
+                  teacher.maxWeeklyLoad,
+            );
+          },
+        );
+      }
+
+      return true;
+    };
+
+  const setRowShares =
+    (
+      rowId: string,
+      shares: ShareDraft[],
+    ) => {
+      setDrafts(
+        (current) => ({
+          ...current,
+
+          [rowId]:
+            shares.filter(
+              (share) =>
+                share.assignedLessons >
+                0,
+            ),
+        }),
+      );
+    };
+
+  const toggleQuickShare =
+    (
+      row: ClassSubject,
+    ) => {
+      if (
+        !selectedTeacherId
+      ) {
+        setSelectedRowId(
+          row.id,
+        );
+
+        setAddTeacherId(
+          "",
+        );
+
+        return;
+      }
+
+      const shares = [
+        ...(drafts[
+          row.id
+        ] ?? []),
+      ];
+
+      const existingIndex =
+        shares.findIndex(
+          (share) =>
+            share.teacherId ===
+            selectedTeacherId,
+        );
+
+      if (
+        existingIndex >= 0
+      ) {
+        shares.splice(
+          existingIndex,
+          1,
+        );
+
+        setRowShares(
+          row.id,
+          shares,
+        );
+
+        return;
+      }
+
+      const assigned =
+        shares.reduce(
+          (sum, share) =>
+            sum +
+            share.assignedLessons,
+          0,
+        );
+
+      const remaining =
+        row.weeklyLessons -
+        assigned;
+
+      if (
+        remaining > 0
+      ) {
+        shares.push({
+          teacherId:
+            selectedTeacherId,
+
+          assignedLessons:
+            remaining,
+        });
+
+        setRowShares(
+          row.id,
+          shares,
+        );
+
+        return;
+      }
+
+      setSelectedRowId(
+        row.id,
+      );
+
+      setAddTeacherId(
+        selectedTeacherId,
+      );
+
+      setMessage({
+        tone: "info",
+        text:
+          "حصص المقرر موزعة بالكامل. افتح مشاركة الإسناد وخفّض حصص أحد المعلمين ثم أضف المعلم الجديد.",
+      });
+    };
+
+  const updateShareLessons =
+    (
+      rowId: string,
+      teacherId: string,
+      assignedLessons: number,
+    ) => {
+      setDrafts(
+        (current) => ({
+          ...current,
+
+          [rowId]:
+            (
+              current[
+                rowId
+              ] ?? []
+            ).map(
+              (share) =>
+                share.teacherId ===
+                teacherId
+                  ? {
+                      ...share,
+
+                      assignedLessons:
+                        Math.max(
+                          1,
+                          assignedLessons,
+                        ),
+                    }
+                  : share,
+            ),
+        }),
+      );
+    };
+
+  const removeShare =
+    (
+      rowId: string,
+      teacherId: string,
+    ) => {
+      setDrafts(
+        (current) => ({
+          ...current,
+
+          [rowId]:
+            (
+              current[
+                rowId
+              ] ?? []
+            ).filter(
+              (share) =>
+                share.teacherId !==
+                teacherId,
+            ),
+        }),
+      );
+    };
+
+  const addShare =
+    (
+      row: ClassSubject,
+    ) => {
+      if (
+        !addTeacherId
+      ) {
+        return;
+      }
+
+      const shares =
+        drafts[row.id] ??
+        [];
+
+      if (
+        shares.some(
+          (share) =>
+            share.teacherId ===
+            addTeacherId,
+        )
+      ) {
+        return;
+      }
+
+      const total =
+        shares.reduce(
+          (sum, share) =>
+            sum +
+            share.assignedLessons,
+          0,
+        );
+
+      const remaining =
+        row.weeklyLessons -
+        total;
+
+      if (
+        remaining < 1
+      ) {
+        setMessage({
+          tone: "error",
+          text:
+            "لا توجد حصص متبقية. خفّض حصص أحد المعلمين أولًا ثم أضف المعلم المشارك.",
+        });
+
+        return;
+      }
+
+      setRowShares(
+        row.id,
+        [
+          ...shares,
+          {
+            teacherId:
+              addTeacherId,
+
+            assignedLessons:
+              remaining,
+          },
+        ],
+      );
+
+      setAddTeacherId(
+        "",
+      );
+    };
+
+  const saveRow =
+    async (
+      row: ClassSubject,
+      silent = false,
+    ) => {
+      const shares =
+        drafts[row.id] ??
+        [];
+
+      const total =
+        shares.reduce(
+          (sum, share) =>
+            sum +
+            share.assignedLessons,
+          0,
+        );
+
+      if (
+        total >
+        row.weeklyLessons
+      ) {
+        throw new Error(
+          `مجموع حصص ${row.subject.name} أكبر من المطلوب.`,
+        );
+      }
+
+      const response =
+        await fetch(
+          `/api/dashboard/principal/timetable-v2/projects/${project.id}/assignments`,
+          {
+            method: "PUT",
+
+            headers: {
+              "content-type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                classSubjectId:
+                  row.id,
+
+                shares:
+                  shares.map(
+                    (share) => ({
+                      teacherId:
+                        share.teacherId,
+
+                      assignedLessons:
+                        share.assignedLessons,
+                    }),
+                  ),
+              }),
+          },
+        );
+
+      const data =
+        await response
+          .json()
+          .catch(
+            () => null,
+          );
+
+      if (
+        !response.ok ||
+        !data?.success
+      ) {
+        throw new Error(
+          data?.error ||
+            "تعذر حفظ مشاركة الإسناد.",
+        );
+      }
+
+      setAssignments(
+        (current) => [
+          ...current.filter(
+            (item) =>
+              !(
+                item.classId ===
+                  row.classId &&
+                item.subjectId ===
+                  row.subjectId
+              ),
+          ),
+
+          ...(
+            data.assignments ??
+            []
+          ),
+        ],
+      );
+
+      if (!silent) {
+        setMessage({
+          tone: "success",
+          text:
+            shares.length > 1
+              ? `تم حفظ مشاركة ${row.subject.name} بين ${shares.length} معلمين.`
+              : shares.length ===
+                  1
+                ? `تم حفظ إسناد ${row.subject.name}.`
+                : `تم إلغاء إسناد ${row.subject.name}.`,
+        });
+      }
+    };
+
+  const saveSelectedRow =
+    async () => {
+      if (!selectedRow) {
+        return;
+      }
+
+      try {
+        setBusyRowId(
+          selectedRow.id,
+        );
+
+        setMessage(null);
+
+        await saveRow(
+          selectedRow,
+        );
+
+        setSelectedRowId(
+          null,
+        );
+
+        setAddTeacherId(
+          "",
+        );
+
+        router.refresh();
+      } catch (error) {
+        setMessage({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "تعذر حفظ مشاركة الإسناد.",
+        });
+      } finally {
+        setBusyRowId(null);
+      }
+    };
+
+  const saveAll =
+    async () => {
+      const rows =
+        classSubjects.filter(
+          (row) =>
+            changedRows.has(
+              row.id,
+            ),
+        );
+
+      if (
+        rows.length === 0
+      ) {
+        setMessage({
+          tone: "info",
+          text:
+            "جميع التغييرات محفوظة.",
+        });
+
+        return;
+      }
+
+      try {
+        setSavingAll(true);
+        setMessage(null);
+
+        for (
+          const row of rows
+        ) {
+          await saveRow(
+            row,
+            true,
+          );
+        }
+
+        setMessage({
+          tone: "success",
+          text:
+            `تم حفظ ${rows.length} تغيير بنجاح.`,
+        });
+
+        router.refresh();
+      } catch (error) {
+        setMessage({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "تعذر حفظ جميع التغييرات.",
+        });
+      } finally {
+        setSavingAll(false);
+      }
+    };
+
+  return (
+    <div
+      dir="rtl"
+      className="mx-auto max-w-[1700px] space-y-5 pb-28"
+    >
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="bg-gradient-to-l from-teal-50 via-white to-cyan-50 p-5 lg:p-7">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <div className="inline-flex rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-black text-teal-700">
+                الخطوة 3 • مشاركة الإسناد
+              </div>
+
+              <h1 className="mt-3 text-3xl font-black text-slate-950">
+                شبكة الإسناد
+              </h1>
+
+              <p className="mt-2 text-sm text-slate-500">
+                يمكن أن يشارك أكثر من معلم في تدريس المقرر نفسه مع تحديد حصص كل معلم.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/dashboard/timetable-v2/${project.id}`,
+                )
+              }
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700"
+            >
+              العودة للمشروع
+            </button>
+          </div>
+
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between text-xs font-black">
+              <span className="text-slate-500">
+                اكتمال توزيع الحصص
+              </span>
+
+              <span className="text-teal-700">
+                {stats.progress}%
+              </span>
+            </div>
+
+            <ProgressBar
+              value={
+                stats.progress
+              }
+            />
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Metric
+              label="المطلوب"
+              value={
+                stats.required
+              }
+            />
+
+            <Metric
+              label="الموزع"
+              value={
+                stats.assigned
+              }
+            />
+
+            <Metric
+              label="المتبقي"
+              value={
+                stats.remaining
+              }
+            />
+
+            <Metric
+              label="إسنادات مشتركة"
+              value={
+                stats.sharedRows
+              }
+            />
+
+            <Metric
+              label="تجاوزات المعلمين"
+              value={
+                stats.overloaded
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      {message ? (
+        <div
+          className={[
+            "rounded-2xl border px-5 py-4 text-sm font-bold",
+            message.tone ===
+            "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : message.tone ===
+                  "error"
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-sky-200 bg-sky-50 text-sky-800",
+          ].join(" ")}
+        >
+          {message.text}
+        </div>
+      ) : null}
+
+      <section className="sticky top-3 z-30 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-xl">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <input
+            value={search}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
+            placeholder="ابحث بفصل أو مادة أو معلم..."
+            className="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 outline-none focus:border-teal-500"
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setViewMode(
+                  "GRID",
+                )
+              }
+              className={[
+                "h-10 rounded-xl px-3 text-xs font-black",
+                viewMode ===
+                "GRID"
+                  ? "bg-slate-950 text-white"
+                  : "border border-slate-200 bg-white text-slate-600",
+              ].join(" ")}
+            >
+              عرض شبكي
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setViewMode(
+                  "LIST",
+                )
+              }
+              className={[
+                "h-10 rounded-xl px-3 text-xs font-black",
+                viewMode ===
+                "LIST"
+                  ? "bg-slate-950 text-white"
+                  : "border border-slate-200 bg-white text-slate-600",
+              ].join(" ")}
+            >
+              عرض قائمة
+            </button>
+
+            {(
+              [
+                [
+                  "ALL",
+                  "الكل",
+                ],
+                [
+                  "UNASSIGNED",
+                  "غير المسند",
+                ],
+                [
+                  "SHARED",
+                  "المشترك",
+                ],
+                [
+                  "OVERLOADED",
+                  "التجاوزات",
+                ],
+              ] as const
+            ).map(
+              ([
+                value,
+                label,
+              ]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setFilterMode(
+                      value,
+                    )
+                  }
+                  className={[
+                    "h-10 rounded-xl px-3 text-xs font-black",
+                    filterMode ===
+                    value
+                      ? "bg-teal-700 text-white"
+                      : "border border-slate-200 bg-white text-slate-600",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[270px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-24 xl:self-start">
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div>
+              <h2 className="font-black text-slate-950">
+                المعلمون
+              </h2>
+
+              <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                اختر معلماً ثم اضغط الخلية لإضافته للمقرر.
+                الضغط مرة ثانية يزيل مشاركة هذا المعلم فقط.
+              </p>
+            </div>
+
+            {selectedTeacherId ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedTeacherId(
+                    null,
+                  )
+                }
+                className="mt-3 w-full rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-black text-teal-700"
+              >
+                إنهاء الإسناد السريع
+              </button>
+            ) : null}
+
+            <div className="mt-4 max-h-[68vh] space-y-2 overflow-y-auto pl-1">
+              {teachers.map(
+                (teacher) => {
+                  const load =
+                    projectedLoads.get(
+                      teacher.id,
+                    ) ?? 0;
+
+                  const remaining =
+                    teacher.maxWeeklyLoad -
+                    load;
+
+                  const selected =
+                    selectedTeacherId ===
+                    teacher.id;
+
+                  return (
+                    <button
+                      key={
+                        teacher.id
+                      }
+                      type="button"
+                      onClick={() =>
+                        setSelectedTeacherId(
+                          selected
+                            ? null
+                            : teacher.id,
+                        )
+                      }
+                      className={[
+                        "w-full rounded-2xl border p-3 text-right transition",
+                        selected
+                          ? "border-teal-500 bg-teal-50 ring-2 ring-teal-200"
+                          : remaining < 0
+                            ? "border-rose-200 bg-rose-50"
+                            : "border-slate-200 bg-slate-50 hover:border-teal-300",
+                      ].join(" ")}
+                    >
+                      <div className="flex justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate font-black text-slate-900">
+                            {teacher.name}
+                          </div>
+
+                          <div className="truncate text-[11px] text-slate-500">
+                            {teacher.specialty ||
+                              "بدون تخصص"}
+                          </div>
+                        </div>
+
+                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-teal-700">
+                          {load}/
+                          {
+                            teacher.maxWeeklyLoad
+                          }
+                        </span>
+                      </div>
+
+                      <div className="mt-3">
+                        <ProgressBar
+                          value={
+                            teacher.maxWeeklyLoad >
+                            0
+                              ? (
+                                  load /
+                                  teacher.maxWeeklyLoad
+                                ) *
+                                100
+                              : 0
+                          }
+                          danger={
+                            remaining <
+                            0
+                          }
+                        />
+                      </div>
+
+                      <div
+                        className={[
+                          "mt-2 text-[10px] font-black",
+                          remaining < 0
+                            ? "text-rose-700"
+                            : "text-teal-700",
+                        ].join(" ")}
+                      >
+                        {remaining < 0
+                          ? `متجاوز ${Math.abs(
+                              remaining,
+                            )}`
+                          : `متبقي ${remaining}`}
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          </section>
+        </aside>
+
+        <main className="min-w-0">
+          {selectedTeacherId ? (
+            <div className="mb-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
+              <div className="font-black text-teal-900">
+                الإسناد السريع مفعّل
+              </div>
+
+              <div className="mt-1 text-xs text-teal-700">
+                الضغط يشارك المعلم في المقرر، والضغط مرة أخرى يلغي مشاركته فقط.
+              </div>
+            </div>
+          ) : null}
+
+          {viewMode ===
+          "GRID" ? (
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-auto">
+                <table className="min-w-max border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th className="sticky right-0 top-0 z-30 min-w-44 border-b border-l border-slate-200 bg-slate-950 px-4 py-3 text-right text-xs font-black text-white">
+                        الفصل
+                      </th>
+
+                      {subjects.map(
+                        (subject) => (
+                          <th
+                            key={
+                              subject.id
+                            }
+                            className="sticky top-0 z-20 min-w-44 border-b border-l border-slate-200 bg-slate-950 px-3 py-3 text-center text-xs font-black text-white"
+                          >
+                            {subject.name}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {visibleClasses.map(
+                      (classItem) => (
+                        <tr
+                          key={
+                            classItem.id
+                          }
+                        >
+                          <td className="sticky right-0 z-10 border-b border-l border-slate-200 bg-white px-4 py-3">
+                            <div className="font-black text-slate-900">
+                              {classItem.name}
+                            </div>
+                          </td>
+
+                          {subjects.map(
+                            (subject) => {
+                              const row =
+                                classSubjectByKey.get(
+                                  rowKey(
+                                    classItem.id,
+                                    subject.id,
+                                  ),
+                                );
+
+                              if (!row) {
+                                return (
+                                  <td
+                                    key={
+                                      subject.id
+                                    }
+                                    className="border-b border-l border-slate-100 bg-slate-100/70 p-2"
+                                  >
+                                    <div className="flex min-h-24 items-center justify-center text-slate-300">
+                                      —
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              const shares =
+                                drafts[
+                                  row.id
+                                ] ?? [];
+
+                              const total =
+                                shares.reduce(
+                                  (
+                                    sum,
+                                    share,
+                                  ) =>
+                                    sum +
+                                    share.assignedLessons,
+                                  0,
+                                );
+
+                              const remaining =
+                                row.weeklyLessons -
+                                total;
+
+                              const shared =
+                                shares.length >
+                                1;
+
+                              const changed =
+                                changedRows.has(
+                                  row.id,
+                                );
+
+                              const selectedInside =
+                                Boolean(
+                                  selectedTeacherId &&
+                                    shares.some(
+                                      (
+                                        share,
+                                      ) =>
+                                        share.teacherId ===
+                                        selectedTeacherId,
+                                    ),
+                                );
+
+                              return (
+                                <td
+                                  key={
+                                    subject.id
+                                  }
+                                  className="border-b border-l border-slate-100 p-2 align-top"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleQuickShare(
+                                        row,
+                                      )
+                                    }
+                                    className={[
+                                      "relative min-h-24 w-full rounded-xl border p-3 text-right transition",
+                                      !cellVisible(
+                                        row,
+                                      )
+                                        ? "opacity-25"
+                                        : selectedInside
+                                          ? "border-teal-500 bg-teal-50 ring-2 ring-teal-200"
+                                          : shared
+                                            ? "border-violet-200 bg-violet-50 hover:border-violet-400"
+                                            : shares.length >
+                                                0
+                                              ? "border-emerald-200 bg-emerald-50 hover:border-emerald-400"
+                                              : "border-slate-200 bg-white hover:border-teal-400",
+                                    ].join(" ")}
+                                  >
+                                    {changed ? (
+                                      <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-amber-500" />
+                                    ) : null}
+
+                                    {shared ? (
+                                      <span className="absolute right-2 top-2 rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-black text-violet-700">
+                                        مشترك
+                                      </span>
+                                    ) : null}
+
+                                    {shares.length >
+                                    0 ? (
+                                      <div className="space-y-1.5 pt-3">
+                                        {shares
+                                          .slice(
+                                            0,
+                                            3,
+                                          )
+                                          .map(
+                                            (
+                                              share,
+                                            ) => {
+                                              const teacher =
+                                                getTeacher(
+                                                  share.teacherId,
+                                                );
+
+                                              return (
+                                                <div
+                                                  key={
+                                                    share.teacherId
+                                                  }
+                                                  className="flex items-center justify-between gap-2 rounded-lg bg-white/80 px-2 py-1"
+                                                >
+                                                  <span className="max-w-24 truncate text-[11px] font-black text-slate-800">
+                                                    {teacher?.name ??
+                                                      "معلم"}
+                                                  </span>
+
+                                                  <span className="shrink-0 text-[10px] font-black text-teal-700">
+                                                    {
+                                                      share.assignedLessons
+                                                    }
+                                                  </span>
+                                                </div>
+                                              );
+                                            },
+                                          )}
+
+                                        {shares.length >
+                                        3 ? (
+                                          <div className="text-[10px] font-black text-violet-700">
+                                            +
+                                            {shares.length -
+                                              3}{" "}
+                                            معلمين
+                                          </div>
+                                        ) : null}
+
+                                        <div className="mt-2 flex items-center justify-between text-[10px]">
+                                          <span
+                                            className={[
+                                              "font-black",
+                                              remaining ===
+                                              0
+                                                ? "text-emerald-700"
+                                                : "text-amber-700",
+                                            ].join(" ")}
+                                          >
+                                            {total}/
+                                            {
+                                              row.weeklyLessons
+                                            }
+                                          </span>
+
+                                          <span className="text-slate-500">
+                                            {shared
+                                              ? `${shares.length} معلمين`
+                                              : "معلم واحد"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex min-h-16 flex-col items-center justify-center text-center">
+                                        <div className="text-xs font-black text-slate-400">
+                                          غير مسند
+                                        </div>
+
+                                        <div className="mt-1 text-[10px] text-slate-400">
+                                          {
+                                            row.weeklyLessons
+                                          }{" "}
+                                          حصص
+                                        </div>
+                                      </div>
+                                    )}
+                                  </button>
+                                </td>
+                              );
+                            },
+                          )}
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : (
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="divide-y divide-slate-100">
+                {classSubjects.map(
+                  (row) => {
+                    const shares =
+                      drafts[
+                        row.id
+                      ] ?? [];
+
+                    if (
+                      !cellVisible(
+                        row,
+                      )
+                    ) {
+                      return null;
+                    }
+
+                    return (
+                      <button
+                        key={
+                          row.id
+                        }
+                        type="button"
+                        onClick={() => {
+                          setSelectedRowId(
+                            row.id,
+                          );
+
+                          setAddTeacherId(
+                            "",
+                          );
+                        }}
+                        className="grid w-full gap-3 px-5 py-4 text-right hover:bg-slate-50 md:grid-cols-[1fr_1fr_2fr_100px]"
+                      >
+                        <div>
+                          <div className="text-xs text-slate-400">
+                            الفصل
+                          </div>
+
+                          <div className="font-black">
+                            {
+                              row.class
+                                .name
+                            }
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-xs text-slate-400">
+                            المادة
+                          </div>
+
+                          <div className="font-black">
+                            {
+                              row.subject
+                                .name
+                            }
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-xs text-slate-400">
+                            المعلمون
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {shares.length >
+                            0 ? (
+                              shares.map(
+                                (
+                                  share,
+                                ) => (
+                                  <span
+                                    key={
+                                      share.teacherId
+                                    }
+                                    className="rounded-lg bg-teal-50 px-2 py-1 text-xs font-bold text-teal-700"
+                                  >
+                                    {
+                                      getTeacher(
+                                        share.teacherId,
+                                      )
+                                        ?.name
+                                    }{" "}
+                                    (
+                                    {
+                                      share.assignedLessons
+                                    }
+                                    )
+                                  </span>
+                                ),
+                              )
+                            ) : (
+                              <span className="text-slate-400">
+                                غير مسند
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-slate-50 p-2 text-center font-black">
+                          {rowTotal(
+                            row.id,
+                          )}
+                          /
+                          {
+                            row.weeklyLessons
+                          }
+                        </div>
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+
+      {selectedRow ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/30 p-3 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs font-black text-violet-700">
+                  مشاركة الإسناد
+                </div>
+
+                <h3 className="mt-2 text-xl font-black text-slate-950">
+                  {
+                    selectedRow.subject
+                      .name
+                  }
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {
+                    selectedRow.class
+                      .name
+                  }
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRowId(
+                    null,
+                  );
+
+                  setAddTeacherId(
+                    "",
+                  );
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            {(() => {
+              const shares =
+                drafts[
+                  selectedRow.id
+                ] ?? [];
+
+              const total =
+                shares.reduce(
+                  (sum, share) =>
+                    sum +
+                    share.assignedLessons,
+                  0,
+                );
+
+              const remaining =
+                selectedRow.weeklyLessons -
+                total;
+
+              const overflow =
+                remaining < 0;
+
+              return (
+                <>
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    <Metric
+                      label="المطلوب"
+                      value={
+                        selectedRow.weeklyLessons
+                      }
+                    />
+
+                    <Metric
+                      label="الموزع"
+                      value={
+                        total
+                      }
+                    />
+
+                    <Metric
+                      label="المتبقي"
+                      value={
+                        remaining
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-5 space-y-2">
+                    {shares.length ===
+                    0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        لم يتم إسناد المقرر لأي معلم.
+                      </div>
+                    ) : (
+                      shares.map(
+                        (share) => {
+                          const teacher =
+                            getTeacher(
+                              share.teacherId,
+                            );
+
+                          const load =
+                            projectedLoads.get(
+                              share.teacherId,
+                            ) ?? 0;
+
+                          return (
+                            <div
+                              key={
+                                share.teacherId
+                              }
+                              className="grid grid-cols-[1fr_90px_auto] items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate font-black text-slate-900">
+                                  {teacher?.name ??
+                                    "معلم"}
+                                </div>
+
+                                <div className="mt-1 text-[11px] text-slate-500">
+                                  {teacher?.specialty ||
+                                    "بدون تخصص"}
+                                  {" • "}
+                                  الحمل{" "}
+                                  {load}/
+                                  {teacher?.maxWeeklyLoad ??
+                                    0}
+                                </div>
+                              </div>
+
+                              <input
+                                type="number"
+                                min={1}
+                                max={
+                                  selectedRow.weeklyLessons
+                                }
+                                value={
+                                  share.assignedLessons
+                                }
+                                onChange={(event) =>
+                                  updateShareLessons(
+                                    selectedRow.id,
+                                    share.teacherId,
+                                    Number(
+                                      event.target.value,
+                                    ) || 1,
+                                  )
+                                }
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-center font-black outline-none focus:border-teal-500"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeShare(
+                                    selectedRow.id,
+                                    share.teacherId,
+                                  )
+                                }
+                                className="h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700"
+                              >
+                                إزالة
+                              </button>
+                            </div>
+                          );
+                        },
+                      )
+                    )}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                    <div className="font-black text-violet-900">
+                      إضافة معلم مشارك
+                    </div>
+
+                    <div className="mt-3 flex gap-2">
+                      <select
+                        value={
+                          addTeacherId
+                        }
+                        onChange={(event) =>
+                          setAddTeacherId(
+                            event.target.value,
+                          )
+                        }
+                        className="h-11 flex-1 rounded-xl border border-violet-200 bg-white px-3 font-bold outline-none"
+                      >
+                        <option value="">
+                          اختر المعلم
+                        </option>
+
+                        {teachers
+                          .filter(
+                            (teacher) =>
+                              !shares.some(
+                                (share) =>
+                                  share.teacherId ===
+                                  teacher.id,
+                              ),
+                          )
+                          .map(
+                            (teacher) => (
+                              <option
+                                key={
+                                  teacher.id
+                                }
+                                value={
+                                  teacher.id
+                                }
+                              >
+                                {
+                                  teacher.name
+                                }{" "}
+                                —{" "}
+                                {
+                                  projectedLoads.get(
+                                    teacher.id,
+                                  ) ??
+                                  0
+                                }
+                                /
+                                {
+                                  teacher.maxWeeklyLoad
+                                }
+                              </option>
+                            ),
+                          )}
+                      </select>
+
+                      <button
+                        type="button"
+                        disabled={
+                          !addTeacherId ||
+                          remaining <=
+                            0
+                        }
+                        onClick={() =>
+                          addShare(
+                            selectedRow,
+                          )
+                        }
+                        className="h-11 rounded-xl bg-violet-700 px-4 text-xs font-black text-white disabled:opacity-40"
+                      >
+                        إضافة للمقرر
+                      </button>
+                    </div>
+
+                    {remaining <=
+                    0 ? (
+                      <div className="mt-2 text-[11px] font-bold text-amber-700">
+                        الحصص موزعة بالكامل. خفّض حصص أحد المعلمين لإضافة مشارك جديد.
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-[11px] text-violet-700">
+                        عند الإضافة سيأخذ المعلم الحصص المتبقية، ويمكنك تعديل العدد بعدها.
+                      </div>
+                    )}
+                  </div>
+
+                  {overflow ? (
+                    <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700">
+                      مجموع الحصص أكبر من المطلوب بـ{" "}
+                      {Math.abs(
+                        remaining,
+                      )}{" "}
+                      حصة.
+                    </div>
+                  ) : null}
+
+                  <div className="mt-6 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRowShares(
+                          selectedRow.id,
+                          [],
+                        )
+                      }
+                      className="h-11 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-black text-rose-700"
+                    >
+                      إلغاء كل الإسنادات
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        overflow ||
+                        busyRowId ===
+                          selectedRow.id
+                      }
+                      onClick={
+                        saveSelectedRow
+                      }
+                      className="h-11 flex-1 rounded-xl bg-teal-700 px-5 text-sm font-black text-white disabled:opacity-40"
+                    >
+                      {busyRowId ===
+                      selectedRow.id
+                        ? "جاري الحفظ..."
+                        : "حفظ مشاركة الإسناد"}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="fixed bottom-4 left-4 right-4 z-40 md:right-auto md:w-[540px]">
+        <div className="rounded-2xl bg-slate-950/95 p-3 text-white shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="font-black">
+                {changedRows.size >
+                0
+                  ? `${changedRows.size} تغييرات غير محفوظة`
+                  : "جميع التغييرات محفوظة"}
+              </div>
+
+              <div className="mt-1 text-[11px] text-slate-300">
+                {stats.assigned} من{" "}
+                {stats.required} حصة
+                {" • "}
+                {stats.sharedRows} مقررات مشتركة
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={
+                savingAll ||
+                changedRows.size ===
+                  0
+              }
+              onClick={
+                saveAll
+              }
+              className="h-11 rounded-xl bg-teal-500 px-5 text-sm font-black text-white disabled:bg-slate-700 disabled:text-slate-400"
+            >
+              {savingAll
+                ? "جاري الحفظ..."
+                : "حفظ الكل"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+      <div className="text-xs font-bold text-slate-500">
+        {label}
+      </div>
+
+      <div className="mt-1 text-2xl font-black text-slate-950">
+        {value}
+      </div>
+    </div>
+  );
+}
