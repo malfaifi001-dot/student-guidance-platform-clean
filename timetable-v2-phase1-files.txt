@@ -1,0 +1,2688 @@
+
+==================================================
+FILE: app\dashboard\timetable-v2\new\page.tsx
+==================================================
+import {
+  TimetableV2ProjectSetupWizard,
+} from "@/components/timetable-v2/project-setup-wizard";
+
+export default function TimetableV2NewProjectPage() {
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <TimetableV2ProjectSetupWizard />
+    </main>
+  );
+}
+
+==================================================
+FILE: app\dashboard\timetable-v2\[projectId]\page.tsx
+==================================================
+import {
+  notFound,
+} from "next/navigation";
+
+import {
+  TimetableV2ProjectHome,
+} from "@/components/timetable-v2/project-home";
+
+import {
+  requireTimetablePageAccess,
+} from "@/lib/timetable/timetable-access";
+
+import {
+  getTimetableV2ProjectDashboard,
+} from "@/lib/timetable-v2/project-dashboard-service";
+
+export const dynamic =
+  "force-dynamic";
+
+type PageProps = {
+  params: Promise<{
+    projectId: string;
+  }>;
+};
+
+export default async function TimetableV2ProjectPage({
+  params,
+}: PageProps) {
+  const access =
+    await requireTimetablePageAccess();
+
+  const {
+    projectId,
+  } = await params;
+
+  let data;
+
+  try {
+    data =
+      await getTimetableV2ProjectDashboard(
+        projectId,
+        access.schoolAccountId,
+      );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "PROJECT_NOT_FOUND"
+    ) {
+      notFound();
+    }
+
+    throw error;
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <TimetableV2ProjectHome
+        data={JSON.parse(
+          JSON.stringify(
+            data,
+          ),
+        )}
+      />
+    </main>
+  );
+}
+
+==================================================
+FILE: components\timetable-v2\project-setup-wizard.tsx
+==================================================
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  TIMETABLE_V2_CURRICULUM_TRACK_LABELS,
+  TIMETABLE_V2_DAY_LABELS,
+  TIMETABLE_V2_DEFAULT_SECTION_NAMES,
+  TIMETABLE_V2_DEFAULT_STUDY_DAYS,
+  TIMETABLE_V2_STAGES,
+  createTimetableV2GradeSetups,
+  createTimetableV2ProjectBlueprint,
+  findTimetableV2CurriculumPlans,
+  getTimetableV2DefaultCurriculumPlan,
+  getTimetableV2Grade,
+  type TimetableV2CurriculumPlan,
+  type TimetableV2GradeSetup,
+  type TimetableV2SemesterId,
+  type TimetableV2StageId,
+  type TimetableV2StudyDayId,
+} from "@/lib/timetable-v2";
+
+type SetupState = {
+  name: string;
+  academicYear: string;
+  semester: TimetableV2SemesterId;
+
+  stageIds: TimetableV2StageId[];
+
+  teacherCount: number;
+
+  weeklyPeriodTarget: number | null;
+
+  studyDays: TimetableV2StudyDayId[];
+
+  periodsPerDay: number;
+
+  grades: TimetableV2GradeSetup[];
+};
+
+type ClassPlanSelections = Record<
+  string,
+  string
+>;
+
+type ClassPlanResolution = {
+  classKey: string;
+  gradeId: string;
+  gradeName: string;
+  stageId: TimetableV2StageId;
+  sectionIndex: number;
+  sectionName: string;
+  className: string;
+  planSourceId: string;
+  plan: TimetableV2CurriculumPlan;
+};
+
+type ProjectPreview = {
+  classesCount: number;
+  weeklyCapacityPerClass: number;
+  totalAvailableSlots: number;
+  totalRequiredPeriods: number;
+  remainingSlots: number;
+  subjectRowsCount: number;
+  classSelections: Array<{
+    gradeId: string;
+    gradeName: string;
+    sectionIndex: number;
+    sectionName: string;
+    className: string;
+    planSourceId: string;
+    planName: string;
+  }>;
+};
+
+function getClassSetupKey(
+  gradeId: string,
+  sectionIndex: number,
+) {
+  return `${gradeId}:${sectionIndex}`;
+}
+
+const CURRENT_ACADEMIC_YEAR = "1448";
+
+const SEMESTER_OPTIONS: Array<{
+  id: TimetableV2SemesterId;
+  name: string;
+}> = [
+  {
+    id: "FIRST",
+    name: "الفصل الدراسي الأول",
+  },
+  {
+    id: "SECOND",
+    name: "الفصل الدراسي الثاني",
+  },
+];
+
+function ToggleCard({
+  active,
+  title,
+  subtitle,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  subtitle?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-2xl border p-4 text-right transition",
+        active
+          ? "border-teal-500 bg-teal-50 shadow-sm"
+          : "border-slate-200 bg-white hover:border-teal-300 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-bold text-slate-900">
+            {title}
+          </div>
+
+          {subtitle ? (
+            <div className="mt-1 text-xs text-slate-500">
+              {subtitle}
+            </div>
+          ) : null}
+        </div>
+
+        <span
+          className={[
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
+            active
+              ? "border-teal-600 bg-teal-600 text-white"
+              : "border-slate-300 bg-white text-transparent",
+          ].join(" ")}
+        >
+          ✓
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?:
+    | "default"
+    | "success"
+    | "warning";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50"
+      : tone === "warning"
+        ? "border-amber-200 bg-amber-50"
+        : "border-slate-200 bg-white";
+
+  return (
+    <div
+      className={[
+        "rounded-2xl border p-4",
+        toneClass,
+      ].join(" ")}
+    >
+      <div className="text-xs font-medium text-slate-500">
+        {label}
+      </div>
+
+      <div className="mt-1 text-2xl font-black text-slate-900">
+        {value}
+      </div>
+
+      {hint ? (
+        <div className="mt-1 text-xs text-slate-500">
+          {hint}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SubjectPlanTable({
+  plan,
+}: {
+  plan: TimetableV2CurriculumPlan;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="font-bold text-slate-900">
+            {plan.sourceName}
+          </div>
+
+          <div className="mt-1 text-xs text-slate-500">
+            {
+              TIMETABLE_V2_CURRICULUM_TRACK_LABELS[
+                plan.trackId
+              ]
+            }
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-teal-50 px-3 py-1 font-bold text-teal-700">
+            {plan.totalWeeklyPeriods} حصة
+            أسبوعيًا لهذا
+            الفصل
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead className="bg-white text-xs text-slate-500">
+            <tr className="border-b border-slate-100">
+              <th className="px-4 py-3 text-right">
+                المادة
+              </th>
+
+              <th className="px-3 py-3 text-center">
+                مفردة
+              </th>
+
+              <th className="px-3 py-3 text-center">
+                متتالية
+              </th>
+
+              <th className="px-3 py-3 text-center">
+                الحصص
+                الأسبوعية
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {plan.subjects.map(
+              (subject, index) => (
+                <tr
+                  key={`${subject.sourceName}-${index}`}
+                  className="border-b border-slate-50 last:border-b-0"
+                >
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-slate-800">
+                      {
+                        subject.canonicalName
+                      }
+                    </div>
+
+                    {subject.sourceName !==
+                    subject.canonicalName ? (
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        المصدر:{" "}
+                        {subject.sourceName}
+                      </div>
+                    ) : null}
+                  </td>
+
+                  <td className="px-3 py-3 text-center font-medium text-slate-600">
+                    {subject.oddClasses}
+                  </td>
+
+                  <td className="px-3 py-3 text-center font-medium text-slate-600">
+                    {subject.evenClasses}
+                  </td>
+
+                  <td className="px-3 py-3 text-center font-black text-teal-700">
+                    {
+                      subject.weeklyPeriods
+                    }
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+
+          <tfoot>
+            <tr className="bg-slate-50 font-bold">
+              <td className="px-4 py-3">
+                الإجمالي
+              </td>
+
+              <td />
+
+              <td />
+
+              <td className="px-3 py-3 text-center text-teal-700">
+                {
+                  plan.totalWeeklyPeriods
+                }
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export function TimetableV2ProjectSetupWizard() {
+  const router = useRouter();
+  const [state, setState] =
+    useState<SetupState>({
+      name: "جدول المدرسة",
+      academicYear:
+        CURRENT_ACADEMIC_YEAR,
+      semester: "FIRST",
+      stageIds: [],
+      teacherCount: 1,
+      weeklyPeriodTarget: null,
+      studyDays: [
+        ...TIMETABLE_V2_DEFAULT_STUDY_DAYS,
+      ],
+      periodsPerDay: 7,
+      grades: [],
+    });
+
+  const [
+    classPlanSelections,
+    setClassPlanSelections,
+  ] = useState<ClassPlanSelections>(
+    {},
+  );
+
+  const [
+    previewError,
+    setPreviewError,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    preview,
+    setPreview,
+  ] = useState<ProjectPreview | null>(
+    null,
+  );
+
+  const [
+    creating,
+    setCreating,
+  ] = useState(false);
+
+  const toggleStage = (
+    stageId: TimetableV2StageId,
+  ) => {
+    setState((current) => {
+      const exists =
+        current.stageIds.includes(
+          stageId,
+        );
+
+      const stageIds = exists
+        ? current.stageIds.filter(
+            (item) =>
+              item !== stageId,
+          )
+        : [
+            ...current.stageIds,
+            stageId,
+          ];
+
+      const previousSections =
+        new Map(
+          current.grades.map(
+            (grade) => [
+              grade.gradeId,
+              grade.sectionNames,
+            ],
+          ),
+        );
+
+      const grades =
+        createTimetableV2GradeSetups(
+          stageIds,
+        ).map((grade) => ({
+          ...grade,
+          sectionNames:
+            previousSections.get(
+              grade.gradeId,
+            ) ??
+            grade.sectionNames,
+        }));
+
+      return {
+        ...current,
+        stageIds,
+        grades,
+      };
+    });
+
+    setPreview(null);
+  };
+
+  const toggleStudyDay = (
+    dayId: TimetableV2StudyDayId,
+  ) => {
+    setState((current) => ({
+      ...current,
+      studyDays:
+        current.studyDays.includes(
+          dayId,
+        )
+          ? current.studyDays.filter(
+              (item) =>
+                item !== dayId,
+            )
+          : [
+              ...current.studyDays,
+              dayId,
+            ],
+    }));
+
+    setPreview(null);
+  };
+
+  const updateSectionCount = (
+    gradeId: string,
+    count: number,
+  ) => {
+    const safeCount = Math.max(
+      1,
+      Math.min(
+        TIMETABLE_V2_DEFAULT_SECTION_NAMES.length,
+        count,
+      ),
+    );
+
+    setState((current) => ({
+      ...current,
+      grades: current.grades.map(
+        (grade) => {
+          if (
+            grade.gradeId !==
+            gradeId
+          ) {
+            return grade;
+          }
+
+          const existing =
+            grade.sectionNames;
+
+          const sectionNames =
+            Array.from(
+              {
+                length: safeCount,
+              },
+              (_, index) => {
+                const defaultName =
+                  TIMETABLE_V2_DEFAULT_SECTION_NAMES[
+                    index
+                  ];
+
+                return existing[
+                  index
+                ]?.trim()
+                  ? existing[
+                      index
+                    ]
+                  : defaultName;
+              },
+            );
+
+          return {
+            ...grade,
+            sectionNames,
+          };
+        },
+      ),
+    }));
+
+    setPreview(null);
+  };
+
+  const renameSection = (
+    gradeId: string,
+    index: number,
+    value: string,
+  ) => {
+    setState((current) => ({
+      ...current,
+      grades: current.grades.map(
+        (grade) => {
+          if (
+            grade.gradeId !==
+            gradeId
+          ) {
+            return grade;
+          }
+
+          const sectionNames = [
+            ...grade.sectionNames,
+          ];
+
+          sectionNames[index] =
+            value;
+
+          return {
+            ...grade,
+            sectionNames,
+          };
+        },
+      ),
+    }));
+
+    setPreview(null);
+  };
+
+  const curriculumOptions =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          TimetableV2CurriculumPlan[]
+        >();
+
+      for (
+        const gradeSetup of
+        state.grades
+      ) {
+        const grade =
+          getTimetableV2Grade(
+            gradeSetup.gradeId,
+          );
+
+        if (!grade) {
+          map.set(
+            gradeSetup.gradeId,
+            [],
+          );
+
+          continue;
+        }
+
+        const plans =
+          findTimetableV2CurriculumPlans(
+            {
+              gradeId:
+                gradeSetup.gradeId,
+            },
+          ).filter((plan) => {
+            if (
+              grade.stageId !==
+              "HIGH"
+            ) {
+              return true;
+            }
+
+            if (
+              plan.semesterId ===
+              null
+            ) {
+              return true;
+            }
+
+            return (
+              plan.semesterId ===
+              state.semester
+            );
+          });
+
+        map.set(
+          gradeSetup.gradeId,
+          plans,
+        );
+      }
+
+      return map;
+    }, [
+      state.grades,
+      state.semester,
+    ]);
+
+  useEffect(() => {
+    setClassPlanSelections(
+      (current) => {
+        const next: ClassPlanSelections =
+          {};
+
+        for (
+          const gradeSetup of
+          state.grades
+        ) {
+          const grade =
+            getTimetableV2Grade(
+              gradeSetup.gradeId,
+            );
+
+          const options =
+            curriculumOptions.get(
+              gradeSetup.gradeId,
+            ) ?? [];
+
+          for (
+            let sectionIndex = 0;
+            sectionIndex <
+            gradeSetup.sectionNames
+              .length;
+            sectionIndex += 1
+          ) {
+            const classKey =
+              getClassSetupKey(
+                gradeSetup.gradeId,
+                sectionIndex,
+              );
+
+            const currentSourceId =
+              current[classKey];
+
+            const currentStillValid =
+              options.some(
+                (plan) =>
+                  plan.sourceId ===
+                  currentSourceId,
+              );
+
+            if (
+              currentSourceId &&
+              currentStillValid
+            ) {
+              next[classKey] =
+                currentSourceId;
+
+              continue;
+            }
+
+            const defaultPlan =
+              getTimetableV2DefaultCurriculumPlan(
+                gradeSetup.gradeId,
+                grade?.stageId ===
+                  "HIGH"
+                  ? state.semester
+                  : null,
+              );
+
+            if (
+              defaultPlan &&
+              options.some(
+                (plan) =>
+                  plan.sourceId ===
+                  defaultPlan.sourceId,
+              )
+            ) {
+              next[classKey] =
+                defaultPlan.sourceId;
+
+              continue;
+            }
+
+            if (
+              options.length > 0
+            ) {
+              next[classKey] =
+                options[0].sourceId;
+            }
+          }
+        }
+
+        return next;
+      },
+    );
+
+    setPreview(null);
+  }, [
+    curriculumOptions,
+    state.grades,
+    state.semester,
+  ]);
+
+  const classResolutions =
+    useMemo(() => {
+      const result: ClassPlanResolution[] =
+        [];
+
+      for (
+        const gradeSetup of
+        state.grades
+      ) {
+        const grade =
+          getTimetableV2Grade(
+            gradeSetup.gradeId,
+          );
+
+        if (!grade) {
+          continue;
+        }
+
+        const options =
+          curriculumOptions.get(
+            gradeSetup.gradeId,
+          ) ?? [];
+
+        gradeSetup.sectionNames.forEach(
+          (sectionName, sectionIndex) => {
+            const classKey =
+              getClassSetupKey(
+                gradeSetup.gradeId,
+                sectionIndex,
+              );
+
+            const sourceId =
+              classPlanSelections[
+                classKey
+              ];
+
+            if (!sourceId) {
+              return;
+            }
+
+            const plan =
+              options.find(
+                (item) =>
+                  item.sourceId ===
+                  sourceId,
+              );
+
+            if (!plan) {
+              return;
+            }
+
+            result.push({
+              classKey,
+              gradeId: grade.id,
+              gradeName: grade.name,
+              stageId: grade.stageId,
+              sectionIndex,
+              sectionName,
+              className: `${grade.name} ${sectionName}`,
+              planSourceId:
+                plan.sourceId,
+              plan,
+            });
+          },
+        );
+      }
+
+      return result;
+    }, [
+      classPlanSelections,
+      curriculumOptions,
+      state.grades,
+    ]);
+
+  const metrics = useMemo(() => {
+    const classesCount =
+      state.grades.reduce(
+        (sum, grade) =>
+          sum +
+          grade.sectionNames
+            .length,
+        0,
+      );
+
+    const weeklyCapacity =
+      state.studyDays.length *
+      state.periodsPerDay;
+
+    let requiredPeriods = 0;
+
+    for (
+      const resolution of
+      classResolutions
+    ) {
+      requiredPeriods +=
+        resolution.plan
+          .totalWeeklyPeriods;
+    }
+
+    const totalAvailableSlots =
+      classesCount *
+      weeklyCapacity;
+
+    return {
+      stagesCount:
+        state.stageIds.length,
+
+      gradesCount:
+        state.grades.length,
+
+      classesCount,
+
+      weeklyCapacity,
+
+      totalAvailableSlots,
+
+      requiredPeriods,
+
+      remainingSlots:
+        totalAvailableSlots -
+        requiredPeriods,
+    };
+  }, [
+    classResolutions,
+    state,
+  ]);
+
+  const previewProject = () => {
+    try {
+      setPreviewError(null);
+
+      const expectedClassCount =
+        state.grades.reduce(
+          (sum, grade) =>
+            sum +
+            grade.sectionNames
+              .length,
+          0,
+        );
+
+      if (
+        classResolutions.length !==
+        expectedClassCount
+      ) {
+        throw new Error(
+          "اختر خطة دراسية لكل فصل قبل متابعة إنشاء المشروع.",
+        );
+      }
+
+      const blueprint =
+        createTimetableV2ProjectBlueprint(
+          {
+            ...state,
+            semester:
+              state.semester ===
+              "FIRST"
+                ? "الفصل الدراسي الأول"
+                : "الفصل الدراسي الثاني",
+          },
+        );
+
+      let totalRequiredPeriods =
+        0;
+
+      let subjectRowsCount = 0;
+
+      const classSelections =
+        classResolutions.map(
+          (resolution) => {
+            totalRequiredPeriods +=
+              resolution.plan
+                .totalWeeklyPeriods;
+
+            subjectRowsCount +=
+              resolution.plan
+                .subjects.length;
+
+            return {
+              gradeId:
+                resolution.gradeId,
+
+              gradeName:
+                resolution.gradeName,
+
+              sectionIndex:
+                resolution.sectionIndex,
+
+              sectionName:
+                resolution.sectionName,
+
+              className:
+                resolution.className,
+
+              planSourceId:
+                resolution.planSourceId,
+
+              planName:
+                resolution.plan
+                  .sourceName,
+            };
+          },
+        );
+
+      const totalAvailableSlots =
+        blueprint.metrics
+          .totalSchoolClassSlotsPerWeek;
+
+      setPreview({
+        classesCount:
+          blueprint.metrics
+            .classesCount,
+
+        weeklyCapacityPerClass:
+          blueprint.metrics
+            .availablePeriodsPerClassPerWeek,
+
+        totalAvailableSlots,
+
+        totalRequiredPeriods,
+
+        remainingSlots:
+          totalAvailableSlots -
+          totalRequiredPeriods,
+
+        subjectRowsCount,
+
+        classSelections,
+      });
+
+      window.setTimeout(() => {
+        document
+          .getElementById(
+            "timetable-v2-final-preview",
+          )
+          ?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+      }, 50);
+    } catch (error) {
+      setPreviewError(
+        error instanceof Error
+          ? error.message
+          : "تعذر تجهيز المشروع.",
+      );
+    }
+  };
+
+  const createProject = async () => {
+    if (creating) {
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setPreviewError(null);
+
+      const expectedClassCount =
+        state.grades.reduce(
+          (sum, grade) =>
+            sum +
+            grade.sectionNames.length,
+          0,
+        );
+
+      if (
+        classResolutions.length !==
+        expectedClassCount
+      ) {
+        throw new Error(
+          "اختر خطة دراسية لكل فصل قبل إنشاء المشروع.",
+        );
+      }
+
+      const response = await fetch(
+        "/api/dashboard/principal/timetable-v2/projects",
+        {
+          method: "POST",
+
+          headers: {
+            "content-type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            name: state.name,
+
+            academicYear:
+              state.academicYear,
+
+            semester:
+              state.semester,
+
+            stageIds:
+              state.stageIds,
+
+            teacherCount:
+              state.teacherCount,
+
+            weeklyPeriodTarget:
+              state.weeklyPeriodTarget,
+
+            studyDays:
+              state.studyDays,
+
+            periodsPerDay:
+              state.periodsPerDay,
+
+            classes:
+              classResolutions.map(
+                (resolution) => ({
+                  gradeId:
+                    resolution.gradeId,
+
+                  sectionIndex:
+                    resolution.sectionIndex,
+
+                  sectionName:
+                    resolution.sectionName,
+
+                  planSourceId:
+                    resolution.planSourceId,
+                }),
+              ),
+          }),
+        },
+      );
+
+      const data =
+        await response
+          .json()
+          .catch(() => null);
+
+      if (
+        !response.ok ||
+        !data?.success ||
+        !data?.project?.id
+      ) {
+        throw new Error(
+          data?.error ||
+            "تعذر إنشاء المشروع.",
+        );
+      }
+
+      router.push(
+        `/dashboard/timetable-v2/${data.project.id}`,
+      );
+
+      router.refresh();
+    } catch (error) {
+      setPreviewError(
+        error instanceof Error
+          ? error.message
+          : "تعذر إنشاء المشروع.",
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div
+      dir="rtl"
+      className="mx-auto max-w-7xl space-y-6 pb-16"
+    >
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 bg-gradient-to-l from-teal-50 via-white to-cyan-50 px-6 py-7 lg:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-2 inline-flex rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-bold text-teal-700">
+                نظام الجدول الجديد
+              </div>
+
+              <h1 className="text-2xl font-black tracking-tight text-slate-950 lg:text-3xl">
+                إنشاء مشروع جدول
+                مدرسي
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+                اختر المراحل والفصول،
+                وسنجهز الخطط الدراسية
+                والمواد والحصص كبداية
+                قابلة للتعديل بالكامل.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-teal-100 bg-white/80 px-5 py-4">
+              <div className="text-xs font-medium text-slate-500">
+                سعة الفصل
+                الأسبوعية
+              </div>
+
+              <div className="mt-1 text-3xl font-black text-teal-700">
+                {
+                  metrics.weeklyCapacity
+                }
+              </div>
+
+              <div className="text-xs text-slate-400">
+                {
+                  state.studyDays
+                    .length
+                }{" "}
+                أيام ×{" "}
+                {
+                  state.periodsPerDay
+                }{" "}
+                حصص
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8 p-6 lg:p-8">
+          <section>
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900">
+                1. بيانات المشروع
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                هذه البيانات يمكن
+                تعديلها لاحقًا.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-700">
+                  اسم المشروع
+                </span>
+
+                <input
+                  value={state.name}
+                  onChange={(event) => {
+                    setState(
+                      (current) => ({
+                        ...current,
+                        name:
+                          event.target
+                            .value,
+                      }),
+                    );
+
+                    setPreview(null);
+                  }}
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-50"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-700">
+                  العام الدراسي
+                </span>
+
+                <input
+                  value={
+                    state.academicYear
+                  }
+                  onChange={(event) => {
+                    setState(
+                      (current) => ({
+                        ...current,
+                        academicYear:
+                          event.target
+                            .value,
+                      }),
+                    );
+
+                    setPreview(null);
+                  }}
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-50"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-700">
+                  الفصل الدراسي
+                </span>
+
+                <select
+                  value={
+                    state.semester
+                  }
+                  onChange={(event) => {
+                    setState(
+                      (current) => ({
+                        ...current,
+                        semester:
+                          event.target
+                            .value as TimetableV2SemesterId,
+                      }),
+                    );
+
+                    setPreview(null);
+                  }}
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-50"
+                >
+                  {SEMESTER_OPTIONS.map(
+                    (semester) => (
+                      <option
+                        key={
+                          semester.id
+                        }
+                        value={
+                          semester.id
+                        }
+                      >
+                        {
+                          semester.name
+                        }
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-700">
+                  عدد المعلمين
+                </span>
+
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={
+                    state.teacherCount
+                  }
+                  onChange={(event) => {
+                    setState(
+                      (current) => ({
+                        ...current,
+                        teacherCount:
+                          Number(
+                            event.target
+                              .value,
+                          ) || 0,
+                      }),
+                    );
+
+                    setPreview(null);
+                  }}
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-50"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900">
+                2. المراحل الدراسية
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                اختيار متعدد:
+                ابتدائي، متوسط، ثانوي
+                أو جميعها.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {TIMETABLE_V2_STAGES.map(
+                (stage) => (
+                  <ToggleCard
+                    key={stage.id}
+                    active={state.stageIds.includes(
+                      stage.id,
+                    )}
+                    title={stage.name}
+                    subtitle={`${stage.grades.length} صفوف`}
+                    onClick={() =>
+                      toggleStage(
+                        stage.id,
+                      )
+                    }
+                  />
+                ),
+              )}
+            </div>
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900">
+                3. أيام وحصص
+                الدراسة
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                الفسحات والأوقات
+                الدقيقة سنجهزها في
+                شاشة مستقلة بعد إنشاء
+                المشروع.
+              </p>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
+              <div className="flex flex-wrap gap-2">
+                {TIMETABLE_V2_DEFAULT_STUDY_DAYS.map(
+                  (dayId) => {
+                    const active =
+                      state.studyDays.includes(
+                        dayId,
+                      );
+
+                    return (
+                      <button
+                        key={dayId}
+                        type="button"
+                        onClick={() =>
+                          toggleStudyDay(
+                            dayId,
+                          )
+                        }
+                        className={[
+                          "min-w-28 rounded-xl border px-4 py-3 text-sm font-bold transition",
+                          active
+                            ? "border-teal-500 bg-teal-50 text-teal-800"
+                            : "border-slate-200 bg-white text-slate-500",
+                        ].join(" ")}
+                      >
+                        {
+                          TIMETABLE_V2_DAY_LABELS[
+                            dayId
+                          ]
+                        }
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-2">
+                  <span className="text-xs font-bold text-slate-600">
+                    حصص يومية
+                  </span>
+
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={
+                      state.periodsPerDay
+                    }
+                    onChange={(
+                      event,
+                    ) => {
+                      setState(
+                        (current) => ({
+                          ...current,
+                          periodsPerDay:
+                            Number(
+                              event
+                                .target
+                                .value,
+                            ) || 0,
+                        }),
+                      );
+
+                      setPreview(
+                        null,
+                      );
+                    }}
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-xs font-bold text-slate-600">
+                    هدف أسبوعي
+                  </span>
+
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="اختياري"
+                    value={
+                      state.weeklyPeriodTarget ??
+                      ""
+                    }
+                    onChange={(
+                      event,
+                    ) => {
+                      setState(
+                        (current) => ({
+                          ...current,
+                          weeklyPeriodTarget:
+                            event.target
+                              .value
+                              ? Number(
+                                  event
+                                    .target
+                                    .value,
+                                )
+                              : null,
+                        }),
+                      );
+
+                      setPreview(
+                        null,
+                      );
+                    }}
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900">
+                4. الصفوف والفصول
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                الصفوف تظهر تلقائيًا.
+                حدد عدد الفصول لكل صف.
+              </p>
+            </div>
+
+            {state.grades.length ===
+            0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                <div className="font-bold text-slate-700">
+                  اختر مرحلة دراسية
+                  أولًا
+                </div>
+
+                <div className="mt-1 text-sm text-slate-500">
+                  سنجهز صفوفها هنا
+                  تلقائيًا.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {state.grades.map(
+                  (
+                    gradeSetup,
+                  ) => {
+                    const grade =
+                      getTimetableV2Grade(
+                        gradeSetup.gradeId,
+                      );
+
+                    if (!grade) {
+                      return null;
+                    }
+
+                    return (
+                      <div
+                        key={
+                          gradeSetup.gradeId
+                        }
+                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                          <div className="min-w-44">
+                            <div className="font-black text-slate-900">
+                              {
+                                grade.name
+                              }
+                            </div>
+
+                            <div className="mt-1 text-xs text-slate-500">
+                              {
+                                gradeSetup
+                                  .sectionNames
+                                  .length
+                              }{" "}
+                              فصول
+                            </div>
+                          </div>
+
+                          <label className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-600">
+                              عدد الفصول
+                            </span>
+
+                            <select
+                              value={
+                                gradeSetup
+                                  .sectionNames
+                                  .length
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                updateSectionCount(
+                                  gradeSetup.gradeId,
+                                  Number(
+                                    event
+                                      .target
+                                      .value,
+                                  ),
+                                )
+                              }
+                              className="h-10 rounded-xl border border-slate-200 bg-white px-3"
+                            >
+                              {TIMETABLE_V2_DEFAULT_SECTION_NAMES.map(
+                                (
+                                  _,
+                                  index,
+                                ) => (
+                                  <option
+                                    key={
+                                      index
+                                    }
+                                    value={
+                                      index +
+                                      1
+                                    }
+                                  >
+                                    {index +
+                                      1}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          </label>
+
+                          <div className="flex flex-1 flex-wrap gap-2">
+                            {gradeSetup.sectionNames.map(
+                              (
+                                sectionName,
+                                index,
+                              ) => (
+                                <input
+                                  key={
+                                    index
+                                  }
+                                  value={
+                                    sectionName
+                                  }
+                                  onChange={(
+                                    event,
+                                  ) =>
+                                    renameSection(
+                                      gradeSetup.gradeId,
+                                      index,
+                                      event
+                                        .target
+                                        .value,
+                                    )
+                                  }
+                                  aria-label={`فصل ${grade.name}`}
+                                  className="h-10 w-16 rounded-xl border border-slate-200 bg-white text-center font-bold outline-none focus:border-teal-500"
+                                />
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <div className="mb-5">
+              <h2 className="text-lg font-black text-slate-900">
+                5. الخطط الدراسية
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                اختر خطة كل فصل
+                على حدة. المواد
+                والحصص مأخوذة من
+                الكتالوج الذي
+                جهزناه ويمكن تعديلها
+                لاحقًا بعد إنشاء
+                المشروع.
+              </p>
+            </div>
+
+            {state.grades.length ===
+            0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                اختر المراحل والصفوف
+                أولًا.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {state.grades.map(
+                  (
+                    gradeSetup,
+                  ) => {
+                    const grade =
+                      getTimetableV2Grade(
+                        gradeSetup.gradeId,
+                      );
+
+                    if (!grade) {
+                      return null;
+                    }
+
+                    const options =
+                      curriculumOptions.get(
+                        gradeSetup.gradeId,
+                      ) ?? [];
+
+                    return (
+                      <div
+                        key={
+                          gradeSetup.gradeId
+                        }
+                        className="rounded-3xl border border-slate-200 bg-slate-50/40 p-4 lg:p-5"
+                      >
+                        <div className="mb-4">
+                          <div className="text-lg font-black text-slate-900">
+                            {
+                              grade.name
+                            }
+                          </div>
+
+                          <div className="mt-1 text-xs text-slate-500">
+                            {
+                              gradeSetup
+                                .sectionNames
+                                .length
+                            }{" "}
+                            فصول
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {gradeSetup.sectionNames.map(
+                            (
+                              sectionName,
+                              sectionIndex,
+                            ) => {
+                              const classKey =
+                                getClassSetupKey(
+                                  gradeSetup.gradeId,
+                                  sectionIndex,
+                                );
+
+                              const selectedSourceId =
+                                classPlanSelections[
+                                  classKey
+                                ] ?? "";
+
+                              const resolution =
+                                classResolutions.find(
+                                  (item) =>
+                                    item.classKey ===
+                                    classKey,
+                                );
+
+                              return (
+                                <div
+                                  key={
+                                    classKey
+                                  }
+                                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                                >
+                                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="min-w-44">
+                                      <div className="font-black text-slate-900">
+                                        {
+                                          grade.name
+                                        }{" "}
+                                        {
+                                          sectionName
+                                        }
+                                      </div>
+
+                                      <div className="mt-1 text-xs text-slate-500">
+                                        فصل
+                                        {sectionIndex +
+                                          1}
+                                      </div>
+                                    </div>
+
+                                    <label className="w-full max-w-xl space-y-2">
+                                      <span className="text-xs font-bold text-slate-600">
+                                        الخطة
+                                        الدراسية
+                                      </span>
+
+                                      <select
+                                        value={
+                                          selectedSourceId
+                                        }
+                                        onChange={(
+                                          event,
+                                        ) => {
+                                          setClassPlanSelections(
+                                            (
+                                              current,
+                                            ) => ({
+                                              ...current,
+                                              [classKey]:
+                                                event
+                                                  .target
+                                                  .value,
+                                            }),
+                                          );
+
+                                          setPreview(
+                                            null,
+                                          );
+                                        }}
+                                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-teal-500"
+                                      >
+                                        {options.length ===
+                                        0 ? (
+                                          <option value="">
+                                            لا
+                                            توجد
+                                            خطة
+                                          </option>
+                                        ) : null}
+
+                                        {options.map(
+                                          (
+                                            plan,
+                                          ) => (
+                                            <option
+                                              key={
+                                                plan.sourceId
+                                              }
+                                              value={
+                                                plan.sourceId
+                                              }
+                                            >
+                                              {
+                                                plan.sourceName
+                                              }{" "}
+                                              —{" "}
+                                              {
+                                                plan.totalWeeklyPeriods
+                                              }{" "}
+                                              حصة
+                                            </option>
+                                          ),
+                                        )}
+                                      </select>
+                                    </label>
+                                  </div>
+
+                                  {resolution ? (
+                                    <div className="mt-4">
+                                      <SubjectPlanTable
+                                        plan={
+                                          resolution.plan
+                                        }
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
+                                      لا
+                                      توجد
+                                      خطة
+                                      مختارة
+                                      لهذا
+                                      الفصل.
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900">
+                ملخص المشروع
+              </h2>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+              <MetricCard
+                label="المراحل"
+                value={
+                  metrics.stagesCount
+                }
+              />
+
+              <MetricCard
+                label="الصفوف"
+                value={
+                  metrics.gradesCount
+                }
+              />
+
+              <MetricCard
+                label="الفصول"
+                value={
+                  metrics.classesCount
+                }
+              />
+
+              <MetricCard
+                label="المعلمون"
+                value={
+                  state.teacherCount
+                }
+              />
+
+              <MetricCard
+                label="الحصص المطلوبة"
+                value={
+                  metrics.requiredPeriods
+                }
+              />
+
+              <MetricCard
+                label="الخانات المتاحة"
+                value={
+                  metrics.totalAvailableSlots
+                }
+              />
+
+              <MetricCard
+                label="الخانات المتبقية"
+                value={
+                  metrics.remainingSlots
+                }
+                tone={
+                  metrics.remainingSlots >=
+                  0
+                    ? "success"
+                    : "warning"
+                }
+              />
+            </div>
+          </section>
+
+          {previewError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+              {previewError}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-6 text-slate-500">
+              لم نحفظ شيئًا في قاعدة
+              البيانات حتى الآن.
+            </p>
+
+            <button
+              type="button"
+              onClick={
+                previewProject
+              }
+              className="h-12 rounded-xl bg-teal-700 px-7 font-bold text-white shadow-sm transition hover:bg-teal-800"
+            >
+              تجهيز المشروع
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {preview ? (
+        <section
+          id="timetable-v2-final-preview"
+          className="scroll-mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm lg:p-8"
+        >
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="inline-flex rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
+                البيانات جاهزة
+              </div>
+
+              <h2 className="mt-3 text-2xl font-black text-slate-950">
+                المشروع جاهز
+                للإنشاء
+              </h2>
+
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                تحققنا من المراحل
+                والصفوف والفصول والخطط
+                الدراسية والحصص.
+                الخطوة التالية ستكون
+                حفظ المشروع فعليًا في
+                قاعدة البيانات.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3">
+              <div className="rounded-2xl bg-white p-3">
+                <div className="text-xl font-black">
+                  {
+                    preview.classesCount
+                  }
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  فصل
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white p-3">
+                <div className="text-xl font-black">
+                  {
+                    preview.totalRequiredPeriods
+                  }
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  حصة مطلوبة
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white p-3">
+                <div className="text-xl font-black">
+                  {
+                    preview.remainingSlots
+                  }
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  خانة متبقية
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 overflow-hidden rounded-2xl border border-emerald-200 bg-white">
+            <div className="border-b border-slate-100 bg-white px-5 py-3 text-sm font-bold text-slate-800">
+              خطط الفصول
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead className="bg-slate-50 text-xs text-slate-500">
+                  <tr className="border-b border-slate-100">
+                    <th className="px-5 py-3 text-right">
+                      الفصل
+                    </th>
+
+                    <th className="px-3 py-3 text-right">
+                      الصف
+                    </th>
+
+                    <th className="px-3 py-3 text-right">
+                      الخطة
+                    </th>
+
+                    <th className="px-3 py-3 text-right">
+                      مصدر الخطة
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {preview.classSelections.map(
+                    (
+                      selection,
+                    ) => (
+                      <tr
+                        key={`${selection.gradeId}:${selection.sectionIndex}`}
+                        className="border-b border-slate-50 last:border-b-0"
+                      >
+                        <td className="px-5 py-3">
+                          <div className="font-bold text-slate-900">
+                            {
+                              selection.className
+                            }
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3 text-slate-600">
+                          {
+                            selection.gradeName
+                          }
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <span className="rounded-full bg-teal-50 px-3 py-1 font-bold text-teal-700">
+                            {
+                              selection.planName
+                            }
+                          </span>
+                        </td>
+
+                        <td className="px-3 py-3 text-xs text-slate-500">
+                          {
+                            selection.planSourceId
+                          }
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-black text-slate-900">
+                جاهز للحفظ
+              </div>
+
+              <div className="mt-1 text-xs leading-6 text-slate-500">
+                سيتم إنشاء المشروع والفصول والمواد وخطط الحصص والمعلمين داخل عملية واحدة آمنة.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={creating}
+              onClick={createProject}
+              className="h-12 shrink-0 rounded-xl bg-emerald-700 px-7 font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {creating
+                ? "جاري إنشاء المشروع..."
+                : "إنشاء المشروع الآن"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\project-home.tsx
+==================================================
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+import { ProjectHero } from "./project-home/project-hero";
+import { ProjectHealthStrip } from "./project-home/project-health-strip";
+import { ProjectNextAction } from "./project-home/project-next-action";
+import { ProjectWorkflow } from "./project-home/project-workflow";
+import { ProjectDataSummary } from "./project-home/project-data-summary";
+import { CurrentScheduleCard } from "./project-home/current-schedule-card";
+import { ProjectQuickActions } from "./project-home/project-quick-actions";
+
+export function TimetableV2ProjectHome({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  return (
+    <div
+      dir="rtl"
+      className="mx-auto max-w-7xl space-y-6 pb-16"
+    >
+      <ProjectHero data={data} />
+      <ProjectHealthStrip data={data} />
+      <ProjectNextAction data={data} />
+      <ProjectWorkflow data={data} />
+      <ProjectDataSummary data={data} />
+      <CurrentScheduleCard data={data} />
+      <ProjectQuickActions data={data} />
+    </div>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\project-home\project-workflow\.tsx
+==================================================
+NOT FOUND
+
+==================================================
+FILE: components\timetable-v2\project-home\project-next-action.tsx
+==================================================
+import Link from "next/link";
+
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+type NextAction = {
+  title: string;
+  description: string;
+  cta: string;
+  href: string;
+  progress?: {
+    value: number;
+    max: number;
+  };
+};
+
+function computeNextAction(
+  data: ProjectDashboardData,
+): NextAction {
+  const counts = data.counts;
+  const target =
+    data.setup.teacherTarget;
+
+  const teachersIncomplete =
+    counts.teachersCount === 0 ||
+    (target !== null &&
+      counts.teachersCount <
+        target);
+
+  const base = `/dashboard/timetable-v2/${data.project.id}`;
+
+  if (teachersIncomplete) {
+    return {
+      title:
+        "الخطوة التالية: تجهيز المعلمين",
+      description:
+        "أدخل أسماء المعلمين وتخصصاتهم وحدود الأحمال الأسبوعية قبل الانتقال إلى الإسناد.",
+      cta: "فتح إدارة المعلمين",
+      href: `${base}/teachers`,
+    };
+  }
+
+  if (
+    counts.underAssignedRows > 0 ||
+    counts.overAssignedRows > 0
+  ) {
+    const remaining =
+      Math.max(
+        0,
+        counts.totalWeeklyLessons -
+          counts.assignedLessons,
+      );
+
+    return {
+      title:
+        "الخطوة التالية: إكمال الإسناد",
+      description:
+        remaining > 0
+          ? `المتبقي ${remaining} حصة من أصل ${counts.totalWeeklyLessons} حصة أسبوعية.`
+          : "توجد إسنادات زائدة عن الخطة تحتاج إلى مراجعة.",
+      progress: {
+        value:
+          counts.assignedLessons,
+        max:
+          counts.totalWeeklyLessons,
+      },
+      cta: "فتح الإسناد",
+      href: `${base}/assignments`,
+    };
+  }
+
+  if (!data.readiness.canGenerate) {
+    return {
+      title:
+        "الخطوة التالية: معالجة أخطاء الجاهزية",
+      description: `${data.readiness.errorCount} خطأ يمنع إنشاء الجدول. راجع التفاصيل وعالجها قبل التشغيل.`,
+      cta: "فتح فحص الجاهزية",
+      href: `${base}/readiness`,
+    };
+  }
+
+  if (!data.schedule.exists) {
+    return {
+      title:
+        "الخطوة التالية: إنشاء الجدول",
+      description:
+        "البيانات جاهزة — شغّل المحرك لإنشاء النسخة الأولى من الجدول.",
+      cta: "إنشاء الجدول",
+      href: `${base}/generate`,
+    };
+  }
+
+  if (data.schedule.isStale) {
+    return {
+      title:
+        "الخطوة التالية: إعادة إنشاء الجدول",
+      description:
+        "النسخة الحالية أقدم من بيانات المشروع بعد التعديلات الأخيرة.",
+      cta: "إنشاء نسخة جديدة",
+      href: `${base}/generate`,
+    };
+  }
+
+  const status =
+    data.schedule.current?.status ??
+    "";
+
+  if (status === "GENERATED") {
+    return {
+      title:
+        "الخطوة التالية: مراجعة واعتماد الجدول",
+      description: `النسخة #${data.schedule.current?.version} جاهزة للمراجعة ثم الاعتماد.`,
+      cta: "مراجعة النسخ",
+      href: `${base}/generate`,
+    };
+  }
+
+  if (status === "APPROVED") {
+    return {
+      title:
+        "الخطوة التالية: نشر الجدول",
+      description:
+        "النسخة معتمدة وتنتظر النشر ليبدأ التشغيل اليومي.",
+      cta: "نشر الجدول",
+      href: `${base}/generate`,
+    };
+  }
+
+  if (status === "PUBLISHED") {
+    return {
+      title: "الجدول منشور",
+      description:
+        "الجدول الحالي منشور وجاهز للتشغيل اليومي.",
+      cta: "مراجعة الجدول",
+      href: `${base}/generate`,
+    };
+  }
+
+  return {
+    title:
+      "الخطوة التالية: مراجعة البيانات",
+    description:
+      "راجع حالة المشروع وفحص الجاهزية للمتابعة.",
+    cta: "فتح الفحص",
+    href: `${base}/readiness`,
+  };
+}
+
+export function ProjectNextAction({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const action =
+    computeNextAction(data);
+
+  const percent =
+    action.progress &&
+    action.progress.max > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (action.progress.value /
+              action.progress.max) *
+              100,
+          ),
+        )
+      : 0;
+
+  return (
+    <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-black text-sky-700">
+            الخطوة التالية المقترحة
+          </div>
+
+          <h2 className="mt-1 text-lg font-black text-slate-950">
+            {action.title}
+          </h2>
+
+          <p className="mt-1 text-xs leading-6 text-slate-600">
+            {action.description}
+          </p>
+
+          {action.progress ? (
+            <div className="mt-3 max-w-md">
+              <div className="flex items-center justify-between text-[11px] font-black text-slate-600">
+                <span>
+                  {action.progress.value} /{" "}
+                  {action.progress.max} حصة
+                </span>
+
+                <span>
+                  {percent}%
+                </span>
+              </div>
+
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-white">
+                <div
+                  className="h-full rounded-full bg-sky-600"
+                  style={{
+                    width: `${percent}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <Link
+          href={action.href}
+          className="h-11 shrink-0 rounded-xl bg-sky-700 px-6 py-3 text-center text-sm font-black text-white shadow-sm transition hover:bg-sky-800"
+        >
+          {action.cta}
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\project-home\project-data-summary.tsx
+==================================================
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+function Stat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] font-bold text-slate-400">
+        {label}
+      </div>
+
+      <div className="mt-0.5 text-base font-black text-slate-900">
+        {value}
+
+        {hint ? (
+          <span className="mr-1 text-[10px] font-bold text-slate-400">
+            {hint}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function ProjectDataSummary({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const counts = data.counts;
+  const constraints = data.constraints;
+
+  const stageCount =
+    data.setup.stageLabels.length;
+
+  const teacherMetric =
+    data.setup.teacherTarget !==
+    null
+      ? `${counts.teachersCount}/${data.setup.teacherTarget}`
+      : counts.teachersCount;
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-black text-slate-950">
+          بيانات المشروع
+        </h2>
+
+        <span className="text-[11px] font-bold text-slate-400">
+          ملخص مفصل عن الهيكل والموارد والزمن والقواعد
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <h3 className="text-xs font-black text-teal-700">
+            الهيكل الدراسي
+          </h3>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+            <Stat
+              label="المراحل"
+              value={stageCount}
+              hint={
+                stageCount > 0
+                  ? data.setup.stageLabels.join(
+                      "، ",
+                    )
+                  : undefined
+              }
+            />
+
+            <Stat
+              label="الفصول"
+              value={counts.classesCount}
+            />
+
+            <Stat
+              label="المواد"
+              value={counts.subjectsCount}
+            />
+
+            <Stat
+              label="الخطط"
+              value={counts.classSubjectsCount}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <h3 className="text-xs font-black text-teal-700">
+            الموارد
+          </h3>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+            <Stat
+              label="المعلمون"
+              value={teacherMetric}
+            />
+
+            <Stat
+              label="مجموع طاقة المعلمين"
+              value={counts.teacherCapacity}
+              hint="حصة أسبوعيًا"
+            />
+
+            <Stat
+              label="الحصص المسندة"
+              value={counts.assignedLessons}
+            />
+
+            <Stat
+              label="الحصص المطلوبة"
+              value={counts.totalWeeklyLessons}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <h3 className="text-xs font-black text-teal-700">
+            الزمن
+          </h3>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+            <Stat
+              label="أيام الدراسة"
+              value={data.time.daysCount}
+            />
+
+            <Stat
+              label="الحصص اليومية"
+              value={data.time.periodsPerDay}
+            />
+
+            <Stat
+              label="الخانات الأسبوعية"
+              value={data.time.weeklySlotCount}
+            />
+
+            <Stat
+              label="الفسحات"
+              value={data.time.breaksCount}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <h3 className="text-xs font-black text-teal-700">
+            القواعد
+          </h3>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+            <Stat
+              label="القيود النشطة"
+              value={constraints.activeCount}
+            />
+
+            <Stat
+              label="إلزامية"
+              value={constraints.hardCount}
+            />
+
+            <Stat
+              label="تفضيلات"
+              value={constraints.softCount}
+            />
+
+            <Stat
+              label="التعارضات"
+              value={constraints.conflictCount}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\project-home\project-health-strip.tsx
+==================================================
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+function HealthTile({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string | number;
+  valueClass?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-3 py-3">
+      <div className="text-[11px] font-bold text-slate-500">
+        {label}
+      </div>
+
+      <div
+        className={[
+          "mt-1 text-lg font-black",
+          valueClass ??
+            "text-slate-900",
+        ].join(" ")}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function ProjectHealthStrip({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const readiness =
+    data.readiness;
+
+  const scoreTone =
+    readiness.score >= 90
+      ? "text-teal-700"
+      : readiness.score >= 70
+        ? "text-amber-700"
+        : "text-rose-700";
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-black text-slate-900">
+          حالة المشروع
+        </h2>
+
+        {readiness.errorCount > 0 ? (
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-700">
+            {readiness.errorCount} خطأ يمنع الإنشاء
+          </span>
+        ) : readiness.warningCount > 0 ? (
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+            {readiness.warningCount} تحذير
+          </span>
+        ) : (
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+            البيانات سليمة
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+        <HealthTile
+          label="جاهزية المشروع"
+          value={`${readiness.score}%`}
+          valueClass={scoreTone}
+        />
+
+        <HealthTile
+          label="المعلمون"
+          value={data.counts.teachersCount}
+        />
+
+        <HealthTile
+          label="الفصول"
+          value={data.counts.classesCount}
+        />
+
+        <HealthTile
+          label="المواد"
+          value={data.counts.subjectsCount}
+        />
+
+        <HealthTile
+          label="الحصص المطلوبة"
+          value={data.counts.totalWeeklyLessons}
+        />
+
+        <HealthTile
+          label="المسند"
+          value={data.counts.assignedLessons}
+        />
+
+        <HealthTile
+          label="القيود النشطة"
+          value={data.constraints.activeCount}
+        />
+
+        <HealthTile
+          label="التعارضات"
+          value={data.constraints.conflictCount}
+        />
+      </div>
+    </section>
+  );
+}

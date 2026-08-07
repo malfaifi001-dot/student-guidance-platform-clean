@@ -1,0 +1,4751 @@
+
+==================================================
+FILE: app\dashboard\timetable-v2\[projectId]\constraints\page.tsx
+==================================================
+import {
+  notFound,
+} from "next/navigation";
+
+import {
+  TimetableV2ConstraintsWorkspace,
+} from "@/components/timetable-v2/constraints-workspace";
+
+import {
+  requireTimetablePageAccess,
+} from "@/lib/timetable/timetable-access";
+
+import {
+  getTimetableV2ConstraintsWorkspace,
+} from "@/lib/timetable-v2/constraint-service";
+
+export const dynamic =
+  "force-dynamic";
+
+type PageProps = {
+  params: Promise<{
+    projectId: string;
+  }>;
+};
+
+type DayItem = {
+  id: string;
+  label: string;
+  order: number;
+};
+
+type PeriodItem = {
+  id: string;
+  label: string;
+  order: number;
+  isBreak: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+export default async function TimetableV2ConstraintsPage({
+  params,
+}: PageProps) {
+  const access =
+    await requireTimetablePageAccess();
+
+  const {
+    projectId,
+  } = await params;
+
+  let data;
+
+  try {
+    data =
+      await getTimetableV2ConstraintsWorkspace(
+        projectId,
+        access.schoolAccountId,
+      );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "PROJECT_NOT_FOUND"
+    ) {
+      notFound();
+    }
+
+    throw error;
+  }
+
+  const days =
+    Array.isArray(
+      data.project.daysJson,
+    )
+      ? (
+          data.project
+            .daysJson as unknown as DayItem[]
+        )
+      : [];
+
+  const periods =
+    Array.isArray(
+      data.project.periodsJson,
+    )
+      ? (
+          data.project
+            .periodsJson as unknown as PeriodItem[]
+        )
+      : [];
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <TimetableV2ConstraintsWorkspace
+        project={{
+          id:
+            data.project.id,
+
+          name:
+            data.project.name,
+
+          academicYear:
+            data.project.academicYear,
+
+          semester:
+            data.project.semester,
+        }}
+        days={JSON.parse(
+          JSON.stringify(
+            days,
+          ),
+        )}
+        initialPeriods={JSON.parse(
+          JSON.stringify(
+            periods,
+          ),
+        )}
+        teachers={JSON.parse(
+          JSON.stringify(
+            data.teachers,
+          ),
+        )}
+        subjects={JSON.parse(
+          JSON.stringify(
+            data.subjects,
+          ),
+        )}
+        classes={JSON.parse(
+          JSON.stringify(
+            data.classes,
+          ),
+        )}
+        initialConstraints={JSON.parse(
+          JSON.stringify(
+            data.constraints,
+          ),
+        )}
+      />
+    </main>
+  );
+}
+
+==================================================
+FILE: components\timetable-v2\constraints-workspace.tsx
+==================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  CATEGORY_META,
+  getConstraintDefinition,
+} from "@/lib/timetable-v2/constraint-catalog";
+
+import {
+  analyzeConstraintConflicts,
+  effectiveSlotsForRule,
+  slotKey,
+  summarizeConflicts,
+  type ConstraintConflict,
+  type AnalysisOptions,
+} from "@/lib/timetable-v2/constraint-analysis";
+
+import {
+  ConstraintForm,
+} from "./constraints/constraint-form";
+
+import {
+  ConstraintPopCard,
+} from "./constraints/constraint-pop-card";
+
+import {
+  ConstraintReviewGrid,
+} from "./constraints/constraint-review-grid";
+
+import {
+  ConstraintSummaryCard,
+} from "./constraints/constraint-summary-card";
+
+import {
+  DayTimeEditor,
+} from "./constraints/day-time-editor";
+
+import {
+  constraintToAnalysisRule,
+  constraintToDraft,
+} from "./constraints/helpers";
+
+import type {
+  ClassItem,
+  Constraint,
+  ConstraintDraft,
+  DayItem,
+  PeriodItem,
+  Slot,
+  Subject,
+  Teacher,
+} from "./constraints/types";
+
+type Tab = "RULES" | "REVIEW" | "TIME";
+
+type FormMode =
+  | {
+      mode: "create";
+    }
+  | {
+      mode: "edit";
+      constraint: Constraint;
+    }
+  | {
+      mode: "copy";
+      constraint: Constraint;
+    };
+
+type Props = {
+  project: {
+    id: string;
+    name: string;
+    academicYear: string;
+    semester: string;
+  };
+
+  days: DayItem[];
+  initialPeriods: PeriodItem[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  classes: ClassItem[];
+  initialConstraints: Constraint[];
+};
+
+function Metric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+      <div className="text-xs font-bold text-slate-500">
+        {label}
+      </div>
+
+      <div
+        className={[
+          "mt-1 text-2xl font-black",
+          tone ?? "text-slate-950",
+        ].join(" ")}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function TimetableV2ConstraintsWorkspace({
+  project,
+  days,
+  initialPeriods,
+  teachers,
+  subjects,
+  classes,
+  initialConstraints,
+}: Props) {
+  const router = useRouter();
+
+  const [tab, setTab] = useState<Tab>("RULES");
+
+  const [periods, setPeriods] = useState(initialPeriods);
+
+  const [constraints, setConstraints] = useState(initialConstraints);
+
+  const [formMode, setFormMode] = useState<FormMode | null>(null);
+
+  const [reviewSlot, setReviewSlot] = useState<Slot | null>(null);
+
+  const [busy, setBusy] = useState(false);
+
+  const [message, setMessage] = useState<{
+    tone: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
+
+  const [severityFilter, setSeverityFilter] = useState<
+    "ALL" | "ERROR" | "WARNING"
+  >("ALL");
+
+  const [search, setSearch] = useState("");
+
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+
+  const teachingPeriods = useMemo(
+    () =>
+      periods
+        .filter((period) => !period.isBreak)
+        .sort((a, b) => a.order - b.order),
+    [periods],
+  );
+
+  const analysisOptions = useMemo<AnalysisOptions>(
+    () => ({
+      dayIds: days.map((day) => day.id),
+      periodIds: teachingPeriods.map((period) => period.id),
+    }),
+    [days, teachingPeriods],
+  );
+
+  const analysisRules = useMemo(
+    () =>
+      constraints
+        .filter((constraint) => constraint.isActive)
+        .map(constraintToAnalysisRule),
+    [constraints],
+  );
+
+  const conflicts = useMemo(
+    () => analyzeConstraintConflicts(analysisRules, analysisOptions),
+    [analysisRules, analysisOptions],
+  );
+
+  const conflictSummary = useMemo(
+    () => summarizeConflicts(conflicts),
+    [conflicts],
+  );
+
+  const conflictMap = useMemo(() => {
+    const map = new Map<string, ConstraintConflict[]>();
+
+    for (const conflict of conflicts) {
+      for (const slot of conflict.slots) {
+        const key = slotKey(slot.dayId, slot.periodId);
+
+        const list = map.get(key) ?? [];
+
+        list.push(conflict);
+
+        map.set(key, list);
+      }
+    }
+
+    return map;
+  }, [conflicts]);
+
+  const constrainedSlots = useMemo(
+    () =>
+      new Set(
+        constraints.flatMap((constraint) =>
+          constraint.isActive
+            ? effectiveSlotsForRule(
+                constraintToAnalysisRule(constraint),
+                analysisOptions,
+              ).map((slot) =>
+                slotKey(slot.dayId, slot.periodId),
+              )
+            : [],
+        ),
+      ).size,
+    [constraints, analysisOptions],
+  );
+
+  const constraintsForSlot = (slot: Slot) =>
+    constraints.filter((constraint) => {
+      const touches =
+        constraint.slots.some(
+          (item) =>
+            item.dayId === slot.dayId && item.periodId === slot.periodId,
+        ) ||
+        (constraint.days.some((day) => day.dayId === slot.dayId) &&
+          constraint.periods.some(
+            (period) => period.periodId === slot.periodId,
+          ));
+
+      return touches;
+    });
+
+  const conflictsForSlot = (slot: Slot) =>
+    conflictMap.get(slotKey(slot.dayId, slot.periodId)) ?? [];
+
+  const filteredConflicts = useMemo(
+    () =>
+      severityFilter === "ALL"
+        ? conflicts
+        : conflicts.filter(
+            (conflict) => conflict.severity === severityFilter,
+          ),
+    [conflicts, severityFilter],
+  );
+
+  const filteredConstraints = useMemo(() => {
+    const query = search.trim();
+
+    return constraints.filter((constraint) => {
+      if (categoryFilter !== "ALL") {
+        if (getConstraintDefinition(constraint.type).category !== categoryFilter) {
+          return false;
+        }
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const definition = getConstraintDefinition(constraint.type);
+
+      const haystack = [
+        definition.label,
+        definition.description,
+        ...constraint.teachers.map((link) => link.teacher.name),
+        ...constraint.subjects.map((link) => link.subject.name),
+        ...constraint.classes.map((link) => link.class.name),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query.toLowerCase());
+    });
+  }, [constraints, categoryFilter, search]);
+
+  const showMessage = (tone: "success" | "error" | "info", text: string) =>
+    setMessage({ tone, text });
+
+  const parseError = (data: { error?: string } | null, fallback: string) =>
+    data?.error ?? fallback;
+
+  const handleSave = async (draft: ConstraintDraft) => {
+    if (busy) {
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      type: draft.type,
+      strength: draft.strength,
+      title: null,
+      valueInt: draft.valueInt,
+      notes: draft.notes || null,
+      teacherIds: draft.teacherIds,
+      subjectIds: draft.subjectIds,
+      classIds: draft.classIds,
+      dayIds: draft.dayIds,
+      periodIds: draft.periodIds,
+      slots: draft.slots,
+      configJson:
+        draft.weight !== null ? { weight: draft.weight } : null,
+    };
+
+    const editing =
+      formMode?.mode === "edit" ? formMode.constraint : null;
+
+    try {
+      setBusy(true);
+
+      const response = await fetch(
+        `/api/dashboard/principal/timetable-v2/projects/${project.id}/constraints`,
+        {
+          method: editing ? "PATCH" : "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(
+            editing
+              ? {
+                  action: "UPDATE_CONSTRAINT",
+                  constraintId: editing.id,
+                  ...payload,
+                }
+              : {
+                  action: "CREATE_CONSTRAINT",
+                  ...payload,
+                },
+          ),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(parseError(data, "تعذر حفظ القيد."));
+      }
+
+      if (editing) {
+        setConstraints((current) =>
+          current.map((constraint) =>
+            constraint.id === editing.id ? data.constraint : constraint,
+          ),
+        );
+
+        showMessage("success", "تم تحديث القيد بنجاح.");
+      } else {
+        setConstraints((current) => [data.constraint, ...current]);
+
+        showMessage("success", "تم إضافة القيد بنجاح.");
+      }
+
+      setFormMode(null);
+    } catch (error) {
+      showMessage(
+        "error",
+        error instanceof Error ? error.message : "تعذر حفظ القيد.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleActive = async (constraint: Constraint) => {
+    try {
+      setBusy(true);
+
+      const response = await fetch(
+        `/api/dashboard/principal/timetable-v2/projects/${project.id}/constraints`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "TOGGLE_CONSTRAINT",
+            constraintId: constraint.id,
+            isActive: !constraint.isActive,
+          }),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(parseError(data, "تعذر تحديث حالة القيد."));
+      }
+
+      setConstraints((current) =>
+        current.map((item) =>
+          item.id === constraint.id ? data.constraint : item,
+        ),
+      );
+
+      showMessage(
+        "success",
+        data.constraint.isActive
+          ? "تم تفعيل القيد."
+          : "تم تعطيل القيد.",
+      );
+    } catch (error) {
+      showMessage(
+        "error",
+        error instanceof Error ? error.message : "تعذر تحديث القيد.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteConstraint = async (constraintId: string) => {
+    try {
+      setBusy(true);
+
+      const response = await fetch(
+        `/api/dashboard/principal/timetable-v2/projects/${project.id}/constraints`,
+        {
+          method: "DELETE",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ constraintId }),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(parseError(data, "تعذر حذف القيد."));
+      }
+
+      setConstraints((current) =>
+        current.filter((constraint) => constraint.id !== constraintId),
+      );
+
+      showMessage("success", "تم حذف القيد.");
+
+      if (reviewSlot) {
+        setReviewSlot(null);
+      }
+    } catch (error) {
+      showMessage(
+        "error",
+        error instanceof Error ? error.message : "تعذر حذف القيد.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savePeriods = async () => {
+    try {
+      setBusy(true);
+
+      const normalized = [...periods]
+        .sort((a, b) => a.order - b.order)
+        .map((period, index) => ({
+          ...period,
+          order: index + 1,
+        }));
+
+      const response = await fetch(
+        `/api/dashboard/principal/timetable-v2/projects/${project.id}/constraints`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "SAVE_PERIODS",
+            periods: normalized,
+          }),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(parseError(data, "تعذر حفظ أوقات اليوم."));
+      }
+
+      setPeriods(normalized);
+
+      showMessage("success", "تم حفظ أوقات اليوم.");
+    } catch (error) {
+      showMessage(
+        "error",
+        error instanceof Error ? error.message : "تعذر حفظ الأوقات.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const activeCount = constraints.filter((item) => item.isActive).length;
+
+  const hardCount = constraints.filter(
+    (item) => item.strength === "HARD",
+  ).length;
+
+  const softCount = constraints.filter(
+    (item) => item.strength === "SOFT",
+  ).length;
+
+  const reviewSlotConstraints = reviewSlot
+    ? constraintsForSlot(reviewSlot)
+    : [];
+
+  const reviewSlotConflicts = reviewSlot
+    ? conflictsForSlot(reviewSlot)
+    : [];
+
+  const formInitial =
+    formMode?.mode === "edit" || formMode?.mode === "copy"
+      ? constraintToDraft(formMode.constraint)
+      : undefined;
+
+  const formEditingId =
+    formMode?.mode === "edit" ? formMode.constraint.id : null;
+
+  const formTitle =
+    formMode?.mode === "edit"
+      ? "تعديل قيد موجود"
+      : formMode?.mode === "copy"
+        ? "نسخ قيد إلى أيام أو حصص أخرى"
+        : "إضافة قيد جديد";
+
+  return (
+    <div dir="rtl" className="mx-auto max-w-[1600px] space-y-5 pb-20">
+      <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-l from-teal-50 via-white to-cyan-50 p-6 shadow-sm lg:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="inline-flex rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-black text-teal-700">
+              الخطوة 4
+            </div>
+
+            <h1 className="mt-3 text-3xl font-black text-slate-950">
+              القيود والأوقات
+            </h1>
+
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              {project.name}
+              {" • "}
+              حدد الواقع المدرسي بصريًا قبل إنشاء الجدول.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(`/dashboard/timetable-v2/${project.id}`)
+            }
+            className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700"
+          >
+            العودة للمشروع
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          <Metric label="إجمالي القيود" value={constraints.length} />
+
+          <Metric label="نشط" value={activeCount} />
+
+          <Metric
+            label="إلزامي"
+            value={hardCount}
+          />
+
+          <Metric label="تفضيلات" value={softCount} />
+
+          <Metric
+            label="خلايا مقيدة"
+            value={constrainedSlots}
+          />
+
+          <Metric
+            label="تعارضات إلزامية"
+            value={conflictSummary.errors}
+            tone={conflictSummary.errors > 0 ? "text-rose-600" : undefined}
+          />
+
+          <Metric
+            label="تحذيرات"
+            value={conflictSummary.warnings}
+            tone={
+              conflictSummary.warnings > 0 ? "text-amber-600" : undefined
+            }
+          />
+        </div>
+      </section>
+
+      {message ? (
+        <div
+          className={[
+            "rounded-2xl border px-5 py-4 text-sm font-bold",
+            message.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : message.tone === "error"
+                ? "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-sky-200 bg-sky-50 text-sky-800",
+          ].join(" ")}
+        >
+          {message.text}
+        </div>
+      ) : null}
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="grid gap-2 md:grid-cols-4">
+          {(
+            [
+              ["RULES", "القيود", constraints.length],
+              ["REVIEW", "مراجعة القيود", conflicts.length],
+              ["TIME", "أوقات اليوم", null],
+              ["FORM", formTitle, null],
+            ] as const
+          ).map(([value, label, badge]) => {
+            const active =
+              value === "FORM"
+                ? formMode !== null
+                : tab === value;
+
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  if (value === "FORM") {
+                    setFormMode({ mode: "create" });
+                  } else {
+                    setFormMode(null);
+                    setTab(value);
+                  }
+                }}
+                className={[
+                  "h-12 rounded-2xl text-sm font-black transition",
+                  active
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100",
+                ].join(" ")}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {label}
+
+                  {badge !== null ? (
+                    <span
+                      className={[
+                        "rounded-full px-2 py-0.5 text-[10px] font-black",
+                        active
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-200 text-slate-600",
+                      ].join(" ")}
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {formMode ? (
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-black">{formTitle}</h2>
+
+            <button
+              type="button"
+              onClick={() => setFormMode(null)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+            >
+              إغلاق النموذج
+            </button>
+          </div>
+
+          <ConstraintForm
+            key={
+              formMode.mode === "edit"
+                ? `edit-${formMode.constraint.id}`
+                : formMode.mode === "copy"
+                  ? `copy-${formMode.constraint.id}`
+                  : "create"
+            }
+            days={days}
+            periods={periods}
+            teachers={teachers}
+            subjects={subjects}
+            classes={classes}
+            existingConstraints={constraints}
+            editingId={formEditingId}
+            initial={formInitial}
+            busy={busy}
+            onCancel={() => setFormMode(null)}
+            onSave={handleSave}
+          />
+        </section>
+      ) : null}
+
+      {!formMode && tab === "RULES" ? (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black">قائمة القيود</h2>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {activeCount} نشط من أصل {constraints.length} قيد.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="بحث في القيود..."
+                className="h-11 w-56 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold"
+              />
+
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black"
+              >
+                <option value="ALL">كل الفئات</option>
+
+                {Object.entries(CATEGORY_META)
+                  .sort((a, b) => a[1].order - b[1].order)
+                  .map(([category, meta]) => (
+                    <option key={category} value={category}>
+                      {meta.label}
+                    </option>
+                  ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setFormMode({ mode: "create" })}
+                className="h-11 rounded-xl bg-teal-700 px-5 text-sm font-black text-white shadow-sm transition hover:bg-teal-800"
+              >
+                + إضافة قيد
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {filteredConstraints.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+                <div className="text-sm font-black text-slate-700">
+                  {constraints.length === 0
+                    ? "لا توجد قيود بعد."
+                    : "لا توجد قيود مطابقة للبحث."}
+                </div>
+
+                <div className="mt-2 text-xs text-slate-500">
+                  أضف قيدك الأول من الدليل لتحديد الواقع المدرسي.
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFormMode({ mode: "create" })}
+                  className="mt-4 h-11 rounded-xl bg-teal-700 px-6 text-sm font-black text-white transition hover:bg-teal-800"
+                >
+                  إضافة قيد
+                </button>
+              </div>
+            ) : (
+              filteredConstraints.map((constraint) => (
+                <ConstraintSummaryCard
+                  key={constraint.id}
+                  constraint={constraint}
+                  days={days}
+                  periods={periods}
+                  editing={false}
+                  busy={busy}
+                  onEdit={() =>
+                    setFormMode({ mode: "edit", constraint })
+                  }
+                  onToggleActive={() => toggleActive(constraint)}
+                  onDelete={() => deleteConstraint(constraint.id)}
+                  onCopy={() =>
+                    setFormMode({ mode: "copy", constraint })
+                  }
+                />
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {!formMode && tab === "REVIEW" ? (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+          <div>
+            <h2 className="text-xl font-black">خريطة القيود</h2>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              اضغط أي خلية لعرض القيود المؤثرة عليها وتعديلها.
+              الخلايا ذات الإطار الأحمر تعارض إلزامي، والبرتقالي تحذير.
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {(
+              [
+                ["ALL", "الكل", conflicts.length],
+                ["ERROR", "تعارضات إلزامية", conflictSummary.errors],
+                ["WARNING", "تحذيرات", conflictSummary.warnings],
+              ] as const
+            ).map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSeverityFilter(value)}
+                className={[
+                  "rounded-xl border px-4 py-2 text-xs font-black transition",
+                  severityFilter === value
+                    ? value === "ERROR"
+                      ? "border-rose-400 bg-rose-50 text-rose-700"
+                      : value === "WARNING"
+                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                        : "border-slate-950 bg-slate-950 text-white"
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
+                ].join(" ")}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
+
+          {filteredConflicts.length > 0 ? (
+            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              {filteredConflicts.map((conflict, index) => (
+                <div
+                  key={index}
+                  className={[
+                    "flex flex-wrap items-start justify-between gap-3 rounded-2xl border p-4",
+                    conflict.severity === "ERROR"
+                      ? "border-rose-200 bg-rose-50"
+                      : "border-amber-200 bg-amber-50",
+                  ].join(" ")}
+                >
+                  <div className="min-w-0 flex-1 text-xs leading-6">
+                    <div
+                      className={[
+                        "font-black",
+                        conflict.severity === "ERROR"
+                          ? "text-rose-800"
+                          : "text-amber-800",
+                      ].join(" ")}
+                    >
+                      {conflict.title}
+                    </div>
+
+                    <div
+                      className={[
+                        "mt-1",
+                        conflict.severity === "ERROR"
+                          ? "text-rose-700"
+                          : "text-amber-700",
+                      ].join(" ")}
+                    >
+                      {conflict.description}
+                    </div>
+
+                    <div className="mt-1 text-[10px] opacity-70">
+                      {conflict.slots.length} خلية متأثرة • {" "}
+                      {conflict.constraintIds.length} قيد
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const first = conflict.slots[0];
+
+                      if (first) {
+                        setReviewSlot(first);
+                      }
+                    }}
+                    className="h-9 shrink-0 rounded-xl border border-white bg-white px-3 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    عرض
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-5">
+            <ConstraintReviewGrid
+              days={days}
+              periods={teachingPeriods}
+              constraints={constraints}
+              conflicts={conflicts}
+              onCellClick={setReviewSlot}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {!formMode && tab === "TIME" ? (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+          <div>
+            <h2 className="text-xl font-black">
+              توقيت اليوم الدراسي
+            </h2>
+
+            <p className="mt-1 text-xs text-slate-500">
+              ولّد أوقات الحصص بسرعة، أضف الفسحات، وعدّل أي توقيت يدويًا.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <DayTimeEditor
+              periods={periods}
+              constraints={constraints}
+              busy={busy}
+              onChange={setPeriods}
+              onSave={savePeriods}
+              onReviewConstraints={() => setTab("RULES")}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {reviewSlot ? (
+        <ConstraintPopCard
+          dayLabel={
+            days.find((day) => day.id === reviewSlot.dayId)?.label ?? ""
+          }
+          periodLabel={
+            teachingPeriods.find((period) => period.id === reviewSlot.periodId)
+              ?.label ?? ""
+          }
+          constraints={reviewSlotConstraints}
+          conflicts={reviewSlotConflicts}
+          busy={busy}
+          onClose={() => setReviewSlot(null)}
+          onEdit={(constraint) => {
+            setReviewSlot(null);
+            setFormMode({ mode: "edit", constraint });
+          }}
+          onToggleActive={toggleActive}
+          onDelete={deleteConstraint}
+          onCopy={(constraint) => {
+            setReviewSlot(null);
+            setFormMode({ mode: "copy", constraint });
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\constraints\day-time-editor.tsx
+==================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+
+import {
+  buildDayTimelineUniform,
+  clampInt,
+  durationBetweenTimes,
+  extractBreakSpecs,
+  extractTeachingSpecs,
+  findPeriodReferences,
+  formatClockTime,
+  generateTeachingSpecs,
+  insertBreakIntoDay,
+  parseClockTime,
+  removeBreakFromDay,
+  updateBreakInDay,
+  type DayTimePeriod,
+  type DayTimeTeachingSpec,
+  type PeriodReferenceInfo,
+} from "@/lib/timetable-v2/period-time-generator";
+
+import type {
+  Constraint,
+  PeriodItem,
+} from "./types";
+
+type Props = {
+  periods: PeriodItem[];
+  constraints: Constraint[];
+  busy: boolean;
+  onChange: (periods: PeriodItem[]) => void;
+  onSave: () => void;
+  onReviewConstraints: () => void;
+};
+
+type ImpactState = {
+  removed: DayTimeTeachingSpec[];
+  refs: PeriodReferenceInfo[];
+  draft: DayTimePeriod[];
+};
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="block text-xs font-black text-slate-500">
+      {children}
+    </span>
+  );
+}
+
+const inputClass =
+  "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold";
+
+export function DayTimeEditor({
+  periods,
+  constraints,
+  busy,
+  onChange,
+  onSave,
+  onReviewConstraints,
+}: Props) {
+  const sorted = useMemo(
+    () => [...periods].sort((a, b) => a.order - b.order),
+    [periods],
+  );
+
+  const teaching = useMemo(
+    () => sorted.filter((period) => !period.isBreak),
+    [sorted],
+  );
+
+  const breaks = useMemo(
+    () => sorted.filter((period) => period.isBreak),
+    [sorted],
+  );
+
+  const firstTeaching = teaching[0];
+
+  const lessonDefault = useMemo(
+    () =>
+      durationBetweenTimes(
+        firstTeaching?.startTime,
+        firstTeaching?.endTime,
+      ) > 0
+        ? durationBetweenTimes(
+            firstTeaching?.startTime,
+            firstTeaching?.endTime,
+          )
+        : 45,
+    [firstTeaching],
+  );
+
+  const [countInput, setCountInput] = useState(() =>
+    String(teaching.length),
+  );
+
+  const [firstStartInput, setFirstStartInput] = useState(() =>
+    firstTeaching?.startTime ?? "07:30",
+  );
+
+  const [lessonDurationInput, setLessonDurationInput] = useState(() =>
+    String(lessonDefault),
+  );
+
+  const [transitionInput, setTransitionInput] = useState("0");
+
+  const [expanded, setExpanded] = useState<string[]>([]);
+
+  const [addBreakAfterIndex, setAddBreakAfterIndex] = useState<
+    number | null
+  >(null);
+
+  const [breakName, setBreakName] = useState("فسحة");
+
+  const [breakDuration, setBreakDuration] = useState("20");
+
+  const [impact, setImpact] = useState<ImpactState | null>(null);
+
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+
+  const isExpanded = (id: string) => expanded.includes(id);
+
+  const apply = (next: PeriodItem[]) => {
+    onChange(next);
+    setNotice(null);
+    setAddBreakAfterIndex(null);
+  };
+
+  const handleGenerate = () => {
+    const count = clampInt(countInput, 1, 12, teaching.length);
+
+    const lessonDuration = clampInt(
+      lessonDurationInput,
+      20,
+      120,
+      lessonDefault,
+    );
+
+    const transition = clampInt(transitionInput, 0, 30, 0);
+
+    const firstStart = parseClockTime(firstStartInput);
+
+    if (firstStart < 0) {
+      setNotice("أدخل وقت بداية أول حصة بصيغة صحيحة مثل 07:30.");
+      return;
+    }
+
+    const existingTeaching = extractTeachingSpecs(periods);
+
+    const nextTeaching = generateTeachingSpecs(count, existingTeaching);
+
+    const removed = existingTeaching.slice(count);
+
+    const breaksSpecs = extractBreakSpecs(periods);
+
+    const draft = buildDayTimelineUniform({
+      teaching: nextTeaching,
+      breaks: breaksSpecs,
+      firstStartMinutes: firstStart,
+      lessonDurationMinutes: lessonDuration,
+      transitionMinutes: transition,
+    });
+
+    const refs = findPeriodReferences(
+      constraints,
+      removed.map((item) => item.id),
+    );
+
+    if (removed.length > 0 && refs.length > 0) {
+      setImpact({
+        removed,
+        refs,
+        draft,
+      });
+
+      return;
+    }
+
+    apply(draft);
+
+    setCountInput(String(count));
+    setFirstStartInput(formatClockTime(firstStart));
+    setLessonDurationInput(String(lessonDuration));
+    setTransitionInput(String(transition));
+  };
+
+  const confirmImpactRemove = () => {
+    if (!impact) {
+      return;
+    }
+
+    apply(impact.draft);
+    setImpact(null);
+  };
+
+  const cancelImpact = () => {
+    setImpact(null);
+  };
+
+  const reviewImpactConstraints = () => {
+    setImpact(null);
+    onReviewConstraints();
+  };
+
+  const beginAddBreak = (afterIndex: number) => {
+    setAddBreakAfterIndex(afterIndex);
+    setBreakName("فسحة");
+    setBreakDuration("20");
+  };
+
+  const confirmAddBreak = () => {
+    if (addBreakAfterIndex === null) {
+      return;
+    }
+
+    const duration = clampInt(breakDuration, 5, 180, 20);
+
+    apply(
+      insertBreakIntoDay(periods, {
+        id: `BREAK_${Date.now()}_${addBreakAfterIndex}`,
+        label: breakName.trim() || "فسحة",
+        afterTeachingIndex: addBreakAfterIndex,
+        durationMinutes: duration,
+      }),
+    );
+  };
+
+  const updateBreak = (
+    breakId: string,
+    patch: { label?: string; duration?: number },
+  ) => {
+    apply(
+      updateBreakInDay(periods, breakId, {
+        label: patch.label,
+        durationMinutes: patch.duration,
+      }),
+    );
+  };
+
+  const deleteBreak = (breakId: string) => {
+    apply(removeBreakFromDay(periods, breakId));
+  };
+
+  const updateTeachingField = (
+    periodId: string,
+    field: "label" | "startTime" | "endTime",
+    value: string,
+  ) => {
+    onChange(
+      periods.map((period) =>
+        period.id === periodId
+          ? { ...period, [field]: value || null }
+          : period,
+      ),
+    );
+  };
+
+  const dayStart = teaching[0]?.startTime ?? null;
+
+  const dayEnd = sorted[sorted.length - 1]?.endTime ?? null;
+
+  const breaksTotalMinutes = breaks.reduce(
+    (total, item) =>
+      total +
+      Math.max(0, durationBetweenTimes(item.startTime, item.endTime)),
+    0,
+  );
+
+  const breaksLabel =
+    breaks.length === 0
+      ? "لا توجد فسحات"
+      : `${breaks.length} ${breaks.length === 1 ? "فسحة" : "فسحات"} • ${breaksTotalMinutes} دقيقة`;
+
+  const hasGeneratedTimes = teaching.some((period) => period.startTime);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <FieldLabel>ملخص أوقات اليوم</FieldLabel>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="rounded-xl bg-teal-50 px-3 py-1.5 text-xs font-black text-teal-800">
+              {teaching.length} حصص
+            </span>
+
+            <span className="rounded-xl bg-teal-50 px-3 py-1.5 text-xs font-black text-teal-800">
+              {lessonDefault} دقيقة للحصة
+            </span>
+
+            {dayStart ? (
+              <span className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700">
+                بداية اليوم {dayStart}
+              </span>
+            ) : null}
+
+            {dayEnd ? (
+              <span className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700">
+                نهاية اليوم {dayEnd}
+              </span>
+            ) : null}
+
+            <span className="rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800">
+              {breaksLabel}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {notice ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+          {notice}
+        </div>
+      ) : null}
+
+      <section className="rounded-3xl border border-teal-100 bg-gradient-to-l from-teal-50 via-white to-cyan-50 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-black text-slate-950">
+              منشئ الأوقات
+            </h3>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              أنشئ توقيت الحصص تلقائيًا؛ إعادة التوليد تحافظ على معرّفات
+              الحصص والفسحات وتعيد حساب الأوقات.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleGenerate}
+            className="h-11 shrink-0 rounded-xl bg-teal-700 px-5 text-sm font-black text-white transition hover:bg-teal-800 disabled:opacity-50"
+          >
+            {teaching.length > 0
+              ? "إعادة توليد الأوقات"
+              : "إنشاء الأوقات"}
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <label>
+            <FieldLabel>عدد الحصص اليومية</FieldLabel>
+
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={countInput}
+              onChange={(event) => setCountInput(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+
+          <label>
+            <FieldLabel>بداية أول حصة</FieldLabel>
+
+            <input
+              type="time"
+              value={firstStartInput}
+              onChange={(event) => setFirstStartInput(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+
+          <label>
+            <FieldLabel>مدة الحصة (دقيقة)</FieldLabel>
+
+            <input
+              type="number"
+              min={20}
+              max={120}
+              value={lessonDurationInput}
+              onChange={(event) =>
+                setLessonDurationInput(event.target.value)
+              }
+              className={inputClass}
+            />
+          </label>
+
+          <label>
+            <FieldLabel>مدة الانتقال بين الحصص</FieldLabel>
+
+            <input
+              type="number"
+              min={0}
+              max={30}
+              value={transitionInput}
+              onChange={(event) => setTransitionInput(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+        </div>
+      </section>
+
+      {sorted.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+          <div className="text-sm font-black text-slate-700">
+            لم تُنشأ أوقات اليوم بعد.
+          </div>
+
+          <div className="mt-2 text-xs text-slate-500">
+            استخدم منشئ الأوقات أعلاه لتوليد الحصص تلقائيًا.
+          </div>
+        </div>
+      ) : (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black">الخط الزمني لليوم</h3>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {hasGeneratedTimes
+                  ? "الأوقات محسوبة تلقائيًا؛ اضغط «تعديل» لتغيير أي حصة يدويًا."
+                  : "أضف أوقاتًا عبر المنشئ أو عبر التعديل اليدوي."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onSave}
+              className="h-11 rounded-xl bg-teal-700 px-5 text-sm font-black text-white disabled:opacity-50"
+            >
+              حفظ الأوقات
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {sorted.map((period, index) =>
+              period.isBreak ? (
+                <div
+                  key={period.id}
+                  className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-lg bg-amber-200/70 px-2 py-1 text-[10px] font-black text-amber-900">
+                        فسحة
+                      </span>
+
+                      <span className="text-sm font-black text-amber-900">
+                        {period.label}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-bold text-amber-800">
+                      {period.startTime ?? "--:--"}
+                      {" • "}
+                      {period.endTime ?? "--:--"}
+                      {" • "}
+                      {Math.max(
+                        0,
+                        durationBetweenTimes(
+                          period.startTime,
+                          period.endTime,
+                        ),
+                      )}{" "}
+                      دقيقة
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => toggleExpanded(period.id)}
+                        className="h-9 rounded-xl border border-amber-200 bg-white px-3 text-xs font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        {isExpanded(period.id) ? "إغلاق" : "تعديل"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => deleteBreak(period.id)}
+                        className="h-9 rounded-xl border border-rose-200 bg-white px-3 text-xs font-black text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded(period.id) ? (
+                    <div className="mt-4 grid gap-3 border-t border-amber-200 pt-4 md:grid-cols-2">
+                      <label>
+                        <FieldLabel>اسم الفسحة</FieldLabel>
+
+                        <input
+                          value={period.label}
+                          onChange={(event) =>
+                            updateBreak(period.id, {
+                              label: event.target.value,
+                            })
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label>
+                        <FieldLabel>مدة الفسحة (دقيقة)</FieldLabel>
+
+                        <input
+                          type="number"
+                          min={5}
+                          max={180}
+                          value={Math.max(
+                            0,
+                            durationBetweenTimes(
+                              period.startTime,
+                              period.endTime,
+                            ),
+                          )}
+                          onChange={(event) =>
+                            updateBreak(period.id, {
+                              duration: clampInt(
+                                event.target.value,
+                                5,
+                                180,
+                                20,
+                              ),
+                            })
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div
+                  key={period.id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-xs font-black text-white">
+                        {teaching.indexOf(period) + 1}
+                      </span>
+
+                      <span className="text-sm font-black text-slate-800">
+                        {period.label}
+                      </span>
+                    </div>
+
+                    <div className="text-sm font-black text-slate-700">
+                      {period.startTime ?? "--:--"}
+                      {" • "}
+                      {period.endTime ?? "--:--"}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => toggleExpanded(period.id)}
+                        className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                      >
+                        {isExpanded(period.id) ? "إغلاق" : "تعديل"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => beginAddBreak(index)}
+                        className="h-9 rounded-xl border border-amber-200 bg-white px-3 text-xs font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        + فسحة بعدها
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded(period.id) ? (
+                    <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-3">
+                      <label>
+                        <FieldLabel>الاسم</FieldLabel>
+
+                        <input
+                          value={period.label}
+                          onChange={(event) =>
+                            updateTeachingField(
+                              period.id,
+                              "label",
+                              event.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label>
+                        <FieldLabel>البداية</FieldLabel>
+
+                        <input
+                          type="time"
+                          value={period.startTime ?? ""}
+                          onChange={(event) =>
+                            updateTeachingField(
+                              period.id,
+                              "startTime",
+                              event.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label>
+                        <FieldLabel>النهاية</FieldLabel>
+
+                        <input
+                          type="time"
+                          value={period.endTime ?? ""}
+                          onChange={(event) =>
+                            updateTeachingField(
+                              period.id,
+                              "endTime",
+                              event.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            )}
+          </div>
+
+          {addBreakAfterIndex !== null ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="text-sm font-black text-amber-900">
+                إضافة فسحة بعد الحصة{" "}
+                {(() => {
+                  const target =
+                    teaching.indexOf(sorted[addBreakAfterIndex]);
+
+                  return (target >= 0 ? target : teaching.length - 1) + 1;
+                })()}
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label>
+                  <FieldLabel>اسم الفسحة</FieldLabel>
+
+                  <input
+                    value={breakName}
+                    onChange={(event) => setBreakName(event.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label>
+                  <FieldLabel>مدة الفسحة (دقيقة)</FieldLabel>
+
+                  <input
+                    type="number"
+                    min={5}
+                    max={180}
+                    value={breakDuration}
+                    onChange={(event) => setBreakDuration(event.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={confirmAddBreak}
+                  className="h-10 rounded-xl bg-amber-600 px-4 text-xs font-black text-white transition hover:bg-amber-700 disabled:opacity-50"
+                >
+                  إضافة الفسحة
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAddBreakAfterIndex(null)}
+                  className="h-10 rounded-xl border border-amber-200 bg-white px-4 text-xs font-black text-slate-600"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      )}
+
+      {impact ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/25 p-3 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-xl rounded-[2rem] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs font-black text-rose-700">
+                  حصص مرتبطة بقيود
+                </div>
+
+                <h3 className="mt-2 text-xl font-black">
+                  سيتم حذف بعض الحصص
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={cancelImpact}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-lg transition hover:bg-slate-200"
+                aria-label="إغلاق"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {impact.removed.map((item) => {
+                const ref = impact.refs.find(
+                  (entry) => entry.periodId === item.id,
+                );
+
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-900"
+                  >
+                    <span className="font-black">{item.label}</span>
+                    {" "}
+                    {ref
+                      ? `مرتبطة بـ ${ref.count} ${ref.count === 1 ? "قيد" : "قيود"}.`
+                      : "لن تُحذف (بدون قيود مرتبطة)."}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-600">
+              الحذف يزيل الحصة من توقيت اليوم، والقيود المرتبطة تبقى في
+              السجل حتى تراجعها وتعدّلها. يمكنك مراجعة القيود قبل
+              المتابعة.
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={cancelImpact}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                onClick={reviewImpactConstraints}
+                className="h-11 rounded-xl border border-teal-200 bg-teal-50 px-4 text-sm font-black text-teal-800 transition hover:bg-teal-100"
+              >
+                مراجعة القيود
+              </button>
+
+              <button
+                type="button"
+                disabled={busy}
+                onClick={confirmImpactRemove}
+                className="h-11 rounded-xl bg-rose-700 px-4 text-sm font-black text-white transition hover:bg-rose-800 disabled:opacity-50"
+              >
+                حذف الحصة والمتابعة
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\constraints\constraint-form.tsx
+==================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  CATEGORY_META,
+  getConstraintDefinition,
+  getCatalogForBuilder,
+  TONE_META,
+  type ConstraintCategory,
+} from "@/lib/timetable-v2/constraint-catalog";
+
+import {
+  effectiveSlotsForRule,
+  previewRuleConflicts,
+  slotKey,
+  type AnalysisRule,
+} from "@/lib/timetable-v2/constraint-analysis";
+
+import {
+  ConstraintTargetPicker,
+} from "./constraint-target-picker";
+
+import {
+  ConstraintSlotPicker,
+} from "./constraint-slot-picker";
+
+import {
+  constraintToAnalysisRule,
+  draftToAnalysisRule,
+  draftSlotCount,
+} from "./helpers";
+
+import type {
+  ClassItem,
+  Constraint,
+  ConstraintDraft,
+  DayItem,
+  PeriodItem,
+  Subject,
+  Teacher,
+  ToneHint,
+} from "./types";
+
+const TONE_PRIORITY: Record<
+  Exclude<ToneHint, null>,
+  number
+> = {
+  danger: 0,
+  fixed: 1,
+  preferred: 2,
+  fairness: 3,
+  custom: 4,
+};
+
+type Props = {
+  days: DayItem[];
+  periods: PeriodItem[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  classes: ClassItem[];
+  existingConstraints: Constraint[];
+  editingId: string | null;
+  initial?: ConstraintDraft;
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (draft: ConstraintDraft) => void;
+};
+
+function blankDraft(): ConstraintDraft {
+  return {
+    type: "TEACHER_UNAVAILABLE",
+    strength: "HARD",
+    notes: "",
+    valueInt: null,
+    weight: null,
+    teacherIds: [],
+    subjectIds: [],
+    classIds: [],
+    dayIds: [],
+    periodIds: [],
+    slots: [],
+  };
+}
+
+function toggleInList(
+  list: string[],
+  id: string,
+) {
+  return list.includes(id)
+    ? list.filter((item) => item !== id)
+    : [...list, id];
+}
+
+export function ConstraintForm({
+  days,
+  periods,
+  teachers,
+  subjects,
+  classes,
+  existingConstraints,
+  editingId,
+  initial,
+  busy,
+  onCancel,
+  onSave,
+}: Props) {
+  const catalog = useMemo(
+    () => getCatalogForBuilder(),
+    [],
+  );
+
+  const teachingPeriods = useMemo(
+    () =>
+      periods
+        .filter((period) => !period.isBreak)
+        .sort((a, b) => a.order - b.order),
+    [periods],
+  );
+
+  const [draft, setDraft] = useState<ConstraintDraft>(() =>
+    initial ?? blankDraft(),
+  );
+
+  const definition = getConstraintDefinition(draft.type);
+
+  const [selectedSlots, setSelectedSlots] = useState<Set<string>>(() =>
+    new Set(
+      (initial?.slots ?? []).map((slot) =>
+        slotKey(slot.dayId, slot.periodId),
+      ),
+    ),
+  );
+
+  const isCustom = definition.type === "__CUSTOM__";
+
+  const analysisOptions = useMemo(
+    () => ({
+      dayIds: days.map((day) => day.id),
+      periodIds: teachingPeriods.map((period) => period.id),
+    }),
+    [days, teachingPeriods],
+  );
+
+  const cellHints = useMemo(() => {
+    const map = new Map<string, ToneHint>();
+
+    if (isCustom) {
+      return map;
+    }
+
+    const hasTargets =
+      draft.teacherIds.length > 0 ||
+      draft.subjectIds.length > 0 ||
+      draft.classIds.length > 0;
+
+    for (const constraint of existingConstraints) {
+      if (!constraint.isActive) {
+        continue;
+      }
+
+      if (constraint.id === editingId) {
+        continue;
+      }
+
+      const overlaps =
+        !hasTargets ||
+        (draft.teacherIds.length > 0 &&
+          constraint.teachers.some((link) =>
+            draft.teacherIds.includes(link.teacher.id),
+          )) ||
+        (draft.subjectIds.length > 0 &&
+          constraint.subjects.some((link) =>
+            draft.subjectIds.includes(link.subject.id),
+          )) ||
+        (draft.classIds.length > 0 &&
+          constraint.classes.some((link) =>
+            draft.classIds.includes(link.class.id),
+          ));
+
+      if (!overlaps) {
+        continue;
+      }
+
+      const tone = getConstraintDefinition(constraint.type).tone;
+
+      const slots = effectiveSlotsForRule(
+        constraintToAnalysisRule(constraint),
+        analysisOptions,
+      );
+
+      for (const slot of slots) {
+        const key = slotKey(slot.dayId, slot.periodId);
+
+        const existing = map.get(key);
+
+        if (
+          !existing ||
+          TONE_PRIORITY[tone] < TONE_PRIORITY[existing]
+        ) {
+          map.set(key, tone);
+        }
+      }
+    }
+
+    return map;
+  }, [
+    draft.teacherIds,
+    draft.subjectIds,
+    draft.classIds,
+    existingConstraints,
+    editingId,
+    isCustom,
+    analysisOptions,
+  ]);
+
+  const existingRules = useMemo<AnalysisRule[]>(() => {
+    const options = analysisOptions;
+
+    return existingConstraints
+      .filter(
+        (constraint) =>
+          constraint.isActive &&
+          constraint.id !== editingId,
+      )
+      .map((constraint) => ({
+        ...constraintToAnalysisRule(constraint),
+        slots:
+          constraint.slots.length > 0
+            ? constraint.slots
+            : effectiveSlotsForRule(
+                constraintToAnalysisRule(constraint),
+                options,
+              ),
+      }));
+  }, [existingConstraints, editingId, analysisOptions]);
+
+  const previewConflicts = useMemo(() => {
+    if (isCustom) {
+      return [];
+    }
+
+    const rule = draftToAnalysisRule(draft);
+
+    const expanded = {
+      ...rule,
+      slots:
+        rule.slots.length > 0
+          ? rule.slots
+          : effectiveSlotsForRule(rule, analysisOptions),
+    };
+
+    return previewRuleConflicts(
+      expanded,
+      existingRules,
+      analysisOptions,
+    );
+  }, [draft, existingRules, analysisOptions, isCustom]);
+
+  const errors = useMemo(() => {
+    const list: string[] = [];
+
+    for (const group of definition.requiredTargets) {
+      const count =
+        group === "teachers"
+          ? draft.teacherIds.length
+          : group === "subjects"
+            ? draft.subjectIds.length
+            : draft.classIds.length;
+
+      if (count === 0) {
+        list.push(
+          group === "teachers"
+            ? "اختر معلمًا واحدًا على الأقل."
+            : group === "subjects"
+              ? "اختر مادة واحدة على الأقل."
+              : "اختر فصلًا واحدًا على الأقل.",
+        );
+      }
+    }
+
+    if (definition.schedule === "grid" && selectedSlots.size === 0) {
+      list.push("حدد خلية واحدة على الأقل.");
+    }
+
+    if (
+      (definition.schedule === "days" ||
+        definition.schedule === "daysPeriods") &&
+      draft.dayIds.length === 0
+    ) {
+      list.push("حدد يومًا واحدًا على الأقل.");
+    }
+
+    if (
+      (definition.schedule === "periods" ||
+        definition.schedule === "daysPeriods") &&
+      draft.periodIds.length === 0
+    ) {
+      list.push("حدد حصة واحدة على الأقل.");
+    }
+
+    if (
+      definition.valueKind === "count" &&
+      (typeof draft.valueInt !== "number" ||
+        !Number.isInteger(draft.valueInt) ||
+        draft.valueInt < definition.valueMin ||
+        draft.valueInt > definition.valueMax)
+    ) {
+      list.push(
+        `القيمة يجب أن تكون بين ${definition.valueMin} و ${definition.valueMax}.`,
+      );
+    }
+
+    if (
+      draft.weight !== null &&
+      (!Number.isFinite(draft.weight) ||
+        draft.weight < 1 ||
+        draft.weight > 100)
+    ) {
+      list.push("الوزن يجب أن يكون بين 1 و 100.");
+    }
+
+    return list;
+  }, [draft, definition, selectedSlots.size]);
+
+  const previewText = useMemo(() => {
+    if (isCustom) {
+      return "قيد مخصص لا يمكن معاينته من النموذج.";
+    }
+
+    const parts: string[] = [];
+
+    parts.push(definition.label);
+
+    if (draft.teacherIds.length > 0) {
+      parts.push(
+        `المعلم: ${teachers
+          .filter((teacher) => draft.teacherIds.includes(teacher.id))
+          .map((teacher) => teacher.name)
+          .join("، ")}`,
+      );
+    }
+
+    if (draft.subjectIds.length > 0) {
+      parts.push(
+        `المادة: ${subjects
+          .filter((subject) => draft.subjectIds.includes(subject.id))
+          .map((subject) => subject.name)
+          .join("، ")}`,
+      );
+    }
+
+    if (draft.classIds.length > 0) {
+      parts.push(
+        `الفصل: ${classes
+          .filter((classItem) => draft.classIds.includes(classItem.id))
+          .map((classItem) => classItem.name)
+          .join("، ")}`,
+      );
+    }
+
+    if (
+      definition.valueKind === "count" &&
+      typeof draft.valueInt === "number"
+    ) {
+      parts.push(`${definition.valueLabel}: ${draft.valueInt}`);
+    }
+
+    if (definition.schedule === "grid") {
+      parts.push(`في ${selectedSlots.size} خلية`);
+    } else if (definition.schedule === "days") {
+      if (draft.dayIds.length > 0) {
+        parts.push(
+          `في الأيام: ${days
+            .filter((day) => draft.dayIds.includes(day.id))
+            .map((day) => day.label)
+            .join("، ")}`,
+        );
+      }
+    } else if (definition.schedule === "periods") {
+      if (draft.periodIds.length > 0) {
+        parts.push(
+          `في الحصص: ${teachingPeriods
+            .filter((period) => draft.periodIds.includes(period.id))
+            .map((period) => period.label)
+            .join("، ")}`,
+        );
+      }
+    } else if (definition.schedule === "daysPeriods") {
+      if (draft.dayIds.length > 0 && draft.periodIds.length > 0) {
+        parts.push(
+          `في ${draft.dayIds.length} يوم × ${draft.periodIds.length} حصة`,
+        );
+      }
+    }
+
+    if (draft.weight !== null) {
+      parts.push(`بوزن ${draft.weight}%`);
+    }
+
+    return parts.join(" • ");
+  }, [
+    draft,
+    definition,
+    selectedSlots.size,
+    days,
+    teachingPeriods,
+    teachers,
+    subjects,
+    classes,
+    isCustom,
+  ]);
+
+  const selectType = (type: string) => {
+    const nextDefinition = getConstraintDefinition(type);
+
+    setDraft({
+      ...blankDraft(),
+      type,
+      strength: nextDefinition.defaultStrength,
+    });
+
+    setSelectedSlots(new Set());
+  };
+
+  const toggleDay = (dayId: string) =>
+    setDraft((current) => ({
+      ...current,
+      dayIds: toggleInList(current.dayIds, dayId),
+    }));
+
+  const togglePeriod = (periodId: string) =>
+    setDraft((current) => ({
+      ...current,
+      periodIds: toggleInList(current.periodIds, periodId),
+    }));
+
+  const selectAllDays = () =>
+    setDraft((current) => ({
+      ...current,
+      dayIds: days.map((day) => day.id),
+    }));
+
+  const selectAllPeriods = () =>
+    setDraft((current) => ({
+      ...current,
+      periodIds: teachingPeriods.map((period) => period.id),
+    }));
+
+  const clearDays = () =>
+    setDraft((current) => ({
+      ...current,
+      dayIds: [],
+    }));
+
+  const clearPeriods = () =>
+    setDraft((current) => ({
+      ...current,
+      periodIds: [],
+    }));
+
+  const toggleSlot = (dayId: string, periodId: string) => {
+    const key = slotKey(dayId, periodId);
+
+    setSelectedSlots((current) => {
+      const next = new Set(current);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+  };
+
+  const selectDay = (dayId: string) => {
+    setSelectedSlots((current) => {
+      const next = new Set(current);
+
+      for (const period of teachingPeriods) {
+        next.add(slotKey(dayId, period.id));
+      }
+
+      return next;
+    });
+  };
+
+  const selectPeriod = (periodId: string) => {
+    setSelectedSlots((current) => {
+      const next = new Set(current);
+
+      for (const day of days) {
+        next.add(slotKey(day.id, periodId));
+      }
+
+      return next;
+    });
+  };
+
+  const invertSlots = () => {
+    setSelectedSlots((current) => {
+      const next = new Set<string>();
+
+      for (const day of days) {
+        for (const period of teachingPeriods) {
+          const key = slotKey(day.id, period.id);
+
+          if (!current.has(key)) {
+            next.add(key);
+          }
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const submit = () => {
+    if (errors.length > 0 || busy) {
+      return;
+    }
+
+    onSave({
+      ...draft,
+      strength:
+        definition.allowedStrengths.length === 1
+          ? definition.allowedStrengths[0]
+          : draft.strength,
+      valueInt:
+        definition.valueKind === "count" ? draft.valueInt : null,
+      weight:
+        definition.hasWeight && draft.strength === "SOFT"
+          ? draft.weight
+          : null,
+      slots:
+        definition.schedule === "grid"
+          ? [...selectedSlots].map((key) => {
+              const [dayId, periodId] = key.split(":");
+
+              return { dayId, periodId };
+            })
+          : [],
+      dayIds:
+        definition.schedule === "days" ||
+        definition.schedule === "daysPeriods"
+          ? draft.dayIds
+          : [],
+      periodIds:
+        definition.schedule === "periods" ||
+        definition.schedule === "daysPeriods"
+          ? draft.periodIds
+          : [],
+    });
+  };
+
+  const grouped = useMemo(() => {
+    const map = new Map<
+      ConstraintCategory,
+      typeof catalog
+    >();
+
+    for (const item of catalog) {
+      const list = map.get(item.category) ?? [];
+
+      list.push(item);
+
+      map.set(item.category, list);
+    }
+
+    return map;
+  }, [catalog]);
+
+  const scheduleSlotCount = draftSlotCount(draft, analysisOptions);
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-black">
+              {editingId ? "تعديل القيد" : "إضافة قيد جديد"}
+            </h2>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              اختر نوع القيد من الدليل ثم حدد الأهداف والأوقات.
+            </p>
+          </div>
+
+          {editingId ? (
+            <span className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-black text-violet-700">
+              يحفظ على نفس القيد
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          {[...grouped.entries()].map(([category, items]) => (
+            <div
+              key={category}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="text-xs font-black text-teal-700">
+                {CATEGORY_META[category].label}
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {items.map((item) => {
+                  const active = draft.type === item.type;
+
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      onClick={() => selectType(item.type)}
+                      className={[
+                        "w-full rounded-xl border p-3 text-right transition",
+                        active
+                          ? "border-teal-500 bg-teal-50 ring-2 ring-teal-100"
+                          : "border-slate-200 bg-white hover:border-teal-300",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-black text-slate-900">
+                          {item.label}
+                        </div>
+
+                        <span
+                          className={[
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black",
+                            TONE_META[item.tone].chip,
+                          ].join(" ")}
+                        >
+                          {TONE_META[item.tone].label}
+                        </span>
+                      </div>
+
+                      <div className="mt-1 text-[11px] leading-5 text-slate-500">
+                        {item.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-black">
+              تفاصيل القيد
+            </h3>
+
+            <p className="mt-1 text-xs text-slate-500">
+              {definition.hint}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {definition.allowedStrengths.length > 1 ? (
+              <>
+                {(["HARD", "SOFT"] as const).map((strength) => (
+                  <button
+                    key={strength}
+                    type="button"
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        strength,
+                      }))
+                    }
+                    className={[
+                      "rounded-xl border px-4 py-2 text-xs font-black transition",
+                      draft.strength === strength
+                        ? strength === "HARD"
+                          ? "border-slate-950 bg-slate-950 text-white"
+                          : "border-teal-600 bg-teal-50 text-teal-700"
+                        : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {strength === "HARD" ? "إلزامي" : "تفضيل"}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <span
+                className={[
+                  "rounded-full px-3 py-1.5 text-[11px] font-black",
+                  definition.defaultStrength === "HARD"
+                    ? "bg-slate-100 text-slate-700"
+                    : "bg-teal-100 text-teal-700",
+                ].join(" ")}
+              >
+                {definition.defaultStrength === "HARD"
+                  ? "إلزامي دائمًا"
+                  : "تفضيل دائمًا"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {!isCustom ? (
+          <div className="mt-5 grid gap-4">
+            {definition.targets.teachers ? (
+              <ConstraintTargetPicker
+                title="المعلمون"
+                hint="اختيار متعدد"
+                items={teachers.map((teacher) => ({
+                  id: teacher.id,
+                  name: teacher.name,
+                }))}
+                selected={draft.teacherIds}
+                onToggle={(id) =>
+                  setDraft((current) => ({
+                    ...current,
+                    teacherIds: toggleInList(current.teacherIds, id),
+                  }))
+                }
+                onSelectAll={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    teacherIds: teachers.map((teacher) => teacher.id),
+                  }))
+                }
+                onClear={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    teacherIds: [],
+                  }))
+                }
+              />
+            ) : null}
+
+            {definition.targets.subjects ? (
+              <ConstraintTargetPicker
+                title="المواد"
+                hint="اختيار متعدد"
+                items={subjects.map((subject) => ({
+                  id: subject.id,
+                  name: subject.name,
+                }))}
+                selected={draft.subjectIds}
+                onToggle={(id) =>
+                  setDraft((current) => ({
+                    ...current,
+                    subjectIds: toggleInList(current.subjectIds, id),
+                  }))
+                }
+                onSelectAll={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    subjectIds: subjects.map((subject) => subject.id),
+                  }))
+                }
+                onClear={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    subjectIds: [],
+                  }))
+                }
+              />
+            ) : null}
+
+            {definition.targets.classes ? (
+              <ConstraintTargetPicker
+                title="الفصول"
+                hint="اختيار متعدد"
+                items={classes.map((classItem) => ({
+                  id: classItem.id,
+                  name: classItem.name,
+                }))}
+                selected={draft.classIds}
+                onToggle={(id) =>
+                  setDraft((current) => ({
+                    ...current,
+                    classIds: toggleInList(current.classIds, id),
+                  }))
+                }
+                onSelectAll={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    classIds: classes.map((classItem) => classItem.id),
+                  }))
+                }
+                onClear={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    classIds: [],
+                  }))
+                }
+              />
+            ) : null}
+
+            {definition.valueKind === "count" ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-600">
+                    {definition.valueLabel}
+                  </span>
+
+                  <div className="mt-2 flex max-w-40 items-center gap-2">
+                    <input
+                      type="number"
+                      min={definition.valueMin}
+                      max={definition.valueMax}
+                      value={draft.valueInt ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          valueInt:
+                            event.target.value === ""
+                              ? null
+                              : Number(event.target.value),
+                        }))
+                      }
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-black"
+                    />
+
+                    <span className="text-xs text-slate-500">
+                      بين {definition.valueMin} و {definition.valueMax}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            ) : null}
+
+            {definition.hasWeight &&
+            draft.strength === "SOFT" ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-600">
+                    وزن التفضيل (٪)
+                  </span>
+
+                  <div className="mt-2 flex max-w-64 items-center gap-2">
+                    <input
+                      type="range"
+                      min={1}
+                      max={100}
+                      value={draft.weight ?? 50}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          weight: Number(event.target.value),
+                        }))
+                      }
+                      className="h-2 flex-1 accent-teal-600"
+                    />
+
+                    <span className="w-14 rounded-lg bg-teal-50 px-2 py-1 text-center text-sm font-black text-teal-700">
+                      {draft.weight ?? 50}٪
+                    </span>
+                  </div>
+                </label>
+              </div>
+            ) : null}
+
+            {definition.schedule === "grid" ? (
+              <ConstraintSlotPicker
+                days={days}
+                periods={teachingPeriods}
+                selectedSlots={selectedSlots}
+                onToggleSlot={toggleSlot}
+                onSelectDay={selectDay}
+                onSelectPeriod={selectPeriod}
+                onInvert={invertSlots}
+                cellHint={(dayId, periodId) =>
+                  cellHints.get(slotKey(dayId, periodId)) ?? null
+                }
+              />
+            ) : null}
+
+            {definition.schedule === "days" ||
+            definition.schedule === "daysPeriods" ? (
+              <ConstraintTargetPicker
+                title="الأيام"
+                hint="اختيار متعدد — يسري القيد على كل حصص الأيام المحددة"
+                items={days.map((day) => ({
+                  id: day.id,
+                  name: day.label,
+                }))}
+                selected={draft.dayIds}
+                onToggle={toggleDay}
+                onSelectAll={selectAllDays}
+                onClear={clearDays}
+              />
+            ) : null}
+
+            {definition.schedule === "periods" ||
+            definition.schedule === "daysPeriods" ? (
+              <ConstraintTargetPicker
+                title="الحصص"
+                hint="اختيار متعدد"
+                items={teachingPeriods.map((period) => ({
+                  id: period.id,
+                  name: period.label,
+                }))}
+                selected={draft.periodIds}
+                onToggle={togglePeriod}
+                onSelectAll={selectAllPeriods}
+                onClear={clearPeriods}
+              />
+            ) : null}
+
+            {definition.schedule === "none" ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-xs text-slate-500">
+                هذا النوع لا يتطلب تحديد أوقات؛ يسري على كامل الجدول.
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+            هذا قيد بنوع غير معروف من نظام سابق. يمكنك تفعيله أو تعطيله أو
+            حذفه من قائمة القيود، لكن لا يمكن تعديل تفاصيله من النموذج.
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-l from-teal-50 via-white to-cyan-50 p-5 shadow-sm lg:p-7">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div>
+            <div className="text-xs font-black text-teal-700">
+              معاينة القيد
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-teal-200 bg-white p-4 text-sm font-bold leading-8 text-slate-800">
+              {previewText}
+
+              {definition.schedule !== "none" ? (
+                <div className="mt-2 text-xs font-black text-slate-400">
+                  = {scheduleSlotCount} خلية فعالة
+                </div>
+              ) : null}
+            </div>
+
+            {draft.notes ? (
+              <div className="mt-3 rounded-xl bg-white/70 p-3 text-xs text-slate-500">
+                ملاحظة: {draft.notes}
+              </div>
+            ) : null}
+          </div>
+
+          <div>
+            <div className="text-xs font-black text-teal-700">
+              أثر القيد على القيود الحالية
+            </div>
+
+            {previewConflicts.length === 0 ? (
+              <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                لا توجد تعارضات متوقعة مع القيود الحالية.
+              </div>
+            ) : (
+              <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
+                {previewConflicts.map((conflict, index) => (
+                  <div
+                    key={index}
+                    className={[
+                      "rounded-2xl border p-3 text-xs leading-6",
+                      conflict.severity === "ERROR"
+                        ? "border-rose-200 bg-rose-50 text-rose-800"
+                        : "border-amber-200 bg-amber-50 text-amber-800",
+                    ].join(" ")}
+                  >
+                    <div className="font-black">
+                      {conflict.title}
+                    </div>
+
+                    <div className="mt-1">
+                      {conflict.description}
+                    </div>
+
+                    <div className="mt-1 text-[10px] opacity-70">
+                      {conflict.slots.length} خلية متأثرة
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <textarea
+          value={draft.notes}
+          onChange={(event) =>
+            setDraft((current) => ({
+              ...current,
+              notes: event.target.value,
+            }))
+          }
+          placeholder="ملاحظة اختيارية توضح سبب القيد..."
+          className="mt-5 h-20 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold"
+        />
+
+        {errors.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <div className="text-xs font-black text-rose-700">
+              أكمل البيانات التالية:
+            </div>
+
+            <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-rose-700">
+              {errors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="h-12 rounded-xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy || errors.length > 0}
+            className="h-12 rounded-xl bg-teal-700 px-8 text-sm font-black text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-40"
+          >
+            {busy
+              ? "جار الحفظ..."
+              : editingId
+                ? "حفظ التعديلات"
+                : "إضافة القيد"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+FILE: lib\timetable-v2\period-time-generator.ts
+==================================================
+export type DayTimePeriod = {
+  id: string;
+  label: string;
+  order: number;
+  isBreak: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+export type DayTimeTeachingSpec = {
+  id: string;
+  label: string;
+};
+
+export type DayTimeBreakSpec = {
+  id: string;
+  label: string;
+  afterTeachingIndex: number;
+  durationMinutes: number;
+};
+
+export type PeriodReferenceSource = {
+  periods: Array<{ periodId: string }>;
+  slots: Array<{ dayId: string; periodId: string }>;
+};
+
+export type PeriodReferenceInfo = {
+  periodId: string;
+  count: number;
+};
+
+export function parseClockTime(
+  value: string | null | undefined,
+): number {
+  if (!value) {
+    return -1;
+  }
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+
+  if (!match) {
+    return -1;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return -1;
+  }
+
+  return hours * 60 + minutes;
+}
+
+export function formatClockTime(totalMinutes: number): string {
+  const safe = Math.max(0, Math.round(totalMinutes));
+
+  const hours = Math.floor(safe / 60);
+  const minutes = safe % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function durationBetweenTimes(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+): number {
+  const start = parseClockTime(startTime);
+  const end = parseClockTime(endTime);
+
+  if (start < 0 || end < 0 || end <= start) {
+    return -1;
+  }
+
+  return end - start;
+}
+
+export function clampInt(
+  value: number | string | null | undefined,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  const parsed = typeof value === "number" ? value : Number(value ?? NaN);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+export function extractTeachingSpecs(
+  periods: DayTimePeriod[],
+): DayTimeTeachingSpec[] {
+  return periods
+    .filter((period) => !period.isBreak)
+    .sort((a, b) => a.order - b.order)
+    .map((period) => ({
+      id: period.id,
+      label: period.label,
+    }));
+}
+
+export function extractBreakSpecs(
+  periods: DayTimePeriod[],
+  fallbackMinutes = 20,
+): DayTimeBreakSpec[] {
+  const sorted = [...periods].sort((a, b) => a.order - b.order);
+
+  const result: DayTimeBreakSpec[] = [];
+
+  let teachingIndex = -1;
+
+  for (const period of sorted) {
+    if (!period.isBreak) {
+      teachingIndex += 1;
+      continue;
+    }
+
+    const duration = durationBetweenTimes(period.startTime, period.endTime);
+
+    result.push({
+      id: period.id,
+      label: period.label || "فسحة",
+      afterTeachingIndex: teachingIndex < 0 ? 0 : teachingIndex,
+      durationMinutes: duration > 0 ? duration : fallbackMinutes,
+    });
+  }
+
+  return result;
+}
+
+export function generateTeachingSpecs(
+  count: number,
+  existing: DayTimeTeachingSpec[],
+): DayTimeTeachingSpec[] {
+  const used = new Set(existing.map((spec) => spec.id));
+
+  return Array.from({ length: count }, (_, index) => {
+    const base = existing[index];
+
+    if (base) {
+      return base;
+    }
+
+    let id = `PERIOD_${index + 1}`;
+
+    if (used.has(id)) {
+      id = `PERIOD_${Date.now()}_${index + 1}`;
+    }
+
+    used.add(id);
+
+    return {
+      id,
+      label: `الحصة ${index + 1}`,
+    };
+  });
+}
+
+export function buildDayTimelineUniform({
+  teaching,
+  breaks,
+  firstStartMinutes,
+  lessonDurationMinutes,
+  transitionMinutes,
+}: {
+  teaching: DayTimeTeachingSpec[];
+  breaks: DayTimeBreakSpec[];
+  firstStartMinutes: number;
+  lessonDurationMinutes: number;
+  transitionMinutes: number;
+}): DayTimePeriod[] {
+  const breakByAfter = new Map<number, DayTimeBreakSpec[]>();
+
+  for (const breakSpec of breaks) {
+    const list = breakByAfter.get(breakSpec.afterTeachingIndex) ?? [];
+
+    list.push(breakSpec);
+
+    breakByAfter.set(breakSpec.afterTeachingIndex, list);
+  }
+
+  const items: DayTimePeriod[] = [];
+
+  let cursor = firstStartMinutes;
+
+  teaching.forEach((spec, index) => {
+    const start = cursor;
+    const end = start + lessonDurationMinutes;
+
+    items.push({
+      id: spec.id,
+      label: spec.label,
+      order: items.length + 1,
+      isBreak: false,
+      startTime: formatClockTime(start),
+      endTime: formatClockTime(end),
+    });
+
+    cursor = end + transitionMinutes;
+
+    const after = breakByAfter.get(index) ?? [];
+
+    for (const breakSpec of after) {
+      const breakStart = end;
+      const breakEnd = breakStart + breakSpec.durationMinutes;
+
+      items.push({
+        id: breakSpec.id,
+        label: breakSpec.label,
+        order: items.length + 1,
+        isBreak: true,
+        startTime: formatClockTime(breakStart),
+        endTime: formatClockTime(breakEnd),
+      });
+
+      cursor = breakEnd + transitionMinutes;
+    }
+  });
+
+  return items;
+}
+
+function normalizeOrders(
+  items: DayTimePeriod[],
+): DayTimePeriod[] {
+  return items.map((item, index) => ({
+    ...item,
+    order: index + 1,
+  }));
+}
+
+function shiftMinutes(
+  value: string | null | undefined,
+  delta: number,
+): string | null | undefined {
+  const minutes = parseClockTime(value);
+
+  if (minutes < 0) {
+    return value;
+  }
+
+  return formatClockTime(minutes + delta);
+}
+
+function sortByOrder(
+  items: DayTimePeriod[],
+): DayTimePeriod[] {
+  return [...items].sort((a, b) => a.order - b.order);
+}
+
+export function insertBreakIntoDay(
+  periods: DayTimePeriod[],
+  breakSpec: DayTimeBreakSpec,
+): DayTimePeriod[] {
+  const sorted = sortByOrder(periods);
+
+  let teachingIndex = -1;
+
+  let anchorIndex = -1;
+
+  for (let index = 0; index < sorted.length; index += 1) {
+    if (sorted[index].isBreak) {
+      continue;
+    }
+
+    teachingIndex += 1;
+
+    if (teachingIndex === breakSpec.afterTeachingIndex) {
+      anchorIndex = index;
+
+      break;
+    }
+  }
+
+  if (anchorIndex < 0) {
+    return periods;
+  }
+
+  const anchor = sorted[anchorIndex];
+
+  const anchorEnd = parseClockTime(anchor.endTime);
+
+  const newBreak: DayTimePeriod = {
+    id: breakSpec.id,
+    label: breakSpec.label,
+    order: anchor.order + 1,
+    isBreak: true,
+    startTime:
+      anchorEnd >= 0 ? formatClockTime(anchorEnd) : null,
+    endTime:
+      anchorEnd >= 0
+        ? formatClockTime(anchorEnd + breakSpec.durationMinutes)
+        : null,
+  };
+
+  const inserted = [...sorted];
+
+  inserted.splice(anchorIndex + 1, 0, newBreak);
+
+  const insertedIndex = anchorIndex + 1;
+
+  const shifted = inserted.map((item, index) => {
+    if (index <= insertedIndex) {
+      return item;
+    }
+
+    return {
+      ...item,
+      startTime: shiftMinutes(item.startTime, breakSpec.durationMinutes),
+      endTime: shiftMinutes(item.endTime, breakSpec.durationMinutes),
+    };
+  });
+
+  return normalizeOrders(shifted);
+}
+
+export function removeBreakFromDay(
+  periods: DayTimePeriod[],
+  breakId: string,
+): DayTimePeriod[] {
+  const sorted = sortByOrder(periods);
+
+  const breakIndex = sorted.findIndex(
+    (period) => period.isBreak && period.id === breakId,
+  );
+
+  if (breakIndex < 0) {
+    return periods;
+  }
+
+  const removed = sorted[breakIndex];
+
+  const duration = durationBetweenTimes(
+    removed.startTime,
+    removed.endTime,
+  );
+
+  const result: DayTimePeriod[] = [];
+
+  sorted.forEach((item, index) => {
+    if (item.isBreak && item.id === breakId) {
+      return;
+    }
+
+    if (index > breakIndex && duration > 0) {
+      result.push({
+        ...item,
+        startTime: shiftMinutes(item.startTime, -duration),
+        endTime: shiftMinutes(item.endTime, -duration),
+      });
+
+      return;
+    }
+
+    result.push(item);
+  });
+
+  return normalizeOrders(result);
+}
+
+export function updateBreakInDay(
+  periods: DayTimePeriod[],
+  breakId: string,
+  patch: {
+    label?: string;
+    durationMinutes?: number;
+  },
+): DayTimePeriod[] {
+  const sorted = sortByOrder(periods);
+
+  const breakIndex = sorted.findIndex(
+    (period) => period.isBreak && period.id === breakId,
+  );
+
+  if (breakIndex < 0) {
+    return periods;
+  }
+
+  const target = sorted[breakIndex];
+
+  const oldDuration = durationBetweenTimes(target.startTime, target.endTime);
+
+  const newDuration =
+    patch.durationMinutes !== undefined &&
+    Number.isFinite(patch.durationMinutes) &&
+    patch.durationMinutes > 0
+      ? patch.durationMinutes
+      : oldDuration;
+
+  const label =
+    patch.label?.trim() || target.label;
+
+  const delta = newDuration > 0 && oldDuration > 0 ? newDuration - oldDuration : 0;
+
+  const start = parseClockTime(target.startTime);
+
+  const result: DayTimePeriod[] = [];
+
+  sorted.forEach((item, index) => {
+    if (item.isBreak && item.id === breakId) {
+      result.push({
+        ...item,
+        label,
+        endTime:
+          start >= 0 && newDuration > 0
+            ? formatClockTime(start + newDuration)
+            : item.endTime,
+      });
+
+      return;
+    }
+
+    if (index > breakIndex && delta !== 0) {
+      result.push({
+        ...item,
+        startTime: shiftMinutes(item.startTime, delta),
+        endTime: shiftMinutes(item.endTime, delta),
+      });
+
+      return;
+    }
+
+    result.push(item);
+  });
+
+  return normalizeOrders(result);
+}
+
+export function findPeriodReferences(
+  constraints: PeriodReferenceSource[],
+  periodIds: string[],
+): PeriodReferenceInfo[] {
+  const result: PeriodReferenceInfo[] = [];
+
+  for (const periodId of periodIds) {
+    const count = constraints.filter(
+      (constraint) =>
+        constraint.periods.some((link) => link.periodId === periodId) ||
+        constraint.slots.some((slot) => slot.periodId === periodId),
+    ).length;
+
+    if (count > 0) {
+      result.push({
+        periodId,
+        count,
+      });
+    }
+  }
+
+  return result;
+}
+
+
+==================================================
+FILE: lib\timetable-v2\constraint-service.ts
+==================================================
+import "server-only";
+
+import {
+  Prisma,
+} from "@prisma/client";
+
+import {
+  prisma,
+} from "@/lib/prisma";
+
+export type TimetableV2SlotInput = {
+  dayId: string;
+  periodId: string;
+};
+
+export type TimetableV2ConstraintInput = {
+  type: string;
+  strength: "HARD" | "SOFT";
+  title?: string | null;
+  valueInt?: number | null;
+  notes?: string | null;
+  isActive?: boolean;
+
+  teacherIds?: string[];
+  subjectIds?: string[];
+  classIds?: string[];
+  dayIds?: string[];
+  periodIds?: string[];
+  slots?: TimetableV2SlotInput[];
+
+  configJson?: Prisma.InputJsonValue | null;
+};
+
+function normalizeText(
+  value?: string | null,
+) {
+  const clean =
+    value
+      ?.trim()
+      .replace(/\s+/g, " ") ??
+    "";
+
+  return clean || null;
+}
+
+async function requireProject(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project =
+    await prisma.timetableProject.findFirst({
+      where: {
+        id: projectId,
+        schoolAccountId,
+      },
+      select: {
+        id: true,
+        name: true,
+        academicYear: true,
+        semester: true,
+        status: true,
+        daysJson: true,
+        periodsJson: true,
+      },
+    });
+
+  if (!project) {
+    throw new Error(
+      "PROJECT_NOT_FOUND",
+    );
+  }
+
+  return project;
+}
+
+function unique(
+  values: string[] = [],
+) {
+  return [
+    ...new Set(
+      values.filter(Boolean),
+    ),
+  ];
+}
+
+function uniqueSlots(
+  slots: TimetableV2SlotInput[] = [],
+) {
+  const map =
+    new Map<
+      string,
+      TimetableV2SlotInput
+    >();
+
+  for (
+    const slot of slots
+  ) {
+    if (
+      !slot.dayId ||
+      !slot.periodId
+    ) {
+      continue;
+    }
+
+    map.set(
+      `${slot.dayId}:${slot.periodId}`,
+      slot,
+    );
+  }
+
+  return [
+    ...map.values(),
+  ];
+}
+
+async function validateTargets(
+  project: {
+    id: string;
+    daysJson: unknown;
+    periodsJson: unknown;
+  },
+  input: TimetableV2ConstraintInput,
+) {
+  const projectId =
+    project.id;
+
+  const teacherIds =
+    unique(
+      input.teacherIds,
+    );
+
+  const subjectIds =
+    unique(
+      input.subjectIds,
+    );
+
+  const classIds =
+    unique(
+      input.classIds,
+    );
+
+  const dayIds =
+    unique(
+      input.dayIds,
+    );
+
+  const periodIds =
+    unique(
+      input.periodIds,
+    );
+
+  const slots =
+    uniqueSlots(
+      input.slots,
+    );
+
+  const validDayIds =
+    new Set(
+      Array.isArray(
+        project.daysJson,
+      )
+        ? (
+            project.daysJson as Array<{
+              id: string;
+            }>
+          ).map((day) => day.id)
+        : [],
+    );
+
+  const validPeriodIds =
+    new Set(
+      Array.isArray(
+        project.periodsJson,
+      )
+        ? (
+            project.periodsJson as Array<{
+              id: string;
+            }>
+          ).map((period) => period.id)
+        : [],
+    );
+
+  const invalidDayId =
+    [
+      ...dayIds,
+      ...slots.map(
+        (slot) => slot.dayId,
+      ),
+    ].find(
+      (dayId) =>
+        !validDayIds.has(dayId),
+    );
+
+  if (invalidDayId) {
+    throw new Error(
+      "INVALID_DAY_TARGET",
+    );
+  }
+
+  const invalidPeriodId =
+    [
+      ...periodIds,
+      ...slots.map(
+        (slot) => slot.periodId,
+      ),
+    ].find(
+      (periodId) =>
+        !validPeriodIds.has(
+          periodId,
+        ),
+    );
+
+  if (invalidPeriodId) {
+    throw new Error(
+      "INVALID_PERIOD_TARGET",
+    );
+  }
+
+  const [
+    teacherCount,
+    subjectCount,
+    classCount,
+  ] = await Promise.all([
+    teacherIds.length
+      ? prisma.timetableTeacher.count({
+          where: {
+            projectId,
+            id: {
+              in: teacherIds,
+            },
+          },
+        })
+      : 0,
+
+    subjectIds.length
+      ? prisma.timetableSubject.count({
+          where: {
+            projectId,
+            id: {
+              in: subjectIds,
+            },
+          },
+        })
+      : 0,
+
+    classIds.length
+      ? prisma.timetableClass.count({
+          where: {
+            projectId,
+            id: {
+              in: classIds,
+            },
+          },
+        })
+      : 0,
+  ]);
+
+  if (
+    teacherCount !==
+    teacherIds.length
+  ) {
+    throw new Error(
+      "INVALID_TEACHER_TARGET",
+    );
+  }
+
+  if (
+    subjectCount !==
+    subjectIds.length
+  ) {
+    throw new Error(
+      "INVALID_SUBJECT_TARGET",
+    );
+  }
+
+  if (
+    classCount !==
+    classIds.length
+  ) {
+    throw new Error(
+      "INVALID_CLASS_TARGET",
+    );
+  }
+
+  if (
+    input.valueInt !== null &&
+    input.valueInt !== undefined &&
+    (!Number.isInteger(
+      input.valueInt,
+    ) ||
+      input.valueInt < 0 ||
+      input.valueInt > 60)
+  ) {
+    throw new Error(
+      "INVALID_CONSTRAINT_VALUE",
+    );
+  }
+
+  const config = input.configJson as
+    | Record<string, unknown>
+    | null
+    | undefined;
+
+  if (
+    config &&
+    typeof config === "object" &&
+    "weight" in config
+  ) {
+    const weight = config.weight;
+
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight < 0 ||
+      weight > 100
+    ) {
+      throw new Error(
+        "INVALID_WEIGHT",
+      );
+    }
+  }
+
+  return {
+    teacherIds,
+    subjectIds,
+    classIds,
+    dayIds,
+    periodIds,
+    slots,
+  };
+}
+
+function validateInputShape(
+  input: TimetableV2ConstraintInput,
+) {
+  if (
+    !input.type?.trim()
+  ) {
+    throw new Error(
+      "CONSTRAINT_TYPE_REQUIRED",
+    );
+  }
+
+  if (
+    input.strength !== "HARD" &&
+    input.strength !== "SOFT"
+  ) {
+    throw new Error(
+      "INVALID_STRENGTH",
+    );
+  }
+}
+
+const constraintInclude = {
+  teachers: {
+    include: {
+      teacher: {
+        select: {
+          id: true,
+          name: true,
+          specialty: true,
+        },
+      },
+    },
+  },
+
+  subjects: {
+    include: {
+      subject: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+
+  classes: {
+    include: {
+      class: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+
+  days: true,
+  periods: true,
+  slots: true,
+} satisfies Prisma.TimetableConstraintInclude;
+
+export async function getTimetableV2ConstraintsWorkspace(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  const project =
+    await requireProject(
+      projectId,
+      schoolAccountId,
+    );
+
+  const [
+    teachers,
+    subjects,
+    classes,
+    constraints,
+  ] = await Promise.all([
+    prisma.timetableTeacher.findMany({
+      where: {
+        projectId,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        specialty: true,
+        maxWeeklyLoad: true,
+      },
+    }),
+
+    prisma.timetableSubject.findMany({
+      where: {
+        projectId,
+        isActive: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    }),
+
+    prisma.timetableClass.findMany({
+      where: {
+        projectId,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    }),
+
+    prisma.timetableConstraint.findMany({
+      where: {
+        projectId,
+      },
+      orderBy: [
+        {
+          isActive: "desc",
+        },
+        {
+          createdAt: "desc",
+        },
+      ],
+      include:
+        constraintInclude,
+    }),
+  ]);
+
+  return {
+    project,
+    teachers,
+    subjects,
+    classes,
+    constraints,
+  };
+}
+
+export async function createTimetableV2Constraint(
+  projectId: string,
+  schoolAccountId: string,
+  input: TimetableV2ConstraintInput,
+) {
+  const project =
+    await requireProject(
+      projectId,
+      schoolAccountId,
+    );
+
+  validateInputShape(input);
+
+  const targets =
+    await validateTargets(
+      project,
+      input,
+    );
+
+  return prisma.timetableConstraint.create({
+    data: {
+      projectId,
+      type:
+        input.type.trim(),
+      strength:
+        input.strength,
+      title:
+        normalizeText(
+          input.title,
+        ),
+      valueInt:
+        input.valueInt ??
+        null,
+      notes:
+        normalizeText(
+          input.notes,
+        ),
+      isActive:
+        input.isActive ??
+        true,
+      configJson:
+        input.configJson ??
+        undefined,
+
+      teachers: {
+        create:
+          targets.teacherIds.map(
+            (teacherId) => ({
+              teacherId,
+            }),
+          ),
+      },
+
+      subjects: {
+        create:
+          targets.subjectIds.map(
+            (subjectId) => ({
+              subjectId,
+            }),
+          ),
+      },
+
+      classes: {
+        create:
+          targets.classIds.map(
+            (classId) => ({
+              classId,
+            }),
+          ),
+      },
+
+      days: {
+        create:
+          targets.dayIds.map(
+            (dayId) => ({
+              dayId,
+            }),
+          ),
+      },
+
+      periods: {
+        create:
+          targets.periodIds.map(
+            (periodId) => ({
+              periodId,
+            }),
+          ),
+      },
+
+      slots: {
+        create:
+          targets.slots.map(
+            (slot) => ({
+              dayId:
+                slot.dayId,
+              periodId:
+                slot.periodId,
+            }),
+          ),
+      },
+    },
+    include:
+      constraintInclude,
+  });
+}
+
+export async function updateTimetableV2Constraint(
+  projectId: string,
+  constraintId: string,
+  schoolAccountId: string,
+  input: TimetableV2ConstraintInput,
+) {
+  const project =
+    await requireProject(
+      projectId,
+      schoolAccountId,
+    );
+
+  const existing =
+    await prisma.timetableConstraint.findFirst({
+      where: {
+        id: constraintId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "CONSTRAINT_NOT_FOUND",
+    );
+  }
+
+  validateInputShape(input);
+
+  const targets =
+    await validateTargets(
+      project,
+      input,
+    );
+
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.timetableConstraintTeacher.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintSubject.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintClass.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintDay.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintPeriod.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      await tx.timetableConstraintSlot.deleteMany({
+        where: {
+          constraintId,
+        },
+      });
+
+      return tx.timetableConstraint.update({
+        where: {
+          id: constraintId,
+        },
+        data: {
+          type:
+            input.type.trim(),
+          strength:
+            input.strength,
+          title:
+            normalizeText(
+              input.title,
+            ),
+          valueInt:
+            input.valueInt ??
+            null,
+          notes:
+            normalizeText(
+              input.notes,
+            ),
+          isActive:
+            input.isActive ??
+            true,
+          configJson:
+            input.configJson ??
+            undefined,
+
+          teachers: {
+            create:
+              targets.teacherIds.map(
+                (teacherId) => ({
+                  teacherId,
+                }),
+              ),
+          },
+
+          subjects: {
+            create:
+              targets.subjectIds.map(
+                (subjectId) => ({
+                  subjectId,
+                }),
+              ),
+          },
+
+          classes: {
+            create:
+              targets.classIds.map(
+                (classId) => ({
+                  classId,
+                }),
+              ),
+          },
+
+          days: {
+            create:
+              targets.dayIds.map(
+                (dayId) => ({
+                  dayId,
+                }),
+              ),
+          },
+
+          periods: {
+            create:
+              targets.periodIds.map(
+                (periodId) => ({
+                  periodId,
+                }),
+              ),
+          },
+
+          slots: {
+            create:
+              targets.slots.map(
+                (slot) => ({
+                  dayId:
+                    slot.dayId,
+                  periodId:
+                    slot.periodId,
+                }),
+              ),
+          },
+        },
+        include:
+          constraintInclude,
+      });
+    },
+  );
+}
+
+export async function setTimetableV2ConstraintActive(
+  projectId: string,
+  constraintId: string,
+  schoolAccountId: string,
+  isActive: boolean,
+) {
+  await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  const existing =
+    await prisma.timetableConstraint.findFirst({
+      where: {
+        id: constraintId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "CONSTRAINT_NOT_FOUND",
+    );
+  }
+
+  return prisma.timetableConstraint.update({
+    where: {
+      id: constraintId,
+    },
+    data: {
+      isActive,
+    },
+    include:
+      constraintInclude,
+  });
+}
+
+export async function deleteTimetableV2Constraint(
+  projectId: string,
+  constraintId: string,
+  schoolAccountId: string,
+) {
+  await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  const existing =
+    await prisma.timetableConstraint.findFirst({
+      where: {
+        id: constraintId,
+        projectId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existing) {
+    throw new Error(
+      "CONSTRAINT_NOT_FOUND",
+    );
+  }
+
+  await prisma.timetableConstraint.delete({
+    where: {
+      id: constraintId,
+    },
+  });
+}
+
+export async function saveTimetableV2Periods(
+  projectId: string,
+  schoolAccountId: string,
+  periods: Prisma.InputJsonValue,
+) {
+  await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  return prisma.timetableProject.update({
+    where: {
+      id: projectId,
+    },
+    data: {
+      periodsJson:
+        periods,
+    },
+    select: {
+      id: true,
+      periodsJson: true,
+    },
+  });
+}
+
+==================================================
+FILE: app\api\dashboard\principal\timetable-v2\projects\[projectId]\constraints\route.ts
+==================================================
+import {
+  NextResponse,
+} from "next/server";
+
+import {
+  z,
+} from "zod";
+
+import {
+  requireTimetableApiAccess,
+} from "@/lib/timetable/timetable-access";
+
+import {
+  createTimetableV2Constraint,
+  deleteTimetableV2Constraint,
+  saveTimetableV2Periods,
+  setTimetableV2ConstraintActive,
+  updateTimetableV2Constraint,
+} from "@/lib/timetable-v2/constraint-service";
+
+type RouteContext = {
+  params: Promise<{
+    projectId: string;
+  }>;
+};
+
+const slotSchema =
+  z.object({
+    dayId:
+      z.string().min(1),
+
+    periodId:
+      z.string().min(1),
+  });
+
+const constraintFields = {
+  type:
+    z.string().min(1),
+
+  strength:
+    z.enum([
+      "HARD",
+      "SOFT",
+    ]),
+
+  title:
+    z.string()
+      .max(160)
+      .nullable()
+      .optional(),
+
+  valueInt:
+    z.number()
+      .int()
+      .nullable()
+      .optional(),
+
+  notes:
+    z.string()
+      .max(1000)
+      .nullable()
+      .optional(),
+
+  configJson:
+    z.any()
+      .nullable()
+      .optional(),
+
+  teacherIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  subjectIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  classIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(200)
+      .optional(),
+
+  dayIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(20)
+      .optional(),
+
+  periodIds:
+    z.array(
+      z.string().min(1),
+    )
+      .max(30)
+      .optional(),
+
+  slots:
+    z.array(
+      slotSchema,
+    )
+      .max(500)
+      .optional(),
+} as const;
+
+const constraintSchema =
+  z.object({
+    action:
+      z.literal(
+        "CREATE_CONSTRAINT",
+      ),
+
+    ...constraintFields,
+  });
+
+const updateConstraintSchema =
+  z.object({
+    action:
+      z.literal(
+        "UPDATE_CONSTRAINT",
+      ),
+
+    constraintId:
+      z.string().min(1),
+
+    ...constraintFields,
+  });
+
+const toggleConstraintSchema =
+  z.object({
+    action:
+      z.literal(
+        "TOGGLE_CONSTRAINT",
+      ),
+
+    constraintId:
+      z.string().min(1),
+
+    isActive:
+      z.boolean(),
+  });
+
+const periodsSchema =
+  z.object({
+    action:
+      z.literal(
+        "SAVE_PERIODS",
+      ),
+
+    periods:
+      z.array(
+        z.object({
+          id:
+            z.string().min(1),
+
+          label:
+            z.string().min(1),
+
+          order:
+            z.number().int(),
+
+          isBreak:
+            z.boolean(),
+
+          startTime:
+            z.string()
+              .nullable()
+              .optional(),
+
+          endTime:
+            z.string()
+              .nullable()
+              .optional(),
+        }),
+      )
+      .max(40),
+  });
+
+const deleteSchema =
+  z.object({
+    constraintId:
+      z.string().min(1),
+  });
+
+const patchSchema =
+  z.discriminatedUnion(
+    "action",
+    [
+      updateConstraintSchema,
+      toggleConstraintSchema,
+      periodsSchema,
+    ],
+  );
+
+function message(
+  error: unknown,
+) {
+  const code =
+    error instanceof Error
+      ? error.message
+      : "UNKNOWN";
+
+  const messages: Record<
+    string,
+    string
+  > = {
+    PROJECT_NOT_FOUND:
+      "مشروع الجدول غير موجود.",
+
+    INVALID_TEACHER_TARGET:
+      "يوجد معلم غير صالح داخل القيد.",
+
+    INVALID_SUBJECT_TARGET:
+      "توجد مادة غير صالحة داخل القيد.",
+
+    INVALID_CLASS_TARGET:
+      "يوجد فصل غير صالح داخل القيد.",
+
+    INVALID_DAY_TARGET:
+      "يوجد يوم غير صالح داخل القيد.",
+
+    INVALID_PERIOD_TARGET:
+      "توجد حصة غير صالحة داخل القيد.",
+
+    INVALID_CONSTRAINT_VALUE:
+      "القيمة العددية للقيد غير صالحة.",
+
+    INVALID_WEIGHT:
+      "وزن القيد غير صالح.",
+
+    INVALID_STRENGTH:
+      "درجة القيد غير صالحة.",
+
+    CONSTRAINT_TYPE_REQUIRED:
+      "نوع القيد مطلوب.",
+
+    CONSTRAINT_NOT_FOUND:
+      "القيد غير موجود.",
+  };
+
+  return (
+    messages[code] ??
+    "تعذر تنفيذ العملية."
+  );
+}
+
+export async function POST(
+  request: Request,
+  context: RouteContext,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const {
+    projectId,
+  } = await context.params;
+
+  const body =
+    await request
+      .json()
+      .catch(() => null);
+
+  const parsed =
+    constraintSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          parsed.error.issues[0]
+            ?.message ??
+          "بيانات القيد غير صالحة.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  try {
+    const {
+      action: _action,
+      ...input
+    } = parsed.data;
+
+    const constraint =
+      await createTimetableV2Constraint(
+        projectId,
+        access.schoolAccountId!,
+        input,
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        constraint,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          message(error),
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: RouteContext,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const {
+    projectId,
+  } = await context.params;
+
+  const body =
+    await request
+      .json()
+      .catch(() => null);
+
+  const parsed =
+    patchSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "بيانات العملية غير صالحة.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  try {
+    if (
+      parsed.data.action ===
+      "UPDATE_CONSTRAINT"
+    ) {
+      const {
+        action: _action,
+        constraintId,
+        ...input
+      } = parsed.data;
+
+      const constraint =
+        await updateTimetableV2Constraint(
+          projectId,
+          constraintId,
+          access.schoolAccountId!,
+          input,
+        );
+
+      return NextResponse.json({
+        success: true,
+        constraint,
+      });
+    }
+
+    if (
+      parsed.data.action ===
+      "TOGGLE_CONSTRAINT"
+    ) {
+      const constraint =
+        await setTimetableV2ConstraintActive(
+          projectId,
+          parsed.data.constraintId,
+          access.schoolAccountId!,
+          parsed.data.isActive,
+        );
+
+      return NextResponse.json({
+        success: true,
+        constraint,
+      });
+    }
+
+    const project =
+      await saveTimetableV2Periods(
+        projectId,
+        access.schoolAccountId!,
+        parsed.data.periods,
+      );
+
+    return NextResponse.json({
+      success: true,
+      project,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          message(error),
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: RouteContext,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const {
+    projectId,
+  } = await context.params;
+
+  const body =
+    await request
+      .json()
+      .catch(() => null);
+
+  const parsed =
+    deleteSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "معرف القيد غير صالح.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  try {
+    await deleteTimetableV2Constraint(
+      projectId,
+      parsed.data.constraintId,
+      access.schoolAccountId!,
+    );
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          message(error),
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}

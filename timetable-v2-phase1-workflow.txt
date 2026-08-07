@@ -1,0 +1,945 @@
+
+==================================================
+FILE: components\timetable-v2\project-home\project-workflow.tsx
+==================================================
+import Link from "next/link";
+
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+type StepTone =
+  | "teal"
+  | "sky"
+  | "amber"
+  | "rose"
+  | "slate";
+
+type Step = {
+  number: number;
+  title: string;
+  description: string;
+  badge: string;
+  tone: StepTone;
+  metric?: string;
+  hint?: string;
+  href?: string;
+  cta?: string;
+  secondaryHref?: string;
+  secondaryCta?: string;
+};
+
+const TONE_BADGE: Record<
+  StepTone,
+  string
+> = {
+  teal: "bg-teal-50 text-teal-700 ring-teal-200",
+  sky: "bg-sky-50 text-sky-700 ring-sky-200",
+  amber: "bg-amber-50 text-amber-700 ring-amber-200",
+  rose: "bg-rose-50 text-rose-700 ring-rose-200",
+  slate: "bg-slate-100 text-slate-500 ring-slate-200",
+};
+
+const TONE_NUMBER: Record<
+  StepTone,
+  string
+> = {
+  teal: "border-teal-200 bg-teal-50 text-teal-700",
+  sky: "border-sky-200 bg-sky-50 text-sky-700",
+  amber: "border-amber-200 bg-amber-50 text-amber-700",
+  rose: "border-rose-200 bg-rose-50 text-rose-700",
+  slate: "border-slate-200 bg-slate-100 text-slate-400",
+};
+
+function buildSteps(
+  data: ProjectDashboardData,
+): Step[] {
+  const counts = data.counts;
+  const schedule = data.schedule;
+  const readiness = data.readiness;
+
+  const base = `/dashboard/timetable-v2/${data.project.id}`;
+
+  const setupComplete =
+    data.setup.hasDays &&
+    data.setup.hasTeachingPeriods &&
+    counts.classesCount > 0 &&
+    counts.classSubjectsCount > 0;
+
+  const target =
+    data.setup.teacherTarget;
+
+  const teachersComplete =
+    counts.teachersCount > 0 &&
+    (target === null ||
+      counts.teachersCount >=
+        target);
+
+  const assignmentComplete =
+    counts.underAssignedRows ===
+      0 &&
+    counts.overAssignedRows ===
+      0 &&
+    counts.assignmentsCount > 0;
+
+  const timeReady =
+    data.setup.hasDays &&
+    data.setup.hasTeachingPeriods;
+
+  const scheduleStatus =
+    schedule.current?.status ?? "";
+
+  const generationBlocked =
+    !schedule.exists &&
+    !readiness.canGenerate;
+
+  const steps: Step[] = [
+    {
+      number: 1,
+      title: "إعداد المشروع",
+      description:
+        "المراحل الدراسية وأيام الدراسة وعدد الحصص اليومية.",
+      badge: setupComplete
+        ? "مكتمل"
+        : "يحتاج إكمال",
+      tone: setupComplete
+        ? "teal"
+        : "amber",
+      metric:
+        data.setup.stageLabels.length >
+        0
+          ? data.setup.stageLabels.join(
+              "، ",
+            )
+          : undefined,
+    },
+    {
+      number: 2,
+      title: "الفصول",
+      description:
+        "الفصول النشطة المبنية على المراحل المختارة.",
+      badge:
+        counts.classesCount > 0
+          ? "مكتمل"
+          : "يحتاج إكمال",
+      tone:
+        counts.classesCount > 0
+          ? "teal"
+          : "amber",
+      metric:
+        counts.classesCount > 0
+          ? `${counts.classesCount} فصول`
+          : undefined,
+    },
+    {
+      number: 3,
+      title: "المواد",
+      description:
+        "المواد الدراسية المستخدمة في الخطط.",
+      badge:
+        counts.subjectsCount > 0
+          ? "مكتمل"
+          : "يحتاج إكمال",
+      tone:
+        counts.subjectsCount > 0
+          ? "teal"
+          : "amber",
+      metric:
+        counts.subjectsCount > 0
+          ? `${counts.subjectsCount} مواد`
+          : undefined,
+    },
+    {
+      number: 4,
+      title: "مواد الفصول والخطط",
+      description:
+        "الخطة الأسبوعية لكل فصل وعدد حصص كل مادة.",
+      badge:
+        counts.classSubjectsCount > 0
+          ? "مكتمل"
+          : "يحتاج إكمال",
+      tone:
+        counts.classSubjectsCount > 0
+          ? "teal"
+          : "amber",
+      metric:
+        counts.classSubjectsCount > 0
+          ? `${counts.classSubjectsCount} خطة • ${counts.totalWeeklyLessons} حصة أسبوعيًا`
+          : undefined,
+    },
+    {
+      number: 5,
+      title: "المعلمون",
+      description:
+        "أسماء المعلمين وتخصصاتهم وحدود الأحمال.",
+      badge:
+        counts.teachersCount === 0 ||
+        !teachersComplete
+          ? "يحتاج إكمال"
+          : "مكتمل",
+      tone:
+        counts.teachersCount === 0 ||
+        !teachersComplete
+          ? "amber"
+          : "teal",
+      metric:
+        target !== null
+          ? `${counts.teachersCount}/${target}`
+          : counts.teachersCount > 0
+            ? `${counts.teachersCount} معلم`
+            : undefined,
+      href: `${base}/teachers`,
+      cta: "فتح إدارة المعلمين",
+    },
+    {
+      number: 6,
+      title: "العلاقات التدريسية",
+      description:
+        "إسناد كل مادة في كل فصل للمعلم مع عدد الحصص.",
+      badge: assignmentComplete
+        ? "مكتمل"
+        : counts.assignmentsCount > 0
+          ? "يحتاج إكمال"
+          : "متاح الآن",
+      tone: assignmentComplete
+        ? "teal"
+        : counts.assignmentsCount > 0
+          ? "amber"
+          : "sky",
+      metric: `${counts.assignedLessons}/${counts.totalWeeklyLessons}`,
+      href: `${base}/assignments`,
+      cta: "فتح الإسناد",
+    },
+    {
+      number: 7,
+      title: "القيود والأوقات",
+      description:
+        "أوقات اليوم والأيام الدراسية وقيود المعلمين والفصول.",
+      badge: timeReady
+        ? "جاهز"
+        : "يحتاج إكمال",
+      tone: timeReady ? "teal" : "amber",
+      metric: `${data.constraints.activeCount} قيود • ${data.time.daysCount} أيام × ${data.time.periodsPerDay} حصص`,
+      hint:
+        timeReady &&
+        data.constraints.activeCount ===
+          0
+          ? "اختياري: يمكن الإنشاء بدون قيود"
+          : undefined,
+      href: `${base}/constraints`,
+      cta: "فتح القيود والأوقات",
+    },
+    {
+      number: 8,
+      title: "فحص البيانات",
+      description:
+        "مراجعة الإسناد والأحمال والقيود قبل الإنشاء.",
+      badge: readiness.canGenerate
+        ? "جاهز"
+        : "يحتاج مراجعة",
+      tone: readiness.canGenerate
+        ? "teal"
+        : "amber",
+      metric: `${readiness.score}%`,
+      hint:
+        readiness.errorCount > 0
+          ? `${readiness.errorCount} خطأ يمنع الإنشاء`
+          : readiness.warningCount > 0
+            ? `${readiness.warningCount} تحذير`
+            : "لا توجد ملاحظات",
+      href: `${base}/readiness`,
+      cta: "فتح الفحص",
+    },
+    {
+      number: 9,
+      title: "إنشاء الجدول",
+      description:
+        "تشغيل المحرك لإنشاء نسخة كاملة من الجدول.",
+      badge: schedule.exists
+        ? "تم الإنشاء"
+        : readiness.canGenerate
+          ? "جاهز"
+          : "غير متاح حاليًا",
+      tone: schedule.exists
+        ? "teal"
+        : readiness.canGenerate
+          ? "sky"
+          : "rose",
+      metric: schedule.exists
+        ? `نسخة #${schedule.current?.version} • جودة ${schedule.current?.score}%`
+        : undefined,
+      hint: generationBlocked
+        ? "عالج أخطاء الجاهزية أولًا"
+        : undefined,
+      href: `${base}/generate`,
+      cta: schedule.exists
+        ? "إنشاء نسخة جديدة"
+        : "إنشاء الجدول",
+      secondaryHref:
+        generationBlocked
+          ? `${base}/readiness`
+          : undefined,
+      secondaryCta:
+        generationBlocked
+          ? "إصلاح الأخطاء أولًا"
+          : undefined,
+    },
+    {
+      number: 10,
+      title: "مراجعة الجدول والنسخ",
+      description:
+        "مقارنة النسخ واعتماد الجدول ونشره.",
+      badge: !schedule.exists
+        ? "لاحقًا"
+        : scheduleStatus ===
+            "PUBLISHED"
+          ? "منشور"
+          : scheduleStatus ===
+              "APPROVED"
+            ? "معتمد"
+            : schedule.isStale
+              ? "يحتاج مراجعة"
+              : "جاهز للمراجعة",
+      tone: !schedule.exists
+        ? "slate"
+        : scheduleStatus ===
+              "PUBLISHED" ||
+            scheduleStatus ===
+              "APPROVED"
+          ? "teal"
+          : schedule.isStale
+            ? "amber"
+            : "sky",
+      metric: schedule.exists
+        ? `نسخة #${schedule.current?.version} • اكتمال ${schedule.current?.completeness}%`
+        : undefined,
+      hint: !schedule.exists
+        ? "بعد إنشاء الجدول"
+        : schedule.isStale
+          ? "هذه النسخة أقدم من بيانات المشروع"
+          : undefined,
+      href: schedule.exists
+        ? `${base}/generate`
+        : undefined,
+      cta: schedule.exists
+        ? "فتح النسخ"
+        : undefined,
+    },
+    {
+      number: 11,
+      title: "التشغيل اليومي",
+      description:
+        "الغياب والنيابات والإشراف بعد اعتماد الجدول.",
+      badge: "لاحقًا",
+      tone: "slate",
+      hint:
+        "متاح بعد اعتماد ونشر الجدول",
+    },
+  ];
+
+  return steps;
+}
+
+function StepCard({
+  step,
+}: {
+  step: Step;
+}) {
+  const muted = step.tone === "slate";
+
+  return (
+    <article
+      className={[
+        "flex flex-col rounded-2xl border p-4",
+        muted
+          ? "border-slate-200 bg-slate-50"
+          : "border-slate-200 bg-white",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={[
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-black",
+              TONE_NUMBER[step.tone],
+            ].join(" ")}
+          >
+            {step.number}
+          </span>
+
+          <h3 className="truncate text-sm font-black text-slate-900">
+            {step.title}
+          </h3>
+        </div>
+
+        <span
+          className={[
+            "inline-flex shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1",
+            TONE_BADGE[step.tone],
+          ].join(" ")}
+        >
+          {step.badge}
+        </span>
+      </div>
+
+      {step.metric ? (
+        <div className="mt-3 text-xs font-black text-slate-600">
+          {step.metric}
+        </div>
+      ) : null}
+
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {step.description}
+      </p>
+
+      {step.hint ? (
+        <div
+          className={[
+            "mt-2 text-[11px] font-bold leading-5",
+            step.tone === "rose"
+              ? "text-rose-600"
+              : step.tone === "amber"
+                ? "text-amber-700"
+                : "text-slate-400",
+          ].join(" ")}
+        >
+          {step.hint}
+        </div>
+      ) : null}
+
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
+        {step.href && step.cta ? (
+          <Link
+            href={step.href}
+            className={[
+              "inline-flex h-9 items-center rounded-xl px-3 text-xs font-black transition",
+              step.tone === "rose"
+                ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-100"
+                : step.tone === "slate"
+                  ? "bg-slate-100 text-slate-400"
+                  : "bg-slate-950 text-white hover:bg-slate-800",
+            ].join(" ")}
+          >
+            {step.cta}
+          </Link>
+        ) : null}
+
+        {step.secondaryHref &&
+        step.secondaryCta ? (
+          <Link
+            href={
+              step.secondaryHref
+            }
+            className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+          >
+            {step.secondaryCta}
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+export function ProjectWorkflow({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const steps = buildSteps(data);
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-black text-slate-950">
+          خطوات بناء الجدول
+        </h2>
+
+        <span className="text-[11px] font-bold text-slate-400">
+          مسار العمل الكامل من الإعداد حتى التشغيل
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {steps.map((step) => (
+          <StepCard
+            key={step.number}
+            step={step}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+==================================================
+FILE: lib\timetable-v2\project-dashboard-types.ts
+==================================================
+export type ProjectDashboardBlocker = {
+  code: string;
+  severity: "ERROR" | "WARNING" | "INFO";
+  title: string;
+  blockerPhrase: string;
+  href: string;
+};
+
+export type ProjectDashboardSchedule = {
+  exists: boolean;
+  isStale: boolean;
+  versionsCount: number;
+  current: {
+    id: string;
+    version: number;
+    status: string;
+    score: number;
+    completeness: number;
+    hardViolations: number;
+    entriesCount: number;
+    generatedAt: string;
+  } | null;
+};
+
+export type ProjectDashboardData = {
+  project: {
+    id: string;
+    name: string;
+    academicYear: string;
+    semester: string;
+    status: string;
+  };
+
+  setup: {
+    stageLabels: string[];
+    teacherTarget: number | null;
+    weeklyPeriodTarget: number | null;
+    hasDays: boolean;
+    hasTeachingPeriods: boolean;
+  };
+
+  time: {
+    daysCount: number;
+    periodsPerDay: number;
+    breaksCount: number;
+    weeklySlotCount: number;
+  };
+
+  counts: {
+    teachersCount: number;
+    classesCount: number;
+    subjectsCount: number;
+    classSubjectsCount: number;
+    totalWeeklyLessons: number;
+    assignedLessons: number;
+    assignmentsCount: number;
+    fullyAssignedRows: number;
+    underAssignedRows: number;
+    overAssignedRows: number;
+    teacherCapacity: number;
+  };
+
+  constraints: {
+    activeCount: number;
+    hardCount: number;
+    softCount: number;
+    disabledCount: number;
+    conflictCount: number;
+  };
+
+  readiness: {
+    score: number;
+    canGenerate: boolean;
+    errorCount: number;
+    warningCount: number;
+    infoCount: number;
+    blockers: ProjectDashboardBlocker[];
+  };
+
+  schedule: ProjectDashboardSchedule;
+};
+
+
+==================================================
+FILE: components\timetable-v2\project-home\project-hero.tsx
+==================================================
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_TONES,
+} from "./labels";
+
+function HeroMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+      <div className="text-[11px] font-bold text-slate-500">
+        {label}
+      </div>
+
+      <div className="mt-1 text-xl font-black text-slate-950">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function ProjectHero({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const status =
+    data.project.status;
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+            مركز إدارة جدول الحصص
+          </div>
+
+          <h1 className="mt-3 truncate text-3xl font-black text-slate-950">
+            {data.project.name}
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {data.project.academicYear}
+            {" • "}
+            {data.project.semester}
+          </p>
+
+          {data.setup.stageLabels.length >
+          0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {data.setup.stageLabels.map(
+                (label) => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600"
+                  >
+                    {label}
+                  </span>
+                ),
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <span
+          className={[
+            "inline-flex shrink-0 items-center self-start rounded-full border px-4 py-2 text-xs font-black",
+            PROJECT_STATUS_TONES[status] ??
+              PROJECT_STATUS_TONES.DRAFT,
+          ].join(" ")}
+        >
+          {PROJECT_STATUS_LABELS[status] ??
+            status}
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <HeroMetric
+          label="أيام الدراسة"
+          value={data.time.daysCount}
+        />
+
+        <HeroMetric
+          label="الحصص اليومية"
+          value={data.time.periodsPerDay}
+        />
+
+        <HeroMetric
+          label="الخانات الأسبوعية"
+          value={data.time.weeklySlotCount}
+        />
+      </div>
+    </section>
+  );
+}
+
+
+==================================================
+FILE: lib\timetable-v2\project-setup.ts
+==================================================
+export const TIMETABLE_V2_STAGE_IDS = [
+  "ELEMENTARY",
+  "MIDDLE",
+  "HIGH",
+] as const;
+
+export type TimetableV2StageId =
+  (typeof TIMETABLE_V2_STAGE_IDS)[number];
+
+export const TIMETABLE_V2_STUDY_DAY_IDS = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+] as const;
+
+export type TimetableV2StudyDayId =
+  (typeof TIMETABLE_V2_STUDY_DAY_IDS)[number];
+
+export type TimetableV2GradeDefinition = {
+  id: string;
+  stageId: TimetableV2StageId;
+  name: string;
+  shortName: string;
+  sortOrder: number;
+};
+
+export type TimetableV2StageDefinition = {
+  id: TimetableV2StageId;
+  name: string;
+  shortName: string;
+  grades: TimetableV2GradeDefinition[];
+};
+
+export type TimetableV2GradeSetup = {
+  gradeId: string;
+  sectionNames: string[];
+};
+
+export type TimetableV2ProjectSetupInput = {
+  name: string;
+  academicYear: string;
+  semester: string;
+
+  stageIds: TimetableV2StageId[];
+
+  teacherCount: number;
+
+  /**
+   * قيمة إرشادية فقط ولا تعتبر قيداً ثابتاً.
+   * مثال: 35 حصة أسبوعياً.
+   */
+  weeklyPeriodTarget?: number | null;
+
+  studyDays: TimetableV2StudyDayId[];
+
+  periodsPerDay: number;
+
+  grades: TimetableV2GradeSetup[];
+};
+
+export const TIMETABLE_V2_DEFAULT_SECTION_NAMES = [
+  "أ",
+  "ب",
+  "ج",
+  "د",
+  "هـ",
+  "ح",
+] as const;
+
+export const TIMETABLE_V2_DEFAULT_STUDY_DAYS: TimetableV2StudyDayId[] = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+];
+
+export const TIMETABLE_V2_DAY_LABELS: Record<
+  TimetableV2StudyDayId,
+  string
+> = {
+  SUNDAY: "الأحد",
+  MONDAY: "الاثنين",
+  TUESDAY: "الثلاثاء",
+  WEDNESDAY: "الأربعاء",
+  THURSDAY: "الخميس",
+};
+
+export const TIMETABLE_V2_STAGES: TimetableV2StageDefinition[] = [
+  {
+    id: "ELEMENTARY",
+    name: "المرحلة الابتدائية",
+    shortName: "ابتدائي",
+    grades: [
+      {
+        id: "ELEMENTARY_1",
+        stageId: "ELEMENTARY",
+        name: "أول ابتدائي",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "ELEMENTARY_2",
+        stageId: "ELEMENTARY",
+        name: "ثاني ابتدائي",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "ELEMENTARY_3",
+        stageId: "ELEMENTARY",
+        name: "ثالث ابتدائي",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+      {
+        id: "ELEMENTARY_4",
+        stageId: "ELEMENTARY",
+        name: "رابع ابتدائي",
+        shortName: "الرابع",
+        sortOrder: 4,
+      },
+      {
+        id: "ELEMENTARY_5",
+        stageId: "ELEMENTARY",
+        name: "خامس ابتدائي",
+        shortName: "الخامس",
+        sortOrder: 5,
+      },
+      {
+        id: "ELEMENTARY_6",
+        stageId: "ELEMENTARY",
+        name: "سادس ابتدائي",
+        shortName: "السادس",
+        sortOrder: 6,
+      },
+    ],
+  },
+  {
+    id: "MIDDLE",
+    name: "المرحلة المتوسطة",
+    shortName: "متوسط",
+    grades: [
+      {
+        id: "MIDDLE_1",
+        stageId: "MIDDLE",
+        name: "أول متوسط",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "MIDDLE_2",
+        stageId: "MIDDLE",
+        name: "ثاني متوسط",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "MIDDLE_3",
+        stageId: "MIDDLE",
+        name: "ثالث متوسط",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+    ],
+  },
+  {
+    id: "HIGH",
+    name: "المرحلة الثانوية",
+    shortName: "ثانوي",
+    grades: [
+      {
+        id: "HIGH_1",
+        stageId: "HIGH",
+        name: "أول ثانوي",
+        shortName: "الأول",
+        sortOrder: 1,
+      },
+      {
+        id: "HIGH_2",
+        stageId: "HIGH",
+        name: "ثاني ثانوي",
+        shortName: "الثاني",
+        sortOrder: 2,
+      },
+      {
+        id: "HIGH_3",
+        stageId: "HIGH",
+        name: "ثالث ثانوي",
+        shortName: "الثالث",
+        sortOrder: 3,
+      },
+    ],
+  },
+];
+
+export function isTimetableV2StageId(
+  value: string,
+): value is TimetableV2StageId {
+  return TIMETABLE_V2_STAGE_IDS.includes(
+    value as TimetableV2StageId,
+  );
+}
+
+export function isTimetableV2StudyDayId(
+  value: string,
+): value is TimetableV2StudyDayId {
+  return TIMETABLE_V2_STUDY_DAY_IDS.includes(
+    value as TimetableV2StudyDayId,
+  );
+}
+
+export function getTimetableV2Stage(
+  stageId: TimetableV2StageId,
+) {
+  return (
+    TIMETABLE_V2_STAGES.find(
+      (stage) => stage.id === stageId,
+    ) ?? null
+  );
+}
+
+export function getTimetableV2Grade(
+  gradeId: string,
+) {
+  for (const stage of TIMETABLE_V2_STAGES) {
+    const grade = stage.grades.find(
+      (item) => item.id === gradeId,
+    );
+
+    if (grade) {
+      return grade;
+    }
+  }
+
+  return null;
+}
+
+export function getTimetableV2GradesForStages(
+  stageIds: TimetableV2StageId[],
+) {
+  const selected = new Set(stageIds);
+
+  return TIMETABLE_V2_STAGES
+    .filter((stage) => selected.has(stage.id))
+    .flatMap((stage) => stage.grades);
+}
+
+export function createTimetableV2GradeSetups(
+  stageIds: TimetableV2StageId[],
+): TimetableV2GradeSetup[] {
+  return getTimetableV2GradesForStages(stageIds).map(
+    (grade) => ({
+      gradeId: grade.id,
+      sectionNames: ["أ"],
+    }),
+  );
+}
+
+export function createTimetableV2DefaultSetup(): TimetableV2ProjectSetupInput {
+  return {
+    name: "",
+    academicYear: "",
+    semester: "",
+    stageIds: [],
+    teacherCount: 0,
+    weeklyPeriodTarget: null,
+    studyDays: [...TIMETABLE_V2_DEFAULT_STUDY_DAYS],
+    periodsPerDay: 7,
+    grades: [],
+  };
+}

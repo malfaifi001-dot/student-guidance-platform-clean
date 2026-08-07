@@ -5,10 +5,15 @@ import type {
 } from "@/lib/timetable-v2/project-dashboard-types";
 
 type NextAction = {
+  eyebrow: string;
   title: string;
   description: string;
   cta: string;
   href: string;
+  tone:
+    | "sky"
+    | "amber"
+    | "emerald";
   progress?: {
     value: number;
     max: number;
@@ -18,33 +23,51 @@ type NextAction = {
 function computeNextAction(
   data: ProjectDashboardData,
 ): NextAction {
-  const counts = data.counts;
+  const counts =
+    data.counts;
+
   const target =
     data.setup.teacherTarget;
 
-  const teachersIncomplete =
-    counts.teachersCount === 0 ||
-    (target !== null &&
-      counts.teachersCount <
-        target);
+  const base =
+    `/dashboard/timetable-v2/${data.project.id}`;
 
-  const base = `/dashboard/timetable-v2/${data.project.id}`;
+  const teachersIncomplete =
+    counts.teachersCount ===
+      0 ||
+    (
+      target !==
+        null &&
+      counts.teachersCount <
+        target
+    );
 
   if (teachersIncomplete) {
     return {
+      eyebrow:
+        "الإعداد الأساسي",
       title:
-        "الخطوة التالية: تجهيز المعلمين",
+        "أكمل بيانات المعلمين",
       description:
-        "أدخل أسماء المعلمين وتخصصاتهم وحدود الأحمال الأسبوعية قبل الانتقال إلى الإسناد.",
-      cta: "فتح إدارة المعلمين",
-      href: `${base}/teachers`,
+        "أدخل أسماء المعلمين وتخصصاتهم والنصاب الأسبوعي، ثم انتقل إلى الإسنادات.",
+      cta:
+        "إدارة المعلمين",
+      href:
+        `${base}/teachers`,
+      tone:
+        "sky",
     };
   }
 
-  if (
-    counts.underAssignedRows > 0 ||
-    counts.overAssignedRows > 0
-  ) {
+  const assignmentsIncomplete =
+    counts.assignmentsCount ===
+      0 ||
+    counts.underAssignedRows >
+      0 ||
+    counts.overAssignedRows >
+      0;
+
+  if (assignmentsIncomplete) {
     const remaining =
       Math.max(
         0,
@@ -53,99 +76,213 @@ function computeNextAction(
       );
 
     return {
+      eyebrow:
+        "الإعداد الأساسي",
       title:
-        "الخطوة التالية: إكمال الإسناد",
+        "أكمل إسناد الحصص",
       description:
-        remaining > 0
-          ? `المتبقي ${remaining} حصة من أصل ${counts.totalWeeklyLessons} حصة أسبوعية.`
-          : "توجد إسنادات زائدة عن الخطة تحتاج إلى مراجعة.",
+        counts.overAssignedRows >
+        0
+          ? "توجد إسنادات زائدة عن الخطة وتحتاج إلى مراجعة."
+          : `المتبقي ${remaining} حصة من أصل ${counts.totalWeeklyLessons} حصة أسبوعية.`,
       progress: {
         value:
           counts.assignedLessons,
         max:
           counts.totalWeeklyLessons,
       },
-      cta: "فتح الإسناد",
-      href: `${base}/assignments`,
+      cta:
+        "فتح الإسنادات",
+      href:
+        `${base}/assignments`,
+      tone:
+        "sky",
     };
   }
 
-  if (!data.readiness.canGenerate) {
+  if (
+    !data.readiness.canGenerate
+  ) {
     return {
+      eyebrow:
+        "فحص الجاهزية",
       title:
-        "الخطوة التالية: معالجة أخطاء الجاهزية",
-      description: `${data.readiness.errorCount} خطأ يمنع إنشاء الجدول. راجع التفاصيل وعالجها قبل التشغيل.`,
-      cta: "فتح فحص الجاهزية",
-      href: `${base}/readiness`,
-    };
-  }
-
-  if (!data.schedule.exists) {
-    return {
-      title:
-        "الخطوة التالية: إنشاء الجدول",
+        "المشروع يحتاج مراجعة قبل التوليد",
       description:
-        "البيانات جاهزة — شغّل المحرك لإنشاء النسخة الأولى من الجدول.",
-      cta: "إنشاء الجدول",
-      href: `${base}/generate`,
+        data.readiness.errorCount >
+        0
+          ? `${data.readiness.errorCount} خطأ يمنع إنشاء الجدول حاليًا.`
+          : "راجع التحذيرات وحالة البيانات قبل تشغيل المحرك.",
+      cta:
+        "فتح فحص الجاهزية",
+      href:
+        `${base}/readiness`,
+      tone:
+        "amber",
     };
   }
 
-  if (data.schedule.isStale) {
+  if (
+    !data.schedule.exists
+  ) {
     return {
+      eyebrow:
+        "التوليد",
       title:
-        "الخطوة التالية: إعادة إنشاء الجدول",
+        "المشروع جاهز لإنشاء الجدول",
       description:
-        "النسخة الحالية أقدم من بيانات المشروع بعد التعديلات الأخيرة.",
-      cta: "إنشاء نسخة جديدة",
-      href: `${base}/generate`,
+        "اكتملت البيانات الأساسية واجتاز المشروع فحص الجاهزية.",
+      cta:
+        "إنشاء الجدول",
+      href:
+        `${base}/generate`,
+      tone:
+        "emerald",
+    };
+  }
+
+  if (
+    data.schedule.isStale
+  ) {
+    return {
+      eyebrow:
+        "النسخة الحالية",
+      title:
+        "أنشئ نسخة حديثة من الجدول",
+      description:
+        "تم تعديل بيانات المشروع بعد إنشاء النسخة الحالية، لذلك لا يمكن اعتمادها كنسخة نهائية.",
+      cta:
+        "إنشاء نسخة جديدة",
+      href:
+        `${base}/generate`,
+      tone:
+        "amber",
     };
   }
 
   const status =
-    data.schedule.current?.status ??
+    data.schedule.current
+      ?.status ??
     "";
 
-  if (status === "GENERATED") {
+  if (
+    status ===
+    "GENERATED"
+  ) {
     return {
+      eyebrow:
+        "المراجعة",
       title:
-        "الخطوة التالية: مراجعة واعتماد الجدول",
-      description: `النسخة #${data.schedule.current?.version} جاهزة للمراجعة ثم الاعتماد.`,
-      cta: "مراجعة النسخ",
-      href: `${base}/generate`,
+        "راجع الجدول قبل الاعتماد",
+      description:
+        `النسخة #${data.schedule.current?.version} جاهزة للمراجعة اليدوية والتحقق النهائي.`,
+      cta:
+        "فتح المراجعة",
+      href:
+        `${base}/review`,
+      tone:
+        "sky",
     };
   }
 
-  if (status === "APPROVED") {
+  if (
+    status ===
+    "APPROVED"
+  ) {
     return {
+      eyebrow:
+        "الاعتماد والنشر",
       title:
-        "الخطوة التالية: نشر الجدول",
+        "النسخة معتمدة وتنتظر النشر",
       description:
-        "النسخة معتمدة وتنتظر النشر ليبدأ التشغيل اليومي.",
-      cta: "نشر الجدول",
-      href: `${base}/generate`,
+        "انشر النسخة لتصبح الجدول التشغيلي الرسمي للمدرسة.",
+      cta:
+        "فتح النشر",
+      href:
+        `${base}/approval`,
+      tone:
+        "emerald",
     };
   }
 
-  if (status === "PUBLISHED") {
+  if (
+    status ===
+    "PUBLISHED"
+  ) {
     return {
-      title: "الجدول منشور",
+      eyebrow:
+        "التشغيل اليومي",
+      title:
+        "الجدول منشور وجاهز للتشغيل",
       description:
-        "الجدول الحالي منشور وجاهز للتشغيل اليومي.",
-      cta: "مراجعة الجدول",
-      href: `${base}/generate`,
+        "يمكن الآن إدارة الغياب والبدلاء والمناوبات اعتمادًا على النسخة المنشورة.",
+      cta:
+        "فتح التشغيل اليومي",
+      href:
+        `${base}/daily-operations`,
+      tone:
+        "emerald",
     };
   }
 
   return {
+    eyebrow:
+      "المشروع",
     title:
-      "الخطوة التالية: مراجعة البيانات",
+      "راجع حالة المشروع",
     description:
-      "راجع حالة المشروع وفحص الجاهزية للمتابعة.",
-    cta: "فتح الفحص",
-    href: `${base}/readiness`,
+      "افتح فحص الجاهزية لمعرفة الخطوة التالية المطلوبة.",
+    cta:
+      "فتح الفحص",
+    href:
+      `${base}/readiness`,
+    tone:
+      "sky",
   };
 }
+
+const TONE: Record<
+  NextAction["tone"],
+  {
+    section: string;
+    eyebrow: string;
+    button: string;
+    progress: string;
+  }
+> = {
+  sky: {
+    section:
+      "border-sky-200 bg-sky-50",
+    eyebrow:
+      "text-sky-700",
+    button:
+      "bg-sky-700 hover:bg-sky-800",
+    progress:
+      "bg-sky-600",
+  },
+
+  amber: {
+    section:
+      "border-amber-200 bg-amber-50",
+    eyebrow:
+      "text-amber-700",
+    button:
+      "bg-amber-700 hover:bg-amber-800",
+    progress:
+      "bg-amber-600",
+  },
+
+  emerald: {
+    section:
+      "border-emerald-200 bg-emerald-50",
+    eyebrow:
+      "text-emerald-700",
+    button:
+      "bg-emerald-700 hover:bg-emerald-800",
+    progress:
+      "bg-emerald-600",
+  },
+};
 
 export function ProjectNextAction({
   data,
@@ -153,43 +290,72 @@ export function ProjectNextAction({
   data: ProjectDashboardData;
 }) {
   const action =
-    computeNextAction(data);
+    computeNextAction(
+      data,
+    );
+
+  const styles =
+    TONE[action.tone];
 
   const percent =
     action.progress &&
-    action.progress.max > 0
+    action.progress.max >
+      0
       ? Math.min(
           100,
           Math.round(
-            (action.progress.value /
-              action.progress.max) *
+            (
+              action.progress.value /
+              action.progress.max
+            ) *
               100,
           ),
         )
       : 0;
 
   return (
-    <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <section
+      className={[
+        "rounded-3xl border p-5 shadow-sm lg:p-6",
+        styles.section,
+      ].join(" ")}
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-black text-sky-700">
-            الخطوة التالية المقترحة
+          <div
+            className={[
+              "text-[11px] font-black",
+              styles.eyebrow,
+            ].join(" ")}
+          >
+            الخطوة التالية •{" "}
+            {action.eyebrow}
           </div>
 
-          <h2 className="mt-1 text-lg font-black text-slate-950">
+          <h2 className="mt-1 text-xl font-black text-slate-950">
             {action.title}
           </h2>
 
-          <p className="mt-1 text-xs leading-6 text-slate-600">
-            {action.description}
+          <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-600">
+            {
+              action.description
+            }
           </p>
 
           {action.progress ? (
-            <div className="mt-3 max-w-md">
+            <div className="mt-4 max-w-lg">
               <div className="flex items-center justify-between text-[11px] font-black text-slate-600">
                 <span>
-                  {action.progress.value} /{" "}
-                  {action.progress.max} حصة
+                  {
+                    action.progress
+                      .value
+                  }{" "}
+                  /{" "}
+                  {
+                    action.progress
+                      .max
+                  }{" "}
+                  حصة
                 </span>
 
                 <span>
@@ -197,11 +363,15 @@ export function ProjectNextAction({
                 </span>
               </div>
 
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-white">
+              <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/80">
                 <div
-                  className="h-full rounded-full bg-sky-600"
+                  className={[
+                    "h-full rounded-full transition-all",
+                    styles.progress,
+                  ].join(" ")}
                   style={{
-                    width: `${percent}%`,
+                    width:
+                      `${percent}%`,
                   }}
                 />
               </div>
@@ -211,7 +381,10 @@ export function ProjectNextAction({
 
         <Link
           href={action.href}
-          className="h-11 shrink-0 rounded-xl bg-sky-700 px-6 py-3 text-center text-sm font-black text-white shadow-sm transition hover:bg-sky-800"
+          className={[
+            "inline-flex h-11 shrink-0 items-center justify-center rounded-xl px-6 text-sm font-black text-white shadow-sm transition",
+            styles.button,
+          ].join(" ")}
         >
           {action.cta}
         </Link>
