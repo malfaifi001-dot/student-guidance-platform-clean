@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ReportDesignRenderer,
   reportDesignTemplates,
+  selectableReportDesignTemplates,
   type ReportDesignId,
   type ReportHeaderSettings,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
@@ -5232,7 +5233,7 @@ export function ReportTwoStudioRuntime({
             </h2>
 
             <div className="mt-3 grid gap-2">
-              {reportDesignTemplates.map((design) => {
+              {selectableReportDesignTemplates.map((design) => {
                 const active = template.designTemplateId === design.id;
 
                 return (

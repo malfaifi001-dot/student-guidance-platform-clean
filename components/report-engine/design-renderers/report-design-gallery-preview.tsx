@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   ReportDesignRenderer,
   reportDesignTemplates,
+  selectableReportDesignTemplates,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 
@@ -207,7 +208,7 @@ export function ReportDesignGalleryPreview() {
               </p>
 
               <div className="mt-4 grid gap-3">
-                {reportDesignTemplates.map((design) => {
+                {selectableReportDesignTemplates.map((design) => {
                   const active = selectedDesignId === design.id;
 
                   return (

@@ -1,0 +1,232 @@
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+
+export function ReportPlayfulCardsDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+  collectFinalValues,
+  getValidPreviewEvidences,
+}: ReportDesignPageComponentProps) {
+  const designId = "report-playful-cards" as const;
+  const workflowValues = collectFinalValues(previewCase as any).filter((item) =>
+    String(item.value || "").trim(),
+  );
+
+  const reportTitle =
+    context["case.title"] ||
+    context.programTitle ||
+      "تقرير أسبوع القراءة";
+
+  const activityValues = workflowValues.slice(0, 5);
+  const metricValues = workflowValues.slice(0, 4);
+  const detailValues = workflowValues.slice(0, 12);
+  const evidenceCount = getValidPreviewEvidences(previewCase).length;
+  const hasSemanticBlocks = Array.isArray(page?.blocks)
+    ? page.blocks.some((block: any) => block?.visible !== false)
+    : false;
+
+  return (
+    <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white p-[7mm] shadow-2xl">
+      <div className="relative min-h-[283mm] overflow-hidden bg-white px-[8mm] py-[7mm] text-slate-900">
+        <div className="absolute left-[8mm] top-[7mm] h-[52mm] w-[48mm] bg-gradient-to-br from-blue-600 to-blue-400 p-5 text-white">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-white/80 text-3xl">
+              📖
+          </div>
+          <h2 className="mt-5 text-center text-xl font-black leading-8">
+              أسبوع القراءة
+          </h2>
+          <p className="mt-2 text-center text-[11px] font-bold leading-5 text-white/85">
+              القراءة، اكتشاف لا ينتهي
+          </p>
+        </div>
+
+        <header className="report-design-header mr-[54mm] flex min-h-[52mm] items-center justify-between gap-7">
+          <div className="flex-1 text-center">
+            <h1 className="text-4xl font-black leading-[1.45] tracking-tight text-slate-900">
+              {reportTitle}
+            </h1>
+            <p className="mt-3 text-base font-bold text-blue-500">
+                تعزيز عادة القراءة وبناء مجتمع معرفي
+            </p>
+          </div>
+
+          <div className="w-[45mm] rounded-[5mm] bg-slate-50 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+                <span className="text-2xl">📅</span>
+              <div>
+                  <p className="text-[10px] font-black text-slate-400">التاريخ</p>
+                <p className="mt-1 text-[12px] font-black text-slate-800">
+                    {context["case.createdAt"] || "غير محدد"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+                <span className="text-2xl">📍</span>
+              <div>
+                  <p className="text-[10px] font-black text-slate-400">الخدمة</p>
+                <p className="mt-1 text-[12px] font-black text-slate-800">
+                    {context["service.name"] || "برامج التوجيه الطلابي"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section className="mt-2 grid grid-cols-[112mm_1fr] gap-[8mm]">
+          <div>
+            <div className="relative h-[76mm] overflow-hidden bg-slate-100">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,#eef6ff,#ffffff_46%,#e8f1fb)]" />
+              <div className="absolute bottom-8 left-8 right-8 h-[22mm] rounded-t-full border-2 border-blue-200 border-b-0" />
+              <div className="absolute bottom-8 left-10 right-10 h-[16mm] rounded-t-full border border-blue-100 border-b-0" />
+              <div className="absolute bottom-8 left-12 right-12 h-[10mm] rounded-t-full border border-blue-100 border-b-0" />
+              <div className="absolute bottom-5 left-[32mm] h-[12mm] w-[48mm] rounded-full bg-white/80 blur-sm" />
+              <div className="absolute bottom-12 right-12 h-20 w-20 rounded-full bg-blue-100/80" />
+              <div className="absolute bottom-16 right-20 h-2 w-20 rounded-full bg-blue-200" />
+              <div className="absolute bottom-20 right-20 h-2 w-24 rounded-full bg-blue-100" />
+              <div className="absolute bottom-24 right-20 h-2 w-16 rounded-full bg-blue-100" />
+            </div>
+
+            <div className="mt-5 grid grid-cols-4 gap-4">
+              {[
+                  ["المشاركون", context.targetGroup || metricValues[0]?.value || "—", "👥"],
+                  ["الكتب/المصادر", metricValues[1]?.value || String(workflowValues.length), "📘"],
+                  ["ساعات القراءة", metricValues[2]?.value || "—", "⏱️"],
+                  ["الشواهد", String(evidenceCount), "🏆"],
+              ].map(([label, value, icon]) => (
+                <div
+                  key={label}
+                  className="rounded-[4mm] border border-slate-100 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-xl">
+                    {icon}
+                  </div>
+                  <p className="mt-3 text-[10px] font-black text-slate-400">{label}</p>
+                  <p className="mt-1 line-clamp-1 text-xl font-black text-slate-900">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <aside className="pt-8">
+              <div className="text-7xl font-black leading-none text-blue-500">“</div>
+            <p className="mt-2 text-xl font-black leading-[2] text-slate-900">
+                القراءة تمنحنا مكانًا نذهب إليه حين نحتاج إلى أن نبقى.
+            </p>
+            <div className="mt-5 h-1 w-10 bg-blue-500" />
+
+            <div className="mt-10 rounded-[5mm] border border-blue-100 bg-blue-50/50 p-5">
+                <p className="text-[11px] font-black text-blue-500">ملخص بصري</p>
+              <p className="mt-3 text-sm font-bold leading-8 text-slate-600">
+                  يعرض هذا التقرير أهم بيانات أسبوع القراءة في صفحة واحدة هادئة، مع إبراز المؤشرات والأنشطة والقيم المسجلة من Workflow بدون ازدحام.
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section className="mt-6 grid grid-cols-[82mm_1fr] gap-[7mm]">
+          <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
+              <h3 className="text-center text-xl font-black text-slate-900">أبرز الأنشطة</h3>
+            <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
+
+            <div className="mt-6 space-y-4">
+              {(activityValues.length
+                ? activityValues
+                : [
+                    {
+                  fieldLabel: "ركن الكتاب المفضل",
+                  value: "مشاركة الكتب المفضلة لدى الطلاب",
+                    },
+                    {
+                  fieldLabel: "تحدي القراءة",
+                  value: "مسابقة فردية لعدد الصفحات المقروءة",
+                    },
+                  { fieldLabel: "جلسة نقاش", value: "حوار حول كتاب مختار" },
+                  { fieldLabel: "معرض الإبداع", value: "عرض ملخصات ومراجعات الطلاب" },
+                  ]
+              ).map((item: any, index: number) => (
+                <div key={`${item.fieldLabel}-${index}`} className="grid grid-cols-[13mm_1fr] gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
+                      {["♡", "🏆", "👥", "🖼️", "✦"][index] || "✦"}
+                  </div>
+                  <div>
+                    <p className="line-clamp-1 text-sm font-black text-slate-900">
+                        {item.fieldLabel || item.fieldKey || `نشاط ${index + 1}`}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+                        {item.value || "—"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
+              <h3 className="text-center text-xl font-black text-slate-900">قيم Workflow</h3>
+            <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
+
+            {detailValues.length ? (
+              <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3">
+                {detailValues.map((item, index) => (
+                  <div key={`${item.fieldKey}-${index}`} className="border-b border-slate-100 pb-3">
+                    <p className="line-clamp-1 text-[10px] font-black text-blue-500">
+                      {item.fieldLabel || item.fieldKey}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[12px] font-bold leading-6 text-slate-700">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 grid h-[74mm] place-items-center rounded-[4mm] bg-slate-50 text-center">
+                <div>
+                    <p className="text-sm font-black text-slate-800">لا توجد قيم Workflow محفوظة</p>
+                    <p className="mt-2 text-xs font-bold text-slate-400">اختر حالة تحتوي على بيانات.</p>
+                </div>
+              </div>
+            )}
+
+            {hasSemanticBlocks ? (
+              <div className="mt-6">
+                <PageBlocks
+                  page={page}
+                  context={context}
+                  previewCase={previewCase}
+                  designId={designId}
+                  className="min-h-[74mm]"
+                />
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="mt-6 grid grid-cols-[1fr_70mm] gap-[7mm]">
+          <div className="rounded-[4mm] bg-gradient-to-l from-blue-50 to-white p-6">
+              <div className="text-5xl font-black leading-none text-blue-500">”</div>
+            <p className="mt-2 text-lg font-black leading-9 text-slate-800">
+                أقرأ، عش ألف حياة قبل أن تموت.
+            </p>
+              <p className="mt-2 text-xs font-bold text-slate-400">— عبارة تحفيزية لأسبوع القراءة</p>
+          </div>
+
+          <div className="relative overflow-hidden rounded-[4mm] bg-slate-100">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,#dbeafe,#ffffff_55%,#eff6ff)]" />
+            <div className="absolute bottom-6 left-6 right-6 h-[18mm] rounded-t-full border-2 border-blue-200 border-b-0" />
+            <div className="absolute bottom-9 right-10 h-3 w-28 rounded-full bg-blue-100" />
+            <div className="absolute bottom-14 right-10 h-3 w-20 rounded-full bg-blue-100" />
+          </div>
+        </section>
+
+        <footer className="absolute bottom-[6mm] left-[8mm] right-[8mm] flex items-center justify-between border-t border-slate-200 pt-4 text-[11px] font-black text-slate-500">
+            <span>قسم النشاط الطلابي</span>
+          <span className="mx-6 h-px flex-1 bg-slate-200" />
+            <span className="text-blue-600">معًا نقرأ.. لنرتقي</span>
+        </footer>
+      </div>
+    </article>
+  );
+}

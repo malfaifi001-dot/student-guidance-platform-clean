@@ -1,0 +1,1537 @@
+NEXT REPORT DESIGN RENDERERS
+Generated: 08/08/2026 11:19:47
+
+
+============================================================
+DESIGN: modern-official
+============================================================
+
+if (designId === "modern-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
+          <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
+              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="report-design-header rounded-3xl border border-sky-100 bg-sky-50 p-5">
+              <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
+              <h1 className="mt-1 text-xl font-black text-slate-950">
+                {context["case.title"] || pageLabel}
+              </h1>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+                <MetaCard label="الخدمة" value={context["service.name"]} />
+                <MetaCard label="التاريخ" value={context["case.createdAt"]} />
+                <MetaCard label="المعد" value={context["identity.counselorName"]} />
+              </div>
+            </header>
+
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+            <DesignFooter text="تقرير رسمي حديث" barClass="from-sky-800 to-emerald-300" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+DESIGN: evidence-showcase
+============================================================
+
+if (designId === "evidence-showcase") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
+          <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
+          <header className="report-design-header relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+            <div>
+              <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
+              <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-emerald-100">
+                {context["service.name"]} · {context["case.createdAt"]}
+              </p>
+            </div>
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+          </header>
+
+          <div className="relative z-10 mt-9 rounded-[30px] border border-emerald-100 bg-white p-5 shadow-sm">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[185mm]" />
+          </div>
+
+          <DesignFooter text="تقرير شواهد بصري" barClass="from-emerald-800 to-teal-200" />
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+DESIGN: formal-memo
+============================================================
+
+if (designId === "formal-memo") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white p-[12mm] shadow-xl">
+        <div className="relative min-h-[273mm] border-2 border-slate-800 p-[8mm]">
+          <header className="report-design-header border-b-2 border-slate-800 pb-5">
+            <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
+              <div className="text-right text-xs font-bold leading-6 text-slate-700">
+                <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p><p>مكتب التعليم</p>
+              </div>
+              <div className="text-center">
+                <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
+                <h1 className="mt-3 text-xl font-black text-slate-950">{pageLabel}</h1>
+              </div>
+              <div className="text-left text-xs font-bold leading-6 text-slate-700">
+                <p>رقم الحالة</p><p>{context["case.id"]}</p><p>{context["case.createdAt"]}</p>
+              </div>
+            </div>
+          </header>
+
+          <main className="mt-8">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[190mm]" />
+          </main>
+
+          <div className="absolute bottom-[10mm] left-[8mm] right-[8mm] grid grid-cols-2 gap-5 text-sm font-black text-slate-800">
+            <div className="border-t border-slate-700 pt-3">الموجه/الموجهة الطلابية</div>
+            <div className="border-t border-slate-700 pt-3">مدير/مديرة المدرسة</div>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+DESIGN: counseling-case-file
+============================================================
+
+if (designId === "counseling-case-file") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[22px] border border-teal-100 bg-teal-50 p-[8mm] shadow-xl">
+        <div className="grid min-h-[279mm] grid-cols-[48mm_1fr] overflow-hidden rounded-[18px] bg-white">
+          <aside className="bg-teal-900 p-5 text-white">
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+            <h2 className="mt-8 text-lg font-black leading-8">ملف حالة إرشادية</h2>
+            <div className="mt-8 space-y-3">
+              <SideMeta label="الطالب/ـة" value={context["student.name"]} />
+              <SideMeta label="الصف" value={context["student.grade"]} />
+              <SideMeta label="الخدمة" value={context["service.name"]} />
+              <SideMeta label="الشواهد" value={context["evidence.count"]} />
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="report-design-header border-b border-teal-100 pb-5">
+              <p className="text-xs font-black text-teal-700">التوجيه الطلابي · ملف متابعة</p>
+              <h1 className="mt-2 text-2xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
+            </header>
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[200mm]" />
+            <DesignFooter text="ملف حالة إرشادية" barClass="from-teal-900 to-teal-200" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+DESIGN: behavior-followup
+============================================================
+
+if (designId === "behavior-followup") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[26px] border border-amber-100 bg-amber-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] rounded-[22px] bg-white p-[11mm]">
+          <header className="report-design-header grid grid-cols-[1fr_100px] items-center gap-5 rounded-[26px] bg-gradient-to-l from-amber-600 to-orange-400 p-6 text-white">
+            <div>
+              <p className="text-xs font-black text-amber-100">خطة متابعة وتقويم سلوكي</p>
+              <h1 className="mt-2 text-2xl font-black">{context["case.title"] || pageLabel}</h1>
+            </div>
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto object-contain brightness-0 invert" />
+          </header>
+
+          <div className="mt-6 grid grid-cols-[28mm_1fr] gap-5">
+            <aside className="space-y-4">
+              {["الرصد", "التدخل", "المتابعة", "الإغلاق"].map((item, index) => (
+                <div key={item} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center">
+                  <p className="text-lg font-black text-amber-700">{index + 1}</p>
+                  <p className="mt-1 text-[11px] font-black text-slate-600">{item}</p>
+                </div>
+              ))}
+            </aside>
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[190mm]" />
+          </div>
+
+          <DesignFooter text="متابعة سلوكية" barClass="from-amber-700 to-orange-200" />
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+DESIGN: program-impact
+============================================================
+
+if (designId === "program-impact") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-cyan-100 bg-cyan-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] rounded-[28px] bg-white p-[11mm]">
+          <header className="report-design-header rounded-[32px] border border-cyan-100 bg-gradient-to-l from-cyan-700 to-blue-800 p-6 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-cyan-100">تقرير أثر برنامج إرشادي</p>
+                <h1 className="mt-3 text-3xl font-black">{context["case.title"] || pageLabel}</h1>
+              </div>
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <MiniStat label="الخدمة" value={context["service.name"]} />
+              <MiniStat label="الشواهد" value={context["evidence.count"]} />
+              <MiniStat label="التاريخ" value={context["case.createdAt"]} />
+            </div>
+          </header>
+
+          <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+          <DesignFooter text="أثر برنامج إرشادي" barClass="from-cyan-700 to-blue-200" />
+        </div>
+      </article>
+    );
+  }
+
+
+============================================================
+HELPER DEFINITIONS
+============================================================
+
+
+----- function PageBlocks -----
+
+function PageBlocks({
+  page,
+  context,
+  previewCase,
+  designId,
+  className,
+}: {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  className: string;
+}) {
+  const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
+  const flowBlocks = blocks.filter(
+    (block: any) =>
+      isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+  );
+  const fixedBlocks = blocks.filter(
+    (block: any) =>
+      !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+  );
+
+  return (
+    <main className={`relative flex flex-col ${className}`}>
+      <div className="flex min-h-[inherit] flex-1 flex-col gap-4">
+        {flowBlocks.map((block: any) => (
+          <div
+            key={block.id}
+            className={
+              isSignatureGridDesignBlock(block)
+                ? "mt-auto break-inside-avoid pt-6"
+                : ""
+            }
+            style={
+              isSignatureGridDesignBlock(block)
+                ? { breakInside: "avoid", pageBreakInside: "avoid" }
+                : undefined
+            }
+          >
+            <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+          </div>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {fixedBlocks.map((block: any) => (
+          <div key={block.id} className={getPlacementClass(block.placement || "flow")}>
+            <div className="pointer-events-auto">
+              <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+
+
+function isDynamicFieldsDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+    ? block.dynamicFields
+    : [];
+
+  if (configuredItems.length) {
+    return configuredItems
+      .map((item: any, index: number) => {
+        const id =
+          cleanWorkflowDynamicText(item.id) ||
+          cleanWorkflowDynamicText(item.key) ||
+          `dynamic-field-${index + 1}`;
+        const valueItems = Array.isArray(item.valueItems)
+          ? translateWorkflowDynamicValueItems(item.valueItems)
+          : translateWorkflowDynamicValueItems(item.value);
+
+        return {
+          id,
+          key:
+            cleanWorkflowDynamicText(item.key) ||
+            id,
+          label:
+            item.label !== undefined
+              ? cleanWorkflowDynamicText(item.label)
+              : `حقل ${index + 1}`,
+          value:
+            item.value !== undefined
+              ? cleanWorkflowDynamicText(item.value)
+              : "",
+          valueItems,
+          visible: item.visible !== false,
+        };
+      })
+      .filter((item: any) => item.visible && item.label)
+      .filter(
+        (item: any) =>
+          !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+      );
+  }
+
+  return getWorkflowDynamicFieldCards(previewCase)
+    .map((item: any, index: number) => {
+      const id =
+        cleanWorkflowDynamicText(item.key) ||
+        cleanWorkflowDynamicText(item.label) ||
+        `workflow-field-${index + 1}`;
+
+      return {
+        id,
+        key: id,
+        label: cleanWorkflowDynamicText(item.label),
+        value: cleanWorkflowDynamicText(item.value),
+        valueItems: Array.isArray(item.valueItems)
+          ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+          : [],
+        visible: true,
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value)
+    .filter(
+      (item: any) =>
+        !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+    );
+}
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+}) {
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const value = String
+
+----- function SideMeta -----
+
+function SideMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/10 p-3">
+      <p className="text-[10px] font-black text-teal-100">{label}</p>
+      <p className="mt-1 text-xs font-black text-white">{value || "غير متوفر"}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/15 p-3">
+      <p className="text-[10px] font-black text-cyan-100">{label}</p>
+      <p className="mt-1 text-xs font-black text-white">{value || "غير متوفر"}</p>
+    </div>
+  );
+}
+
+function DesignFooter({ text, barClass }: { text: string; barClass: string }) {
+  return (
+    <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
+      <div className={`h-1 rounded-full bg-gradient-to-l ${barClass}`} />
+      <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{text}</span>
+      </div>
+    </footer>
+  );
+}
+
+function BlockTitle({ title, fontSize }: { title: string; fontSize?: string }) {
+  return <h3 className={["mb-3", getReportFontSizeClass(fontSize, "text-base"), "font-black text-slate-950"].join(" ")}>{title}</h3>;
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  const source = String(text || "");
+
+  const replaceVariable = (_match: string, key: string) => {
+    const cleanKey = String(key || "").trim();
+
+    if (!cleanKey) {
+      return "";
+    }
+
+    return resolveContextVariable(cleanKey, context);
+  };
+
+  return source
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
+    .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+}
+
+function splitLines(text: string) {
+  return String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
+}
+
+function splitParagraphs(text: string) {
+  return String(text || "").split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+export function normalizeDesignId(value: string): ReportDesignId {
+  if (
+    value === "ministry-form" ||
+    value === "modern-official" ||
+    value === "evidence-showcase" ||
+    value === "formal-memo" ||
+    value === "counseling-case-file" ||
+    value === "behavior-followup" ||
+    value === "program-impact" ||
+    value === "girls-rose-official" ||
+    value === "girls-lilac-elegant" ||
+    value === "girls-pearl-calm" ||
+    value === "report-official-archive" ||
+    value === "report-playful-cards" ||
+    value === "report-calm-reader"
+  ) {
+    return value;
+  }
+
+  return "ministry-form";
+}
+function getDesignName(designId: ReportDesignId) {
+  return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
+}
+
+function getDesignAccentClasses(designId: ReportDesignId) {
+  switch (designId) {
+    case "report-official-archive":
+      return {
+        subtleTextClass: "text-slate-900",
+        dotClass: "bg-slate-900",
+        iconClass: "bg-slate-100 text-slate-900",
+        badgeClass: "bg-slate-100 text-slate-800",
+        noticeClass: "bg-slate-100 text-slate-800",
+        cardShellClass: "border-b border-slate-300 bg-white px-1 py-4",
+        softShellClass: "border border-slate-300 bg-slate-50 p-4",
+        highlightShellClass: "border-2 border-slate-900 bg-slate-50 p-5",
+        outlineShellClass: "border border-dashed border-slate-500 bg-white p-5",
+        quoteShellClass: "border-r-4 border-slate-900 bg-slate-50 p-5",
+        heroShellClass: "border-b-2 border-slate-900 bg-white px-1 py-5",
+      };
+
+    case "report-playful-cards":
+      return {
+        subtleTextClass: "text-orange-700",
+        dotClass: "bg-orange-500",
+        iconClass: "bg-orange-50 text-orange-700",
+        badgeClass: "bg-orange-50 text-orange-700",
+        noticeClass: "bg-orange-50 text-orange-700",
+        cardShellClass: "rounded-[30px] border border-orange-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[30px] border border-orange-100 bg-orange-50 p-5",
+        highlightShellClass: "rounded-[30px] border border-orange-200 bg-gradient-to-l from-orange-50 to-cyan-50 p-5 shadow-sm",
+        outlineShellClass: "rounded-[30px] border border-dashed border-orange-300 bg-white p-5",
+        quoteShellClass: "rounded-[30px] border border-orange-100 bg-amber-50 p-5",
+        heroShellClass: "rounded-[30px] border border-orange-100 bg-gradient-to-l from-orange-50 to-white p-5",
+      };
+
+    case "report-calm-reader":
+      return {
+        subtleTextClass: "text-stone-600",
+        dotClass: "bg-stone-500",
+        iconClass: "bg-stone-100 text-stone-700",
+        badgeClass: "bg-stone-100 text-stone-700",
+        noticeClass: "bg-stone-100 text-stone-700",
+        cardShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
+        softShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
+        highlightShellClass: "rounded-2xl border border-stone-200 bg-gradient-to-l from-stone-50 to-white p-5",
+        outlineShellClass: "rounded-2xl border border-dashed border-stone-300 bg-white p-5",
+        quoteShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
+        heroShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
+      };
+
+    case "modern-official":
+      return {
+        subtleTextClass: "text-sky-700",
+        dotClass: "bg-sky-700",
+        iconClass: "bg-sky-50 text-sky-700",
+        badgeClass: "bg-sky-50 text-sky-700",
+        noticeClass: "bg-sky-50 text-sky-700",
+        cardShellClass: "rounded-3xl border border-sky-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-sky-100 bg-sky-50 p-5",
+        highlightShellClass: "rounded-3xl border border-sky-200 bg-gradient-to-l from-sky-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border
+
+----- function DesignFooter -----
+
+function DesignFooter({ text, barClass }: { text: string; barClass: string }) {
+  return (
+    <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
+      <div className={`h-1 rounded-full bg-gradient-to-l ${barClass}`} />
+      <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{text}</span>
+      </div>
+    </footer>
+  );
+}
+
+function BlockTitle({ title, fontSize }: { title: string; fontSize?: string }) {
+  return <h3 className={["mb-3", getReportFontSizeClass(fontSize, "text-base"), "font-black text-slate-950"].join(" ")}>{title}</h3>;
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  const source = String(text || "");
+
+  const replaceVariable = (_match: string, key: string) => {
+    const cleanKey = String(key || "").trim();
+
+    if (!cleanKey) {
+      return "";
+    }
+
+    return resolveContextVariable(cleanKey, context);
+  };
+
+  return source
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
+    .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+}
+
+function splitLines(text: string) {
+  return String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
+}
+
+function splitParagraphs(text: string) {
+  return String(text || "").split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+export function normalizeDesignId(value: string): ReportDesignId {
+  if (
+    value === "ministry-form" ||
+    value === "modern-official" ||
+    value === "evidence-showcase" ||
+    value === "formal-memo" ||
+    value === "counseling-case-file" ||
+    value === "behavior-followup" ||
+    value === "program-impact" ||
+    value === "girls-rose-official" ||
+    value === "girls-lilac-elegant" ||
+    value === "girls-pearl-calm" ||
+    value === "report-official-archive" ||
+    value === "report-playful-cards" ||
+    value === "report-calm-reader"
+  ) {
+    return value;
+  }
+
+  return "ministry-form";
+}
+function getDesignName(designId: ReportDesignId) {
+  return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
+}
+
+function getDesignAccentClasses(designId: ReportDesignId) {
+  switch (designId) {
+    case "report-official-archive":
+      return {
+        subtleTextClass: "text-slate-900",
+        dotClass: "bg-slate-900",
+        iconClass: "bg-slate-100 text-slate-900",
+        badgeClass: "bg-slate-100 text-slate-800",
+        noticeClass: "bg-slate-100 text-slate-800",
+        cardShellClass: "border-b border-slate-300 bg-white px-1 py-4",
+        softShellClass: "border border-slate-300 bg-slate-50 p-4",
+        highlightShellClass: "border-2 border-slate-900 bg-slate-50 p-5",
+        outlineShellClass: "border border-dashed border-slate-500 bg-white p-5",
+        quoteShellClass: "border-r-4 border-slate-900 bg-slate-50 p-5",
+        heroShellClass: "border-b-2 border-slate-900 bg-white px-1 py-5",
+      };
+
+    case "report-playful-cards":
+      return {
+        subtleTextClass: "text-orange-700",
+        dotClass: "bg-orange-500",
+        iconClass: "bg-orange-50 text-orange-700",
+        badgeClass: "bg-orange-50 text-orange-700",
+        noticeClass: "bg-orange-50 text-orange-700",
+        cardShellClass: "rounded-[30px] border border-orange-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[30px] border border-orange-100 bg-orange-50 p-5",
+        highlightShellClass: "rounded-[30px] border border-orange-200 bg-gradient-to-l from-orange-50 to-cyan-50 p-5 shadow-sm",
+        outlineShellClass: "rounded-[30px] border border-dashed border-orange-300 bg-white p-5",
+        quoteShellClass: "rounded-[30px] border border-orange-100 bg-amber-50 p-5",
+        heroShellClass: "rounded-[30px] border border-orange-100 bg-gradient-to-l from-orange-50 to-white p-5",
+      };
+
+    case "report-calm-reader":
+      return {
+        subtleTextClass: "text-stone-600",
+        dotClass: "bg-stone-500",
+        iconClass: "bg-stone-100 text-stone-700",
+        badgeClass: "bg-stone-100 text-stone-700",
+        noticeClass: "bg-stone-100 text-stone-700",
+        cardShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
+        softShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
+        highlightShellClass: "rounded-2xl border border-stone-200 bg-gradient-to-l from-stone-50 to-white p-5",
+        outlineShellClass: "rounded-2xl border border-dashed border-stone-300 bg-white p-5",
+        quoteShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
+        heroShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
+      };
+
+    case "modern-official":
+      return {
+        subtleTextClass: "text-sky-700",
+        dotClass: "bg-sky-700",
+        iconClass: "bg-sky-50 text-sky-700",
+        badgeClass: "bg-sky-50 text-sky-700",
+        noticeClass: "bg-sky-50 text-sky-700",
+        cardShellClass: "rounded-3xl border border-sky-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-sky-100 bg-sky-50 p-5",
+        highlightShellClass: "rounded-3xl border border-sky-200 bg-gradient-to-l from-sky-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border-sky-300 bg-white p-5",
+        quoteShellClass: "rounded-3xl border border-sky-100 bg-slate-50 p-5",
+        heroShellClass: "rounded-3xl border border-sky-100 bg-gradient-to-l from-sky-50 to-white p-5",
+      };
+
+    case "evidence-showcase":
+      return {
+        subtleTextClass: "text-emerald-700",
+        dotClass: "bg-emerald-700",
+        iconClass: "bg-emerald-50 text-emerald-700",
+        badgeClass: "bg-emerald-50 text-emerald-700",
+        noticeClass: "bg-emerald-50 text-emerald-700",
+        cardShellClass: "rounded-[28px] border border-emerald-100 bg-white p-5 shadow-sm",
+        softShellClas
+
+----- function getDesignLogoSrc -----
+
+function getDesignLogoSrc(context: Record<string, string>) {
+  const value = String(context?.["report.logoUrl"] || "").trim();
+
+  return value || "/uploads/school-logos/MOE.png";
+}
+
+export function getDesignLogoNumber(
+  context: Record<string, string>,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  const value = Number(context?.[key] || fallback);
+
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+export function getDesignLogoFit(context: Record<string, string>) {
+  const value = String(context?.["report.logoFit"] || "").trim();
+
+  return value === "cover" ? "cover" : "contain";
+}
+
+export function getDesignLogoFilter(context: Record<string, string>) {
+  const value = String(context?.["report.logoFilter"] || "invert").trim();
+
+  return value === "none" ? "none" : "brightness(0) invert(1)";
+}
+function getDesignHeaderAlign(
+  context: Record<string, string>,
+  key: string,
+  fallback: "right" | "center" | "left" = "center",
+) {
+  const value = String(context?.[`report.headerAlign.${key}`] || "").trim();
+
+  if (value === "right" || value === "center" || value === "left") {
+    return value;
+  }
+
+  return fallback;
+}
+function getDesignHeaderText(
+  context: Record<string, string>,
+  key: string,
+  fallback: string,
+) {
+  const value = context?.[key];
+
+  if (value !== undefined && value !== null && String(value).trim() !== "") {
+    return String(value);
+  }
+
+  return fallback;
+}
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const schoolName = String(context["identity.schoolName"] || "").trim();
+
+  if (designId === "report-official-archive") {
+    return (
+      <ReportOfficialArchiveDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "report-playful-cards") {
+    return (
+      <ReportPlayfulCardsDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        collectFinalValues={collectFinalValues}
+        getValidPreviewEvidences={getValidPreviewEvidences}
+      />
+    );
+  }
+  if (designId === "report-calm-reader") {
+    return (
+      <ReportCalmReaderDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        SideMeta={SideMeta}
+        DesignFooter={DesignFooter}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "modern-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
+          <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
+              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="report-design-header rounded-3xl border border-sky-100 bg-sky-50 p-5">
+              <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
+              <h1 className="mt-1 text-xl font-black text-slate-950">
+                {context["case.title"] || pageLabel}
+              </h1>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+                <MetaCard label="الخدمة" value={context["service.name"]} />
+                <MetaCard label="التاريخ" value={context["case.createdAt"]} />
+                <MetaCard label="المعد" value={context["identity.counselorName"]} />
+              </div>
+            </header>
+
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+            <DesignFooter text="تقرير رسمي حديث" barClass="from-sky-800 to-emerald-300" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "evidence-showcase") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
+          <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
+          <header className="report-design-header relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+            <div>
+              <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
+              <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-emerald-100">
+                {context["service.name"]} · {context["case.createdAt"]}
+              </p>
+            </div>
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+          </header>
+
+          <d
+
+----- function getDesignHeaderAlign -----
+
+function getDesignHeaderAlign(
+  context: Record<string, string>,
+  key: string,
+  fallback: "right" | "center" | "left" = "center",
+) {
+  const value = String(context?.[`report.headerAlign.${key}`] || "").trim();
+
+  if (value === "right" || value === "center" || value === "left") {
+    return value;
+  }
+
+  return fallback;
+}
+function getDesignHeaderText(
+  context: Record<string, string>,
+  key: string,
+  fallback: string,
+) {
+  const value = context?.[key];
+
+  if (value !== undefined && value !== null && String(value).trim() !== "") {
+    return String(value);
+  }
+
+  return fallback;
+}
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const schoolName = String(context["identity.schoolName"] || "").trim();
+
+  if (designId === "report-official-archive") {
+    return (
+      <ReportOfficialArchiveDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "report-playful-cards") {
+    return (
+      <ReportPlayfulCardsDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        collectFinalValues={collectFinalValues}
+        getValidPreviewEvidences={getValidPreviewEvidences}
+      />
+    );
+  }
+  if (designId === "report-calm-reader") {
+    return (
+      <ReportCalmReaderDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        SideMeta={SideMeta}
+        DesignFooter={DesignFooter}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "modern-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
+          <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
+              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="report-design-header rounded-3xl border border-sky-100 bg-sky-50 p-5">
+              <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
+              <h1 className="mt-1 text-xl font-black text-slate-950">
+                {context["case.title"] || pageLabel}
+              </h1>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+                <MetaCard label="الخدمة" value={context["service.name"]} />
+                <MetaCard label="التاريخ" value={context["case.createdAt"]} />
+                <MetaCard label="المعد" value={context["identity.counselorName"]} />
+              </div>
+            </header>
+
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+            <DesignFooter text="تقرير رسمي حديث" barClass="from-sky-800 to-emerald-300" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "evidence-showcase") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
+          <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
+          <header className="report-design-header relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+            <div>
+              <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
+              <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-emerald-100">
+                {context["service.name"]} · {context["case.createdAt"]}
+              </p>
+            </div>
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+          </header>
+
+          <div className="relative z-10 mt-9 rounded-[30px] border border-emerald-100 bg-white p-5 shadow-sm">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[185mm]" />
+          </div>
+
+          <DesignFooter text="تقرير شواهد بصري" barClass="from-emerald-800 to-teal-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "formal-memo") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white p-[12mm] shadow-xl">
+        <div className="relative min-h-[273mm] border-2 border-slate-800 p-[8mm]">
+          <header className="report-design-header border-b-2 border-slate-800 pb-5">
+            <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
+              <div className="text-right text-xs font-bold leading-6 text-slate
+
+----- function getDesignHeaderText -----
+
+function getDesignHeaderText(
+  context: Record<string, string>,
+  key: string,
+  fallback: string,
+) {
+  const value = context?.[key];
+
+  if (value !== undefined && value !== null && String(value).trim() !== "") {
+    return String(value);
+  }
+
+  return fallback;
+}
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const schoolName = String(context["identity.schoolName"] || "").trim();
+
+  if (designId === "report-official-archive") {
+    return (
+      <ReportOfficialArchiveDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "report-playful-cards") {
+    return (
+      <ReportPlayfulCardsDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        collectFinalValues={collectFinalValues}
+        getValidPreviewEvidences={getValidPreviewEvidences}
+      />
+    );
+  }
+  if (designId === "report-calm-reader") {
+    return (
+      <ReportCalmReaderDesign
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        SideMeta={SideMeta}
+        DesignFooter={DesignFooter}
+        getDesignLogoSrc={getDesignLogoSrc}
+      />
+    );
+  }
+
+  if (designId === "modern-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
+          <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
+              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="report-design-header rounded-3xl border border-sky-100 bg-sky-50 p-5">
+              <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
+              <h1 className="mt-1 text-xl font-black text-slate-950">
+                {context["case.title"] || pageLabel}
+              </h1>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+                <MetaCard label="الخدمة" value={context["service.name"]} />
+                <MetaCard label="التاريخ" value={context["case.createdAt"]} />
+                <MetaCard label="المعد" value={context["identity.counselorName"]} />
+              </div>
+            </header>
+
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+            <DesignFooter text="تقرير رسمي حديث" barClass="from-sky-800 to-emerald-300" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "evidence-showcase") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
+          <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
+          <header className="report-design-header relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+            <div>
+              <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
+              <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-emerald-100">
+                {context["service.name"]} · {context["case.createdAt"]}
+              </p>
+            </div>
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+          </header>
+
+          <div className="relative z-10 mt-9 rounded-[30px] border border-emerald-100 bg-white p-5 shadow-sm">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[185mm]" />
+          </div>
+
+          <DesignFooter text="تقرير شواهد بصري" barClass="from-emerald-800 to-teal-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "formal-memo") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white p-[12mm] shadow-xl">
+        <div className="relative min-h-[273mm] border-2 border-slate-800 p-[8mm]">
+          <header className="report-design-header border-b-2 border-slate-800 pb-5">
+            <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
+              <div className="text-right text-xs font-bold leading-6 text-slate-700">
+                <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDep
+
+----- function getValidPreviewEvidences -----
+
+function getValidPreviewEvidences(previewCase: PreviewCaseData | null) {
+  const hasSelectedCase = Boolean(previewCase?.caseId);
+
+  return filterValidReportEvidenceItems(previewCase?.evidences || [], {
+    allowSampleEvidence: !hasSelectedCase,
+  });
+}
+
+function getReportDesignSignatureStyleText() {
+  return `
+    .pdf-report-page,
+    .pdf-report-page * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-grid-block,
+    .report-design-signature-grid-block * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-image-frame {
+      background: #ffffff !important;
+    }
+
+    .report-design-signature-image {
+      background: #ffffff !important;
+      object-fit: contain !important;
+      mix-blend-mode: normal !important;
+      filter: none !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      color: transparent !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p::after {
+      content: "Ø´Ø§Ù‡Ø¯ Ø¨Ø¯ÙˆÙ† ØµÙˆØ±Ø©";
+      font-size: 12px;
+      line-height: 1.5;
+      color: #64748b;
+    }
+  `;
+}
+
+export function ReportDesignRenderer({
+  designId,
+  template,
+  activePage,
+  activePageId,
+  context,
+  previewCase,
+  onActivePageChange,
+  onAddPage,
+  onMovePage,
+  onDeletePage,
+  canMovePage,
+  canDeletePage,
+  renderMode = "single",
+  chromeLayout = "joined",
+  suppressAutoEvidencePages = false,
+}: ReportDesignRendererProps) {
+  const selectedDesign = normalizeDesignId(
+    designId || template?.designTemplateId || "ministry-form",
+  );
+  const isMinistryStyleDesign = selectedDesign === "ministry-form";
+
+  const logoWidthPx = getDesignLogoNumber(
+    context,
+    "report.logoWidthPx",
+    isMinistryStyleDesign ? 132 : 96,
+    24,
+    240,
+  );
+
+  const logoHeightPx = getDesignLogoNumber(
+    context,
+    "report.logoHeightPx",
+    isMinistryStyleDesign ? 80 : 56,
+    20,
+    160,
+  );
+
+  const logoFit = getDesignLogoFit(context);
+  const logoFilter = getDesignLogoFilter(context);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
+  const signatureStyleText = getReportDesignSignatureStyleText();
+  const pages = template?.pages || [];
+
+  const logoStyle = (
+    <style>{`
+      .report-design-logo-control-style img[alt="شعار وزارة التعليم"],
+      .pdf-report-page img[alt="شعار وزارة التعليم"] {
+        width: ${logoWidthPx}px !important;
+        max-width: ${logoWidthPx}px !important;
+        height: ${logoHeightPx}px !important;
+        max-height: ${logoHeightPx}px !important;
+        object-fit: ${logoFit} !important;
+        filter: ${logoFilter} !important;
+      }
+    `}</style>
+  );
+  const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
+  const signatureStyle = <style>{signatureStyleText}</style>;
+
+  const controls = (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">
+            المعاينة الرسمية A4
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            التصميم الحالي: {getDesignName(selectedDesign)}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+          {previewCase ? "Case ID فعلي" : "بيانات تجريبية"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {pages.map((page: any, index: number) => {
+          const active = page.id === activePageId;
+          const canMovePrevious =
+            canMovePage?.(page.id, "previous") ?? index > 0;
+          const canMoveNext =
+            canMovePage?.(page.id, "next") ?? index < pages.length - 1;
+          const canDelete = canDeletePage?.(page.id) ?? false;
+
+          return (
+            <div
+              key={`${page.id}-${index}`}
+              className={[
+                "inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs font-black transition",
+                active
+                  ? "border-emerald-600 bg-emerald-700 text-white shadow-sm"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+              ].join(" ")}
+            >
+              <button
+                type="button"
+                onClick={() => onActivePageChange(page.id)}
+                className="max-w-[220px] truncate px-2 py-1"
+                title={page.title}
+              >
+                {index + 1}. {page.title}
+              </button>
+
+              {active ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={!canMovePrevious}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "previous");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للخلف"
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!canMoveNext}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "next");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للأمام"
+            
+
+----- function collectFinalValues -----
+
+function collectFinalValues(data: any): FinalReportValueItem[] {
+  if (Array.isArray(data?.values)) {
+    return data.values.map((item: any) => ({
+      fieldKey: item.fieldKey || item.key || "",
+      fieldLabel: item.fieldLabel || item.label || item.fieldKey || "",
+      value:
+        item.value === undefined || item.value === null
+          ? ""
+          : String(item.value),
+      valueItems: Array.isArray(item.valueItems)
+        ? item.valueItems.map((valueItem: unknown) => String(valueItem || "").trim()).filter(Boolean)
+        : undefined,
+    }));
+  }
+
+  if (data?.values && typeof data.values === "object") {
+    return Object.entries(data.values).map(([key, value]) => ({
+      fieldKey: key,
+      fieldLabel: key,
+      value:
+        value === undefined || value === null
+          ? ""
+          : String(value),
+    }));
+  }
+
+  return [];
+}
+
+function resolveContextVariable(key: string, context: Record<string, string>) {
+  const aliases: Record<string, string[]> = {
+    reportTitle: ["reportTitle", "case.title", "caseTitle"],
+    caseTitle: ["case.title", "caseTitle", "reportTitle"],
+    serviceName: ["service.name", "serviceName"],
+    studentName: ["student.name", "studentName"],
+    studentGrade: ["student.grade", "studentGrade"],
+    studentClassroom: ["student.classroom", "studentClassroom"],
+    guardianName: ["student.guardianName", "guardianName"],
+    guardianPhone: ["student.guardianPhone", "guardianPhone"],
+    schoolName: ["identity.schoolName", "schoolName"],
+    counselorName: ["identity.counselorName", "counselorName"],
+    principalName: ["identity.principalName", "principalName"],
+  };
+
+  const lookupKeys = [
+    key,
+    ...(aliases[key] || []),
+    key.startsWith("field.") ? key : "field." + key,
+  ];
+
+  for (const lookupKey of lookupKeys) {
+    const value = context[lookupKey];
+
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | null) {
+  const data = (previewCaseData || {}) as any;
+  const values = collectFinalValues(data);
+  const group = block.finalFieldGroup || block.originalKind || "";
+  const selectedKeys = Array.isArray(block.fieldKeys) ? block.fieldKeys : [];
+
+  if (group === "case-meta") {
+    return [
+      {
+        key: "service",
+        label: "الخدمة",
+        value: data.serviceName || data.service?.name || data.caseEntry?.service?.name || "",
+      },
+      {
+        key: "case-title",
+        label: "الحالة",
+        value: data.title || data.caseEntry?.title || "",
+      },
+      {
+        key: "status",
+        label: "الحالة الحالية",
+        value: data.status || data.caseEntry?.status || "",
+      },
+      {
+        key: "created-at",
+        label: "تاريخ الإنشاء",
+        value: formatFinalDate(data.createdAt || data.caseEntry?.createdAt),
+      },
+    ];
+  }
+
+  if (group === "student-summary") {
+    const student = data.student || data.caseEntry?.student || {};
+
+    return [
+      {
+        key: "student-name",
+        label: "الطالب/الطالبة",
+        value: student.name || student.fullName || "",
+      },
+      {
+        key: "grade",
+        label: "الصف",
+        value: student.grade || "",
+      },
+      {
+        key: "classroom",
+        label: "الفصل",
+        value: student.classroom || "",
+      },
+      {
+        key: "guardian",
+        label: "ولي الأمر",
+        value: student.guardianName || "",
+      },
+    ];
+  }
+
+  if (selectedKeys.length) {
+    return values
+      .filter((item: FinalReportValueItem) =>
+        selectedKeys.some(
+          (key: string) =>
+            key === item.fieldKey ||
+            key === item.fieldLabel ||
+            "field." + key === item.fieldKey,
+        ),
+      )
+      .map((item: FinalReportValueItem) => ({
+        key: item.fieldKey,
+        label: item.fieldLabel || item.fieldKey,
+        value: item.value,
+        ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+          ? { valueItems: item.valueItems }
+          : {}),
+      }));
+  }
+
+  return values.slice(0, 10).map((item: FinalReportValueItem) => ({
+    key: item.fieldKey,
+    label: item.fieldLabel || item.fieldKey,
+    value: item.value,
+    ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+      ? { valueItems: item.valueItems }
+      : {}),
+  }));
+}
+
+function formatFinalEvidenceCount(count: number) {
+  if (count <= 0) return "0 شاهد";
+  if (count === 1) return "شاهد واحد";
+  if (count === 2) return "شاهدان";
+  if (count >= 3 && count <= 10) return count + " شواهد";
+
+  return count + " شاهد";
+}
+
+
+function formatFinalDate(value?: string | null) {
+  if (!value) {
+    return new Date().toLocaleDateString("ar-SA");
+  }
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return String(value);
+  }
+}
+
+
+
+
+
+export function getDesignLogoSrc(context: Record<string, string>) {
+  const value = String(context?.["report.logoUrl"] || "").trim();
+
+  return value || "/uploads/school-logos/MOE.png";
+}
+
+export function getDesignLogoNumber(
+  context: Record<string, string>,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  const value = Number(context?.[key] || fallback);
+
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+export function getDesignLogoFit(context: Record<string, string>) {
+  const value = String(context?.["report.logoFit"] || "").trim();
+
+  return value === "cover" ? "cover" : "contain";
+}
+
+export function getDesignLogoFilter(context: Record<string, string>) {
+  const value = String(context?.["report.logoFilter"] || "invert").trim();
+
+  return value === "none" ? "none" : "brightness(0) invert(1)";
+}
+function getD

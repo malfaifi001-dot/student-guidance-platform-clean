@@ -1,0 +1,5243 @@
+SMART A4 ENGINE SOURCE PACK
+Generated: 2026-08-08 16:20:01
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-config.ts
+======================================================================
+
+import type { CSSProperties } from "react";
+
+export const REPORT_SMART_A4_MODES = [
+  "normal",
+  "compact",
+  "dense",
+  "minimum-safe",
+] as const;
+
+export type ReportSmartA4Mode = (typeof REPORT_SMART_A4_MODES)[number];
+export type ReportSmartA4PriorityMode = "signature" | "general";
+
+export type ReportSmartA4Profile = {
+  mode: ReportSmartA4Mode;
+  contentScale: number;
+  blockGapRem: number;
+  sectionGapRem: number;
+  paragraphGapRem: number;
+  contentLineHeight: number;
+  narrativeLineHeight: number;
+  narrativeDensityScale: number;
+  contentFontScale: number;
+  headingGapRem: number;
+  headingLineHeight: number;
+  headingScale: number;
+  fieldGapRem: number;
+  fieldPaddingXRem: number;
+  fieldPaddingYRem: number;
+  fieldLabelScale: number;
+  fieldValueScale: number;
+  fieldValueTopGapRem: number;
+  fieldValueItemGapRem: number;
+  valueGridGapRem: number;
+  fieldSpacingScale: number;
+  bulletGapRem: number;
+  bulletLineHeight: number;
+  bulletFontScale: number;
+  tablePaddingXRem: number;
+  tablePaddingYRem: number;
+  tableHeaderPaddingYRem: number;
+  tableFontScale: number;
+  tableLineHeight: number;
+  tableSpacingScale: number;
+  signatureTopGapRem: number;
+  signatureImageHeightMm: number;
+  signatureNameScale: number;
+  signatureLabelScale: number;
+  evidenceGapRem: number;
+  evidenceSpacingScale: number;
+  evidenceCaptionScale: number;
+  captionFontScale: number;
+};
+
+export const REPORT_SMART_A4_PROFILES: readonly ReportSmartA4Profile[] = [
+  {
+    mode: "normal",
+    contentScale: 1,
+    blockGapRem: 1,
+    sectionGapRem: 0.75,
+    paragraphGapRem: 0.75,
+    contentLineHeight: 2,
+    narrativeLineHeight: 2,
+    narrativeDensityScale: 1,
+    contentFontScale: 1,
+    headingGapRem: 0.75,
+    headingLineHeight: 1.65,
+    headingScale: 1,
+    fieldGapRem: 0.5,
+    fieldPaddingXRem: 0.75,
+    fieldPaddingYRem: 0.5,
+    fieldLabelScale: 1,
+    fieldValueScale: 1,
+    fieldValueTopGapRem: 0.25,
+    fieldValueItemGapRem: 0.25,
+    valueGridGapRem: 0.5,
+    fieldSpacingScale: 1,
+    bulletGapRem: 0.5,
+    bulletLineHeight: 1.75,
+    bulletFontScale: 1,
+    tablePaddingXRem: 0.75,
+    tablePaddingYRem: 0.75,
+    tableHeaderPaddingYRem: 0.75,
+    tableFontScale: 1,
+    tableLineHeight: 1.5,
+    tableSpacingScale: 1,
+    signatureTopGapRem: 1.5,
+    signatureImageHeightMm: 10,
+    signatureNameScale: 1,
+    signatureLabelScale: 1,
+    evidenceGapRem: 1,
+    evidenceSpacingScale: 1,
+    evidenceCaptionScale: 1,
+    captionFontScale: 1,
+  },
+  {
+    mode: "compact",
+    contentScale: 1,
+    blockGapRem: 0.78,
+    sectionGapRem: 0.58,
+    paragraphGapRem: 0.5,
+    contentLineHeight: 1.82,
+    narrativeLineHeight: 1.82,
+    narrativeDensityScale: 0.91,
+    contentFontScale: 0.98,
+    headingGapRem: 0.55,
+    headingLineHeight: 1.55,
+    headingScale: 0.98,
+    fieldGapRem: 0.4,
+    fieldPaddingXRem: 0.62,
+    fieldPaddingYRem: 0.4,
+    fieldLabelScale: 0.98,
+    fieldValueScale: 0.99,
+    fieldValueTopGapRem: 0.18,
+    fieldValueItemGapRem: 0.18,
+    valueGridGapRem: 0.4,
+    fieldSpacingScale: 0.82,
+    bulletGapRem: 0.35,
+    bulletLineHeight: 1.62,
+    bulletFontScale: 0.98,
+    tablePaddingXRem: 0.65,
+    tablePaddingYRem: 0.55,
+    tableHeaderPaddingYRem: 0.5,
+    tableFontScale: 0.98,
+    tableLineHeight: 1.42,
+    tableSpacingScale: 0.78,
+    signatureTopGapRem: 1.05,
+    signatureImageHeightMm: 10,
+    signatureNameScale: 0.98,
+    signatureLabelScale: 0.98,
+    evidenceGapRem: 0.8,
+    evidenceSpacingScale: 0.85,
+    evidenceCaptionScale: 0.98,
+    captionFontScale: 0.98,
+  },
+  {
+    mode: "dense",
+    contentScale: 1,
+    blockGapRem: 0.58,
+    sectionGapRem: 0.42,
+    paragraphGapRem: 0.32,
+    contentLineHeight: 1.65,
+    narrativeLineHeight: 1.65,
+    narrativeDensityScale: 0.83,
+    contentFontScale: 0.94,
+    headingGapRem: 0.4,
+    headingLineHeight: 1.45,
+    headingScale: 0.94,
+    fieldGapRem: 0.3,
+    fieldPaddingXRem: 0.5,
+    fieldPaddingYRem: 0.3,
+    fieldLabelScale: 0.94,
+    fieldValueScale: 0.96,
+    fieldValueTopGapRem: 0.12,
+    fieldValueItemGapRem: 0.12,
+    valueGridGapRem: 0.3,
+    fieldSpacingScale: 0.64,
+    bulletGapRem: 0.22,
+    bulletLineHeight: 1.5,
+    bulletFontScale: 0.94,
+    tablePaddingXRem: 0.5,
+    tablePaddingYRem: 0.35,
+    tableHeaderPaddingYRem: 0.32,
+    tableFontScale: 0.94,
+    tableLineHeight: 1.35,
+    tableSpacingScale: 0.58,
+    signatureTopGapRem: 0.7,
+    signatureImageHeightMm: 9.5,
+    signatureNameScale: 0.96,
+    signatureLabelScale: 0.95,
+    evidenceGapRem: 0.65,
+    evidenceSpacingScale: 0.7,
+    evidenceCaptionScale: 0.94,
+    captionFontScale: 0.94,
+  },
+  {
+    mode: "minimum-safe",
+    contentScale: 1,
+    blockGapRem: 0.42,
+    sectionGapRem: 0.3,
+    paragraphGapRem: 0.2,
+    contentLineHeight: 1.5,
+    narrativeLineHeight: 1.5,
+    narrativeDensityScale: 0.78,
+    contentFontScale: 0.9,
+    headingGapRem: 0.28,
+    headingLineHeight: 1.38,
+    headingScale: 0.9,
+    fieldGapRem: 0.22,
+    fieldPaddingXRem: 0.4,
+    fieldPaddingYRem: 0.2,
+    fieldLabelScale: 0.9,
+    fieldValueScale: 0.92,
+    fieldValueTopGapRem: 0.08,
+    fieldValueItemGapRem: 0.08,
+    valueGridGapRem: 0.22,
+    fieldSpacingScale: 0.5,
+    bulletGapRem: 0.15,
+    bulletLineHeight: 1.42,
+    bulletFontScale: 0.9,
+    tablePaddingXRem: 0.4,
+    tablePaddingYRem: 0.22,
+    tableHeaderPaddingYRem: 0.2,
+    tableFontScale: 0.9,
+    tableLineHeight: 1.28,
+    tableSpacingScale: 0.44,
+    signatureTopGapRem: 0.35,
+    signatureImageHeightMm: 9,
+    signatureNameScale: 0.92,
+    signatureLabelScale: 0.9,
+    evidenceGapRem: 0.5,
+    evidenceSpacingScale: 0.55,
+    evidenceCaptionScale: 0.9,
+    captionFontScale: 0.9,
+  },
+] as const;
+
+export const REPORT_SMART_A4_TOLERANCE_PX = 2;
+
+type SmartA4Style = CSSProperties & Record<`--report-${string}`, string | number>;
+
+export function getReportSmartA4Profile(mode: ReportSmartA4Mode) {
+  return (
+    REPORT_SMART_A4_PROFILES.find((profile) => profile.mode === mode) ||
+    REPORT_SMART_A4_PROFILES[0]
+  );
+}
+
+export function getReportSmartA4StyleVariables(
+  profile: ReportSmartA4Profile,
+): SmartA4Style {
+  return {
+    "--report-smart-scale": profile.contentScale,
+    "--report-block-gap": `${profile.blockGapRem}rem`,
+    "--report-section-gap": `${profile.sectionGapRem}rem`,
+    "--report-paragraph-gap": `${profile.paragraphGapRem}rem`,
+    "--report-content-line-height": profile.contentLineHeight,
+    "--report-narrative-line-height": profile.narrativeLineHeight,
+    "--report-narrative-density-scale": profile.narrativeDensityScale,
+    "--report-content-font-scale": profile.contentFontScale,
+    "--report-heading-gap": `${profile.headingGapRem}rem`,
+    "--report-heading-line-height": profile.headingLineHeight,
+    "--report-heading-scale": profile.headingScale,
+    "--report-field-gap": `${profile.fieldGapRem}rem`,
+    "--report-field-padding-x": `${profile.fieldPaddingXRem}rem`,
+    "--report-field-padding-y": `${profile.fieldPaddingYRem}rem`,
+    "--report-field-label-scale": profile.fieldLabelScale,
+    "--report-field-value-scale": profile.fieldValueScale,
+    "--report-field-value-top-gap": `${profile.fieldValueTopGapRem}rem`,
+    "--report-field-value-item-gap": `${profile.fieldValueItemGapRem}rem`,
+    "--report-value-grid-gap": `${profile.valueGridGapRem}rem`,
+    "--report-field-spacing-scale": profile.fieldSpacingScale,
+    "--report-bullet-gap": `${profile.bulletGapRem}rem`,
+    "--report-bullet-line-height": profile.bulletLineHeight,
+    "--report-bullet-font-scale": profile.bulletFontScale,
+    "--report-table-padding-x": `${profile.tablePaddingXRem}rem`,
+    "--report-table-padding-y": `${profile.tablePaddingYRem}rem`,
+    "--report-table-header-padding-y": `${profile.tableHeaderPaddingYRem}rem`,
+    "--report-table-font-scale": profile.tableFontScale,
+    "--report-table-line-height": profile.tableLineHeight,
+    "--report-table-spacing-scale": profile.tableSpacingScale,
+    "--report-signature-top-gap": `${profile.signatureTopGapRem}rem`,
+    "--report-signature-image-height": `${profile.signatureImageHeightMm}mm`,
+    "--report-signature-name-scale": profile.signatureNameScale,
+    "--report-signature-label-scale": profile.signatureLabelScale,
+    "--report-evidence-gap": `${profile.evidenceGapRem}rem`,
+    "--report-evidence-spacing-scale": profile.evidenceSpacingScale,
+    "--report-evidence-caption-scale": profile.evidenceCaptionScale,
+    "--report-caption-font-scale": profile.captionFontScale,
+  };
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+======================================================================
+
+"use client";
+
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  REPORT_SMART_A4_PROFILES,
+  REPORT_SMART_A4_TOLERANCE_PX,
+  getReportSmartA4Profile,
+  getReportSmartA4StyleVariables,
+  type ReportSmartA4Mode,
+  type ReportSmartA4PriorityMode,
+  type ReportSmartA4Profile,
+} from "./report-smart-a4-config";
+
+export type ReportSmartA4LayoutResult = {
+  mode: ReportSmartA4Mode;
+  fits: boolean;
+  needsOverflowPage: boolean;
+  overflowPx: number;
+  signatureHeightPx: number;
+};
+
+type ReportSmartA4ContentRegionProps = {
+  children: ReactNode;
+  heightMm: number;
+  className?: string;
+  contentClassName?: string;
+  layoutKey?: string | number;
+  priorityMode?: ReportSmartA4PriorityMode;
+  onLayoutResult?: (result: ReportSmartA4LayoutResult) => void;
+};
+
+type Measurement = Omit<ReportSmartA4LayoutResult, "mode" | "needsOverflowPage">;
+
+const INITIAL_RESULT: ReportSmartA4LayoutResult = {
+  mode: "normal",
+  fits: true,
+  needsOverflowPage: false,
+  overflowPx: 0,
+  signatureHeightPx: 0,
+};
+
+function applyProfile(element: HTMLElement, profile: ReportSmartA4Profile) {
+  const variables = getReportSmartA4StyleVariables(profile);
+
+  Object.entries(variables).forEach(([property, value]) => {
+    element.style.setProperty(property, String(value));
+  });
+}
+
+function nextAnimationFrame() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
+function measureLayout(
+  viewport: HTMLElement,
+  content: HTMLElement,
+  priorityMode: ReportSmartA4PriorityMode,
+): Measurement {
+  const viewportRect = viewport.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
+  const localScale = viewport.clientHeight
+    ? viewportRect.height / viewport.clientHeight
+    : 1;
+  const safeScale = localScale > 0 ? localScale : 1;
+  const boundaryBottom = viewportRect.bottom;
+
+  const measuredBlocks = Array.from(
+    content.querySelectorAll<HTMLElement>(
+      '[data-report-smart-block], [data-report-priority-block="signature"]',
+    ),
+  );
+
+  const blockOverflowPx = measuredBlocks.reduce((largest, block) => {
+    const rect = block.getBoundingClientRect();
+    return Math.max(largest, (rect.bottom - boundaryBottom) / safeScale);
+  }, 0);
+
+  const scrollOverflowPx = Math.max(
+    0,
+    content.scrollHeight - viewport.clientHeight,
+  );
+  const boundingOverflowPx = Math.max(
+    0,
+    (contentRect.bottom - boundaryBottom) / safeScale,
+  );
+
+  const signatures = Array.from(
+    content.querySelectorAll<HTMLElement>(
+      '[data-report-priority-block="signature"], [data-report-design-signature-block]',
+    ),
+  );
+  const signatureHeightPx = signatures.reduce(
+    (total, signature) => total + signature.getBoundingClientRect().height / safeScale,
+    0,
+  );
+  const signatureOverflowPx =
+    priorityMode === "signature"
+      ? signatures.reduce((largest, signature) => {
+          const rect = signature.getBoundingClientRect();
+          return Math.max(largest, (rect.bottom - boundaryBottom) / safeScale);
+        }, 0)
+      : 0;
+
+  const overflowPx = Math.max(
+    0,
+    scrollOverflowPx,
+    boundingOverflowPx,
+    blockOverflowPx,
+    signatureOverflowPx,
+  );
+
+  return {
+    fits: overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
+    overflowPx: Math.max(0, Math.round(overflowPx * 10) / 10),
+    signatureHeightPx: Math.round(signatureHeightPx * 10) / 10,
+  };
+}
+
+function sameResult(
+  current: ReportSmartA4LayoutResult,
+  next: ReportSmartA4LayoutResult,
+) {
+  return (
+    current.mode === next.mode &&
+    current.fits === next.fits &&
+    current.needsOverflowPage === next.needsOverflowPage &&
+    current.overflowPx === next.overflowPx &&
+    current.signatureHeightPx === next.signatureHeightPx
+  );
+}
+
+export function ReportSmartA4ContentRegion({
+  children,
+  heightMm,
+  className = "",
+  contentClassName = "",
+  layoutKey,
+  priorityMode = "signature",
+  onLayoutResult,
+}: ReportSmartA4ContentRegionProps) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const scheduledFrameRef = useRef<number | null>(null);
+  const runIdRef = useRef(0);
+  const measuringRef = useRef(false);
+  const resultRef = useRef(INITIAL_RESULT);
+  const onLayoutResultRef = useRef(onLayoutResult);
+  const [result, setResult] = useState(INITIAL_RESULT);
+
+  useEffect(() => {
+    onLayoutResultRef.current = onLayoutResult;
+  }, [onLayoutResult]);
+
+  const runMeasurement = useCallback(async () => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+
+    if (!viewport || !content || measuringRef.current) return;
+
+    measuringRef.current = true;
+    const runId = ++runIdRef.current;
+    let selectedProfile = REPORT_SMART_A4_PROFILES[REPORT_SMART_A4_PROFILES.length - 1];
+    let selectedMeasurement: Measurement | null = null;
+
+    try {
+      for (const profile of REPORT_SMART_A4_PROFILES) {
+        applyProfile(viewport, profile);
+        viewport.dataset.reportDensity = profile.mode;
+
+        await nextAnimationFrame();
+        await nextAnimationFrame();
+
+        if (runId !== runIdRef.current) return;
+
+        const measurement = measureLayout(viewport, content, priorityMode);
+        selectedProfile = profile;
+        selectedMeasurement = measurement;
+
+        if (measurement.fits) break;
+      }
+
+      if (!selectedMeasurement || runId !== runIdRef.current) return;
+
+      applyProfile(viewport, selectedProfile);
+
+      const nextResult: ReportSmartA4LayoutResult = {
+        mode: selectedProfile.mode,
+        fits: selectedMeasurement.fits,
+        needsOverflowPage: !selectedMeasurement.fits,
+        overflowPx: selectedMeasurement.overflowPx,
+        signatureHeightPx: selectedMeasurement.signatureHeightPx,
+      };
+
+      if (!sameResult(resultRef.current, nextResult)) {
+        resultRef.current = nextResult;
+        setResult(nextResult);
+        onLayoutResultRef.current?.(nextResult);
+      }
+    } finally {
+      measuringRef.current = false;
+    }
+  }, [priorityMode]);
+
+  const scheduleMeasurement = useCallback(() => {
+    if (measuringRef.current || scheduledFrameRef.current !== null) return;
+
+    scheduledFrameRef.current = window.requestAnimationFrame(() => {
+      scheduledFrameRef.current = null;
+      void runMeasurement();
+    });
+  }, [runMeasurement]);
+
+  useLayoutEffect(() => {
+    scheduleMeasurement();
+  }, [children, heightMm, layoutKey, scheduleMeasurement]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+
+    if (!viewport || !content) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleMeasurement();
+    });
+    const mutationObserver = new MutationObserver(() => {
+      scheduleMeasurement();
+    });
+    const handleLoadedAsset = () => scheduleMeasurement();
+
+    resizeObserver.observe(viewport);
+    resizeObserver.observe(content);
+    mutationObserver.observe(content, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+    content.addEventListener("load", handleLoadedAsset, true);
+    window.addEventListener("resize", scheduleMeasurement);
+
+    void document.fonts?.ready.then(scheduleMeasurement).catch(() => undefined);
+
+    return () => {
+      runIdRef.current += 1;
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      content.removeEventListener("load", handleLoadedAsset, true);
+      window.removeEventListener("resize", scheduleMeasurement);
+
+      if (scheduledFrameRef.current !== null) {
+        window.cancelAnimationFrame(scheduledFrameRef.current);
+        scheduledFrameRef.current = null;
+      }
+    };
+  }, [scheduleMeasurement]);
+
+  const selectedVariables = getReportSmartA4StyleVariables(
+    getReportSmartA4Profile(result.mode),
+  );
+  const viewportStyle = {
+    ...selectedVariables,
+    height: `${heightMm}mm`,
+    minHeight: `${heightMm}mm`,
+    maxHeight: `${heightMm}mm`,
+    overflow: result.needsOverflowPage ? "visible" : "hidden",
+  } as CSSProperties;
+  const developmentDiagnostics =
+    process.env.NODE_ENV === "development"
+      ? {
+          "data-smart-a4-mode": result.mode,
+          "data-smart-a4-fits": String(result.fits),
+          "data-smart-a4-overflow-px": String(result.overflowPx),
+          "data-smart-a4-needs-overflow-page": String(result.needsOverflowPage),
+        }
+      : {};
+
+  return (
+    <div
+      ref={viewportRef}
+      className={["report-smart-a4-content relative", className]
+        .filter(Boolean)
+        .join(" ")}
+      style={viewportStyle}
+      data-report-density={result.mode}
+      data-report-overflow={result.needsOverflowPage ? "minimum-overflow" : "fit"}
+      {...developmentDiagnostics}
+    >
+      <div
+        ref={contentRef}
+        className={["min-h-full", contentClassName].filter(Boolean).join(" ")}
+        data-report-smart-content
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-design-smart-content.tsx
+======================================================================
+
+import type { ReactNode } from "react";
+
+import {
+  ReportSmartA4ContentRegion,
+  type ReportSmartA4LayoutResult,
+} from "./report-smart-a4-layout";
+import type { ReportSmartA4PriorityMode } from "./report-smart-a4-config";
+
+export type ReportDesignSmartContentProps = {
+  availableHeightMm: number;
+  children: ReactNode;
+  className?: string;
+  contentClassName?: string;
+  layoutKey?: string | number;
+  priorityMode?: ReportSmartA4PriorityMode;
+  onLayoutResult?: (result: ReportSmartA4LayoutResult) => void;
+};
+
+export function ReportDesignSmartContent({
+  availableHeightMm,
+  children,
+  className,
+  contentClassName,
+  layoutKey,
+  priorityMode = "signature",
+  onLayoutResult,
+}: ReportDesignSmartContentProps) {
+  return (
+    <ReportSmartA4ContentRegion
+      heightMm={availableHeightMm}
+      className={className}
+      contentClassName={contentClassName}
+      layoutKey={layoutKey}
+      priorityMode={priorityMode}
+      onLayoutResult={onLayoutResult}
+    >
+      {children}
+    </ReportSmartA4ContentRegion>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-blocks.tsx
+======================================================================
+
+import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
+import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
+import { getReportDesignImplementation } from "../report-design-implementations";
+import type { ReportDesignId } from "../report-design-types";
+import { collectFinalValues, getFinalFieldListItems } from "./final-report";
+import { getValidPreviewEvidences } from "./report-evidence-data";
+import { getDesignHeaderAlign, getDesignHeaderText, getDesignLogoSrc } from "./report-logo";
+import type { PreviewCaseData } from "./report-types";
+import { cleanWorkflowDynamicText, getWorkflowDynamicFieldCards, translateWorkflowDynamicValueItems } from "./report-workflow-fields";
+import { getBlockShellClass, getPlacementClass } from "./report-block-presentation";
+import { EvidenceBlock } from "./report-evidence";
+import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
+import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
+import { DesignValueGrid } from "./report-values";
+
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const implementation = getReportDesignImplementation(designId);
+  const PageComponent = implementation.Page;
+
+  return (
+    <PageComponent
+      page={page}
+      context={context}
+      previewCase={previewCase}
+      pageLabel={pageLabel}
+      PageBlocks={PageBlocks}
+      MetaCard={MetaCard}
+      SideMeta={SideMeta}
+      MiniStat={MiniStat}
+      DesignFooter={DesignFooter}
+      getDesignLogoSrc={getDesignLogoSrc}
+      getDesignHeaderAlign={getDesignHeaderAlign}
+      getDesignHeaderText={getDesignHeaderText}
+      collectFinalValues={collectFinalValues}
+      getValidPreviewEvidences={getValidPreviewEvidences}
+    />
+  );
+}
+
+export function PageBlocks({
+  page,
+  context,
+  previewCase,
+  designId,
+  className,
+}: {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  className: string;
+}) {
+  const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
+  const flowBlocks = blocks.filter(
+    (block: any) =>
+      isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+  );
+  const fixedBlocks = blocks.filter(
+    (block: any) =>
+      !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+  );
+
+  return (
+    <main className={`relative flex flex-col ${className}`}>
+      <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
+        {flowBlocks.map((block: any) => (
+          <div
+            key={block.id}
+            data-report-smart-block={block.kind || "content"}
+            data-report-priority-block={
+              isSignatureGridDesignBlock(block) ? "signature" : undefined
+            }
+            className={
+              isSignatureGridDesignBlock(block)
+                ? "mt-auto break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
+                : ""
+            }
+            style={
+              isSignatureGridDesignBlock(block)
+                ? { breakInside: "avoid", pageBreakInside: "avoid" }
+                : undefined
+            }
+          >
+            <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+          </div>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {fixedBlocks.map((block: any) => (
+          <div
+            key={block.id}
+            data-report-smart-block={block.kind || "fixed-content"}
+            className={getPlacementClass(block.placement || "flow")}
+          >
+            <div className="pointer-events-auto">
+              <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+
+
+function isDynamicFieldsDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+    ? block.dynamicFields
+    : [];
+
+  if (configuredItems.length) {
+    return configuredItems
+      .map((item: any, index: number) => {
+        const id =
+          cleanWorkflowDynamicText(item.id) ||
+          cleanWorkflowDynamicText(item.key) ||
+          `dynamic-field-${index + 1}`;
+        const valueItems = Array.isArray(item.valueItems)
+          ? translateWorkflowDynamicValueItems(item.valueItems)
+          : translateWorkflowDynamicValueItems(item.value);
+
+        return {
+          id,
+          key:
+            cleanWorkflowDynamicText(item.key) ||
+            id,
+          label:
+            item.label !== undefined
+              ? cleanWorkflowDynamicText(item.label)
+              : `حقل ${index + 1}`,
+          value:
+            item.value !== undefined
+              ? cleanWorkflowDynamicText(item.value)
+              : "",
+          valueItems,
+          visible: item.visible !== false,
+        };
+      })
+      .filter((item: any) => item.visible && item.label)
+      .filter(
+        (item: any) =>
+          !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+      );
+  }
+
+  return getWorkflowDynamicFieldCards(previewCase)
+    .map((item: any, index: number) => {
+      const id =
+        cleanWorkflowDynamicText(item.key) ||
+        cleanWorkflowDynamicText(item.label) ||
+        `workflow-field-${index + 1}`;
+
+      return {
+        id,
+        key: id,
+        label: cleanWorkflowDynamicText(item.label),
+        value: cleanWorkflowDynamicText(item.value),
+        valueItems: Array.isArray(item.valueItems)
+          ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+          : [],
+        visible: true,
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value)
+    .filter(
+      (item: any) =>
+        !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+    );
+}
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+}) {
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const value = String(context[`field.${block.boundFieldKey}`] || "").trim();
+    if (!value) return null;
+  }
+
+  const rendered = renderText(block.content || "", context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+  const implementation = getReportDesignImplementation(designId);
+  const accent = implementation.palette;
+  const BlockRenderer = implementation.BlockRenderer;
+
+  if (BlockRenderer) {
+    return (
+      <BlockRenderer
+        block={block}
+        renderedContent={rendered}
+        textAlign={textAlign}
+        context={context}
+        splitLines={splitLines}
+        splitParagraphs={splitParagraphs}
+      />
+    );
+  }
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className={getBlockShellClass(implementation, "hero", "text-center")}>
+        <p
+          className={["text-sm font-black", accent.subtleTextClass].join(" ")}
+          style={{
+            fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
+            lineHeight: "var(--report-content-line-height, 1.75)",
+          }}
+        >
+          {context["service.name"]}
+        </p>
+        <h1
+          className="mx-auto max-w-[145mm] font-black text-slate-950"
+          style={{
+            marginTop: "var(--report-heading-gap, 0.75rem)",
+            fontSize: `calc(1.875rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "titleFontSize"))})`,
+            lineHeight: "var(--report-heading-line-height, 1.65)",
+          }}
+        >
+          {rendered}
+        </h1>
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className={getBlockShellClass(implementation, "soft", textAlign)}>
+        <div
+          className="grid md:grid-cols-2"
+          style={{
+            gap: "var(--report-value-grid-gap, 0.5rem)",
+          }}
+        >
+          {splitLines(rendered).map((line) => (
+            <div
+              key={line}
+              className="rounded-2xl border border-slate-100 bg-white text-sm font-bold text-slate-700"
+              style={{
+                paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+                paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    const customBulletList = implementation.renderBulletList?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customBulletList !== undefined) return customBulletList;
+
+    const contentFontSizeClass = getReportFontSizeClass(
+      getBlockSetting(block, "contentFontSize"),
+      "text-sm",
+    );
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <ul
+          style={{
+            display: "grid",
+            gap: "var(--report-bullet-gap, 0.5rem)",
+          }}
+        >
+          {splitLines(rendered).map((line) => (
+            <li
+              key={line}
+              className={["flex text-slate-700", contentFontSizeClass].join(" ")}
+              style={{
+                gap: "var(--report-field-gap, 0.5rem)",
+                lineHeight: "var(--report-bullet-line-height, 1.75)",
+                fontSize: "calc(0.875rem * var(--report-bullet-font-scale, 1))",
+              }}
+            >
+              <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  if (block.kind === "multi-paragraph") {
+    const customNarrative = implementation.renderNarrative?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customNarrative !== undefined) return customNarrative;
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <div
+          style={{
+            display: "grid",
+            gap: "var(--report-paragraph-gap, 0.75rem)",
+          }}
+        >
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p
+              key={paragraph}
+              className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+              style={{
+                margin: 0,
+                lineHeight: "var(--report-narrative-line-height, 2)",
+                fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "report-one-table" || block.kind === "structured-table") {
+    const tableBlock = block.kind === "structured-table"
+      ? normalizeStructuredTableBlockPresentation(block)
+      : block;
+    const columns = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.columns) ? tableBlock.columns : [])
+      : Array.isArray(tableBlock.columns) && tableBlock.columns.length
+        ? tableBlock.columns
+        : ["المجال", "الإجراء", "ملاحظات"];
+
+    const rows = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.rows) ? tableBlock.rows : [])
+      : Array.isArray(tableBlock.rows) && tableBlock.rows.length
+        ? tableBlock.rows
+        : [["", "", ""]];
+
+    const tableSettings = tableBlock.tableSettings || {};
+    const compact = Boolean(tableSettings.compact);
+    const rounded = tableSettings.rounded !== false;
+    const highlightHeader = tableSettings.highlightHeader !== false;
+    const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
+    const stripedRows = Boolean(tableSettings.stripedRows);
+    const colorTheme = tableSettings.colorTheme || "light-gray";
+    const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
+
+    const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
+      "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+      "soft-blue": { border: "border-sky-200", headerBg: "bg-sky-50", firstColBg: "bg-sky-50", stripedBg: "bg-sky-50/40", headerText: "text-sky-900", cellText: "text-slate-700", firstColText: "text-sky-900" },
+      "green": { border: "border-emerald-200", headerBg: "bg-emerald-50", firstColBg: "bg-emerald-50", stripedBg: "bg-emerald-50/40", headerText: "text-emerald-900", cellText: "text-slate-700", firstColText: "text-emerald-900" },
+      "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+    };
+    const tc = themeColors[colorTheme] || themeColors["light-gray"];
+    return (
+      <section
+        dir="rtl"
+        data-report-structured-table={tableBlock.kind === "structured-table" ? tableBlock.sourceTableId || "true" : undefined}
+        className={
+          tableBlock.kind === "structured-table"
+            ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
+            : getBlockShellClass(implementation, tableBlock.variant, textAlign)
+        }
+        style={{ breakInside: "avoid" }}
+      >
+        {tableBlock.showTitle ? <BlockTitle title={tableBlock.title} fontSize={getBlockSetting(tableBlock, "titleFontSize")} /> : null}
+
+        <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
+          <table className="w-full table-fixed border-collapse text-xs">
+            <thead
+              className={highlightHeader ? tc.headerBg : "bg-white"}
+              style={{ display: tableSettings.repeatHeader === false ? undefined : "table-header-group" }}
+            >
+              <tr>
+                {columns.map((column: string, columnIndex: number) => (
+                  <th
+                    key={`${column}-${columnIndex}`}
+                    className={[
+                      `border ${tc.border} text-center font-black ${tc.headerText}`,
+                    ].join(" ")}
+                    style={{
+                      ...(Number(columnWidths[columnIndex]) > 0
+                        ? { width: `${Number(columnWidths[columnIndex])}%` }
+                        : {}),
+                      paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+                      paddingBlock: `calc(var(--report-table-header-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+                      fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+                      lineHeight: "calc(1.25rem * var(--report-narrative-density-scale, 1))",
+                    }}
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row: string[], rowIndex: number) => (
+                <tr
+                  key={`row-${rowIndex}`}
+                  className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
+                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                  {columns.map((_: string, columnIndex: number) => (
+                    <td
+                      key={`cell-${rowIndex}-${columnIndex}`}
+                      className={[
+                        `break-words whitespace-pre-wrap border ${tc.border} text-center font-bold ${tc.cellText}`,
+                        highlightFirstColumn && columnIndex === 0
+                          ? `${tc.firstColBg} font-black ${tc.firstColText}`
+                          : "",
+                      ].join(" ")}
+                      style={{
+                        paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+                        paddingBlock: `calc(var(--report-table-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+                        fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+                        lineHeight: "calc(1.5rem * var(--report-narrative-density-scale, 1))",
+                      }}
+                    >
+                      {String(row?.[columnIndex] || "—")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  }
+  if (isDynamicFieldsDesignBlock(block)) {
+    const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+
+    if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) {
+      return null;
+    }
+
+    return (
+      <section
+        className={getBlockShellClass(implementation, block.variant, textAlign)}
+        data-report-dynamic-fields
+      >
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {dynamicFieldItems.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={dynamicFieldItems.map(({ id, label, value, valueItems }: any) => ({
+              key: id,
+              label,
+              value: Array.isArray(valueItems) && valueItems.length ? valueItems : value,
+              valueItems,
+            }))}
+          />
+        ) : (
+          <p
+            className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+            style={{
+              paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+              paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+            }}
+          >
+            لا توجد حقول ظاهرة داخل هذا البلوك.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (block.kind === "field-list") {
+    const values = getFinalFieldListItems(block, previewCase);
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {values.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={values.map((item: any) => ({
+              key: item.key || item.label || item.fieldKey || item.fieldLabel,
+                label: item.label || item.fieldLabel || "تفصيل",
+              value: Array.isArray(item.valueItems) && item.valueItems.length
+                ? item.valueItems
+                : item.value || "غير متوفر",
+              valueItems: item.valueItems,
+            }))}
+          />
+        ) : (
+          <p
+            className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+            style={{
+              paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+              paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+            }}
+          >
+            لا توجد قيم مرتبطة بهذا البلوك.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (isSignatureGridDesignBlock(block)) {
+    const signatures = getDesignSignatureCards(block);
+
+    if (!signatures.length) return null;
+
+    const SignatureRenderer = implementation.SignatureRenderer;
+    if (SignatureRenderer) {
+      return (
+        <SignatureRenderer
+          block={block}
+          items={signatures}
+          renderTitle={() => block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        />
+      );
+    }
+
+    return (
+      <section
+        data-report-design-signature-block
+        className="report-design-signature-grid-block break-inside-avoid"
+        style={{
+          breakInside: "avoid",
+          pageBreakInside: "avoid",
+          fontSize: "calc(1rem * var(--report-signature-label-scale, 1))",
+        }}
+      >
+        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+
+        <div
+          className={[
+            signatures.length === 2
+              ? "mx-auto grid w-[72%] max-w-[132mm] grid-cols-2 items-end gap-x-[8mm]"
+              : "flex w-full items-end gap-6",
+            signatures.length === 1
+              ? "justify-center"
+              : signatures.length >= 3
+                ? "justify-between"
+                : "",
+          ].join(" ")}
+        >
+          {signatures.map((signature: any) => (
+            <div
+              key={signature.key}
+              className={[
+                "text-center",
+                signatures.length >= 3
+                  ? "w-[31%]"
+                  : signatures.length === 2
+                    ? "min-w-0 w-full"
+                    : "w-[58mm]",
+              ].join(" ")}
+            >
+              <div
+                className="report-design-signature-image-frame flex items-end justify-center rounded-md bg-white"
+                style={{ height: "var(--report-signature-image-height, 10mm)" }}
+              >
+                {signature.imageUrl ? (
+                  <img
+                    src={signature.imageUrl}
+                    alt={signature.label}
+                    className="report-design-signature-image max-w-[42mm] object-contain"
+                    style={{
+                      maxHeight: "var(--report-signature-image-height, 10mm)",
+                      background: "#ffffff",
+                      objectFit: "contain",
+                      mixBlendMode: "normal",
+                      filter: "none",
+                    }}
+                  />
+                ) : (
+                  <div className="mb-1 w-full border-b border-dashed border-slate-400" />
+                )}
+              </div>
+
+              <div
+                className="report-design-signature-name font-black text-slate-950"
+                style={{
+                  marginTop: "var(--report-field-value-top-gap, 0.25rem)",
+                  fontSize: "calc(10px * var(--report-signature-name-scale, 1))",
+                  lineHeight: "var(--report-table-line-height, 1.5)",
+                }}
+              >
+                {signature.signerName || "—"}
+              </div>
+
+              {signature.signerTitle ? (
+                <div
+                  className="font-bold text-slate-500"
+                  style={{
+                    marginTop: "var(--report-field-value-top-gap, 0.125rem)",
+                    fontSize: "calc(8px * var(--report-signature-label-scale, 1))",
+                    lineHeight: "var(--report-table-line-height, 1.5)",
+                  }}
+                >
+                  {signature.signerTitle}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} implementation={implementation} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <p
+          className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+          style={{
+            margin: 0,
+            fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+            lineHeight: "var(--report-narrative-line-height, 2)",
+          }}
+        >
+          {rendered}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+      <p
+        className={["whitespace-pre-line text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" ")}
+        style={{
+          margin: 0,
+          fontSize: `calc(1.125rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+          lineHeight: "var(--report-narrative-line-height, 2)",
+        }}
+      >
+        {rendered}
+      </p>
+    </section>
+  );
+}
+
+function DesignFieldValueBlock({
+  title,
+  showTitle,
+  variant,
+  textAlign,
+  designId,
+  items,
+}: {
+  title: string;
+  showTitle?: boolean;
+  variant: string;
+  textAlign: string;
+  designId: ReportDesignId;
+  items: Array<{
+    key?: string;
+    label: string;
+    value?: string | null;
+  }>;
+}) {
+  const visibleItems = items.filter((item) => String(item.value || "").trim());
+  const implementation = getReportDesignImplementation(designId);
+
+  return (
+    <section className={getBlockShellClass(implementation, variant, textAlign)}>
+      {showTitle ? <BlockTitle title={title} /> : null}
+
+      {visibleItems.length ? (
+        <DesignValueGrid implementation={implementation} items={visibleItems} />
+      ) : (
+        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+          لا توجد قيم مرتبطة بهذا البلوك.
+        </p>
+      )}
+    </section>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-block-presentation.ts
+======================================================================
+
+import type { ReportDesignImplementation } from "../designs/report-design-component-types";
+import { normalizeReportBlockPresentation } from "../designs/report-block-presentation";
+
+export function getBlockShellClass(
+  implementation: ReportDesignImplementation,
+  variant: string,
+  textAlign: string,
+) {
+  const base = `break-inside-avoid ${textAlign}`;
+
+  if (implementation.getBlockPresentation) {
+    const presentation = implementation.getBlockPresentation(
+      normalizeReportBlockPresentation(variant),
+    );
+    return [base, presentation.shellClassName].filter(Boolean).join(" ");
+  }
+
+  const accent = implementation.palette;
+  if (variant === "hero") return `${base} ${accent.heroShellClass}`;
+  if (variant === "plain") return `${base} px-1 py-2`;
+  if (variant === "soft") return `${base} ${accent.softShellClass}`;
+  if (variant === "highlight") return `${base} ${accent.highlightShellClass}`;
+  if (variant === "outline") return `${base} ${accent.outlineShellClass}`;
+  if (variant === "quote") return `${base} ${accent.quoteShellClass}`;
+  return `${base} ${accent.cardShellClass}`;
+}
+
+export function getPlacementClass(placement: string) {
+  const fullCenteredBase = "absolute left-0 right-0 w-full";
+  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
+  const sideBase = "absolute w-full max-w-[58%]";
+  const classes: Record<string, string> = {
+    flow: "", top: `${fullCenteredBase} top-0`, middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`, bottom: `${fullCenteredBase} bottom-0`,
+    "top-right": `${sideBase} right-0 top-0`, "top-center": `${centeredBase} top-0`, "top-left": `${sideBase} left-0 top-0`,
+    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`, "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`, "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
+    "bottom-right": `${sideBase} bottom-0 right-0`, "bottom-center": `${centeredBase} bottom-0`, "bottom-left": `${sideBase} bottom-0 left-0`,
+  };
+  return classes[placement] || "";
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-values.tsx
+======================================================================
+
+import type { ReportDesignImplementation, ReportValueItem } from "../designs/report-design-component-types";
+import { MetaCard } from "./report-primitives";
+import { getBlockSetting } from "./report-text";
+
+export function DesignValueGrid({
+  implementation,
+  items,
+  block,
+}: {
+  implementation: ReportDesignImplementation;
+  items: ReportValueItem[];
+  block?: Record<string, any>;
+}) {
+  const ValueGrid = implementation.ValueGrid;
+
+  if (ValueGrid) {
+    return <ValueGrid items={items} block={block} />;
+  }
+
+  const FieldRenderer = implementation.FieldRenderer;
+
+  return (
+    <div
+      className={implementation.palette.detailsGridClassName || "grid md:grid-cols-2 print:grid-cols-2"}
+      style={{
+        gap: "var(--report-value-grid-gap, 0.5rem)",
+      }}
+    >
+      {items.map((item, index) => FieldRenderer ? (
+        <FieldRenderer key={item.key || item.label || index} item={item} index={index} block={block} />
+      ) : (
+        <MetaCard
+          key={item.key || item.label || index}
+          label={item.label}
+          value={Array.isArray(item.value) ? item.value.join("? ") : String(item.value || "??? ?????")}
+          valueItems={item.valueItems || (Array.isArray(item.value) ? item.value : undefined)}
+          labelFontSize={getBlockSetting(block, "fieldLabelFontSize")}
+          valueFontSize={getBlockSetting(block, "fieldValueFontSize")}
+        />
+      ))}
+    </div>
+  );
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-primitives.tsx
+======================================================================
+
+import { cleanWorkflowDynamicText } from "./report-workflow-fields";
+import { getReportFontSizeClass, getReportFontSizeMultiplier } from "./report-text";
+
+export function MetaCard({
+  label,
+  value,
+  valueItems,
+  labelFontSize,
+  valueFontSize,
+}: {
+  label: string;
+  value: string;
+  valueItems?: string[];
+  labelFontSize?: string;
+  valueFontSize?: string;
+}) {
+  const items = Array.isArray(valueItems)
+    ? Array.from(
+        new Set(
+          valueItems
+            .map((item) => cleanWorkflowDynamicText(item))
+            .filter(Boolean),
+        ),
+      )
+    : [];
+
+  return (
+    <div
+      className="rounded-2xl border border-slate-100 bg-white"
+      style={{
+        paddingInline: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+        paddingBlock: "calc(0.5rem * var(--report-field-spacing-scale, 1))",
+      }}
+    >
+      <p
+        className={[
+          getReportFontSizeClass(labelFontSize, "text-[10px]"),
+          "font-black text-slate-400",
+        ].join(" ")}
+        style={{
+          fontSize: `calc(10px * var(--report-field-label-scale, 1) * ${getReportFontSizeMultiplier(labelFontSize)})`,
+          lineHeight: "var(--report-content-line-height, 1.55)",
+        }}
+      >
+        {label}
+      </p>
+
+      {items.length > 1 ? (
+        <ul
+          className={[
+            getReportFontSizeClass(valueFontSize, "text-xs"),
+            "font-black text-slate-800",
+          ].join(" ")}
+          dir="rtl"
+          style={{
+            marginTop: "var(--report-field-value-top-gap, 0.5rem)",
+            display: "grid",
+            gap: "var(--report-field-value-item-gap, 0.4rem)",
+            fontSize: `calc(0.75rem * var(--report-field-value-scale, 1) * ${getReportFontSizeMultiplier(valueFontSize)})`,
+            lineHeight: "var(--report-content-line-height, 1.75)",
+          }}
+        >
+          {items.map((item, index) => (
+            <li
+              key={`${label}-${item}-${index}`}
+              className="flex items-start"
+              style={{
+                gap: "var(--report-field-gap, 0.5rem)",
+              }}
+            >
+              <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p
+          className={[
+            getReportFontSizeClass(valueFontSize, "text-xs"),
+            "font-black text-slate-800",
+          ].join(" ")}
+          style={{
+            marginTop: "var(--report-field-value-top-gap, 0.25rem)",
+            fontSize: `calc(0.875rem * var(--report-field-value-scale, 1) * ${getReportFontSizeMultiplier(valueFontSize)})`,
+            lineHeight: "var(--report-content-line-height, 1.75)",
+          }}
+        >
+          {value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function SideMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-2xl bg-white/10"
+      style={{
+        padding: "var(--report-side-meta-padding, 0.75rem)",
+      }}
+    >
+      <p
+        className="text-[10px] font-black text-teal-100"
+        style={{ fontSize: "calc(10px * var(--report-caption-font-scale, 1))" }}
+      >
+        {label}
+      </p>
+      <p className="mt-1 text-xs font-black text-white">{value || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}</p>
+    </div>
+  );
+}
+
+export function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-2xl bg-white/15"
+      style={{
+        padding: "var(--report-side-meta-padding, 0.75rem)",
+      }}
+    >
+      <p
+        className="text-[10px] font-black text-cyan-100"
+        style={{ fontSize: "calc(10px * var(--report-caption-font-scale, 1))" }}
+      >
+        {label}
+      </p>
+      <p className="mt-1 text-xs font-black text-white">{value || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}</p>
+    </div>
+  );
+}
+
+export function DesignFooter({ text, barClass }: { text: string; barClass: string }) {
+  return (
+    <footer
+      className="absolute bottom-[10mm] left-[12mm] right-[12mm]"
+      style={{
+        bottom: "var(--report-footer-bottom, 10mm)",
+        left: "var(--report-footer-inline, 12mm)",
+        right: "var(--report-footer-inline, 12mm)",
+      }}
+    >
+      <div className={`h-1 rounded-full bg-gradient-to-l ${barClass}`} />
+      <div
+        className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400"
+        style={{
+          marginTop: "var(--report-footer-text-gap, 0.5rem)",
+          fontSize: "calc(11px * var(--report-caption-font-scale, 1))",
+        }}
+      >
+        <span>Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ</span>
+        <span>{text}</span>
+      </div>
+    </footer>
+  );
+}
+
+export function BlockTitle({ title, fontSize }: { title: string; fontSize?: string }) {
+  return (
+    <h3
+      className={[
+        getReportFontSizeClass(fontSize, "text-base"),
+        "font-black text-slate-950",
+      ].join(" ")}
+      style={{
+        marginBottom: "var(--report-heading-gap, 0.75rem)",
+        fontSize: `calc(1rem * var(--report-heading-scale, 1) * ${getReportFontSizeMultiplier(fontSize)})`,
+        lineHeight: "var(--report-heading-line-height, 1.4)",
+      }}
+    >
+      {title}
+    </h3>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-text.ts
+======================================================================
+
+import { resolveContextVariable } from "./final-report";
+
+export function renderText(text: string, context: Record<string, string>) {
+  const source = String(text || "");
+
+  const replaceVariable = (_match: string, key: string) => {
+    const cleanKey = String(key || "").trim();
+
+    if (!cleanKey) return "";
+    return resolveContextVariable(cleanKey, context);
+  };
+
+  return source
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
+    .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+}
+
+export function splitLines(text: string) {
+  return String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
+}
+
+export function splitParagraphs(text: string) {
+  return String(text || "").split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+export function getReportFontSizeClass(value: unknown, fallback = "text-base") {
+  switch (value) {
+    case "xs": return "text-xs";
+    case "sm": return "text-sm";
+    case "base": return "text-base";
+    case "lg": return "text-lg";
+    case "xl": return "text-xl";
+    case "2xl": return "text-2xl";
+    default: return fallback;
+  }
+}
+
+export function getReportFontSizeMultiplier(value: unknown) {
+  switch (value) {
+    case "xs":
+      return 0.75;
+    case "sm":
+      return 0.875;
+    case "base":
+      return 1;
+    case "lg":
+      return 1.125;
+    case "xl":
+      return 1.25;
+    case "2xl":
+      return 1.5;
+    default:
+      return 1;
+  }
+}
+
+export function getBlockSetting(block: any, key: string) {
+  return block?.[key] ?? block?.settings?.[key];
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-types.ts
+======================================================================
+
+import type { ReportDesignId } from "../report-design-types";
+
+export type FinalReportValueItem = {
+  fieldKey: string;
+  fieldLabel: string;
+  value: string;
+  valueItems?: string[];
+};
+
+export type PreviewCaseData = {
+  hasStudentDataTable?: boolean;
+  evidences?: Array<{
+    id?: string;
+    title?: string;
+    url?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+    publicUrl?: string;
+    storagePath?: string;
+    attachmentId?: string;
+    fileId?: string;
+    evidenceId?: string;
+    type?: "IMAGE" | "FILE";
+    mimeType?: string | null;
+    caption?: string;
+  }>;
+  values?: Array<{
+    fieldKey?: string | null;
+    fieldLabel?: string | null;
+    value?: string | null;
+    valueItems?: string[] | null;
+  }>;
+  serviceName?: string;
+  serviceSlug?: string;
+  caseId?: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  student?: {
+    name?: string;
+    grade?: string;
+    classroom?: string;
+    stage?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+  };
+};
+
+export type ReportDesignRendererProps = {
+  designId?: ReportDesignId;
+  template: any;
+  activePage?: any;
+  activePageId: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  onActivePageChange: (pageId: string) => void;
+  onAddPage: () => void;
+  onMovePage?: (pageId: string, direction: "previous" | "next") => void;
+  onDeletePage?: (pageId: string) => void;
+  canMovePage?: (pageId: string, direction: "previous" | "next") => boolean;
+  canDeletePage?: (pageId: string) => boolean;
+  renderMode?: "single" | "stack";
+  chromeLayout?: "joined" | "split";
+
+  suppressAutoEvidencePages?: boolean;
+};
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-evidence.tsx
+======================================================================
+
+import type { ReportDesignImplementation, ReportEvidenceItem } from "../designs/report-design-component-types";
+import type { PreviewCaseData } from "./report-types";
+import { createEvidencePlaceholders, getEvidenceFigureStyle, getEvidenceGridClass, getEvidenceGridStyle, getEvidenceImageClass, getEvidenceImageHeightClass, getEvidenceImageStyle, getEvidencePerPage, getReportDesignEvidenceImageUrl, getValidPreviewEvidences } from "./report-evidence-data";
+import { BlockTitle } from "./report-primitives";
+import { getBlockSetting } from "./report-text";
+import { getBlockShellClass } from "./report-block-presentation";
+
+export function EvidenceBlock({
+  block,
+  previewCase,
+  implementation,
+  textAlign,
+}: {
+  block: any;
+  previewCase: PreviewCaseData | null;
+  implementation: ReportDesignImplementation;
+  textAlign: string;
+}) {
+  const hasSelectedCase = Boolean(previewCase?.caseId);
+  const realEvidences = getValidPreviewEvidences(previewCase);
+  const perPage = getEvidencePerPage(block);
+  const startIndex = block.evidenceStartIndex || 0;
+  const accent = implementation.palette;
+
+  if (!realEvidences.length && hasSelectedCase) return null;
+  if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") return null;
+
+  const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+  const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+  const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
+  const isPlaceholderMode = !realEvidences.length;
+  const shellClassName = getBlockShellClass(implementation, block.variant, textAlign);
+  const EvidenceRenderer = implementation.EvidenceRenderer;
+
+  if (EvidenceRenderer) {
+    return (
+      <EvidenceRenderer
+        block={block}
+        items={visibleEvidences as ReportEvidenceItem[]}
+        startIndex={startIndex}
+        placeholderMode={isPlaceholderMode}
+        textAlign={textAlign}
+        shellClassName={shellClassName}
+        gridClassName={getEvidenceGridClass(block)}
+        gridStyle={getEvidenceGridStyle(block)}
+        getImageUrl={getReportDesignEvidenceImageUrl}
+        getFigureStyle={() => getEvidenceFigureStyle(block)}
+        getImageStyle={() => getEvidenceImageStyle(block)}
+        getImageClassName={() => getEvidenceImageClass(block)}
+        getImageHeightClassName={() => getEvidenceImageHeightClass(block)}
+        renderTitle={() => block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+      />
+    );
+  }
+
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return (
+      <section className={shellClassName}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <div
+          style={{
+            display: "grid",
+            gap: "var(--report-evidence-gap, 0.5rem)",
+          }}
+        >
+          {visibleEvidences.map((evidence, index) => (
+            <div
+              key={evidence.id || String(index)}
+              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700"
+              style={{
+                gap: "var(--report-field-gap, 0.75rem)",
+                paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+                paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+                fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
+              }}
+            >
+              <span>{evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}</span>
+              <span className={["rounded-full px-3 py-1 text-[11px] font-black", accent.badgeClass].join(" ")}>
+                {isPlaceholderMode ? "معاينة" : "شاهد"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={shellClassName}>
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+
+      <div
+        className={getEvidenceGridClass(block)}
+        style={(() => {
+          const gridStyle = getEvidenceGridStyle(block);
+          const baseGap = String(gridStyle.gap || "0.75rem");
+
+          return {
+            ...gridStyle,
+            gap: `calc(${baseGap} * var(--report-evidence-spacing-scale, 1))`,
+          };
+        })()}
+      >
+        {visibleEvidences.map((evidence, index) => {
+          const imageUrl = getReportDesignEvidenceImageUrl(evidence);
+
+          return (
+            <figure
+              key={evidence.id || imageUrl || String(index)}
+              style={getEvidenceFigureStyle(block)}
+              className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              {imageUrl && !isPlaceholderMode ? (
+                <img
+                  src={imageUrl}
+                  alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+                  style={getEvidenceImageStyle(block)}
+                  className={`${getEvidenceImageClass(block)} bg-slate-50`}
+                />
+              ) : (
+                <div
+                  data-report-design-real-evidence={isPlaceholderMode ? undefined : "true"}
+                  className={`report-design-evidence-fallback ${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}
+                >
+                  <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
+                  <p
+                    className="text-xs font-black text-slate-500"
+                    style={{
+                      marginTop: "var(--report-paragraph-gap, 0.75rem)",
+                      fontSize: "calc(0.75rem * var(--report-caption-font-scale, 1))",
+                    }}
+                  >
+                    {isPlaceholderMode
+                      ? "مساحة شاهد للمعاينة"
+                      : evidence.title || evidence.caption || "مرفق محفوظ"}
+                  </p>
+                </div>
+              )}
+
+              {block.evidenceShowCaptions !== false ? (
+                <figcaption
+                  className="max-h-12 overflow-hidden border-t border-slate-100 text-xs font-bold text-slate-600"
+                  style={{
+                    paddingInline: "var(--report-table-padding-x, 0.75rem)",
+                    paddingBlock: "var(--report-table-padding-y, 0.5rem)",
+                    fontSize: "calc(0.75rem * var(--report-evidence-caption-scale, 1))",
+                    lineHeight: "var(--report-table-line-height, 1.5)",
+                  }}
+                >
+                  {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
+                </figcaption>
+              ) : null}
+            </figure>
+          );
+        })}
+      </div>
+
+      {isPlaceholderMode ? (
+        <p
+          className={["rounded-2xl text-xs font-bold", accent.noticeClass].join(" ")}
+          style={{
+            marginTop: "var(--report-paragraph-gap, 0.75rem)",
+            paddingInline: "var(--report-table-padding-x, 0.75rem)",
+            paddingBlock: "var(--report-table-padding-y, 0.5rem)",
+            fontSize: "calc(0.75rem * var(--report-caption-font-scale, 1))",
+            lineHeight: "var(--report-table-line-height, 1.5)",
+          }}
+        >
+          هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-evidence-data.ts
+======================================================================
+
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import type { PreviewCaseData } from "./report-types";
+
+const REPORT_DESIGN_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
+
+function hasReportDesignImageEvidenceExtension(value: unknown) {
+  const text = String(value || "").trim().replaceAll("\\", "/");
+
+  if (!text) return false;
+
+  return REPORT_DESIGN_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+}
+
+function isReportDesignImageEvidence(
+  evidence: NonNullable<PreviewCaseData["evidences"]>[number] | undefined,
+) {
+  if (!evidence) return false;
+  if (String(evidence.type || "").trim().toUpperCase() === "IMAGE") return true;
+  if (String(evidence.mimeType || "").toLowerCase().startsWith("image/")) return true;
+
+  return [
+    evidence.imageUrl,
+    evidence.url,
+    evidence.fileUrl,
+    evidence.publicUrl,
+    evidence.storagePath,
+  ].some((value) => hasReportDesignImageEvidenceExtension(value));
+}
+
+export function getReportDesignEvidenceImageUrl(
+  evidence: NonNullable<PreviewCaseData["evidences"]>[number] | undefined,
+) {
+  if (!evidence || !isReportDesignImageEvidence(evidence)) return "";
+
+  return String(
+    evidence.imageUrl ||
+      evidence.url ||
+      evidence.fileUrl ||
+      evidence.publicUrl ||
+      evidence.storagePath ||
+      "",
+  ).trim();
+}
+
+export function getValidPreviewEvidences(previewCase: PreviewCaseData | null) {
+  const hasSelectedCase = Boolean(previewCase?.caseId);
+
+  return filterValidReportEvidenceItems(previewCase?.evidences || [], {
+    allowSampleEvidence: !hasSelectedCase,
+  });
+}
+
+export function getEvidenceStartIndex(block: any) {
+  const startIndex = Number(block.evidenceStartIndex || 0);
+
+  if (!Number.isFinite(startIndex) || startIndex < 0) {
+    return 0;
+  }
+
+  return Math.floor(startIndex);
+}
+
+export function getEvidencePerPage(block: any) {
+  const explicitLimit = Number(block.evidenceLimit || 0);
+
+  if (Number.isFinite(explicitLimit) && explicitLimit > 0) {
+    return Math.max(1, Math.floor(explicitLimit));
+  }
+  return getSmartEvidencePerPage(block);
+}
+
+export function getSmartEvidencePerPage(block: any) {
+  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
+  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  const fit = String(block?.evidenceFit || "contain");
+
+  if (layout === "ATTACHMENT_LIST") return 10;
+  if (layout === "ONE_PER_PAGE") return 1;
+  if (layout === "TWO_PER_PAGE") return 2;
+
+  /*
+    GRID_2X2 is a maximum capacity, not a forced capacity.
+    The system must keep every evidence card inside the A4 frame.
+    Portrait images are tall, so 4 cards can overflow the page.
+  */
+  if (layout === "GRID_2X2") {
+    if (ratio === "PORTRAIT_3_4") return 2;
+    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
+    if (ratio === "SQUARE_1_1") return 4;
+    if (ratio === "LANDSCAPE_16_9") return 4;
+    return 4;
+  }
+
+  return 2;
+}
+
+export function createEvidencePlaceholders(count: number, startIndex: number) {
+  return Array.from({ length: count }).map((_, index) => ({
+    id: `placeholder-evidence-${startIndex + index + 1}`,
+    title: `شاهد تجريبي ${startIndex + index + 1}`,
+    caption: "مكان الشاهد داخل التقارير",
+    fileUrl: "",
+    imageUrl: "",
+  }));
+}
+
+export function getEvidenceGridClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return "grid gap-2";
+  }
+
+  if (perPage <= 1) {
+    return "grid gap-3";
+  }
+
+  return "grid gap-3 md:grid-cols-2";
+}
+
+export function getEvidenceImageHeightClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
+
+  /*
+    Fixed heights are intentional:
+    they keep evidence inside the printable A4 area.
+    Extra evidence must go to a new Evidence Page instead of stretching A4.
+  */
+  if (perPage <= 1) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[185mm]";
+      case "SQUARE_1_1":
+        return "h-[160mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[122mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[138mm]";
+    }
+  }
+
+  if (perPage === 2) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[92mm]";
+      case "SQUARE_1_1":
+        return "h-[82mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[58mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[66mm]";
+    }
+  }
+
+  switch (ratio) {
+    case "SQUARE_1_1":
+      return "h-[56mm]";
+    case "LANDSCAPE_16_9":
+      return "h-[42mm]";
+    case "PORTRAIT_3_4":
+      return "h-[82mm]";
+    case "LANDSCAPE_4_3":
+    default:
+      return "h-[48mm]";
+  }
+}
+
+export function getEvidenceImageClass(block: any) {
+  const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}
+
+export function getEvidenceGridStyle(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const gapMm = Number(block.evidenceGapMm || 0);
+
+  const style: Record<string, string> = {};
+
+  if (gapMm > 0) {
+    style.gap = `${Math.min(Math.max(gapMm, 2), 12)}mm`;
+  }
+
+  if (block.evidenceLayout !== "ATTACHMENT_LIST") {
+    style.gridTemplateColumns =
+      perPage <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+  }
+
+  return style;
+}
+
+export function getEvidenceFigureStyle(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const widthMm = Number(block.evidenceImageWidthMm || 0);
+
+  if (!widthMm || perPage > 1) {
+    return {};
+  }
+
+  return {
+    maxWidth: `${Math.min(Math.max(widthMm, 40), 180)}mm`,
+    marginInline: "auto",
+  };
+}
+
+export function getEvidenceImageStyle(block: any) {
+  const heightMm = Number(block.evidenceImageHeightMm || 0);
+  const widthMm = Number(block.evidenceImageWidthMm || 0);
+  const perPage = getEvidencePerPage(block);
+
+  const style: Record<string, string> = {
+    objectFit: block.evidenceFit === "cover" ? "cover" : "contain",
+  };
+
+  if (heightMm > 0) {
+    style.height = `${Math.min(Math.max(heightMm, 35), 190)}mm`;
+  }
+
+  if (widthMm > 0 && perPage <= 1) {
+    style.width = `${Math.min(Math.max(widthMm, 40), 180)}mm`;
+  }
+
+  return style;
+}
+
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-auto-evidence.tsx
+======================================================================
+
+import type { ReportDesignId } from "../report-design-types";
+import { A4DesignPage } from "./report-blocks";
+import { getEvidencePerPage, getValidPreviewEvidences } from "./report-evidence-data";
+import type { PreviewCaseData } from "./report-types";
+
+export function AutoEvidencePages({
+  designId,
+  activePage,
+  context,
+  previewCase,
+}: {
+  designId: ReportDesignId;
+  activePage?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === "evidence-gallery");
+
+  if (!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return null;
+
+  const evidences = getValidPreviewEvidences(previewCase);
+  const perPage = getEvidencePerPage(evidenceBlock);
+  const pagesCount = Math.ceil(evidences.length / perPage);
+
+  if (pagesCount <= 1) return null;
+
+  return (
+    <div className="mt-6 space-y-6">
+      {Array.from({ length: pagesCount - 1 }).map((_, index) => {
+        const pageNumber = index + 2;
+        const virtualPage = {
+          ...activePage,
+          id: `${activePage.id}-evidence-auto-${pageNumber}`,
+          title: `${activePage.title} - صفحة ${pageNumber}`,
+          blocks: [
+            {
+              ...evidenceBlock,
+              id: `${evidenceBlock.id}-auto-${pageNumber}`,
+              title: `${evidenceBlock.title} - صفحة ${pageNumber}`,
+              evidenceStartIndex: (pageNumber - 1) * perPage,
+            },
+          ],
+        };
+
+        return (
+          <A4DesignPage
+            key={virtualPage.id}
+            designId={designId}
+            page={virtualPage}
+            context={context}
+            previewCase={previewCase}
+            pageLabel={`صفحة شواهد ${pageNumber}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-signatures.ts
+======================================================================
+
+export function getReportDesignSignatureStyleText() {
+  return `
+    .pdf-report-page,
+    .pdf-report-page * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-grid-block,
+    .report-design-signature-grid-block * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-image-frame {
+      background: #ffffff !important;
+    }
+
+    .report-design-signature-image {
+      background: #ffffff !important;
+      object-fit: contain !important;
+      mix-blend-mode: normal !important;
+      filter: none !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      color: transparent !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p::after {
+      content: "شاهد بدون صورة";
+      font-size: 12px;
+      line-height: 1.5;
+      color: #64748b;
+    }
+  `;
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-design-engine.tsx
+======================================================================
+
+"use client";
+
+import {
+  isReportDesignId,
+  reportDesignTemplates,
+} from "../report-design-registry";
+import { getReportDesignImplementation } from "../report-design-implementations";
+import type { ReportDesignId } from "../report-design-types";
+
+export {
+  reportDesignTemplates,
+  selectableReportDesignTemplates,
+  SELECTABLE_REPORT_DESIGN_IDS,
+  isSelectableReportDesignId,
+} from "../report-design-registry";
+export type { ReportDesignId } from "../report-design-types";
+
+import { getReportHeaderSettingsStyle } from "./report-header";
+import type { PreviewCaseData, ReportDesignRendererProps } from "./report-types";
+
+import { getReportDesignSignatureStyleText } from "./report-signatures";
+
+export function ReportDesignRenderer({
+  designId,
+  template,
+  activePage,
+  activePageId,
+  context,
+  previewCase,
+  onActivePageChange,
+  onAddPage,
+  onMovePage,
+  onDeletePage,
+  canMovePage,
+  canDeletePage,
+  renderMode = "single",
+  chromeLayout = "joined",
+  suppressAutoEvidencePages = false,
+}: ReportDesignRendererProps) {
+  const selectedDesign = normalizeDesignId(
+    designId || template?.designTemplateId || "ministry-form",
+  );
+  const implementation = getReportDesignImplementation(selectedDesign);
+
+  const logoWidthPx = getDesignLogoNumber(
+    context,
+    "report.logoWidthPx",
+    implementation.defaultLogoWidthPx || 96,
+    24,
+    240,
+  );
+
+  const logoHeightPx = getDesignLogoNumber(
+    context,
+    "report.logoHeightPx",
+    implementation.defaultLogoHeightPx || 56,
+    20,
+    160,
+  );
+
+  const logoFit = getDesignLogoFit(context);
+  const logoFilter = getDesignLogoFilter(context);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
+  const signatureStyleText = getReportDesignSignatureStyleText();
+  const pages = template?.pages || [];
+
+  const logoStyle = (
+    <style>{`
+      .report-design-logo-control-style img[alt="شعار وزارة التعليم"],
+      .pdf-report-page img[alt="شعار وزارة التعليم"] {
+        width: ${logoWidthPx}px !important;
+        max-width: ${logoWidthPx}px !important;
+        height: ${logoHeightPx}px !important;
+        max-height: ${logoHeightPx}px !important;
+        object-fit: ${logoFit} !important;
+        filter: ${logoFilter} !important;
+      }
+    `}</style>
+  );
+  const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
+  const signatureStyle = <style>{signatureStyleText}</style>;
+
+  const controls = (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">
+            المعاينة الرسمية A4
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            التصميم الحالي: {getDesignName(selectedDesign)}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+          {previewCase ? "Case ID فعلي" : "بيانات تجريبية"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {pages.map((page: any, index: number) => {
+          const active = page.id === activePageId;
+          const canMovePrevious =
+            canMovePage?.(page.id, "previous") ?? index > 0;
+          const canMoveNext =
+            canMovePage?.(page.id, "next") ?? index < pages.length - 1;
+          const canDelete = canDeletePage?.(page.id) ?? false;
+
+          return (
+            <div
+              key={`${page.id}-${index}`}
+              className={[
+                "inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs font-black transition",
+                active
+                  ? "border-emerald-600 bg-emerald-700 text-white shadow-sm"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+              ].join(" ")}
+            >
+              <button
+                type="button"
+                onClick={() => onActivePageChange(page.id)}
+                className="max-w-[220px] truncate px-2 py-1"
+                title={page.title}
+              >
+                {index + 1}. {page.title}
+              </button>
+
+              {active ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={!canMovePrevious}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "previous");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للخلف"
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!canMoveNext}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "next");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للأمام"
+                  >
+                    ↓
+                  </button>
+
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDeletePage?.(page.id);
+                      }}
+                      className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500/90 px-1 text-[11px] font-black text-white hover:bg-red-600"
+                      title="حذف الصفحة"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onAddPage}
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+        >
+          + صفحة محتوى
+        </button>
+      </div>
+    </>
+  );
+
+  const preview = (
+    <div className="report-design-logo-control-style">
+      {renderMode === "stack" ? (
+        <div className="space-y-6">
+          {pages.map((page: any, index: number) => (
+            <div key={page.id} data-report-design-page-index={index}>
+              <A4DesignPage
+                designId={selectedDesign}
+                page={page}
+                context={context}
+                previewCase={previewCase}
+                pageLabel={page?.title || "صفحة"}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <A4DesignPage
+          designId={selectedDesign}
+          page={activePage}
+          context={context}
+          previewCase={previewCase}
+          pageLabel={activePage?.title || "صفحة"}
+        />
+      )}
+
+      {!suppressAutoEvidencePages ? (
+        <AutoEvidencePages
+          designId={selectedDesign}
+          activePage={activePage}
+          context={context}
+          previewCase={previewCase}
+        />
+      ) : null}
+    </div>
+  );
+
+  if (chromeLayout === "split") {
+    return (
+      <div className="space-y-4">
+        {logoStyle}
+        {headerStyle}
+        {signatureStyle}
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          {controls}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          {preview}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      {logoStyle}
+      {headerStyle}
+      {signatureStyle}
+
+      <div className="report-design-logo-control-style">
+        <div className="mb-5">{controls}</div>
+        {preview}
+      </div>
+    </section>
+  );
+}
+export function FinalReportDesignRenderer({
+  template,
+  previewCaseData,
+  editorialBlocks = {},
+  identity = {},
+}: {
+  template: any;
+  previewCaseData: PreviewCaseData | null;
+  editorialBlocks?: Record<string, string>;
+  identity?: Record<string, any>;
+}) {
+  const selectedDesign = normalizeDesignId(
+    template?.designTemplateId || template?.designTheme || "ministry-form",
+  );
+
+  const normalizedTemplate = normalizeFinalReportTemplate(
+    template,
+    editorialBlocks,
+    previewCaseData,
+  );
+
+  const context = buildFinalReportContext(previewCaseData, identity);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
+  const signatureStyleText = getReportDesignSignatureStyleText();
+
+  const pages = normalizedTemplate.pages?.length
+    ? normalizedTemplate.pages
+    : [
+        {
+          id: "final-preview-fallback",
+          title: normalizedTemplate.name || "التقارير",
+          kind: "content",
+          blocks: [
+            {
+              id: "fallback-title",
+              kind: "hero-title",
+              title: "عنوان التقارير",
+              content: "{{case.title}}",
+              variant: "hero",
+              align: "center",
+              showTitle: false,
+              placement: "flow",
+            },
+            {
+              id: "fallback-fields",
+              kind: "dynamic-fields",
+              title: "بيانات الحالة",
+              content: "",
+              variant: "card",
+              align: "right",
+              showTitle: true,
+              placement: "flow",
+            },
+          ],
+        },
+      ];
+
+  return (
+    <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
+      {headerStyleText ? <style>{headerStyleText}</style> : null}
+      <style>{signatureStyleText}</style>
+      {pages.map((page: any) => (
+        <div key={page.id} className="break-after-page print:break-after-page">
+          <A4DesignPage
+            designId={selectedDesign}
+            page={page}
+            context={context}
+            previewCase={previewCaseData}
+            pageLabel={page.title || normalizedTemplate.name || "التقارير"}
+          />
+
+          <AutoEvidencePages
+            designId={selectedDesign}
+            activePage={page}
+            context={context}
+            previewCase={previewCaseData}
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+import { buildFinalReportContext, normalizeFinalReportTemplate } from "./final-report";
+
+import { getDesignLogoFilter, getDesignLogoFit, getDesignLogoNumber } from "./report-logo";
+
+import { A4DesignPage } from "./report-blocks";
+import { AutoEvidencePages } from "./report-auto-evidence";
+
+export function normalizeDesignId(value: string): ReportDesignId {
+  return isReportDesignId(value) ? value : "ministry-form";
+}
+function getDesignName(designId: ReportDesignId) {
+  return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\final-report.ts
+======================================================================
+
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
+import { getValidPreviewEvidences } from "./report-evidence-data";
+import type { FinalReportValueItem, PreviewCaseData } from "./report-types";
+
+function findSavedEvidenceGalleryBlock(template: any) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+
+  for (const page of pages) {
+    const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+    const block = blocks.find((item: any) => item?.kind === "evidence-gallery");
+
+    if (block) {
+      return block;
+    }
+  }
+
+  return null;
+}
+export function normalizeFinalReportTemplate(
+  template: any,
+  editorialBlocks: Record<string, string>,
+  previewCaseData: PreviewCaseData | null,
+) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+  const savedEvidenceBlock = findSavedEvidenceGalleryBlock(template);
+  const hasEvidence = getValidPreviewEvidences(previewCaseData).length > 0;
+
+  return {
+    ...template,
+    pages: pages.flatMap((page: any, pageIndex: number) => {
+      if (!hasEvidence && page?.kind === "evidence") {
+        return [];
+      }
+
+      const pageBlocks = Array.isArray(page?.blocks) ? page.blocks : [];
+
+      const normalizedBlocks = pageBlocks
+        .map((block: any, blockIndex: number) =>
+          normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
+        )
+        .filter((block: any) => hasEvidence || block.kind !== "evidence-gallery");
+
+      const shouldAddEvidenceBlock =
+        hasEvidence &&
+        page?.kind === "evidence" &&
+        !savedEvidenceBlock &&
+        !normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
+
+      return [{
+        ...page,
+        id: page?.id || "final-page-" + (pageIndex + 1),
+        title: page?.title || "صفحة " + (pageIndex + 1),
+        kind: page?.kind || "content",
+        blocks: shouldAddEvidenceBlock
+          ? [
+              ...normalizedBlocks,
+              {
+                id: "auto-evidence-gallery-" + (pageIndex + 1),
+                kind: "evidence-gallery",
+                title: "الشواهد والمرفقات",
+                content: "",
+                variant: "card",
+                align: "right",
+                showTitle: true,
+                placement: "flow",
+                evidenceLayout: "GRID_2X2",
+                evidenceFit: "contain",
+                evidenceAspectRatio: "LANDSCAPE_4_3",
+                evidenceShowCaptions: true,
+                evidenceAutoCreatePages: true,
+                evidenceEmptyBehavior: "message",
+              },
+            ]
+          : normalizedBlocks,
+      }];
+    }),
+  };
+}
+
+function normalizeFinalReportBlock(
+  template: any,
+  block: any,
+  index: number,
+  editorialBlocks: Record<string, string>,
+) {
+  const settings = block?.settings || {};
+  const textLibrary = settings.textLibrary || {};
+
+  const rawKind =
+    settings.smartBlockKind ||
+    block?.smartBlockKind ||
+    block?.kind ||
+    "paragraph";
+
+  const blockId = block?.id || "final-block-" + (index + 1);
+
+  const editedContent = getFinalEditedBlockContent(
+    block,
+    blockId,
+    editorialBlocks,
+  );
+
+  const normalizedKind = normalizeFinalBlockKind(rawKind);
+
+  const resolvedContent =
+    editedContent ||
+    resolveFinalBlockContent({
+      template,
+      block,
+      settings,
+      textLibrary,
+      rawKind,
+    });
+
+  return {
+    ...block,
+    id: blockId,
+    originalKind: rawKind,
+    kind: normalizedKind,
+    finalFieldGroup: settings.fieldGroup || rawKind,
+    title:
+      block?.customTitle ||
+      block?.title ||
+      settings.title ||
+      getDefaultFinalBlockTitle(rawKind),
+    content: resolvedContent,
+    variant: block?.variant || settings.style || "card",
+    align: block?.align || settings.align || "right",
+    showTitle:
+      typeof block?.showTitle === "boolean"
+        ? block.showTitle
+        : settings.showTitle !== false,
+    showMeta:
+      typeof block?.showMeta === "boolean"
+        ? block.showMeta
+        : settings.showMeta !== false,
+    placement: block?.placement || settings.placement || "flow",
+    snippetId:
+      block?.snippetId ||
+      settings.snippetId ||
+      textLibrary.snippetId ||
+      null,
+
+    fieldKeys:
+      block?.fieldKeys ||
+      settings.fieldKeys ||
+      settings.selectedFieldKeys ||
+      settings.workflowFieldKeys ||
+      [],
+
+    evidenceLayout:
+      block?.evidenceLayout || settings.evidenceLayout || "GRID_2X2",
+    evidenceFit: block?.evidenceFit || settings.evidenceFit || "contain",
+    evidenceAspectRatio:
+      block?.evidenceAspectRatio ||
+      settings.evidenceAspectRatio ||
+      "LANDSCAPE_4_3",
+    evidenceShowCaptions:
+      typeof block?.evidenceShowCaptions === "boolean"
+        ? block.evidenceShowCaptions
+        : settings.evidenceShowCaptions !== false,
+    evidenceAutoCreatePages:
+      typeof block?.evidenceAutoCreatePages === "boolean"
+        ? block.evidenceAutoCreatePages
+        : settings.evidenceAutoCreatePages !== false,
+    evidenceEmptyBehavior:
+      block?.evidenceEmptyBehavior ||
+      settings.evidenceEmptyBehavior ||
+      "message",
+  };
+}
+
+export function buildFinalReportContext(
+  previewCaseData: PreviewCaseData | null,
+  identity: Record<string, any>,
+) {
+  const data = (previewCaseData || {}) as any;
+  const student = data.student || data.caseEntry?.student || {};
+  const service = data.service || data.caseEntry?.service || {};
+
+  const caseTitle =
+    data.title ||
+    data.caseEntry?.title ||
+    data.values?.reportTitle ||
+    data.values?.caseTitle ||
+    "تقرير رسمي";
+
+  const serviceName =
+    data.serviceName ||
+    service.name ||
+    data.caseEntry?.service?.name ||
+    "";
+
+  const studentName =
+    student.name ||
+    student.fullName ||
+    data.studentName ||
+    "";
+  const validEvidenceCount = getValidPreviewEvidences(data).length;
+
+  const context: Record<string, string> = {
+    "case.id": data.caseId || data.id || data.caseEntry?.id || "",
+    "case.title": caseTitle,
+    "case.status": data.status || data.caseEntry?.status || "",
+    "case.createdAt": formatFinalDate(data.createdAt || data.caseEntry?.createdAt),
+    "case.updatedAt": formatFinalDate(data.updatedAt),
+
+    caseId: data.caseId || data.id || data.caseEntry?.id || "",
+    caseTitle,
+    reportTitle: caseTitle,
+
+    "service.name": serviceName,
+    "service.slug": data.serviceSlug || service.slug || data.caseEntry?.service?.slug || "",
+    serviceName,
+    serviceSlug: data.serviceSlug || service.slug || "",
+
+    "student.name": studentName,
+    "student.grade": student.grade || data.studentGrade || "",
+    "student.classroom": student.classroom || data.studentClassroom || "",
+    "student.stage": student.stage || "",
+    "student.guardianName": student.guardianName || data.guardianName || "",
+    "student.guardianPhone": student.guardianPhone || data.guardianPhone || "",
+
+    studentName,
+    studentGrade: student.grade || "",
+    studentClassroom: student.classroom || "",
+    studentStage: student.stage || "",
+    guardianName: student.guardianName || "",
+    guardianPhone: student.guardianPhone || "",
+
+    "identity.schoolName": identity.schoolName || identity.school?.name || "",
+    "identity.ministryName": identity.ministryName || "وزارة التعليم",
+    "identity.counselorName": identity.counselorName || identity.counselor?.name || "",
+    "identity.principalName":
+      identity.principalName ||
+      identity.schoolLeaderName ||
+      identity.school?.principalName ||
+      "",
+    "identity.educationDepartment": identity.educationDepartment || "",
+    "identity.educationOffice": identity.educationOffice || "",
+    "identity.academicYear": identity.academicYear || "",
+    "identity.semester": identity.semester || "",
+
+    schoolName: identity.schoolName || identity.school?.name || "",
+    ministryName: identity.ministryName || "وزارة التعليم",
+    counselorName: identity.counselorName || identity.counselor?.name || "",
+    principalName:
+      identity.principalName ||
+      identity.schoolLeaderName ||
+      identity.school?.principalName ||
+      "",
+
+    "evidence.count": String(validEvidenceCount),
+    evidenceCount: String(validEvidenceCount),
+    evidenceCountText: formatFinalEvidenceCount(validEvidenceCount),
+  };
+
+  for (const value of collectFinalValues(data)) {
+    const key = value.fieldKey || "";
+    const label = value.fieldLabel || "";
+    const itemValue = value.value || "";
+
+    if (key) {
+      context["field." + key] = itemValue;
+      context[key] = itemValue;
+    }
+
+    if (label) {
+      context["field." + label] = itemValue;
+      context[label] = itemValue;
+    }
+  }
+
+  if (!context.programTitle) {
+    context.programTitle =
+      context.program_name ||
+      context["field.program_name"] ||
+      context["عنوان البرنامج"] ||
+      caseTitle;
+  }
+
+  if (!context.executionDate) {
+    context.executionDate =
+      context.gregorian_date ||
+      context.execution_date ||
+      context["تاريخ التنفيذ"] ||
+      context["case.createdAt"];
+  }
+
+  if (!context.dayText) {
+    context.dayText = context.day || context["اليوم"] || "";
+  }
+
+  if (!context.targetGroup) {
+    context.targetGroup =
+      context.beneficiaries ||
+      context.target_group ||
+      context["الفئة المستهدفة"] ||
+      context["student.grade"] ||
+      "";
+  }
+
+  if (!context.executionAction) {
+    context.executionAction =
+      context.execution_action ||
+      context["الإجراء التنفيذي"] ||
+      "";
+  }
+
+  if (!context.executionMechanism) {
+    context.executionMechanism =
+      context.execution_mechanism ||
+      context["آلية التنفيذ"] ||
+      "";
+  }
+
+  if (!context.performanceIndicator) {
+    context.performanceIndicator =
+      context.performance_indicator ||
+      context["مؤشر الأداء"] ||
+      "";
+  }
+
+  if (!context.evidenceSuggestion) {
+    context.evidenceSuggestion =
+      context.evidence_suggestion ||
+      context["الشاهد المقترح"] ||
+      context["الشواهد"] ||
+      "";
+  }
+
+  return context;
+}
+
+
+function normalizeFinalBlockKind(kind: string) {
+  if (kind === "cover-title") return "hero-title";
+  if (kind === "paragraph") return "multi-paragraph";
+  if (kind === "custom-paragraph") return "multi-paragraph";
+  if (kind === "text-library") return "multi-paragraph";
+  if (kind === "case-meta") return "field-list";
+  if (kind === "student-summary") return "field-list";
+  if (kind === "service-summary") return "field-list";
+  if (kind === "field-list") return "field-list";
+  if (kind === "approval-signature") return "closing-note";
+  if (kind === "identity-header") return "section-text";
+
+  return kind;
+}
+
+function getDefaultFinalBlockTitle(kind: string) {
+  if (kind === "cover-title") return "عنوان التقارير";
+  if (kind === "case-meta") return "بيانات الحالة";
+  if (kind === "student-summary") return "بيانات الطالب/الطالبة";
+  if (kind === "service-summary") return "بيانات الخدمة";
+  if (kind === "field-list") return "حقول من الحالة";
+  if (kind === "text-library") return "نص من مكتبة النصوص";
+  if (kind === "custom-paragraph") return "فقرة مخصصة";
+  if (kind === "evidence-gallery") return "الشواهد والمرفقات";
+  if (kind === "approval-signature") return "الاعتماد";
+
+  return "بلوك التقارير";
+}
+
+
+function getFinalEditedBlockContent(
+  block: any,
+  blockId: string,
+  editorialBlocks: Record<string, string>,
+) {
+  const candidateKeys = [
+    blockId,
+    block?.id ? String(block.id) : "",
+  ].filter(Boolean);
+
+  for (const key of candidateKeys) {
+    const value = editorialBlocks[key];
+
+    if (!value || !String(value).trim()) {
+      continue;
+    }
+
+    if (isFinalLegacyRenderedReportDump(value)) {
+      continue;
+    }
+
+    return value;
+  }
+
+  return "";
+}
+
+function isFinalLegacyRenderedReportDump(value: string) {
+  const text = String(value || "");
+
+  if (!text.trim()) {
+    return false;
+  }
+
+  const hasReplacementChars = /�/.test(text);
+  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
+  const hasReportDumpLabels =
+    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
+      text,
+    );
+
+  const hasOldArabicDump =
+    text.includes("ملخص التقارير") ||
+    text.includes("بيانات الحالة") ||
+    text.includes("القيم المسجلة") ||
+    text.includes("الشواهد:") ||
+    text.includes("تقرير:");
+
+  const tooLongForBlock = text.length > 1800;
+
+  return (
+    hasReplacementChars ||
+    hasMojibakeMarks ||
+    hasReportDumpLabels ||
+    (hasOldArabicDump && tooLongForBlock)
+  );
+}
+
+
+function resolveFinalBlockContent({
+  template,
+  block,
+  settings,
+  textLibrary,
+  rawKind,
+}: {
+  template: any;
+  block: any;
+  settings: any;
+  textLibrary: any;
+  rawKind: string;
+}) {
+  if (rawKind === "cover-title") {
+    return block?.content || settings?.content || "{{case.title}}";
+  }
+
+  if (rawKind === "custom-paragraph") {
+    return block?.customContent || block?.content || settings?.content || "";
+  }
+
+  if (rawKind === "paragraph") {
+    return block?.content || settings?.content || "";
+  }
+
+  if (rawKind === "text-library") {
+    return resolveFinalTextLibraryContent(template, block, settings, textLibrary);
+  }
+
+  const candidateContent =
+    block?.content ||
+    settings?.content ||
+    block?.customContent ||
+    block?.defaultContent ||
+    "";
+
+  return isFinalLegacyRenderedReportDump(candidateContent)
+    ? ""
+    : candidateContent;
+}
+
+function resolveFinalTextLibraryContent(
+  template: any,
+  block: any,
+  settings: any,
+  textLibrary: any,
+) {
+  const snippets = collectFinalTextSnippets(template);
+  const snippetId =
+    textLibrary?.snippetId ||
+    settings?.snippetId ||
+    block?.snippetId ||
+    "";
+
+  if (snippetId) {
+    const selected = snippets.find((snippet: any) => snippet.id === snippetId);
+
+    if (selected) {
+      return selected.content || selected.text || selected.body || "";
+    }
+  }
+
+  const category =
+    textLibrary?.category ||
+    settings?.category ||
+    block?.category ||
+    "مقدمة";
+
+  const serviceSlug =
+    textLibrary?.serviceSlug ||
+    settings?.serviceSlug ||
+    template?.serviceSlug ||
+    "";
+
+  const matching = snippets.find((snippet: any) => {
+    const matchesCategory =
+      !category ||
+      category === "all" ||
+      snippet.category === category;
+
+    const matchesService =
+      !serviceSlug ||
+      !snippet.serviceSlug ||
+      snippet.serviceSlug === serviceSlug;
+
+    return matchesCategory && matchesService;
+  });
+
+  if (matching) {
+    return matching.content || matching.text || matching.body || "";
+  }
+
+  return getFinalTextLibraryFallback(category);
+}
+
+function collectFinalTextSnippets(template: any) {
+  const candidates = [
+    template?.snippets,
+    template?.textSnippets,
+    template?.textLibrary,
+    template?.library?.snippets,
+    template?.settings?.snippets,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function getFinalTextLibraryFallback(category: string) {
+  if (category === "هدف") {
+    return "يهدف هذا التقارير إلى توثيق {{service.name}} للحالة {{case.title}}، وبيان أبرز البيانات والإجراءات المرتبطة بها.";
+  }
+
+  if (category === "إجراء") {
+    return "تم تنفيذ الإجراءات المرتبطة بالحالة وفق البيانات المدخلة في النظام، مع توثيق ما يلزم من شواهد ومرفقات.";
+  }
+
+  if (category === "نتيجة") {
+    return "تشير البيانات المدخلة إلى أن الحالة تم التعامل معها ضمن خدمة {{service.name}}، مع حفظ النتائج والتوصيات داخل التقارير.";
+  }
+
+  if (category === "توصية") {
+    return "يوصى بمتابعة الحالة حسب الحاجة، وتحديث السجل عند وجود مستجدات، وربط الشواهد الداعمة بالتقارير.";
+  }
+
+  if (category === "خاتمة") {
+    return "تم إعداد هذا التقارير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
+  }
+
+  return "تم إعداد هذا التقارير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
+}
+
+export function collectFinalValues(data: any): FinalReportValueItem[] {
+  if (Array.isArray(data?.values)) {
+    return data.values.map((item: any) => ({
+      fieldKey: item.fieldKey || item.key || "",
+      fieldLabel: item.fieldLabel || item.label || item.fieldKey || "",
+      value:
+        item.value === undefined || item.value === null
+          ? ""
+          : String(item.value),
+      valueItems: Array.isArray(item.valueItems)
+        ? item.valueItems.map((valueItem: unknown) => String(valueItem || "").trim()).filter(Boolean)
+        : undefined,
+    }));
+  }
+
+  if (data?.values && typeof data.values === "object") {
+    return Object.entries(data.values).map(([key, value]) => ({
+      fieldKey: key,
+      fieldLabel: key,
+      value:
+        value === undefined || value === null
+          ? ""
+          : String(value),
+    }));
+  }
+
+  return [];
+}
+
+export function resolveContextVariable(key: string, context: Record<string, string>) {
+  const aliases: Record<string, string[]> = {
+    reportTitle: ["reportTitle", "case.title", "caseTitle"],
+    caseTitle: ["case.title", "caseTitle", "reportTitle"],
+    serviceName: ["service.name", "serviceName"],
+    studentName: ["student.name", "studentName"],
+    studentGrade: ["student.grade", "studentGrade"],
+    studentClassroom: ["student.classroom", "studentClassroom"],
+    guardianName: ["student.guardianName", "guardianName"],
+    guardianPhone: ["student.guardianPhone", "guardianPhone"],
+    schoolName: ["identity.schoolName", "schoolName"],
+    counselorName: ["identity.counselorName", "counselorName"],
+    principalName: ["identity.principalName", "principalName"],
+  };
+
+  const lookupKeys = [
+    key,
+    ...(aliases[key] || []),
+    key.startsWith("field.") ? key : "field." + key,
+  ];
+
+  for (const lookupKey of lookupKeys) {
+    const value = context[lookupKey];
+
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+export function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | null) {
+  const data = (previewCaseData || {}) as any;
+  const values = collectFinalValues(data);
+  const group = block.finalFieldGroup || block.originalKind || "";
+  const selectedKeys = Array.isArray(block.fieldKeys) ? block.fieldKeys : [];
+
+  if (group === "case-meta") {
+    return [
+      {
+        key: "service",
+        label: "الخدمة",
+        value: data.serviceName || data.service?.name || data.caseEntry?.service?.name || "",
+      },
+      {
+        key: "case-title",
+        label: "الحالة",
+        value: data.title || data.caseEntry?.title || "",
+      },
+      {
+        key: "status",
+        label: "الحالة الحالية",
+        value: data.status || data.caseEntry?.status || "",
+      },
+      {
+        key: "created-at",
+        label: "تاريخ الإنشاء",
+        value: formatFinalDate(data.createdAt || data.caseEntry?.createdAt),
+      },
+    ];
+  }
+
+  if (group === "student-summary") {
+    const student = data.student || data.caseEntry?.student || {};
+
+    return [
+      {
+        key: "student-name",
+        label: "الطالب/الطالبة",
+        value: student.name || student.fullName || "",
+      },
+      {
+        key: "grade",
+        label: "الصف",
+        value: student.grade || "",
+      },
+      {
+        key: "classroom",
+        label: "الفصل",
+        value: student.classroom || "",
+      },
+      {
+        key: "guardian",
+        label: "ولي الأمر",
+        value: student.guardianName || "",
+      },
+    ];
+  }
+
+  if (selectedKeys.length) {
+    return values
+      .filter((item: FinalReportValueItem) =>
+        selectedKeys.some(
+          (key: string) =>
+            key === item.fieldKey ||
+            key === item.fieldLabel ||
+            "field." + key === item.fieldKey,
+        ),
+      )
+      .map((item: FinalReportValueItem) => ({
+        key: item.fieldKey,
+        label: item.fieldLabel || item.fieldKey,
+        value: item.value,
+        ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+          ? { valueItems: item.valueItems }
+          : {}),
+      }));
+  }
+
+  return values.slice(0, 10).map((item: FinalReportValueItem) => ({
+    key: item.fieldKey,
+    label: item.fieldLabel || item.fieldKey,
+    value: item.value,
+    ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+      ? { valueItems: item.valueItems }
+      : {}),
+  }));
+}
+
+function formatFinalEvidenceCount(count: number) {
+  if (count <= 0) return "0 شاهد";
+  if (count === 1) return "شاهد واحد";
+  if (count === 2) return "شاهدان";
+  if (count >= 3 && count <= 10) return count + " شواهد";
+
+  return count + " شاهد";
+}
+
+
+function formatFinalDate(value?: string | null) {
+  if (!value) {
+    return new Date().toLocaleDateString("ar-SA");
+  }
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return String(value);
+  }
+}
+
+
+
+
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\report-design-implementations.ts
+======================================================================
+
+import type { ReportDesignId } from "./report-design-types";
+import type { ReportDesignImplementation } from "./designs/report-design-component-types";
+import { MinistryFormReportDesign } from "./designs/ministry-form";
+import { palette as ministryFormPalette } from "./designs/ministry-form/presentation";
+import { ModernOfficialReportDesign } from "./designs/modern-official";
+import { palette as modernOfficialPalette } from "./designs/modern-official/presentation";
+import { EvidenceShowcaseReportDesign } from "./designs/evidence-showcase";
+import { palette as evidenceShowcasePalette } from "./designs/evidence-showcase/presentation";
+import { FormalMemoReportDesign } from "./designs/formal-memo";
+import { palette as formalMemoPalette } from "./designs/formal-memo/presentation";
+import { CounselingCaseFileReportDesign } from "./designs/counseling-case-file";
+import { palette as counselingCaseFilePalette } from "./designs/counseling-case-file/presentation";
+import { BehaviorFollowupReportDesign } from "./designs/behavior-followup";
+import { palette as behaviorFollowupPalette } from "./designs/behavior-followup/presentation";
+import { ProgramImpactReportDesign } from "./designs/program-impact";
+import { palette as programImpactPalette } from "./designs/program-impact/presentation";
+import { GirlsRoseOfficialReportDesign } from "./designs/girls-rose-official";
+import { palette as girlsRoseOfficialPalette } from "./designs/girls-rose-official/presentation";
+import { GirlsLilacElegantReportDesign } from "./designs/girls-lilac-elegant";
+import { palette as girlsLilacElegantPalette } from "./designs/girls-lilac-elegant/presentation";
+import { GirlsPearlCalmReportDesign } from "./designs/girls-pearl-calm";
+import { palette as girlsPearlCalmPalette } from "./designs/girls-pearl-calm/presentation";
+import { ReportOfficialArchiveDesign } from "./designs/report-official-archive";
+import { palette as reportOfficialArchivePalette } from "./designs/report-official-archive/presentation";
+import { ReportOfficialArchiveValueGrid } from "./designs/report-official-archive/values";
+import { ReportPlayfulCardsDesign } from "./designs/report-playful-cards";
+import { palette as reportPlayfulCardsPalette } from "./designs/report-playful-cards/presentation";
+import { ReportPlayfulCardsValueGrid } from "./designs/report-playful-cards/values";
+import { ReportCalmReaderDesign } from "./designs/report-calm-reader";
+import { palette as reportCalmReaderPalette } from "./designs/report-calm-reader/presentation";
+import { ReportCalmReaderValueGrid } from "./designs/report-calm-reader/values";
+import { MinistryElegantReportDesign } from "./designs/ministry-elegant";
+import { palette as ministryElegantPalette } from "./designs/ministry-elegant/presentation";
+import { MoeOfficial2024ReportDesign } from "./designs/moe-official-2024";
+import { palette as moeOfficial2024Palette } from "./designs/moe-official-2024/presentation";
+import { getMoeOfficial2024BlockPresentation } from "./designs/moe-official-2024/block-presentation";
+import { renderMoeOfficial2024BulletList, renderMoeOfficial2024Narrative } from "./designs/moe-official-2024/blocks";
+import { MoeOfficial2024EvidenceRenderer } from "./designs/moe-official-2024/evidence";
+import { MoeOfficial2024ReportValueGrid } from "./designs/moe-official-2024/values";
+import { MoeClassicFrameReportDesign } from "./designs/moe-classic-frame";
+import { palette as moeClassicFramePalette } from "./designs/moe-classic-frame/presentation";
+import { MoeClassicFrameValueGrid } from "./designs/moe-classic-frame/values";
+import { EditorialAtlasReportDesign } from "./designs/editorial-atlas";
+import { palette as editorialAtlasPalette } from "./designs/editorial-atlas/presentation";
+import { GeometricHorizonReportDesign } from "./designs/geometric-horizon";
+import { palette as geometricHorizonPalette } from "./designs/geometric-horizon/presentation";
+
+export const reportDesignImplementations = {
+  "ministry-form": { Page: MinistryFormReportDesign, palette: ministryFormPalette, defaultLogoWidthPx: 132, defaultLogoHeightPx: 80 },
+  "modern-official": { Page: ModernOfficialReportDesign, palette: modernOfficialPalette },
+  "evidence-showcase": { Page: EvidenceShowcaseReportDesign, palette: evidenceShowcasePalette },
+  "formal-memo": { Page: FormalMemoReportDesign, palette: formalMemoPalette },
+  "counseling-case-file": { Page: CounselingCaseFileReportDesign, palette: counselingCaseFilePalette },
+  "behavior-followup": { Page: BehaviorFollowupReportDesign, palette: behaviorFollowupPalette },
+  "program-impact": { Page: ProgramImpactReportDesign, palette: programImpactPalette },
+  "girls-rose-official": { Page: GirlsRoseOfficialReportDesign, palette: girlsRoseOfficialPalette },
+  "girls-lilac-elegant": { Page: GirlsLilacElegantReportDesign, palette: girlsLilacElegantPalette },
+  "girls-pearl-calm": { Page: GirlsPearlCalmReportDesign, palette: girlsPearlCalmPalette },
+  "report-official-archive": { Page: ReportOfficialArchiveDesign, palette: reportOfficialArchivePalette, ValueGrid: ReportOfficialArchiveValueGrid },
+  "report-playful-cards": { Page: ReportPlayfulCardsDesign, palette: reportPlayfulCardsPalette, ValueGrid: ReportPlayfulCardsValueGrid },
+  "report-calm-reader": { Page: ReportCalmReaderDesign, palette: reportCalmReaderPalette, ValueGrid: ReportCalmReaderValueGrid },
+  "ministry-elegant": { Page: MinistryElegantReportDesign, palette: ministryElegantPalette },
+  "moe-official-2024": {
+    Page: MoeOfficial2024ReportDesign,
+    palette: moeOfficial2024Palette,
+    getBlockPresentation: getMoeOfficial2024BlockPresentation,
+    renderBulletList: renderMoeOfficial2024BulletList,
+    renderNarrative: renderMoeOfficial2024Narrative,
+    ValueGrid: MoeOfficial2024ReportValueGrid,
+    EvidenceRenderer: MoeOfficial2024EvidenceRenderer,
+  },
+  "moe-classic-frame": {
+    Page: MoeClassicFrameReportDesign,
+    palette: moeClassicFramePalette,
+    ValueGrid: MoeClassicFrameValueGrid,
+    defaultLogoWidthPx: 132,
+    defaultLogoHeightPx: 80,
+  },
+  "editorial-atlas": { Page: EditorialAtlasReportDesign, palette: editorialAtlasPalette },
+  "geometric-horizon": { Page: GeometricHorizonReportDesign, palette: geometricHorizonPalette },
+} satisfies Record<ReportDesignId, ReportDesignImplementation>;
+
+export function getReportDesignImplementation(designId: ReportDesignId): ReportDesignImplementation {
+  return reportDesignImplementations[designId];
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\report-design-types.ts
+======================================================================
+
+export type ReportDesignId =
+  | "ministry-form"
+  | "modern-official"
+  | "evidence-showcase"
+  | "formal-memo"
+  | "counseling-case-file"
+  | "behavior-followup"
+  | "program-impact"
+  | "girls-rose-official"
+  | "girls-lilac-elegant"
+  | "girls-pearl-calm"
+  | "report-official-archive"
+  | "report-playful-cards"
+  | "report-calm-reader"
+  | "ministry-elegant"
+  | "moe-official-2024"
+  | "editorial-atlas"
+  | "geometric-horizon"
+  | "moe-classic-frame";
+
+export type ReportDesignDefinition = {
+  id: ReportDesignId;
+  name: string;
+  description: string;
+  badge: string;
+  cardClass: string;
+  activeCardClass: string;
+};
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\report-design-component-types.ts
+======================================================================
+
+import type { ComponentType, CSSProperties, ReactNode } from "react";
+
+import type { ReportBlockPresentation } from "./report-block-presentation";
+
+export type ReportDesignPalette = {
+  subtleTextClass: string;
+  dotClass: string;
+  iconClass: string;
+  badgeClass: string;
+  noticeClass: string;
+  cardShellClass: string;
+  softShellClass: string;
+  highlightShellClass: string;
+  outlineShellClass: string;
+  quoteShellClass: string;
+  heroShellClass: string;
+  detailsGridClassName?: string;
+};
+
+export type ReportDesignBlockPresentation = {
+  shellClassName: string;
+  titleClassName?: string;
+  contentClassName?: string;
+};
+
+export type ReportValueItem = {
+  key?: string;
+  label: string;
+  value?: string | string[] | null;
+  valueItems?: string[];
+};
+
+export type ReportValueGridProps = {
+  items: ReportValueItem[];
+  block?: Record<string, unknown>;
+};
+
+export type ReportFieldRendererProps = {
+  item: ReportValueItem;
+  index: number;
+  block?: Record<string, unknown>;
+};
+
+export type ReportEvidenceItem = {
+  id?: string;
+  title?: string;
+  caption?: string;
+  imageUrl?: string;
+  url?: string;
+  fileUrl?: string;
+  publicUrl?: string;
+  storagePath?: string;
+  [key: string]: unknown;
+};
+
+export type ReportEvidenceRendererProps = {
+  block: Record<string, any>;
+  items: ReportEvidenceItem[];
+  startIndex: number;
+  placeholderMode: boolean;
+  textAlign: string;
+  shellClassName: string;
+  gridClassName: string;
+  gridStyle: CSSProperties;
+  getImageUrl: (item: ReportEvidenceItem) => string;
+  getFigureStyle: () => CSSProperties;
+  getImageStyle: () => CSSProperties;
+  getImageClassName: () => string;
+  getImageHeightClassName: () => string;
+  renderTitle: () => ReactNode;
+};
+
+export type ReportSemanticBlockRenderProps = {
+  block: Record<string, any>;
+  renderedContent: string;
+  textAlign: string;
+  context: Record<string, string>;
+  splitLines: (value: string) => string[];
+  splitParagraphs: (value: string) => string[];
+};
+
+export type ReportSignatureItem = {
+  key: string;
+  label: string;
+  signerName?: string;
+  signerTitle?: string;
+  imageUrl?: string;
+};
+
+export type ReportSignatureRendererProps = {
+  block: Record<string, any>;
+  items: ReportSignatureItem[];
+  renderTitle: () => ReactNode;
+};
+
+export type ReportTableTheme = {
+  sectionClassName?: string;
+  tableClassName?: string;
+  headerClassName?: string;
+  cellClassName?: string;
+};
+
+export type ReportDesignPageComponentProps = {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: any;
+  pageLabel: string;
+  PageBlocks: ComponentType<any>;
+  MetaCard: ComponentType<any>;
+  SideMeta: ComponentType<{ label: string; value: string }>;
+  MiniStat: ComponentType<{ label: string; value: string }>;
+  DesignFooter: ComponentType<{ text: string; barClass: string }>;
+  getDesignLogoSrc: (context: Record<string, string>) => string;
+  getDesignHeaderAlign: (
+    context: Record<string, string>,
+    key: string,
+    fallback?: "right" | "center" | "left",
+  ) => "right" | "center" | "left";
+  getDesignHeaderText: (
+    context: Record<string, string>,
+    key: string,
+    fallback: string,
+  ) => string;
+  collectFinalValues: (data: any) => any[];
+  getValidPreviewEvidences: (previewCase: any) => any[];
+};
+
+export type ReportDesignImplementation = {
+  Page: ComponentType<ReportDesignPageComponentProps>;
+  palette: ReportDesignPalette;
+  defaultLogoWidthPx?: number;
+  defaultLogoHeightPx?: number;
+  getBlockPresentation?: (
+    presentation: ReportBlockPresentation,
+  ) => ReportDesignBlockPresentation;
+  renderBulletList?: (props: ReportSemanticBlockRenderProps) => ReactNode;
+  renderNarrative?: (props: ReportSemanticBlockRenderProps) => ReactNode;
+  ValueGrid?: ComponentType<ReportValueGridProps>;
+  FieldRenderer?: ComponentType<ReportFieldRendererProps>;
+  EvidenceRenderer?: ComponentType<ReportEvidenceRendererProps>;
+  SignatureRenderer?: ComponentType<ReportSignatureRendererProps>;
+  getTableTheme?: (block: Record<string, unknown>) => ReportTableTheme;
+  BlockRenderer?: ComponentType<ReportSemanticBlockRenderProps>;
+};
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\ministry-form\index.tsx
+======================================================================
+
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
+
+export function MinistryFormReportDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+  MetaCard,
+  SideMeta,
+  MiniStat,
+  DesignFooter,
+  getDesignLogoSrc,
+  getDesignHeaderAlign,
+  getDesignHeaderText,
+}: ReportDesignPageComponentProps) {
+  const designId = "ministry-form" as const;
+  const schoolName = String(context["identity.schoolName"] || "").trim();
+
+  return (
+    <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white shadow-xl">
+      <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[56mm]">
+        <header className="report-design-header absolute left-0 right-0 top-0 z-10 rounded-b-[46px] bg-[#1d343f] px-[18mm] py-[13mm] text-white">
+          <div className="grid grid-cols-[1.25fr_0.9fr_1fr] items-center gap-5">
+            <div className="text-right text-sm font-bold leading-7 text-slate-100">
+              <p className="mb-0.5" style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>المملكة العربية السعودية</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>{schoolName ? <p className="mt-1" style={{ textAlign: getDesignHeaderAlign(context, "identity.schoolName", "center") }}>{schoolName}</p> : null}
+            </div>
+            <div className="text-center">
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-[80px] w-[132px] object-contain brightness-0 invert" />
+            </div>
+            <div className="text-left text-sm font-bold leading-7 text-slate-100">
+              <p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>
+            </div>
+          </div>
+        </header>
+
+        <div className="pointer-events-none absolute inset-[8mm] border border-slate-100" />
+        <ReportDesignSmartContent
+          availableHeightMm={205}
+          className="relative z-10"
+          priorityMode="signature"
+        >
+          <PageBlocks
+            page={page}
+            context={context}
+            previewCase={previewCase}
+            designId={designId}
+            className="min-h-full"
+          />
+        </ReportDesignSmartContent>
+        <DesignFooter text="نموذج الوزارة الرسمي" barClass="from-slate-900 to-emerald-300" />
+      </div>
+    </article>
+  );
+}
+
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\ministry-form\presentation.ts
+======================================================================
+
+import type { ReportDesignPalette } from "../report-design-component-types";
+
+export const palette = {
+subtleTextClass: "text-slate-800",
+dotClass: "bg-slate-800",
+iconClass: "bg-slate-100 text-slate-800",
+badgeClass: "bg-slate-100 text-slate-700",
+noticeClass: "bg-slate-100 text-slate-800",
+cardShellClass: "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm",
+softShellClass: "rounded-3xl border border-slate-200 bg-slate-50 p-5",
+highlightShellClass: "rounded-3xl border border-slate-300 bg-gradient-to-l from-slate-100 to-white p-5 shadow-sm",
+outlineShellClass: "rounded-3xl border border-dashed border-slate-400 bg-white p-5",
+quoteShellClass: "rounded-3xl border border-slate-200 bg-slate-50 p-5",
+heroShellClass: "rounded-3xl border border-slate-200 bg-gradient-to-l from-slate-50 to-white p-5",
+detailsGridClassName: "grid grid-cols-3 gap-2 print:grid-cols-3",
+} satisfies ReportDesignPalette;
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\ministry-elegant\index.tsx
+======================================================================
+
+import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+
+export function MinistryElegantReportDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+  getDesignLogoSrc,
+}: ReportDesignPageComponentProps) {
+  const designId = "ministry-elegant" as const;
+
+  const title = context["case.title"] || pageLabel;
+  const schoolName = context["identity.schoolName"] || "المدرسة";
+  const ministryName = context["identity.ministryName"] || "وزارة التعليم";
+  const department =
+    context["identity.educationDepartment"] || "الإدارة العامة للتعليم";
+
+  return (
+    <article
+      className="pdf-report-page mx-auto h-[297mm] min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-[#eef7f6] p-[7mm] shadow-xl"
+      data-report-design="ministry-elegant"
+    >
+      <div className="relative flex h-[283mm] flex-col overflow-hidden border border-[#0f766e]/20 bg-white">
+        <div className="h-[3mm] shrink-0 bg-gradient-to-l from-[#0f2a4d] via-[#0f766e] to-[#22c55e]" />
+
+        <header className="report-design-header relative shrink-0 px-[11mm] pb-[6mm] pt-[7mm]">
+          <div className="grid grid-cols-[36mm_1fr_36mm] items-center gap-4">
+            <div className="text-right text-[10px] font-bold leading-5 text-[#0f2a4d]">
+              <p>{ministryName}</p>
+              <p>{department}</p>
+              <p className="text-[#0f766e]">{schoolName}</p>
+            </div>
+
+            <div className="text-center">
+              <div className="relative mx-auto mb-3 grid h-14 w-14 place-items-center">
+                <span className="absolute inset-1 rotate-45 border-2 border-[#22c55e]/50" />
+                <span className="absolute inset-2 rotate-45 border border-[#0f766e]/30" />
+                <img
+                  src={getDesignLogoSrc(context)}
+                  alt="شعار وزارة التعليم"
+                  className="relative z-10 h-11 w-auto object-contain"
+                />
+              </div>
+
+              <p className="text-[10px] font-black tracking-[0.18em] text-[#0f766e]">
+                منصة التوجيه الطلابي
+              </p>
+
+              <h1 className="mt-2 text-xl font-black leading-[1.55] text-[#0f2a4d]">
+                {title}
+              </h1>
+            </div>
+
+            <div className="text-left text-[10px] font-bold leading-5 text-slate-500">
+              <p>{context["service.name"] || "تقرير إرشادي"}</p>
+              <p>{context["case.createdAt"] || ""}</p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[#0f766e]/20" />
+            <span className="h-2.5 w-2.5 rotate-45 border border-[#22c55e] bg-white" />
+            <span className="h-px flex-1 bg-[#0f766e]/20" />
+          </div>
+        </header>
+
+        <div className="mx-[10mm] flex-1">
+          <ReportDesignSmartContent
+            availableHeightMm={202}
+            priorityMode="signature"
+          >
+            <PageBlocks
+              page={page}
+              context={context}
+              previewCase={previewCase}
+              designId={designId}
+              className="min-h-full"
+            />
+          </ReportDesignSmartContent>
+        </div>
+
+        <footer className="mx-[10mm] mb-[6mm] mt-auto shrink-0 border-t border-[#0f766e]/20 pt-3">
+          <div className="flex items-center justify-between text-[9px] font-bold text-slate-500">
+            <span>{schoolName}</span>
+            <span className="text-[#0f766e]">الوزاري الأنيق</span>
+            <span>{pageLabel}</span>
+          </div>
+        </footer>
+      </div>
+    </article>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\ministry-elegant\presentation.ts
+======================================================================
+
+import type { ReportDesignPalette } from "../report-design-component-types";
+
+export const palette = {
+subtleTextClass: "text-teal-700",
+dotClass: "bg-emerald-500",
+iconClass: "bg-teal-50 text-teal-800",
+badgeClass: "bg-emerald-50 text-teal-800",
+noticeClass: "bg-teal-50 text-teal-800",
+cardShellClass: "rounded-xl border border-teal-100 bg-white p-4",
+softShellClass: "rounded-xl border border-teal-100 bg-[#eef7f6] p-4",
+highlightShellClass: "rounded-xl border-r-4 border-r-emerald-500 border-y border-l border-teal-100 bg-white p-4",
+outlineShellClass: "rounded-xl border border-dashed border-teal-300 bg-white p-4",
+quoteShellClass: "border-r-4 border-teal-700 bg-[#eef7f6] p-4",
+heroShellClass: "rounded-xl border border-teal-100 bg-gradient-to-l from-[#eef7f6] to-white p-5",
+} satisfies ReportDesignPalette;
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\index.tsx
+======================================================================
+
+import type { CSSProperties, ReactNode } from "react";
+
+import { MOE_OFFICIAL_2024_EXACT_CSS } from "./original-portfolio-styles";
+import { MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS } from "./admin-presentation-styles";
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
+
+const MOE_2024 = {
+  navy: "#15445A",
+  green: "#07A869",
+  blue: "#3D7EB9",
+  teal: "#0DA9A6",
+  gold: "#C1B48A",
+  gray: "#C2C1C1",
+  paper: "#FFFFFF",
+  soft: "#F5F7F6",
+  ink: "#18313D",
+  muted: "#63737B",
+  line: "#D9E0E2",
+} as const;
+
+function BrandRule() {
+  return (
+    <div
+      className="moe24-brand-rule"
+      aria-hidden="true"
+    />
+  );
+}
+
+function MoeReportPage({
+  children,
+  sectionLabel,
+}: {
+  children: ReactNode;
+  sectionLabel: string;
+}) {
+  return (
+    <section
+      className="moe24-page moe24-report-page pdf-report-page"
+      data-page-label={sectionLabel}
+      data-report-design="moe-official-2024"
+    >
+      <BrandRule />
+
+      <header className="moe24-page-header">
+        <div className="moe24-header-brand">
+          <span
+            className="moe24-header-dot"
+            aria-hidden="true"
+          />
+          <span>ملف الإنجاز</span>
+        </div>
+
+        <span>{sectionLabel}</span>
+      </header>
+
+      <div className="moe24-page-body">
+        {children}
+      </div>
+
+      <footer className="moe24-page-footer">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{sectionLabel}</span>
+        <span className="moe24-page-number" />
+      </footer>
+    </section>
+  );
+}
+
+export function MoeOfficial2024ReportDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+}: ReportDesignPageComponentProps) {
+  const designId = "moe-official-2024" as const;
+
+  const title =
+    String(context["case.title"] || "").trim() ||
+    pageLabel ||
+    "التقرير";
+
+  const serviceName =
+    String(context["service.name"] || "").trim() ||
+    "التقرير";
+
+  return (
+    <div
+      className="moe24-root"
+      dir="rtl"
+      style={
+        {
+          "--moe24-navy": MOE_2024.navy,
+          "--moe24-green": MOE_2024.green,
+          "--moe24-blue": MOE_2024.blue,
+          "--moe24-teal": MOE_2024.teal,
+          "--moe24-gold": MOE_2024.gold,
+          "--moe24-gray": MOE_2024.gray,
+          "--moe24-paper": MOE_2024.paper,
+          "--moe24-soft": MOE_2024.soft,
+          "--moe24-ink": MOE_2024.ink,
+          "--moe24-muted": MOE_2024.muted,
+          "--moe24-line": MOE_2024.line,
+        } as CSSProperties
+      }
+    >
+      <style>{MOE_OFFICIAL_2024_EXACT_CSS}</style>
+      <style>{MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS}</style>
+
+      <MoeReportPage sectionLabel={serviceName}>
+        <ReportDesignSmartContent
+          availableHeightMm={241}
+          contentClassName="flex min-h-full flex-col"
+          priorityMode="signature"
+        >
+          <header
+            className="moe24-report-title shrink-0"
+            style={{
+              marginBottom: "calc(6mm * var(--report-field-spacing-scale, 1))",
+              paddingBottom: "calc(4.5mm * var(--report-field-spacing-scale, 1))",
+            }}
+          >
+            <span>{serviceName}</span>
+
+            <div
+              className="moe24-report-title-row"
+              style={{
+                gap: "calc(3mm * var(--report-field-spacing-scale, 1))",
+                marginTop: "calc(2mm * var(--report-field-spacing-scale, 1))",
+              }}
+            >
+              <span
+                className="moe24-report-title-accent"
+                aria-hidden="true"
+              />
+
+              <h1
+                style={{
+                  fontSize: "calc(26px * var(--report-heading-scale, 1))",
+                }}
+              >
+                {title}
+              </h1>
+            </div>
+
+            <small>{pageLabel}</small>
+          </header>
+
+          <div
+            className="moe24-report-sections min-h-0 flex-1"
+          >
+            <PageBlocks
+              page={page}
+              context={context}
+              previewCase={previewCase}
+              designId={designId}
+              className="min-h-full"
+            />
+          </div>
+        </ReportDesignSmartContent>
+      </MoeReportPage>
+    </div>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\presentation.ts
+======================================================================
+
+import type { ReportDesignPalette } from "../report-design-component-types";
+
+export const palette = {
+subtleTextClass: "text-[#15445A]",
+dotClass: "bg-[#07A869]",
+iconClass: "bg-[#F5F7F6] text-[#15445A]",
+badgeClass: "bg-emerald-50 text-[#15445A]",
+noticeClass: "bg-[#F5F7F6] text-[#15445A]",
+cardShellClass: "border-y border-slate-100 bg-white px-1 py-4",
+softShellClass: "border border-slate-100 bg-[#F5F7F6] p-4",
+highlightShellClass: "border-r-4 border-r-[#07A869] border-y border-l border-slate-100 bg-white p-4",
+outlineShellClass: "border border-dashed border-[#0DA9A6] bg-white p-4",
+quoteShellClass: "border-r-4 border-[#15445A] bg-[#F5F7F6] p-4",
+heroShellClass: "border-b-2 border-[#15445A] bg-white px-1 py-5",
+} satisfies ReportDesignPalette;
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\blocks.tsx
+======================================================================
+
+import type { ReportSemanticBlockRenderProps } from "../report-design-component-types";
+
+export function renderMoeOfficial2024BulletList({
+  block,
+  renderedContent,
+  splitLines,
+}: ReportSemanticBlockRenderProps) {
+  return (
+    <section className="moe24-report-section">
+      {block.showTitle ? (
+        <h2
+          style={{
+            marginBottom: "calc(2mm * var(--report-field-spacing-scale, 1))",
+            fontSize: "calc(14px * var(--report-heading-scale, 1))",
+          }}
+        >
+          {block.title}
+        </h2>
+      ) : null}
+      <ul
+        className="moe24-report-list"
+        style={{
+          gap: "calc(0.7mm * var(--report-field-spacing-scale, 1))",
+        }}
+      >
+        {splitLines(renderedContent).map((line) => (
+          <li
+            key={line}
+            style={{
+              fontSize: "calc(1em * var(--report-bullet-font-scale, 1))",
+            }}
+          >
+            {line}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function renderMoeOfficial2024Narrative({
+  block,
+  renderedContent,
+  splitParagraphs,
+}: ReportSemanticBlockRenderProps) {
+  return (
+    <section className="moe24-report-section">
+      {block.showTitle ? (
+        <h2
+          style={{
+            marginBottom: "calc(2mm * var(--report-field-spacing-scale, 1))",
+            fontSize: "calc(14px * var(--report-heading-scale, 1))",
+          }}
+        >
+          {block.title || "وصف التنفيذ"}
+        </h2>
+      ) : null}
+      <div
+        style={{
+          display: "grid",
+          gap: "calc(0.5rem * var(--report-field-spacing-scale, 1))",
+        }}
+      >
+        {splitParagraphs(renderedContent).map((paragraph) => (
+          <p
+            key={paragraph}
+            className="moe24-report-narrative"
+            style={{
+              fontSize: "calc(10.5px * var(--report-content-font-scale, 1))",
+              lineHeight: "calc(1.9 * var(--report-narrative-density-scale, 1))",
+            }}
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\values.tsx
+======================================================================
+
+import type { ReportValueGridProps } from "../report-design-component-types";
+import { MoeOfficial2024ValueGrid } from "./value-grid";
+
+export function MoeOfficial2024ReportValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <MoeOfficial2024ValueGrid
+      items={items.map((item) => ({
+        key: item.key,
+        label: item.label,
+        value: item.valueItems?.length ? item.valueItems : item.value,
+      }))}
+    />
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\value-grid.tsx
+======================================================================
+
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+
+import {
+  Activity,
+  Award,
+  BarChart3,
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock3,
+  FileCheck2,
+  FileText,
+  GraduationCap,
+  Hash,
+  HeartHandshake,
+  Lightbulb,
+  ListChecks,
+  MapPin,
+  Megaphone,
+  MessageSquareText,
+  NotebookPen,
+  School,
+  ShieldCheck,
+  Star,
+  Target,
+  Trophy,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
+
+export type MoeOfficial2024ValueItem = {
+  key?: string;
+  label: string;
+  value?: string | string[] | null;
+};
+
+type FieldVisual = {
+  icon: LucideIcon;
+  tone: "teal" | "green";
+};
+
+function normalizeArabicLabel(value: string) {
+  return String(value || "")
+    .trim()
+    .replace(/[إأآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي");
+}
+
+function getMoe24FieldVisual(
+  label: string,
+  index: number,
+): FieldVisual {
+  const text = normalizeArabicLabel(label);
+
+  const includesAny = (...words: string[]) =>
+    words.some((word) => text.includes(normalizeArabicLabel(word)));
+
+  if (
+    includesAny(
+      "التقرير",
+      "السجل",
+      "الوثيقة",
+      "المرفق",
+      "النموذج",
+      "الملف",
+    )
+  ) {
+    return { icon: FileText, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "المادة",
+      "التدريس",
+      "التعلم",
+      "المنهج",
+      "المقرر",
+      "المجال",
+    )
+  ) {
+    return { icon: BookOpen, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "الطلاب",
+      "الطالبات",
+      "المستفيد",
+      "المستفيدين",
+      "الفئة",
+      "الحضور",
+    )
+  ) {
+    return { icon: UsersRound, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "المعلم",
+      "المعلمة",
+      "المنفذ",
+      "المسؤول",
+      "المشرف",
+      "المرشد",
+      "الموجه",
+    )
+  ) {
+    return { icon: UserRound, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "التاريخ",
+      "اليوم",
+      "الفصل",
+      "الاسبوع",
+      "الأسبوع",
+      "موعد",
+    )
+  ) {
+    return { icon: CalendarDays, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الوقت",
+      "المدة",
+      "الساعه",
+      "الساعة",
+      "ساعات",
+    )
+  ) {
+    return { icon: Clock3, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "المكان",
+      "الموقع",
+      "القاعة",
+      "الفصل الدراسي",
+    )
+  ) {
+    return { icon: MapPin, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الخطة",
+      "التنفيذ",
+      "الوصف",
+      "الاجراء",
+      "الإجراء",
+      "الخطوات",
+    )
+  ) {
+    return { icon: ClipboardCheck, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "المهام",
+      "الاعمال",
+      "الأعمال",
+      "المتطلبات",
+      "القائمة",
+    )
+  ) {
+    return { icon: ListChecks, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "الهدف",
+      "الأهداف",
+      "الاهداف",
+      "النتيجة",
+      "المخرج",
+    )
+  ) {
+    return { icon: Target, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "النسبة",
+      "المؤشر",
+      "الاحصاء",
+      "الإحصاء",
+      "القياس",
+      "التقييم",
+      "التحليل",
+    )
+  ) {
+    return { icon: BarChart3, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "الانجاز",
+      "الإنجاز",
+      "التميز",
+      "التكريم",
+    )
+  ) {
+    return { icon: Trophy, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الشهادة",
+      "الشهادات",
+      "اعتماد",
+      "معتمد",
+    )
+  ) {
+    return { icon: Award, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "المدرسة",
+      "المدرسه",
+      "المنشأة",
+      "المنشاه",
+    )
+  ) {
+    return { icon: School, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "المؤهل",
+      "المؤهلات",
+      "الدورة",
+      "الدورات",
+      "التخصص",
+    )
+  ) {
+    return { icon: GraduationCap, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "رقم",
+      "العدد",
+      "الكود",
+      "المعرف",
+    )
+  ) {
+    return { icon: Hash, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "المبادرة",
+      "الفكرة",
+      "الابتكار",
+      "الإبداع",
+      "الابداع",
+    )
+  ) {
+    return { icon: Lightbulb, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "التعاون",
+      "الشراكة",
+      "الشراكه",
+      "المشاركة",
+      "المشاركه",
+    )
+  ) {
+    return { icon: HeartHandshake, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "السلامة",
+      "السلامه",
+      "الحماية",
+      "الحمايه",
+      "الأمن",
+      "الامن",
+    )
+  ) {
+    return { icon: ShieldCheck, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الاعلان",
+      "الإعلان",
+      "التوعية",
+      "التوعيه",
+      "النشر",
+    )
+  ) {
+    return { icon: Megaphone, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "العمل",
+      "المهنة",
+      "المهنه",
+      "الوظيفة",
+      "الوظيفه",
+    )
+  ) {
+    return { icon: BriefcaseBusiness, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الملاحظة",
+      "الملاحظات",
+      "ملاحظات",
+      "تعليق",
+    )
+  ) {
+    return { icon: NotebookPen, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "التواصل",
+      "الرسالة",
+      "الرساله",
+      "التغذية الراجعة",
+    )
+  ) {
+    return { icon: MessageSquareText, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الحالة",
+      "الحاله",
+      "مكتمل",
+      "منجز",
+    )
+  ) {
+    return { icon: CheckCircle2, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "النشاط",
+      "البرنامج",
+      "الفعالية",
+      "الفعاليه",
+    )
+  ) {
+    return { icon: Activity, tone: "teal" };
+  }
+
+  if (
+    includesAny(
+      "التقدير",
+      "التقييم العام",
+      "المستوى",
+    )
+  ) {
+    return { icon: Star, tone: "green" };
+  }
+
+  if (
+    includesAny(
+      "الشاهد",
+      "الشواهد",
+      "اثبات",
+      "إثبات",
+    )
+  ) {
+    return { icon: FileCheck2, tone: "teal" };
+  }
+
+  return {
+    icon: FileText,
+    tone: index % 2 === 0 ? "teal" : "green",
+  };
+}
+
+function normalizeValue(
+  value: string | string[] | null | undefined,
+): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function renderFieldValue(
+  value: string | string[] | null | undefined,
+): ReactNode {
+  const items = normalizeValue(value);
+
+  if (!items.length) {
+    return "غير متوفر";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  return (
+    <ul className="moe24-report-list">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+export function MoeOfficial2024ValueGrid({
+  items,
+}: {
+  items: MoeOfficial2024ValueItem[];
+}) {
+  return (
+    <div
+      className="moe24-report-details-panel"
+      style={{
+        padding: "calc(4mm * var(--report-field-spacing-scale, 1))",
+        paddingTop: "calc(5mm * var(--report-field-spacing-scale, 1))",
+      }}
+    >
+      <div
+        className="moe24-report-detail-grid"
+        style={{
+          rowGap: "calc(2mm * var(--report-field-spacing-scale, 1))",
+          columnGap: "calc(4mm * var(--report-field-spacing-scale, 1))",
+        }}
+      >
+        {items.map((item, index) => {
+          const valueItems = normalizeValue(item.value);
+          const serializedValue = valueItems.join(" ");
+
+          const isCompactArray =
+            valueItems.length > 1 &&
+            valueItems.length <= 4 &&
+            serializedValue.length <= 150 &&
+            valueItems.every((entry) => entry.length <= 70);
+
+          const wide =
+            (!isCompactArray && valueItems.length > 1) ||
+            serializedValue.length > 160 ||
+            serializedValue.includes("\n");
+
+          const visual = getMoe24FieldVisual(
+            item.label,
+            index,
+          );
+
+          const Icon = visual.icon;
+
+          return (
+            <article
+              key={item.key || item.label || index}
+              className={[
+                "moe24-report-field",
+                `moe24-report-field-${visual.tone}`,
+                wide ? "moe24-report-field-wide" : "",
+                isCompactArray
+                  ? "moe24-report-field-compact-list"
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              style={{
+                minHeight: "calc(17mm * var(--report-field-spacing-scale, 1))",
+                gap: "calc(2.5mm * var(--report-field-spacing-scale, 1))",
+                padding: "calc(2.5mm * var(--report-field-spacing-scale, 1)) calc(3mm * var(--report-field-spacing-scale, 1))",
+              }}
+            >
+              <span
+                className="moe24-report-field-icon"
+                aria-hidden="true"
+              >
+                <Icon />
+              </span>
+
+              <div className="moe24-report-field-content">
+                <div className="moe24-report-field-label">
+                  <span
+                    className="moe24-report-field-dot"
+                    aria-hidden="true"
+                  />
+
+                  <span
+                    style={{
+                      fontSize: "calc(7.8px * var(--report-field-label-scale, 1))",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+
+                <strong
+                  style={{
+                    marginTop: "calc(1mm * var(--report-field-spacing-scale, 1))",
+                    fontSize: `calc(${wide ? 9.8 : 10}px * var(--report-field-value-scale, 1))`,
+                    lineHeight: `calc(${wide ? 1.55 : 1.45}em * var(--report-narrative-density-scale, 1))`,
+                  }}
+                >
+                  {renderFieldValue(item.value)}
+                </strong>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\evidence.tsx
+======================================================================
+
+import type { ReportEvidenceRendererProps } from "../report-design-component-types";
+
+export function MoeOfficial2024EvidenceRenderer({
+  block,
+  items,
+  startIndex,
+  placeholderMode,
+  gridStyle,
+  getImageUrl,
+  getFigureStyle,
+  getImageStyle,
+  getImageClassName,
+  getImageHeightClassName,
+  renderTitle,
+}: ReportEvidenceRendererProps) {
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return (
+      <section className="moe24-report-section">
+        {renderTitle()}
+        <div
+          className="moe24-evidence-grid"
+          style={{ gap: "calc(5mm * var(--report-evidence-spacing-scale, 1))" }}
+        >
+          {items.map((evidence, index) => (
+            <div key={evidence.id || String(index)} className="moe24-file-attachment">
+              {evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="moe24-report-section">
+      {renderTitle()}
+      <div
+        className="moe24-evidence-grid"
+        style={{
+          ...gridStyle,
+          gap: `calc(${String(gridStyle.gap || "5mm")} * var(--report-evidence-spacing-scale, 1))`,
+        }}
+      >
+        {items.map((evidence, index) => {
+          const imageUrl = getImageUrl(evidence);
+
+          return (
+            <figure
+              key={evidence.id || imageUrl || String(index)}
+              style={getFigureStyle()}
+              className="moe24-evidence-figure"
+            >
+              {imageUrl && !placeholderMode ? (
+                <img
+                  src={imageUrl}
+                  alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+                  style={getImageStyle()}
+                  className={getImageClassName()}
+                />
+              ) : (
+                <div
+                  data-report-design-real-evidence={placeholderMode ? undefined : "true"}
+                  className={`report-design-evidence-fallback ${getImageHeightClassName()} flex w-full flex-col items-center justify-center bg-transparent text-center`}
+                >
+                  <p>{placeholderMode ? "مساحة شاهد للمعاينة" : evidence.title || evidence.caption || "مرفق محفوظ"}</p>
+                </div>
+              )}
+
+              {block.evidenceShowCaptions !== false ? (
+                <figcaption
+                  style={{
+                    fontSize: "calc(1em * var(--report-evidence-caption-scale, 1))",
+                  }}
+                >
+                  {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
+                </figcaption>
+              ) : null}
+            </figure>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\block-presentation.ts
+======================================================================
+
+import type { ReportBlockPresentation } from "../report-block-presentation";
+
+export type MoeOfficial2024BlockPresentation = {
+  shellClassName: string;
+  titleClassName: string;
+  contentClassName: string;
+};
+
+const presentations: Record<
+  ReportBlockPresentation,
+  MoeOfficial2024BlockPresentation
+> = {
+  hero: {
+    shellClassName:
+      "moe24-report-section moe24-report-section-hero",
+    titleClassName:
+      "moe24-report-block-title moe24-report-block-title-hero",
+    contentClassName:
+      "moe24-report-block-content moe24-report-block-content-hero",
+  },
+
+  normal: {
+    shellClassName:
+      "moe24-report-section moe24-report-section-normal",
+    titleClassName:
+      "moe24-report-block-title",
+    contentClassName:
+      "moe24-report-block-content",
+  },
+
+  card: {
+    shellClassName:
+      "moe24-report-section moe24-report-details-panel moe24-report-section-card",
+    titleClassName:
+      "moe24-report-block-title",
+    contentClassName:
+      "moe24-report-block-content",
+  },
+
+  soft: {
+    shellClassName:
+      "moe24-report-section moe24-report-details-panel moe24-report-section-soft",
+    titleClassName:
+      "moe24-report-block-title",
+    contentClassName:
+      "moe24-report-block-content",
+  },
+
+  featured: {
+    shellClassName:
+      "moe24-report-section moe24-report-details-panel moe24-report-section-featured",
+    titleClassName:
+      "moe24-report-block-title moe24-report-block-title-featured",
+    contentClassName:
+      "moe24-report-block-content",
+  },
+
+  outline: {
+    shellClassName:
+      "moe24-report-section moe24-report-details-panel moe24-report-section-outline",
+    titleClassName:
+      "moe24-report-block-title",
+    contentClassName:
+      "moe24-report-block-content",
+  },
+
+  list: {
+    shellClassName:
+      "moe24-report-section moe24-report-section-list",
+    titleClassName:
+      "moe24-report-block-title",
+    contentClassName:
+      "moe24-report-block-content moe24-report-block-content-list",
+  },
+};
+
+export function getMoeOfficial2024BlockPresentation(
+  presentation: ReportBlockPresentation,
+) {
+  return presentations[presentation];
+}
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-classic-frame\index.tsx
+======================================================================
+
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
+
+export function MoeClassicFrameReportDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+  getDesignLogoSrc,
+}: ReportDesignPageComponentProps) {
+  const designId = "moe-classic-frame" as const;
+
+  const department =
+    String(context["identity.educationDepartment"] || "").trim() ||
+    "الإدارة العامة للتعليم";
+
+  const office =
+    String(context["identity.educationOffice"] || "").trim() ||
+    "مكتب التعليم";
+
+  const schoolName =
+    String(context["identity.schoolName"] || "").trim() ||
+    "اسم المدرسة";
+
+  const reportTitle =
+    String(context["case.title"] || "").trim() ||
+    pageLabel ||
+    "التقرير";
+
+  return (
+    <article
+      className="pdf-report-page mx-auto h-[297mm] min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-[#36454f] bg-white shadow-xl"
+      data-report-design="moe-classic-frame"
+      dir="rtl"
+    >
+      <div className="relative h-[297mm] overflow-hidden bg-white">
+
+        <div className="absolute inset-x-0 top-0 z-40 h-[1.3mm] bg-gradient-to-l from-[#35bc70] via-[#25ada4] to-[#188dc4]" />
+
+        <header className="report-design-header absolute inset-x-0 top-0 z-30 h-[39mm] overflow-hidden rounded-b-[10mm] bg-[#073f4c] text-white">
+          <div className="absolute inset-x-0 top-0 h-[1.3mm] bg-gradient-to-l from-[#35bc70] via-[#25ada4] to-[#188dc4]" />
+
+          <div className="absolute left-1/2 top-[7mm] flex -translate-x-1/2 items-center justify-center gap-[5mm]">
+
+            {/* الشعار يمين */}
+            <div className="flex w-[41mm] items-center justify-center">
+              <img
+                src={getDesignLogoSrc(context)}
+                alt="شعار وزارة التعليم"
+                className="h-[22mm] w-auto max-w-[38mm] object-contain brightness-0 invert"
+              />
+            </div>
+
+            {/* الفاصل */}
+            <div className="h-[20mm] w-[0.7mm] shrink-0 bg-[#16ad78]" />
+
+            {/* بيانات الإدارة يسار */}
+            <div className="w-[52mm] text-right text-[9.5px] font-bold leading-[1.75] text-white">
+              <p className="whitespace-nowrap">
+                {department}
+              </p>
+              <p className="whitespace-nowrap text-[#18a69a]">
+                {office}
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* اسم المدرسة مرة واحدة فقط */}
+        <div className="absolute left-1/2 top-[32mm] z-40 flex h-[12mm] w-[98mm] -translate-x-1/2 items-center justify-center rounded-b-[4mm] border-x border-b border-[#148c9c] bg-[#073f4c] px-[7mm] text-center text-[10px] font-bold leading-5 text-white shadow-sm">
+          {schoolName}
+        </div>
+
+        {/* عنوان التقرير فقط - بدون عنوان صغير مكرر */}
+        <section className="absolute inset-x-[16mm] top-[57mm] z-20 text-center">
+          <h1 className="text-[18px] font-black leading-[1.7] text-[#111827]">
+            {reportTitle}
+          </h1>
+
+          <div className="mx-auto mt-[3mm] h-[0.55mm] w-[24mm] bg-[#248fbe]" />
+        </section>
+
+        {/* المحتوى */}
+        <div className="absolute inset-x-[12mm] bottom-[24mm] top-[72mm] z-10 overflow-hidden">
+          <ReportDesignSmartContent
+            availableHeightMm={201}
+            priorityMode="signature"
+          >
+            <PageBlocks
+              page={page}
+              context={context}
+              previewCase={previewCase}
+              designId={designId}
+              className="min-h-full"
+            />
+          </ReportDesignSmartContent>
+        </div>
+
+        {/* زخرفة أسفل الصفحة مثل المرجع */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-[13.5mm] z-20 h-[12mm]"
+          aria-hidden="true"
+        >
+          {/* الخط الأفقي */}
+          <div className="absolute bottom-[1.3mm] left-0 right-[18mm] h-[0.45mm] bg-[#43b98a]" />
+
+          {/* الانحناءة الخارجية - يسار */}
+          <div className="absolute bottom-[1.3mm] left-[1mm] h-[9mm] w-[34mm] rounded-tl-[22mm] border-l-[0.55mm] border-t-[0.55mm] border-[#278fc0]" />
+
+          {/* الانحناءة الداخلية */}
+          <div className="absolute bottom-[0.3mm] left-[2mm] h-[7.5mm] w-[31mm] rounded-tl-[20mm] border-l-[0.3mm] border-t-[0.3mm] border-[#43b99c]/75" />
+        </div>
+
+        {/* الفوتر المتدرج بدون بيانات */}
+        <footer
+          className="absolute inset-x-0 bottom-0 z-30 h-[14mm] overflow-hidden"
+          aria-hidden="true"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[#168ac4] via-[#28aca7] to-[#35bd70]" />
+        </footer>
+      </div>
+    </article>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-classic-frame\presentation.ts
+======================================================================
+
+import type { ReportDesignPalette } from "../report-design-component-types";
+
+export const palette = {
+  subtleTextClass: "text-[#1687b8]",
+  dotClass: "bg-[#1687b8]",
+  iconClass: "bg-[#eaf5f8] text-[#0b718f]",
+  badgeClass: "bg-[#eaf5f8] text-[#0b718f]",
+  noticeClass: "border border-[#b7dce5] bg-[#f7fbfc] text-[#174b5a]",
+
+  cardShellClass:
+    "border-0 bg-transparent px-0 py-3 shadow-none",
+  softShellClass:
+    "border-0 bg-transparent px-0 py-3 shadow-none",
+  highlightShellClass:
+    "border-0 border-r-[3px] border-r-[#1687b8] bg-transparent px-4 py-3 shadow-none",
+  outlineShellClass:
+    "border border-[#7d979f] bg-white px-4 py-3 shadow-none",
+  quoteShellClass:
+    "border-0 border-r-[3px] border-r-[#27ae73] bg-transparent px-4 py-3 shadow-none",
+  heroShellClass:
+    "border-0 bg-transparent px-0 py-3 text-center shadow-none",
+
+  detailsGridClassName: "grid grid-cols-1 gap-3",
+} satisfies ReportDesignPalette;
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\moe-classic-frame\values.tsx
+======================================================================
+
+import type {
+  ReportValueGridProps,
+  ReportValueItem,
+} from "../report-design-component-types";
+
+const SECTION_HEADER_COLORS = [
+  "bg-[#fee8a8]",
+  "bg-[#ececec]",
+  "bg-[#dce7f7]",
+  "bg-[#e1efd9]",
+] as const;
+
+function getDisplayValue(item: ReportValueItem) {
+  if (Array.isArray(item.valueItems) && item.valueItems.length) {
+    return item.valueItems.join(" • ");
+  }
+
+  if (Array.isArray(item.value)) {
+    return item.value.join(" • ");
+  }
+
+  return String(item.value || "—");
+}
+
+function chunkItems(items: ReportValueItem[], size: number) {
+  const chunks: ReportValueItem[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+export function MoeClassicFrameValueGrid({
+  items,
+}: ReportValueGridProps) {
+  const visibleItems = items.filter(
+    (item) =>
+      String(item.label || "").trim() ||
+      String(getDisplayValue(item)).trim(),
+  );
+
+  if (!visibleItems.length) {
+    return null;
+  }
+
+  const groups = chunkItems(visibleItems, 4);
+
+  return (
+    <div
+      dir="rtl"
+      data-moe-classic-value-grid
+      style={{
+        display: "grid",
+        gap: "calc(4mm * var(--report-field-spacing-scale, 1))",
+      }}
+    >
+      {groups.map((group, groupIndex) => {
+        const headerColor =
+          SECTION_HEADER_COLORS[
+            groupIndex % SECTION_HEADER_COLORS.length
+          ];
+
+        return (
+          <div
+            key={`classic-group-${groupIndex}`}
+            className="break-inside-avoid"
+            style={{
+              breakInside: "avoid",
+              pageBreakInside: "avoid",
+            }}
+          >
+            <table className="w-full table-fixed border-collapse">
+              <thead>
+                <tr>
+                  {group.map((item, itemIndex) => (
+                    <th
+                      key={`${item.key || item.label}-${itemIndex}`}
+                      className={[
+                        "border border-[#263238]",
+                        headerColor,
+                        "text-center font-black text-[#17242b]",
+                      ].join(" ")}
+                      style={{
+                        paddingInline: "calc(0.5rem * var(--report-table-spacing-scale, 1))",
+                        paddingBlock: "calc(2.2mm * var(--report-table-spacing-scale, 1))",
+                        fontSize: "calc(10px * var(--report-field-label-scale, 1))",
+                        lineHeight: "calc(1.25rem * var(--report-narrative-density-scale, 1))",
+                      }}
+                    >
+                      {item.label || "البيان"}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  {group.map((item, itemIndex) => (
+                    <td
+                      key={`${item.key || item.label}-value-${itemIndex}`}
+                      className="border border-[#263238] bg-white text-center font-bold text-[#1e293b]"
+                      style={{
+                        paddingInline: "calc(0.5rem * var(--report-table-spacing-scale, 1))",
+                        paddingBlock: "calc(2.8mm * var(--report-table-spacing-scale, 1))",
+                        fontSize: "calc(10px * var(--report-field-value-scale, 1))",
+                        lineHeight: "calc(1.5rem * var(--report-narrative-density-scale, 1))",
+                      }}
+                    >
+                      {getDisplayValue(item)}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+======================================================================
+LAYOUT / OVERFLOW / SIGNATURE / EVIDENCE REFERENCES
+======================================================================
+
+======================================================================
+SMART-LAYOUT TREE + LINE COUNTS
+======================================================================
+components\report-engine\design-renderers\smart-layout\report-design-smart-content.tsx	40
+components\report-engine\design-renderers\smart-layout\report-smart-a4-config.ts	270
+components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx	308
+
+======================================================================
+IMPLEMENTATION HOOKS
+======================================================================

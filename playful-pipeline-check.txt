@@ -1,0 +1,950 @@
+
+======================================================================
+FILE: components\report-engine\design-renderers\designs\report-playful-cards\index.tsx
+======================================================================
+
+import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+
+export function ReportPlayfulCardsDesign({
+  page,
+  context,
+  previewCase,
+  pageLabel,
+  PageBlocks,
+  collectFinalValues,
+  getValidPreviewEvidences,
+}: ReportDesignPageComponentProps) {
+  const designId = "report-playful-cards" as const;
+  const workflowValues = collectFinalValues(previewCase as any).filter((item) =>
+    String(item.value || "").trim(),
+  );
+
+  const reportTitle =
+    context["case.title"] ||
+    context.programTitle ||
+    "ØªÙ‚Ø±ÙŠØ± Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©";
+
+  const activityValues = workflowValues.slice(0, 5);
+  const metricValues = workflowValues.slice(0, 4);
+  const detailValues = workflowValues.slice(0, 12);
+  const evidenceCount = getValidPreviewEvidences(previewCase).length;
+  const hasSemanticBlocks = Array.isArray(page?.blocks)
+    ? page.blocks.some((block: any) => block?.visible !== false)
+    : false;
+
+  return (
+    <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white p-[7mm] shadow-2xl">
+      <div className="relative min-h-[283mm] overflow-hidden bg-white px-[8mm] py-[7mm] text-slate-900">
+        <div className="absolute left-[8mm] top-[7mm] h-[52mm] w-[48mm] bg-gradient-to-br from-blue-600 to-blue-400 p-5 text-white">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-white/80 text-3xl">
+            ðŸ“–
+          </div>
+          <h2 className="mt-5 text-center text-xl font-black leading-8">
+            Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©
+          </h2>
+          <p className="mt-2 text-center text-[11px] font-bold leading-5 text-white/85">
+            Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©ØŒ Ø§ÙƒØªØ´Ø§Ù Ù„Ø§ ÙŠÙ†ØªÙ‡ÙŠ
+          </p>
+        </div>
+
+        <header className="report-design-header mr-[54mm] flex min-h-[52mm] items-center justify-between gap-7">
+          <div className="flex-1 text-center">
+            <h1 className="text-4xl font-black leading-[1.45] tracking-tight text-slate-900">
+              {reportTitle}
+            </h1>
+            <p className="mt-3 text-base font-bold text-blue-500">
+              ØªØ¹Ø²ÙŠØ² Ø¹Ø§Ø¯Ø© Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ÙˆØ¨Ù†Ø§Ø¡ Ù…Ø¬ØªÙ…Ø¹ Ù…Ø¹Ø±ÙÙŠ
+            </p>
+          </div>
+
+          <div className="w-[45mm] rounded-[5mm] bg-slate-50 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+              <span className="text-2xl">ðŸ“…</span>
+              <div>
+                <p className="text-[10px] font-black text-slate-400">Ø§Ù„ØªØ§Ø±ÙŠØ®</p>
+                <p className="mt-1 text-[12px] font-black text-slate-800">
+                  {context["case.createdAt"] || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-2xl">ðŸ“</span>
+              <div>
+                <p className="text-[10px] font-black text-slate-400">Ø§Ù„Ø®Ø¯Ù…Ø©</p>
+                <p className="mt-1 text-[12px] font-black text-slate-800">
+                  {context["service.name"] || "Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section className="mt-2 grid grid-cols-[112mm_1fr] gap-[8mm]">
+          <div>
+            <div className="relative h-[76mm] overflow-hidden bg-slate-100">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,#eef6ff,#ffffff_46%,#e8f1fb)]" />
+              <div className="absolute bottom-8 left-8 right-8 h-[22mm] rounded-t-full border-2 border-blue-200 border-b-0" />
+              <div className="absolute bottom-8 left-10 right-10 h-[16mm] rounded-t-full border border-blue-100 border-b-0" />
+              <div className="absolute bottom-8 left-12 right-12 h-[10mm] rounded-t-full border border-blue-100 border-b-0" />
+              <div className="absolute bottom-5 left-[32mm] h-[12mm] w-[48mm] rounded-full bg-white/80 blur-sm" />
+              <div className="absolute bottom-12 right-12 h-20 w-20 rounded-full bg-blue-100/80" />
+              <div className="absolute bottom-16 right-20 h-2 w-20 rounded-full bg-blue-200" />
+              <div className="absolute bottom-20 right-20 h-2 w-24 rounded-full bg-blue-100" />
+              <div className="absolute bottom-24 right-20 h-2 w-16 rounded-full bg-blue-100" />
+            </div>
+
+            <div className="mt-5 grid grid-cols-4 gap-4">
+              {[
+                ["Ø§Ù„Ù…Ø´Ø§Ø±ÙƒÙˆÙ†", context.targetGroup || metricValues[0]?.value || "â€”", "ðŸ‘¥"],
+                ["Ø§Ù„ÙƒØªØ¨/Ø§Ù„Ù…ØµØ§Ø¯Ø±", metricValues[1]?.value || String(workflowValues.length), "ðŸ“˜"],
+                ["Ø³Ø§Ø¹Ø§Øª Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©", metricValues[2]?.value || "â±ï¸"],
+                ["Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯", String(evidenceCount), "ðŸ†"],
+              ].map(([label, value, icon]) => (
+                <div
+                  key={label}
+                  className="rounded-[4mm] border border-slate-100 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-xl">
+                    {icon}
+                  </div>
+                  <p className="mt-3 text-[10px] font-black text-slate-400">{label}</p>
+                  <p className="mt-1 line-clamp-1 text-xl font-black text-slate-900">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <aside className="pt-8">
+            <div className="text-7xl font-black leading-none text-blue-500">â€œ</div>
+            <p className="mt-2 text-xl font-black leading-[2] text-slate-900">
+              Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ØªÙ…Ù†Ø­Ù†Ø§ Ù…ÙƒØ§Ù†Ù‹Ø§ Ù†Ø°Ù‡Ø¨ Ø¥Ù„ÙŠÙ‡ Ø­ÙŠÙ† Ù†Ø­ØªØ§Ø¬ Ø¥Ù„Ù‰ Ø£Ù† Ù†Ø¨Ù‚Ù‰.
+            </p>
+            <div className="mt-5 h-1 w-10 bg-blue-500" />
+
+            <div className="mt-10 rounded-[5mm] border border-blue-100 bg-blue-50/50 p-5">
+              <p className="text-[11px] font-black text-blue-500">Ù…Ù„Ø®Øµ Ø¨ØµØ±ÙŠ</p>
+              <p className="mt-3 text-sm font-bold leading-8 text-slate-600">
+                ÙŠØ¹Ø±Ø¶ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø£Ù‡Ù… Ø¨ÙŠØ§Ù†Ø§Øª Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ÙÙŠ ØµÙØ­Ø© ÙˆØ§Ø­Ø¯Ø© Ù‡Ø§Ø¯Ø¦Ø©ØŒ Ù…Ø¹ Ø¥Ø¨Ø±Ø§Ø² Ø§Ù„Ù…Ø¤Ø´Ø±Ø§Øª ÙˆØ§Ù„Ø£Ù†Ø´Ø·Ø© ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø© Ù…Ù† Workflow Ø¨Ø¯ÙˆÙ† Ø§Ø²Ø¯Ø­Ø§Ù….
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section className="mt-6 grid grid-cols-[82mm_1fr] gap-[7mm]">
+          <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
+            <h3 className="text-center text-xl font-black text-slate-900">Ø£Ø¨Ø±Ø² Ø§Ù„Ø£Ù†Ø´Ø·Ø©</h3>
+            <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
+
+            <div className="mt-6 space-y-4">
+              {(activityValues.length
+                ? activityValues
+                : [
+                    {
+                      fieldLabel: "Ø±ÙƒÙ† Ø§Ù„ÙƒØªØ§Ø¨ Ø§Ù„Ù…ÙØ¶Ù„",
+                      value: "Ù…Ø´Ø§Ø±ÙƒØ© Ø§Ù„ÙƒØªØ¨ Ø§Ù„Ù…ÙØ¶Ù„Ø© Ù„Ø¯Ù‰ Ø§Ù„Ø·Ù„Ø§Ø¨",
+                    },
+                    {
+                      fieldLabel: "ØªØ­Ø¯ÙŠ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©",
+                      value: "Ù…Ø³Ø§Ø¨Ù‚Ø© ÙØ±Ø¯ÙŠØ© Ù„Ø¹Ø¯Ø¯ Ø§Ù„ØµÙØ­Ø§Øª Ø§Ù„Ù…Ù‚Ø±ÙˆØ¡Ø©",
+                    },
+                    { fieldLabel: "Ø¬Ù„Ø³Ø© Ù†Ù‚Ø§Ø´", value: "Ø­ÙˆØ§Ø± Ø­ÙˆÙ„ ÙƒØªØ§Ø¨ Ù…Ø®ØªØ§Ø±" },
+                    { fieldLabel: "Ù…Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹", value: "Ø¹Ø±Ø¶ Ù…Ù„Ø®ØµØ§Øª ÙˆÙ…Ø±Ø§Ø¬Ø¹Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨" },
+                  ]
+              ).map((item: any, index: number) => (
+                <div key={`${item.fieldLabel}-${index}`} className="grid grid-cols-[13mm_1fr] gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
+                    {["â™¡", "ðŸ†", "ðŸ‘¥", "ðŸ–¼ï¸", "âœ¦"][index] || "âœ¦"}
+                  </div>
+                  <div>
+                    <p className="line-clamp-1 text-sm font-black text-slate-900">
+                      {item.fieldLabel || item.fieldKey || `Ù†Ø´Ø§Ø· ${index + 1}`}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+                      {item.value || "â€”"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
+            <h3 className="text-center text-xl font-black text-slate-900">Ù‚ÙŠÙ… Workflow</h3>
+            <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
+
+            {detailValues.length ? (
+              <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3">
+                {detailValues.map((item, index) => (
+                  <div key={`${item.fieldKey}-${index}`} className="border-b border-slate-100 pb-3">
+                    <p className="line-clamp-1 text-[10px] font-black text-blue-500">
+                      {item.fieldLabel || item.fieldKey}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[12px] font-bold leading-6 text-slate-700">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 grid h-[74mm] place-items-center rounded-[4mm] bg-slate-50 text-center">
+                <div>
+                  <p className="text-sm font-black text-slate-800">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Workflow Ù…Ø­ÙÙˆØ¸Ø©</p>
+                  <p className="mt-2 text-xs font-bold text-slate-400">Ø§Ø®ØªØ± Ø­Ø§Ù„Ø© ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª.</p>
+                </div>
+              </div>
+            )}
+
+            {hasSemanticBlocks ? (
+              <div className="mt-6">
+                <PageBlocks
+                  page={page}
+                  context={context}
+                  previewCase={previewCase}
+                  designId={designId}
+                  className="min-h-[74mm]"
+                />
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="mt-6 grid grid-cols-[1fr_70mm] gap-[7mm]">
+          <div className="rounded-[4mm] bg-gradient-to-l from-blue-50 to-white p-6">
+            <div className="text-5xl font-black leading-none text-blue-500">â€</div>
+            <p className="mt-2 text-lg font-black leading-9 text-slate-800">
+              Ø£Ù‚Ø±Ø£ØŒ Ø¹Ø´ Ø£Ù„Ù Ø­ÙŠØ§Ø© Ù‚Ø¨Ù„ Ø£Ù† ØªÙ…ÙˆØª.
+            </p>
+            <p className="mt-2 text-xs font-bold text-slate-400">â€” Ø¹Ø¨Ø§Ø±Ø© ØªØ­ÙÙŠØ²ÙŠØ© Ù„Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©</p>
+          </div>
+
+          <div className="relative overflow-hidden rounded-[4mm] bg-slate-100">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,#dbeafe,#ffffff_55%,#eff6ff)]" />
+            <div className="absolute bottom-6 left-6 right-6 h-[18mm] rounded-t-full border-2 border-blue-200 border-b-0" />
+            <div className="absolute bottom-9 right-10 h-3 w-28 rounded-full bg-blue-100" />
+            <div className="absolute bottom-14 right-10 h-3 w-20 rounded-full bg-blue-100" />
+          </div>
+        </section>
+
+        <footer className="absolute bottom-[6mm] left-[8mm] right-[8mm] flex items-center justify-between border-t border-slate-200 pt-4 text-[11px] font-black text-slate-500">
+          <span>Ù‚Ø³Ù… Ø§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ</span>
+          <span className="mx-6 h-px flex-1 bg-slate-200" />
+          <span className="text-blue-600">Ù…Ø¹Ù‹Ø§ Ù†Ù‚Ø±Ø£.. Ù„Ù†Ø±ØªÙ‚ÙŠ</span>
+        </footer>
+      </div>
+    </article>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-blocks.tsx
+======================================================================
+
+import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
+import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
+import { getReportDesignImplementation } from "../report-design-implementations";
+import type { ReportDesignId } from "../report-design-types";
+import { collectFinalValues, getFinalFieldListItems } from "./final-report";
+import { getValidPreviewEvidences } from "./report-evidence-data";
+import { getDesignHeaderAlign, getDesignHeaderText, getDesignLogoSrc } from "./report-logo";
+import type { PreviewCaseData } from "./report-types";
+import { cleanWorkflowDynamicText, getWorkflowDynamicFieldCards, translateWorkflowDynamicValueItems } from "./report-workflow-fields";
+import { getBlockShellClass, getPlacementClass } from "./report-block-presentation";
+import { EvidenceBlock } from "./report-evidence";
+import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
+import { getBlockSetting, getReportFontSizeClass, renderText, splitLines, splitParagraphs } from "./report-text";
+import { DesignValueGrid } from "./report-values";
+
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const implementation = getReportDesignImplementation(designId);
+  const PageComponent = implementation.Page;
+
+  return (
+    <PageComponent
+      page={page}
+      context={context}
+      previewCase={previewCase}
+      pageLabel={pageLabel}
+      PageBlocks={PageBlocks}
+      MetaCard={MetaCard}
+      SideMeta={SideMeta}
+      MiniStat={MiniStat}
+      DesignFooter={DesignFooter}
+      getDesignLogoSrc={getDesignLogoSrc}
+      getDesignHeaderAlign={getDesignHeaderAlign}
+      getDesignHeaderText={getDesignHeaderText}
+      collectFinalValues={collectFinalValues}
+      getValidPreviewEvidences={getValidPreviewEvidences}
+    />
+  );
+}
+
+export function PageBlocks({
+  page,
+  context,
+  previewCase,
+  designId,
+  className,
+}: {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  className: string;
+}) {
+  const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
+  const flowBlocks = blocks.filter(
+    (block: any) =>
+      isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+  );
+  const fixedBlocks = blocks.filter(
+    (block: any) =>
+      !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+  );
+
+  return (
+    <main className={`relative flex flex-col ${className}`}>
+      <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
+        {flowBlocks.map((block: any) => (
+          <div
+            key={block.id}
+            className={
+              isSignatureGridDesignBlock(block)
+                ? "mt-auto break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
+                : ""
+            }
+            style={
+              isSignatureGridDesignBlock(block)
+                ? { breakInside: "avoid", pageBreakInside: "avoid" }
+                : undefined
+            }
+          >
+            <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+          </div>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {fixedBlocks.map((block: any) => (
+          <div key={block.id} className={getPlacementClass(block.placement || "flow")}>
+            <div className="pointer-events-auto">
+              <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+
+
+function isDynamicFieldsDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+    ? block.dynamicFields
+    : [];
+
+  if (configuredItems.length) {
+    return configuredItems
+      .map((item: any, index: number) => {
+        const id =
+          cleanWorkflowDynamicText(item.id) ||
+          cleanWorkflowDynamicText(item.key) ||
+          `dynamic-field-${index + 1}`;
+        const valueItems = Array.isArray(item.valueItems)
+          ? translateWorkflowDynamicValueItems(item.valueItems)
+          : translateWorkflowDynamicValueItems(item.value);
+
+        return {
+          id,
+          key:
+            cleanWorkflowDynamicText(item.key) ||
+            id,
+          label:
+            item.label !== undefined
+              ? cleanWorkflowDynamicText(item.label)
+              : `حقل ${index + 1}`,
+          value:
+            item.value !== undefined
+              ? cleanWorkflowDynamicText(item.value)
+              : "",
+          valueItems,
+          visible: item.visible !== false,
+        };
+      })
+      .filter((item: any) => item.visible && item.label)
+      .filter(
+        (item: any) =>
+          !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+      );
+  }
+
+  return getWorkflowDynamicFieldCards(previewCase)
+    .map((item: any, index: number) => {
+      const id =
+        cleanWorkflowDynamicText(item.key) ||
+        cleanWorkflowDynamicText(item.label) ||
+        `workflow-field-${index + 1}`;
+
+      return {
+        id,
+        key: id,
+        label: cleanWorkflowDynamicText(item.label),
+        value: cleanWorkflowDynamicText(item.value),
+        valueItems: Array.isArray(item.valueItems)
+          ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+          : [],
+        visible: true,
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value)
+    .filter(
+      (item: any) =>
+        !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+    );
+}
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+}) {
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const value = String(context[`field.${block.boundFieldKey}`] || "").trim();
+    if (!value) return null;
+  }
+
+  const rendered = renderText(block.content || "", context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+  const implementation = getReportDesignImplementation(designId);
+  const accent = implementation.palette;
+  const BlockRenderer = implementation.BlockRenderer;
+
+  if (BlockRenderer) {
+    return (
+      <BlockRenderer
+        block={block}
+        renderedContent={rendered}
+        textAlign={textAlign}
+        context={context}
+        splitLines={splitLines}
+        splitParagraphs={splitParagraphs}
+      />
+    );
+  }
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className={getBlockShellClass(implementation, "hero", "text-center")}>
+        <p className={["text-sm font-black", accent.subtleTextClass].join(" ")}>
+          {context["service.name"]}
+        </p>
+        <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">{rendered}</h1>
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className={getBlockShellClass(implementation, "soft", textAlign)}>
+        <div className="grid gap-2 md:grid-cols-2">
+          {splitLines(rendered).map((line) => (
+            <div key={line} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    const customBulletList = implementation.renderBulletList?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customBulletList !== undefined) return customBulletList;
+
+    const contentFontSizeClass = getReportFontSizeClass(
+      getBlockSetting(block, "contentFontSize"),
+      "text-sm",
+    );
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <ul className="space-y-2">
+          {splitLines(rendered).map((line) => (
+            <li key={line} className={["flex gap-2 leading-7 text-slate-700", contentFontSizeClass].join(" ")}>
+              <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  if (block.kind === "multi-paragraph") {
+    const customNarrative = implementation.renderNarrative?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customNarrative !== undefined) return customNarrative;
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <div className="space-y-3">
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p key={paragraph} className={["leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}>{paragraph}</p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "report-one-table" || block.kind === "structured-table") {
+    const tableBlock = block.kind === "structured-table"
+      ? normalizeStructuredTableBlockPresentation(block)
+      : block;
+    const columns = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.columns) ? tableBlock.columns : [])
+      : Array.isArray(tableBlock.columns) && tableBlock.columns.length
+        ? tableBlock.columns
+        : ["المجال", "الإجراء", "ملاحظات"];
+
+    const rows = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.rows) ? tableBlock.rows : [])
+      : Array.isArray(tableBlock.rows) && tableBlock.rows.length
+        ? tableBlock.rows
+        : [["", "", ""]];
+
+    const tableSettings = tableBlock.tableSettings || {};
+    const compact = Boolean(tableSettings.compact);
+    const rounded = tableSettings.rounded !== false;
+    const highlightHeader = tableSettings.highlightHeader !== false;
+    const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
+    const stripedRows = Boolean(tableSettings.stripedRows);
+    const colorTheme = tableSettings.colorTheme || "light-gray";
+    const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
+
+    const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
+      "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+      "soft-blue": { border: "border-sky-200", headerBg: "bg-sky-50", firstColBg: "bg-sky-50", stripedBg: "bg-sky-50/40", headerText: "text-sky-900", cellText: "text-slate-700", firstColText: "text-sky-900" },
+      "green": { border: "border-emerald-200", headerBg: "bg-emerald-50", firstColBg: "bg-emerald-50", stripedBg: "bg-emerald-50/40", headerText: "text-emerald-900", cellText: "text-slate-700", firstColText: "text-emerald-900" },
+      "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+    };
+    const tc = themeColors[colorTheme] || themeColors["light-gray"];
+    return (
+      <section
+        dir="rtl"
+        data-report-structured-table={tableBlock.kind === "structured-table" ? tableBlock.sourceTableId || "true" : undefined}
+        className={
+          tableBlock.kind === "structured-table"
+            ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
+            : getBlockShellClass(implementation, tableBlock.variant, textAlign)
+        }
+        style={{ breakInside: "avoid" }}
+      >
+        {tableBlock.showTitle ? <BlockTitle title={tableBlock.title} fontSize={getBlockSetting(tableBlock, "titleFontSize")} /> : null}
+
+        <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
+          <table className="w-full table-fixed border-collapse text-xs">
+            <thead
+              className={highlightHeader ? tc.headerBg : "bg-white"}
+              style={{ display: tableSettings.repeatHeader === false ? undefined : "table-header-group" }}
+            >
+              <tr>
+                {columns.map((column: string, columnIndex: number) => (
+                  <th
+                    key={`${column}-${columnIndex}`}
+                    className={[
+                      `border ${tc.border} text-center font-black ${tc.headerText}`,
+                      compact ? "px-2 py-2" : "px-3 py-3",
+                    ].join(" ")}
+                    style={
+                      Number(columnWidths[columnIndex]) > 0
+                        ? { width: `${Number(columnWidths[columnIndex])}%` }
+                        : undefined
+                    }
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row: string[], rowIndex: number) => (
+                <tr
+                  key={`row-${rowIndex}`}
+                  className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
+                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                  {columns.map((_: string, columnIndex: number) => (
+                    <td
+                      key={`cell-${rowIndex}-${columnIndex}`}
+                      className={[
+                        `break-words whitespace-pre-wrap border ${tc.border} text-center font-bold leading-6 ${tc.cellText}`,
+                        compact ? "px-2 py-2" : "px-3 py-3",
+                        highlightFirstColumn && columnIndex === 0
+                          ? `${tc.firstColBg} font-black ${tc.firstColText}`
+                          : "",
+                      ].join(" ")}
+                    >
+                      {String(row?.[columnIndex] || "—")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  }
+  if (isDynamicFieldsDesignBlock(block)) {
+    const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+
+    if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) {
+      return null;
+    }
+
+    return (
+      <section
+        className={getBlockShellClass(implementation, block.variant, textAlign)}
+        data-report-dynamic-fields
+      >
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {dynamicFieldItems.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={dynamicFieldItems.map(({ id, label, value, valueItems }: any) => ({
+              key: id,
+              label,
+              value: Array.isArray(valueItems) && valueItems.length ? valueItems : value,
+              valueItems,
+            }))}
+          />
+        ) : (
+          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+            ?? ???? ???? ????? ???? ??? ??????.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (block.kind === "field-list") {
+    const values = getFinalFieldListItems(block, previewCase);
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {values.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={values.map((item: any) => ({
+              key: item.key || item.label || item.fieldKey || item.fieldLabel,
+              label: item.label || item.fieldLabel || "?????",
+              value: Array.isArray(item.valueItems) && item.valueItems.length
+                ? item.valueItems
+                : item.value || "??? ?????",
+              valueItems: item.valueItems,
+            }))}
+          />
+        ) : (
+          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+            ?? ???? ??? ?????? ???? ??????.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (isSignatureGridDesignBlock(block)) {
+    const signatures = getDesignSignatureCards(block);
+
+    if (!signatures.length) return null;
+
+    const SignatureRenderer = implementation.SignatureRenderer;
+    if (SignatureRenderer) {
+      return (
+        <SignatureRenderer
+          block={block}
+          items={signatures}
+          renderTitle={() => block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        />
+      );
+    }
+
+    return (
+      <section
+        data-report-design-signature-block
+        className="report-design-signature-grid-block break-inside-avoid"
+        style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+      >
+        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+
+        <div
+          className={[
+            signatures.length === 2
+              ? "mx-auto grid w-[72%] max-w-[132mm] grid-cols-2 items-end gap-x-[8mm]"
+              : "flex w-full items-end gap-6",
+            signatures.length === 1
+              ? "justify-center"
+              : signatures.length >= 3
+                ? "justify-between"
+                : "",
+          ].join(" ")}
+        >
+          {signatures.map((signature: any) => (
+            <div
+              key={signature.key}
+              className={[
+                "text-center",
+                signatures.length >= 3
+                  ? "w-[31%]"
+                  : signatures.length === 2
+                    ? "min-w-0 w-full"
+                    : "w-[58mm]",
+              ].join(" ")}
+            >
+              <div className="report-design-signature-image-frame flex h-[10mm] items-end justify-center rounded-md bg-white">
+                {signature.imageUrl ? (
+                  <img
+                    src={signature.imageUrl}
+                    alt={signature.label}
+                    className="report-design-signature-image max-h-[10mm] max-w-[42mm] object-contain"
+                    style={{
+                      background: "#ffffff",
+                      objectFit: "contain",
+                      mixBlendMode: "normal",
+                      filter: "none",
+                    }}
+                  />
+                ) : (
+                  <div className="mb-1 w-full border-b border-dashed border-slate-400" />
+                )}
+              </div>
+
+              <div className="report-design-signature-name mt-1 text-[10px] font-black text-slate-950">
+                {signature.signerName || "—"}
+              </div>
+
+              {signature.signerTitle ? (
+                <div className="mt-0.5 text-[8px] font-bold text-slate-500">
+                  {signature.signerTitle}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} implementation={implementation} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <p className={["leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}>{rendered}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+      <p className={["whitespace-pre-line leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" ")}>{rendered}</p>
+    </section>
+  );
+}
+
+function DesignFieldValueBlock({
+  title,
+  showTitle,
+  variant,
+  textAlign,
+  designId,
+  items,
+}: {
+  title: string;
+  showTitle?: boolean;
+  variant: string;
+  textAlign: string;
+  designId: ReportDesignId;
+  items: Array<{
+    key?: string;
+    label: string;
+    value?: string | null;
+  }>;
+}) {
+  const visibleItems = items.filter((item) => String(item.value || "").trim());
+  const implementation = getReportDesignImplementation(designId);
+
+  return (
+    <section className={getBlockShellClass(implementation, variant, textAlign)}>
+      {showTitle ? <BlockTitle title={title} /> : null}
+
+      {visibleItems.length ? (
+        <DesignValueGrid implementation={implementation} items={visibleItems} />
+      ) : (
+        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+          لا توجد قيم مرتبطة بهذا البلوك.
+        </p>
+      )}
+    </section>
+  );
+}
+
+
+======================================================================
+FILE: components\report-engine\design-renderers\shared\report-auto-evidence.tsx
+======================================================================
+
+import type { ReportDesignId } from "../report-design-types";
+import { A4DesignPage } from "./report-blocks";
+import { getEvidencePerPage, getValidPreviewEvidences } from "./report-evidence-data";
+import type { PreviewCaseData } from "./report-types";
+
+export function AutoEvidencePages({
+  designId,
+  activePage,
+  context,
+  previewCase,
+}: {
+  designId: ReportDesignId;
+  activePage?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === "evidence-gallery");
+
+  if (!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return null;
+
+  const evidences = getValidPreviewEvidences(previewCase);
+  const perPage = getEvidencePerPage(evidenceBlock);
+  const pagesCount = Math.ceil(evidences.length / perPage);
+
+  if (pagesCount <= 1) return null;
+
+  return (
+    <div className="mt-6 space-y-6">
+      {Array.from({ length: pagesCount - 1 }).map((_, index) => {
+        const pageNumber = index + 2;
+        const virtualPage = {
+          ...activePage,
+          id: `${activePage.id}-evidence-auto-${pageNumber}`,
+          title: `${activePage.title} - صفحة ${pageNumber}`,
+          blocks: [
+            {
+              ...evidenceBlock,
+              id: `${evidenceBlock.id}-auto-${pageNumber}`,
+              title: `${evidenceBlock.title} - صفحة ${pageNumber}`,
+              evidenceStartIndex: (pageNumber - 1) * perPage,
+            },
+          ],
+        };
+
+        return (
+          <A4DesignPage
+            key={virtualPage.id}
+            designId={designId}
+            page={virtualPage}
+            context={context}
+            previewCase={previewCase}
+            pageLabel={`صفحة شواهد ${pageNumber}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+
