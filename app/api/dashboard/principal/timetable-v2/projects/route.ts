@@ -100,7 +100,82 @@ const requestSchema = z.object({
 
         planSourceId: z
           .string()
-          .min(1),
+          .max(120),
+
+        customPlan: z
+          .object({
+            name: z
+              .string()
+              .trim()
+              .max(120)
+              .optional(),
+
+            templateId: z
+              .string()
+              .trim()
+              .max(120)
+              .nullable()
+              .optional(),
+
+            stageId: z
+              .enum([
+                "ELEMENTARY",
+                "MIDDLE",
+                "HIGH",
+              ])
+              .nullable()
+              .optional(),
+
+            gradeId: z
+              .string()
+              .max(40)
+              .nullable()
+              .optional(),
+
+            semesterId: z
+              .enum([
+                "FIRST",
+                "SECOND",
+              ])
+              .nullable()
+              .optional(),
+
+            saveForFuture: z
+              .boolean()
+              .optional(),
+
+            items: z
+              .array(
+                z.object({
+                  subjectName: z
+                    .string()
+                    .trim()
+                    .min(1)
+                    .max(120),
+
+                  weeklyLessons: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(60),
+
+                  singlePeriods: z
+                    .number()
+                    .int()
+                    .min(0)
+                    .max(60),
+
+                  doublePeriods: z
+                    .number()
+                    .int()
+                    .min(0)
+                    .max(30),
+                }),
+              )
+              .min(1)
+              .max(60),
+          })
+          .optional(),
       }),
     )
     .min(1)
@@ -274,6 +349,36 @@ export async function POST(
 
       CURRICULUM_SEMESTER_MISMATCH:
         "إحدى خطط المرحلة الثانوية لا تتبع الفصل الدراسي المحدد.",
+
+      CUSTOM_PLAN_NAME_REQUIRED:
+        "أدخل اسمًا للخطة الدراسية المخصصة لحفظها.",
+
+      CUSTOM_PLAN_NAME_TOO_LONG:
+        "اسم الخطة الدراسية المخصصة طويل جدًا.",
+
+      CUSTOM_PLAN_EMPTY:
+        "يجب اختيار مادة واحدة على الأقل في الخطة المخصصة.",
+
+      CUSTOM_PLAN_TOO_MANY_SUBJECTS:
+        "لا يمكن إضافة أكثر من 60 مادة في الخطة المخصصة.",
+
+      CUSTOM_PLAN_INVALID:
+        "بيانات الخطة المخصصة غير صالحة.",
+
+      CUSTOM_PLAN_NOT_FOUND:
+        "الخطة المحفوظة غير موجودة أو لا تنتمي لمدرستك.",
+
+      CUSTOM_PLAN_GRADE_MISMATCH:
+        "الخطة المحفوظة لا تتبع الصف المحدد.",
+
+      CUSTOM_PLAN_SEMESTER_MISMATCH:
+        "الخطة المحفوظة لا تتبع الفصل الدراسي المحدد.",
+
+      SUBJECT_NAME_REQUIRED:
+        "أدخل اسم المادة.",
+
+      SUBJECT_NAME_TOO_LONG:
+        "اسم المادة طويل جدًا.",
     };
 
     return NextResponse.json(

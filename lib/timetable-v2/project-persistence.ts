@@ -10,17 +10,36 @@ import {
 
 import {
   getTimetableV2CurriculumPlanBySourceId,
+  getTimetableV2CanonicalSubjectName,
   getTimetableV2Grade,
   type TimetableV2SemesterId,
   type TimetableV2StageId,
   type TimetableV2StudyDayId,
 } from "@/lib/timetable-v2";
 
+import {
+  buildTimetableV2TemplateItems,
+  normalizeTimetableV2PlanText,
+  validateTimetableV2CustomCurriculumItems,
+  type CustomCurriculumItemInput,
+} from "@/lib/timetable-v2/custom-curriculum-types";
+
 export type TimetableV2CreateClassInput = {
   gradeId: string;
   sectionIndex: number;
   sectionName: string;
   planSourceId: string;
+  customPlan?: TimetableV2CustomPlanInput | null;
+};
+
+export type TimetableV2CustomPlanInput = {
+  name?: string;
+  templateId?: string | null;
+  stageId?: TimetableV2StageId | null;
+  gradeId?: string | null;
+  semesterId?: TimetableV2SemesterId | null;
+  saveForFuture?: boolean;
+  items: CustomCurriculumItemInput[];
 };
 
 export type CreateTimetableV2ProjectInput = {
@@ -176,6 +195,19 @@ function validateInput(
 
     classNames.add(className);
 
+    if (
+      classInput.customPlan
+    ) {
+      validateCustomPlanInput(
+        classInput.customPlan,
+        grade.id,
+        grade.stageId,
+        input.semester,
+      );
+
+      continue;
+    }
+
     const plan =
       getTimetableV2CurriculumPlanBySourceId(
         classInput.planSourceId,
@@ -207,6 +239,313 @@ function validateInput(
       );
     }
   }
+}
+
+function validateCustomPlanInput(
+  customPlan: TimetableV2CustomPlanInput,
+  gradeId: string,
+  stageId: TimetableV2StageId,
+  semester: TimetableV2SemesterId,
+) {
+  if (
+    customPlan.items.length === 0
+  ) {
+    throw new Error(
+      "CUSTOM_PLAN_EMPTY",
+    );
+  }
+
+  const validation =
+    validateTimetableV2CustomCurriculumItems(
+      customPlan.items,
+    );
+
+  if (
+    !validation.valid
+  ) {
+    throw new Error(
+      `CUSTOM_PLAN_INVALID:${validation.errors[0] ?? "بيانات الخطة غير صالحة."}`,
+    );
+  }
+
+  if (
+    customPlan.gradeId &&
+    customPlan.gradeId !==
+      gradeId
+  ) {
+    throw new Error(
+      "CUSTOM_PLAN_GRADE_MISMATCH",
+    );
+  }
+
+  if (
+    stageId === "HIGH" &&
+    customPlan.semesterId &&
+    customPlan.semesterId !==
+      semester
+  ) {
+    throw new Error(
+      "CUSTOM_PLAN_SEMESTER_MISMATCH",
+    );
+  }
+}
+
+type ResolvedClassCurriculum = {
+  planName: string;
+  planType: "SYSTEM" | "CUSTOM";
+  templateId: string | null;
+  subjects: Array<{
+    sourceName: string;
+    canonicalName: string;
+    weeklyPeriods: number;
+  }>;
+};
+
+function resolveSystemClassCurriculum(
+  classInput: TimetableV2CreateClassInput,
+  grade: {
+    id: string;
+    stageId: TimetableV2StageId;
+  },
+  semester: TimetableV2SemesterId,
+): ResolvedClassCurriculum {
+  const plan =
+    getTimetableV2CurriculumPlanBySourceId(
+      classInput.planSourceId,
+    );
+
+  if (!plan) {
+    throw new Error(
+      "CURRICULUM_PLAN_NOT_FOUND",
+    );
+  }
+
+  if (
+    plan.gradeId !==
+    grade.id
+  ) {
+    throw new Error(
+      "CURRICULUM_GRADE_MISMATCH",
+    );
+  }
+
+  if (
+    grade.stageId === "HIGH" &&
+    plan.semesterId &&
+    plan.semesterId !==
+      semester
+  ) {
+    throw new Error(
+      "CURRICULUM_SEMESTER_MISMATCH",
+    );
+  }
+
+  return {
+    planName: plan.sourceName,
+    planType: "SYSTEM",
+    templateId: null,
+    subjects: plan.subjects.map(
+      (subject) => ({
+        sourceName:
+          subject.sourceName,
+        canonicalName:
+          subject.canonicalName,
+        weeklyPeriods:
+          subject.weeklyPeriods,
+      }),
+    ),
+  };
+}
+
+async function resolveCustomClassCurriculum(
+  tx: Prisma.TransactionClient,
+  schoolAccountId: string,
+  grade: {
+    id: string;
+    name: string;
+    stageId: TimetableV2StageId;
+  },
+  classInput: TimetableV2CreateClassInput,
+): Promise<ResolvedClassCurriculum> {
+  const customPlan =
+    classInput.customPlan!;
+
+  let templateId =
+    customPlan.templateId ??
+    null;
+
+  let planName =
+    normalizeTimetableV2PlanText(
+      customPlan.name ?? "",
+    );
+
+  if (
+    customPlan.saveForFuture
+  ) {
+    if (!planName) {
+      throw new Error(
+        "CUSTOM_PLAN_NAME_REQUIRED",
+      );
+    }
+
+    if (templateId) {
+      const owned =
+        await tx.timetableCurriculumTemplate.findFirst(
+          {
+            where: {
+              id: templateId,
+              schoolAccountId,
+            },
+            select: {
+              id: true,
+            },
+          },
+        );
+
+      if (!owned) {
+        throw new Error(
+          "CUSTOM_PLAN_NOT_FOUND",
+        );
+      }
+
+      await tx.timetableCurriculumTemplate.update(
+        {
+          where: {
+            id: templateId,
+          },
+
+          data: {
+            name: planName,
+
+            stageId:
+              customPlan.stageId ??
+              null,
+
+            gradeId:
+              grade.id,
+
+            semesterId:
+              customPlan.semesterId ??
+              null,
+
+            items: {
+              deleteMany: {},
+
+              create:
+                buildTimetableV2TemplateItems(
+                  customPlan.items,
+                ),
+            },
+          },
+        },
+      );
+    } else {
+      const template =
+        await tx.timetableCurriculumTemplate.create(
+          {
+            data: {
+              schoolAccountId,
+
+              name: planName,
+
+              stageId:
+                customPlan.stageId ??
+                null,
+
+              gradeId:
+                grade.id,
+
+              semesterId:
+                customPlan.semesterId ??
+                null,
+
+              items: {
+                create:
+                  buildTimetableV2TemplateItems(
+                    customPlan.items,
+                  ),
+              },
+            },
+
+            select: {
+              id: true,
+            },
+          },
+        );
+
+      templateId = template.id;
+    }
+  } else if (templateId) {
+    const owned =
+      await tx.timetableCurriculumTemplate.findFirst(
+        {
+          where: {
+            id: templateId,
+            schoolAccountId,
+          },
+
+          include: {
+            items: {
+              orderBy: {
+                sortOrder: "asc",
+              },
+            },
+          },
+        },
+      );
+
+    if (!owned) {
+      throw new Error(
+        "CUSTOM_PLAN_NOT_FOUND",
+      );
+    }
+
+    if (
+      owned.gradeId &&
+      owned.gradeId !==
+        grade.id
+    ) {
+      throw new Error(
+        "CUSTOM_PLAN_GRADE_MISMATCH",
+      );
+    }
+
+    planName =
+      planName ||
+      owned.name;
+  }
+
+  if (!planName) {
+    planName = "خطة مخصصة";
+  }
+
+  return {
+    planName,
+    planType: "CUSTOM",
+    templateId,
+    subjects:
+      customPlan.items.map(
+        (item) => {
+          const subjectName =
+            normalizeTimetableV2PlanText(
+              item.subjectName ?? "",
+            );
+
+          return {
+            sourceName:
+              subjectName,
+
+            canonicalName:
+              getTimetableV2CanonicalSubjectName(
+                subjectName,
+              ),
+
+            weeklyPeriods:
+              item.weeklyLessons,
+          };
+        },
+      ),
+  };
 }
 
 export async function createTimetableV2Project(
@@ -314,6 +653,9 @@ export async function createTimetableV2Project(
         sectionName: string;
         planSourceId: string;
         planName: string;
+        planType?: "SYSTEM" | "CUSTOM";
+        planTemplateId?: string;
+        timestamp: string;
       }> = [];
 
       for (
@@ -339,16 +681,19 @@ export async function createTimetableV2Project(
         const className =
           `${grade.name} ${sectionName}`;
 
-        const plan =
-          getTimetableV2CurriculumPlanBySourceId(
-            classInput.planSourceId,
-          );
-
-        if (!plan) {
-          throw new Error(
-            "CURRICULUM_PLAN_NOT_FOUND",
-          );
-        }
+        const resolved =
+          classInput.customPlan
+            ? await resolveCustomClassCurriculum(
+                tx,
+                schoolAccountId,
+                grade,
+                classInput,
+              )
+            : resolveSystemClassCurriculum(
+                classInput,
+                grade,
+                input.semester,
+              );
 
         const classRecord =
           await tx.timetableClass.create(
@@ -366,7 +711,7 @@ export async function createTimetableV2Project(
 
         for (
           const planSubject of
-          plan.subjects
+          resolved.subjects
         ) {
           const canonicalName =
             normalizeText(
@@ -444,10 +789,20 @@ export async function createTimetableV2Project(
             sectionName,
 
             planSourceId:
-              plan.sourceId,
+              classInput.planSourceId,
 
             planName:
-              plan.sourceName,
+              resolved.planName,
+
+            planType:
+              resolved.planType,
+
+            planTemplateId:
+              resolved.templateId ??
+              undefined,
+
+            timestamp:
+              new Date().toISOString(),
           },
         );
       }

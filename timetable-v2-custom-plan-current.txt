@@ -1,3 +1,847 @@
+
+==================================================
+FILE: components\timetable-v2\custom-plan-editor.tsx
+==================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  normalizeTimetableV2PlanText,
+  normalizeTimetableV2SubjectKey,
+  validateTimetableV2CustomCurriculumItems,
+  type CustomCurriculumItemInput,
+  type SubjectBankEntry,
+  type TimetableV2SemesterId,
+  type TimetableV2StageId,
+} from "@/lib/timetable-v2";
+
+export type CustomPlanDraft = {
+  name: string;
+  templateId: string | null;
+  saved: boolean;
+  saveForFuture: boolean;
+  items: CustomCurriculumItemInput[];
+};
+
+type CustomPlanEditorProps = {
+  draft: CustomPlanDraft;
+  stageId: TimetableV2StageId;
+  gradeId: string;
+  semester: TimetableV2SemesterId;
+  subjects: SubjectBankEntry[];
+  subjectsLoading: boolean;
+  onDraftChange: (
+    next: CustomPlanDraft,
+  ) => void;
+  onClose: () => void;
+  onAddSubject: (
+    name: string,
+  ) => Promise<SubjectBankEntry>;
+  onSaveForFuture: (
+    payload: {
+      name: string;
+      templateId: string | null;
+      stageId: TimetableV2StageId | null;
+      gradeId: string | null;
+      semesterId: TimetableV2SemesterId | null;
+      items: CustomCurriculumItemInput[];
+    },
+  ) => Promise<{
+    templateId: string;
+  }>;
+};
+
+const fieldClasses =
+  "h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-teal-400 dark:focus:ring-teal-950";
+
+export function TimetableV2CustomPlanEditor({
+  draft,
+  stageId,
+  gradeId,
+  semester,
+  subjects,
+  subjectsLoading,
+  onDraftChange,
+  onClose,
+  onAddSubject,
+  onSaveForFuture,
+}: CustomPlanEditorProps) {
+  const [search, setSearch] =
+    useState("");
+
+  const [newSubject, setNewSubject] =
+    useState("");
+
+  const [feedback, setFeedback] =
+    useState<{
+      tone:
+        | "error"
+        | "success";
+      message: string;
+    } | null>(null);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [addingSubject, setAddingSubject] =
+    useState(false);
+
+  const validation =
+    useMemo(
+      () =>
+        validateTimetableV2CustomCurriculumItems(
+          draft.items,
+        ),
+      [draft.items],
+    );
+
+  const filteredSubjects =
+    useMemo(() => {
+      const query =
+        normalizeTimetableV2PlanText(
+          search,
+        );
+
+      if (!query) {
+        return subjects;
+      }
+
+      return subjects.filter(
+        (subject) =>
+          subject.name.includes(
+            query,
+          ),
+      );
+    }, [
+      search,
+      subjects,
+    ]);
+
+  const normalizedItemKeys =
+    useMemo(
+      () =>
+        new Set(
+          draft.items.map(
+            (item) =>
+              normalizeTimetableV2SubjectKey(
+                item.subjectName ?? "",
+              ),
+          ),
+        ),
+      [draft.items],
+    );
+
+  const addSubjectItem = (
+    name: string,
+  ) => {
+    const subjectName =
+      normalizeTimetableV2PlanText(
+        name ?? "",
+      );
+
+    if (!subjectName) {
+      setFeedback({
+        tone: "error",
+        message:
+          "أدخل اسم المادة.",
+      });
+      return;
+    }
+
+    if (
+      draft.items.length >= 60
+    ) {
+      setFeedback({
+        tone: "error",
+        message:
+          "لا يمكن إضافة أكثر من 60 مادة في الخطة المخصصة.",
+      });
+      return;
+    }
+
+    const key =
+      normalizeTimetableV2SubjectKey(
+        subjectName,
+      );
+
+    if (
+      normalizedItemKeys.has(key)
+    ) {
+      setFeedback({
+        tone: "error",
+        message:
+          "هذه المادة مضافة بالفعل في الخطة.",
+      });
+      return;
+    }
+
+    onDraftChange({
+      ...draft,
+      items: [
+        ...draft.items,
+        {
+          subjectName,
+          weeklyLessons: 2,
+          singlePeriods: 2,
+          doublePeriods: 0,
+        },
+      ],
+    });
+
+    setFeedback(null);
+  };
+
+  const handleAddNewSubject =
+    async () => {
+      if (addingSubject) {
+        return;
+      }
+
+      const name =
+        normalizeTimetableV2PlanText(
+          newSubject,
+        );
+
+      if (!name) {
+        setFeedback({
+          tone: "error",
+          message:
+            "أدخل اسم المادة لإضافتها إلى بنك المواد.",
+        });
+        return;
+      }
+
+      setAddingSubject(true);
+
+      try {
+        const entry =
+          await onAddSubject(
+            name,
+          );
+
+        addSubjectItem(
+          entry.name,
+        );
+
+        setNewSubject("");
+      } catch (error) {
+        setFeedback({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "تعذر إضافة المادة.",
+        });
+      } finally {
+        setAddingSubject(false);
+      }
+    };
+
+  const updateItem = (
+    index: number,
+    patch: Partial<CustomCurriculumItemInput>,
+  ) => {
+    onDraftChange({
+      ...draft,
+      items: draft.items.map(
+        (item, itemIndex) =>
+          itemIndex === index
+            ? {
+                ...item,
+                ...patch,
+              }
+            : item,
+      ),
+    });
+
+    setFeedback(null);
+  };
+
+  const removeItem = (
+    index: number,
+  ) => {
+    onDraftChange({
+      ...draft,
+      items: draft.items.filter(
+        (_, itemIndex) =>
+          itemIndex !== index,
+      ),
+    });
+
+    setFeedback(null);
+  };
+
+  const handleSaveForFuture =
+    async () => {
+      if (saving) {
+        return;
+      }
+
+      if (
+        !validation.valid
+      ) {
+        setFeedback({
+          tone: "error",
+          message:
+            validation.errors[0] ??
+            "تحقق من بيانات الخطة قبل الحفظ.",
+        });
+        return;
+      }
+
+      const name =
+        normalizeTimetableV2PlanText(
+          draft.name,
+        );
+
+      if (!name) {
+        setFeedback({
+          tone: "error",
+          message:
+            "أدخل اسمًا للخطة الدراسية حتى يمكن حفظها.",
+        });
+        return;
+      }
+
+      setSaving(true);
+      setFeedback(null);
+
+      try {
+        const result =
+          await onSaveForFuture({
+            name,
+            templateId:
+              draft.templateId,
+
+            stageId:
+              stageId ?? null,
+
+            gradeId:
+              gradeId ?? null,
+
+            semesterId:
+              stageId === "HIGH"
+                ? semester
+                : null,
+
+            items: draft.items,
+          });
+
+        onDraftChange({
+          ...draft,
+          name,
+          templateId:
+            result.templateId,
+          saved: true,
+          saveForFuture: true,
+        });
+
+        setFeedback({
+          tone: "success",
+          message:
+            "تم حفظ الخطة لاستخدامها في مشاريع قادمة.",
+        });
+      } catch (error) {
+        setFeedback({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "تعذر حفظ الخطة.",
+        });
+      } finally {
+        setSaving(false);
+      }
+    };
+
+  const itemCountLabel =
+    `${draft.items.length} ${
+      draft.items.length === 1
+        ? "مادة"
+        : draft.items.length === 2
+          ? "مادتان"
+          : draft.items.length >= 3 &&
+              draft.items.length <= 10
+            ? "مواد"
+            : "مادة"
+    }`;
+
+  return (
+    <div
+      className="mt-3 rounded-2xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-900 dark:bg-teal-950/20"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-black text-teal-800 dark:text-teal-200">
+              إنشاء خطة دراسية مخصصة
+            </span>
+
+            <span className="rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-black text-white dark:bg-teal-400 dark:text-teal-950">
+              مخصصة
+            </span>
+          </div>
+
+          <p className="mt-1 text-xs leading-6 text-slate-600 dark:text-slate-300">
+            ابنِ الخطة من بنك المواد وحدد تركيب الحصص. يمكنك حفظها
+            كقالب لإعادة استخدامها في مشاريع قادمة.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          إلغاء
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <label className="space-y-2">
+          <span className="block text-xs font-black text-slate-700 dark:text-slate-200">
+            اسم الخطة
+          </span>
+
+          <input
+            value={draft.name}
+            onChange={(event) =>
+              onDraftChange({
+                ...draft,
+                name: event.target.value,
+              })
+            }
+            placeholder="مثال: خطة الصف الثالث الأساسي"
+            maxLength={120}
+            className={fieldClasses}
+          />
+        </label>
+
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={
+              handleSaveForFuture
+            }
+            disabled={
+              saving ||
+              subjectsLoading
+            }
+            className={[
+              "inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50",
+              draft.saved
+                ? "border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70"
+                : "border border-teal-600 bg-teal-700 text-white hover:bg-teal-800 dark:border-teal-500 dark:bg-teal-600 dark:hover:bg-teal-500",
+            ].join(" ")}
+          >
+            {saving
+              ? "جاري الحفظ..."
+              : draft.saved
+                ? "تحديث الخطة المحفوظة"
+                : "حفظ الخطة لاستخدامها مستقبلًا"}
+          </button>
+        </div>
+      </div>
+
+      {draft.saved ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+            محفوظة ضمن خطط مدرستي
+          </span>
+
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={
+                draft.saveForFuture
+              }
+              onChange={(event) =>
+                onDraftChange({
+                  ...draft,
+                  saveForFuture:
+                    event.target.checked,
+                })
+              }
+              className="h-4 w-4 accent-teal-600"
+            />
+            حفظ الخطة لاستخدامها مستقبلًا
+          </label>
+        </div>
+      ) : null}
+
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">
+              بنك المواد
+            </h4>
+
+            <p className="mt-0.5 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+              ابحث عن مادة موجودة أو أضف مادة جديدة لمدرستك.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-black text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
+            {itemCountLabel}
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <label className="space-y-1.5">
+            <span className="block text-[11px] font-black text-slate-500 dark:text-slate-400">
+              ابحث في البنك
+            </span>
+
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value,
+                )
+              }
+              placeholder="مثال: رياضيات، لغة عربية..."
+              className={fieldClasses}
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="block text-[11px] font-black text-slate-500 dark:text-slate-400">
+              إضافة مادة جديدة
+            </span>
+
+            <div className="flex gap-2">
+              <input
+                value={newSubject}
+                onChange={(event) =>
+                  setNewSubject(
+                    event.target.value,
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (
+                    event.key ===
+                    "Enter"
+                  ) {
+                    event.preventDefault();
+                    handleAddNewSubject();
+                  }
+                }}
+                placeholder="اسم المادة"
+                maxLength={120}
+                className={[
+                  fieldClasses,
+                  "w-full",
+                ].join(" ")}
+              />
+
+              <button
+                type="button"
+                onClick={
+                  handleAddNewSubject
+                }
+                disabled={
+                  addingSubject
+                }
+                className="h-10 shrink-0 rounded-xl bg-slate-900 px-4 text-xs font-black text-white transition hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+              >
+                {addingSubject
+                  ? "جاري الإضافة..."
+                  : "إضافة مادة جديدة"}
+              </button>
+            </div>
+          </label>
+        </div>
+
+        <div className="mt-3 max-h-44 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-950/40">
+          {subjectsLoading ? (
+            <div className="px-3 py-6 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              جاري تحميل بنك المواد...
+            </div>
+          ) : filteredSubjects.length ===
+            0 ? (
+            <div className="px-3 py-6 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              لا توجد مواد مطابقة. أضف مادة جديدة أو غيّر البحث.
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {filteredSubjects.map(
+                (subject) => {
+                  const alreadyAdded =
+                    normalizedItemKeys.has(
+                      normalizeTimetableV2SubjectKey(
+                        subject.name,
+                      ),
+                    );
+
+                  return (
+                    <button
+                      key={subject.key}
+                      type="button"
+                      disabled={
+                        alreadyAdded
+                      }
+                      onClick={() =>
+                        addSubjectItem(
+                          subject.name,
+                        )
+                      }
+                      className={[
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black transition",
+                        alreadyAdded
+                          ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-teal-600 dark:hover:bg-teal-950/40 dark:hover:text-teal-200",
+                      ].join(" ")}
+                    >
+                      {subject.isSystem ? (
+                        <span
+                          className="text-[10px] text-slate-400 dark:text-slate-500"
+                          title="من المنهج المعتمد"
+                        >
+                          م
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[10px] text-teal-600 dark:text-teal-400"
+                          title="من مواد مدرستك"
+                        >
+                          م
+                        </span>
+                      )}
+
+                      {subject.name}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+          <div>
+            <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">
+              المواد المختارة
+            </h4>
+
+            <p className="mt-0.5 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+              تأكد أن المفردة + (المتتالية × 2) تساوي الحصص الأسبوعية.
+            </p>
+          </div>
+        </div>
+
+        {draft.items.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <div className="text-sm font-black text-slate-600 dark:text-slate-300">
+              لم تُختر مواد بعد
+            </div>
+
+            <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
+              ابدأ بالضغط على مادة من بنك المواد أعلاه.
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead className="bg-slate-50 text-[11px] text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-right">
+                    المادة
+                  </th>
+                  <th className="px-3 py-3 text-center">
+                    مفردة
+                  </th>
+                  <th className="px-3 py-3 text-center">
+                    متتالية
+                  </th>
+                  <th className="px-3 py-3 text-center">
+                    أسبوعيًا
+                  </th>
+                  <th className="px-3 py-3 text-center" />
+                </tr>
+              </thead>
+
+              <tbody>
+                {draft.items.map(
+                  (item, index) => (
+                    <tr
+                      key={`${index}-${item.subjectName}`}
+                      className="border-t border-slate-100 dark:border-slate-800"
+                    >
+                      <td className="px-4 py-2.5">
+                        <input
+                          value={
+                            item.subjectName
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            updateItem(
+                              index,
+                              {
+                                subjectName:
+                                  event
+                                    .target
+                                    .value,
+                              },
+                            )
+                          }
+                          aria-label="اسم المادة"
+                          className={[
+                            fieldClasses,
+                            "w-full min-w-32",
+                          ].join(" ")}
+                        />
+                      </td>
+
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          max={60}
+                          value={
+                            item.singlePeriods
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            updateItem(
+                              index,
+                              {
+                                singlePeriods:
+                                  Math.max(
+                                    0,
+                                    Math.min(
+                                      60,
+                                      Number(
+                                        event
+                                          .target
+                                          .value,
+                                      ) ||
+                                        0,
+                                    ),
+                                  ),
+                              },
+                            )
+                          }
+                          aria-label="الحصص المفردة"
+                          className={[
+                            fieldClasses,
+                            "w-16 text-center",
+                          ].join(" ")}
+                        />
+                      </td>
+
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={
+                            item.doublePeriods
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            updateItem(
+                              index,
+                              {
+                                doublePeriods:
+                                  Math.max(
+                                    0,
+                                    Math.min(
+                                      30,
+                                      Number(
+                                        event
+                                          .target
+                                          .value,
+                                      ) ||
+                                        0,
+                                    ),
+                                  ),
+                              },
+                            )
+                          }
+                          aria-label="الحصص المتتالية"
+                          className={[
+                            fieldClasses,
+                            "w-16 text-center",
+                          ].join(" ")}
+                        />
+                      </td>
+
+                      <td className="px-3 py-2.5 text-center font-black text-teal-700 dark:text-teal-300">
+                        {item.weeklyLessons}
+                      </td>
+
+                      <td className="px-3 py-2.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeItem(
+                              index,
+                            )
+                          }
+                          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-black text-rose-600 transition hover:bg-rose-50 dark:border-slate-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                        >
+                          إزالة
+                        </button>
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {!validation.valid ? (
+        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold leading-6 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+          <ul className="list-inside space-y-1">
+            {validation.errors.map(
+              (error, index) => (
+                <li
+                  key={`${error}-${index}`}
+                >
+                  {error}
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
+      ) : null}
+
+      {feedback ? (
+        <div
+          className={[
+            "mt-3 rounded-xl border px-4 py-3 text-xs font-bold leading-6",
+            feedback.tone === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+          ].join(" ")}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+
+==================================================
+FILE: components\timetable-v2\custom-curriculum-editor.tsx
+==================================================
+NOT FOUND
+
+==================================================
+FILE: components\timetable-v2\project-setup-wizard.tsx
+==================================================
 "use client";
 
 import {
@@ -3114,4 +3958,711 @@ export function TimetableV2ProjectSetupWizard() {
       </section>
     </div>
   );
+}
+
+
+==================================================
+FILE: lib\timetable-v2\custom-curriculum-types.ts
+==================================================
+import type {
+  TimetableV2CurriculumPlan,
+  TimetableV2CurriculumSubject,
+} from "./curriculum-catalog";
+
+import {
+  getTimetableV2CanonicalSubjectName,
+  type TimetableV2SemesterId,
+} from "./curriculum-catalog";
+
+import type { TimetableV2StageId } from "./project-setup";
+
+export type CustomCurriculumItemInput = {
+  subjectName: string;
+  weeklyLessons: number;
+  singlePeriods: number;
+  doublePeriods: number;
+};
+
+export type CustomCurriculumPlanPayload = {
+  name: string;
+  templateId: string | null;
+  stageId: TimetableV2StageId | null;
+  gradeId: string | null;
+  semesterId: TimetableV2SemesterId | null;
+  saveForFuture: boolean;
+  items: CustomCurriculumItemInput[];
+};
+
+export type SubjectBankEntry = {
+  key: string;
+  name: string;
+  isSystem: boolean;
+};
+
+export type SchoolCurriculumTemplateSummary = {
+  id: string;
+  name: string;
+  stageId: string | null;
+  gradeId: string | null;
+  semesterId: string | null;
+  subjectCount: number;
+  totalWeeklyLessons: number;
+  items: CustomCurriculumItemInput[];
+  updatedAt: string;
+};
+
+export type CustomCurriculumValidation = {
+  valid: boolean;
+  errors: string[];
+};
+
+export const TIMETABLE_V2_CUSTOM_PLAN_MAX_ITEMS = 60;
+
+export const TIMETABLE_V2_CUSTOM_PLAN_MAX_NAME = 120;
+
+export const TIMETABLE_V2_CUSTOM_PLAN_MAX_WEEKLY_LESSONS = 60;
+
+export function normalizeTimetableV2SubjectKey(
+  value: string,
+) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ");
+}
+
+export function normalizeTimetableV2PlanText(
+  value: string,
+) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function validateTimetableV2CustomCurriculumItems(
+  items: CustomCurriculumItemInput[],
+): CustomCurriculumValidation {
+  const errors: string[] = [];
+
+  if (items.length === 0) {
+    errors.push("أضف مادة واحدة على الأقل قبل حفظ الخطة.");
+    return { valid: false, errors };
+  }
+
+  if (
+    items.length >
+    TIMETABLE_V2_CUSTOM_PLAN_MAX_ITEMS
+  ) {
+    errors.push(
+      `لا يمكن أن تتجاوز الخطة ${TIMETABLE_V2_CUSTOM_PLAN_MAX_ITEMS} مادة.`,
+    );
+    return { valid: false, errors };
+  }
+
+  const seen = new Map<
+    string,
+    string
+  >();
+
+  items.forEach((item, index) => {
+    const subjectName = normalizeTimetableV2PlanText(
+      item.subjectName ?? "",
+    );
+
+    if (!subjectName) {
+      errors.push(
+        `المادة رقم ${index + 1} بدون اسم.`,
+      );
+      return;
+    }
+
+    const key =
+      normalizeTimetableV2SubjectKey(
+        subjectName,
+      );
+
+    if (seen.has(key)) {
+      errors.push(
+        `المادة «${subjectName}» مكررة داخل الخطة.`,
+      );
+      return;
+    }
+
+    seen.set(key, subjectName);
+
+    const weeklyLessons =
+      item.weeklyLessons;
+    const singlePeriods =
+      item.singlePeriods;
+    const doublePeriods =
+      item.doublePeriods;
+
+    if (
+      !Number.isInteger(
+        weeklyLessons,
+      ) ||
+      weeklyLessons < 1 ||
+      weeklyLessons >
+        TIMETABLE_V2_CUSTOM_PLAN_MAX_WEEKLY_LESSONS
+    ) {
+      errors.push(
+        `الحصص الأسبوعية لـ«${subjectName}» غير صالحة.`,
+      );
+    }
+
+    if (
+      !Number.isInteger(
+        singlePeriods,
+      ) ||
+      singlePeriods < 0 ||
+      singlePeriods >
+        TIMETABLE_V2_CUSTOM_PLAN_MAX_WEEKLY_LESSONS
+    ) {
+      errors.push(
+        `الحصص المفردة لـ«${subjectName}» غير صالحة.`,
+      );
+    }
+
+    if (
+      !Number.isInteger(
+        doublePeriods,
+      ) ||
+      doublePeriods < 0 ||
+      doublePeriods *
+        2 >
+        TIMETABLE_V2_CUSTOM_PLAN_MAX_WEEKLY_LESSONS
+    ) {
+      errors.push(
+        `الحصص المتتالية لـ«${subjectName}» غير صالحة.`,
+      );
+    }
+
+    if (
+      singlePeriods +
+        doublePeriods * 2 !==
+      weeklyLessons
+    ) {
+      errors.push(
+        `تركيب حصص «${subjectName}» غير متطابق: المفردة + (المتتالية × 2) يجب أن تساوي الحصص الأسبوعية.`,
+      );
+    }
+  });
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+export function buildTimetableV2TemplateItems(
+  items: CustomCurriculumItemInput[],
+) {
+  return items.map((item, index) => ({
+    subjectName:
+      normalizeTimetableV2PlanText(
+        item.subjectName ?? "",
+      ),
+
+    weeklyLessons:
+      item.weeklyLessons,
+
+    singlePeriods:
+      item.singlePeriods,
+
+    doublePeriods:
+      item.doublePeriods,
+
+    sortOrder: index,
+  }));
+}
+
+export function createTimetableV2CustomCurriculumPlan(input: {
+  sourceId: string;
+  name: string;
+  stageId: TimetableV2StageId;
+  gradeId: string;
+  semesterId: TimetableV2SemesterId | null;
+  items: CustomCurriculumItemInput[];
+}): TimetableV2CurriculumPlan {
+  const subjects: TimetableV2CurriculumSubject[] =
+    input.items.map((item) => {
+      const subjectName =
+        normalizeTimetableV2PlanText(
+          item.subjectName ?? "",
+        );
+
+      return {
+        sourceName: subjectName,
+
+        canonicalName:
+          getTimetableV2CanonicalSubjectName(
+            subjectName,
+          ),
+
+        oddClasses:
+          item.singlePeriods,
+
+        evenClasses:
+          item.doublePeriods,
+
+        weeklyPeriods:
+          item.weeklyLessons,
+      };
+    });
+
+  return {
+    sourceId: input.sourceId,
+    sourceName: input.name,
+    stageId: input.stageId,
+    gradeId: input.gradeId,
+    trackId: "GENERAL",
+    semesterId: input.semesterId,
+    subjects,
+    totalWeeklyPeriods:
+      input.items.reduce(
+        (sum, item) =>
+          sum +
+          item.weeklyLessons,
+        0,
+      ),
+  };
+}
+
+export function getTimetableV2CustomPlanSourceId(
+  templateId: string,
+) {
+  return `CUSTOM:${templateId}`;
+}
+
+export function isTimetableV2CustomPlanSourceId(
+  sourceId: string,
+) {
+  return sourceId.startsWith("CUSTOM:");
+}
+
+export function getTimetableV2CustomPlanTemplateIdFromSourceId(
+  sourceId: string,
+) {
+  return sourceId.startsWith("CUSTOM:")
+    ? sourceId.slice("CUSTOM:".length) || null
+    : null;
+}
+
+
+==================================================
+FILE: lib\timetable-v2\curriculum-template-service.ts
+==================================================
+NOT FOUND
+
+==================================================
+FILE: lib\timetable-v2\subject-bank-service.ts
+==================================================
+NOT FOUND
+
+==================================================
+FILE: app\api\dashboard\principal\timetable-v2\subject-bank\route.ts
+==================================================
+import {
+  NextResponse,
+} from "next/server";
+
+import {
+  z,
+} from "zod";
+
+import {
+  requireTimetableApiAccess,
+} from "@/lib/timetable/timetable-access";
+
+import {
+  addTimetableV2SchoolSubject,
+  listTimetableV2SubjectBank,
+} from "@/lib/timetable-v2/custom-curriculum-service";
+
+const addSubjectSchema =
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120),
+  });
+
+export async function GET() {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  try {
+    const bank =
+      await listTimetableV2SubjectBank(
+        access.schoolAccountId!,
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        subjects: bank.subjects,
+      },
+    );
+  } catch (error) {
+    console.error(
+      "Failed to list subject bank",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "تعذر تحميل بنك المواد حاليًا.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}
+
+export async function POST(
+  request: Request,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const body =
+    await request
+      .json()
+      .catch(() => null);
+
+  const parsed =
+    addSubjectSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "اسم المادة مطلوب ويجب ألا يتجاوز 120 حرفًا.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  try {
+    const entry =
+      await addTimetableV2SchoolSubject(
+        access.schoolAccountId!,
+        parsed.data.name,
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        subject: entry,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    const code =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
+
+    const messages: Record<
+      string,
+      string
+    > = {
+      SUBJECT_NAME_REQUIRED:
+        "أدخل اسم المادة.",
+
+      SUBJECT_NAME_TOO_LONG:
+        "اسم المادة طويل جدًا.",
+    };
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          messages[code] ||
+          "تعذر إضافة المادة حاليًا.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}
+
+
+==================================================
+FILE: app\api\dashboard\principal\timetable-v2\curriculum-templates\route.ts
+==================================================
+import {
+  NextResponse,
+} from "next/server";
+
+import {
+  z,
+} from "zod";
+
+import {
+  requireTimetableApiAccess,
+} from "@/lib/timetable/timetable-access";
+
+import {
+  createTimetableV2SchoolCurriculumTemplate,
+  listTimetableV2SchoolCurriculumTemplates,
+} from "@/lib/timetable-v2/custom-curriculum-service";
+
+const createTemplateSchema =
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120),
+
+    stageId: z
+      .enum([
+        "ELEMENTARY",
+        "MIDDLE",
+        "HIGH",
+      ])
+      .nullable()
+      .optional(),
+
+    gradeId: z
+      .string()
+      .max(40)
+      .nullable()
+      .optional(),
+
+    semesterId: z
+      .enum([
+        "FIRST",
+        "SECOND",
+      ])
+      .nullable()
+      .optional(),
+
+    items: z
+      .array(
+        z.object({
+          subjectName: z
+            .string()
+            .trim()
+            .min(1)
+            .max(120),
+
+          weeklyLessons: z
+            .number()
+            .int()
+            .min(1)
+            .max(60),
+
+          singlePeriods: z
+            .number()
+            .int()
+            .min(0)
+            .max(60),
+
+          doublePeriods: z
+            .number()
+            .int()
+            .min(0)
+            .max(30),
+        }),
+      )
+      .min(1)
+      .max(60),
+  });
+
+function errorMessage(
+  error: unknown,
+) {
+  const code =
+    error instanceof Error
+      ? error.message
+      : "UNKNOWN";
+
+  const messages: Record<
+    string,
+    string
+  > = {
+    CUSTOM_PLAN_NAME_REQUIRED:
+      "أدخل اسمًا للخطة الدراسية المخصصة.",
+
+    CUSTOM_PLAN_NAME_TOO_LONG:
+      "اسم الخطة الدراسية المخصصة طويل جدًا.",
+
+    CUSTOM_PLAN_EMPTY:
+      "يجب اختيار مادة واحدة على الأقل في الخطة المخصصة.",
+
+    CUSTOM_PLAN_TOO_MANY_SUBJECTS:
+      "لا يمكن إضافة أكثر من 60 مادة في الخطة المخصصة.",
+
+    CUSTOM_PLAN_INVALID:
+      "بيانات الخطة المخصصة غير صالحة.",
+  };
+
+  const customCode =
+    code.startsWith(
+      "CUSTOM_PLAN_INVALID:",
+    );
+
+  return customCode
+    ? code.slice(
+        "CUSTOM_PLAN_INVALID:"
+          .length,
+      )
+    : messages[code] ??
+        "تعذر حفظ الخطة حاليًا.";
+}
+
+export async function GET(
+  request: Request,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const { searchParams } =
+    new URL(request.url);
+
+  const gradeId =
+    searchParams.get(
+      "gradeId",
+    );
+
+  try {
+    const templates =
+      await listTimetableV2SchoolCurriculumTemplates(
+        access.schoolAccountId!,
+        {
+          gradeId:
+            gradeId ?? undefined,
+        },
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        templates,
+      },
+    );
+  } catch (error) {
+    console.error(
+      "Failed to list curriculum templates",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "تعذر تحميل الخطط المحفوظة حاليًا.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+}
+
+export async function POST(
+  request: Request,
+) {
+  const access =
+    await requireTimetableApiAccess();
+
+  if (!access.ok) {
+    return access.response;
+  }
+
+  const body =
+    await request
+      .json()
+      .catch(() => null);
+
+  const parsed =
+    createTemplateSchema.safeParse(
+      body,
+    );
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "بيانات الخطة المخصصة غير صالحة.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  try {
+    const template =
+      await createTimetableV2SchoolCurriculumTemplate(
+        access.schoolAccountId!,
+        {
+          name: parsed.data.name,
+
+          stageId:
+            parsed.data.stageId ??
+            null,
+
+          gradeId:
+            parsed.data.gradeId ??
+            null,
+
+          semesterId:
+            parsed.data.semesterId ??
+            null,
+
+          items: parsed.data.items,
+        },
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        template,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          errorMessage(error),
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 }

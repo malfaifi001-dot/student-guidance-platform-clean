@@ -3,6 +3,7 @@ export * from "./project-validation";
 export * from "./project-blueprint";
 export * from "./curriculum-catalog";
 export * from "./project-curriculum";
+export * from "./custom-curriculum-types";
 
 export * from "./generation/generation-domain";
 export * from "./generation/generation-engine";

@@ -217,6 +217,8 @@ model SchoolAccount {
   timetableDailyAbsences     TimetableDailyAbsence[]
   timetableSubstitutions     TimetableSubstitution[]
   timetableSupervisionDuties TimetableSupervisionDuty[]
+  timetableSubjectBank       TimetableSubjectBankEntry[]
+  timetableCurriculumTemplates TimetableCurriculumTemplate[]
 }
 
 model User {
@@ -2246,6 +2248,63 @@ model TimetableClassSubject {
   @@index([projectId])
   @@index([classId])
   @@index([subjectId])
+}
+
+model TimetableSubjectBankEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, name])
+  @@index([schoolAccountId])
+}
+
+model TimetableCurriculumTemplate {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name String
+
+  stageId    String?
+  gradeId    String?
+  semesterId String?
+
+  items TimetableCurriculumTemplateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([gradeId])
+}
+
+model TimetableCurriculumTemplateItem {
+  id String @id @default(cuid())
+
+  templateId String
+  template   TimetableCurriculumTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  subjectName String
+
+  weeklyLessons Int
+  singlePeriods Int
+  doublePeriods Int
+
+  sortOrder Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, subjectName])
+  @@index([templateId])
 }
 
 model TimetableAssignment {
