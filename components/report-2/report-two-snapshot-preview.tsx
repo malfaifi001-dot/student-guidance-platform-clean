@@ -1,5 +1,7 @@
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
 import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import { Trash2 } from "lucide-react";
 
@@ -8,6 +10,7 @@ type SnapshotForDownload = {
   reportTitle: string;
   snapshotTemplateJson?: unknown;
   snapshotPagesJson?: unknown;
+  snapshotPayload?: unknown;
   renderContext?: unknown;
   previewCase?: unknown;
   variantId?: string | null;
@@ -61,11 +64,27 @@ export function ReportTwoSnapshotPreview({
       typeof snapshot.snapshotTemplateJson === "object",
   );
 
+  if (printMode && canRenderStructured) {
+    return (
+      <ReportTwoPrintDocument
+        snapshot={{
+          template: snapshot.snapshotTemplateJson,
+          context: (snapshot.renderContext || {}) as Record<string, string>,
+          previewCase: snapshot.previewCase || null,
+          sourcePayload: snapshot.snapshotPayload,
+          variantId: snapshot.variantId,
+        }}
+        autoPrint
+      />
+    );
+  }
+
   return (
     <main
       className={printMode ? "bg-white" : "px-6 py-8"}
       dir="rtl"
     >
+      {printMode ? <ReportTwoSnapshotPrintController /> : null}
       <style>{`
         @page {
           size: A4;

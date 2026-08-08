@@ -88,6 +88,8 @@ function getServiceDisplayName(slug?: string | null) {
     "student-follow-up": "متابعة الطلبة والمواقف اليومية الطارئة",
     "student-guidance-services": "خدمات التوجيه الطلابي",
     "family-school-communication": "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+    "student-guidance-evaluation-indicators":
+      "مؤشرات التوجيه الطلابي للتقويم المدرسي والتقويم الخارجي",
     surveys: "الاستبيانات",
     "results-analysis": "تحليل النتائج",
     "assessment-center": "مركز التحليل والاختبارات",

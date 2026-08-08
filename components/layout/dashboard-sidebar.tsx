@@ -21,6 +21,7 @@ import {
   FilePlus2,
   FileText,
   FolderKanban,
+  Gauge,
   GitBranch,
   Home,
   KeyRound,
@@ -103,6 +104,12 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     label: "مكتبة الموجه الطلابي",
     href: "/dashboard/counselor-reference-library",
     icon: BookOpen,
+  },
+  {
+    label: "مؤشرات التوجيه الطلابي للتقويم المدرسي والتقويم الخارجي",
+    href: "/dashboard/student-guidance-evaluation-indicators",
+    icon: Gauge,
+    shortLabel: "المؤشرات",
   },
   {
     label: "الإحصائيات",

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
@@ -21,6 +22,17 @@ export function ReportTwoActivePreviewRenderer({ template, context, previewCase,
   ) as any;
   const pages = Array.isArray(displayTemplate?.pages) ? displayTemplate.pages : [];
   const activePage = pages[0] || null;
+  const designId = isReportDesignId(displayTemplate?.designTemplateId)
+    ? displayTemplate.designTemplateId
+    : null;
+
+  if (!designId) {
+    return (
+      <section className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ.
+      </section>
+    );
+  }
 
   return (
     <section
@@ -38,7 +50,7 @@ export function ReportTwoActivePreviewRenderer({ template, context, previewCase,
         suppressAutoEvidencePages
         renderMode="stack"
         chromeLayout="split"
-        designId={displayTemplate?.designTemplateId || "ministry-form"}
+        designId={designId}
         template={displayTemplate}
         activePage={activePage}
         activePageId={activePage?.id || ""}

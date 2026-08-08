@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useState } from "react";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 
 type SnapshotInfo = {
   caseEntryId: string;
@@ -9,6 +10,7 @@ type SnapshotInfo = {
   snapshotPagesJson?: unknown;
   renderContext?: unknown;
   previewCase?: unknown;
+  snapshotPayload?: unknown;
   variantId?: string | null;
 };
 
@@ -29,20 +31,28 @@ function formatFileName(value: string) {
   );
 }
 
-function getPages(
+function getPrintableTemplate(
   templateJson: unknown,
   pagesJson: unknown,
-): unknown[] | null {
+): Record<string, unknown> | null {
   if (templateJson && typeof templateJson === "object") {
     const obj = templateJson as Record<string, unknown>;
+    const pages =
+      Array.isArray(obj.pages) && obj.pages.length > 0
+        ? obj.pages
+        : Array.isArray(pagesJson) && pagesJson.length > 0
+          ? pagesJson
+          : null;
 
-    if (Array.isArray(obj.pages) && obj.pages.length > 0) {
-      return obj.pages as unknown[];
+    if (
+      isReportDesignId(obj.designTemplateId) &&
+      pages
+    ) {
+      return {
+        ...obj,
+        pages,
+      };
     }
-  }
-
-  if (Array.isArray(pagesJson) && pagesJson.length > 0) {
-    return pagesJson as unknown[];
   }
 
   return null;
@@ -83,12 +93,12 @@ export function ReportTwoPdfDownloadButton({
     setFallbackState(null);
 
     try {
-      const pages = getPages(
+      const printableTemplate = getPrintableTemplate(
         snapshot.snapshotTemplateJson,
         snapshot.snapshotPagesJson,
       );
 
-      if (!pages) {
+      if (!printableTemplate) {
         setFallbackState({
           message: "تعذر إنشاء معاينة الطباعة لهذا التقرير. حاول مرة أخرى.",
         });
@@ -96,9 +106,11 @@ export function ReportTwoPdfDownloadButton({
       }
 
       const exportSnapshot: Record<string, unknown> = {
-        template: { pages },
+        template: printableTemplate,
         context: snapshot.renderContext || {},
         previewCase: snapshot.previewCase || null,
+        sourcePayload: snapshot.snapshotPayload,
+        designTemplateId: printableTemplate.designTemplateId,
         variantId: snapshot.variantId || null,
       };
 

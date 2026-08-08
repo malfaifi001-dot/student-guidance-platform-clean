@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
 import {
-  normalizeDesignId,
   getDesignLogoSrc,
   getReportHeaderSettingsStyle,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { SmartPhysicalReportComposer } from "@/components/report-engine/design-renderers/smart-layout/report-smart-physical-pages";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -17,6 +18,7 @@ type PrintDocumentSnapshot = {
   template: any;
   context: Record<string, string>;
   previewCase: any;
+  sourcePayload?: unknown;
   designTemplateId?: ReportDesignId;
   variantId?: string | null;
 };
@@ -28,101 +30,31 @@ export function ReportTwoPrintDocument({
   snapshot: PrintDocumentSnapshot;
   autoPrint?: boolean;
 }) {
-  const template = snapshot.template || { pages: [] };
+  const template = applyStructuredTableDisplayMetadataToTemplate(
+    snapshot.template || { pages: [] },
+    snapshot.sourcePayload,
+  ) as any;
   const pages = Array.isArray(template.pages) ? template.pages : [];
   const context = snapshot.context || {};
   const previewCase = snapshot.previewCase || null;
-  const designId = normalizeDesignId(
-    snapshot.designTemplateId || template.designTemplateId || "ministry-form",
-  );
+  const requestedDesignId =
+    snapshot.designTemplateId || template.designTemplateId;
+  const designId = isReportDesignId(requestedDesignId)
+    ? requestedDesignId
+    : null;
 
   const logoSrc = getDesignLogoSrc(context);
   const headerStyleText = getReportHeaderSettingsStyle(
     template?.designConfig?.header,
   );
 
-  useEffect(() => {
-    if (!autoPrint) {
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      await document.fonts.ready;
-      if (cancelled) return;
-
-      const planningReady = await new Promise<boolean>((resolve) => {
-        const root = document.querySelector<HTMLElement>(
-          ".report-two-print-document",
-        );
-
-        if (!root) {
-          resolve(false);
-          return;
-        }
-
-        const isReady = () =>
-          root.querySelector<HTMLElement>(
-            '[data-report-physical-planning-phase="READY"], [data-report-physical-planning-phase="FROZEN"]',
-          ) !== null;
-
-        if (isReady()) {
-          resolve(true);
-          return;
-        }
-
-        const observer = new MutationObserver(() => {
-          if (isReady()) {
-            observer.disconnect();
-            window.clearTimeout(timeoutId);
-            resolve(true);
-          }
-        });
-
-        observer.observe(root, {
-          subtree: true,
-          attributes: true,
-          childList: true,
-          attributeFilter: ["data-report-physical-planning-phase"],
-        });
-
-        const timeoutId = window.setTimeout(() => {
-          observer.disconnect();
-          resolve(false);
-        }, 20000);
-      });
-
-      if (cancelled || !planningReady) return;
-
-      const images = document.querySelectorAll<HTMLImageElement>(
-        ".report-two-print-document img",
-      );
-      await Promise.all(
-        Array.from(images).map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete) {
-                resolve();
-              } else {
-                img.onload = () => resolve();
-                img.onerror = () => resolve();
-              }
-            }),
-        ),
-      );
-      if (cancelled) return;
-
-      await new Promise<void>((r) => setTimeout(r, 500));
-      if (cancelled) return;
-
-      window.print();
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [autoPrint]);
+  if (!designId) {
+    return (
+      <main className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ للطباعة.
+      </main>
+    );
+  }
 
   return (
     <main
@@ -134,6 +66,7 @@ export function ReportTwoPrintDocument({
       ].join(" ")}
       dir="rtl"
     >
+      {autoPrint ? <ReportTwoSnapshotPrintController /> : null}
       <ReportTwoOfficialActivitySignatureStyle
         enabled={snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
       />

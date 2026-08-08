@@ -1583,7 +1583,8 @@ export function SmartPhysicalReportComposer({
               <div
                 key={`${designId}:${candidateVersion}:${page.id}`}
                 className={
-                  renderMode === "stack"
+                  renderMode === "stack" &&
+                  index < selectedPhysicalPages.length - 1
                     ? "print:break-after-page"
                     : ""
                 }

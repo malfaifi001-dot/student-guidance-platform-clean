@@ -98,7 +98,7 @@ export function AutoEvidencePages({
 
   return (
     <div
-      className="mt-6 space-y-6"
+      className="mt-6 space-y-6 print:mt-0 print:space-y-0"
       data-report-auto-evidence-pages
       data-report-evidence-consumed-primary={
         consumedByPrimary

@@ -18,7 +18,7 @@ export function MinistryFormReportDesign({
     <article className="pdf-report-page relative mx-auto h-[297mm] min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white p-[12mm] pt-[56mm]" data-report-design="ministry-form">
         <style>{`
           [data-report-design="ministry-form"] img[alt="شعار وزارة التعليم"] {
-            filter: none !important;
+            filter: brightness(0) invert(1) !important;
             opacity: 1 !important;
           }
         `}</style>
@@ -27,8 +27,8 @@ export function MinistryFormReportDesign({
             <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-sm font-bold leading-7 text-slate-100">
               <p className="w-full" style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || pageLabel || "")}</p><p className="w-full" style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p>
             </div>
-            <div className="flex items-center justify-center rounded-xl bg-white/95 p-1.5 text-center">
-              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-[80px] w-[132px] object-contain" style={{ filter: "none", opacity: 1 }} />
+            <div className="flex items-center justify-center text-center">
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-[80px] w-[132px] object-contain brightness-0 invert" />
             </div>
             <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-sm font-bold leading-7 text-slate-100">
               <p className="mb-0.5 w-full" style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>المملكة العربية السعودية</p><p className="w-full" style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p className="w-full" style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>{schoolName ? <p className="mt-1 w-full" style={{ textAlign: getDesignHeaderAlign(context, "identity.schoolName", "center") }}>{schoolName}</p> : null}

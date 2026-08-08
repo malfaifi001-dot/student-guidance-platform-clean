@@ -57,6 +57,14 @@ export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
     href: "/dashboard/student-guidance-services",
     kind: "workflow",
   },
+  {
+    slug: "student-guidance-evaluation-indicators",
+    title: "مؤشرات التوجيه الطلابي للتقويم المدرسي والتقويم الخارجي",
+    description:
+      "إدارة مؤشرات التوجيه الطلابي المرتبطة بالتقويم المدرسي والتقويم الخارجي وتوثيقها عبر نماذج Workflow.",
+    href: "/dashboard/student-guidance-evaluation-indicators",
+    kind: "workflow",
+  },
 ];
 
 export const workflowServices: AppService[] = [

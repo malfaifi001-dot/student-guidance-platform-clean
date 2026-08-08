@@ -26,6 +26,57 @@ async function waitForFonts() {
   }
 }
 
+async function waitForFinalizedPhysicalPages(timeoutMs = 30000) {
+  if (!document.querySelector(".report-two-print-document")) {
+    return true;
+  }
+
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const composers = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "[data-report-smart-physical-pages]",
+      ),
+    );
+
+    if (
+      composers.length > 0 &&
+      composers.every((composer) => {
+        const phase = composer.dataset.reportPhysicalPlanningPhase;
+        return phase === "READY" || phase === "FROZEN";
+      })
+    ) {
+      return true;
+    }
+
+    await sleep(50);
+  }
+
+  return false;
+}
+
+async function waitForImages(timeoutMs = 10000) {
+  const images = Array.from(document.querySelectorAll<HTMLImageElement>("img"));
+  const pending = images.filter((image) => !image.complete);
+
+  if (!pending.length) return;
+
+  await Promise.race([
+    Promise.all(
+      pending.map(
+        (image) =>
+          new Promise<void>((resolve) => {
+            const settle = () => resolve();
+            image.addEventListener("load", settle, { once: true });
+            image.addEventListener("error", settle, { once: true });
+          }),
+      ),
+    ),
+    sleep(timeoutMs),
+  ]);
+}
+
 function areLinkedFramesReady() {
   const frames = Array.from(
     document.querySelectorAll<HTMLIFrameElement>(
@@ -103,6 +154,12 @@ export function ReportTwoSnapshotPrintController() {
     async function triggerPrint() {
       await waitForWindowLoad();
       await waitForFonts();
+      const physicalPagesReady = await waitForFinalizedPhysicalPages();
+
+      if (!physicalPagesReady || cancelled) {
+        return;
+      }
+      await waitForImages();
       await waitForLinkedFrames();
       await waitForFrameFonts();
       await sleep(500);

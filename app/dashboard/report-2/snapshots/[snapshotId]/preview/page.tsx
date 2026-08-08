@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
-import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { ReportTwoLinkedAssessmentAppendix } from "@/components/report-2/report-two-linked-assessment-appendix";
 import { ReportTwoLinkedSurveyAppendix } from "@/components/report-2/report-two-linked-survey-appendix";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
@@ -228,8 +227,6 @@ export default async function ReportTwoSnapshotPreviewPage({
 
   return (
     <>
-      {printMode ? <ReportTwoSnapshotPrintController /> : null}
-
       <ReportTwoSnapshotPreview
         snapshot={snapshot}
         caseTitle={authorized.caseEntry.title}

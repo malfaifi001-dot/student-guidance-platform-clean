@@ -9,6 +9,7 @@ import {
   type ReportDesignId,
   type ReportHeaderSettings,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
@@ -3317,7 +3318,7 @@ export function ReportTwoStudioRuntime({
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
-  const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+  const reportTwoApprovalSnapshotRef = useRef<HTMLElement | null>(null);
   const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -3723,11 +3724,16 @@ export function ReportTwoStudioRuntime({
   }
 
   function buildReportTwoPdfExportSnapshot() {
+    if (!isReportDesignId(template.designTemplateId)) {
+      throw new Error("REPORT_TWO_PRINT_DESIGN_MISSING");
+    }
+
     return {
       template: signedVisiblePreviewTemplate,
       context: editableRuntimeContext,
       previewCase,
-      designTemplateId: template.designTemplateId || "ministry-form",
+      sourcePayload: preparedPayload,
+      designTemplateId: template.designTemplateId,
       variantId: selectedVariantId || null,
     };
   }
@@ -3735,7 +3741,7 @@ export function ReportTwoStudioRuntime({
   function buildReportTwoSnapshotHtml() {
     const source =
       document.querySelector<HTMLElement>(
-        '[data-report-two-snapshot-source="print-stack"]',
+        '[data-report-two-snapshot-source="approval-stack"]',
       ) ||
       document.querySelector<HTMLElement>(
         '[data-report-two-snapshot-source="preview"]',
@@ -5569,11 +5575,12 @@ export function ReportTwoStudioRuntime({
           </section>
 
           <section
-            ref={reportTwoPdfStackExportRef}
+            ref={reportTwoApprovalSnapshotRef}
             aria-hidden="true"
-            data-report-two-snapshot-source="print-stack"
+            data-report-two-snapshot-source="approval-stack"
+            data-report-print-excluded="true"
             className={[
-              "report-two-a4-host report-two-pdf-stack-export-root",
+              "report-two-a4-host report-two-approval-snapshot-root",
               "print:hidden",
               selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
                 ? "report-two-official-activity-card"
