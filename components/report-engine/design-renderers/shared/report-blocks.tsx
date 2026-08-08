@@ -79,6 +79,10 @@ export function PageBlocks({
           <div
             key={block.id}
             data-report-smart-block={block.kind || "content"}
+            data-report-smart-placement={block.placement || "flow"}
+            data-report-smart-movable={
+              block.kind === "evidence-gallery" ? "evidence" : "content"
+            }
             data-report-priority-block={
               isSignatureGridDesignBlock(block) ? "signature" : undefined
             }
@@ -103,6 +107,8 @@ export function PageBlocks({
           <div
             key={block.id}
             data-report-smart-block={block.kind || "fixed-content"}
+            data-report-smart-placement={block.placement || "flow"}
+            data-report-smart-fixed="true"
             className={getPlacementClass(block.placement || "flow")}
           >
             <div className="pointer-events-auto">

@@ -5574,6 +5574,7 @@ export function ReportTwoStudioRuntime({
             data-report-two-snapshot-source="print-stack"
             className={[
               "report-two-a4-host report-two-pdf-stack-export-root",
+              "print:hidden",
               selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
                 ? "report-two-official-activity-card"
                 : "",
@@ -5581,11 +5582,15 @@ export function ReportTwoStudioRuntime({
             style={{
               position: "fixed",
               top: 0,
-              left: "-10000px",
+              left: "-100000px",
               width: "210mm",
-              minHeight: "297mm",
+              height: 0,
+              minHeight: 0,
               background: "#ffffff",
+              visibility: "hidden",
               pointerEvents: "none",
+              contain: "layout style paint",
+              overflow: "hidden",
               zIndex: -1,
             }}
           >

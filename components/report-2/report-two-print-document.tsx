@@ -2,15 +2,12 @@
 
 import { useEffect } from "react";
 import {
-  A4DesignPage,
   normalizeDesignId,
   getDesignLogoSrc,
-  getDesignLogoNumber,
-  getDesignLogoFit,
-  getDesignLogoFilter,
   getReportHeaderSettingsStyle,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { SmartPhysicalReportComposer } from "@/components/report-engine/design-renderers/smart-layout/report-smart-physical-pages";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -39,10 +36,6 @@ export function ReportTwoPrintDocument({
     snapshot.designTemplateId || template.designTemplateId || "ministry-form",
   );
 
-  const logoWidthPx = getDesignLogoNumber(context, "report.logoWidthPx", 96, 24, 240);
-  const logoHeightPx = getDesignLogoNumber(context, "report.logoHeightPx", 56, 20, 160);
-  const logoFit = getDesignLogoFit(context);
-  const logoFilter = getDesignLogoFilter(context);
   const logoSrc = getDesignLogoSrc(context);
   const headerStyleText = getReportHeaderSettingsStyle(
     template?.designConfig?.header,
@@ -58,6 +51,49 @@ export function ReportTwoPrintDocument({
     (async () => {
       await document.fonts.ready;
       if (cancelled) return;
+
+      const planningReady = await new Promise<boolean>((resolve) => {
+        const root = document.querySelector<HTMLElement>(
+          ".report-two-print-document",
+        );
+
+        if (!root) {
+          resolve(false);
+          return;
+        }
+
+        const isReady = () =>
+          root.querySelector<HTMLElement>(
+            '[data-report-physical-planning-phase="READY"], [data-report-physical-planning-phase="FROZEN"]',
+          ) !== null;
+
+        if (isReady()) {
+          resolve(true);
+          return;
+        }
+
+        const observer = new MutationObserver(() => {
+          if (isReady()) {
+            observer.disconnect();
+            window.clearTimeout(timeoutId);
+            resolve(true);
+          }
+        });
+
+        observer.observe(root, {
+          subtree: true,
+          attributes: true,
+          childList: true,
+          attributeFilter: ["data-report-physical-planning-phase"],
+        });
+
+        const timeoutId = window.setTimeout(() => {
+          observer.disconnect();
+          resolve(false);
+        }, 20000);
+      });
+
+      if (cancelled || !planningReady) return;
 
       const images = document.querySelectorAll<HTMLImageElement>(
         ".report-two-print-document img",
@@ -162,17 +198,15 @@ export function ReportTwoPrintDocument({
 
       {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
 
-      {pages.map((page: any) => (
-        <div key={page.id}>
-          <A4DesignPage
-            designId={designId}
-            page={page}
-            context={context}
-            previewCase={previewCase}
-            pageLabel={page.title || "صفحة"}
-          />
-        </div>
-      ))}
+      <SmartPhysicalReportComposer
+        designId={designId}
+        pages={pages}
+        context={context}
+        previewCase={previewCase}
+        fallbackPageLabel={template?.name || "التقرير"}
+        renderMode="stack"
+        suppressAutoEvidencePages
+      />
     </main>
   );
 }

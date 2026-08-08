@@ -19,6 +19,8 @@ import { getReportHeaderSettingsStyle } from "./report-header";
 import type { PreviewCaseData, ReportDesignRendererProps } from "./report-types";
 
 import { getReportDesignSignatureStyleText } from "./report-signatures";
+import { SmartPhysicalReportComposer } from "../smart-layout/report-smart-physical-pages";
+
 
 export function ReportDesignRenderer({
   designId,
@@ -187,38 +189,16 @@ export function ReportDesignRenderer({
 
   const preview = (
     <div className="report-design-logo-control-style">
-      {renderMode === "stack" ? (
-        <div className="space-y-6">
-          {pages.map((page: any, index: number) => (
-            <div key={page.id} data-report-design-page-index={index}>
-              <A4DesignPage
-                designId={selectedDesign}
-                page={page}
-                context={context}
-                previewCase={previewCase}
-                pageLabel={page?.title || "صفحة"}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <A4DesignPage
-          designId={selectedDesign}
-          page={activePage}
-          context={context}
-          previewCase={previewCase}
-          pageLabel={activePage?.title || "صفحة"}
-        />
-      )}
-
-      {!suppressAutoEvidencePages ? (
-        <AutoEvidencePages
-          designId={selectedDesign}
-          activePage={activePage}
-          context={context}
-          previewCase={previewCase}
-        />
-      ) : null}
+      <SmartPhysicalReportComposer
+        designId={selectedDesign}
+        pages={pages}
+        activePageId={activePageId}
+        context={context}
+        previewCase={previewCase}
+        fallbackPageLabel={activePage?.title || "التقرير"}
+        renderMode={renderMode}
+        suppressAutoEvidencePages={suppressAutoEvidencePages}
+      />
     </div>
   );
 
@@ -316,24 +296,14 @@ export function FinalReportDesignRenderer({
     <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
       {headerStyleText ? <style>{headerStyleText}</style> : null}
       <style>{signatureStyleText}</style>
-      {pages.map((page: any) => (
-        <div key={page.id} className="break-after-page print:break-after-page">
-          <A4DesignPage
-            designId={selectedDesign}
-            page={page}
-            context={context}
-            previewCase={previewCaseData}
-            pageLabel={page.title || normalizedTemplate.name || "التقارير"}
-          />
-
-          <AutoEvidencePages
-            designId={selectedDesign}
-            activePage={page}
-            context={context}
-            previewCase={previewCaseData}
-          />
-        </div>
-      ))}
+      <SmartPhysicalReportComposer
+        designId={selectedDesign}
+        pages={pages}
+        context={context}
+        previewCase={previewCaseData}
+        fallbackPageLabel={normalizedTemplate.name || "التقارير"}
+        renderMode="stack"
+      />
     </section>
   );
 }
@@ -342,9 +312,7 @@ import { buildFinalReportContext, normalizeFinalReportTemplate } from "./final-r
 
 import { getDesignLogoFilter, getDesignLogoFit, getDesignLogoNumber } from "./report-logo";
 
-import { SmartReportPageComposer } from "../smart-layout/report-smart-page-composer";
-import { AutoEvidencePages } from "./report-auto-evidence";
-import { A4DesignPage } from "./report-blocks";
+
 
 export function normalizeDesignId(value: string): ReportDesignId {
   return isReportDesignId(value) ? value : "ministry-form";

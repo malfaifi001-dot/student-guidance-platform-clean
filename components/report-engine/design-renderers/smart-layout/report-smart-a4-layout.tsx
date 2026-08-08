@@ -31,6 +31,19 @@ import {
   type ReportSmartA4OverflowSeverity,
   type ReportSmartA4EvaluatedCandidate,
 } from "./report-smart-a4-planner";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  roundLayoutMetric,
+  useReportSmartSemanticFingerprint,
+} from "./report-smart-lifecycle";
+
+type ReportSmartA4LifecyclePhase =
+  | "MEASURING"
+  | "STABILIZING"
+  | "FROZEN";
+
+const MAX_SMART_A4_MEASUREMENT_ATTEMPTS = 8;
 
 export type ReportSmartA4LayoutResult = {
   mode: ReportSmartA4Mode;
@@ -161,33 +174,438 @@ const SMART_A4_ENGINE_CSS = `
     grid-column: span 4;
   }
 
+
   /*
-   * Inline:
-   * للحقول القصيرة والمتوسطة فقط.
+   * =========================================================
+   * SMART FIELD RENDERER
+   * =========================================================
    *
-   * MetaCard الحالي يحتوي label/value كأبناء مباشرين،
-   * فنستفيد من نفس التصميم بدون بناء renderer خاص.
+   * Elegant official information table.
+   *
+   * Goals:
+   * - preserve the compact horizontal packing
+   * - make labels/values immediately understandable
+   * - avoid the previous card-heavy vertical footprint
+   * - keep long/list fields readable
+   */
+
+  .report-smart-a4-content
+  .report-smart-field-grid {
+    display: grid !important;
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr)) !important;
+
+    align-items: stretch;
+
+    overflow: hidden;
+
+    border:
+      1px solid
+      #cbd5e1;
+
+    border-radius:
+      10px;
+
+    background:
+      #ffffff;
+
+    gap: 0 !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item {
+    min-width: 0;
+
+    border-inline-start:
+      1px solid
+      #dbe4ec;
+
+    border-bottom:
+      1px solid
+      #dbe4ec;
+
+    background:
+      #ffffff;
+  }
+
+  /*
+   * Remove doubled outer borders visually.
+   */
+  .report-smart-a4-content
+  .report-smart-field-item:nth-child(4n + 1) {
+    border-inline-start: 0;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * FIELD WIDTH POLICY
+   * ---------------------------------------------------------
+   */
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * BASE CELL
+   * ---------------------------------------------------------
+   */
+
+  .report-smart-a4-content
+  .report-smart-meta-card {
+    display: flex;
+    flex-direction: column;
+
+    height: 100%;
+    min-height: 0;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    background:
+      transparent !important;
+
+    padding: 0 !important;
+  }
+
+  /*
+   * Label becomes a small official header strip.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-label {
+    display: flex;
+    align-items: center;
+
+    min-height:
+      calc(
+        21px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.22rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    border-bottom:
+      1px solid
+      #edf1f5;
+
+    background:
+      #f8fafc;
+
+    color:
+      #64748b !important;
+
+    font-weight: 800 !important;
+
+    line-height: 1.25 !important;
+
+    white-space: normal;
+  }
+
+  /*
+   * Value area.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-value {
+    display: flex;
+    align-items: center;
+
+    flex: 1 1 auto;
+
+    min-height:
+      calc(
+        25px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.28rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    color:
+      #0f172a !important;
+
+    font-weight: 800 !important;
+
+    line-height:
+      var(
+        --report-content-line-height,
+        1.5
+      ) !important;
+
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * Lists stay stacked and readable.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-list {
+    flex: 1 1 auto;
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.3rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    color:
+      #0f172a !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-meta-list-item {
+    line-height:
+      1.45 !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-meta-bullet {
+    width: 4px !important;
+    height: 4px !important;
+
+    margin-top:
+      0.55em !important;
+
+    background:
+      #0ea5a4 !important;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * PACKED
+   * ---------------------------------------------------------
+   *
+   * Preferred default.
+   * Formal table appearance with excellent space economy.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-grid {
+    border-color:
+      #cbd5e1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-meta-label {
+    background:
+      #f8fafc;
+
+    min-height:
+      calc(
+        19px *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        23px *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * COMFORTABLE
+   * ---------------------------------------------------------
+   *
+   * Same table identity but slightly more breathing room.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-meta-label {
+    min-height:
+      calc(
+        23px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.32rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        29px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.4rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * INLINE
+   * ---------------------------------------------------------
+   *
+   * Emergency high-density mode.
+   *
+   * Still looks like a proper table cell rather than loose text.
+   * Short/medium fields display:
+   *
+   * label | value
+   *
+   * Long/list fields remain vertically stacked.
    */
 
   .report-smart-a4-content[data-report-field-layout="inline"]
-  .report-smart-field-item[data-smart-field-kind="short"] > div,
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-card,
   .report-smart-a4-content[data-report-field-layout="inline"]
-  .report-smart-field-item[data-smart-field-kind="medium"] > div {
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-card {
     display: grid;
+
     grid-template-columns:
-      auto minmax(0, 1fr);
-    align-items: center;
-    column-gap: 0.35rem;
+      minmax(64px, auto)
+      minmax(0, 1fr);
+
+    align-items: stretch;
   }
 
   .report-smart-a4-content[data-report-field-layout="inline"]
-  .report-smart-field-item[data-smart-field-kind="short"] > div > p,
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-label,
   .report-smart-a4-content[data-report-field-layout="inline"]
-  .report-smart-field-item[data-smart-field-kind="medium"] > div > p {
-    margin-top: 0 !important;
-    min-width: 0;
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-label {
+    min-height:
+      calc(
+        27px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    border-bottom: 0;
+
+    border-inline-end:
+      1px solid
+      #e2e8f0;
+
+    background:
+      #f8fafc;
+
+    white-space: normal;
   }
 
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-value,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        27px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.2rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * Long/list items remain stacked even in inline mode.
+   */
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="long"]
+  .report-smart-meta-card,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="list"]
+  .report-smart-meta-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * PRINT
+   * ---------------------------------------------------------
+   */
+
+  @media print {
+    .report-smart-a4-content
+    .report-smart-field-grid {
+      border-color:
+        #b8c4cf;
+
+      print-color-adjust:
+        exact;
+
+      -webkit-print-color-adjust:
+        exact;
+    }
+
+    .report-smart-a4-content
+    .report-smart-meta-label {
+      background:
+        #f3f6f8 !important;
+
+      print-color-adjust:
+        exact;
+
+      -webkit-print-color-adjust:
+        exact;
+    }
+  }
   /*
    * =========================================================
    * CLASSIC FORMAL TABLE GRID
@@ -427,6 +845,17 @@ export function ReportSmartA4ContentRegion({
   priorityMode = "signature",
   onLayoutResult,
 }: ReportSmartA4ContentRegionProps) {
+  const inheritedSemanticFingerprint =
+    useReportSmartSemanticFingerprint();
+
+  const semanticInputFingerprint =
+    createSemanticInputFingerprint({
+      inheritedSemanticFingerprint,
+      heightMm,
+      layoutKey: layoutKey ?? null,
+      priorityMode,
+    });
+
   const viewportRef =
     useRef<HTMLDivElement | null>(
       null,
@@ -440,11 +869,35 @@ export function ReportSmartA4ContentRegion({
   const scheduledFrameRef =
     useRef<number | null>(null);
 
+  const scheduleMeasurementRef =
+    useRef<() => void>(() => undefined);
+
   const runIdRef =
     useRef(0);
 
   const measuringRef =
     useRef(false);
+
+  const frozenRef =
+    useRef(false);
+
+  const rerunRequestedRef =
+    useRef(false);
+
+  const fontsSettledRef =
+    useRef(false);
+
+  const settledAssetSourcesRef =
+    useRef(new Set<string>());
+
+  const resizeFingerprintRef =
+    useRef("");
+
+  const stabilizationRef = useRef({
+    fingerprint: "",
+    stablePasses: 0,
+    attempts: 0,
+  });
 
   const resultRef =
     useRef(INITIAL_RESULT);
@@ -454,6 +907,9 @@ export function ReportSmartA4ContentRegion({
 
   const [result, setResult] =
     useState(INITIAL_RESULT);
+
+  const [layoutPhase, setLayoutPhase] =
+    useState<ReportSmartA4LifecyclePhase>("MEASURING");
 
   useEffect(() => {
     onLayoutResultRef.current =
@@ -471,12 +927,16 @@ export function ReportSmartA4ContentRegion({
       if (
         !viewport ||
         !content ||
-        measuringRef.current
+        measuringRef.current ||
+        frozenRef.current ||
+        !fontsSettledRef.current
       ) {
         return;
       }
 
       measuringRef.current = true;
+      rerunRequestedRef.current = false;
+      setLayoutPhase("MEASURING");
 
       const runId =
         ++runIdRef.current;
@@ -663,6 +1123,61 @@ export function ReportSmartA4ContentRegion({
             plan.preferEvidenceMove,
         };
 
+        const unsettledImages = Array.from(
+          content.querySelectorAll<HTMLImageElement>("img"),
+        ).filter((image) => !image.complete);
+
+        if (unsettledImages.length > 0) {
+          setLayoutPhase("MEASURING");
+          return;
+        }
+
+        content
+          .querySelectorAll<HTMLImageElement>("img")
+          .forEach((image) => {
+            const source = image.currentSrc || image.src;
+            if (source) {
+              settledAssetSourcesRef.current.add(source);
+            }
+          });
+
+        const layoutResultFingerprint =
+          createSemanticInputFingerprint({
+            candidateId: nextResult.candidateId,
+            dominantRole: nextResult.dominantRole,
+            fieldLayout: nextResult.fieldLayout,
+            fits: nextResult.fits,
+            mode: nextResult.mode,
+            overflowPx: roundLayoutMetric(nextResult.overflowPx),
+            preferEvidenceMove: nextResult.preferEvidenceMove,
+            signatureHeightPx: roundLayoutMetric(
+              nextResult.signatureHeightPx,
+            ),
+            signatureReservedPx: roundLayoutMetric(
+              nextResult.signatureReservedPx,
+            ),
+          });
+
+        const previousStability = stabilizationRef.current;
+        const stablePasses =
+          previousStability.fingerprint === layoutResultFingerprint
+            ? previousStability.stablePasses + 1
+            : 1;
+        const attempts = previousStability.attempts + 1;
+
+        stabilizationRef.current = {
+          fingerprint: layoutResultFingerprint,
+          stablePasses,
+          attempts,
+        };
+
+        if (process.env.NODE_ENV === "development") {
+          viewport.dataset.smartA4LayoutFingerprint =
+            getFingerprintPrefix(layoutResultFingerprint);
+          viewport.dataset.smartA4StablePasses = String(stablePasses);
+          viewport.dataset.smartA4Attempts = String(attempts);
+        }
+
         viewport.dataset
           .smartA4DominantRole =
           nextResult.dominantRole;
@@ -708,6 +1223,18 @@ export function ReportSmartA4ContentRegion({
             nextResult,
           );
         }
+
+        if (
+          stablePasses >= 2 ||
+          attempts >= MAX_SMART_A4_MEASUREMENT_ATTEMPTS
+        ) {
+          frozenRef.current = true;
+          rerunRequestedRef.current = false;
+          setLayoutPhase("FROZEN");
+        } else {
+          rerunRequestedRef.current = true;
+          setLayoutPhase("STABILIZING");
+        }
       } finally {
         measuringRef.current =
           false;
@@ -717,6 +1244,7 @@ export function ReportSmartA4ContentRegion({
   const scheduleMeasurement =
     useCallback(() => {
       if (
+        frozenRef.current ||
         measuringRef.current ||
         scheduledFrameRef.current !==
           null
@@ -730,17 +1258,54 @@ export function ReportSmartA4ContentRegion({
             scheduledFrameRef.current =
               null;
 
-            void runMeasurement();
+            void runMeasurement().finally(() => {
+              if (
+                rerunRequestedRef.current &&
+                !frozenRef.current
+              ) {
+                rerunRequestedRef.current = false;
+                scheduleMeasurementRef.current();
+              }
+            });
           },
         );
     }, [runMeasurement]);
 
   useLayoutEffect(() => {
+    scheduleMeasurementRef.current = scheduleMeasurement;
+
+    return () => {
+      scheduleMeasurementRef.current = () => undefined;
+    };
+  }, [scheduleMeasurement]);
+
+  useLayoutEffect(() => {
+    runIdRef.current += 1;
+    frozenRef.current = false;
+    rerunRequestedRef.current = false;
+    resizeFingerprintRef.current = "";
+    settledAssetSourcesRef.current.clear();
+    stabilizationRef.current = {
+      fingerprint: "",
+      stablePasses: 0,
+      attempts: 0,
+    };
+    resultRef.current = INITIAL_RESULT;
+    setResult(INITIAL_RESULT);
+    setLayoutPhase("MEASURING");
+
     scheduleMeasurement();
+
+    return () => {
+      runIdRef.current += 1;
+
+      if (scheduledFrameRef.current !== null) {
+        window.cancelAnimationFrame(scheduledFrameRef.current);
+        scheduledFrameRef.current = null;
+      }
+    };
   }, [
-    children,
-    heightMm,
-    layoutKey,
+    semanticInputFingerprint,
     scheduleMeasurement,
   ]);
 
@@ -758,18 +1323,64 @@ export function ReportSmartA4ContentRegion({
       return;
     }
 
+    const handleResize = () => {
+      if (frozenRef.current) {
+        return;
+      }
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const nextResizeFingerprint = [
+        roundLayoutMetric(viewportRect.width),
+        roundLayoutMetric(viewportRect.height),
+        roundLayoutMetric(contentRect.width),
+        roundLayoutMetric(contentRect.height),
+        roundLayoutMetric(content.scrollHeight),
+      ].join(":");
+
+      if (resizeFingerprintRef.current === nextResizeFingerprint) {
+        return;
+      }
+
+      resizeFingerprintRef.current = nextResizeFingerprint;
+      scheduleMeasurement();
+    };
+
     const resizeObserver =
-      new ResizeObserver(() => {
-        scheduleMeasurement();
-      });
+      new ResizeObserver(handleResize);
 
     const mutationObserver =
       new MutationObserver(() => {
+        if (frozenRef.current) {
+          return;
+        }
+
         scheduleMeasurement();
       });
 
     const handleLoadedAsset =
-      () => {
+      (event: Event) => {
+        if (frozenRef.current) {
+          return;
+        }
+
+        const image =
+          event.target instanceof HTMLImageElement
+            ? event.target
+            : null;
+        const source = image?.currentSrc || image?.src || "";
+
+        if (
+          source &&
+          settledAssetSourcesRef.current.has(source)
+        ) {
+          return;
+        }
+
+        if (source) {
+          settledAssetSourcesRef.current.add(source);
+        }
+
         scheduleMeasurement();
       };
 
@@ -796,18 +1407,35 @@ export function ReportSmartA4ContentRegion({
       true,
     );
 
-    window.addEventListener(
-      "resize",
-      scheduleMeasurement,
+    content.addEventListener(
+      "error",
+      handleLoadedAsset,
+      true,
     );
 
-    void document.fonts?.ready
-      .then(
-        scheduleMeasurement,
-      )
-      .catch(
-        () => undefined,
-      );
+    window.addEventListener(
+      "resize",
+      handleResize,
+    );
+
+    if (!document.fonts) {
+      fontsSettledRef.current = true;
+      scheduleMeasurement();
+    } else if (fontsSettledRef.current) {
+      scheduleMeasurement();
+    } else {
+      void document.fonts.ready
+        .then(() => {
+          if (!fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            scheduleMeasurement();
+          }
+        })
+        .catch(() => {
+          fontsSettledRef.current = true;
+          scheduleMeasurement();
+        });
+    }
 
     return () => {
       runIdRef.current += 1;
@@ -821,9 +1449,15 @@ export function ReportSmartA4ContentRegion({
         true,
       );
 
+      content.removeEventListener(
+        "error",
+        handleLoadedAsset,
+        true,
+      );
+
       window.removeEventListener(
         "resize",
-        scheduleMeasurement,
+        handleResize,
       );
 
       if (
@@ -838,7 +1472,7 @@ export function ReportSmartA4ContentRegion({
           null;
       }
     };
-  }, [scheduleMeasurement]);
+  }, [scheduleMeasurement, semanticInputFingerprint]);
 
   const selectedProfile =
     getReportSmartA4Profile(
@@ -867,6 +1501,9 @@ export function ReportSmartA4ContentRegion({
     process.env.NODE_ENV ===
     "development"
       ? {
+          "data-smart-a4-semantic-fingerprint":
+            getFingerprintPrefix(semanticInputFingerprint),
+
           "data-smart-a4-mode":
             result.mode,
 
@@ -960,6 +1597,7 @@ export function ReportSmartA4ContentRegion({
       data-smart-a4-signature-reserved-px={
         result.signatureReservedPx
       }
+      data-smart-a4-phase={layoutPhase}
       {...developmentDiagnostics}
     >
       <style>

@@ -52,7 +52,7 @@ function MoeReportPage({
           <span>ملف الإنجاز</span>
         </div>
 
-        <span>{sectionLabel}</span>
+        <span>وزارة التعليم</span>
       </header>
 
       <div className="moe24-page-body">
@@ -60,8 +60,8 @@ function MoeReportPage({
       </div>
 
       <footer className="moe24-page-footer">
-        <span>منصة التوجيه الطلابي</span>
-        <span>{sectionLabel}</span>
+        <span />
+        <span />
         <span className="moe24-page-number" />
       </footer>
     </section>
@@ -122,13 +122,11 @@ export function MoeOfficial2024ReportDesign({
               paddingBottom: "calc(4.5mm * var(--report-field-spacing-scale, 1))",
             }}
           >
-            <span>{serviceName}</span>
-
             <div
               className="moe24-report-title-row"
               style={{
                 gap: "calc(3mm * var(--report-field-spacing-scale, 1))",
-                marginTop: "calc(2mm * var(--report-field-spacing-scale, 1))",
+                marginTop: 0,
               }}
             >
               <span
@@ -144,8 +142,6 @@ export function MoeOfficial2024ReportDesign({
                 {title}
               </h1>
             </div>
-
-            <small>{pageLabel}</small>
           </header>
 
           <div

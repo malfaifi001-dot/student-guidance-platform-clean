@@ -15,6 +15,12 @@ import {
 } from "../shared/report-evidence-data";
 import { AutoEvidencePages } from "../shared/report-auto-evidence";
 import type { PreviewCaseData } from "../shared/report-types";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  ReportSmartSemanticFingerprintProvider,
+  roundLayoutMetric,
+} from "./report-smart-lifecycle";
 
 type SmartReportPageComposerProps = {
   designId: ReportDesignId;
@@ -24,79 +30,83 @@ type SmartReportPageComposerProps = {
   pageLabel: string;
 };
 
+type ReportPagePlanningPhase =
+  | "DIRTY"
+  | "PLANNING"
+  | "MEASURING"
+  | "STABILIZING"
+  | "READY"
+  | "FROZEN";
+
+const MAX_PAGE_COMPOSITION_ATTEMPTS = 40;
+
+function isSignatureBlock(block: any) {
+  const kind =
+    String(block?.kind || "").trim();
+
+  const smartKind =
+    String(
+      block?.settings?.smartBlockKind || "",
+    ).trim();
+
+  const title =
+    String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getSignatureBlocks(page: any) {
+  const blocks =
+    Array.isArray(page?.blocks)
+      ? page.blocks
+      : [];
+
+  return blocks.filter(
+    isSignatureBlock,
+  );
+}
+
 function getEvidenceBlock(page: any) {
-  const blocks = Array.isArray(page?.blocks)
-    ? page.blocks
-    : [];
+  const blocks =
+    Array.isArray(page?.blocks)
+      ? page.blocks
+      : [];
 
   return (
     blocks.find(
       (block: any) =>
-        block?.kind === "evidence-gallery",
+        block?.kind ===
+        "evidence-gallery",
     ) || null
   );
 }
 
 function getCompositionResetKey(
+  designId: ReportDesignId,
   page: any,
+  context: Record<string, string>,
   previewCase: PreviewCaseData | null,
+  pageLabel: string,
 ) {
-  const blocks = Array.isArray(page?.blocks)
-    ? page.blocks.map((block: any) => ({
-        id: block?.id,
-        kind: block?.kind,
-        title: block?.title,
-        content: block?.content,
-        visible: block?.visible,
-        evidenceLimit: block?.evidenceLimit,
-        evidenceStartIndex:
-          block?.evidenceStartIndex,
-        dynamicFields:
-          block?.dynamicFields,
-        signatures:
-          block?.signatures,
-        rows:
-          block?.rows,
-        columns:
-          block?.columns,
-      }))
-    : [];
-
-  const values = Array.isArray(
-    previewCase?.values,
-  )
-    ? previewCase.values.map((item) => ({
-        fieldKey: item?.fieldKey,
-        fieldLabel: item?.fieldLabel,
-        value: item?.value,
-        valueItems: item?.valueItems,
-      }))
-    : [];
-
-  const evidences = Array.isArray(
-    previewCase?.evidences,
-  )
-    ? previewCase.evidences.map(
-        (evidence) => ({
-          id: evidence?.id,
-          title: evidence?.title,
-          caption: evidence?.caption,
-          url:
-            evidence?.imageUrl ||
-            evidence?.url ||
-            evidence?.fileUrl ||
-            evidence?.publicUrl ||
-            evidence?.storagePath ||
-            "",
-        }),
-      )
-    : [];
-
-  return JSON.stringify({
-    pageId: page?.id || "",
-    blocks,
-    values,
-    evidences,
+  return createSemanticInputFingerprint({
+    designId,
+    page: {
+      blocks: Array.isArray(page?.blocks) ? page.blocks : [],
+      kind: page?.kind || "content",
+      title: page?.title || "",
+    },
+    pageLabel,
+    context,
+    previewCase,
   });
 }
 
@@ -104,36 +114,54 @@ function makePrimaryPage(
   page: any,
   evidenceBlock: any,
   primaryEvidenceCount: number,
+  keepSignatureOnPrimary: boolean,
 ) {
-  if (!page || !evidenceBlock) {
+  if (!page) {
     return page;
   }
 
-  const blocks = Array.isArray(page.blocks)
-    ? page.blocks
-    : [];
+  const originalBlocks =
+    Array.isArray(page.blocks)
+      ? page.blocks
+      : [];
 
-  /*
-   * Zero means:
-   * do not render the evidence block on the primary page.
-   *
-   * The original evidence block is NOT lost.
-   * AutoEvidencePages receives the original page and starts
-   * from primaryEvidenceCount.
-   */
-  if (primaryEvidenceCount <= 0) {
+  let blocks =
+    keepSignatureOnPrimary
+      ? [...originalBlocks]
+      : originalBlocks.filter(
+          (block: any) =>
+            !isSignatureBlock(block),
+        );
+
+  if (!evidenceBlock) {
     return {
       ...page,
-      blocks: blocks.filter(
-        (block: any) =>
-          block?.id !== evidenceBlock.id,
-      ),
+      blocks,
     };
   }
 
-  return {
-    ...page,
-    blocks: blocks.map((block: any) =>
+  /*
+   * Zero evidence means:
+   * remove evidence-gallery from the primary page.
+   *
+   * AutoEvidencePages still receives the ORIGINAL page,
+   * so no evidence is lost.
+   */
+  if (primaryEvidenceCount <= 0) {
+    blocks = blocks.filter(
+      (block: any) =>
+        block?.id !==
+        evidenceBlock.id,
+    );
+
+    return {
+      ...page,
+      blocks,
+    };
+  }
+
+  blocks = blocks.map(
+    (block: any) =>
       block?.id === evidenceBlock.id
         ? {
             ...block,
@@ -142,7 +170,45 @@ function makePrimaryPage(
               primaryEvidenceCount,
           }
         : block,
-    ),
+  );
+
+  return {
+    ...page,
+    blocks,
+  };
+}
+
+function makeSignatureOverflowPage(
+  page: any,
+  signatureBlocks: any[],
+) {
+  return {
+    ...page,
+
+    id:
+      `${page?.id || "report"}-signature-overflow`,
+
+    title:
+      "اعتماد التقرير",
+
+    kind:
+      "signature",
+
+    blocks:
+      signatureBlocks.map(
+        (block, index) => ({
+          ...block,
+
+          id:
+            `${block?.id || "signature"}-overflow-${index + 1}`,
+
+          /*
+           * This page is already an explicit overflow page.
+           */
+          placement:
+            "flow",
+        }),
+      ),
   };
 }
 
@@ -154,24 +220,39 @@ export function SmartReportPageComposer({
   pageLabel,
 }: SmartReportPageComposerProps) {
   const hostRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null,
+    );
 
-  const evidenceBlock = useMemo(
-    () => getEvidenceBlock(page),
-    [page],
-  );
+  const evidenceBlock =
+    useMemo(
+      () => getEvidenceBlock(page),
+      [page],
+    );
 
-  const validEvidences = useMemo(
-    () =>
-      getValidPreviewEvidences(
-        previewCase,
-      ),
-    [previewCase],
-  );
+  const signatureBlocks =
+    useMemo(
+      () =>
+        getSignatureBlocks(page),
+      [page],
+    );
+
+  const hasSignature =
+    signatureBlocks.length > 0;
+
+  const validEvidences =
+    useMemo(
+      () =>
+        getValidPreviewEvidences(
+          previewCase,
+        ),
+      [previewCase],
+    );
 
   const evidenceAutoEnabled =
     Boolean(evidenceBlock) &&
-    evidenceBlock?.evidenceAutoCreatePages !==
+    evidenceBlock
+      ?.evidenceAutoCreatePages !==
       false;
 
   const maxPrimaryEvidenceCount =
@@ -184,64 +265,241 @@ export function SmartReportPageComposer({
         )
       : 0;
 
-  const resetKey = useMemo(
-    () =>
-      getCompositionResetKey(
+  const resetKey =
+    useMemo(
+      () =>
+        getCompositionResetKey(
+          designId,
+          page,
+          context,
+          previewCase,
+          pageLabel,
+        ),
+      [
+        designId,
         page,
+        context,
         previewCase,
-      ),
-    [page, previewCase],
-  );
+        pageLabel,
+      ],
+    );
 
   const [
     primaryEvidenceCount,
     setPrimaryEvidenceCount,
-  ] = useState(
-    maxPrimaryEvidenceCount,
-  );
+  ] =
+    useState(
+      maxPrimaryEvidenceCount,
+    );
+
+  const [
+    keepSignatureOnPrimary,
+    setKeepSignatureOnPrimary,
+  ] =
+    useState(true);
 
   const lastDecisionRef =
     useRef("");
 
+  const [planningPhase, setPlanningPhase] =
+    useState<ReportPagePlanningPhase>("DIRTY");
+
+  const planningPhaseRef =
+    useRef<ReportPagePlanningPhase>("DIRTY");
+
+  const stabilityRef = useRef({
+    signature: "",
+    count: 0,
+    attempts: 0,
+  });
+
+  const finalizedPlacementRef = useRef<{
+    semanticInputFingerprint: string;
+    layoutResultFingerprint: string;
+    primaryEvidenceCount: number;
+    keepSignatureOnPrimary: boolean;
+  } | null>(null);
+
+  const fontsSettledRef = useRef(false);
+  const settledAssetSourcesRef = useRef(new Set<string>());
+  const [invalidationReason, setInvalidationReason] = useState<
+    "initial" | "content-change"
+  >("initial");
+
+  const setPhase = (next: ReportPagePlanningPhase) => {
+    planningPhaseRef.current = next;
+    setPlanningPhase((current) =>
+      current === next ? current : next,
+    );
+  };
+
+  const isTerminalPhase = () =>
+    planningPhaseRef.current === "READY" ||
+    planningPhaseRef.current === "FROZEN";
+
   /*
-   * Whenever the actual report data/template changes,
-   * restart optimistically with the maximum evidence count.
+   * New report content:
    *
-   * Then real DOM measurement decides whether it must reduce.
+   * Start optimistically:
+   * - keep maximum allowed evidence
+   * - keep signature on primary page
+   *
+   * Real DOM measurement then negotiates downward.
    */
   useEffect(() => {
+    setInvalidationReason(
+      finalizedPlacementRef.current === null
+        ? "initial"
+        : "content-change",
+    );
+    finalizedPlacementRef.current = null;
     lastDecisionRef.current = "";
+    stabilityRef.current = {
+      signature: "",
+      count: 0,
+      attempts: 0,
+    };
+    settledAssetSourcesRef.current.clear();
+    setPhase("DIRTY");
+    setPhase("PLANNING");
 
     setPrimaryEvidenceCount(
       maxPrimaryEvidenceCount,
+    );
+
+    setKeepSignatureOnPrimary(
+      true,
     );
   }, [
     resetKey,
     maxPrimaryEvidenceCount,
   ]);
 
-  const primaryPage = useMemo(
-    () =>
-      makePrimaryPage(
+  const primaryPage =
+    useMemo(
+      () =>
+        makePrimaryPage(
+          page,
+          evidenceBlock,
+          primaryEvidenceCount,
+          keepSignatureOnPrimary,
+        ),
+      [
         page,
         evidenceBlock,
         primaryEvidenceCount,
-      ),
-    [
-      page,
-      evidenceBlock,
-      primaryEvidenceCount,
-    ],
+        keepSignatureOnPrimary,
+      ],
+    );
+
+  const signatureOverflowPage =
+    useMemo(
+      () =>
+        !keepSignatureOnPrimary &&
+        hasSignature
+          ? makeSignatureOverflowPage(
+              page,
+              signatureBlocks,
+            )
+          : null,
+      [
+        page,
+        signatureBlocks,
+        hasSignature,
+        keepSignatureOnPrimary,
+      ],
+    );
+
+  const hasSignatureOverflowPage = Boolean(
+    signatureOverflowPage,
   );
 
   useEffect(() => {
-    const host = hostRef.current;
+    const host =
+      hostRef.current;
 
-    if (!host) return;
+    if (!host) {
+      return;
+    }
 
-    let frame: number | null = null;
+    let frame:
+      | number
+      | null = null;
+
+    let disposed = false;
+    let observer: MutationObserver | null = null;
+
+    const resetStability = () => {
+      stabilityRef.current = {
+        signature: "",
+        count: 0,
+        attempts: stabilityRef.current.attempts,
+      };
+    };
+
+    const recordStableResult = (signature: string) => {
+      const previous = stabilityRef.current;
+
+      stabilityRef.current =
+        previous.signature === signature
+          ? {
+              signature,
+              count: previous.count + 1,
+              attempts: previous.attempts + 1,
+            }
+          : {
+              signature,
+              count: 1,
+              attempts: previous.attempts + 1,
+            };
+
+      if (process.env.NODE_ENV === "development") {
+        host.dataset.reportComposerLayoutFingerprint =
+          getFingerprintPrefix(signature);
+        host.dataset.reportComposerStablePasses = String(
+          stabilityRef.current.count,
+        );
+        host.dataset.reportComposerAttempts = String(
+          stabilityRef.current.attempts,
+        );
+      }
+
+      if (
+        stabilityRef.current.count >= 2 ||
+        stabilityRef.current.attempts >=
+          MAX_PAGE_COMPOSITION_ATTEMPTS
+      ) {
+        finalizedPlacementRef.current = {
+          semanticInputFingerprint: resetKey,
+          layoutResultFingerprint: signature,
+          primaryEvidenceCount,
+          keepSignatureOnPrimary,
+        };
+        observer?.disconnect();
+        setPhase("READY");
+
+        queueMicrotask(() => {
+          if (
+            !disposed &&
+            planningPhaseRef.current === "READY" &&
+            finalizedPlacementRef.current
+              ?.semanticInputFingerprint === resetKey
+          ) {
+            setPhase("FROZEN");
+          }
+        });
+        return true;
+      }
+
+      setPhase("STABILIZING");
+      return false;
+    };
 
     const inspect = () => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
       if (frame !== null) {
         window.cancelAnimationFrame(
           frame,
@@ -253,24 +511,63 @@ export function SmartReportPageComposer({
           () => {
             frame = null;
 
-            const smartViewport =
-              host.querySelector<HTMLElement>(
+            if (disposed) {
+              return;
+            }
+
+            const smartViewports = Array.from(
+              host.querySelectorAll<HTMLElement>(
                 ".report-smart-a4-content",
-              );
+              ),
+            );
+
+            const smartViewport = smartViewports[0];
 
             if (!smartViewport) {
+              const physicalPageCount =
+                host.querySelectorAll(".pdf-report-page").length;
+
+              if (physicalPageCount > 0) {
+                const legacySignature = [
+                  resetKey,
+                  primaryEvidenceCount,
+                  keepSignatureOnPrimary,
+                  physicalPageCount,
+                  host.scrollHeight,
+                ].join("::");
+
+                if (!recordStableResult(legacySignature)) {
+                  inspect();
+                }
+              }
+
+              return;
+            }
+
+            if (
+              smartViewport.dataset.smartA4Phase !== "FROZEN"
+            ) {
+              setPhase("MEASURING");
               return;
             }
 
             /*
-             * Smart A4 sets this only after a real measurement pass.
-             * This prevents acting on the optimistic initial React state.
+             * Wait for a REAL Smart A4 planning pass.
              */
+            const candidate =
+              smartViewport.dataset
+                .smartA4Candidate;
+
             const severity =
               smartViewport.dataset
                 .smartA4Severity;
 
-            if (!severity) {
+            if (
+              !candidate ||
+              !severity
+            ) {
+              setPhase("MEASURING");
+              resetStability();
               return;
             }
 
@@ -278,79 +575,59 @@ export function SmartReportPageComposer({
               smartViewport.dataset
                 .reportOverflow;
 
-            const dominantRole =
+            const doesNotFit =
+              overflowState !==
+              "fit";
+
+            const preferEvidenceMove =
               smartViewport.dataset
-                .smartA4DominantRole ||
-              "general";
+                .smartA4PreferEvidenceMove ===
+              "true";
 
             const density =
               smartViewport.dataset
                 .reportDensity ||
               "normal";
 
-            const overflowPx = Number(
-              smartViewport.getAttribute(
-                "data-smart-a4-overflow-px",
-              ) || "0",
-            );
+            const fieldLayout =
+              smartViewport.dataset
+                .reportFieldLayout ||
+              "comfortable";
 
-            const doesNotFit =
-              overflowState !== "fit";
+            const overflowPx =
+              Number(
+                smartViewport.getAttribute(
+                  "data-smart-a4-overflow-px",
+                ) || "0",
+              );
 
             const decisionSignature = [
-              page?.id || "",
+              getFingerprintPrefix(resetKey),
               primaryEvidenceCount,
+              keepSignatureOnPrimary,
               doesNotFit,
+              preferEvidenceMove,
               severity,
-              dominantRole,
               density,
-              Number.isFinite(overflowPx)
+              fieldLayout,
+              candidate,
+              Number.isFinite(
+                overflowPx,
+              )
                 ? overflowPx
                 : 0,
             ].join("::");
 
-            if (
-              lastDecisionRef.current ===
-              decisionSignature
-            ) {
-              return;
-            }
-
-            lastDecisionRef.current =
-              decisionSignature;
-
             /*
-             * Core composer rule:
+             * =================================================
+             * PHASE 1:
+             * MOVE EVIDENCE BEFORE SACRIFICING CORE CONTENT
+             * =================================================
              *
-             * Preserve fields + narrative + signature first.
+             * Reduce one evidence at a time.
              *
-             * Evidence is movable content, so if the complete
-             * page cannot fit even after Smart A4 has selected
-             * its best safe density, reduce evidence one item
-             * at a time.
-             *
-             * Each reduction causes a fresh real DOM measurement.
-             */
-            const preferEvidenceMove =
-              smartViewport.dataset
-                .smartA4PreferEvidenceMove ===
-              "true";
-
-            /*
-             * Evidence is movable.
-             *
-             * We reduce one evidence at a time when:
-             *
-             * 1) the selected plan still does not fit, OR
-             * 2) it fits only by accepting aggressive density.
-             *
-             * After every reduction the Smart A4 engine gets
-             * a fresh DOM and re-evaluates all candidate plans.
-             *
-             * This lets a report prefer:
-             * normal/packed + 1 evidence
-             * over
-             * minimum-safe + 2 evidences.
+             * Every reduction triggers a fresh complete Smart A4
+             * multi-plan evaluation.
              */
             if (
               evidenceAutoEnabled &&
@@ -360,6 +637,16 @@ export function SmartReportPageComposer({
                 preferEvidenceMove
               )
             ) {
+              if (
+                lastDecisionRef.current === decisionSignature
+              ) {
+                return;
+              }
+
+              lastDecisionRef.current = decisionSignature;
+              resetStability();
+              setPhase("MEASURING");
+
               setPrimaryEvidenceCount(
                 (current) =>
                   Math.max(
@@ -367,38 +654,178 @@ export function SmartReportPageComposer({
                     current - 1,
                   ),
               );
+
+              return;
+            }
+
+            /*
+             * =================================================
+             * PHASE 2:
+             * SIGNATURE OVERFLOW FALLBACK
+             * =================================================
+             *
+             * Only after:
+             *
+             * - all movable evidence has left the primary page
+             * - Smart A4 still says the page does not fit
+             *
+             * do we move signature to a dedicated final page.
+             *
+             * We NEVER move regular narrative/fields just because
+             * the signature itself is the final obstruction.
+             */
+            if (
+              doesNotFit &&
+              primaryEvidenceCount <= 0 &&
+              hasSignature &&
+              keepSignatureOnPrimary
+            ) {
+              if (
+                lastDecisionRef.current === decisionSignature
+              ) {
+                return;
+              }
+
+              lastDecisionRef.current = decisionSignature;
+              resetStability();
+              setPhase("MEASURING");
+
+              setKeepSignatureOnPrimary(
+                false,
+              );
+
+              return;
+            }
+
+            /*
+             * If signature has moved and core content now fits,
+             * planning is stable.
+             *
+             * If core content itself still does not fit,
+             * Smart Physical Engine owns that pagination problem;
+             * do not hide/truncate anything here.
+             */
+            const allSmartLayoutsFrozen = smartViewports.every(
+              (viewport) =>
+                viewport.dataset.smartA4Phase === "FROZEN",
+            );
+
+            const unsettledImages = Array.from(
+              host.querySelectorAll<HTMLImageElement>("img"),
+            ).filter((image) => !image.complete);
+
+            if (
+              !allSmartLayoutsFrozen ||
+              unsettledImages.length > 0 ||
+              !fontsSettledRef.current
+            ) {
+              setPhase("MEASURING");
+              return;
+            }
+
+            const finalSignature =
+              createSemanticInputFingerprint({
+                decisionSignature,
+                evidenceCount: validEvidences.length,
+                pageCount:
+                  host.querySelectorAll(".pdf-report-page").length,
+                hasSignatureOverflowPage:
+                  hasSignatureOverflowPage,
+                smartLayouts: smartViewports.map((viewport) => ({
+                  candidate:
+                    viewport.dataset.smartA4Candidate || "",
+                  fieldLayout:
+                    viewport.dataset.reportFieldLayout || "comfortable",
+                  mode:
+                    viewport.dataset.reportDensity || "normal",
+                  overflowPx: roundLayoutMetric(
+                    Number(viewport.dataset.smartA4OverflowPx || "0"),
+                  ),
+                })),
+              });
+
+            if (!recordStableResult(finalSignature)) {
+              inspect();
             }
           },
         );
     };
 
-    const observer =
-      new MutationObserver(inspect);
+    observer =
+      new MutationObserver(
+        inspect,
+      );
 
-    observer.observe(host, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: [
-        "data-report-overflow",
-        "data-report-density",
-        "data-smart-a4-mode",
-        "data-smart-a4-fits",
-        "data-smart-a4-overflow-px",
-        "data-smart-a4-dominant-role",
-        "data-smart-a4-severity",
-        "data-smart-a4-signature-reserved-px",
-        "data-smart-a4-prefer-evidence-move",
-        "data-smart-a4-candidate",
-        "data-smart-a4-score",
-        "data-report-field-layout",
-      ],
-    });
+    observer.observe(
+      host,
+      {
+        subtree: true,
+        childList: true,
+        attributes: true,
+
+        attributeFilter: [
+          "data-smart-a4-phase",
+        ],
+      },
+    );
 
     inspect();
 
+    const handleAssetLoad = (event: Event) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const image =
+        event.target instanceof HTMLImageElement
+          ? event.target
+          : null;
+      const source = image?.currentSrc || image?.src || "";
+
+      if (
+        source &&
+        settledAssetSourcesRef.current.has(source)
+      ) {
+        return;
+      }
+
+      if (source) {
+        settledAssetSourcesRef.current.add(source);
+      }
+
+      inspect();
+    };
+
+    host.addEventListener("load", handleAssetLoad, true);
+    host.addEventListener("error", handleAssetLoad, true);
+
+    const fonts = document.fonts;
+    if (!fonts) {
+      fontsSettledRef.current = true;
+      inspect();
+    } else if (fontsSettledRef.current) {
+      inspect();
+    } else {
+      void fonts.ready
+        .then(() => {
+          if (!disposed && !fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        })
+        .catch(() => {
+          if (!disposed) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        });
+    }
+
     return () => {
-      observer.disconnect();
+      disposed = true;
+      observer?.disconnect();
+      host.removeEventListener("load", handleAssetLoad, true);
+      host.removeEventListener("error", handleAssetLoad, true);
 
       if (frame !== null) {
         window.cancelAnimationFrame(
@@ -407,22 +834,58 @@ export function SmartReportPageComposer({
       }
     };
   }, [
-    page?.id,
     primaryEvidenceCount,
+    keepSignatureOnPrimary,
     evidenceAutoEnabled,
+    hasSignature,
+    hasSignatureOverflowPage,
+    resetKey,
+    validEvidences.length,
   ]);
+
+  const compositionSemanticFingerprint =
+    createSemanticInputFingerprint({
+      keepSignatureOnPrimary,
+      primaryEvidenceCount,
+      semanticInputFingerprint: resetKey,
+    });
+
+  const developmentDiagnostics =
+    process.env.NODE_ENV === "development"
+      ? {
+          "data-report-composer-semantic-fingerprint":
+            getFingerprintPrefix(resetKey),
+          "data-report-composer-invalidation-reason":
+            invalidationReason,
+        }
+      : {};
 
   return (
     <div
       ref={hostRef}
       data-report-smart-page-composer
+      data-report-smart-page-phase={planningPhase}
       data-report-primary-evidence-count={
         primaryEvidenceCount
       }
       data-report-total-evidence-count={
         validEvidences.length
       }
+      data-report-signature-on-primary={
+        String(
+          keepSignatureOnPrimary,
+        )
+      }
+      {...developmentDiagnostics}
     >
+      <ReportSmartSemanticFingerprintProvider
+        fingerprint={compositionSemanticFingerprint}
+      >
+      {/*
+       * ======================================================
+       * PRIMARY PHYSICAL PAGE
+       * ======================================================
+       */}
       <A4DesignPage
         designId={designId}
         page={primaryPage}
@@ -431,6 +894,14 @@ export function SmartReportPageComposer({
         pageLabel={pageLabel}
       />
 
+      {/*
+       * ======================================================
+       * EVIDENCE OVERFLOW
+       * ======================================================
+       *
+       * AutoEvidencePages starts exactly after the count consumed
+       * by the primary page.
+       */}
       {evidenceAutoEnabled ? (
         <AutoEvidencePages
           designId={designId}
@@ -442,6 +913,34 @@ export function SmartReportPageComposer({
           }
         />
       ) : null}
+
+      {/*
+       * ======================================================
+       * SIGNATURE OVERFLOW
+       * ======================================================
+       *
+       * This exists only when:
+       * - evidence count already reached zero
+       * - primary page still does not fit
+       * - signature was the remaining protected block
+       */}
+      {signatureOverflowPage ? (
+        <div
+          className="mt-6 print:mt-0 print:break-before-page"
+          data-report-signature-overflow-page
+        >
+          <A4DesignPage
+            designId={designId}
+            page={
+              signatureOverflowPage
+            }
+            context={context}
+            previewCase={previewCase}
+            pageLabel="اعتماد التقرير"
+          />
+        </div>
+      ) : null}
+      </ReportSmartSemanticFingerprintProvider>
     </div>
   );
 }

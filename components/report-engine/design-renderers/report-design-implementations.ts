@@ -59,7 +59,12 @@ export const reportDesignImplementations = {
   "report-official-archive": { Page: ReportOfficialArchiveDesign, palette: reportOfficialArchivePalette, ValueGrid: ReportOfficialArchiveValueGrid },
   "report-playful-cards": { Page: ReportPlayfulCardsDesign, palette: reportPlayfulCardsPalette, ValueGrid: ReportPlayfulCardsValueGrid },
   "report-calm-reader": { Page: ReportCalmReaderDesign, palette: reportCalmReaderPalette, ValueGrid: ReportCalmReaderValueGrid },
-  "ministry-elegant": { Page: MinistryElegantReportDesign, palette: ministryElegantPalette },
+  "ministry-elegant": {
+    Page: MinistryElegantReportDesign,
+    palette: ministryElegantPalette,
+    defaultLogoWidthPx: 190,
+    defaultLogoHeightPx: 102,
+  },
   "moe-official-2024": {
     Page: MoeOfficial2024ReportDesign,
     palette: moeOfficial2024Palette,

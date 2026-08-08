@@ -111,7 +111,7 @@ export function MoeClassicFrameValueGrid({
                           "calc(0.9mm * var(--report-table-spacing-scale, 1))",
 
                         fontSize:
-                          "calc(9.5px * var(--report-field-label-scale, 1))",
+                          "calc(10.5px * var(--report-field-label-scale, 1))",
 
                         lineHeight:
                           "calc(1.1rem * var(--report-narrative-density-scale, 1))",
@@ -138,7 +138,7 @@ export function MoeClassicFrameValueGrid({
                             : "calc(0.8mm * var(--report-table-spacing-scale, 1))",
 
                         fontSize:
-                          "calc(9.5px * var(--report-field-value-scale, 1))",
+                          "calc(10.5px * var(--report-field-value-scale, 1))",
 
                         lineHeight:
                           "var(--report-content-line-height, 1.55)",

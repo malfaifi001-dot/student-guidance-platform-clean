@@ -1,0 +1,1499 @@
+============================================================
+SERVICE ARCHITECTURE AUDIT
+============================================================
+Service Arabic Name: اللجان والاجتماعات
+Project: D:\student-guidance-platform-clean
+Generated: 2026-08-08 20:38:37
+
+============================================================
+1. GIT STATUS
+============================================================
+ M components/report-2/report-two-print-document.tsx
+ M components/report-2/report-two-studio-runtime.tsx
+ M components/report-engine/design-renderers/designs/ministry-elegant/index.tsx
+ M components/report-engine/design-renderers/designs/ministry-form/index.tsx
+ M components/report-engine/design-renderers/designs/moe-classic-frame/index.tsx
+ M components/report-engine/design-renderers/designs/moe-classic-frame/values.tsx
+ M components/report-engine/design-renderers/designs/moe-official-2024/index.tsx
+ M components/report-engine/design-renderers/report-design-implementations.ts
+ M components/report-engine/design-renderers/shared/report-blocks.tsx
+ M components/report-engine/design-renderers/shared/report-design-engine.tsx
+ M components/report-engine/design-renderers/shared/report-primitives.tsx
+ M components/report-engine/design-renderers/smart-layout/report-smart-a4-config.ts
+ M components/report-engine/design-renderers/smart-layout/report-smart-a4-layout.tsx
+ M components/report-engine/design-renderers/smart-layout/report-smart-a4-planner.ts
+ M components/report-engine/design-renderers/smart-layout/report-smart-page-composer.tsx
+?? components/report-engine/design-renderers/smart-layout/report-smart-lifecycle.tsx
+?? components/report-engine/design-renderers/smart-layout/report-smart-physical-pages.tsx
+
+============================================================
+2. EXACT ARABIC SERVICE NAME REFERENCES
+============================================================
+No exact Arabic matches found.
+
+============================================================
+3. POSSIBLE TECHNICAL SLUGS / KEYS
+============================================================
+No technical token automatically detected.
+
+============================================================
+4. TECHNICAL TOKEN REFERENCES
+============================================================
+
+============================================================
+5. IMPORTANT ARCHITECTURE FILES
+============================================================
+
+[lib/constants/services]
+  lib/constants/services.ts
+
+[dashboard-sidebar]
+  _backups/encoding-fix/dashboard-sidebar-20260605-165645.tsx
+  components/layout/dashboard-sidebar.tsx
+  scripts/fix-dashboard-sidebar-imports-clean.cjs
+
+[subscription]
+  app/api/dashboard/admin/subscriptions/route.ts
+  app/api/dashboard/subscription/bank-transfer/route.ts
+  app/api/dashboard/subscription/redeem-code/route.ts
+  app/api/dashboard/subscription/route.ts
+  app/dashboard/admin/subscriptions/default-free/page.tsx
+  app/dashboard/admin/subscriptions/page.tsx
+  app/dashboard/subscription/page.tsx
+  components/subscription/admin-default-free-plan-page.tsx
+  components/subscription/admin-subscribers-center.tsx
+  components/subscription/admin-subscriptions-control-center.tsx
+  components/subscription/counselor-plans-page.tsx
+  lib/subscription/default-free-plan.ts
+  lib/subscription/payment-provider-contract.ts
+  lib/subscription/plan-audience.ts
+  lib/subscription/subscription-api-guard.ts
+  lib/subscription/subscription-guard.ts
+  lib/subscription/subscription-service.ts
+  plans-subscription-current-files.txt
+  scripts/add-admin-subscriptions-link.cjs
+  scripts/add-service-subscription-layouts.cjs
+  scripts/debug-subscription-access.ts
+  scripts/fix-subscription-service-slug-type.cjs
+  scripts/protect-subscription-sensitive-apis.cjs
+  subscription-access-review.txt
+  subscription-debug.txt
+  subscription-service-current.txt
+  subscriptions-page-files.txt
+
+[workflow]
+  .storage/workflows/activity-programs-citizenship-life/cmsa1ejn002dve4norrus8iq3/35028fcc-2d1d-4a55-a1db-6a0589074226.xlsx
+  .storage/workflows/family-school-communication/cmsadkyvn04c3e4no0m1lawyd/8eb8c591-b5cc-41c2-a8a9-c6eb812cd9fc.xlsx
+  .storage/workflows/guidance-programs/cms1ery9k02bnscnouuywsike/132d237a-3c9c-42ff-b896-ca58376ba014.xlsx
+  .storage/workflows/job_duties_performance/cmsa5xh2502tbe4noaty0gqu6/7117597f-ac8e-4ba6-be81-abde89c549c7.xlsx
+  .storage/workflows/job_duties_performance/cmsa6bvfy038re4nodx28swpz/b09282c6-af0c-4792-9502-57436a72f592.xlsx
+  .storage/workflows/learner_results_improvement/cmsbhxr091ppme4no2bm8r8g7/30e0b590-038b-4dab-9fd3-71fb0fa4246c.xlsx
+  .storage/workflows/learning_environment/cmsbj7e812n24e4noo5rsvpp3/1d0eda35-1a0e-47a1-99c2-c6c1ebe685ad.xlsx
+  .storage/workflows/learning_plan_preparation/cmsbif2xr1wyse4no0amebdwz/d022c03b-73bd-460d-8305-7699f8dfed51.xlsx
+  .storage/workflows/learning_technology_tools/cmsbivph328uhe4no3gd1dg19/cb6c917e-8119-4e97-8241-a06cc534022b.xlsx
+  .storage/workflows/parents_interaction/cmsb8jr9h1igfe4nond8amus8/4593ff05-3227-4a9f-b067-0e9cff80c6fe.xlsx
+  .storage/workflows/professional_community_interaction/cmsabkryy03ofe4noomsevtjm/3972c8fa-5618-4e6a-8afb-83e648cacbea.xlsx
+  .storage/workflows/teaching_strategies_diversity/cmsb7llwz0jdae4no8oxh9lh2/92e9aaa8-d81d-4df5-af48-ae8c07e627fe.xlsx
+  .storage/workflows/teaching_strategies_diversity/cmsb7pu4e0x8oe4nob8429awt/5c619c47-5359-4a4a-9cfb-0e75a5eedc07.xlsx
+  .storage/workflows/teaching_strategies_diversity/cmsb7uh7j14b8e4nolyu9q9hh/f9752252-716e-43df-b02f-1bb1cf7b28f3.xlsx
+  .storage/workflows/teaching_strategies_diversity/cmsb8fj1b1bdue4no2bcxsz7j/f86bae70-bebe-4ec7-a7d2-7fcdf5fa0d2d.xlsx
+  _backup-before-clean-workflows-20260604-230652.patch
+  _backup-before-generalize-perfect-workflow-upload.patch
+  _backup-template-studio/report-template-studio-before-pages-workflow-aware.tsx.bak.txt
+  _backup-workflow-inline-import/case-runtime-engine-before-fix-workflow-snapshot-client.ts.bak.txt
+  _backup-workflow-inline-import/case-runtime-engine-before-workflow-snapshot.ts.bak.txt
+  _backup-workflow-inline-import/draft-name-route-before-case-usage-lock.ts.bak.txt
+  _backup-workflow-inline-import/draft-route-before-safe-json-response.ts.bak.txt
+  _backup-workflow-inline-import/dynamic-form-renderer-before-preview-validation-fix.tsx.bak.txt
+  _backup-workflow-inline-import/schema-before-fix-workflow-snapshot-client.prisma.bak.txt
+  _backup-workflow-inline-import/schema-before-workflow-snapshot.prisma.bak.txt
+  _backup-workflow-inline-import/service-workflow-page-before-case-usage-lock.tsx.bak.txt
+  _backup-workflow-inline-import/service-workflow-page-before-history-actions.tsx.bak.txt
+  _backup-workflow-inline-import/service-workflow-page-before-inline-import.tsx.bak.txt
+  _backup-workflow-inline-import/service-workflow-page-before-upload-history.tsx.bak.txt
+  _backup-workflow-inline-import/workflow-history-actions-before-case-usage-lock.tsx.bak.txt
+  _backup-workflow-inline-import/workflow-inline-import-workbench-before-safe-json-response.tsx.bak.txt
+  _backup-workflow-inline-import/workflow-preview-before-selected-workflow.tsx.bak.txt
+  _backup-workflow-inline-import/workflow-publish-panel-before-draft-name.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-field-renderer-before-arabic-cleanup.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-fix-preview-mode-scope.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-preview-mode.tsx.bak.txt
+  _backup-workflow-publish-preview/service-workflow-page-before-organize.tsx.bak.txt
+  _backup-workflow-publish-preview/workflow-display-value-before-arabic-cleanup.ts.bak.txt
+  _backup-workflow-publish-preview/workflow-preview-page-before-runtime-preview.tsx.bak.txt
+  _backup-workflow-publish-preview/workflow-step-card-before-arabic-cleanup.tsx.bak.txt
+  _backup-workflow-snapshot-runtime/edit-case-page-before-workflow-snapshot-runtime.tsx.bak.txt
+  _backup-workflow-snapshot-runtime/schema-before-ensure-workflow-snapshot.prisma.bak.txt
+  _ensure-case-workflow-snapshot-schema.cjs
+  _exports/admin-workflows-code.txt
+  _exports/admin-workflows-dynamic-pages-code.txt
+  _exports/workflow-subworkflow-needed-code.txt
+  _patch-ensure-workflow-snapshot-schema.cjs
+  _patch-generalize-perfect-workflow-upload.cjs
+  _patch-workflow-case-usage-lock.cjs
+  _patch-workflow-history-icon-actions.cjs
+  _patch-workflow-inline-import-safe-response.cjs
+  _patch-workflow-snapshot-for-cases.cjs
+  _patch-workflow-upload-eligibility.cjs
+  _patch-workflow-upload-history-section.cjs
+  _remove-workflow-process-section.cjs
+  _review-workflow-actual-routes/workflow-actual-routes-current-files.txt
+  _review-workflow-publish-preview/workflow-publish-preview-current-files.txt
+  _review-workflow-upload-flow/workflow-upload-flow-current-files.txt
+  _stable-backups/workflow-publish-button.WORKING-ENCODING-FIXED.bak
+  _stable-backups/workflow-publish-button.tsx.BEFORE-MOJIBAKE-FIX.bak
+  admin-workflows-files-scan.txt
+  admin-workflows-guidance-programs-page-code.txt
+  app/api/admin/report-templates/workflow-fields/route.ts
+  app/api/admin/workflows/guardian-summons/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/[workflowId]/original-file/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/activate/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/delete/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/draft-name/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/draft/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/evidence-mode/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/publish/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/rename/route.ts
+  app/api/dashboard/admin/workflows/[serviceSlug]/student-picker-mode/route.ts
+  app/api/dashboard/admin/workflows/upload/route.ts
+  app/api/dashboard/workflow-builder/create-field/route.ts
+  app/api/dashboard/workflow-builder/create-step/route.ts
+  app/dashboard/admin/workflow-builder/[workflowId]/page.tsx
+  app/dashboard/admin/workflow-builder/[workflowId]/page.tsxcode
+  app/dashboard/admin/workflow-builder/page.tsx
+  app/dashboard/admin/workflows/[serviceSlug]/page.tsx
+  app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx
+  app/dashboard/admin/workflows/[serviceSlug]/upload/page.tsx
+  app/dashboard/admin/workflows/page.tsx
+  app/dashboard/teacher/report-workflow/page.tsx
+  check-workflow-guidance-programs.txt
+  components/admin/admin-workflows-filter-bar.tsx
+  components/admin/workflow-builder-sidebar.tsx
+  components/admin/workflow-field-editor.tsx
+  components/admin/workflow-health/workflow-health-report.tsx
+  components/admin/workflow-preview-panel.tsx
+  components/admin/workflow-publish-button.tsx
+  components/admin/workflow-step-editor.tsx
+  components/admin/workflow-upload-card.tsx
+  components/admin/workflows/guardian-summons-workflow-admin-card.tsx
+  components/admin/workflows/workflow-evidence-mode-control.tsx
+  components/admin/workflows/workflow-history-actions.tsx
+  components/admin/workflows/workflow-history-card.tsx
+  components/admin/workflows/workflow-history-section.tsx
+  components/admin/workflows/workflow-inline-import-workbench.tsx
+  components/admin/workflows/workflow-name-editor.tsx
+  components/admin/workflows/workflow-original-file-action.tsx
+  components/admin/workflows/workflow-publish-panel.tsx
+  components/admin/workflows/workflow-student-picker-mode-control.tsx
+  components/mobile/mobile-new-case-workflow-page.tsx
+  components/report-engine/design-renderers/shared/report-workflow-fields.ts
+  components/services/workflow-service-home-page.tsx
+  components/teacher-performance/teacher-performance-workflow-pages.tsx
+  components/timetable-v2/project-home/project-workflow.tsx
+  components/workflow/dynamic-field-renderer.tsx
+  components/workflow/dynamic-form-renderer.tsx
+  components/workflow/dynamic-form-resume.tsx
+  components/workflow/workflow-step-card.tsx
+  debug-workflow-step-card.txt
+  docs/MYSQL_MIGRATIONS_WORKFLOW.md
+  engine/runtime/workflow-conditional-logic.test.ts
+  engine/runtime/workflow-conditional-logic.ts
+  engine/workflow-builder/workflow-builder-engine.ts
+  engine/workflow-upload/workflow-upload-engine.ts
+  engine/workflow-upload/workflow-upload-normalization.ts
+  engine/workflow-validation/workflow-validator.ts
+  job-duties-active-workflow-report.txt
+  lib/admin/workflows/ensure-dashboard-workflow-services.ts
+  lib/admin/workflows/workflow-board-helpers.ts
+  lib/statistics/statistics-workflow-resolver.ts
+  lib/storage/workflow-original-file-storage.ts
+  lib/workflow-builder/workflow-builder-types.ts
+  lib/workflow-upload/workflow-excel-parser.ts
+  lib/workflow-values/structured-value-metadata.ts
+  lib/workflow-values/workflow-display-value.ts
+  lib/workflows/active-workflow-resolver.ts
+  lib/workflows/guardian-summons-workflow-template.ts
+  lib/workflows/workflow-activation-service.ts
+  lib/workflows/workflow-runtime-copy.ts
+  lib/workflows/workflow-runtime-settings.ts
+  lib/workflows/workflow-slot.ts
+  lib/workflows/workflow-types.backup-before-subworkflow.ts
+  lib/workflows/workflow-types.ts
+  prisma/backups/dev-before-delete-workflows-20260604-230652.db
+  prisma/migrations/20260608224500_add_assessment_intervention_workflow_targets/migration.sql
+  prisma/migrations/20260625093000_add_workflow_evidence_mode/migration.sql
+  prisma/migrations/20260726090000_add_workflow_original_excel_metadata/migration.sql
+  prisma/migrations/20260801090000_add_workflow_active_key/migration.sql
+  prisma/schema.backup-before-subworkflow.prisma
+  prisma/schema.before-workflow-type-fix.prisma
+  scripts/check-local-student-follow-up-workflows.cjs
+  scripts/check-student-follow-up-workflows.cjs
+  scripts/delete-all-local-workflows.sql
+  scripts/delete-all-workflows-preserve-cases.cjs
+  scripts/delete-local-student-follow-up-workflows.cjs
+  scripts/delete-student-follow-up-workflows.sql
+  scripts/fix-workflow-student-picker-priority.cjs
+  scripts/force-delete-local-student-follow-up-workflows.cjs
+  scripts/force-delete-student-follow-up-workflows.cjs
+  scripts/force-inject-workflow-student-picker-control.cjs
+  scripts/patch-workflow-student-picker-mode.cjs
+  scripts/repair-active-workflows.ts
+  scripts/scan-one-workflow-encoding.cjs
+  scripts/scan-workflow-encoding.cjs
+  scripts/test-workflow-slot.ts
+  scripts/workflow-cleanup/01-drop-old-tables.sql
+  scripts/workflow-cleanup/02-drop-old-steps.sql
+  scripts/workflow-cleanup/03-drop-old-workflows.sql
+  scripts/workflow-cleanup/04-create-workflows.sql
+  scripts/workflow-cleanup/05-create-steps.sql
+  scripts/workflow-cleanup/06-create-fields.sql
+  scripts/workflow-cleanup/07-detach-case-values.sql
+  scripts/workflow-cleanup/08-detach-cases.sql
+  scripts/workflow-cleanup/09-delete-options.sql
+  scripts/workflow-cleanup/10-delete-fields.sql
+  scripts/workflow-cleanup/11-delete-steps.sql
+  scripts/workflow-cleanup/12-delete-workflows.sql
+  scripts/workflow-cleanup/13-clean-temp.sql
+  scripts/workflow-cleanup/14-clean-temp.sql
+  scripts/workflow-cleanup/15-clean-temp.sql
+  scripts/workflow-cleanup/run-one.sql
+  statistics-workflow-runtime-scan.txt
+  teacher-workflow-runtime-files.txt
+  timetable-v2-phase1-workflow.txt
+  verify-workflow-status-and-guidance.txt
+  workflow-actions-review.txt
+  workflow-activate-route.txt
+  workflow-activation-api-map.txt
+  workflow-admin-check.txt
+  workflow-admin-review.txt
+  workflow-context-map.txt
+  workflow-debug-files.txt
+  workflow-dump.txt
+  workflow-encoding-scan-student-follow-up.txt
+  workflow-fix-target-files.txt
+  workflow-linking-next-check.txt
+  workflow-parser-engine-check.txt
+  workflow-preview-publish-current.txt
+  workflow-publish-diagnostic.txt
+  workflow-renderer-files.txt
+  workflow-rendering-audit.txt
+  workflow-root-cause-files.txt
+  workflow-runtime-current-state.txt
+  workflow-service-home-page-scan.txt
+  workflow-service-home-reference.txt
+  workflow-service-page.txt
+  workflow-smart-picker-files.txt
+  workflow-student-evidence-scan.txt
+  workflow-student-required-scan.txt
+  workflow-target-debug.txt
+  workflow-ui-and-upload-map.txt
+  workflow-upload-engine.txt
+  workflow-upload-parser-check.txt
+
+[dynamic-form]
+  _backup-smart-arabic-case-title/dynamic-form-renderer-before-smart-arabic-case-title.tsx.bak.txt
+  _backup-workflow-inline-import/dynamic-form-renderer-before-preview-validation-fix.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-fix-preview-mode-scope.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-preview-mode.tsx.bak.txt
+  _patch-dynamic-form-preview-mode-final.cjs
+  _patch-dynamic-form-preview-mode.cjs
+  components/mobile/mobile-dynamic-form-renderer.tsx
+  components/workflow/dynamic-form-renderer.tsx
+  components/workflow/dynamic-form-resume.tsx
+  debug-dynamic-form-renderer.txt
+
+[renderer]
+  _backup-evidence-smart-pagination/report-design-renderer-before-smart-evidence-pagination.tsx.bak.txt
+  _backup-final-report-preview/preview-page-before-remove-duplicate-final-renderer-import.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-preview-engine.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-runtime-binding.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-value-types.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-fix-render-text-corruption.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-force-final-preview.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-remove-legacy-rendered-dump.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-strict-block-overrides.tsx.bak.txt
+  _backup-smart-arabic-case-title/dynamic-form-renderer-before-smart-arabic-case-title.tsx.bak.txt
+  _backup-template-studio/report-design-renderer-before-identity-block-cards.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-design-renderer-engine.tsx.bak.txt
+  _backup-workflow-inline-import/dynamic-form-renderer-before-preview-validation-fix.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-field-renderer-before-arabic-cleanup.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-fix-preview-mode-scope.tsx.bak.txt
+  _backup-workflow-publish-preview/dynamic-form-renderer-before-preview-mode.tsx.bak.txt
+  _patch-force-final-preview-design-renderer.cjs
+  _patch-remove-duplicate-final-renderer-import.cjs
+  components/cases/case-value-renderer.tsx
+  components/mobile/mobile-dynamic-form-renderer.tsx
+  components/report-2/report-two-active-preview-renderer.tsx
+  components/report-engine/design-renderers/designs/behavior-followup/index.tsx
+  components/report-engine/design-renderers/designs/behavior-followup/presentation.ts
+  components/report-engine/design-renderers/designs/counseling-case-file/index.tsx
+  components/report-engine/design-renderers/designs/counseling-case-file/presentation.ts
+  components/report-engine/design-renderers/designs/editorial-atlas/index.tsx
+  components/report-engine/design-renderers/designs/editorial-atlas/presentation.ts
+  components/report-engine/design-renderers/designs/evidence-showcase/index.tsx
+  components/report-engine/design-renderers/designs/evidence-showcase/presentation.ts
+  components/report-engine/design-renderers/designs/formal-memo/index.tsx
+  components/report-engine/design-renderers/designs/formal-memo/presentation.ts
+  components/report-engine/design-renderers/designs/geometric-horizon/index.tsx
+  components/report-engine/design-renderers/designs/geometric-horizon/presentation.ts
+  components/report-engine/design-renderers/designs/girls-lilac-elegant/index.tsx
+  components/report-engine/design-renderers/designs/girls-lilac-elegant/presentation.ts
+  components/report-engine/design-renderers/designs/girls-pearl-calm/index.tsx
+  components/report-engine/design-renderers/designs/girls-pearl-calm/presentation.ts
+  components/report-engine/design-renderers/designs/girls-rose-official/index.tsx
+  components/report-engine/design-renderers/designs/girls-rose-official/presentation.ts
+  components/report-engine/design-renderers/designs/ministry-elegant/index.tsx
+  components/report-engine/design-renderers/designs/ministry-elegant/presentation.ts
+  components/report-engine/design-renderers/designs/ministry-form/index.tsx
+  components/report-engine/design-renderers/designs/ministry-form/presentation.ts
+  components/report-engine/design-renderers/designs/modern-official/index.tsx
+  components/report-engine/design-renderers/designs/modern-official/presentation.ts
+  components/report-engine/design-renderers/designs/moe-classic-frame/index.tsx
+  components/report-engine/design-renderers/designs/moe-classic-frame/presentation.ts
+  components/report-engine/design-renderers/designs/moe-classic-frame/values.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/admin-presentation-styles.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/block-presentation.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/blocks.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/evidence.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/index.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/original-portfolio-styles.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/presentation.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/value-grid.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/values.tsx
+  components/report-engine/design-renderers/designs/program-impact/index.tsx
+  components/report-engine/design-renderers/designs/program-impact/presentation.ts
+  components/report-engine/design-renderers/designs/report-block-presentation.ts
+  components/report-engine/design-renderers/designs/report-calm-reader/index.tsx
+  components/report-engine/design-renderers/designs/report-calm-reader/presentation.ts
+  components/report-engine/design-renderers/designs/report-calm-reader/values.tsx
+  components/report-engine/design-renderers/designs/report-design-component-types.ts
+  components/report-engine/design-renderers/designs/report-official-archive/index.tsx
+  components/report-engine/design-renderers/designs/report-official-archive/presentation.ts
+  components/report-engine/design-renderers/designs/report-official-archive/values.tsx
+  components/report-engine/design-renderers/designs/report-playful-cards/index.tsx
+  components/report-engine/design-renderers/designs/report-playful-cards/presentation.ts
+  components/report-engine/design-renderers/designs/report-playful-cards/values.tsx
+  components/report-engine/design-renderers/report-design-gallery-preview.tsx
+  components/report-engine/design-renderers/report-design-implementations.ts
+  components/report-engine/design-renderers/report-design-registry.ts
+  components/report-engine/design-renderers/report-design-renderer.tsx
+  components/report-engine/design-renderers/report-design-types.ts
+  components/report-engine/design-renderers/shared/final-report.ts
+  components/report-engine/design-renderers/shared/report-auto-evidence.tsx
+  components/report-engine/design-renderers/shared/report-block-presentation.ts
+  components/report-engine/design-renderers/shared/report-blocks.tsx
+  components/report-engine/design-renderers/shared/report-design-engine.tsx
+  components/report-engine/design-renderers/shared/report-evidence-data.ts
+  components/report-engine/design-renderers/shared/report-evidence.tsx
+  components/report-engine/design-renderers/shared/report-header.ts
+  components/report-engine/design-renderers/shared/report-logo.ts
+  components/report-engine/design-renderers/shared/report-primitives.tsx
+  components/report-engine/design-renderers/shared/report-signatures.ts
+  components/report-engine/design-renderers/shared/report-text.ts
+  components/report-engine/design-renderers/shared/report-types.ts
+  components/report-engine/design-renderers/shared/report-values.tsx
+  components/report-engine/design-renderers/shared/report-workflow-fields.ts
+  components/report-engine/design-renderers/smart-layout/report-design-smart-content.tsx
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-config.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-layout.tsx
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-measure.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-planner.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-field-layout.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-page-composer.tsx
+  components/report-engine/document-renderers/ministry-report-shell.tsx
+  components/report-engine/report-builder-pdf-renderer.tsx
+  components/report-engine/report-document-renderer.tsx
+  components/report-engine/smart-report-document-renderer.tsx
+  components/workflow/dynamic-field-renderer.tsx
+  components/workflow/dynamic-form-renderer.tsx
+  debug-dynamic-field-renderer.txt
+  debug-dynamic-form-renderer.txt
+  evidence-renderer-after-codex.txt
+  lib/certificates/certificate-batch-renderer.ts
+  lib/certificates/certificate-renderer.ts
+  next-renderers-extract.txt
+  report-design-renderers.txt
+  report-evidence-renderer-check.txt
+  report-renderer-studio-files-scan.txt
+  report2-user-studio-renderer-context.txt
+  scripts/connect-official-pdf-renderer.cjs
+  scripts/connect-studio-texts-to-pdf-renderer.cjs
+  signature-renderer-current-markers.txt
+  workflow-renderer-files.txt
+
+[report]
+  FULL-report-builder-debug-code.txt
+  _backup-evidence-smart-pagination/report-design-renderer-before-smart-evidence-pagination.tsx.bak.txt
+  _backup-evidence-smart-pagination/report-studio-editor-before-evidence-controls-visibility.tsx.bak.txt
+  _backup-evidence-smart-pagination/report-template-studio-before-smart-evidence-pagination.tsx.bak.txt
+  _backup-final-report-preview/preview-page-before-remove-duplicate-final-renderer-import.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-preview-engine.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-runtime-binding.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-final-value-types.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-fix-render-text-corruption.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-force-final-preview.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-remove-legacy-rendered-dump.tsx.bak.txt
+  _backup-final-report-preview/report-design-renderer-before-strict-block-overrides.tsx.bak.txt
+  _backup-report-from-case/new-report-case-picker-before-remove-legacy-fallback-templates.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-admin-like-preview-and-text-fix.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-align-preview-and-remove-rendered-fallback.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-clean-side-panel.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-collapsible-evidence-panel.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-compact-text-editor.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-fix-build-rendered-content-function.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-fix-escaped-template-literals.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-fix-pages-type.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-force-text-editor-into-side-column.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-page-based-suggestions.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-prioritize-text-editor-and-merge-evidence-settings.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-remove-legacy-rendered-dump.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-robust-template-pages.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-side-by-side-text-editor-preview.tsx.bak.txt
+  _backup-report-page-editor/report-studio-editor-before-simplify-counselor-editor-layout.tsx.bak.txt
+  _backup-report-page-editor/studio-page-before-page-based-editor.tsx.bak.txt
+  _backup-report-preview-ui/report-pdf-guidance-card-before-compact-counselor-actions.tsx.bak.txt
+  _backup-report-preview-ui/report-pdf-guidance-card-before-counselor-preview-ui.tsx.bak.txt
+  _backup-smart-arabic-case-title/new-report-page-before-arabic-option-title.tsx.bak.txt
+  _backup-template-studio/report-design-gallery-preview-before-design-transfer-fix.tsx.bak.txt
+  _backup-template-studio/report-design-renderer-before-identity-block-cards.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-add-create-evidence-placeholders.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-block-placement.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-design-engine-cleanup.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-design-renderer-engine.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-design-transfer-fix.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-evidence-aspect-ratio-and-logo-cleanup.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-evidence-auto-pages.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-evidence-live-preview-boxes.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-fix-design-variable-scope.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-four-design-themes.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-metric-theme-and-library-button-fix.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-pages-workflow-aware.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-placement-full-width-fix.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-restore-full-placement-options.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-safe-evidence-patch.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-single-official-studio.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-template-library.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-ten-report-designs.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-theme-fallback-fix.tsx.bak.txt
+  _backup-template-studio/report-template-studio-before-visible-theme-switcher.tsx.bak.txt
+  _backup-unified-cases-center/case-runtime-engine-before-case-details-report-link.ts.bak.txt
+  _backup-unified-cases-center/new-report-page-before-smart-case-title.tsx.bak.txt
+  _backups/report-template-studio-corrupted.txt
+  _backups/report-template-studio.backup.txt
+  _exports/backups/report-template-builder-presets.backup-before-guardian-fix.txt
+  _exports/backups/report-template-builder-types.backup-before-guardian-fix.txt
+  _exports/working-reports-pdf-export-code.txt
+  _patch-align-report-studio-with-preview-template.cjs
+  _patch-case-details-engine-report-link.cjs
+  _patch-clean-report-studio-ui.cjs
+  _patch-compact-report-preview-guidance-ui.cjs
+  _patch-compact-report-text-editor.cjs
+  _patch-final-report-runtime-binding.cjs
+  _patch-fix-report-editor-pages-type.cjs
+  _patch-remove-legacy-fallback-report-templates.cjs
+  _patch-remove-legacy-rendered-dump-from-report-editor.cjs
+  _patch-report-block-card-identities.cjs
+  _patch-report-studio-page-snapshots.cjs
+  _patch-simplify-counselor-report-editor-layout.cjs
+  _patch-ten-report-designs-studio.cjs
+  _review-current-studio-now/report-template-studio-current.tsx
+  _review-current-studio/current-report-template-studio.txt
+  _review-final-report-preview/final-report-preview-required-files.txt
+  _review-next-report-from-case/project-report-case-map.txt
+  _review-report-editor-after-evidence-success/report-studio-editor-current.tsx.txt
+  _review-report-from-case-content/report-from-case-required-files.txt
+  _review-report-studio-current/report-studio-current-files.txt
+  "activity-programsreportsactivity-execution-card-report.tsx\357\200\242"
+  activity-report-current-files-scan.txt
+  admin-report-templates-font-size-scan.txt
+  admin-report-templates-scan.txt
+  ai-report-code-scan.txt
+  ai-report-core-only.txt
+  ai-report-current-code-review.txt
+  ai-report-loop-debug.txt
+  ai-report2-evaluation.csv
+  ai-report2-review-bundle.txt
+  app/api/admin/report-templates/preview-case/route.ts
+  app/api/admin/report-templates/workflow-fields/route.ts
+  app/api/dashboard/ai-report/field-options/route.ts
+  app/api/dashboard/ai-report/suggest/route.ts
+  app/api/dashboard/ai-report2/clarify/route.ts
+  app/api/dashboard/ai-report2/suggest/route.ts
+  app/api/dashboard/custom-report/entries/route.ts
+  app/api/dashboard/custom-report/suggest/route.ts
+  app/api/dashboard/custom-report/templates/[templateId]/route.ts
+  app/api/dashboard/custom-report/templates/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/[itemId]/evidence/[evidenceId]/move/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/[itemId]/evidence/[evidenceId]/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/[itemId]/move/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/[itemId]/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/route.ts
+  app/api/dashboard/portfolio/[portfolioId]/reports/sync/route.ts
+  app/api/dashboard/report-1/[reportId]/approve/route.ts
+  app/api/dashboard/report-1/[reportId]/export/pdf/route.ts
+  app/api/dashboard/report-1/[reportId]/route.ts
+  app/api/dashboard/report-1/cases/[caseId]/generate/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/approve/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/export/pdf/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/save/route.ts
+  app/api/dashboard/report-2/snapshots/[snapshotId]/route.ts
+  app/api/dashboard/report-2/snapshots/route.ts
+  app/api/dashboard/report-templates/[templateId]/route.ts
+  app/api/dashboard/report-templates/[templateId]/use/route.ts
+  app/api/dashboard/report-templates/route.ts
+  app/api/dashboard/report/[reportId]/approve/route.ts
+  app/api/dashboard/report/[reportId]/delete/route.ts
+  app/api/dashboard/report/[reportId]/duplicate/route.ts
+  app/api/dashboard/report/[reportId]/evidence/route.ts
+  app/api/dashboard/report/[reportId]/export/pdf/route.ts
+  app/api/dashboard/report/[reportId]/route.ts
+  app/api/dashboard/report/prepare/route.ts
+  app/api/dashboard/report/route.ts
+  app/api/dashboard/reports/[reportId]/approve/route.ts
+  app/api/dashboard/reports/[reportId]/delete/route.ts
+  app/api/dashboard/reports/[reportId]/duplicate/route.ts
+  app/api/dashboard/reports/[reportId]/evidence/route.ts
+  app/api/dashboard/reports/[reportId]/export/pdf/route.ts
+  app/api/dashboard/reports/[reportId]/route.ts
+  app/api/dashboard/reports/case/[caseId]/execution-summary/route.ts
+  app/api/dashboard/reports/case/[caseId]/generate/route.ts
+  app/api/dashboard/reports/case/[caseId]/prepare/route.ts
+  app/api/dashboard/reports/prepare/route.ts
+  app/api/dashboard/reports/route.ts
+  app/api/dashboard/special-report/ai/route.ts
+  app/api/dashboard/special-report/runtime/fields/[fieldId]/route.ts
+  app/api/dashboard/special-report/runtime/route.ts
+  app/api/dashboard/special-report/templates/route.ts
+  app/api/dashboard/statistics/reports/route.ts
+  app/api/dev/seed-one-page-mosaic-report-template/route.ts
+  app/api/dev/seed-three-report-design-templates/route.ts
+  app/dashboard/activity-leader/reports/activity-card/[caseId]/page.tsx
+  app/dashboard/activity-leader/reports/page.tsx
+  app/dashboard/admin/document-designs/evidence-rich-report/page.tsx
+  app/dashboard/admin/document-designs/minimal-guidance-report/page.tsx
+  app/dashboard/admin/document-designs/official-school-report/page.tsx
+  app/dashboard/admin/document-designs/visual-program-report/page.tsx
+  app/dashboard/admin/report-templates/activity-leader/page.tsx
+  app/dashboard/admin/report-templates/activity-leader/preview/[templateId]/page.tsx
+  app/dashboard/admin/report-templates/designs/page.tsx
+  app/dashboard/admin/report-templates/library/page.tsx
+  app/dashboard/admin/report-templates/new/page.tsx
+  app/dashboard/admin/report-templates/page.tsx
+  app/dashboard/admin/report-texts/page.tsx
+  app/dashboard/admin/reports/page.tsx
+  app/dashboard/ai-report/layout.tsx
+  app/dashboard/ai-report/new/page.tsx
+  app/dashboard/ai-report/page.tsx
+  app/dashboard/assessment-center/report-linking/page.tsx
+  app/dashboard/assessment-center/reports/page.tsx
+  app/dashboard/custom-report/layout.tsx
+  app/dashboard/custom-report/new/page.tsx
+  app/dashboard/custom-report/page.tsx
+  app/dashboard/guardian-summons/[caseId]/report/page.tsx
+  app/dashboard/guardian-summons/[caseId]/report/print-controller.tsx
+  app/dashboard/report-1/[reportId]/preview/page.tsx
+  app/dashboard/report-1/[reportId]/studio/page.tsx
+  app/dashboard/report-1/cases/[caseId]/prepare/page.tsx
+  app/dashboard/report-1/page.tsx
+  app/dashboard/report-2/cases/[caseId]/prepare/page.tsx
+  app/dashboard/report-2/cases/[caseId]/studio/page.tsx
+  app/dashboard/report-2/page.tsx
+  app/dashboard/report-2/snapshots/[snapshotId]/preview/page.tsx
+  app/dashboard/report-preview/page.tsx
+  app/dashboard/report/[reportId]/preview/page.tsx
+  app/dashboard/report/[reportId]/studio/page.tsx
+  app/dashboard/report/new/layout.tsx
+  app/dashboard/report/new/page.tsx
+  app/dashboard/report/page.tsx
+  app/dashboard/reports/[reportId]/preview/page.tsx
+  app/dashboard/reports/[reportId]/studio/page.tsx
+  app/dashboard/reports/cases/[caseId]/prepare/page.tsx
+  app/dashboard/reports/cases/page.tsx
+  app/dashboard/reports/new/layout.tsx
+  app/dashboard/reports/new/page.tsx
+  app/dashboard/reports/page.tsx
+  app/dashboard/reports/saved/page.tsx
+  app/dashboard/statistics/[reportId]/page.tsx
+  app/dashboard/surveys/report-linking/page.tsx
+  app/dashboard/teacher/ai-report2/new/page.tsx
+  app/dashboard/teacher/ai-report2/page.tsx
+  app/dashboard/teacher/report-issuance/layout.tsx
+  app/dashboard/teacher/report-issuance/new/page.tsx
+  app/dashboard/teacher/report-issuance/page.tsx
+  app/dashboard/teacher/report-workflow/page.tsx
+  app/dashboard/teacher/special-report/[caseId]/report/page.tsx
+  app/dashboard/teacher/special-report/new/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/a4-preview/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/prepare/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/ready/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/studio/page.tsx
+  app/print/statistics/[reportId]/page.tsx
+  app/report-2-export-preview/[token]/page.tsx
+  case-report-button-scan.txt
+  committees-report-diagnostics.txt
+  committees-report-extra.txt
+  committees-report-files.txt
+  committees-report-final-files.txt
+  components/activity-programs/reports/activity-execution-card-report.tsx
+  components/activity-programs/reports/report-print-button.tsx
+  components/admin/report-text-library-admin.tsx
+  components/admin/report-text-template-studio.tsx
+  components/admin/workflow-health/workflow-health-report.tsx
+  components/ai-report/ai-report-service-home.tsx
+  components/ai-report/ai-report-workspace.tsx
+  components/ai-report2/ai-report2-service-home.tsx
+  components/ai-report2/ai-report2-workspace.tsx
+  components/assessment-center/assessment-analysis-print-report.tsx
+  components/certificates/certificate-report-linking-page.tsx
+  components/custom-report/custom-report-service-home.tsx
+  components/custom-report/custom-report-workspace.tsx
+  components/document-export/guardian-summons-report-engine-pdf-button.tsx
+  components/mobile/mobile-report-a4-popup-preview.tsx
+  components/mobile/mobile-report-a4-preview.tsx
+  components/mobile/mobile-report-a4-viewer-page.tsx
+  components/mobile/mobile-report-prepare-flow.tsx
+  components/mobile/mobile-report-readable-preview.tsx
+  components/mobile/mobile-report-ready-page.tsx
+  components/mobile/mobile-report-studio-entry.tsx
+  components/mobile/mobile-report-studio-field-editor.tsx
+  components/portfolio/portfolio-reports-evidence-panel.tsx
+  components/report-1/editor/report-one-control-panel.tsx
+  components/report-1/editor/report-one-editor-types.ts
+  components/report-1/editor/report-one-editor.tsx
+  components/report-1/editor/report-one-evidence-settings-panel.tsx
+  components/report-1/editor/report-one-template-preview.tsx
+  components/report-1/report-one-case-workspace.tsx
+  components/report-1/report-one-home.tsx
+  components/report-1/report-one-preview-page.tsx
+  components/report-1/report-one-saved-studio.tsx
+  components/report-2/report-two-active-preview-renderer.tsx
+  components/report-2/report-two-archive-client.tsx
+  components/report-2/report-two-home.tsx
+  components/report-2/report-two-linked-assessment-appendix.tsx
+  components/report-2/report-two-linked-survey-appendix.tsx
+  components/report-2/report-two-official-activity-signature-style.tsx
+  components/report-2/report-two-pdf-download-button.tsx
+  components/report-2/report-two-pdf-export-preview.tsx
+  components/report-2/report-two-print-document.tsx
+  components/report-2/report-two-snapshot-preview.tsx
+  components/report-2/report-two-snapshot-print-controller.tsx
+  components/report-2/report-two-studio-runtime.tsx
+  components/report-engine/admin/admin-reports-center.tsx
+  components/report-engine/appreciation-certificate-preview.tsx
+  components/report-engine/design-renderers/designs/behavior-followup/index.tsx
+  components/report-engine/design-renderers/designs/behavior-followup/presentation.ts
+  components/report-engine/design-renderers/designs/counseling-case-file/index.tsx
+  components/report-engine/design-renderers/designs/counseling-case-file/presentation.ts
+  components/report-engine/design-renderers/designs/editorial-atlas/index.tsx
+  components/report-engine/design-renderers/designs/editorial-atlas/presentation.ts
+  components/report-engine/design-renderers/designs/evidence-showcase/index.tsx
+  components/report-engine/design-renderers/designs/evidence-showcase/presentation.ts
+  components/report-engine/design-renderers/designs/formal-memo/index.tsx
+  components/report-engine/design-renderers/designs/formal-memo/presentation.ts
+  components/report-engine/design-renderers/designs/geometric-horizon/index.tsx
+  components/report-engine/design-renderers/designs/geometric-horizon/presentation.ts
+  components/report-engine/design-renderers/designs/girls-lilac-elegant/index.tsx
+  components/report-engine/design-renderers/designs/girls-lilac-elegant/presentation.ts
+  components/report-engine/design-renderers/designs/girls-pearl-calm/index.tsx
+  components/report-engine/design-renderers/designs/girls-pearl-calm/presentation.ts
+  components/report-engine/design-renderers/designs/girls-rose-official/index.tsx
+  components/report-engine/design-renderers/designs/girls-rose-official/presentation.ts
+  components/report-engine/design-renderers/designs/ministry-elegant/index.tsx
+  components/report-engine/design-renderers/designs/ministry-elegant/presentation.ts
+  components/report-engine/design-renderers/designs/ministry-form/index.tsx
+  components/report-engine/design-renderers/designs/ministry-form/presentation.ts
+  components/report-engine/design-renderers/designs/modern-official/index.tsx
+  components/report-engine/design-renderers/designs/modern-official/presentation.ts
+  components/report-engine/design-renderers/designs/moe-classic-frame/index.tsx
+  components/report-engine/design-renderers/designs/moe-classic-frame/presentation.ts
+  components/report-engine/design-renderers/designs/moe-classic-frame/values.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/admin-presentation-styles.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/block-presentation.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/blocks.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/evidence.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/index.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/original-portfolio-styles.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/presentation.ts
+  components/report-engine/design-renderers/designs/moe-official-2024/value-grid.tsx
+  components/report-engine/design-renderers/designs/moe-official-2024/values.tsx
+  components/report-engine/design-renderers/designs/program-impact/index.tsx
+  components/report-engine/design-renderers/designs/program-impact/presentation.ts
+  components/report-engine/design-renderers/designs/report-block-presentation.ts
+  components/report-engine/design-renderers/designs/report-calm-reader/index.tsx
+  components/report-engine/design-renderers/designs/report-calm-reader/presentation.ts
+  components/report-engine/design-renderers/designs/report-calm-reader/values.tsx
+  components/report-engine/design-renderers/designs/report-design-component-types.ts
+  components/report-engine/design-renderers/designs/report-official-archive/index.tsx
+  components/report-engine/design-renderers/designs/report-official-archive/presentation.ts
+  components/report-engine/design-renderers/designs/report-official-archive/values.tsx
+  components/report-engine/design-renderers/designs/report-playful-cards/index.tsx
+  components/report-engine/design-renderers/designs/report-playful-cards/presentation.ts
+  components/report-engine/design-renderers/designs/report-playful-cards/values.tsx
+  components/report-engine/design-renderers/report-design-gallery-preview.tsx
+  components/report-engine/design-renderers/report-design-implementations.ts
+  components/report-engine/design-renderers/report-design-registry.ts
+  components/report-engine/design-renderers/report-design-renderer.tsx
+  components/report-engine/design-renderers/report-design-types.ts
+  components/report-engine/design-renderers/shared/final-report.ts
+  components/report-engine/design-renderers/shared/report-auto-evidence.tsx
+  components/report-engine/design-renderers/shared/report-block-presentation.ts
+  components/report-engine/design-renderers/shared/report-blocks.tsx
+  components/report-engine/design-renderers/shared/report-design-engine.tsx
+  components/report-engine/design-renderers/shared/report-evidence-data.ts
+  components/report-engine/design-renderers/shared/report-evidence.tsx
+  components/report-engine/design-renderers/shared/report-header.ts
+  components/report-engine/design-renderers/shared/report-logo.ts
+  components/report-engine/design-renderers/shared/report-primitives.tsx
+  components/report-engine/design-renderers/shared/report-signatures.ts
+  components/report-engine/design-renderers/shared/report-text.ts
+  components/report-engine/design-renderers/shared/report-types.ts
+  components/report-engine/design-renderers/shared/report-values.tsx
+  components/report-engine/design-renderers/shared/report-workflow-fields.ts
+  components/report-engine/design-renderers/smart-layout/report-design-smart-content.tsx
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-config.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-layout.tsx
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-measure.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-a4-planner.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-field-layout.ts
+  components/report-engine/design-renderers/smart-layout/report-smart-page-composer.tsx
+  components/report-engine/document-editor/report-add-block-menu.tsx
+  components/report-engine/document-editor/report-block-frame.tsx
+  components/report-engine/document-editor/report-document-editor.tsx
+  components/report-engine/document-editor/report-final-preview-modal.tsx
+  components/report-engine/document-editor/report-page-canvas.tsx
+  components/report-engine/document-editor/report-page-tabs.tsx
+  components/report-engine/document-editor/report-table-editor-modal.tsx
+  components/report-engine/document-renderers/ministry-report-shell.tsx
+  components/report-engine/guardian-summons-letter-preview.tsx
+  components/report-engine/official-report-document.tsx
+  components/report-engine/report-builder-pdf-renderer.tsx
+  components/report-engine/report-document-renderer.tsx
+  components/report-engine/report-field-selection-gate.tsx
+  components/report-engine/report-print-button.tsx
+  components/report-engine/report-template-admin-tools.tsx
+  components/report-engine/report-template-command-center.tsx
+  components/report-engine/report-template-library.tsx
+  components/report-engine/report-template-live-preview.tsx
+  components/report-engine/report-template-publish-tools.tsx
+  components/report-engine/report-template-studio.tsx
+  components/report-engine/save-smart-report-button.tsx
+  components/report-engine/saved-reports-list-page.tsx
+  components/report-engine/saved-smart-report-preview-page.tsx
+  components/report-engine/smart-general-a4-report.tsx
+  components/report-engine/smart-report-case-preview-page.tsx
+  components/report-engine/smart-report-document-renderer.tsx
+  components/report-engine/smart-report-variant-selector.tsx
+  components/report-engine/text-library-block-settings-editor.tsx
+  components/report-flow/report-prepare-flow.tsx
+  components/reports-legacy/new-report-case-picker.tsx
+  components/reports-legacy/new-report-case-picker.tsx.tsx
+  components/reports-legacy/report-actions.tsx
+  components/reports-legacy/report-evidence-gallery.tsx
+  components/reports-legacy/report-list.tsx
+  components/reports-legacy/report-pdf-guidance-card.tsx
+  components/reports-legacy/report-preview-a4.tsx
+  components/reports-legacy/report-preview-toolbar.tsx
+  components/reports-legacy/report-studio-editor.tsx
+  components/reports-legacy/reports-dashboard.tsx
+  components/reports-legacy/studio/report-context-panel.tsx
+  components/reports-legacy/studio/report-gender-toggle.tsx
+  components/reports-legacy/studio/report-smart-editor.tsx
+  components/reports-legacy/studio/report-studio-shell.tsx
+  components/reports-legacy/studio/report-template-sidebar.tsx
+  components/reports-legacy/templates/report-template-form.tsx
+  components/reports-legacy/templates/report-template-list.tsx
+  components/reports/guardian-summons/guardian-summons-template.tsx
+  components/reports/new-report-case-picker.tsx
+  components/reports/new-report-case-picker.tsx.tsx
+  components/reports/report-actions.tsx
+  components/reports/report-delete-action.tsx
+  components/reports/report-delete-modal.tsx
+  components/reports/report-evidence-gallery.tsx
+  components/reports/report-list.tsx
+  components/reports/report-pdf-guidance-card.tsx
+  components/reports/report-preview-a4.tsx
+  components/reports/report-preview-toolbar.tsx
+  components/reports/report-studio-editor.tsx
+  components/reports/reports-dashboard.tsx
+  components/reports/studio/report-context-panel.tsx
+  components/reports/studio/report-gender-toggle.tsx
+  components/reports/studio/report-smart-editor.tsx
+  components/reports/studio/report-studio-shell.tsx
+  components/reports/studio/report-template-sidebar.tsx
+  components/reports/templates/report-template-form.tsx
+  components/reports/templates/report-template-list.tsx
+  components/special-report/special-report-ai-actions.tsx
+  components/special-report/special-report-builder.tsx
+  components/special-report/special-report-document.tsx
+  components/special-report/special-report-field-ai.tsx
+  components/special-report/special-report-print-action.tsx
+  components/statistics/statistics-previous-reports.tsx
+  components/statistics/statistics-report-view.tsx
+  components/surveys/survey-print-report-shell.tsx
+  current-report-prepare-flow.txt
+  custom-report-full-debug.txt
+  custom-report-reference-flow.txt
+  data/ai-report/generated/teacher-performance-knowledge-bank.json
+  data/ai-report/generated/teacher-report-patterns.json
+  data/ai-report/source/teacher_performance_value_bank_11_elements_cleaned.xlsx
+  data/ai-report/source/teacher_performance_value_bank_master_batch09_final.xlsx
+  engine/reports/gender-grammar-engine.ts
+  engine/reports/report-evidence-engine.ts
+  engine/reports/report-render-engine.ts
+  engine/reports/report-template-engine.ts
+  evidence-report-debug.txt
+  guardian-summons-report-review.txt
+  guardian-summons-report-shape.txt
+  hostinger-preflight-report.txt
+  hostinger-report-print-export-review.txt
+  job-duties-active-workflow-report.txt
+  lib/activity-programs/activity-card-report-runtime.ts
+  lib/activity-programs/activity-report-templates.ts
+  lib/ai-report/ai-report-knowledge-retriever.ts
+  lib/ai-report/ai-report-knowledge-types.ts
+  lib/ai-report/ai-report-runtime-adapter.ts
+  lib/ai-report/ai-report-text-sanitizer.ts
+  lib/ai-report2/teacher-clarification.ts
+  lib/ai-report2/teacher-field-rules.ts
+  lib/ai-report2/teacher-intent-blueprints.ts
+  lib/ai-report2/teacher-intent-engine.ts
+  lib/ai-report2/teacher-performance-elements.ts
+  lib/ai-report2/teacher-report-patterns.ts
+  lib/ai-report2/teacher-schema-guard.ts
+  lib/ai-report2/teacher-semantic-polisher.ts
+  lib/ai-report2/teacher-value-judge.ts
+  lib/assessment-center/assessment-pdf-report.ts
+  lib/cases/resolve-arabic-case-report-title.ts
+  lib/certificates/report-certificate-attachments.ts
+  lib/custom-report/custom-report-ai-generator.ts
+  lib/custom-report/custom-report-api-schemas.ts
+  lib/custom-report/custom-report-auth.ts
+  lib/custom-report/custom-report-normalizer.ts
+  lib/custom-report/custom-report-types.ts
+  lib/portfolio/portfolio-report-content.ts
+  lib/portfolio/portfolio-report-service.ts
+  lib/report-2/report-linked-assessment-attachments.ts
+  lib/report-2/report-linked-survey-attachments.ts
+  lib/report-2/report-snapshot-service.ts
+  lib/report-2/report-two-access.ts
+  lib/report-2/report-two-structured-data.ts
+  lib/report-2/sync-report-two-from-case.ts
+  lib/report-engine-legacy/extra-official-template-presets.ts
+  lib/report-engine-legacy/guardian-summons-template-runtime.ts
+  lib/report-engine-legacy/report-builder-template-runtime.ts
+  lib/report-engine-legacy/report-case-data-mapper.ts
+  lib/report-engine-legacy/report-data-mapper.ts
+  lib/report-engine-legacy/report-identity-runtime.ts
+  lib/report-engine-legacy/report-smart-text-engine.ts
+  lib/report-engine-legacy/report-smart-text-library.ts
+  lib/report-engine-legacy/report-snapshot.ts
+  lib/report-engine-legacy/report-template-builder-presets.ts
+  lib/report-engine-legacy/report-template-builder-types.ts
+  lib/report-engine-legacy/report-template-portability.ts
+  lib/report-engine-legacy/report-template-runtime-types.ts
+  lib/report-engine-legacy/report-template-validation.ts
+  lib/report-engine-legacy/report-templates.ts
+  lib/report-engine-legacy/report-text-library-runtime.ts
+  lib/report-engine-legacy/report-text-studio-presets.ts
+  lib/report-engine-legacy/report-text-studio-presets.tscode
+  lib/report-engine-legacy/report-text-studio-types.ts
+  lib/report-engine-legacy/report-theme.ts
+  lib/report-engine-legacy/report-types.ts
+  lib/report-engine-legacy/sample-report-data.ts
+  lib/report-engine/document-draft/report-document-a4-paginator.ts
+  lib/report-engine/document-draft/report-document-adapter.ts
+  lib/report-engine/document-draft/report-document-builder.ts
+  lib/report-engine/document-draft/report-document-operations.ts
+  lib/report-engine/document-draft/report-document-serializer.ts
+  lib/report-engine/document-draft/report-document-types.ts
+  lib/report-engine/document-draft/report-document-utils.ts
+  lib/report-engine/document-draft/report-draft-storage.ts
+  lib/report-engine/document-draft/report-signature-policy.ts
+  lib/report-engine/document-draft/report-table-utils.ts
+  lib/report-engine/extra-official-template-presets.ts
+  lib/report-engine/guardian-summons-template-runtime.ts
+  lib/report-engine/report-access-scope.ts
+  lib/report-engine/report-block-builder.ts
+  lib/report-engine/report-block-paginator.ts
+  lib/report-engine/report-block-types.ts
+  lib/report-engine/report-builder-template-runtime.ts
+  lib/report-engine/report-case-data-mapper.ts
+  lib/report-engine/report-data-mapper.ts
+  lib/report-engine/report-draft-merger.ts
+  lib/report-engine/report-evidence-utils.ts
+  lib/report-engine/report-identity-runtime.ts
+  lib/report-engine/report-language-mode.ts
+  lib/report-engine/report-page-builder.ts
+  lib/report-engine/report-private-fields.ts
+  lib/report-engine/report-smart-text-engine.ts
+  lib/report-engine/report-smart-text-library.ts
+  lib/report-engine/report-snapshot.ts
+  lib/report-engine/report-structured-table-display.ts
+  lib/report-engine/report-structured-table-extractor.ts
+  lib/report-engine/report-template-builder-presets.ts
+  lib/report-engine/report-template-builder-types.ts
+  lib/report-engine/report-template-portability.ts
+  lib/report-engine/report-template-runtime-types.ts
+  lib/report-engine/report-template-validation.ts
+  lib/report-engine/report-templates.ts
+  lib/report-engine/report-text-library-runtime.ts
+  lib/report-engine/report-text-library.ts
+  lib/report-engine/report-text-studio-presets.ts
+  lib/report-engine/report-text-studio-presets.tscode
+  lib/report-engine/report-text-studio-types.ts
+  lib/report-engine/report-theme.ts
+  lib/report-engine/report-types.ts
+  lib/report-engine/report-variant-registry.ts
+  lib/report-engine/sample-report-data.ts
+  lib/report-engine/smart-report-defaults.ts
+  lib/report-engine/smart-report-payload-builder.ts
+  lib/report-engine/smart-report-types.ts
+  lib/report-flow/report-flow-payload.ts
+  lib/report-flow/report-flow-storage.ts
+  lib/report-flow/report-flow-types.ts
+  lib/reports-legacy/default-report-templates.ts
+  lib/reports-legacy/report-access.ts
+  lib/reports-legacy/report-types.ts
+  lib/reports-legacy/report-utils.ts
+  lib/reports/default-report-templates.ts
+  lib/reports/report-access.ts
+  lib/reports/report-editorial-content.ts
+  lib/reports/report-types.ts
+  lib/reports/report-utils.ts
+  lib/special-report/catalog.ts
+  lib/special-report/report-runtime.ts
+  lib/special-report/runtime-builder.ts
+  lib/special-report/types.ts
+  lib/statistics/statistics-issued-report-source.ts
+  lib/statistics/statistics-report-copy.ts
+  lib/statistics/statistics-report-query.ts
+  lib/statistics/statistics-report-service.ts
+  local-db-clean-report-20260624-132028.txt
+  mobile-report-preview-logic-context.txt
+  moe-official-2024-report-details-review.txt
+  moe24-exact-report-source.txt
+  new-report-case-picker-needed-parts.txt
+  prisma/migrations/20260609024500_widen_report_template_content_to_longtext/migration.sql
+  prisma/migrations/20260610003000_widen_guidance_report_content_to_longtext/migration.sql
+  prisma/migrations/20260616124500_add_report_two_snapshots/migration.sql
+  prisma/migrations/20260621000000_add_custom_report_service/migration.sql
+  prisma/migrations/20260726143000_add_report_two_active/migration.sql
+  prisma/migrations/20260727090000_use_draft_approved_report_two_statuses/migration.sql
+  prisma/schema.backup-before-report-schema-clean.prisma
+  prisma/schema.before-remove-duplicate-report-template.prisma
+  prisma/schema.prisma.backup-before-report-duplicate-fix
+  public/sample/report-evidence/activity-wide-1.jpeg
+  public/sample/report-evidence/activity-wide-2.jpeg
+  public/sample/report-evidence/activity-wide-3.jpeg
+  public/sample/report-evidence/activity-wide-4.jpeg
+  public/sample/report-evidence/cover-hero-1.jpg
+  public/sample/report-evidence/document-a4-1.jpg
+  public/sample/report-evidence/ministry-logo.png
+  public/sample/report-evidence/poster-vertical-1.jpeg
+  public/sample/report-evidence/poster-vertical-2.jpeg
+  public/sample/report-evidence/square-evidence-1.png
+  reference-library-dual-files-report.txt
+  report-1-reference-code-dump.txt
+  report-2-ai-generator-code.txt
+  report-2-arabic-value-source-search.txt
+  report-2-blocks-pagination-delete-scan.txt
+  report-2-card-actions-review.txt
+  report-2-current-build.txt
+  report-2-current-edit-review.txt
+  report-2-current-pdf-export-check.txt
+  report-2-current-runtime.txt
+  report-2-debug-dump.txt
+  report-2-dynamic-fields-edit-scan.txt
+  report-2-edit-review.txt
+  report-2-evidence-pagination-scan.txt
+  report-2-execution-description-scan.txt
+  report-2-execution-summary-api.txt
+  report-2-export-preview-fix-review.txt
+  report-2-export-scan.txt
+  report-2-flow-code-dump.txt
+  report-2-gender-source-code.txt
+  report-2-pages-code.txt
+  report-2-pagination-code-review.txt
+  report-2-pagination-current-code.txt
+  report-2-payload-builder-search.txt
+  report-2-payload-source-files.txt
+  report-2-pdf-export-needed-files.txt
+  report-2-pdf-export-search.txt
+  report-2-prepare-flow-code-dump.txt
+  report-2-prepare-page.txt
+  report-2-related-files.txt
+  report-2-restore-before-git-restore.patch
+  report-2-route-review.txt
+  report-2-runtime-code.txt
+  report-2-runtime-prepare-hook-scan.txt
+  report-2-studio-files-scan.txt
+  report-2-studio-page-scan.txt
+  report-builder-link-debug.txt
+  report-counselor-link-scan.txt
+  report-create-and-preview-scan.txt
+  report-debug-current-code.txt
+  report-design-current-sources.txt
+  report-design-final-separation-audit.txt
+  report-design-refactor-audit.txt
+  report-design-refactor-scan.txt
+  report-design-renderers.txt
+  report-design-two-files.txt
+  report-edit-lock-review.txt
+  report-edit-snapshot-review.txt
+  report-evidence-renderer-check.txt
+  report-evidence-schema-check.txt
+  report-files-scan-output.txt
+  report-flow-storage-code.txt
+  report-prepare-fields-code.txt
+  report-preview-and-snapshot-scan.txt
+  report-related-code.txt
+  report-renderer-studio-files-scan.txt
+  report-stage-3-files.txt
+  report-studio-critical-files.txt
+  report-studio-current.txt
+  report-studio-editor-scan.txt
+  report-studio-full-scan.txt
+  report-template-builder-scan.txt
+  report-template-designer-context.txt
+  report-templates-code-snapshot.txt
+  report-templates-dump.txt
+  report-three-designs-context.txt
+  report-two-description-with-prepare-debug.txt
+  report-two-pagination-exact-code.txt
+  report-two-signature-keys-check.txt
+  report-values-display-fix-check.txt
+  report2-admin-template-real-source-context.txt
+  report2-auto-approve-debug-context.txt
+  report2-desktop-preview-match-mobile-context.txt
+  report2-evidence-render-current-context.txt
+  report2-header-match-context.txt
+  report2-prepare-execution-context.txt
+  report2-prepare-flow-missing-context.txt
+  report2-signature-blocks-current-context.txt
+  report2-user-studio-renderer-context.txt
+  scripts/add-report-approval-readiness.cjs
+  scripts/add-report-pdf-export.cjs
+  scripts/add-report-templates-loader-strong.cjs
+  scripts/add-report-templates-loader.cjs
+  scripts/add-saved-report-templates-loader.cjs
+  scripts/build-ai-report-knowledge-bank.mjs
+  scripts/build-ai-report2-patterns.mjs
+  scripts/build-report-evidence-manager.cjs
+  scripts/check-latest-report-snapshot.ts
+  scripts/check-report-status.cjs
+  scripts/clean-report-preview-ux.cjs
+  scripts/cleanup-report-builder-runtime.cjs
+  scripts/connect-builder-template-to-report-preview.cjs
+  scripts/connect-builder-template-to-report-studio.cjs
+  scripts/connect-published-templates-to-new-report-page.cjs
+  scripts/connect-real-school-identity-to-report-preview.cjs
+  scripts/connect-report-template-delete-to-db.cjs
+  scripts/connect-report-template-status-to-db.cjs
+  scripts/debug-report-builder-link.ts
+  scripts/debug-report-templates-db.cjs
+  scripts/debug-report-templates-db.ts
+  scripts/fix-new-report-case-picker-published-templates.cjs
+  scripts/fix-report-create-builder-snapshot.cjs
+  scripts/fix-report-studio-page-for-builder.cjs
+  scripts/fix-report-template-save.cjs
+  scripts/fix-saved-report-templates-loader.cjs
+  scripts/fix-template-json-null-report-api.cjs
+  scripts/full-report-builder-db-check.ts
+  scripts/guard-report-preview-official-identity.cjs
+  scripts/isolate-pdf-report-pages.cjs
+  scripts/make-report-actions-toolbar.cjs
+  scripts/polish-report-preview-actions.cjs
+  scripts/polish-report-preview-background.cjs
+  scripts/polish-report-preview-unified-style.cjs
+  scripts/redesign-report-preview-smart-card.cjs
+  scripts/test-ai-report-knowledge-retriever.mjs
+  scripts/unlock-report-for-editing.cjs
+  scripts/wire-report-activity-events.cjs
+  smart-report-builder-custom-report-check.txt
+  smart-report-payload-builder-debug.txt
+  smart-report-payload-fields-code.txt
+  special-report-architecture-scan.txt
+  special-report-top-fields.txt
+  statistics-report-review.txt
+  teacher-report-signature-review.txt
+  teacher-report-vs-performance-debug.txt
+  verify-report-delete-visibility.txt
+
+[case]
+  _backup-report-from-case/new-report-case-picker-before-remove-legacy-fallback-templates.tsx.bak.txt
+  _backup-smart-arabic-case-title/case-details-view-before-arabic-option-title.tsx.bak.txt
+  _backup-smart-arabic-case-title/cases-page-before-arabic-option-title.tsx.bak.txt
+  _backup-smart-arabic-case-title/cases-search-table-before-service-visible.tsx.bak.txt
+  _backup-smart-arabic-case-title/dynamic-form-renderer-before-smart-arabic-case-title.tsx.bak.txt
+  _backup-smart-arabic-case-title/new-report-page-before-arabic-option-title.tsx.bak.txt
+  _backup-unified-cases-center/case-details-view-before-counselor-ux.tsx.bak.txt
+  _backup-unified-cases-center/case-details-view-before-smart-case-title.tsx.bak.txt
+  _backup-unified-cases-center/case-runtime-engine-before-case-details-report-link.ts.bak.txt
+  _backup-unified-cases-center/cases-page-before-counselor-center.tsx.bak.txt
+  _backup-unified-cases-center/cases-page-before-smart-case-title.tsx.bak.txt
+  _backup-unified-cases-center/cases-search-table-before-counselor-center.tsx.bak.txt
+  _backup-unified-cases-center/cases-search-table-before-pin-actions-bottom.tsx.bak.txt
+  _backup-unified-cases-center/cases-search-table-before-simplify-counselor-cards.tsx.bak.txt
+  _backup-unified-cases-center/new-report-page-before-smart-case-title.tsx.bak.txt
+  _backup-workflow-inline-import/case-runtime-engine-before-fix-workflow-snapshot-client.ts.bak.txt
+  _backup-workflow-inline-import/case-runtime-engine-before-workflow-snapshot.ts.bak.txt
+  _backup-workflow-inline-import/draft-name-route-before-case-usage-lock.ts.bak.txt
+  _backup-workflow-inline-import/service-workflow-page-before-case-usage-lock.tsx.bak.txt
+  _backup-workflow-inline-import/workflow-history-actions-before-case-usage-lock.tsx.bak.txt
+  _backup-workflow-snapshot-runtime/edit-case-page-before-workflow-snapshot-runtime.tsx.bak.txt
+  _ensure-case-workflow-snapshot-schema.cjs
+  _fix-case-details-display-value-type.cjs
+  _patch-arabic-smart-case-title-and-service.cjs
+  _patch-case-details-engine-report-link.cjs
+  _patch-pin-case-card-actions-bottom.cjs
+  _patch-smart-case-title-from-values.cjs
+  _patch-workflow-case-usage-lock.cjs
+  _patch-workflow-snapshot-for-cases.cjs
+  _review-next-report-from-case/project-report-case-map.txt
+  _review-report-from-case-content/report-from-case-required-files.txt
+  _review-unified-cases-center-next/cases-center-missing-current-files.txt
+  _review-unified-cases-center/unified-cases-center-current-files.txt
+  app/api/admin/report-templates/preview-case/route.ts
+  app/api/dashboard/assessment-center/interventions/create-case/route.ts
+  app/api/dashboard/cases/[caseId]/route.ts
+  app/api/dashboard/cases/autosave/route.ts
+  app/api/dashboard/cases/save-draft/route.ts
+  app/api/dashboard/cases/submit/route.ts
+  app/api/dashboard/report-1/cases/[caseId]/generate/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/approve/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/export/pdf/route.ts
+  app/api/dashboard/report-2/cases/[caseId]/save/route.ts
+  app/api/dashboard/reports/case/[caseId]/execution-summary/route.ts
+  app/api/dashboard/reports/case/[caseId]/generate/route.ts
+  app/api/dashboard/reports/case/[caseId]/prepare/route.ts
+  app/dashboard/activity-leader/reports/activity-card/[caseId]/page.tsx
+  app/dashboard/cases/[caseId]/edit/page.tsx
+  app/dashboard/cases/[caseId]/page.tsx
+  app/dashboard/cases/page.tsx
+  app/dashboard/guardian-summons/[caseId]/page.tsx
+  app/dashboard/guardian-summons/[caseId]/preview/page.tsx
+  app/dashboard/guardian-summons/[caseId]/report/page.tsx
+  app/dashboard/guardian-summons/[caseId]/report/print-controller.tsx
+  app/dashboard/report-1/cases/[caseId]/prepare/page.tsx
+  app/dashboard/report-2/cases/[caseId]/prepare/page.tsx
+  app/dashboard/report-2/cases/[caseId]/studio/page.tsx
+  app/dashboard/reports/cases/[caseId]/prepare/page.tsx
+  app/dashboard/reports/cases/page.tsx
+  app/dashboard/teacher/special-report/[caseId]/report/page.tsx
+  app/mobile/counselor/cases/[caseId]/page.tsx
+  app/mobile/counselor/cases/new/[serviceSlug]/page.tsx
+  app/mobile/counselor/cases/new/page.tsx
+  app/mobile/counselor/cases/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/a4-preview/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/prepare/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/ready/page.tsx
+  app/mobile/counselor/report-2/cases/[caseId]/studio/page.tsx
+  app/print/guardian-summons/[caseId]/page.tsx
+  app/print/guardian-summons/[caseId]/print-controller.tsx
+  case-card-teacher-name-scan.txt
+  case-details-current-ui-code.txt
+  case-display-dump.txt
+  case-report-button-scan.txt
+  cases-card-actions-review.txt
+  "casescases-search-table.tsx\357\200\242"
+  components/cases/case-card-actions.tsx
+  components/cases/case-delete-action.tsx
+  components/cases/case-delete-modal.tsx
+  components/cases/case-details-view.tsx
+  components/cases/case-value-renderer.tsx
+  components/cases/cases-search-table.tsx
+  components/mobile/mobile-case-details.tsx
+  components/mobile/mobile-cases-list.tsx
+  components/mobile/mobile-new-case-services.tsx
+  components/mobile/mobile-new-case-workflow-page.tsx
+  components/report-1/report-one-case-workspace.tsx
+  components/report-engine/design-renderers/designs/counseling-case-file/index.tsx
+  components/report-engine/design-renderers/designs/counseling-case-file/presentation.ts
+  components/report-engine/design-renderers/designs/evidence-showcase/index.tsx
+  components/report-engine/design-renderers/designs/evidence-showcase/presentation.ts
+  components/report-engine/smart-report-case-preview-page.tsx
+  components/reports-legacy/new-report-case-picker.tsx
+  components/reports-legacy/new-report-case-picker.tsx.tsx
+  components/reports/new-report-case-picker.tsx
+  components/reports/new-report-case-picker.tsx.tsx
+  engine/cases/case-runtime-engine.ts
+  lib/cases/case-access-scope.ts
+  lib/cases/case-permissions.ts
+  lib/cases/case-values.ts
+  lib/cases/resolve-arabic-case-report-title.ts
+  lib/report-2/sync-report-two-from-case.ts
+  lib/report-engine-legacy/report-case-data-mapper.ts
+  lib/report-engine/report-case-data-mapper.ts
+  new-report-case-picker-needed-parts.txt
+  prisma/migrations/20260609013000_widen_case_value_value_to_text/migration.sql
+  scripts/connect-published-templates-to-case-picker.cjs
+  scripts/delete-all-workflows-preserve-cases.cjs
+  scripts/fix-new-report-case-picker-published-templates.cjs
+  scripts/wire-case-activity-events.cjs
+  scripts/workflow-cleanup/07-detach-case-values.sql
+  scripts/workflow-cleanup/08-detach-cases.sql
+
+[permissions]
+  lib/cases/case-permissions.ts
+  lib/security/permissions.ts
+
+============================================================
+6. PRISMA SERVICE / WORKFLOW MODELS
+============================================================
+
+MODEL: Service
+----------------------------------------
+  473: model Service {
+  474:   id          String        @id @default(cuid())
+  475:   slug        String        @unique
+  476:   name        String
+  477:   description String?
+  478:   status      ServiceStatus @default(ACTIVE)
+  479: 
+  480:   workflows           Workflow[]
+  481:   cases               CaseEntry[]
+  482:   access              ServiceAccess[]
+  483:   calendarReminders   CalendarReminder[]
+  484:   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  485:   surveys             Survey[]             @relation("SurveysService")
+  486: 
+  487:   createdAt DateTime @default(now())
+  488:   updatedAt DateTime @updatedAt
+  489: }
+
+MODEL: Workflow
+----------------------------------------
+  491: model Workflow {
+  492:   id        String  @id @default(cuid())
+  493:   serviceId String
+  494:   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  495: 
+  496:   name         String
+  497:   version      Int            @default(1)
+  498:   status       WorkflowStatus @default(DRAFT)
+  499:   isActive     Boolean        @default(false)
+  500:   workflowType String         @default("default")
+  501:   activeKey    String?        @unique @db.VarChar(255)
+  502: 
+  503:   originalFileName       String?   @db.VarChar(255)
+  504:   originalFileStorageKey String?   @unique @db.VarChar(255)
+  505:   originalFileMimeType   String?   @db.VarChar(150)
+  506:   originalFileSize       Int?
+  507:   originalFileUploadedAt DateTime?
+  508: 
+  509:   studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+  510:   evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+  511:   steps               WorkflowStep[]
+  512:   cases               CaseEntry[]
+  513:   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+  514: 
+  515:   createdAt DateTime @default(now())
+  516:   updatedAt DateTime @updatedAt
+  517: 
+  518:   @@index([serviceId])
+  519:   @@index([serviceId, workflowType, isActive])
+  520: }
+
+MODEL: WorkflowStep
+----------------------------------------
+  522: model WorkflowStep {
+  523:   id         String   @id @default(cuid())
+  524:   workflowId String
+  525:   workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  526: 
+  527:   title       String
+  528:   description String?
+  529:   order       Int
+  530: 
+  531:   fields DynamicField[]
+  532: 
+  533:   createdAt DateTime @default(now())
+  534:   updatedAt DateTime @updatedAt
+  535: 
+  536:   @@index([workflowId])
+  537:   @@index([order])
+  538: }
+
+MODEL: DynamicField
+----------------------------------------
+  540: model DynamicField {
+  541:   id     String       @id @default(cuid())
+  542:   stepId String
+  543:   step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  544: 
+  545:   key         String
+  546:   label       String    @db.Text
+  547:   type        FieldType
+  548:   placeholder String?
+  549:   helpText    String?
+  550:   isRequired  Boolean   @default(false)
+  551:   order       Int
+  552: 
+  553:   dependsOnFieldKey String?
+  554:   linkedToValue     String?
+  555:   allowOther        Boolean @default(false)
+  556:   isRepeater        Boolean @default(false)
+  557: 
+  558:   defaultValue         String? @db.Text
+  559:   defaultJson          Json?
+  560:   autoSelectWhenLinked Boolean @default(false)
+  561: 
+  562:   options DynamicFieldOption[]
+  563:   values  CaseValue[]
+  564: 
+  565:   createdAt DateTime @default(now())
+  566:   updatedAt DateTime @updatedAt
+  567: 
+  568:   @@index([stepId])
+  569:   @@index([key])
+  570:   @@index([order])
+  571: }
+
+MODEL: DynamicFieldOption
+----------------------------------------
+  573: model DynamicFieldOption {
+  574:   id      String       @id @default(cuid())
+  575:   fieldId String
+  576:   field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  577: 
+  578:   label         String  @db.Text
+  579:   value         String
+  580:   order         Int
+  581:   linkedToValue String?
+  582: 
+  583:   createdAt DateTime @default(now())
+  584:   updatedAt DateTime @updatedAt
+  585: 
+  586:   @@index([fieldId])
+  587:   @@index([value])
+  588: }
+
+MODEL: CaseEntry
+----------------------------------------
+  590: model CaseEntry {
+  591:   id String @id @default(cuid())
+  592: 
+  593:   schoolAccountId String
+  594:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  595: 
+  596:   serviceId String
+  597:   service   Service @relation(fields: [serviceId], references: [id])
+  598: 
+  599:   workflowId       String?
+  600:   workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  601:   workflowSnapshot Json?
+  602:   guidanceReports  GuidanceReport[]
+  603:   studentId        String?
+  604:   student          Student?         @relation(fields: [studentId], references: [id])
+  605: 
+  606:   createdById String?
+  607:   createdBy   User?   @relation(fields: [createdById], references: [id])
+  608: 
+  609:   title       String?
+  610:   status      CaseStatus @default(DRAFT)
+  611:   submittedAt DateTime?
+  612: 
+  613:   values             CaseValue[]
+  614:   evidences          Evidence[]
+  615:   calendarReminders  CalendarReminder[]
+  616:   activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  617: 
+  618:   createdAt              DateTime         @default(now())
+  619:   updatedAt              DateTime         @updatedAt
+  620:   caseEvidences          CaseEvidence[]
+  621:   createdReportTemplates ReportTemplate[]
+  622: 
+  623:   @@index([schoolAccountId])
+  624:   @@index([serviceId])
+  625:   @@index([workflowId])
+  626:   @@index([studentId])
+  627:   @@index([status])
+  628: }
+
+MODEL: CaseValue
+----------------------------------------
+  630: model CaseValue {
+  631:   id String @id @default(cuid())
+  632: 
+  633:   caseEntryId String
+  634:   caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+  635: 
+  636:   fieldId String?
+  637:   field   DynamicField? @relation(fields: [fieldId], references: [id])
+  638: 
+  639:   fieldKey  String
+  640:   value     String? @db.Text
+  641:   jsonValue Json?
+  642: 
+  643:   createdAt DateTime @default(now())
+  644:   updatedAt DateTime @updatedAt
+  645: 
+  646:   @@index([caseEntryId])
+  647:   @@index([fieldKey])
+  648: }
+
+MODEL: Plan
+----------------------------------------
+  787: model Plan {
+  788:   id           String  @id @default(cuid())
+  789:   name         String
+  790:   slug         String  @unique
+  791:   priceMonthly Int     @default(0)
+  792:   priceYearly  Int     @default(0)
+  793:   isActive     Boolean @default(true)
+  794:   isPublic     Boolean @default(true)
+  795:   isArchived   Boolean @default(false)
+  796:   visibleRoles Json?
+  797: 
+  798:   features      PlanFeature[]
+  799:   subscriptions Subscription[]
+  800: 
+  801:   createdAt DateTime @default(now())
+  802:   updatedAt DateTime @updatedAt
+  803: }
+
+MODEL: PlanFeature
+----------------------------------------
+  805: model PlanFeature {
+  806:   id     String @id @default(cuid())
+  807:   planId String
+  808:   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  809: 
+  810:   key   String
+  811:   label String
+  812:   value String?
+  813: 
+  814:   createdAt DateTime @default(now())
+  815:   updatedAt DateTime @updatedAt
+  816: 
+  817:   @@index([planId])
+  818:   @@index([key])
+  819: }
+
+MODEL: ServiceAccess
+----------------------------------------
+  839: model ServiceAccess {
+  840:   id              String        @id @default(cuid())
+  841:   schoolAccountId String
+  842:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  843: 
+  844:   serviceId String
+  845:   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  846: 
+  847:   isEnabled Boolean @default(true)
+  848:   isPaid    Boolean @default(false)
+  849: 
+  850:   createdAt DateTime @default(now())
+  851:   updatedAt DateTime @updatedAt
+  852: 
+  853:   @@unique([schoolAccountId, serviceId])
+  854: }
+
+============================================================
+7. PACKAGE BUILD SCRIPT
+============================================================
+"build": "prisma generate && next build",
+
+============================================================
+END OF REPORT
+============================================================

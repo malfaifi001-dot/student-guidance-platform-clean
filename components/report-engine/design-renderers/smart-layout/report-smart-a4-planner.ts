@@ -73,14 +73,14 @@ export const REPORT_SMART_A4_CANDIDATES:
     fieldLayout: "packed",
   },
   {
-    id: "normal-inline",
-    mode: "normal",
-    fieldLayout: "inline",
-  },
-  {
     id: "compact-packed",
     mode: "compact",
     fieldLayout: "packed",
+  },
+  {
+    id: "normal-inline",
+    mode: "normal",
+    fieldLayout: "inline",
   },
   {
     id: "compact-inline",
@@ -88,9 +88,19 @@ export const REPORT_SMART_A4_CANDIDATES:
     fieldLayout: "inline",
   },
   {
+    id: "dense-packed",
+    mode: "dense",
+    fieldLayout: "packed",
+  },
+  {
     id: "dense-inline",
     mode: "dense",
     fieldLayout: "inline",
+  },
+  {
+    id: "minimum-safe-packed",
+    mode: "minimum-safe",
+    fieldLayout: "packed",
   },
   {
     id: "minimum-safe-inline",
@@ -134,17 +144,28 @@ function getFieldLayoutScore(
   layout: ReportSmartA4FieldLayout,
 ) {
   switch (layout) {
-    case "comfortable":
-      return 0;
-
+    /*
+     * Preferred production layout:
+     * compact, formal and easy to scan.
+     */
     case "packed":
-      return -3;
+      return 8;
 
+    /*
+     * Comfortable remains valid for very short reports.
+     */
+    case "comfortable":
+      return 10;
+
+    /*
+     * Inline is a last-resort space saver.
+     * Do not select it merely because it saves a few pixels.
+     */
     case "inline":
-      return -7;
+      return -8;
 
     default:
-      return -10;
+      return -20;
   }
 }
 

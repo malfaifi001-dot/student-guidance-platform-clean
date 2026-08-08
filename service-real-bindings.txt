@@ -1,0 +1,1385 @@
+
+============================================================
+FILE: lib\constants\services.ts
+============================================================
+    1: import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+    2: import {
+    3:   ACTIVITY_PROGRAM_PARENT_SERVICE,
+    4:   ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+    5: } from "@/lib/activity-programs/activity-program-catalog";
+    6: import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+    7: 
+    8: export type AppService = {
+    9:   slug: string;
+   10:   title: string;
+   11:   description: string;
+   12:   href: string;
+   13:   kind: "workflow" | "standalone" | "admin";
+   14: };
+   15: 
+   16: export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
+   17:   {
+   18:     slug: "guidance-programs",
+   19:     title: "برامج التوجيه الطلابي",
+   20:     description: "إدارة برامج التوجيه الطلابي وخطط التنفيذ.",
+   21:     href: "/dashboard/guidance-programs",
+   22:     kind: "workflow",
+   23:   },
+   24:   {
+   25:     slug: "student-follow-up",
+   26:     title: "متابعة الطلبة والمواقف اليومية الطارئة",
+   27:     description: "متابعة الطلبة والمواقف اليومية الطارئة والحالات الطلابية.",
+   28:     href: "/dashboard/student-follow-up",
+   29:     kind: "workflow",
+   30:   },
+   31:   {
+   32:     slug: "guardian-summons",
+   33:     title: "إشعار ولي الأمر",
+   34:     description:
+   35:       "إنشاء وتوثيق إشعارات أولياء الأمور وربطها بالطلاب والحالات والتقارير الرسمية.",
+   36:     href: "/dashboard/guardian-summons",
+   37:     kind: "workflow",
+   38:   },
+   39:   {
+   40:     slug: "committees-meetings",
+   41:     title: "اللجان والاجتماعات",
+   42:     description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
+   43:     href: "/dashboard/committees-meetings",
+   44:     kind: "workflow",
+   45:   },
+   46:   {
+   47:     slug: "family-school-communication",
+   48:     title: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+   49:     description: "توثيق التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور.",
+   50:     href: "/dashboard/family-school-communication",
+   51:     kind: "workflow",
+   52:   },
+   53:   {
+   54:     slug: "student-guidance-services",
+   55:     title: "خدمات التوجيه الطلابي",
+   56:     description: "إدارة خدمات التوجيه الطلابي.",
+   57:     href: "/dashboard/student-guidance-services",
+   58:     kind: "workflow",
+   59:   },
+   60: ];
+   61: 
+   62: export const workflowServices: AppService[] = [
+   63:   ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+   64:   ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+   65:   {
+   66:     slug: "teacher-report-issuance",
+   67:     title: "إصدار تقرير",
+   68:     description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+   69:     href: "/dashboard/teacher/report-issuance",
+   70:     kind: "workflow",
+   71:   },
+   72:   ...COUNSELOR_GUIDANCE_WORKFLOW_SERVICES,
+   73: ];
+   74: 
+   75: export const smartInterventionWorkflowServices: AppService[] = [
+   76:   {
+   77:     slug: "smart-student-support",
+   78:     title: "تدخل فردي ذكي",
+   79:     description: "Workflow مستقل للتدخلات الفردية الناتجة من مركز التحليل.",
+   80:     href: "/dashboard/smart-student-support",
+   81:     kind: "workflow",
+   82:   },
+   83:   {
+   84:     slug: "smart-student-excellence",
+   85:     title: "تعزيز وتميز ذكي",
+   86:     description: "Workflow مستقل لرعاية الطلاب المتميزين وتعزيزهم.",
+   87:     href: "/dashboard/smart-student-excellence",
+   88:     kind: "workflow",
+   89:   },
+   90:   {
+   91:     slug: "smart-student-group-custom",
+   92:     title: "خطة جماعية مخصصة",
+   93:     description: "Workflow مستقل لخطة جماعية يحدد المستخدم طلابها يدويًا.",
+   94:     href: "/dashboard/smart-student-group-custom",
+   95:     kind: "workflow",
+   96:   },
+   97:   {
+   98:     slug: "smart-student-group-subject",
+   99:     title: "خطة جماعية حسب مادة",
+  100:     description: "Workflow مستقل لمجموعة طلاب لديهم ضعف مشترك في مادة.",
+  101:     href: "/dashboard/smart-student-group-subject",
+  102:     kind: "workflow",
+  103:   },
+  104:   {
+  105:     slug: "smart-classroom-support",
+  106:     title: "خطة فصل ذكية",
+  107:     description: "Workflow مستقل للتدخلات الصفية على مستوى الفصل.",
+  108:     href: "/dashboard/smart-classroom-support",
+  109:     kind: "workflow",
+  110:   },
+  111:   {
+  112:     slug: "smart-grade-support",
+  113:     title: "خطة صف دراسي ذكية",
+  114:     description: "Workflow مستقل للتدخلات على مستوى الصف الدراسي.",
+  115:     href: "/dashboard/smart-grade-support",
+  116:     kind: "workflow",
+  117:   },
+  118:   {
+  119:     slug: "smart-subject-support",
+  120:     title: "تدخل علاجي لمادة",
+  121:     description: "Workflow مستقل للتدخلات العلاجية على مستوى المادة.",
+  122:     href: "/dashboard/smart-subject-support",
+  123:     kind: "workflow",
+  124:   },
+  125: ];
+  126: 
+  127: export const SMART_INTERVENTION_SERVICE_SLUGS = smartInterventionWorkflowServices.map(
+  128:   (service) => service.slug,
+  129: );
+  130: 
+  131: export const SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE: Record<string, string> = {
+  132:   STUDENT_SUPPORT: "smart-student-support",
+  133:   STUDENT_EXCELLENCE: "smart-student-excellence",
+  134:   STUDENT_GROUP_CUSTOM: "smart-student-group-custom",
+  135:   STUDENT_GROUP_SUBJECT: "smart-student-group-subject",
+  136:   CLASSROOM_SUPPORT: "smart-classroom-support",
+  137:   GRADE_SUPPORT: "smart-grade-support",
+  138:   SUBJECT_SUPPORT: "smart-subject-support",
+  139: };
+  140: 
+  141: export const workflowUploadServices: AppService[] = [
+  142:   ...workflowServices,
+  143:   ...smartInterventionWorkflowServices,
+  144: ];
+  145: 
+  146: export const standaloneServices: AppService[] = [
+  147:   {
+  148:     slug: "counselor-reference-library",
+  149:     title: "مكتبة الموجه الطلابي",
+  150:     description:
+  151:       "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
+  152:     href: "/dashboard/counselor-reference-library",
+  153:     kind: "standalone",
+  154:   },
+  155:   ACTIVITY_PROGRAM_PARENT_SERVICE,
+  156:   {
+  157:     slug: "surveys",
+  158:     title: "الاستبيانات",
+  159:     description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+  160:     href: OFFICIAL_WORKSPACE_ROUTES.surveys,
+  161:     kind: "standalone",
+  162:   },
+  163:   {
+  164:     slug: "results-analysis",
+  165:     title: "تحليل النتائج",
+  166:     description: "رفع وتحليل نتائج الطلاب.",
+  167:     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+  168:     kind: "standalone",
+  169:   },
+  170:   {
+  171:     slug: "assessment-center",
+  172:     title: "مركز التحليل والاختبارات",
+  173:     description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+  174:     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+  175:     kind: "standalone",
+  176:   },
+  177:   {
+  178:     slug: "reports",
+  179:     title: "التقارير",
+  180:     description: "إنشاء ومعاينة واعتماد التقارير.",
+  181:     href: OFFICIAL_WORKSPACE_ROUTES.reports,
+  182:     kind: "standalone",
+  183:   },
+  184:   {
+  185:     slug: "custom-report",
+  186:     title: "التقرير المخصص",
+  187:     description: "إنشاء تقارير مخصصة ومرنة حسب احتياج المدرسة.",
+  188:     href: "/dashboard/custom-report",
+  189:     kind: "standalone",
+  190:   },
+  191: ];
+  192: 
+  193: export const dashboardServices = [
+  194:   ...workflowServices,
+  195:   ...standaloneServices,
+  196: ];
+
+============================================================
+FILE: components\layout\dashboard-sidebar.tsx
+============================================================
+    1: "use client";
+    2: 
+    3: import Link from "next/link";
+    4: import { usePathname } from "next/navigation";
+    5: import { useEffect, useState } from "react";
+    6: import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+    7: import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+    8: import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+    9: import type { ComponentType, ReactNode } from "react";
+   10: import {
+   11:   Activity,
+   12:   BarChart3,
+   13:   BookOpen,
+   14:   BrainCircuit,
+   15:   CalendarDays,
+   16:   ChevronDown,
+   17:   ChevronLeft,
+   18:   ChevronRight,
+   19:   ClipboardList,
+   20:   Crown,
+   21:   FilePlus2,
+   22:   FileText,
+   23:   FolderKanban,
+   24:   GitBranch,
+   25:   Home,
+   26:   KeyRound,
+   27:   LayoutDashboard,
+   28:   Medal,
+   29:   MessageCircle,
+   30:   PenTool,
+   31:   School,
+   32:   Settings,
+   33:   ShieldCheck,
+   34:   Sparkles,
+   35:   UploadCloud,
+   36:   UserRound,
+   37:   Users,
+   38:   WalletCards,
+   39: } from "lucide-react";
+   40: 
+   41: type SidebarUser = {
+   42:   role?: string | null;
+   43:   name?: string | null;
+   44:   officialName?: string | null;
+   45: };
+   46: 
+   47: type SidebarLinkItem = {
+   48:   label: string;
+   49:   href: string;
+   50:   icon: ComponentType<{ className?: string }>;
+   51:   shortLabel?: string;
+   52: };
+   53: 
+   54: const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+   55: const SIDEBAR_SCROLL_AREA_CLASS =
+   56:   "dashboard-sidebar-scroll mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-4";
+   57: 
+   58: const counselorImportantLinks: SidebarLinkItem[] = [
+   59:   { label: "الرئيسية", href: "/dashboard", icon: Home },
+   60:   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+   61:   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+   62:   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+   63: ];
+   64: 
+   65: const counselorServiceLinks: SidebarLinkItem[] = [
+   66:   {
+   67:     label: "برامج التوجيه الطلابي",
+   68:     href: "/dashboard/guidance-programs",
+   69:     icon: ClipboardList,
+   70:   },
+   71:   {
+   72:     label: "اللجان والاجتماعات",
+   73:     href: "/dashboard/committees-meetings",
+   74:     icon: ShieldCheck,
+   75:   },
+   76:   {
+   77:     label: "متابعة الطلبة والمواقف اليومية الطارئة",
+   78:     href: "/dashboard/student-follow-up",
+   79:     icon: Users,
+   80:   },
+   81:   {
+   82:     label: "خدمات التوجيه الطلابي",
+   83:     href: "/dashboard/student-guidance-services",
+   84:     icon: FileText,
+   85:   },
+   86:   {
+   87:     label: "إشعار ولي الأمر",
+   88:     href: "/dashboard/guardian-summons",
+   89:     icon: UserRound,
+   90:     shortLabel: "الإشعار",
+   91:   },
+   92:   {
+   93:     label: "تحليل النتائج",
+   94:     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+   95:     icon: BarChart3,
+   96:   },
+   97:   {
+   98:     label: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
+   99:     href: "/dashboard/family-school-communication",
+  100:     icon: MessageCircle,
+  101:   },
+  102:   {
+  103:     label: "مكتبة الموجه الطلابي",
+  104:     href: "/dashboard/counselor-reference-library",
+  105:     icon: BookOpen,
+  106:   },
+  107:   {
+  108:     label: "الإحصائيات",
+  109:     href: "/dashboard/statistics",
+  110:     icon: BarChart3,
+  111:   },];
+  112: 
+  113: 
+  114: const assessmentCenterLinks: SidebarLinkItem[] = [
+  115:   {
+  116:     label: "لوحة المركز",
+  117:     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+  118:     icon: BarChart3,
+  119:   },
+  120:   {
+  121:     label: "ربط الطلاب",
+  122:     href: "/dashboard/assessment-center/linking",
+  123:     icon: GitBranch,
+  124:   },
+  125:   {
+  126:     label: "الموجه الذكي",
+  127:     href: "/dashboard/assessment-center/smart-counselor",
+  128:     icon: Sparkles,
+  129:   },
+  130: ];
+  131: const counselorToolsLinks: SidebarLinkItem[] = [
+  132:   { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  133:   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  134:   { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  135: ];
+  136: 
+  137: const counselorAccountLinks: SidebarLinkItem[] = [
+  138:   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  139:   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  140:   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+  141: ];
+  142: 
+  143: const activityLeaderImportantLinks: SidebarLinkItem[] = [
+  144:   { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  145:   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  146:   { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
+  147:   { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  148:   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+  149: ];
+  150: 
+  151: const activityProgramDomainLinks: SidebarLinkItem[] = [
+  152:   {
+  153:     label: "كل برامج النشاط",
+  154:     href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+  155:     icon: ClipboardList,
+  156:     shortLabel: "البرامج",
+  157:   },
+  158:   ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+  159:     label: domain.title,
+  160:     href: `/dashboard/activity-leader/programs/${domain.slug}`,
+  161:     icon: ClipboardList,
+  162:     shortLabel: domain.shortLabel,
+  163:   })),
+  164: ];
+  165: const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  166:   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  167:   { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
+  168:   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+  169:   { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  170:   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+  171:   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+  172:   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  173:   { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
+  174: ];
+  175: 
+  176: const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  177:   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  178:   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  179:   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+  180: ];
+  181: 
+  182: const teacherServiceLinks: SidebarLinkItem[] = [
+  183:   { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
+  184:   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  185:   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  186:   { label: "الإحصائيات", href: "/dashboard/statistics", icon: BarChart3 },
+  187:   { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
+  188:   ];
+  189: 
+  190: const teacherPerformanceLinks: SidebarLinkItem[] = [
+  191:   ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
+  192:     label: service.title,
+  193:     href: service.href,
+  194:     icon: ClipboardList,
+  195:     shortLabel: service.shortTitle,
+  196:   })),
+  197:   { label: "تقرير مخصص", href: "/dashboard/ai-report", icon: Sparkles, shortLabel: "مخصص" },
+  198:   { label: "التقرير الذكي التجريبي", href: "/dashboard/teacher/ai-report2", icon: BrainCircuit, shortLabel: "تجريبي" },
+  199:   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+  200: ];
+  201: 
+  202: const teacherAdditionalLinks: SidebarLinkItem[] = [
+  203:   { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  204:   { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  205:   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  206: ];
+  207: 
+  208: const teacherAccountLinks: SidebarLinkItem[] = [
+  209:   { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
+  210:   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  211:   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+  212: ];
+  213: const principalLinks: SidebarLinkItem[] = [
+  214:   { label: "الرئيسية", href: "/dashboard/principal", icon: Home },
+  215:   { label: "منسوبو المدرسة", href: "/dashboard/principal/teachers", icon: Users },
+  216:   { label: "الجدول الدراسي", href: "/dashboard/principal/timetable", icon: CalendarDays },
+  217:   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  218:   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  219: ];
+  220: const principalAccountLinks: SidebarLinkItem[] = [
+  221:   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  222:   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  223:   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+  224: ];
+  225: const adminMainLinks: SidebarLinkItem[] = [
+  226:   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  227:   { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
+  228:   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  229:   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  230:   { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
+  231:   {
+  232:     label: "إدارة مكتبة الموجه الطلابي",
+  233:     href: "/dashboard/admin/counselor-reference-library",
+  234:     icon: BookOpen,
+  235:   },
+  236:   { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  237:   { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  238:   { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  239:   { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+  240: ];
+  241: 
+  242: const adminPaymentLinks: SidebarLinkItem[] = [
+  243:   { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  244:   { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  245:   { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  246:   { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  247:   {
+  248:     label: "إعدادات الفواتير والضريبة",
+  249:     href: "/dashboard/admin/payments/invoice-settings",
+  250:     icon: Settings,
+  251:   },
+  252: ];
+  253: 
+  254: const adminBuilderLinks: SidebarLinkItem[] = [
+  255:   {
+  256:     label: "مصمم Workflow",
+  257:     href: "/dashboard/admin/workflow-builder",
+  258:     icon: PenTool,
+  259:   },
+  260:   {
+  261:     label: "قوالب التقارير",
+  262:     href: "/dashboard/admin/report-templates",
+  263:     icon: FileText,
+  264:   },
+  265:   {
+  266:     label: "قالب تقرير جديد",
+  267:     href: "/dashboard/admin/report-templates/new",
+  268:     icon: FilePlus2,
+  269:   },
+  270: ];
+  271: 
+  272: const adminAccountLinks: SidebarLinkItem[] = [
+  273:   { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  274:   { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+  275: ];
+  276: 
+  277: function isActivePath(pathname: string, href: string) {
+  278:   if (href === "/dashboard") return pathname === "/dashboard";
+  279:   if (href === "/dashboard/principal") return pathname === "/dashboard/principal";
+  280:   return pathname === href || pathname.startsWith(`${href}/`);
+  281: }
+  282: 
+  283: function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  284:   return items.some((item) => isActivePath(pathname, item.href));
+  285: }
+  286: 
+  287: const collapsedLabelByLabel: Record<string, string> = {
+  288:   "الرئيسية": "الرئيسية",
+  289:   "الحالات": "الحالات",
+  290:   "مركز الأنشطة": "الأنشطة",
+  291:   "متابعة أنشطة المعلمين": "المعلمون",
+  292:   "التقارير": "التقارير",
+  293:   "تقرير خاص": "خاص",
+  294:   "تقرير مخصص": "مخصص",
+  295:   "التقويم والتنبيهات": "التقويم",
+  296:   "الجدول الدراسي": "الجدول",
+  297:   "الجدول الجديد": "الجديد",
+  298: 
+  299:   "برامج التوجيه الطلابي": "البرامج",
+  300:   "اللجان والاجتماعات": "اللجان",
+  301:   "متابعة الطلبة والمواقف اليومية الطارئة": "المتابعة",
+  302:   "خدمات التوجيه الطلابي": "التوجيه",
+  303:   "مكتبة الموجه الطلابي": "المكتبة",
+  304:   "الإحصائيات": "إحصائيات",
+  305:   "تحليل النتائج": "التحليل",
+  306:   "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور": "الأسرة",
+  307: 
+  308:   "لوحة المركز": "المركز",
+  309:   "تحليل جديد": "تحليل جديد",
+  310:   "التحليلات السابقة": "السابقة",
+  311:   "تحليل المواد": "المواد",
+  312:   "تحليل الصفوف والفصول": "الصفوف",
+  313:   "الطلاب المعرضون للخطر": "الخطر",
+  314:   "التوصيات العلاجية": "التوصيات",
+  315:   "تقارير التحليل": "تقارير",
+  316: 
+  317:   "رفع بيانات الطلاب": "رفع الطلاب",
+  318:   "الباقات": "الباقات",
+  319:   "حسابي": "حسابي",
+  320:   "إعدادات المدرسة": "المدرسة",
+  321: 
+  322:   "مركز الإدارة": "الإدارة",
+  323:   "صحة النظام": "الصحة",
+  324:   "المستخدمين": "المستخدمون",
+  325:   "سجل العمليات": "السجل",
+  326:   "التفعيلات": "التفعيلات",
+  327:   "الاشتراكات": "الاشتراكات",
+  328:   "المشتركين": "المشتركون",
+  329:   "Workflows": "Workflows",
+  330: 
+  331:   "عمليات الدفع": "الدفع",
+  332:   "مزودو الدفع": "المزودون",
+  333:   "التسوية المالية": "التسوية",
+  334:   "الفواتير": "الفواتير",
+  335:   "إعدادات الفواتير والضريبة": "الضريبة",
+  336: 
+  337:   "مصمم Workflow": "المصمم",
+  338:   "قوالب التقارير": "القوالب",
+  339:   "قالب تقرير جديد": "قالب جديد",
+  340:   "حساب الأدمن": "حساب الأدمن",
+  341:   "هوية المنصة": "الهوية",
+  342: };
+  343: 
+  344: function getCollapsedLabel(item: SidebarLinkItem) {
+  345:   return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;
+  346: }
+  347: 
+  348: export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  349:   const pathname = usePathname();
+  350:   const [collapsed, setCollapsed] = useState(false);
+  351:   const [ready, setReady] = useState(false);
+  352: 
+  353:   const isAdmin =
+  354:     user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  355:   const isActivityLeader =
+  356:     user?.role === "ACTIVITY_LEADER" ||
+  357:     pathname.startsWith("/dashboard/activity-leader");
+  358:   const isTeacher =
+  359:     user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+  360:   const isPrincipal =
+  361:     user?.role === "PRINCIPAL" || pathname.startsWith("/dashboard/principal");
+  362: 
+  363:   const dashboardHomeHref = isAdmin
+  364:     ? "/dashboard/admin"
+  365:     : isActivityLeader
+  366:       ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
+  367:       : isTeacher
+  368:         ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+  369:         : isPrincipal
+  370:           ? "/dashboard/principal"
+  371:         : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
+  372: 
+  373:   const dashboardTitle = isAdmin
+  374:     ? "إدارة المنصة"
+  375:     : isActivityLeader
+  376:       ? "ريادة النشاط"
+  377:       : isTeacher
+  378:         ? "مساحة المعلم"
+  379:         : isPrincipal
+  380:           ? "إدارة المدرسة"
+  381:         : "التوجيه الطلابي";
+  382: 
+  383:   const dashboardSubtitle = isAdmin
+  384:     ? "Admin Center"
+  385:     : isActivityLeader
+  386:       ? "Activity Leader"
+  387:       : isTeacher
+  388:         ? "Teacher Workspace"
+  389:         : isPrincipal
+  390:           ? "Principal Workspace"
+  391:         : "Counselor";
+  392: useEffect(() => {
+  393:     const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+  394:     setCollapsed(savedValue === "true");
+  395:     setReady(true);
+  396:   }, []);
+  397: 
+  398:   useEffect(() => {
+  399:     if (!ready) return;
+  400:     window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  401:   }, [collapsed, ready]);
+  402: 
+  403:   return (
+  404:     <aside
+  405:       className={[
+  406:         "sticky top-0 hidden h-screen shrink-0 overflow-hidden bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+  407:         collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
+  408:       ].join(" ")}
+  409:     >
+  410:       <div
+  411:         className={[
+  412:           "flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
+  413:           collapsed ? "p-2" : "p-4",
+  414:         ].join(" ")}
+  415:       >
+  416:         <div
+  417:           className={[
+  418:             "flex shrink-0 items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
+  419:             collapsed ? "justify-center" : "justify-between",
+  420:           ].join(" ")}
+  421:         >
+  422:           <Link
+  423:             href={dashboardHomeHref}
+  424:             className={[
+  425:               "flex min-w-0 items-center rounded-[1.35rem] transition",
+  426:               collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+  427:               isAdmin
+  428:                 ? "hover:bg-slate-50 dark:hover:bg-slate-900"
+  429:                 : "hover:bg-sky-50/60 dark:hover:bg-sky-500/10",
+  430:             ].join(" ")}
+  431:             title={dashboardTitle}
+  432:           >
+  433:             <div
+  434:               className={[
+  435:                 "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+  436:                 collapsed ? "h-11 w-11" : "h-12 w-12",
+  437:                 isAdmin
+  438:                   ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-slate-200"
+  439:                   : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
+  440:               ].join(" ")}
+  441:             >
+  442:               {isAdmin ? (
+  443:                 <ShieldCheck className="h-5 w-5" />
+  444:               ) : (
+  445:                 <Sparkles className="h-5 w-5" />
+  446:               )}
+  447:             </div>
+  448: 
+  449:             {!collapsed ? (
+  450:               <div className="min-w-0">
+  451:                 <h1 className="truncate text-[15px] font-black text-slate-950 dark:text-white">
+  452:                   {dashboardTitle}
+  453:                 </h1>
+  454:                 <p className="mt-1 truncate text-[11px] font-black text-slate-400 dark:text-slate-500">
+  455:                   {dashboardSubtitle}
+  456:                 </p>
+  457:               </div>
+  458:             ) : null}
+  459:           </Link>
+  460: 
+  461:           <button
+  462:             type="button"
+  463:             onClick={() => setCollapsed((value) => !value)}
+  464:             className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+  465:             aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+  466:             title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+  467:           >
+  468:             {collapsed ? (
+  469:               <ChevronLeft className="h-4 w-4" />
+  470:             ) : (
+  471:               <ChevronRight className="h-4 w-4" />
+  472:             )}
+  473:           </button>
+  474:         </div>
+  475: 
+  476:         {isAdmin ? (
+  477:           <AdminSidebar pathname={pathname} collapsed={collapsed} />
+  478:         ) : isActivityLeader ? (
+  479:           <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+  480:         ) : isTeacher ? (
+  481:           <TeacherSidebar pathname={pathname} collapsed={collapsed} />
+  482:         ) : isPrincipal ? (
+  483:           <PrincipalSidebar pathname={pathname} collapsed={collapsed} />
+  484:         ) : (
+  485:           <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+  486:         )}
+  487:       </div>
+  488:     </aside>
+  489:   );
+  490: }
+  491: 
+  492: function PrincipalSidebar({
+  493:   pathname,
+  494:   collapsed,
+  495: }: {
+  496:   pathname: string;
+  497:   collapsed: boolean;
+  498: }) {
+  499:   return (
+  500:     <nav
+  501:       className={[
+  502:         SIDEBAR_SCROLL_AREA_CLASS,
+  503:         collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+  504:       ].join(" ")}
+  505:       aria-label="قائمة مدير المدرسة"
+  506:     >
+  507:       <SidebarSection title="مساحة مدير المدرسة" collapsed={collapsed}>
+  508:         {principalLinks.map((item) => (
+  509:           <SidebarLink
+  510:             key={item.href}
+  511:             item={item}
+  512:             active={isActivePath(pathname, item.href)}
+  513:             collapsed={collapsed}
+  514:           />
+  515:         ))}
+  516:       </SidebarSection>
+  517:       <SidebarDropdown
+  518:         title="الحساب والباقات"
+  519:         defaultOpen={pathname.startsWith("/dashboard/plans") || pathname.startsWith("/dashboard/account") || pathname.startsWith("/dashboard/settings")}
+  520:         collapsed={collapsed}
+  521:       >
+  522:         {principalAccountLinks.map((item) => (
+  523:           <SidebarLink key={item.href} item={item} active={isActivePath(pathname, item.href)} compact collapsed={collapsed} />
+  524:         ))}
+  525:       </SidebarDropdown>
+  526:     </nav>
+  527:   );
+  528: }
+  529: 
+  530: function AdminSidebar({
+  531:   pathname,
+  532:   collapsed,
+  533: }: {
+  534:   pathname: string;
+  535:   collapsed: boolean;
+  536: }) {
+  537:   return (
+  538:     <>
+  539:       <nav
+  540:         className={[
+  541:           SIDEBAR_SCROLL_AREA_CLASS,
+  542:           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+  543:         ].join(" ")}
+  544:       >
+  545:         <SidebarSection title="الإدارة" collapsed={collapsed}>
+  546:           {adminMainLinks.map((item) => (
+  547:             <SidebarLink
+  548:               key={item.href}
+  549:               item={item}
+  550:               active={isActivePath(pathname, item.href)}
+  551:               admin
+  552:               collapsed={collapsed}
+  553:             />
+  554:           ))}
+  555:         </SidebarSection>
+  556: 
+  557:         <SidebarDropdown
+  558:           title="المدفوعات"
+  559:           defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+  560:           admin
+  561:           collapsed={collapsed}
+  562:         >
+  563:           {adminPaymentLinks.map((item) => (
+  564:             <SidebarLink
+  565:               key={item.href}
+  566:               item={item}
+  567:               active={isActivePath(pathname, item.href)}
+  568:               admin
+  569:               compact
+  570:               collapsed={collapsed}
+  571:             />
+  572:           ))}
+  573:         </SidebarDropdown>
+  574: 
+  575:         <SidebarDropdown
+  576:           title="أدوات البناء"
+  577:           defaultOpen={hasActive(pathname, adminBuilderLinks)}
+  578:           admin
+  579:           collapsed={collapsed}
+  580:         >
+  581:           {adminBuilderLinks.map((item) => (
+  582:             <SidebarLink
+  583:               key={item.href}
+  584:               item={item}
+  585:               active={isActivePath(pathname, item.href)}
+  586:               admin
+  587:               compact
+  588:               collapsed={collapsed}
+  589:             />
+  590:           ))}
+  591:         </SidebarDropdown>
+  592: 
+  593:         <SidebarDropdown
+  594:           title="الحساب والإعدادات"
+  595:           defaultOpen={hasActive(pathname, adminAccountLinks)}
+  596:           admin
+  597:           collapsed={collapsed}
+  598:         >
+  599:           {adminAccountLinks.map((item) => (
+  600:             <SidebarLink
+  601:               key={item.href}
+  602:               item={item}
+  603:               active={isActivePath(pathname, item.href)}
+  604:               admin
+  605:               compact
+  606:               collapsed={collapsed}
+  607:             />
+  608:           ))}
+  609:         </SidebarDropdown>
+  610:       </nav>
+  611:     </>
+  612:   );
+  613: }
+  614: 
+  615: function ActivityLeaderSidebar({
+  616:   pathname,
+  617:   collapsed,
+  618: }: {
+  619:   pathname: string;
+  620:   collapsed: boolean;
+  621: }) {
+  622:   return (
+  623:     <>
+  624:       <nav
+  625:         className={[
+  626:           SIDEBAR_SCROLL_AREA_CLASS,
+  627:           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+  628:         ].join(" ")}
+  629:       >
+  630:         <SidebarSection title="الأهم" collapsed={collapsed}>
+  631:           {activityLeaderImportantLinks.map((item) => (
+  632:             <SidebarLink
+  633:               key={item.href}
+  634:               item={item}
+  635:               active={isActivePath(pathname, item.href)}
+  636:               collapsed={collapsed}
+  637:             />
+  638:           ))}
+  639:         </SidebarSection>
+  640: 
+  641:         <SidebarDropdown
+  642:           title="برامج النشاط"
+  643:           defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+  644:           collapsed={collapsed}
+  645:         >
+  646:           {activityProgramDomainLinks.map((item) => (
+  647:             <SidebarLink
+  648:               key={item.href}
+  649:               item={item}
+  650:               active={
+  651:                 item.href === "/dashboard/activity-leader/programs"
+  652:                   ? pathname === item.href
+  653:                   : isActivePath(pathname, item.href)
+  654:               }
+  655:               compact
+  656:               collapsed={collapsed}
+  657:             />
+  658:           ))}
+  659:         </SidebarDropdown>
+  660: 
+  661:         <SidebarSection title="إدارة النشاط" collapsed={collapsed}>
+  662:           {activityLeaderServiceLinks.map((item) => (
+  663:             <SidebarLink
+  664:               key={item.href}
+  665:               item={item}
+  666:               active={isActivePath(pathname, item.href)}
+  667:               collapsed={collapsed}
+  668:             />
+  669:           ))}
+  670:         </SidebarSection>
+  671: 
+  672:         <SidebarDropdown
+  673:           title="الحساب والباقات"
+  674:           defaultOpen={
+  675:             pathname.startsWith("/dashboard/plans") ||
+  676:             pathname.startsWith("/dashboard/account") ||
+  677:             pathname.startsWith("/dashboard/settings")
+  678:           }
+  679:           collapsed={collapsed}
+  680:         >
+  681:           {activityLeaderAccountLinks.map((item) => (
+  682:             <SidebarLink
+  683:               key={item.href}
+  684:               item={item}
+  685:               active={isActivePath(pathname, item.href)}
+  686:               compact
+  687:               collapsed={collapsed}
+  688:             />
+  689:           ))}
+  690:         </SidebarDropdown>
+  691:       </nav>
+  692:     </>
+  693:   );
+  694: }
+  695: function TeacherSidebar({
+  696:   pathname,
+  697:   collapsed,
+  698: }: {
+  699:   pathname: string;
+  700:   collapsed: boolean;
+  701: }) {
+  702:   return (
+  703:     <>
+  704:       <nav
+  705:         className={[
+  706:           SIDEBAR_SCROLL_AREA_CLASS,
+  707:           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+  708:         ].join(" ")}
+  709:       >
+  710:         <SidebarSection title="مساحة المعلم" collapsed={collapsed}>
+  711:           {teacherServiceLinks.map((item) => (
+  712:             <SidebarLink
+  713:               key={item.href}
+  714:               item={item}
+  715:               active={isActivePath(pathname, item.href)}
+  716:               collapsed={collapsed}
+  717:             />
+  718:           ))}
+  719:         </SidebarSection>
+  720: 
+  721:         <SidebarDropdown
+  722:           title="تقييم أداء المعلم"
+  723:           defaultOpen={teacherPerformanceLinks.some((item) => isActivePath(pathname, item.href))}
+  724:           collapsed={collapsed}
+  725:         >
+  726:           {teacherPerformanceLinks.map((item) => (
+  727:             <SidebarLink
+  728:               key={item.href}
+  729:               item={item}
+  730:               active={isActivePath(pathname, item.href)}
+  731:               compact
+  732:               collapsed={collapsed}
+  733:             />
+  734:           ))}
+  735:         </SidebarDropdown>
+  736: 
+  737:         <SidebarDropdown
+  738:           title="مركز التحليل والاختبارات"
+  739:           defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+  740:           collapsed={collapsed}
+  741:         >
+  742:           {assessmentCenterLinks.map((item) => (
+  743:             <SidebarLink
+  744:               key={item.href}
+  745:               item={item}
+  746:               active={
+  747:                 item.href === "/dashboard/assessment-center"
+  748:                   ? pathname === item.href
+  749:                   : isActivePath(pathname, item.href)
+  750:               }
+  751:               compact
+  752:               collapsed={collapsed}
+  753:             />
+  754:           ))}
+  755:         </SidebarDropdown>
+  756: 
+  757:         <SidebarDropdown
+  758:           title="خدمات إضافية"
+  759:           defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
+  760:           collapsed={collapsed}
+  761:         >
+  762:           {teacherAdditionalLinks.map((item) => (
+  763:             <SidebarLink
+  764:               key={item.href}
+  765:               item={item}
+  766:               active={isActivePath(pathname, item.href)}
+  767:               compact
+  768:               collapsed={collapsed}
+  769:             />
+  770:           ))}
+  771:         </SidebarDropdown>
+  772: 
+  773:         <SidebarDropdown
+  774:           title="الحساب والباقات"
+  775:           defaultOpen={
+  776:             pathname.startsWith("/dashboard/subscription") ||
+  777:             pathname.startsWith("/dashboard/account") ||
+  778:             pathname.startsWith("/dashboard/settings")
+  779:           }
+  780:           collapsed={collapsed}
+  781:         >
+  782:           {teacherAccountLinks.map((item) => (
+  783:             <SidebarLink
+  784:               key={item.href}
+  785:               item={item}
+  786:               active={isActivePath(pathname, item.href)}
+  787:               compact
+  788:               collapsed={collapsed}
+  789:             />
+  790:           ))}
+  791:         </SidebarDropdown>
+  792:       </nav>
+  793:     </>
+  794:   );
+  795: }
+  796: function CounselorSidebar({
+  797:   pathname,
+  798:   collapsed,
+  799: }: {
+  800:   pathname: string;
+  801:   collapsed: boolean;
+  802: }) {
+  803:   return (
+  804:     <>
+  805:       <nav
+  806:         className={[
+  807:           SIDEBAR_SCROLL_AREA_CLASS,
+  808:           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+  809:         ].join(" ")}
+  810:       >
+  811:         <SidebarSection title="الأهم" collapsed={collapsed}>
+  812:           {counselorImportantLinks.map((item) => (
+  813:             <SidebarLink
+  814:               key={item.href}
+  815:               item={item}
+  816:               active={isActivePath(pathname, item.href)}
+  817:               collapsed={collapsed}
+  818:             />
+  819:           ))}
+  820:         </SidebarSection>
+  821: 
+  822:         <SidebarSection title="الخدمات" collapsed={collapsed}>
+  823:           {counselorServiceLinks.map((item) => (
+  824:             <SidebarLink
+  825:               key={item.href}
+  826:               item={item}
+  827:               active={isActivePath(pathname, item.href)}
+  828:               collapsed={collapsed}
+  829:             />
+  830:           ))}
+  831:         </SidebarSection>
+  832: 
+  833:         <SidebarDropdown
+  834:           title="مركز التحليل والاختبارات"
+  835:           defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+  836:           collapsed={collapsed}
+  837:         >
+  838:           {assessmentCenterLinks.map((item) => (
+  839:             <SidebarLink
+  840:               key={item.href}
+  841:               item={item}
+  842:               active={
+  843:                 item.href === "/dashboard/assessment-center"
+  844:                   ? pathname === item.href
+  845:                   : isActivePath(pathname, item.href)
+  846:               }
+  847:               compact
+  848:               collapsed={collapsed}
+  849:             />
+  850:           ))}
+  851:         </SidebarDropdown>
+  852: 
+  853:         <SidebarDropdown
+  854:           title="أدوات إضافية"
+  855:           defaultOpen={hasActive(pathname, counselorToolsLinks)}
+  856:           collapsed={collapsed}
+  857:         >
+  858:           {counselorToolsLinks.map((item) => (
+  859:             <SidebarLink
+  860:               key={item.href}
+  861:               item={item}
+  862:               active={isActivePath(pathname, item.href)}
+  863:               compact
+  864:               collapsed={collapsed}
+  865:             />
+  866:           ))}
+  867:         </SidebarDropdown>
+  868: 
+  869:         <SidebarDropdown
+  870:           title="الحساب والباقات"
+  871:           defaultOpen={
+  872:             pathname.startsWith("/dashboard/plans") ||
+  873:             pathname.startsWith("/dashboard/account") ||
+  874:             pathname.startsWith("/dashboard/settings")
+  875:           }
+  876:           collapsed={collapsed}
+  877:         >
+  878:           {counselorAccountLinks.map((item) => (
+  879:             <SidebarLink
+  880:               key={item.href}
+  881:               item={item}
+  882:               active={isActivePath(pathname, item.href)}
+  883:               compact
+  884:               collapsed={collapsed}
+  885:             />
+  886:           ))}
+  887:         </SidebarDropdown>
+  888:       </nav>
+  889:     </>
+  890:   );
+  891: }
+  892: 
+  893: function SidebarSection({
+  894:   title,
+  895:   children,
+  896:   collapsed,
+  897: }: {
+  898:   title: string;
+  899:   children: ReactNode;
+  900:   collapsed: boolean;
+  901: }) {
+  902:   return (
+  903:     <section>
+  904:       {!collapsed ? (
+  905:         <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400 dark:text-slate-500">
+  906:           {title}
+  907:         </p>
+  908:       ) : null}
+  909: 
+  910:       <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>
+  911:     </section>
+  912:   );
+  913: }
+  914: 
+  915: function SidebarDropdown({
+  916:   title,
+  917:   children,
+  918:   defaultOpen = false,
+  919:   admin,
+  920:   collapsed,
+  921: }: {
+  922:   title: string;
+  923:   children: ReactNode;
+  924:   defaultOpen?: boolean;
+  925:   admin?: boolean;
+  926:   collapsed: boolean;
+  927: }) {
+  928:   const [open, setOpen] = useState(defaultOpen);
+  929: 
+  930:   if (collapsed) {
+  931:     return <div className="space-y-1.5">{children}</div>;
+  932:   }
+  933: 
+  934:   return (
+  935:     <section>
+  936:       <button
+  937:         type="button"
+  938:         onClick={() => setOpen((value) => !value)}
+  939:         className={[
+  940:           "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+  941:           admin
+  942:             ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+  943:             : "text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-500 dark:hover:bg-sky-500/10 dark:hover:text-sky-200",
+  944:         ].join(" ")}
+  945:       >
+  946:         <span>{title}</span>
+  947:         <ChevronDown
+  948:           className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+  949:             " "
+  950:           )}
+  951:         />
+  952:       </button>
+  953: 
+  954:       {open ? <div className="space-y-1.5">{children}</div> : null}
+  955:     </section>
+  956:   );
+  957: }
+  958: 
+  959: function SidebarLink({
+  960:   item,
+  961:   active,
+  962:   admin,
+  963:   compact,
+  964:   collapsed,
+  965: }: {
+  966:   item: SidebarLinkItem;
+  967:   active: boolean;
+  968:   admin?: boolean;
+  969:   compact?: boolean;
+  970:   collapsed: boolean;
+  971: }) {
+  972:   const Icon = item.icon;
+  973:   const collapsedLabel = getCollapsedLabel(item);
+  974: 
+  975:   return (
+  976:     <Link
+  977:       href={item.href}
+  978:       title={item.label}
+  979:       className={[
+  980:         "group relative flex items-center rounded-2xl transition",
+  981:         collapsed
+  982:           ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"
+  983:           : "min-h-11 gap-3 px-4 py-2.5",
+  984:         compact && !collapsed ? "py-2" : "",
+  985:         active
+  986:           ? admin
+  987:             ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+  988:             : "bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-500/15 dark:text-sky-200 dark:ring-1 dark:ring-sky-400/20"
+  989:           : "text-slate-500 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
+  990:       ].join(" ")}
+  991:     >
+  992:       {active && !collapsed ? (
+  993:         <span
+  994:           className={[
+  995:             "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+  996:             admin ? "bg-white dark:bg-slate-950" : "bg-sky-500",
+  997:           ].join(" ")}
+  998:         />
+  999:       ) : null}
+ 1000: 
+ 1001:       <div
+ 1002:         className={[
+ 1003:           "flex shrink-0 items-center justify-center rounded-xl transition",
+ 1004:           collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+ 1005:           active
+ 1006:             ? admin
+ 1007:               ? "bg-white/10 text-white dark:bg-slate-950/10 dark:text-slate-950"
+ 1008:               : "bg-white text-sky-600 dark:bg-sky-400/15 dark:text-sky-200"
+ 1009:             : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600 dark:bg-slate-900 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-sky-300",
+ 1010:         ].join(" ")}
+ 1011:       >
+ 1012:         <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
+ 1013:       </div>
+ 1014: 
+ 1015:       {!collapsed ? (
+ 1016:         <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+ 1017:           {item.label}
+ 1018:         </span>
+ 1019:       ) : (
+ 1020:         <>
+ 1021:           <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">
+ 1022:             {collapsedLabel}
+ 1023:           </span>
+ 1024: 
+ 1025:           <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block dark:border dark:border-slate-700 dark:bg-slate-900">
+ 1026:             {item.label}
+ 1027:           </span>
+ 1028:         </>
+ 1029:       )}
+ 1030:     </Link>
+ 1031:   );
+ 1032: }
+
+============================================================
+FILE: lib\admin\workflows\ensure-dashboard-workflow-services.ts
+============================================================
+    1: import { ServiceStatus} from "@prisma/client";
+    2: 
+    3: import { workflowUploadServices } from "@/lib/constants/services";
+    4: import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+    5: import { prisma } from "@/lib/prisma";
+    6: 
+    7: const TEACHER_PERFORMANCE_WORKFLOW_SERVICE_SLUGS = new Set(
+    8:   TEACHER_PERFORMANCE_WORKFLOW_SERVICES.map((service) => service.slug),
+    9: );
+   10: 
+   11: type DashboardWorkflowServiceConfig = {
+   12:   slug: string;
+   13:   title: string;
+   14:   description?: string;
+   15:   kind?: string;
+   16: };
+   17: 
+   18: const EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS = [
+   19:   "student-record",
+   20:   "student-profile",
+   21:   "comprehensive-record",
+   22:   "reference",
+   23:   "reports",
+   24:   "report",
+   25:   "results-analysis",
+   26:   "result-analysis",
+   27:   "analysis-results",
+   28:   "results",
+   29: ];
+   30: 
+   31: const EXCLUDED_WORKFLOW_UPLOAD_TITLE_PARTS = [
+   32:   "مكتبة الموجه الطلابي",
+   33:   "التقارير",
+   34:   "تحليل النتائج",
+   35: ];
+   36: 
+   37: function normalizeArabicText(value: unknown) {
+   38:   return String(value ?? "")
+   39:     .toLowerCase()
+   40:     .replace(/[أإآ]/g, "ا")
+   41:     .replace(/ى/g, "ي")
+   42:     .replace(/ة/g, "ه")
+   43:     .replace(/\s+/g, " ")
+   44:     .trim();
+   45: }
+   46: 
+   47: function normalizeDescription(value: unknown) {
+   48:   const text = String(value ?? "").trim();
+   49: 
+   50:   return text || null;
+   51: }
+   52: 
+   53: export function isWorkflowUploadEligibleService(
+   54:   service: DashboardWorkflowServiceConfig,
+   55: ) {
+   56:   const slug = String(service.slug || "").toLowerCase().trim();
+   57:   const title = normalizeArabicText(service.title);
+   58: 
+   59:   if (slug === "teacher-report-issuance") {
+   60:     return service.kind === "workflow";
+   61:   }
+   62: 
+   63:   if (TEACHER_PERFORMANCE_WORKFLOW_SERVICE_SLUGS.has(slug)) {
+   64:     return service.kind === "workflow";
+   65:   }
+   66: 
+   67:   const isExplicitlyExcludedBySlug = EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS.some(
+   68:     (part) => slug.includes(part),
+   69:   );
+   70: 
+   71:   const isExplicitlyExcludedByTitle = EXCLUDED_WORKFLOW_UPLOAD_TITLE_PARTS.some(
+   72:     (part) => title.includes(normalizeArabicText(part)),
+   73:   );
+   74: 
+   75:   if (isExplicitlyExcludedBySlug || isExplicitlyExcludedByTitle) {
+   76:     return false;
+   77:   }
+   78: 
+   79:   return service.kind === "workflow";
+   80: }
+   81: 
+   82: export function getWorkflowUploadServices() {
+   83:   return workflowUploadServices.filter(isWorkflowUploadEligibleService);
+   84: }
+   85: 
+   86: function getServiceConfig(serviceSlug: string): DashboardWorkflowServiceConfig | null {
+   87:   const config = workflowUploadServices.find((service) => service.slug === serviceSlug);
+   88: 
+   89:   if (!config || !isWorkflowUploadEligibleService(config)) {
+   90:     return null;
+   91:   }
+   92: 
+   93:   return {
+   94:     slug: config.slug,
+   95:     title: config.title,
+   96:     description: config.description,
+   97:     kind: config.kind,
+   98:   };
+   99: }
+  100: 
+  101: /**
+  102:  * يضمن وجود سجل Service فقط للخدمات التي لها Workflow.
+  103:  * لا ينشئ Workflow، ولا ينشر، ولا يغير النسخ القديمة.
+  104:  */
+  105: export async function ensureDashboardWorkflowService(serviceSlug: string) {
+  106:   const serviceConfig = getServiceConfig(serviceSlug);
+  107: 
+  108:   if (!serviceConfig) {
+  109:     return null;
+  110:   }
+  111: 
+  112:   return prisma.service.upsert({
+  113:     where: {
+  114:       slug: serviceConfig.slug,
+  115:     },
+  116:     update: {
+  117:       name: serviceConfig.title,
+  118:       description: normalizeDescription(serviceConfig.description),
+  119:     },
+  120:     create: {
+  121:       slug: serviceConfig.slug,
+  122:       name: serviceConfig.title,
+  123:       description: normalizeDescription(serviceConfig.description),
+  124:       status: ServiceStatus.ACTIVE,
+  125:     },
+  126:   });
+  127: }
+  128: 
+  129: /**
+  130:  * يهيئ خدمات Workflow فقط، ويستبعد:
+  131:  * مكتبة الموجه الطلابي، التقارير، تحليل النتائج.
+  132:  */
+  133: export async function ensureDashboardWorkflowServices() {
+  134:   const results = [];
+  135: 
+  136:   for (const service of getWorkflowUploadServices()) {
+  137:     const ensured = await ensureDashboardWorkflowService(service.slug);
+  138: 
+  139:     if (ensured) {
+  140:       results.push(ensured);
+  141:     }
+  142:   }
+  143: 
+  144:   return results;
+  145: }
