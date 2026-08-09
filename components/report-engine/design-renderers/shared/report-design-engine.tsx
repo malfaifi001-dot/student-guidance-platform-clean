@@ -44,43 +44,18 @@ export function ReportDesignRenderer({
   );
   const implementation = getReportDesignImplementation(selectedDesign);
 
-  const logoWidthPx = getDesignLogoNumber(
+  const logoStyleText = getReportDesignLogoStyleText(
     context,
-    "report.logoWidthPx",
     implementation.defaultLogoWidthPx || 96,
-    24,
-    240,
-  );
-
-  const logoHeightPx = getDesignLogoNumber(
-    context,
-    "report.logoHeightPx",
     implementation.defaultLogoHeightPx || 56,
-    20,
-    160,
   );
-
-  const logoFit = getDesignLogoFit(context);
-  const logoFilter = getDesignLogoFilter(context);
   const headerStyleText = getReportHeaderSettingsStyle(
     template?.designConfig?.header,
   );
   const signatureStyleText = getReportDesignSignatureStyleText();
   const pages = template?.pages || [];
 
-  const logoStyle = (
-    <style>{`
-      .report-design-logo-control-style img[alt="شعار وزارة التعليم"],
-      .pdf-report-page img[alt="شعار وزارة التعليم"] {
-        width: ${logoWidthPx}px !important;
-        max-width: ${logoWidthPx}px !important;
-        height: ${logoHeightPx}px !important;
-        max-height: ${logoHeightPx}px !important;
-        object-fit: ${logoFit} !important;
-        filter: ${logoFilter} !important;
-      }
-    `}</style>
-  );
+  const logoStyle = <style>{logoStyleText}</style>;
   const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
   const signatureStyle = <style>{signatureStyleText}</style>;
 
@@ -202,6 +177,17 @@ export function ReportDesignRenderer({
     </div>
   );
 
+  if (chromeLayout === "none") {
+    return (
+      <>
+        {logoStyle}
+        {headerStyle}
+        {signatureStyle}
+        {preview}
+      </>
+    );
+  }
+
   if (chromeLayout === "split") {
     return (
       <div className="space-y-4">
@@ -310,7 +296,7 @@ export function FinalReportDesignRenderer({
 
 import { buildFinalReportContext, normalizeFinalReportTemplate } from "./final-report";
 
-import { getDesignLogoFilter, getDesignLogoFit, getDesignLogoNumber } from "./report-logo";
+import { getReportDesignLogoStyleText } from "./report-logo";
 
 
 

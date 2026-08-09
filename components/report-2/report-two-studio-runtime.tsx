@@ -21,7 +21,6 @@ import type {
   SmartReportPayload,
   SmartReportTable,
 } from "@/lib/report-engine/smart-report-types";
-import { paginateSmartReportTable } from "@/lib/report-engine/report-structured-table-extractor";
 import {
   normalizeSmartReportTablePresentation,
   normalizeStudentDataTableBlockOrder,
@@ -227,8 +226,6 @@ type StudioPage = {
   kind: StudioPageKind;
   title: string;
   description?: string;
-  sourceTemplatePageId?: string | null;
-  reportTwoVirtualPage?: boolean;
   blocks: StudioBlock[];
 };
 
@@ -253,8 +250,6 @@ type ReportTwoDraftSnapshot = {
   headerValues: ReportTwoHeaderValues | null;
   headerAlignments: ReportTwoHeaderAlignments | null;
   logoSettings: ReportTwoLogoSettings | null;
-  hiddenRuntimePageIds: string[];
-  runtimePageOrder: string[];
   activePageId: string;
   selectedBlockId: string;
   finalCheckConfirmedAt?: string | null;
@@ -298,8 +293,6 @@ type ReportTwoSavedRuntimeTemplate = {
   headerValues: ReportTwoHeaderValues | null;
   headerAlignments: ReportTwoHeaderAlignments | null;
   logoSettings: ReportTwoLogoSettings | null;
-  hiddenRuntimePageIds: string[];
-  runtimePageOrder: string[];
 };
 
 type ReportTwoStudioRuntimeProps = {
@@ -318,16 +311,6 @@ type ReportTwoStudioRuntimeProps = {
     previewUrl: string;
   } | null;
 };
-
-const REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 214;
-const REPORT_TWO_FOOTER_SAFE_GAP_SCORE = 14;
-const REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 4;
-const REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE =
-  REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_FOOTER_SAFE_GAP_SCORE;
-const REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
-  REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
-const REPORT_TWO_BLOCK_MOVED_NOTICE =
-  "لا توجد مساحة كافية في هذه الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
 
 function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
   return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
@@ -615,7 +598,7 @@ function createPage(index: number): StudioPage {
     kind: "content",
     title: `صفحة محتوى ${index}`,
     description: "",
-    blocks: [createBlock("section-text")],
+    blocks: [],
   };
 }
 
@@ -1254,10 +1237,6 @@ function isReportTwoSignatureBlock(block: StudioBlock | null | undefined) {
   );
 }
 
-function getReportTwoSignatureTargetPageId(pages: StudioPage[]) {
-  return pages[pages.length - 1]?.id || "";
-}
-
 function getReportTwoSignatureHiddenKeys(block: StudioBlock | null | undefined) {
   return new Set(
     Array.isArray((block as any)?.hiddenSignatureKeys)
@@ -1355,59 +1334,38 @@ function withReportTwoSignatureBlock(
   payload: SmartReportPayload,
 ): StudioTemplate {
   const signatures = getReportTwoSignatureCardsFromPayload(payload);
-  let signatureBlock: StudioBlock | null = null;
-
-  const pagesWithoutSignatureBlocks = template.pages.map((page) => ({
-    ...page,
-    blocks: page.blocks.filter((block) => {
-      if (isReportTwoSignatureBlock(block)) {
-        if (!signatureBlock) {
-          signatureBlock = block;
-        }
-
-        return false;
-      }
-
-      return true;
-    }),
-  }));
-
-  if (!signatureBlock) {
-    return template;
-  }
-
-  const targetPageId = getReportTwoSignatureTargetPageId(pagesWithoutSignatureBlocks);
-
-  if (!targetPageId) {
-    return template;
-  }
-
-  const baseSignatureBlock = signatureBlock as StudioBlock;
-
-  const normalizedSignatureBlock = {
-    ...baseSignatureBlock,
-    kind: "signature-grid" as StudioBlockKind,
-    title: baseSignatureBlock.title || "تواقيع الاعتماد",
-    content: "",
-    variant: baseSignatureBlock.variant || "soft",
-    source: baseSignatureBlock.source || "manual",
-    showTitle: baseSignatureBlock.showTitle ?? false,
-    showMeta: false,
-    align: "center",
-    placement: "flow",
-    signatures: getReportTwoConfiguredSignatureCards(signatures, signatureBlock),
-  } as StudioBlock;
+  let signatureWasPrepared = false;
 
   return {
     ...template,
-    pages: pagesWithoutSignatureBlocks.map((page) =>
-      page.id === targetPageId
-        ? {
-            ...page,
-            blocks: [...page.blocks, normalizedSignatureBlock],
-          }
-        : page,
-    ),
+    pages: template.pages.map((page) => ({
+      ...page,
+      blocks: page.blocks.flatMap((block) => {
+        if (!isReportTwoSignatureBlock(block)) {
+          return [block];
+        }
+
+        if (signatureWasPrepared) {
+          return [];
+        }
+
+        signatureWasPrepared = true;
+
+        return [{
+          ...block,
+          kind: "signature-grid" as StudioBlockKind,
+          title: block.title || "تواقيع الاعتماد",
+          content: "",
+          variant: block.variant || "soft",
+          source: block.source || "manual",
+          showTitle: block.showTitle ?? false,
+          showMeta: false,
+          align: "center",
+          placement: "flow",
+          signatures: getReportTwoConfiguredSignatureCards(signatures, block),
+        } as StudioBlock];
+      }),
+    })),
   };
 }
 
@@ -1538,649 +1496,107 @@ function withReportTwoStructuredTables(
   return normalizeStudentDataTableBlockOrder({ ...template, pages }) as StudioTemplate;
 }
 
-function getReportTwoTextLineCount(content: string) {
-  const text = cleanText(content);
-  const hardLines = text.split("\n").filter(Boolean).length;
-
-  return Math.max(hardLines, Math.ceil(text.length / 68), 1);
-}
-
-function getReportTwoDynamicFieldsColumns(designId?: ReportDesignId) {
-  if (
-    designId === "ministry-form" ||
-    designId === "modern-official" ||
-    designId === "report-official-archive"
-  ) {
-    return 3;
-  }
-
-  return 2;
-}
-
-function getReportTwoEstimatedTextLines(text: string, charsPerLine: number) {
-  const value = cleanText(text);
-
-  if (!value) {
-    return 1;
-  }
-
-  return value
-    .split(/\n+/)
-    .filter(Boolean)
-    .reduce((count, line) => count + Math.max(Math.ceil(line.length / charsPerLine), 1), 0);
-}
-
-function getReportTwoDynamicFieldCardHeightScore(field: ReportTwoDynamicField) {
-  const labelLines = getReportTwoEstimatedTextLines(field.label, 18);
-  const valueItems = Array.isArray(field.valueItems)
-    ? uniqueReportTwoValueItems(field.valueItems)
-    : [];
-  const valueLines =
-    valueItems.length > 1
-      ? valueItems.reduce(
-          (count, item) => count + getReportTwoEstimatedTextLines(item, 22),
-          0,
-        )
-      : getReportTwoEstimatedTextLines(
-          valueItems[0] || cleanText(field.value) || "غير متوفر",
-          24,
-        );
-
-  const baseScore = 13;
-  const labelScore = labelLines * 3.5;
-  const valueScore = valueItems.length > 1 ? valueLines * 4.8 + 4 : valueLines * 5.4;
-
-  return Math.max(baseScore + labelScore + valueScore, 22);
-}
-
-function getReportTwoDynamicFieldRows(
-  block: StudioBlock,
-  previewCase: ReturnType<typeof getPreviewCase>,
-  designId?: ReportDesignId,
+function normalizeReportTwoLogicalTemplate(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
 ) {
-  const fields = getDynamicFieldsForBlock(block, previewCase).filter(
-    (field) => field.visible !== false,
+  return withSingleReportTwoEvidenceBlock(
+    withReportTwoSignatureBlock(
+      withReportTwoStructuredTables(template, payload),
+      payload,
+    ),
   );
-  const columns = getReportTwoDynamicFieldsColumns(designId);
-  const rows: ReportTwoDynamicField[][] = [];
-
-  for (let index = 0; index < fields.length; index += columns) {
-    rows.push(fields.slice(index, index + columns));
-  }
-
-  return rows;
-}
-
-function getReportTwoDynamicFieldsChunkHeightScore(
-  block: StudioBlock,
-  rows: ReportTwoDynamicField[][],
-) {
-  const titleScore =
-    block.showTitle === false || !cleanText(block.title)
-      ? 0
-      : 12;
-  const shellScore = block.variant === "plain" ? 4 : 8;
-
-  if (!rows.length) {
-    return titleScore + shellScore + 16;
-  }
-
-  const rowsScore = rows.reduce((total, row, rowIndex) => {
-    const rowHeight = row.reduce(
-      (maxScore, field) => Math.max(maxScore, getReportTwoDynamicFieldCardHeightScore(field)),
-      0,
-    );
-
-    return total + rowHeight + (rowIndex > 0 ? 4 : 0);
-  }, 0);
-
-  return titleScore + shellScore + rowsScore;
-}
-
-function createReportTwoDynamicFieldsChunkBlock(
-  block: StudioBlock,
-  rows: ReportTwoDynamicField[][],
-  chunkIndex: number,
-) {
-  const sourceBlockId = cleanText((block as any).sourceBlockId) || block.id;
-
-  return {
-    ...block,
-    id: chunkIndex === 0 ? block.id : `${sourceBlockId}-auto-dynamic-${chunkIndex + 1}`,
-    title:
-      chunkIndex === 0
-        ? block.title
-        : `${block.title || "التفاصيل"} - تكملة`,
-    showTitle: chunkIndex === 0 ? block.showTitle : false,
-    dynamicFields: rows.flat(),
-    reportTwoVirtualBlock: chunkIndex > 0,
-    sourceBlockId,
-  } as StudioBlock;
-}
-
-function getReportTwoBlockHeightScore(
-  block: StudioBlock,
-  previewCase: ReturnType<typeof getPreviewCase>,
-  designId?: ReportDesignId,
-) {
-  if (isReportTwoSignatureBlock(block)) {
-    return 34;
-  }
-
-  if (block.kind === "hero-title") return 32;
-  if (block.kind === "meta-strip") return 28;
-  if (block.kind === "closing-note") return 28;
-  if (block.kind === "highlight-note") return 28;
-  if (block.kind === "plain-text") return 24;
-
-  if (block.kind === "dynamic-fields") {
-    return getReportTwoDynamicFieldsChunkHeightScore(
-      block,
-      getReportTwoDynamicFieldRows(block, previewCase, designId),
-    );
-  }
-
-  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
-    const content = cleanText(block.content);
-    const lineCount = getReportTwoTextLineCount(content);
-    const baseScore = 20;
-
-    return baseScore + lineCount * 8.5;
-  }
-
-  if (block.kind === "bullet-list") {
-    const count = Math.max(
-      cleanText(block.content)
-        .split("\n")
-        .filter(Boolean).length,
-      1,
-    );
-
-    return 20 + count * 7;
-  }
-
-  if (block.kind === "report-one-table" || block.kind === "structured-table") {
-    const rows = Array.isArray(block.rows) ? block.rows : [];
-    const columnCount = Math.max(block.columns?.length || 1, 1);
-    const rowScore = rows.reduce((total, row) => {
-      const longestCell = Array.isArray(row)
-        ? row.reduce(
-            (max, cell) => Math.max(max, getReportTwoEstimatedTextLines(cleanText(cell), Math.max(12, Math.floor(64 / columnCount)))),
-            1,
-          )
-        : 1;
-      return total + Math.max(9, 5 + longestCell * 4.5);
-    }, 0);
-    return 24 + Math.max(rowScore, 9);
-  }
-
-  if (block.kind === "evidence-gallery") {
-    const perPage = getEvidencePerPageFromBlock(block);
-    const evidenceCount = previewCase.evidences.length;
-
-    if (!evidenceCount) {
-      return 0;
-    }
-
-    const shown = Math.min(perPage, evidenceCount);
-
-    if (block.evidenceLayout === "ONE_PER_PAGE") return 92;
-    if (block.evidenceLayout === "GRID_2X2") return shown <= 2 ? 54 : 72;
-    if (block.evidenceLayout === "ATTACHMENT_LIST") return 20 + shown * 8;
-
-    return shown <= 2 ? 52 : 70;
-  }
-
-  return 32;
-}
-
-function isReportTwoSplittableTextBlock(block: StudioBlock) {
-  return (
-    block.kind === "section-text" ||
-    block.kind === "multi-paragraph" ||
-    block.kind === "plain-text"
-  );
-}
-
-function splitReportTwoTextBySafeSize(content: string) {
-  const text = cleanText(content);
-
-  if (!text) {
-    return [""];
-  }
-
-  const maxChars = 460;
-  const chunks: string[] = [];
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  let current = "";
-
-  function pushCurrent() {
-    const value = current.trim();
-
-    if (value) {
-      chunks.push(value);
-    }
-
-    current = "";
-  }
-
-  for (const paragraph of paragraphs.length ? paragraphs : [text]) {
-    if (paragraph.length > maxChars) {
-      pushCurrent();
-
-      for (let index = 0; index < paragraph.length; index += maxChars) {
-        chunks.push(paragraph.slice(index, index + maxChars).trim());
-      }
-
-      continue;
-    }
-
-    const next = current ? `${current}\n\n${paragraph}` : paragraph;
-
-    if (next.length > maxChars) {
-      pushCurrent();
-      current = paragraph;
-    } else {
-      current = next;
-    }
-  }
-
-  pushCurrent();
-
-  return chunks.length ? chunks : [text];
-}
-
-function splitReportTwoBlockForPagination(
-  block: StudioBlock,
-  previewCase: ReturnType<typeof getPreviewCase>,
-  designId?: ReportDesignId,
-) {
-  if (block.kind === "structured-table") {
-    const columns = Array.isArray(block.columns) ? block.columns : [];
-    const rows = Array.isArray(block.rows) ? block.rows : [];
-    const sourceTable: SmartReportTable = {
-      id: cleanText(block.sourceTableId) || block.id,
-      sourceFieldKey: cleanText(block.sourceFieldKey),
-      title: block.title,
-      columns: columns.map((label, index) => ({
-        key: `column_${index}`,
-        label: cleanText(label),
-        ...(Number(block.columnWidths?.[index]) > 0
-          ? { width: Number(block.columnWidths?.[index]) }
-          : {}),
-      })),
-      rows: rows.map((row, rowIndex) => ({
-        id: `${block.id}-row-${rowIndex + 1}`,
-        cells: Object.fromEntries(
-          columns.map((_, columnIndex) => [
-            `column_${columnIndex}`,
-            cleanText(Array.isArray(row) ? row[columnIndex] : ""),
-          ]),
-        ),
-        metadata: {
-          gender: block.rowMetadata?.[rowIndex]?.gender || null,
-        },
-      })),
-      settings: {
-        repeatHeader: block.tableSettings?.repeatHeader !== false,
-        compact: Boolean(block.tableSettings?.compact),
-        stripedRows: block.tableSettings?.stripedRows !== false,
-        highlightFirstColumn: Boolean(block.tableSettings?.highlightFirstColumn),
-      },
-    };
-
-    return paginateSmartReportTable(sourceTable).map((table, index) => ({
-      ...block,
-      id: index === 0 ? block.id : `${block.id}-auto-table-${index + 1}`,
-      title: table.title,
-      rows: table.rows.map((row) =>
-        table.columns.map((column) => row.cells[column.key] || ""),
-      ),
-      rowMetadata: table.rows.map((row) => ({
-        gender: row.metadata?.gender || null,
-      })),
-      reportTwoVirtualBlock: index > 0,
-      sourceBlockId: cleanText((block as any).sourceBlockId) || block.id,
-    })) as StudioBlock[];
-  }
-
-  if (!isReportTwoSplittableTextBlock(block)) {
-    return [block];
-  }
-
-  const content = cleanText(block.content);
-
-  if (!content) {
-    return [block];
-  }
-
-  const score = getReportTwoBlockHeightScore(block, previewCase, designId);
-
-  if (score <= REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE) {
-    return [block];
-  }
-
-  return splitReportTwoTextBySafeSize(content).map((chunk, index) => ({
-    ...block,
-    id: index === 0 ? block.id : `${block.id}-auto-text-${index + 1}`,
-    title: index === 0 ? block.title : `${block.title || "نص"} - تكملة ${index + 1}`,
-    content: chunk,
-    reportTwoVirtualBlock: index > 0,
-    sourceBlockId: (block as any).sourceBlockId || block.id,
-  })) as StudioBlock[];
-}
-function makeReportTwoContinuationPage(
-  sourcePage: StudioPage,
-  index: number,
-): StudioPage {
-  return {
-    ...sourcePage,
-    id: `${sourcePage.id}-auto-page-${index}`,
-    title: `${sourcePage.title} - صفحة ${index}`,
-    description: "صفحة تكميلية أنشأها report-2 لحماية حدود A4.",
-    sourceTemplatePageId: sourcePage.id,
-    reportTwoVirtualPage: true,
-    blocks: [],
-  } as StudioPage;
 }
 
 function normalizeReportTwoBlockForRuntime(
   block: StudioBlock,
   previewCase: ReturnType<typeof getPreviewCase>,
 ): StudioBlock {
+  const sourceBlockId = cleanText(block.sourceBlockId) || block.id;
+
   if (isReportTwoDynamicFieldsBlock(block)) {
     return {
       ...block,
-      sourceBlockId: block.id,
+      sourceBlockId,
       kind: "dynamic-fields" as StudioBlockKind,
       dynamicFields: getDynamicFieldsForBlock(block, previewCase),
     };
   }
 
-  if (block.kind !== "evidence-gallery") {
+  if (block.kind === "evidence-gallery") {
     return {
       ...block,
-      sourceBlockId: block.id,
-    } as StudioBlock;
+      sourceBlockId,
+      evidenceStartIndex: Math.max(0, Number(block.evidenceStartIndex || 0)),
+      evidenceEmptyBehavior: previewCase.evidences.length
+        ? block.evidenceEmptyBehavior
+        : block.evidenceEmptyBehavior || "hide",
+    };
   }
-
-  const perPage = getEvidencePerPageFromBlock(block);
-  const count = previewCase.evidences.length;
 
   return {
     ...block,
-    evidenceStartIndex: Number(block.evidenceStartIndex || 0),
-    evidenceLimit: perPage,
-    evidenceAutoCreatePages: false,
-    evidenceEmptyBehavior: count ? block.evidenceEmptyBehavior : "hide",
-  } as StudioBlock;
+    sourceBlockId,
+  };
 }
 
-function buildReportTwoRuntimeTemplate(
+function prepareReportTwoSemanticTemplate(
   template: StudioTemplate,
   previewCase: ReturnType<typeof getPreviewCase>,
 ): StudioTemplate {
-  const runtimePages: StudioPage[] = [];
-  const designId = template.designTemplateId;
-
-  template.pages.forEach((sourcePage) => {
-    let pageNumber = 1;
-    let usedScore = 0;
-    let currentPageAlreadyPushed = false;
-
-    let currentPage: StudioPage = {
-      ...sourcePage,
-      blocks: [],
-    };
-
-    function pushCurrentPage() {
-      if (currentPageAlreadyPushed) return;
-      if (!currentPage.blocks.length) return;
-
-      runtimePages.push({
-        ...currentPage,
-        blocks: currentPage.blocks,
-      });
-
-      currentPageAlreadyPushed = true;
-    }
-
-    function startNextPage() {
-      pageNumber += 1;
-      usedScore = 0;
-      currentPage = makeReportTwoContinuationPage(sourcePage, pageNumber);
-      currentPageAlreadyPushed = false;
-    }
-
-    function placeBlock(block: StudioBlock) {
-      const blockScore = getReportTwoBlockHeightScore(block, previewCase, designId);
-      const pageSafeHeightScore =
-        block.kind === "evidence-gallery"
-          ? REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
-          : REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
-
-      if (
-        currentPage.blocks.length > 0 &&
-        usedScore + blockScore > pageSafeHeightScore
-      ) {
-        pushCurrentPage();
-        startNextPage();
-      }
-
-      currentPage.blocks.push(block);
-      usedScore += Math.min(blockScore, pageSafeHeightScore);
-
-      if (block.kind === "evidence-gallery") {
-        const perPage = getEvidencePerPageFromBlock(block);
-        const count = previewCase.evidences.length;
-        const pagesCount = Math.ceil(count / perPage);
-
-        if (pagesCount > 1) {
-          pushCurrentPage();
-
-          for (let index = 1; index < pagesCount; index += 1) {
-            const evidencePageNumber = pageNumber + index;
-            const evidencePage: StudioPage = {
-              ...sourcePage,
-              id: `${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
-              kind: "evidence",
-              title: `${block.title || "الشواهد"} - صفحة ${index + 1}`,
-              description: "صفحة شواهد إضافية داخل التقرير.",
-              sourceTemplatePageId: sourcePage.id,
-              reportTwoVirtualPage: true,
-              blocks: [
-                {
-                  ...block,
-                  id: `${block.id}-evidence-${index + 1}`,
-                  sourceBlockId: (block as any).sourceBlockId || block.id,
-                  title: `${block.title || "الشواهد"} - صفحة ${index + 1}`,
-                  evidenceStartIndex: index * perPage,
-                  evidenceLimit: perPage,
-                  evidenceAutoCreatePages: false,
-                },
-              ],
-            };
-
-            runtimePages.push(evidencePage);
-          }
-
-          pageNumber += pagesCount - 1;
-          startNextPage();
-        }
-      }
-    }
-
-    function placeDynamicFieldsBlock(block: StudioBlock) {
-      const rows = getReportTwoDynamicFieldRows(block, previewCase, designId);
-
-      if (!rows.length) {
-        return;
-      }
-
-      let rowIndex = 0;
-      let chunkIndex = 0;
-
-      while (rowIndex < rows.length) {
-        const pageSafeHeightScore = REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
-        const remainingScore = Math.max(pageSafeHeightScore - usedScore, 0);
-        const chunkRows: ReportTwoDynamicField[][] = [];
-
-        while (rowIndex < rows.length) {
-          const candidateRows = [...chunkRows, rows[rowIndex]];
-          const candidateBlock = createReportTwoDynamicFieldsChunkBlock(
-            block,
-            candidateRows,
-            chunkIndex,
-          );
-          const candidateScore = getReportTwoDynamicFieldsChunkHeightScore(
-            candidateBlock,
-            candidateRows,
-          );
-          const canFitCurrentPage =
-            candidateScore <= remainingScore ||
-            (currentPage.blocks.length === 0 &&
-              chunkRows.length === 0 &&
-              candidateRows.length === 1);
-
-          if (!canFitCurrentPage && chunkRows.length === 0) {
-            pushCurrentPage();
-            startNextPage();
-            break;
-          }
-
-          if (!canFitCurrentPage) {
-            break;
-          }
-
-          chunkRows.push(rows[rowIndex]);
-          rowIndex += 1;
-        }
-
-        if (!chunkRows.length) {
-          continue;
-        }
-
-        placeBlock(
-          createReportTwoDynamicFieldsChunkBlock(block, chunkRows, chunkIndex),
-        );
-        chunkIndex += 1;
-      }
-    }
-
-    sourcePage.blocks.forEach((originalBlock) => {
-      if (originalBlock.visible === false) {
-        return;
-      }
-
-      if (
-        originalBlock.kind === "evidence-gallery" &&
-        previewCase.evidences.length === 0
-      ) {
-        return;
-      }
-
-      const normalizedBlock = normalizeReportTwoBlockForRuntime(
-        originalBlock,
-        previewCase,
-      );
-
-      if (normalizedBlock.kind === "dynamic-fields") {
-        placeDynamicFieldsBlock(normalizedBlock);
-        return;
-      }
-
-      const runtimeBlocks = splitReportTwoBlockForPagination(
-        normalizedBlock,
-        previewCase,
-        designId,
-      );
-
-      runtimeBlocks.forEach((block) => placeBlock(block));
-    });
-
-    pushCurrentPage();
-  });
+  let evidenceWasPrepared = false;
 
   return {
     ...template,
-    pages: runtimePages,
+    pages: template.pages.map((page) => ({
+      ...page,
+      blocks: page.blocks.flatMap((block) => {
+        if (block.kind === "evidence-gallery") {
+          if (evidenceWasPrepared) {
+            return [];
+          }
+
+          evidenceWasPrepared = true;
+        }
+
+        return [normalizeReportTwoBlockForRuntime(block, previewCase)];
+      }),
+    })),
+  };
+}
+
+function withSingleReportTwoEvidenceBlock(template: StudioTemplate): StudioTemplate {
+  let evidenceWasKept = false;
+
+  return {
+    ...template,
+    pages: template.pages.map((page) => ({
+      ...page,
+      blocks: page.blocks.filter((block) => {
+        if (block.kind !== "evidence-gallery") {
+          return true;
+        }
+
+        if (evidenceWasKept) {
+          return false;
+        }
+
+        evidenceWasKept = true;
+        return true;
+      }),
+    })),
   };
 }
 function getWritableReportTwoPageId(
   activePageId: string,
-  activePage: StudioPage | undefined,
+  _activePage: StudioPage | undefined,
   template: StudioTemplate,
 ) {
   const directPage = template.pages.find((page) => page.id === activePageId);
 
   if (directPage) return directPage.id;
 
-  const sourceTemplatePageId = cleanText((activePage as any)?.sourceTemplatePageId);
-
-  if (sourceTemplatePageId) {
-    const sourcePage = template.pages.find((page) => page.id === sourceTemplatePageId);
-
-    if (sourcePage) return sourcePage.id;
-  }
-
-  const autoPageParentId = activePageId.includes("-auto-page-")
-    ? activePageId.split("-auto-page-")[0]
-    : "";
-
-  if (autoPageParentId) {
-    const sourcePage = template.pages.find((page) => page.id === autoPageParentId);
-
-    if (sourcePage) return sourcePage.id;
-  }
-
-  const evidencePageParentId = activePageId.includes("-evidence-")
-    ? activePageId.split("-evidence-")[0]
-    : "";
-
-  if (evidencePageParentId) {
-    const sourcePage = template.pages.find((page) =>
-      evidencePageParentId.startsWith(page.id),
-    );
-
-    if (sourcePage) return sourcePage.id;
-  }
-
   return template.pages[0]?.id || "";
-}
-function getReportTwoSourcePageId(pageId: string, runtimePage: any) {
-  const sourceTemplatePageId = cleanText(runtimePage?.sourceTemplatePageId);
-
-  if (sourceTemplatePageId) return sourceTemplatePageId;
-
-  if (pageId.includes("-auto-page-")) {
-    return pageId.split("-auto-page-")[0];
-  }
-
-  if (pageId.includes("-evidence-")) {
-    const beforeEvidence = pageId.split("-evidence-")[0];
-
-    return beforeEvidence.split("-").slice(0, -1).join("-") || beforeEvidence;
-  }
-
-  return pageId;
-}
-
-function findReportTwoRuntimePageIdForBlock(
-  runtimeTemplate: StudioTemplate,
-  blockId: string,
-  fallbackPageId: string,
-) {
-  const runtimePage = runtimeTemplate.pages.find((page) =>
-    page.blocks.some((block) => {
-      return block.id === blockId || cleanText((block as any).sourceBlockId) === blockId;
-    }),
-  );
-
-  return runtimePage?.id || fallbackPageId;
 }
 
 function resolveReportTwoEquivalentPageId(
@@ -2190,15 +1606,7 @@ function resolveReportTwoEquivalentPageId(
   if (!pages.length) return "";
   if (pages.some((page) => page.id === activePageId)) return activePageId;
 
-  const sourcePageId = getReportTwoSourcePageId(activePageId, null);
-  const equivalentPage =
-    pages.find((page) => page.id === sourcePageId) ||
-    pages.find(
-      (page) => cleanText((page as any).sourceTemplatePageId) === sourcePageId,
-    ) ||
-    pages.find((page) => page.id.startsWith(`${sourcePageId}-auto-page-`));
-
-  return equivalentPage?.id || pages[0]?.id || "";
+  return pages[0]?.id || "";
 }
 
 function reorderReportTwoPages(
@@ -2752,13 +2160,11 @@ function getReportTwoSmartAlerts({
   previewCase,
   activeHeaderValues,
   activeLogoSettings,
-  hiddenRuntimePageIds,
 }: {
   visiblePreviewTemplate: StudioTemplate;
   previewCase: ReturnType<typeof getPreviewCase>;
   activeHeaderValues: ReportTwoHeaderValues;
   activeLogoSettings: ReportTwoLogoSettings;
-  hiddenRuntimePageIds: string[];
 }) {
   const alerts: ReportTwoSmartAlert[] = [];
   const pages = visiblePreviewTemplate.pages || [];
@@ -2796,16 +2202,6 @@ function getReportTwoSmartAlerts({
       title: "الترويسة غير مكتملة",
       description: "بعض قيم أعلى الصفحة فارغة. يمكن استعادتها من بيانات الحالة.",
       action: "restore-header",
-    });
-  }
-
-  if (hiddenRuntimePageIds.length) {
-    alerts.push({
-      id: "hidden-pages",
-      type: "info",
-      title: "توجد صفحات مخفية",
-      description: "هناك صفحات تم إخفاؤها من المعاينة. تأكد أنها غير مطلوبة قبل الاعتماد.",
-      action: "focus-preview",
     });
   }
 
@@ -3246,7 +2642,7 @@ export function ReportTwoStudioRuntime({
     useState("");
 
   const [template, setTemplate] = useState<StudioTemplate>(() =>
-    withReportTwoStructuredTables(
+    normalizeReportTwoLogicalTemplate(
       applyReportTwoPreparedExecutionSummary(
         hydrateTemplate(initialTemplateOption),
         payload,
@@ -3259,7 +2655,7 @@ export function ReportTwoStudioRuntime({
   // report-two-sync-prepared-execution-summary
   useEffect(() => {
     setTemplate((current) =>
-      withReportTwoStructuredTables(
+      normalizeReportTwoLogicalTemplate(
         applyReportTwoPreparedExecutionSummary(current, preparedPayload),
         preparedPayload,
       ),
@@ -3274,10 +2670,7 @@ export function ReportTwoStudioRuntime({
   );
 
   const [selectedBlockId, setSelectedBlockId] = useState("");
-
-  const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
-  const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
-  const [pageSafePlacementNotice, setPageSafePlacementNotice] = useState("");
+  const [semanticPlacementNotice, setSemanticPlacementNotice] = useState("");
 
   const [draftRestored, setDraftRestored] = useState(false);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
@@ -3318,7 +2711,6 @@ export function ReportTwoStudioRuntime({
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
-  const reportTwoApprovalSnapshotRef = useRef<HTMLElement | null>(null);
   const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -3371,44 +2763,19 @@ export function ReportTwoStudioRuntime({
 
   const previewTemplate = useMemo(
     () =>
-      buildReportTwoRuntimeTemplate(
-        withReportTwoSignatureBlock(
-          normalizeStudentDataTableBlockOrder(template) as StudioTemplate,
-          preparedPayload,
+      prepareReportTwoSemanticTemplate(
+        withSingleReportTwoEvidenceBlock(
+          withReportTwoSignatureBlock(
+            normalizeStudentDataTableBlockOrder(template) as StudioTemplate,
+            preparedPayload,
+          ),
         ),
         previewCase,
       ),
     [template, previewCase, preparedPayload],
   );
 
-  const visiblePreviewPages = useMemo(() => {
-    const pages = previewTemplate.pages.filter(
-      (page) => !hiddenRuntimePageIds.includes(page.id),
-    );
-
-    if (!runtimePageOrder.length) {
-      return pages;
-    }
-
-    const orderMap = new Map(
-      runtimePageOrder.map((pageId, index) => [pageId, index]),
-    );
-
-    return [...pages].sort((firstPage, secondPage) => {
-      const firstIndex = orderMap.has(firstPage.id)
-        ? orderMap.get(firstPage.id)!
-        : Number.MAX_SAFE_INTEGER;
-      const secondIndex = orderMap.has(secondPage.id)
-        ? orderMap.get(secondPage.id)!
-        : Number.MAX_SAFE_INTEGER;
-
-      if (firstIndex !== secondIndex) {
-        return firstIndex - secondIndex;
-      }
-
-      return pages.indexOf(firstPage) - pages.indexOf(secondPage);
-    });
-  }, [previewTemplate.pages, hiddenRuntimePageIds, runtimePageOrder]);
+  const visiblePreviewPages = previewTemplate.pages;
 
   const visiblePreviewTemplate = useMemo(
     () => ({
@@ -3435,11 +2802,8 @@ export function ReportTwoStudioRuntime({
   const editableActivePage = useMemo(
     () =>
       template.pages.find((page) => page.id === activePageId) ||
-      template.pages.find(
-        (page) => page.id === cleanText((activePage as any)?.sourceTemplatePageId),
-      ) ||
       template.pages[0],
-    [template.pages, activePageId, activePage],
+    [template.pages, activePageId],
   );
 
   useEffect(() => {
@@ -3486,14 +2850,12 @@ export function ReportTwoStudioRuntime({
         previewCase,
         activeHeaderValues,
         activeLogoSettings,
-        hiddenRuntimePageIds,
       }),
     [
       visiblePreviewTemplate,
       previewCase,
       activeHeaderValues,
       activeLogoSettings,
-      hiddenRuntimePageIds,
     ],
   );
 
@@ -3739,13 +3101,7 @@ export function ReportTwoStudioRuntime({
   }
 
   function buildReportTwoSnapshotHtml() {
-    const source =
-      document.querySelector<HTMLElement>(
-        '[data-report-two-snapshot-source="approval-stack"]',
-      ) ||
-      document.querySelector<HTMLElement>(
-        '[data-report-two-snapshot-source="preview"]',
-      );
+    const source = reportTwoPreviewExportRef.current;
 
     if (!source) return "";
 
@@ -4203,8 +3559,6 @@ export function ReportTwoStudioRuntime({
       headerValues,
       headerAlignments,
       logoSettings,
-      hiddenRuntimePageIds,
-      runtimePageOrder,
       activePageId,
       selectedBlockId,
       finalCheckConfirmedAt,
@@ -4217,7 +3571,7 @@ export function ReportTwoStudioRuntime({
     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
-    const restoredTemplate = withReportTwoStructuredTables(
+    const restoredTemplate = normalizeReportTwoLogicalTemplate(
       cloneReportTwoTemplate(snapshot.template),
       preparedPayload,
     );
@@ -4225,8 +3579,6 @@ export function ReportTwoStudioRuntime({
     setHeaderValues(snapshot.headerValues || null);
     setHeaderAlignments(snapshot.headerAlignments || null);
     setLogoSettings(snapshot.logoSettings || null);
-    setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
-    setRuntimePageOrder(snapshot.runtimePageOrder || []);
     setActivePageId(
       resolveReportTwoEquivalentPageId(
         restoredTemplate.pages,
@@ -4362,8 +3714,6 @@ export function ReportTwoStudioRuntime({
       headerValues,
       headerAlignments,
       logoSettings,
-      hiddenRuntimePageIds,
-      runtimePageOrder,
     };
 
     const nextItems = [
@@ -4383,7 +3733,7 @@ export function ReportTwoStudioRuntime({
 
     if (!saved) return;
 
-    const restoredTemplate = withReportTwoStructuredTables(
+    const restoredTemplate = normalizeReportTwoLogicalTemplate(
       cloneReportTwoTemplate(saved.template),
       preparedPayload,
     );
@@ -4392,8 +3742,6 @@ export function ReportTwoStudioRuntime({
     setHeaderValues(saved.headerValues || null);
     setHeaderAlignments(saved.headerAlignments || null);
     setLogoSettings(saved.logoSettings || null);
-    setHiddenRuntimePageIds(saved.hiddenRuntimePageIds || []);
-    setRuntimePageOrder(saved.runtimePageOrder || []);
     setActiveSavedRuntimeTemplateId(saved.id);
     setSelectedQuickSavedTemplateId(saved.id);
     setRuntimeTemplateName(saved.name);
@@ -4435,14 +3783,12 @@ export function ReportTwoStudioRuntime({
     setSelectedQuickSavedTemplateId("");
     setRuntimeTemplateName("");
     setTemplate(
-      withReportTwoStructuredTables(
+      normalizeReportTwoLogicalTemplate(
         applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload),
         preparedPayload,
       ),
     );
     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
-    setHiddenRuntimePageIds([]);
-    setRuntimePageOrder([]);
     setActivePageId(
       resolveReportTwoEquivalentPageId(nextTemplate.pages, activePageId),
     );
@@ -4498,23 +3844,11 @@ export function ReportTwoStudioRuntime({
   }
 
   function canDeleteReportTwoPage(pageId: string) {
-    const runtimePage =
-      visiblePreviewTemplate.pages.find((page) => page.id === pageId) ||
-      template.pages.find((page) => page.id === pageId);
-
-    if (!runtimePage) return false;
-
-    if (runtimePage.reportTwoVirtualPage) {
-      return true;
-    }
-
-    const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
-
-    if (!sourcePageId) return false;
-    if (protectedPageIds.includes(sourcePageId)) return false;
+    if (!template.pages.some((page) => page.id === pageId)) return false;
+    if (protectedPageIds.includes(pageId)) return false;
     if (template.pages.length <= 1) return false;
 
-    return template.pages.some((page) => page.id === sourcePageId);
+    return true;
   }
 
   function canMoveReportTwoPage(
@@ -4537,50 +3871,15 @@ export function ReportTwoStudioRuntime({
   ) {
     if (!canMoveReportTwoPage(pageId, direction)) return;
 
-    const pageIds = visiblePreviewTemplate.pages.map((page) => page.id);
-    const index = pageIds.indexOf(pageId);
-    const targetIndex = direction === "previous" ? index - 1 : index + 1;
-
-    const nextOrder = [...pageIds];
-    const [movedPageId] = nextOrder.splice(index, 1);
-    nextOrder.splice(targetIndex, 0, movedPageId);
-
-    setRuntimePageOrder(nextOrder);
+    setTemplate((current) => ({
+      ...current,
+      pages: reorderReportTwoPages(current.pages, pageId, direction),
+    }));
     setActivePageId(pageId);
   }
 
   function deleteReportTwoPage(pageId: string) {
-    const runtimePage =
-      visiblePreviewTemplate.pages.find((page) => page.id === pageId) ||
-      template.pages.find((page) => page.id === pageId);
-
-    if (!runtimePage) return;
-
-    if (runtimePage.reportTwoVirtualPage) {
-      setPopup({
-        type: "confirm",
-        title: "إخفاء الصفحة",
-        message: "هل تريد إخفاء هذه الصفحة التلقائية من المعاينة؟",
-        onConfirm: () => {
-          const nextHiddenIds = [...hiddenRuntimePageIds, pageId];
-          const nextVisiblePages = visiblePreviewTemplate.pages.filter(
-            (p) => !nextHiddenIds.includes(p.id),
-          );
-
-          setHiddenRuntimePageIds(nextHiddenIds);
-          setRuntimePageOrder((current) => current.filter((id) => id !== pageId));
-
-          if (activePageId === pageId) {
-            setActivePageId(nextVisiblePages[0]?.id || "");
-            setSelectedBlockId("");
-          }
-        },
-      });
-
-      return;
-    }
-
-    const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
+    if (!template.pages.some((page) => page.id === pageId)) return;
 
     if (!canDeleteReportTwoPage(pageId)) {
       setPopup({ type: "alert", title: "حذف الصفحة", message: "لا يمكن حذف صفحة قادمة من قالب الاستديو الأصلي." });
@@ -4593,17 +3892,13 @@ export function ReportTwoStudioRuntime({
       message: "هل تريد حذف هذه الصفحة من التقرير؟",
       onConfirm: () => {
         const remainingPages = template.pages.filter(
-          (p) => p.id !== sourcePageId,
+          (page) => page.id !== pageId,
         );
 
         setTemplate((current) => ({
           ...current,
           pages: remainingPages,
         }));
-
-        setRuntimePageOrder((current) =>
-          current.filter((id) => id !== pageId && id !== sourcePageId),
-        );
 
         setActivePageId(remainingPages[0]?.id || "");
         setSelectedBlockId("");
@@ -4616,16 +3911,32 @@ export function ReportTwoStudioRuntime({
   }
 
   function addBlock(kind: StudioBlockKind) {
-    const signatureTargetPageId =
-      kind === "signature-grid" ? getReportTwoSignatureTargetPageId(template.pages) : "";
+    if (kind === "evidence-gallery" || kind === "signature-grid") {
+      const existing = template.pages
+        .flatMap((page) => page.blocks.map((block) => ({ block, pageId: page.id })))
+        .find(({ block }) =>
+          kind === "evidence-gallery"
+            ? block.kind === "evidence-gallery"
+            : isReportTwoSignatureBlock(block),
+        );
 
-    const targetPageId =
-      signatureTargetPageId ||
-      getWritableReportTwoPageId(
-        activePageId,
-        activePage,
-        template,
-      );
+      if (existing) {
+        setActivePageId(existing.pageId);
+        setSelectedBlockId(existing.block.id);
+        setSemanticPlacementNotice(
+          kind === "evidence-gallery"
+            ? "كتلة الشواهد موجودة بالفعل في النموذج المنطقي."
+            : "كتلة التوقيعات موجودة بالفعل في النموذج المنطقي.",
+        );
+        return;
+      }
+    }
+
+    const targetPageId = getWritableReportTwoPageId(
+      activePageId,
+      activePage,
+      template,
+    );
 
     const targetPage = template.pages.find((page) => page.id === targetPageId);
 
@@ -4643,26 +3954,11 @@ export function ReportTwoStudioRuntime({
           : page,
       ),
     };
-    const nextRuntimeTemplate = buildReportTwoRuntimeTemplate(
-      nextTemplate,
-      previewCase,
-    );
-    const runtimePageId = findReportTwoRuntimePageIdForBlock(
-      nextRuntimeTemplate,
-      block.id,
-      targetPage.id,
-    );
-
     setTemplate(applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload));
 
-    setActivePageId(runtimePageId);
+    setActivePageId(targetPage.id);
     setSelectedBlockId(block.id);
-
-    if (runtimePageId !== targetPage.id) {
-      setPageSafePlacementNotice(REPORT_TWO_BLOCK_MOVED_NOTICE);
-    } else {
-      setPageSafePlacementNotice("");
-    }
+    setSemanticPlacementNotice("");
   }
 
   function removeSelectedBlock() {
@@ -4709,11 +4005,11 @@ export function ReportTwoStudioRuntime({
     const selectedIsStudentTable =
       selectedBlock.kind === "structured-table" && isStudentDataTable(selectedBlock);
     if (selectedIsStudentTable) {
-      setPageSafePlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
+      setSemanticPlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
       return;
     }
     if (isReportTwoSignatureBlock(selectedBlock)) {
-      setPageSafePlacementNotice("كتلة التوقيعات تظهر دائمًا في نهاية التقرير.");
+      setSemanticPlacementNotice("كتلة التوقيعات تظهر دائمًا في نهاية التقرير.");
       return;
     }
 
@@ -4722,7 +4018,7 @@ export function ReportTwoStudioRuntime({
     if (targetIndex < 0 || targetIndex >= sourcePage.blocks.length) return;
     const targetBlock = sourcePage.blocks[targetIndex];
     if (direction === "down" && isReportTwoSignatureBlock(targetBlock)) {
-      setPageSafePlacementNotice("لا يمكن وضع محتوى بعد كتلة التوقيعات.");
+      setSemanticPlacementNotice("لا يمكن وضع محتوى بعد كتلة التوقيعات.");
       return;
     }
     if (
@@ -4730,7 +4026,7 @@ export function ReportTwoStudioRuntime({
       targetBlock.kind === "structured-table" &&
       isStudentDataTable(targetBlock)
     ) {
-      setPageSafePlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
+      setSemanticPlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
       return;
     }
 
@@ -4929,8 +4225,6 @@ export function ReportTwoStudioRuntime({
     headerValues,
     headerAlignments,
     logoSettings,
-    hiddenRuntimePageIds,
-    runtimePageOrder,
     activePageId,
     selectedBlockId,
     finalCheckConfirmedAt,
@@ -5274,13 +4568,13 @@ export function ReportTwoStudioRuntime({
         <section className="space-y-3">
 
                     
-          {pageSafePlacementNotice ? (
+          {semanticPlacementNotice ? (
             <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 shadow-sm">
-              <span>{pageSafePlacementNotice}</span>
+              <span>{semanticPlacementNotice}</span>
 
               <button
                 type="button"
-                onClick={() => setPageSafePlacementNotice("")}
+                onClick={() => setSemanticPlacementNotice("")}
                 className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 ring-1 ring-amber-200"
               >
                 إخفاء
@@ -5454,33 +4748,33 @@ export function ReportTwoStudioRuntime({
                 align-items: center;
               }
 
-              .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+              .report-two-a4-host.report-two-preview-normal [data-report-physical-output-planning="false"] .pdf-report-page {
                 zoom: 0.72;
               }
 
-              .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+              .report-two-a4-host.report-two-preview-wide [data-report-physical-output-planning="false"] .pdf-report-page {
                 zoom: 0.86;
               }
 
-              .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+              .report-two-a4-host.report-two-preview-focus [data-report-physical-output-planning="false"] .pdf-report-page {
                 zoom: 0.98;
               }
 
               @media (max-width: 1500px) {
-                .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+                .report-two-a4-host.report-two-preview-normal [data-report-physical-output-planning="false"] .pdf-report-page {
                   zoom: 0.66;
                 }
 
-                .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+                .report-two-a4-host.report-two-preview-wide [data-report-physical-output-planning="false"] .pdf-report-page {
                   zoom: 0.78;
                 }
 
-                .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+                .report-two-a4-host.report-two-preview-focus [data-report-physical-output-planning="false"] .pdf-report-page {
                   zoom: 0.9;
                 }
               }
 
-              .report-two-a4-host .pdf-report-page {
+              .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page {
                 position: relative !important;
                 width: 210mm !important;
                 min-width: 210mm !important;
@@ -5498,10 +4792,10 @@ export function ReportTwoStudioRuntime({
                 aspect-ratio: 210 / 297 !important;
               }
 
-              .report-two-a4-host .pdf-report-page::before {
+              .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page::before {
                 display: none !important;
               }
-              .report-two-a4-host .pdf-report-page::after {
+              .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page::after {
                 display: none !important;
               }
 
@@ -5534,7 +4828,6 @@ export function ReportTwoStudioRuntime({
             `}</style>
 
             <ReportDesignRenderer
-              suppressAutoEvidencePages
               chromeLayout="split"
               designId={template.designTemplateId || "ministry-form"}
               template={signedVisiblePreviewTemplate}
@@ -5546,11 +4839,6 @@ export function ReportTwoStudioRuntime({
                 if (activePageId === pageId) return;
 
                 setActivePageId(pageId);
-
-                const sourcePageId = getReportTwoSourcePageId(
-                  pageId,
-                  visiblePreviewTemplate.pages.find((p) => p.id === pageId),
-                );
                 const selectedExists = selectedBlockId && template.pages
                   .flatMap((p) => p.blocks)
                   .some((b) => b.id === selectedBlockId);
@@ -5574,54 +4862,6 @@ export function ReportTwoStudioRuntime({
             />
           </section>
 
-          <section
-            ref={reportTwoApprovalSnapshotRef}
-            aria-hidden="true"
-            data-report-two-snapshot-source="approval-stack"
-            data-report-print-excluded="true"
-            className={[
-              "report-two-a4-host report-two-approval-snapshot-root",
-              "print:hidden",
-              selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
-                ? "report-two-official-activity-card"
-                : "",
-            ].join(" ")}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: "-100000px",
-              width: "210mm",
-              height: 0,
-              minHeight: 0,
-              background: "#ffffff",
-              visibility: "hidden",
-              pointerEvents: "none",
-              contain: "layout style paint",
-              overflow: "hidden",
-              zIndex: -1,
-            }}
-          >
-            <ReportTwoOfficialActivitySignatureStyle
-              enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
-            />
-            <ReportDesignRenderer
-              suppressAutoEvidencePages
-              renderMode="stack"
-              chromeLayout="split"
-              designId={template.designTemplateId || "ministry-form"}
-              template={signedVisiblePreviewTemplate}
-              activePage={activePage}
-              activePageId={activePage?.id || activePageId}
-              context={editableRuntimeContext}
-              previewCase={previewCase}
-              onActivePageChange={() => undefined}
-              onAddPage={() => undefined}
-              onMovePage={() => undefined}
-              onDeletePage={() => undefined}
-              canMovePage={() => false}
-              canDeletePage={() => false}
-            />
-          </section>
         </section>
 
         {runtimeMode !== "preview" && !leftSidebarCollapsed ? (

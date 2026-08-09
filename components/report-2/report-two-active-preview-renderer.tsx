@@ -47,7 +47,6 @@ export function ReportTwoActivePreviewRenderer({ template, context, previewCase,
         enabled={variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
       />
       <ReportDesignRenderer
-        suppressAutoEvidencePages
         renderMode="stack"
         chromeLayout="split"
         designId={designId}

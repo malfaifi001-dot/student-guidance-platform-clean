@@ -61,7 +61,7 @@ export type ReportDesignRendererProps = {
   canMovePage?: (pageId: string, direction: "previous" | "next") => boolean;
   canDeletePage?: (pageId: string) => boolean;
   renderMode?: "single" | "stack";
-  chromeLayout?: "joined" | "split";
+  chromeLayout?: "joined" | "split" | "none";
 
   suppressAutoEvidencePages?: boolean;
 };

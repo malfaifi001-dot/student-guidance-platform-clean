@@ -2,6 +2,7 @@ import type { ReportDesignId } from "./report-design-types";
 import type { ReportDesignImplementation } from "./designs/report-design-component-types";
 import { MinistryFormReportDesign } from "./designs/ministry-form";
 import { palette as ministryFormPalette } from "./designs/ministry-form/presentation";
+import { MinistryFormValueGrid } from "./designs/ministry-form/values";
 import { ModernOfficialReportDesign } from "./designs/modern-official";
 import { palette as modernOfficialPalette } from "./designs/modern-official/presentation";
 import { EvidenceShowcaseReportDesign } from "./designs/evidence-showcase";
@@ -31,6 +32,7 @@ import { palette as reportCalmReaderPalette } from "./designs/report-calm-reader
 import { ReportCalmReaderValueGrid } from "./designs/report-calm-reader/values";
 import { MinistryElegantReportDesign } from "./designs/ministry-elegant";
 import { palette as ministryElegantPalette } from "./designs/ministry-elegant/presentation";
+import { MinistryElegantValueGrid } from "./designs/ministry-elegant/values";
 import { MoeOfficial2024ReportDesign } from "./designs/moe-official-2024";
 import { palette as moeOfficial2024Palette } from "./designs/moe-official-2024/presentation";
 import { getMoeOfficial2024BlockPresentation } from "./designs/moe-official-2024/block-presentation";
@@ -46,7 +48,13 @@ import { GeometricHorizonReportDesign } from "./designs/geometric-horizon";
 import { palette as geometricHorizonPalette } from "./designs/geometric-horizon/presentation";
 
 export const reportDesignImplementations = {
-  "ministry-form": { Page: MinistryFormReportDesign, palette: ministryFormPalette, defaultLogoWidthPx: 132, defaultLogoHeightPx: 80 },
+  "ministry-form": {
+    Page: MinistryFormReportDesign,
+    palette: ministryFormPalette,
+    ValueGrid: MinistryFormValueGrid,
+    defaultLogoWidthPx: 132,
+    defaultLogoHeightPx: 80,
+  },
   "modern-official": { Page: ModernOfficialReportDesign, palette: modernOfficialPalette },
   "evidence-showcase": { Page: EvidenceShowcaseReportDesign, palette: evidenceShowcasePalette },
   "formal-memo": { Page: FormalMemoReportDesign, palette: formalMemoPalette },
@@ -62,6 +70,7 @@ export const reportDesignImplementations = {
   "ministry-elegant": {
     Page: MinistryElegantReportDesign,
     palette: ministryElegantPalette,
+    ValueGrid: MinistryElegantValueGrid,
     defaultLogoWidthPx: 190,
     defaultLogoHeightPx: 102,
   },

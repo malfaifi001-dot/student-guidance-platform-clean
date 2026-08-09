@@ -527,23 +527,7 @@ export function SmartReportPageComposer({
               ),
             );
 
-            /*
-             * Always bind composition decisions to the PRIMARY A4 page.
-             *
-             * The composer may also render evidence/signature overflow
-             * pages. Using smartViewports[0] blindly can make footer and
-             * signature decisions against the wrong A4 viewport.
-             */
-            const primaryPageElement =
-              host.querySelector<HTMLElement>(
-                ".pdf-report-page",
-              );
-
-            const smartViewport =
-              primaryPageElement?.querySelector<HTMLElement>(
-                ".report-smart-a4-content",
-              ) ||
-              smartViewports[0];
+            const smartViewport = smartViewports[0];
 
             if (!smartViewport) {
               const physicalPageCount =
@@ -607,7 +591,6 @@ export function SmartReportPageComposer({
              * special blocks on the primary page.
              */
             const primaryPhysicalPage =
-              primaryPageElement ||
               smartViewport.closest<HTMLElement>(
                 ".pdf-report-page",
               );
@@ -640,34 +623,6 @@ export function SmartReportPageComposer({
               primarySmartBlocks.some((blockElement) => {
                 const rect =
                   blockElement.getBoundingClientRect();
-
-                return (
-                  rect.height > 0 &&
-                  rect.bottom > footerBoundaryTop + 1
-                );
-              });
-
-            /*
-             * Signature collision is a separate physical condition.
-             *
-             * If everything else fits but the signature crosses the
-             * footer, move the signature itself. Do NOT unnecessarily
-             * remove evidence first.
-             */
-            const primarySignatureBlocks =
-              primaryPhysicalPage
-                ? Array.from(
-                    primaryPhysicalPage.querySelectorAll<HTMLElement>(
-                      '[data-report-priority-block="signature"], [data-report-design-signature-block]',
-                    ),
-                  )
-                : [];
-
-            const signatureCrossesPhysicalFooter =
-              primaryFooter !== null &&
-              primarySignatureBlocks.some((signatureElement) => {
-                const rect =
-                  signatureElement.getBoundingClientRect();
 
                 return (
                   rect.height > 0 &&
@@ -710,7 +665,6 @@ export function SmartReportPageComposer({
               primaryEvidenceCount,
               keepSignatureOnPrimary,
               doesNotFit,
-              signatureCrossesPhysicalFooter,
               preferEvidenceMove,
               severity,
               density,
@@ -737,7 +691,6 @@ export function SmartReportPageComposer({
             if (
               evidenceAutoEnabled &&
               primaryEvidenceCount > 0 &&
-              !signatureCrossesPhysicalFooter &&
               (
                 doesNotFit ||
                 preferEvidenceMove ||
@@ -782,15 +735,10 @@ export function SmartReportPageComposer({
              * the signature itself is the final obstruction.
              */
             if (
+              doesNotFit &&
+              primaryEvidenceCount <= 0 &&
               hasSignature &&
-              keepSignatureOnPrimary &&
-              (
-                signatureCrossesPhysicalFooter ||
-                (
-                  doesNotFit &&
-                  primaryEvidenceCount <= 0
-                )
-              )
+              keepSignatureOnPrimary
             ) {
               if (
                 lastDecisionRef.current === decisionSignature

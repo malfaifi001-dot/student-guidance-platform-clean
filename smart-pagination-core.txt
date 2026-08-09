@@ -1,0 +1,5325 @@
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-physical-pages.tsx
+================================================================
+
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import type { ReportDesignId } from "../report-design-types";
+import { A4DesignPage } from "../shared/report-blocks";
+import type { PreviewCaseData } from "../shared/report-types";
+import { SmartReportPageComposer } from "./report-smart-page-composer";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  ReportSmartSemanticFingerprintProvider,
+  roundLayoutMetric,
+} from "./report-smart-lifecycle";
+
+type LogicalPage = {
+  id?: string;
+  title?: string;
+  kind?: string;
+  blocks?: any[];
+  [key: string]: any;
+};
+
+type PhysicalPage = {
+  id: string;
+  title: string;
+  kind: string;
+  blocks: any[];
+  sourcePageIds: string[];
+};
+
+type SmartPhysicalReportComposerProps = {
+  designId: ReportDesignId;
+  pages: LogicalPage[];
+  activePageId?: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  fallbackPageLabel?: string;
+  renderMode?: "single" | "stack";
+  suppressAutoEvidencePages?: boolean;
+};
+
+type PhysicalPlanningPhase =
+  | "DIRTY"
+  | "PLANNING"
+  | "MEASURING"
+  | "STABILIZING"
+  | "READY"
+  | "FROZEN";
+
+type PhysicalInvalidationReason =
+  | "initial"
+  | "design-change"
+  | "page-structure-change"
+  | "content-change"
+  | "evidence-change"
+  | "signature-change"
+  | "header-settings-change";
+
+const MAX_PHYSICAL_STABILIZATION_ATTEMPTS = 80;
+
+type FlowItem = {
+  block: any;
+  sourcePageId: string;
+  sourcePageTitle: string;
+};
+
+function normalizePlacement(block: any) {
+  return String(block?.placement || "flow").trim() || "flow";
+}
+
+function isVisibleBlock(block: any) {
+  return Boolean(block) && block.visible !== false;
+}
+
+function isEvidenceBlock(block: any) {
+  return String(block?.kind || "").trim() === "evidence-gallery";
+}
+
+function isSignatureBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(
+    block?.settings?.smartBlockKind || "",
+  ).trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+/** Keep one visible owner for each finalized ordered block set. */
+function dedupePhysicalPages(pages: readonly PhysicalPage[]) {
+  const seen = new Set<string>();
+
+  return pages.filter((page) => {
+    const identity = createSemanticInputFingerprint(page.blocks);
+    const key = identity || `empty:${page.id}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildLogicalModel(pages: LogicalPage[]) {
+  const regularItems: FlowItem[] = [];
+  const signatureItems: FlowItem[] = [];
+  const evidenceItems: FlowItem[] = [];
+  const seenFlowBlockIds = new Set<string>();
+
+  const fixedBlocksBySourcePage = new Map<string, any[]>();
+
+  pages.forEach((page, pageIndex) => {
+    const sourcePageId =
+      String(page?.id || `logical-page-${pageIndex + 1}`);
+
+    const sourcePageTitle =
+      String(page?.title || `صفحة ${pageIndex + 1}`);
+
+    const blocks = Array.isArray(page?.blocks)
+      ? page.blocks.filter(isVisibleBlock)
+      : [];
+
+    const fixedBlocks = blocks.filter(
+      (block) =>
+        normalizePlacement(block) !== "flow" &&
+        !isSignatureBlock(block),
+    );
+
+    if (fixedBlocks.length) {
+      fixedBlocksBySourcePage.set(
+        sourcePageId,
+        fixedBlocks,
+      );
+    }
+
+    blocks
+      .filter(
+        (block) =>
+          normalizePlacement(block) === "flow" ||
+          isSignatureBlock(block),
+      )
+      .forEach((block) => {
+        const blockId = String(block?.id || "").trim();
+        const blockIdentity = blockId
+          ? `${String(block?.kind || "content")}:${blockId}`
+          : "";
+
+        if (blockIdentity && seenFlowBlockIds.has(blockIdentity)) {
+          return;
+        }
+
+        if (blockIdentity) {
+          seenFlowBlockIds.add(blockIdentity);
+        }
+
+        const item: FlowItem = {
+          block,
+          sourcePageId,
+          sourcePageTitle,
+        };
+
+        if (isSignatureBlock(block)) {
+          signatureItems.push(item);
+          return;
+        }
+
+        if (isEvidenceBlock(block)) {
+          evidenceItems.push(item);
+          return;
+        }
+
+        regularItems.push(item);
+      });
+  });
+
+  return {
+    regularItems,
+    signatureItems,
+    evidenceItems,
+    fixedBlocksBySourcePage,
+  };
+}
+
+function buildSemanticInputFingerprint(
+  designId: ReportDesignId,
+  pages: LogicalPage[],
+  context: Record<string, string>,
+  previewCase: PreviewCaseData | null,
+  fallbackPageLabel: string,
+  suppressAutoEvidencePages: boolean,
+) {
+  return createSemanticInputFingerprint({
+    designId,
+    fallbackPageLabel,
+    suppressAutoEvidencePages,
+    context,
+    pages,
+    previewCase,
+  });
+}
+
+function makePhysicalPage(
+  index: number,
+  items: FlowItem[],
+  blocks: any[],
+): PhysicalPage {
+  const sourcePageIds = uniqueStrings(
+    items.map((item) => item.sourcePageId),
+  );
+
+  const sourceTitles = uniqueStrings(
+    items.map((item) => item.sourcePageTitle),
+  );
+
+  return {
+    id: `smart-physical-${index + 1}`,
+    title:
+      sourceTitles.length === 1
+        ? sourceTitles[0]
+        : `التقرير - صفحة ${index + 1}`,
+    kind: "content",
+    blocks,
+    sourcePageIds,
+  };
+}
+
+function addFixedBlocks(
+  physicalPage: PhysicalPage,
+  fixedBlocksBySourcePage: Map<string, any[]>,
+  alreadyConsumedSources: Set<string>,
+) {
+  const fixedBlocks: any[] = [];
+
+  for (const sourcePageId of physicalPage.sourcePageIds) {
+    if (alreadyConsumedSources.has(sourcePageId)) {
+      continue;
+    }
+
+    const sourceFixed =
+      fixedBlocksBySourcePage.get(sourcePageId) || [];
+
+    if (sourceFixed.length) {
+      fixedBlocks.push(...sourceFixed);
+    }
+
+    alreadyConsumedSources.add(sourcePageId);
+  }
+
+  if (!fixedBlocks.length) {
+    return physicalPage;
+  }
+
+  return {
+    ...physicalPage,
+    blocks: [
+      ...physicalPage.blocks,
+      ...fixedBlocks,
+    ],
+  };
+}
+
+function appendSpecialBlocks(
+  pages: PhysicalPage[],
+  evidenceItems: FlowItem[],
+  signatureItems: FlowItem[],
+) {
+  const result =
+    pages.length > 0
+      ? pages.map((page) => ({
+          ...page,
+          blocks: [...page.blocks],
+          sourcePageIds: [...page.sourcePageIds],
+        }))
+      : [
+          {
+            id: "smart-physical-1",
+            title: "التقرير",
+            kind: "content",
+            blocks: [],
+            sourcePageIds: [],
+          } satisfies PhysicalPage,
+        ];
+
+  const lastIndex = result.length - 1;
+  const last = result[lastIndex];
+
+  /*
+   * Evidence is intentionally placed BEFORE signature.
+   *
+   * SmartReportPageComposer then decides:
+   * 2 evidence / 1 evidence / 0 evidence on this page,
+   * while the remaining evidence goes to AutoEvidencePages.
+   */
+  const evidenceBlocks =
+    evidenceItems.length > 0
+      ? [evidenceItems[0].block]
+      : [];
+
+  /*
+   * If multiple evidence-gallery blocks exist,
+   * only the first one receives automatic evidence pagination.
+   * Additional evidence blocks stay explicit rather than being
+   * silently discarded.
+   */
+  const additionalEvidenceBlocks =
+    evidenceItems.slice(1).map((item) => item.block);
+
+  const signatureBlocks =
+    signatureItems.map((item) => item.block);
+
+  result[lastIndex] = {
+    ...last,
+    sourcePageIds: uniqueStrings([
+      ...last.sourcePageIds,
+      ...evidenceItems.map((item) => item.sourcePageId),
+      ...signatureItems.map((item) => item.sourcePageId),
+    ]),
+    blocks: [
+      ...last.blocks,
+      ...evidenceBlocks,
+      ...additionalEvidenceBlocks,
+      ...signatureBlocks,
+    ],
+  };
+
+  return result;
+}
+
+export function SmartPhysicalReportComposer({
+  designId,
+  pages,
+  activePageId,
+  context,
+  previewCase,
+  fallbackPageLabel = "التقرير",
+  renderMode = "stack",
+  suppressAutoEvidencePages = false,
+}: SmartPhysicalReportComposerProps) {
+  const model = useMemo(
+    () => buildLogicalModel(pages || []),
+    [pages],
+  );
+
+  const semanticInputFingerprint = useMemo(
+    () =>
+      buildSemanticInputFingerprint(
+        designId,
+        pages || [],
+        context,
+        previewCase,
+        fallbackPageLabel,
+        suppressAutoEvidencePages,
+      ),
+    [
+      context,
+      designId,
+      fallbackPageLabel,
+      pages,
+      previewCase,
+      suppressAutoEvidencePages,
+    ],
+  );
+
+  const semanticFingerprintParts = useMemo(
+    () => ({
+      content: semanticInputFingerprint,
+      design: createSemanticInputFingerprint(designId),
+      evidence: createSemanticInputFingerprint({
+        blocks: pages.flatMap((page) =>
+          (page.blocks || []).filter(isEvidenceBlock),
+        ),
+        evidences: previewCase?.evidences || [],
+      }),
+      header: createSemanticInputFingerprint({
+        fallbackPageLabel,
+        settings: Object.fromEntries(
+          Object.entries(context).filter(([key]) =>
+            key.startsWith("identity.") ||
+            key.startsWith("report."),
+          ),
+        ),
+      }),
+      pageStructure: createSemanticInputFingerprint(
+        pages.map((page) => ({
+          blocks: (page.blocks || []).map((block) => ({
+            id: block?.id,
+            kind: block?.kind,
+            placement: block?.placement,
+          })),
+          id: page.id,
+          kind: page.kind,
+        })),
+      ),
+      signatures: createSemanticInputFingerprint({
+        blocks: pages.flatMap((page) =>
+          (page.blocks || []).filter(isSignatureBlock),
+        ),
+        context: Object.fromEntries(
+          Object.entries(context).filter(([key]) =>
+            key.toLowerCase().includes("signature"),
+          ),
+        ),
+      }),
+    }),
+    [
+      context,
+      designId,
+      fallbackPageLabel,
+      pages,
+      previewCase?.evidences,
+      semanticInputFingerprint,
+    ],
+  );
+
+  const semanticFingerprintPartsFingerprint = useMemo(
+    () => createSemanticInputFingerprint(semanticFingerprintParts),
+    [semanticFingerprintParts],
+  );
+
+  const measurementHostRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const outputHostRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const [physicalPages, setPhysicalPages] =
+    useState<PhysicalPage[]>([]);
+
+  const [finalPhysicalPages, setFinalPhysicalPages] =
+    useState<PhysicalPage[]>([]);
+
+  const [acceptedItems, setAcceptedItems] =
+    useState<FlowItem[]>([]);
+
+  const [cursor, setCursor] =
+    useState(0);
+
+  const [candidateVersion, setCandidateVersion] =
+    useState(0);
+
+  const [done, setDone] =
+    useState(false);
+
+  const [planningPhase, setPlanningPhase] =
+    useState<PhysicalPlanningPhase>("DIRTY");
+
+  const [plannedResetKey, setPlannedResetKey] =
+    useState(semanticInputFingerprint);
+
+  const planningPhaseRef =
+    useRef<PhysicalPlanningPhase>("DIRTY");
+
+  const outputStabilityRef = useRef({
+    signature: "",
+    count: 0,
+    attempts: 0,
+  });
+
+  const finalizedPlanRef = useRef<{
+    semanticInputFingerprint: string;
+    layoutResultFingerprint: string;
+    pages: readonly PhysicalPage[];
+  } | null>(null);
+
+  const previousSemanticPartsRef =
+    useRef<typeof semanticFingerprintParts | null>(null);
+
+  const [invalidationReason, setInvalidationReason] =
+    useState<PhysicalInvalidationReason>("initial");
+
+  const fontsSettledRef = useRef(false);
+  const settledAssetSourcesRef = useRef(new Set<string>());
+  const outputResizeFingerprintRef = useRef("");
+
+  const decisionLockRef =
+    useRef(false);
+
+  /*
+   * New report/template data => rebuild physical pagination.
+   */
+  useEffect(() => {
+    const currentParts = JSON.parse(
+      semanticFingerprintPartsFingerprint,
+    ) as typeof semanticFingerprintParts;
+    const previousParts = previousSemanticPartsRef.current;
+
+    const nextInvalidationReason: PhysicalInvalidationReason = !previousParts
+      ? "initial"
+      : previousParts.design !== currentParts.design
+        ? "design-change"
+        : previousParts.pageStructure !==
+            currentParts.pageStructure
+          ? "page-structure-change"
+          : previousParts.evidence !== currentParts.evidence
+            ? "evidence-change"
+            : previousParts.signatures !==
+                currentParts.signatures
+              ? "signature-change"
+              : previousParts.header !== currentParts.header
+                ? "header-settings-change"
+                : "content-change";
+
+    setInvalidationReason(nextInvalidationReason);
+
+    previousSemanticPartsRef.current = currentParts;
+    finalizedPlanRef.current = null;
+    decisionLockRef.current = false;
+
+    planningPhaseRef.current = "DIRTY";
+    setPlanningPhase("DIRTY");
+    setPhysicalPages([]);
+    setFinalPhysicalPages([]);
+    setAcceptedItems([]);
+    setCursor(0);
+    setCandidateVersion(
+      (current) => current + 1,
+    );
+    setDone(false);
+    planningPhaseRef.current = "PLANNING";
+    setPlanningPhase("PLANNING");
+    outputStabilityRef.current = {
+      signature: "",
+      count: 0,
+      attempts: 0,
+    };
+    settledAssetSourcesRef.current.clear();
+    outputResizeFingerprintRef.current = "";
+    setPlannedResetKey(semanticInputFingerprint);
+  }, [
+    semanticInputFingerprint,
+    semanticFingerprintPartsFingerprint,
+  ]);
+
+  const hasRegularItems =
+    model.regularItems.length > 0;
+
+  const nextItem =
+    model.regularItems[cursor];
+
+  const candidateItems = useMemo(() => {
+    if (done) {
+      return [];
+    }
+
+    if (!hasRegularItems) {
+      return [];
+    }
+
+    if (!nextItem) {
+      return acceptedItems;
+    }
+
+    return [
+      ...acceptedItems,
+      nextItem,
+    ];
+  }, [
+    acceptedItems,
+    done,
+    hasRegularItems,
+    nextItem,
+  ]);
+
+  const candidateBlocks = useMemo(() => {
+    if (!hasRegularItems) {
+      /*
+       * Signature-only report:
+       * signature is the core content because there are no
+       * regular blocks to pack.
+       */
+      const signatureBlocks = model.signatureItems.map(
+        (item) => item.block,
+      );
+      const signatureSourceIds = uniqueStrings(
+        model.signatureItems.map((item) => item.sourcePageId),
+      );
+      const fixedBlocks = signatureSourceIds.flatMap(
+        (sourceId) => model.fixedBlocksBySourcePage.get(sourceId) || [],
+      );
+
+      return [...signatureBlocks, ...fixedBlocks];
+    }
+
+    /*
+     * IMPORTANT:
+     *
+     * Physical pagination packs REGULAR CONTENT ONLY.
+     *
+     * Do not inject signature into the final regular candidate.
+     * Doing that caused this failure:
+     *
+     * fields                         -> fits
+     * fields + narrative + signature -> fails
+     * engine closes page at fields   -> WRONG
+     *
+     * Now:
+     *
+     * fields + narrative + other regular blocks
+     * are packed using the real Smart A4 measurement first.
+     *
+     * Evidence and signature are appended only after the core
+     * physical pages have been built, and SmartReportPageComposer
+     * negotiates their final placement.
+     */
+    const consumedSourceIds = new Set(
+      physicalPages.flatMap((physicalPage) => physicalPage.sourcePageIds),
+    );
+    const candidateSourceIds = uniqueStrings(
+      candidateItems.map((item) => item.sourcePageId),
+    );
+    const fixedBlocks = candidateSourceIds.flatMap((sourceId) =>
+      consumedSourceIds.has(sourceId)
+        ? []
+        : model.fixedBlocksBySourcePage.get(sourceId) || [],
+    );
+
+    return [
+      ...candidateItems.map((item) => item.block),
+      ...fixedBlocks,
+    ];
+  }, [
+    candidateItems,
+    hasRegularItems,
+    model.fixedBlocksBySourcePage,
+    model.signatureItems,
+    physicalPages,
+  ]);
+
+  const candidatePage = useMemo(
+    () => ({
+      id:
+        `smart-measure-${candidateVersion}-${cursor}-${acceptedItems.length}`,
+
+      title: fallbackPageLabel,
+
+      kind: "content",
+
+      blocks: candidateBlocks,
+    }),
+    [
+      candidateVersion,
+      cursor,
+      acceptedItems.length,
+      fallbackPageLabel,
+      candidateBlocks,
+    ],
+  );
+
+  /*
+   * Special case:
+   * no regular blocks at all.
+   */
+  useEffect(() => {
+    if (
+      done ||
+      hasRegularItems
+    ) {
+      return;
+    }
+
+    /*
+     * We still render the hidden measurement candidate first
+     * if signatures exist.
+     */
+    if (
+      model.signatureItems.length > 0
+    ) {
+      return;
+    }
+
+    const fixedItems = Array.from(
+      model.fixedBlocksBySourcePage.entries(),
+    ).flatMap(([sourcePageId, blocks]) =>
+      blocks.map((block) => ({
+        block,
+        sourcePageId,
+        sourcePageTitle: fallbackPageLabel,
+      })),
+    );
+    const emptyBase = makePhysicalPage(
+      0,
+      fixedItems,
+      fixedItems.map((item) => item.block),
+    );
+
+    const completed =
+      appendSpecialBlocks(
+        [emptyBase],
+        model.evidenceItems,
+        model.signatureItems,
+      );
+
+    setPhysicalPages(completed);
+    setDone(true);
+  }, [
+    done,
+    hasRegularItems,
+    fallbackPageLabel,
+    model.fixedBlocksBySourcePage,
+    model.evidenceItems,
+    model.signatureItems,
+  ]);
+
+  /*
+   * DOM-driven physical page packing.
+   *
+   * Greedy but measured:
+   *
+   * current accepted blocks + next block
+   *              ↓
+   *     real A4 Smart engine
+   *              ↓
+   * fits? yes => accept block
+   * fits? no  => finalize previous physical page
+   */
+  useEffect(() => {
+    const host =
+      measurementHostRef.current;
+
+    if (
+      !host ||
+      done
+    ) {
+      return;
+    }
+
+    let frame: number | null = null;
+
+    const inspect = () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      frame =
+        window.requestAnimationFrame(() => {
+          frame = null;
+
+          if (decisionLockRef.current) {
+            return;
+          }
+
+          const viewport =
+            host.querySelector<HTMLElement>(
+              ".report-smart-a4-content",
+            );
+
+          if (!viewport) {
+            return;
+          }
+
+          /*
+           * score=0 is the initial React state.
+           * Wait until the internal Smart A4 multi-plan engine
+           * has completed a real measurement.
+           */
+          const scoreValue =
+            Number(
+              viewport.getAttribute(
+                "data-smart-a4-score",
+              ) || "0",
+            );
+
+          const candidateId =
+            viewport.getAttribute(
+              "data-smart-a4-candidate",
+            );
+
+          const smartA4Phase =
+            viewport.getAttribute(
+              "data-smart-a4-phase",
+            );
+
+          if (
+            smartA4Phase !== "FROZEN" ||
+            !candidateId ||
+            !Number.isFinite(scoreValue) ||
+            scoreValue === 0
+          ) {
+            return;
+          }
+
+          const fits =
+            viewport.dataset.reportOverflow ===
+            "fit";
+
+          decisionLockRef.current = true;
+
+          /*
+           * ---------------------------------------------------
+           * NO REGULAR CONTENT, SIGNATURE-ONLY CORE PAGE
+           * ---------------------------------------------------
+           */
+          if (!hasRegularItems) {
+            const signatureItems =
+              model.signatureItems;
+
+            const base =
+              makePhysicalPage(
+                0,
+                signatureItems,
+                signatureItems.map(
+                  (item) => item.block,
+                ),
+              );
+
+            const withFixed = addFixedBlocks(
+              base,
+              model.fixedBlocksBySourcePage,
+              new Set<string>(),
+            );
+
+            const completed =
+              appendSpecialBlocks(
+                [
+                  {
+                    ...withFixed,
+                    /*
+                     * Signature already exists in this measured
+                     * base, so prevent duplicate append below.
+                     */
+                    blocks: withFixed.blocks.filter(
+                      (block) => !isSignatureBlock(block),
+                    ),
+                  },
+                ],
+                model.evidenceItems,
+                model.signatureItems,
+              );
+
+            setPhysicalPages(completed);
+            setDone(true);
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          const isLastItem =
+            cursor >=
+            model.regularItems.length - 1;
+
+          /*
+           * Candidate fits:
+           * accept next block.
+           */
+          if (fits) {
+            const nextAccepted =
+              nextItem
+                ? [
+                    ...acceptedItems,
+                    nextItem,
+                  ]
+                : acceptedItems;
+
+            if (isLastItem) {
+              /*
+               * Entire last REGULAR physical page fits.
+               *
+               * Evidence and signature placement happens only
+               * after the regular packing phase completes.
+               */
+              const basePage =
+                makePhysicalPage(
+                  physicalPages.length,
+                  nextAccepted,
+                  nextAccepted.map(
+                    (item) => item.block,
+                  ),
+                );
+
+              const consumedFixedSources =
+                new Set<string>();
+
+              physicalPages.forEach(
+                (page) =>
+                  page.sourcePageIds.forEach(
+                    (sourceId) =>
+                      consumedFixedSources.add(
+                        sourceId,
+                      ),
+                  ),
+              );
+
+              const withFixed =
+                addFixedBlocks(
+                  basePage,
+                  model.fixedBlocksBySourcePage,
+                  consumedFixedSources,
+                );
+
+              const completedBase = [
+                ...physicalPages,
+                withFixed,
+              ];
+
+              const completed =
+                appendSpecialBlocks(
+                  completedBase,
+                  model.evidenceItems,
+                  model.signatureItems,
+                );
+
+              setPhysicalPages(
+                completed,
+              );
+
+              setAcceptedItems([]);
+              setDone(true);
+
+              decisionLockRef.current = false;
+              return;
+            }
+
+            setAcceptedItems(
+              nextAccepted,
+            );
+
+            setCursor(
+              (current) =>
+                current + 1,
+            );
+
+            setCandidateVersion(
+              (current) =>
+                current + 1,
+            );
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          /*
+           * Candidate does NOT fit.
+           *
+           * If we already had accepted content,
+           * finalize it and retry the same next item on a new page.
+           */
+          if (
+            acceptedItems.length > 0
+          ) {
+            const basePage =
+              makePhysicalPage(
+                physicalPages.length,
+                acceptedItems,
+                acceptedItems.map(
+                  (item) => item.block,
+                ),
+              );
+
+            const consumedFixedSources =
+              new Set<string>();
+
+            physicalPages.forEach(
+              (page) =>
+                page.sourcePageIds.forEach(
+                  (sourceId) =>
+                    consumedFixedSources.add(
+                      sourceId,
+                    ),
+                ),
+            );
+
+            const finalized =
+              addFixedBlocks(
+                basePage,
+                model.fixedBlocksBySourcePage,
+                consumedFixedSources,
+              );
+
+            setPhysicalPages(
+              (current) => [
+                ...current,
+                finalized,
+              ],
+            );
+
+            setAcceptedItems([]);
+
+            /*
+             * Do NOT advance cursor.
+             * Retry the overflowing block as the first block
+             * of the next physical page.
+             */
+            setCandidateVersion(
+              (current) =>
+                current + 1,
+            );
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          /*
+           * A single block itself does not fit.
+           *
+           * We cannot safely split arbitrary blocks here.
+           * Preserve it intact on its own physical page and let
+           * Smart A4 minimum-safe handle it without data loss.
+           */
+          if (nextItem) {
+            const oversizedPage =
+              makePhysicalPage(
+                physicalPages.length,
+                [nextItem],
+                [nextItem.block],
+              );
+
+            const consumedFixedSources =
+              new Set<string>();
+
+            physicalPages.forEach(
+              (page) =>
+                page.sourcePageIds.forEach(
+                  (sourceId) =>
+                    consumedFixedSources.add(
+                      sourceId,
+                    ),
+                ),
+            );
+
+            const withFixed =
+              addFixedBlocks(
+                oversizedPage,
+                model.fixedBlocksBySourcePage,
+                consumedFixedSources,
+              );
+
+            const newPages = [
+              ...physicalPages,
+              withFixed,
+            ];
+
+            if (isLastItem) {
+              const completed =
+                appendSpecialBlocks(
+                  newPages,
+                  model.evidenceItems,
+                  model.signatureItems,
+                );
+
+              setPhysicalPages(
+                completed,
+              );
+
+              setDone(true);
+            } else {
+              setPhysicalPages(
+                newPages,
+              );
+
+              setCursor(
+                (current) =>
+                  current + 1,
+              );
+
+              setCandidateVersion(
+                (current) =>
+                  current + 1,
+              );
+            }
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          decisionLockRef.current = false;
+        });
+    };
+
+    const observer =
+      new MutationObserver(inspect);
+
+    observer.observe(host, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "data-smart-a4-phase",
+      ],
+    });
+
+    inspect();
+
+    return () => {
+      observer.disconnect();
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [
+    acceptedItems,
+    candidateVersion,
+    cursor,
+    done,
+    hasRegularItems,
+    model.evidenceItems,
+    model.fixedBlocksBySourcePage,
+    model.regularItems,
+    model.signatureItems,
+    nextItem,
+    physicalPages,
+  ]);
+
+  /*
+   * During calculation keep old/new physical pages hidden
+   * until a stable plan exists.
+   */
+  const isPlanCurrent =
+    plannedResetKey === semanticInputFingerprint;
+
+  const renderablePhysicalPages = useMemo(
+    () =>
+      dedupePhysicalPages(
+        finalPhysicalPages.length > 0
+          ? finalPhysicalPages
+          : physicalPages,
+      ),
+    [finalPhysicalPages, physicalPages],
+  );
+
+  const visiblePages =
+    done && isPlanCurrent && renderablePhysicalPages.length
+      ? renderablePhysicalPages
+      : [];
+
+  const selectedPhysicalPages =
+    renderMode === "stack"
+      ? visiblePages
+      : (() => {
+          if (!visiblePages.length) {
+            return [];
+          }
+
+          if (activePageId) {
+            const matching =
+              visiblePages.find(
+                (page) =>
+                  page.sourcePageIds.includes(
+                    activePageId,
+                  ),
+              );
+
+            if (matching) {
+              return [matching];
+            }
+
+            const activeLogicalIndex = pages.findIndex(
+              (page) => page.id === activePageId,
+            );
+
+            if (activeLogicalIndex >= 0) {
+              for (let distance = 1; distance < pages.length; distance += 1) {
+                const nearbyIds = [
+                  pages[activeLogicalIndex - distance]?.id,
+                  pages[activeLogicalIndex + distance]?.id,
+                ].filter(Boolean) as string[];
+                const nearbyPage = visiblePages.find((physicalPage) =>
+                  nearbyIds.some((id) =>
+                    physicalPage.sourcePageIds.includes(id),
+                  ),
+                );
+
+                if (nearbyPage) {
+                  return [nearbyPage];
+                }
+              }
+            }
+          }
+
+          return [visiblePages[0]];
+        })();
+
+  useEffect(() => {
+    if (!done) {
+      return;
+    }
+
+    if (
+      finalizedPlanRef.current?.semanticInputFingerprint ===
+        semanticInputFingerprint &&
+      (planningPhaseRef.current === "READY" ||
+        planningPhaseRef.current === "FROZEN")
+    ) {
+      return;
+    }
+
+    const host = outputHostRef.current;
+
+    if (!host) {
+      return;
+    }
+
+    let frame: number | null = null;
+    let disposed = false;
+    let observer: MutationObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const setPhase = (next: PhysicalPlanningPhase) => {
+      planningPhaseRef.current = next;
+      setPlanningPhase((current) =>
+        current === next ? current : next,
+      );
+    };
+
+    const isTerminalPhase = () =>
+      planningPhaseRef.current === "READY" ||
+      planningPhaseRef.current === "FROZEN";
+
+    const resetStability = () => {
+      outputStabilityRef.current = {
+        signature: "",
+        count: 0,
+        attempts: outputStabilityRef.current.attempts,
+      };
+    };
+
+    const freezeFinalPlan = (
+      layoutResultFingerprint: string,
+    ) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const frozenPages = dedupePhysicalPages(physicalPages).map((page) => ({
+        ...page,
+        blocks: [...page.blocks],
+        sourcePageIds: [...page.sourcePageIds],
+      }));
+
+      finalizedPlanRef.current = {
+        semanticInputFingerprint,
+        layoutResultFingerprint,
+        pages: frozenPages,
+      };
+
+      setFinalPhysicalPages(frozenPages);
+
+      if (process.env.NODE_ENV === "development") {
+        host.dataset.reportPhysicalLayoutFingerprint =
+          getFingerprintPrefix(layoutResultFingerprint);
+        host.dataset.reportPhysicalStablePasses = String(
+          outputStabilityRef.current.count,
+        );
+        host.dataset.reportPhysicalAttempts = String(
+          outputStabilityRef.current.attempts,
+        );
+      }
+
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      setPhase("READY");
+
+      queueMicrotask(() => {
+        if (
+          !disposed &&
+          planningPhaseRef.current === "READY" &&
+          finalizedPlanRef.current?.semanticInputFingerprint ===
+            semanticInputFingerprint
+        ) {
+          setPhase("FROZEN");
+        }
+      });
+    };
+
+    const inspect = () => {
+      if (
+        disposed ||
+        isTerminalPhase() ||
+        frame !== null
+      ) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+
+        if (
+          disposed ||
+          isTerminalPhase()
+        ) {
+          return;
+        }
+
+        outputStabilityRef.current.attempts += 1;
+
+        const renderedPages = host.querySelectorAll(
+          ".pdf-report-page",
+        );
+
+        if (!renderedPages.length) {
+          resetStability();
+          setPhase("MEASURING");
+          if (
+            outputStabilityRef.current.attempts <
+            MAX_PHYSICAL_STABILIZATION_ATTEMPTS
+          ) {
+            inspect();
+          } else {
+            freezeFinalPlan(
+              createSemanticInputFingerprint({
+                fallback: "missing-rendered-page-dom",
+                physicalPageCount: physicalPages.length,
+                blocks: physicalPages.map((page) =>
+                  page.blocks.map((block) => block?.id || block?.kind),
+                ),
+              }),
+            );
+          }
+          return;
+        }
+
+        const smartViewports = Array.from(
+          host.querySelectorAll<HTMLElement>(
+            ".report-smart-a4-content",
+          ),
+        );
+
+        const pageComposers = Array.from(
+          host.querySelectorAll<HTMLElement>(
+            "[data-report-smart-page-composer]",
+          ),
+        );
+
+        const smartLayoutsFinal = smartViewports.every(
+          (viewport) =>
+            viewport.dataset.smartA4Phase === "FROZEN",
+        );
+
+        const pageComposersReady = pageComposers.every(
+          (composer) =>
+            composer.dataset.reportSmartPagePhase === "FROZEN" ||
+            composer.dataset.reportSmartPagePhase === "READY",
+        );
+
+        const images = Array.from(
+          host.querySelectorAll<HTMLImageElement>("img"),
+        );
+        const assetsSettled = images.every((image) => image.complete);
+        const reachedAttemptLimit =
+          outputStabilityRef.current.attempts >=
+          MAX_PHYSICAL_STABILIZATION_ATTEMPTS;
+
+        if (
+          !smartLayoutsFinal ||
+          !pageComposersReady ||
+          !assetsSettled ||
+          !fontsSettledRef.current
+        ) {
+          resetStability();
+          setPhase("MEASURING");
+
+          if (reachedAttemptLimit) {
+            freezeFinalPlan(
+              createSemanticInputFingerprint({
+                fallback: true,
+                physicalPages: physicalPages.map((page) => ({
+                  blocks: page.blocks.map((block) => block?.id || block?.kind),
+                  sourcePageIds: page.sourcePageIds,
+                })),
+                renderedPageCount: renderedPages.length,
+              }),
+            );
+          } else {
+            inspect();
+          }
+          return;
+        }
+
+        const smartSignature = smartViewports.map((viewport) =>
+          [
+            viewport.dataset.smartA4Candidate || "legacy",
+            viewport.dataset.reportDensity || "normal",
+            viewport.dataset.reportFieldLayout || "comfortable",
+            viewport.dataset.reportOverflow || "fit",
+            roundLayoutMetric(
+              Number(viewport.dataset.smartA4OverflowPx || "0"),
+            ),
+            roundLayoutMetric(
+              Number(
+                viewport.dataset.smartA4SignatureReservedPx || "0",
+              ),
+            ),
+          ].join(":"),
+        );
+
+        const composerSignature = pageComposers.map((composer) =>
+          [
+            composer.dataset.reportPrimaryEvidenceCount || "0",
+            composer.dataset.reportTotalEvidenceCount || "0",
+            composer.dataset.reportSignatureOnPrimary || "true",
+            composer.dataset.reportSmartPagePhase || "",
+          ].join(":"),
+        );
+
+        const signature = createSemanticInputFingerprint({
+          physicalPages: physicalPages.map((page) => ({
+            blocks: page.blocks.map((block) => block?.id || block?.kind),
+            sourcePageIds: page.sourcePageIds,
+          })),
+          renderedPageCount: renderedPages.length,
+          smartSignature,
+          composerSignature,
+        });
+
+        const previous = outputStabilityRef.current;
+
+        outputStabilityRef.current =
+          previous.signature === signature
+            ? {
+              signature,
+              count: previous.count + 1,
+              attempts: previous.attempts,
+            }
+            : {
+                signature,
+                count: 1,
+                attempts: previous.attempts,
+              };
+
+        if (process.env.NODE_ENV === "development") {
+          host.dataset.reportPhysicalLayoutFingerprint =
+            getFingerprintPrefix(signature);
+          host.dataset.reportPhysicalStablePasses = String(
+            outputStabilityRef.current.count,
+          );
+          host.dataset.reportPhysicalAttempts = String(
+            outputStabilityRef.current.attempts,
+          );
+        }
+
+        if (
+          outputStabilityRef.current.count >= 2 ||
+          reachedAttemptLimit
+        ) {
+          freezeFinalPlan(signature);
+          return;
+        }
+
+        setPhase("STABILIZING");
+        inspect();
+      });
+    };
+
+    resetStability();
+    setPhase("MEASURING");
+
+    observer = new MutationObserver(inspect);
+
+    observer.observe(host, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "data-smart-a4-phase",
+        "data-report-smart-page-phase",
+      ],
+    });
+
+    resizeObserver = new ResizeObserver(() => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const rect = host.getBoundingClientRect();
+      const nextResizeFingerprint = [
+        roundLayoutMetric(rect.width),
+        roundLayoutMetric(rect.height),
+        roundLayoutMetric(host.scrollWidth),
+        roundLayoutMetric(host.scrollHeight),
+      ].join(":");
+
+      if (
+        outputResizeFingerprintRef.current === nextResizeFingerprint
+      ) {
+        return;
+      }
+
+      outputResizeFingerprintRef.current = nextResizeFingerprint;
+      inspect();
+    });
+    resizeObserver.observe(host);
+
+    const handleAssetLoad = (event: Event) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const image =
+        event.target instanceof HTMLImageElement
+          ? event.target
+          : null;
+      const source = image?.currentSrc || image?.src || "";
+
+      if (
+        source &&
+        settledAssetSourcesRef.current.has(source)
+      ) {
+        return;
+      }
+
+      if (source) {
+        settledAssetSourcesRef.current.add(source);
+      }
+
+      resetStability();
+      setPhase("MEASURING");
+      inspect();
+    };
+
+    host.addEventListener("load", handleAssetLoad, true);
+    host.addEventListener("error", handleAssetLoad, true);
+    inspect();
+
+    if (!document.fonts) {
+      fontsSettledRef.current = true;
+      inspect();
+    } else if (fontsSettledRef.current) {
+      inspect();
+    } else {
+      void document.fonts.ready
+        .then(() => {
+          if (!disposed && !fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        })
+        .catch(() => {
+          if (!disposed) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        });
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      host.removeEventListener("load", handleAssetLoad, true);
+      host.removeEventListener("error", handleAssetLoad, true);
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [
+    done,
+    semanticInputFingerprint,
+    physicalPages,
+  ]);
+
+  const isReady =
+    done &&
+    isPlanCurrent &&
+    finalPhysicalPages.length > 0 &&
+    (planningPhase === "READY" || planningPhase === "FROZEN");
+
+  const developmentDiagnostics =
+    process.env.NODE_ENV === "development"
+      ? {
+          "data-report-physical-semantic-fingerprint":
+            getFingerprintPrefix(semanticInputFingerprint),
+          "data-report-physical-invalidation-reason":
+            invalidationReason,
+        }
+      : {};
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          [data-report-physical-measurement-stage],
+          [data-report-physical-output-planning="true"] {
+            display: none !important;
+          }
+        }
+      `}</style>
+      {/*
+       * ======================================================
+       * OFFSCREEN MEASUREMENT STAGE
+       * ======================================================
+       *
+       * This uses the REAL design and the REAL Smart A4 engine.
+       * It is not an estimated character-count paginator.
+       */}
+      {!done ? (
+        <div
+          ref={measurementHostRef}
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-100000px] top-0 -z-50 w-[210mm]"
+          style={{
+            visibility: "hidden",
+            contain: "layout style paint",
+          }}
+          data-report-physical-measurement-stage
+          data-report-measurement-only="true"
+        >
+          <ReportSmartSemanticFingerprintProvider
+            fingerprint={createSemanticInputFingerprint({
+              blocks: candidatePage.blocks,
+              kind: candidatePage.kind,
+              semanticInputFingerprint,
+            })}
+          >
+            <A4DesignPage
+              key={candidatePage.id}
+              designId={designId}
+              page={candidatePage}
+              context={context}
+              previewCase={previewCase}
+              pageLabel={fallbackPageLabel}
+            />
+          </ReportSmartSemanticFingerprintProvider>
+        </div>
+      ) : null}
+
+      {/*
+       * ======================================================
+       * PHYSICAL A4 OUTPUT
+       * ======================================================
+       */}
+      {done ? (
+        <div
+          ref={outputHostRef}
+          className={
+            renderMode === "stack"
+              ? "space-y-6 print:space-y-0"
+              : ""
+          }
+          data-report-smart-physical-pages
+          data-report-physical-planning-phase={planningPhase}
+          data-report-physical-output-planning={String(!isReady)}
+          data-report-physical-page-count={
+            visiblePages.length
+          }
+          {...developmentDiagnostics}
+          aria-hidden={!isReady ? "true" : undefined}
+          style={
+            !isReady
+              ? {
+                  position: "fixed",
+                  left: "-100000px",
+                  top: 0,
+                  width: "210mm",
+                  visibility: "hidden",
+                  pointerEvents: "none",
+                  contain: "layout style paint",
+                  zIndex: -50,
+                }
+              : undefined
+          }
+        >
+          {selectedPhysicalPages.map(
+            (page, index) => (
+              <div
+                key={`${designId}:${getFingerprintPrefix(semanticInputFingerprint)}:${page.id}`}
+                className={
+                  renderMode === "stack" &&
+                  index < selectedPhysicalPages.length - 1
+                    ? "print:break-after-page"
+                    : ""
+                }
+                data-report-physical-page-index={
+                  index
+                }
+                data-report-source-pages={
+                  page.sourcePageIds.join(",")
+                }
+              >
+                <ReportSmartSemanticFingerprintProvider
+                  fingerprint={createSemanticInputFingerprint({
+                    page: {
+                      blocks: page.blocks,
+                      kind: page.kind,
+                      title: page.title,
+                    },
+                    semanticInputFingerprint,
+                  })}
+                >
+                  {suppressAutoEvidencePages ? (
+                    <A4DesignPage
+                      designId={designId}
+                      page={page}
+                      context={context}
+                      previewCase={previewCase}
+                      pageLabel={
+                        page.title ||
+                        fallbackPageLabel
+                      }
+                    />
+                  ) : (
+                    <SmartReportPageComposer
+                      designId={designId}
+                      page={page}
+                      context={context}
+                      previewCase={previewCase}
+                      pageLabel={
+                        page.title ||
+                        fallbackPageLabel
+                      }
+                    />
+                  )}
+                </ReportSmartSemanticFingerprintProvider>
+              </div>
+            ),
+          )}
+        </div>
+      ) : null}
+
+      {!isReady ? (
+        <div
+          className="flex min-h-[320px] flex-col items-center justify-center gap-4 text-center font-bold text-slate-500 print:hidden"
+          data-report-physical-planning
+          data-report-physical-planning-phase={planningPhase}
+          {...developmentDiagnostics}
+        >
+          <span
+            className="h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600"
+            aria-hidden="true"
+          />
+          <span className="text-base sm:text-lg">
+            جارٍ تنظيم صفحات التقرير...
+          </span>
+          <span className="text-sm font-medium text-slate-400">
+            يتم ضبط توزيع المحتوى تلقائيًا
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+================================================================
+
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import type { ReportDesignId } from "../report-design-types";
+import { A4DesignPage } from "../shared/report-blocks";
+import {
+  getEvidencePerPage,
+  getValidPreviewEvidences,
+} from "../shared/report-evidence-data";
+import { AutoEvidencePages } from "../shared/report-auto-evidence";
+import type { PreviewCaseData } from "../shared/report-types";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  ReportSmartSemanticFingerprintProvider,
+  roundLayoutMetric,
+} from "./report-smart-lifecycle";
+
+type SmartReportPageComposerProps = {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+};
+
+type ReportPagePlanningPhase =
+  | "DIRTY"
+  | "PLANNING"
+  | "MEASURING"
+  | "STABILIZING"
+  | "READY"
+  | "FROZEN";
+
+const MAX_PAGE_COMPOSITION_ATTEMPTS = 40;
+
+function isSignatureBlock(block: any) {
+  const kind =
+    String(block?.kind || "").trim();
+
+  const smartKind =
+    String(
+      block?.settings?.smartBlockKind || "",
+    ).trim();
+
+  const title =
+    String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getSignatureBlocks(page: any) {
+  const blocks =
+    Array.isArray(page?.blocks)
+      ? page.blocks
+      : [];
+
+  return blocks.filter(
+    isSignatureBlock,
+  );
+}
+
+function getEvidenceBlock(page: any) {
+  const blocks =
+    Array.isArray(page?.blocks)
+      ? page.blocks
+      : [];
+
+  return (
+    blocks.find(
+      (block: any) =>
+        block?.kind ===
+        "evidence-gallery",
+    ) || null
+  );
+}
+
+function getCompositionResetKey(
+  designId: ReportDesignId,
+  page: any,
+  context: Record<string, string>,
+  previewCase: PreviewCaseData | null,
+  pageLabel: string,
+) {
+  return createSemanticInputFingerprint({
+    designId,
+    page: {
+      blocks: Array.isArray(page?.blocks) ? page.blocks : [],
+      kind: page?.kind || "content",
+      title: page?.title || "",
+    },
+    pageLabel,
+    context,
+    previewCase,
+  });
+}
+
+function makePrimaryPage(
+  page: any,
+  evidenceBlock: any,
+  primaryEvidenceCount: number,
+  keepSignatureOnPrimary: boolean,
+) {
+  if (!page) {
+    return page;
+  }
+
+  const originalBlocks =
+    Array.isArray(page.blocks)
+      ? page.blocks
+      : [];
+
+  let blocks =
+    keepSignatureOnPrimary
+      ? [...originalBlocks]
+      : originalBlocks.filter(
+          (block: any) =>
+            !isSignatureBlock(block),
+        );
+
+  if (!evidenceBlock) {
+    return {
+      ...page,
+      blocks,
+    };
+  }
+
+  /*
+   * Zero evidence means:
+   * remove evidence-gallery from the primary page.
+   *
+   * AutoEvidencePages still receives the ORIGINAL page,
+   * so no evidence is lost.
+   */
+  if (primaryEvidenceCount <= 0) {
+    blocks = blocks.filter(
+      (block: any) =>
+        block?.id !==
+        evidenceBlock.id,
+    );
+
+    return {
+      ...page,
+      blocks,
+    };
+  }
+
+  blocks = blocks.map(
+    (block: any) =>
+      block?.id === evidenceBlock.id
+        ? {
+            ...block,
+            evidenceStartIndex: 0,
+            evidenceLimit:
+              primaryEvidenceCount,
+          }
+        : block,
+  );
+
+  return {
+    ...page,
+    blocks,
+  };
+}
+
+function makeSignatureOverflowPage(
+  page: any,
+  signatureBlocks: any[],
+) {
+  return {
+    ...page,
+
+    id:
+      `${page?.id || "report"}-signature-overflow`,
+
+    title:
+      "اعتماد التقرير",
+
+    kind:
+      "signature",
+
+    blocks:
+      signatureBlocks.map(
+        (block, index) => ({
+          ...block,
+
+          id:
+            `${block?.id || "signature"}-overflow-${index + 1}`,
+
+          /*
+           * This page is already an explicit overflow page.
+           */
+          placement:
+            "flow",
+        }),
+      ),
+  };
+}
+
+export function SmartReportPageComposer({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: SmartReportPageComposerProps) {
+  const hostRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
+  const evidenceBlock =
+    useMemo(
+      () => getEvidenceBlock(page),
+      [page],
+    );
+
+  const signatureBlocks =
+    useMemo(
+      () =>
+        getSignatureBlocks(page),
+      [page],
+    );
+
+  const hasSignature =
+    signatureBlocks.length > 0;
+
+  const validEvidences =
+    useMemo(
+      () =>
+        getValidPreviewEvidences(
+          previewCase,
+        ),
+      [previewCase],
+    );
+
+  const evidenceAutoEnabled =
+    Boolean(evidenceBlock) &&
+    evidenceBlock
+      ?.evidenceAutoCreatePages !==
+      false;
+
+  const maxPrimaryEvidenceCount =
+    evidenceBlock
+      ? Math.min(
+          validEvidences.length,
+          getEvidencePerPage(
+            evidenceBlock,
+          ),
+        )
+      : 0;
+
+  const resetKey =
+    useMemo(
+      () =>
+        getCompositionResetKey(
+          designId,
+          page,
+          context,
+          previewCase,
+          pageLabel,
+        ),
+      [
+        designId,
+        page,
+        context,
+        previewCase,
+        pageLabel,
+      ],
+    );
+
+  const [
+    primaryEvidenceCount,
+    setPrimaryEvidenceCount,
+  ] =
+    useState(
+      maxPrimaryEvidenceCount,
+    );
+
+  const [
+    keepSignatureOnPrimary,
+    setKeepSignatureOnPrimary,
+  ] =
+    useState(true);
+
+  const lastDecisionRef =
+    useRef("");
+
+  const [planningPhase, setPlanningPhase] =
+    useState<ReportPagePlanningPhase>("DIRTY");
+
+  const planningPhaseRef =
+    useRef<ReportPagePlanningPhase>("DIRTY");
+
+  const stabilityRef = useRef({
+    signature: "",
+    count: 0,
+    attempts: 0,
+  });
+
+  const finalizedPlacementRef = useRef<{
+    semanticInputFingerprint: string;
+    layoutResultFingerprint: string;
+    primaryEvidenceCount: number;
+    keepSignatureOnPrimary: boolean;
+  } | null>(null);
+
+  const fontsSettledRef = useRef(false);
+  const settledAssetSourcesRef = useRef(new Set<string>());
+  const [invalidationReason, setInvalidationReason] = useState<
+    "initial" | "content-change"
+  >("initial");
+
+  const setPhase = (next: ReportPagePlanningPhase) => {
+    planningPhaseRef.current = next;
+    setPlanningPhase((current) =>
+      current === next ? current : next,
+    );
+  };
+
+  const isTerminalPhase = () =>
+    planningPhaseRef.current === "READY" ||
+    planningPhaseRef.current === "FROZEN";
+
+  /*
+   * New report content:
+   *
+   * Start optimistically:
+   * - keep maximum allowed evidence
+   * - keep signature on primary page
+   *
+   * Real DOM measurement then negotiates downward.
+   */
+  useEffect(() => {
+    setInvalidationReason(
+      finalizedPlacementRef.current === null
+        ? "initial"
+        : "content-change",
+    );
+    finalizedPlacementRef.current = null;
+    lastDecisionRef.current = "";
+    stabilityRef.current = {
+      signature: "",
+      count: 0,
+      attempts: 0,
+    };
+    settledAssetSourcesRef.current.clear();
+    setPhase("DIRTY");
+    setPhase("PLANNING");
+
+    setPrimaryEvidenceCount(
+      maxPrimaryEvidenceCount,
+    );
+
+    setKeepSignatureOnPrimary(
+      true,
+    );
+  }, [
+    resetKey,
+    maxPrimaryEvidenceCount,
+  ]);
+
+  const primaryPage =
+    useMemo(
+      () =>
+        makePrimaryPage(
+          page,
+          evidenceBlock,
+          primaryEvidenceCount,
+          keepSignatureOnPrimary,
+        ),
+      [
+        page,
+        evidenceBlock,
+        primaryEvidenceCount,
+        keepSignatureOnPrimary,
+      ],
+    );
+
+  const signatureOverflowPage =
+    useMemo(
+      () =>
+        !keepSignatureOnPrimary &&
+        hasSignature
+          ? makeSignatureOverflowPage(
+              page,
+              signatureBlocks,
+            )
+          : null,
+      [
+        page,
+        signatureBlocks,
+        hasSignature,
+        keepSignatureOnPrimary,
+      ],
+    );
+
+  const hasSignatureOverflowPage = Boolean(
+    signatureOverflowPage,
+  );
+
+  useEffect(() => {
+    const host =
+      hostRef.current;
+
+    if (!host) {
+      return;
+    }
+
+    let frame:
+      | number
+      | null = null;
+
+    let disposed = false;
+    let observer: MutationObserver | null = null;
+
+    const resetStability = () => {
+      stabilityRef.current = {
+        signature: "",
+        count: 0,
+        attempts: stabilityRef.current.attempts,
+      };
+    };
+
+    const recordStableResult = (signature: string) => {
+      const previous = stabilityRef.current;
+
+      stabilityRef.current =
+        previous.signature === signature
+          ? {
+              signature,
+              count: previous.count + 1,
+              attempts: previous.attempts + 1,
+            }
+          : {
+              signature,
+              count: 1,
+              attempts: previous.attempts + 1,
+            };
+
+      if (process.env.NODE_ENV === "development") {
+        host.dataset.reportComposerLayoutFingerprint =
+          getFingerprintPrefix(signature);
+        host.dataset.reportComposerStablePasses = String(
+          stabilityRef.current.count,
+        );
+        host.dataset.reportComposerAttempts = String(
+          stabilityRef.current.attempts,
+        );
+      }
+
+      if (
+        stabilityRef.current.count >= 2 ||
+        stabilityRef.current.attempts >=
+          MAX_PAGE_COMPOSITION_ATTEMPTS
+      ) {
+        finalizedPlacementRef.current = {
+          semanticInputFingerprint: resetKey,
+          layoutResultFingerprint: signature,
+          primaryEvidenceCount,
+          keepSignatureOnPrimary,
+        };
+        observer?.disconnect();
+        setPhase("READY");
+
+        queueMicrotask(() => {
+          if (
+            !disposed &&
+            planningPhaseRef.current === "READY" &&
+            finalizedPlacementRef.current
+              ?.semanticInputFingerprint === resetKey
+          ) {
+            setPhase("FROZEN");
+          }
+        });
+        return true;
+      }
+
+      setPhase("STABILIZING");
+      return false;
+    };
+
+    const inspect = () => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(
+          frame,
+        );
+      }
+
+      frame =
+        window.requestAnimationFrame(
+          () => {
+            frame = null;
+
+            if (disposed) {
+              return;
+            }
+
+            const smartViewports = Array.from(
+              host.querySelectorAll<HTMLElement>(
+                ".report-smart-a4-content",
+              ),
+            );
+
+            const smartViewport = smartViewports[0];
+
+            if (!smartViewport) {
+              const physicalPageCount =
+                host.querySelectorAll(".pdf-report-page").length;
+
+              if (physicalPageCount > 0) {
+                const legacySignature = [
+                  resetKey,
+                  primaryEvidenceCount,
+                  keepSignatureOnPrimary,
+                  physicalPageCount,
+                  host.scrollHeight,
+                ].join("::");
+
+                if (!recordStableResult(legacySignature)) {
+                  inspect();
+                }
+              }
+
+              return;
+            }
+
+            if (
+              smartViewport.dataset.smartA4Phase !== "FROZEN"
+            ) {
+              setPhase("MEASURING");
+              return;
+            }
+
+            /*
+             * Wait for a REAL Smart A4 planning pass.
+             */
+            const candidate =
+              smartViewport.dataset
+                .smartA4Candidate;
+
+            const severity =
+              smartViewport.dataset
+                .smartA4Severity;
+
+            if (
+              !candidate ||
+              !severity
+            ) {
+              setPhase("MEASURING");
+              resetStability();
+              return;
+            }
+
+            const overflowState =
+              smartViewport.dataset
+                .reportOverflow;
+
+            const doesNotFit =
+              overflowState !==
+              "fit";
+
+            const preferEvidenceMove =
+              smartViewport.dataset
+                .smartA4PreferEvidenceMove ===
+              "true";
+
+            const density =
+              smartViewport.dataset
+                .reportDensity ||
+              "normal";
+
+            const fieldLayout =
+              smartViewport.dataset
+                .reportFieldLayout ||
+              "comfortable";
+
+            const overflowPx =
+              Number(
+                smartViewport.getAttribute(
+                  "data-smart-a4-overflow-px",
+                ) || "0",
+              );
+
+            const decisionSignature = [
+              getFingerprintPrefix(resetKey),
+              primaryEvidenceCount,
+              keepSignatureOnPrimary,
+              doesNotFit,
+              preferEvidenceMove,
+              severity,
+              density,
+              fieldLayout,
+              candidate,
+              Number.isFinite(
+                overflowPx,
+              )
+                ? overflowPx
+                : 0,
+            ].join("::");
+
+            /*
+             * =================================================
+             * PHASE 1:
+             * MOVE EVIDENCE BEFORE SACRIFICING CORE CONTENT
+             * =================================================
+             *
+             * Reduce one evidence at a time.
+             *
+             * Every reduction triggers a fresh complete Smart A4
+             * multi-plan evaluation.
+             */
+            if (
+              evidenceAutoEnabled &&
+              primaryEvidenceCount > 0 &&
+              (
+                doesNotFit ||
+                preferEvidenceMove
+              )
+            ) {
+              if (
+                lastDecisionRef.current === decisionSignature
+              ) {
+                return;
+              }
+
+              lastDecisionRef.current = decisionSignature;
+              resetStability();
+              setPhase("MEASURING");
+
+              setPrimaryEvidenceCount(
+                (current) =>
+                  Math.max(
+                    0,
+                    current - 1,
+                  ),
+              );
+
+              return;
+            }
+
+            /*
+             * =================================================
+             * PHASE 2:
+             * SIGNATURE OVERFLOW FALLBACK
+             * =================================================
+             *
+             * Only after:
+             *
+             * - all movable evidence has left the primary page
+             * - Smart A4 still says the page does not fit
+             *
+             * do we move signature to a dedicated final page.
+             *
+             * We NEVER move regular narrative/fields just because
+             * the signature itself is the final obstruction.
+             */
+            if (
+              doesNotFit &&
+              primaryEvidenceCount <= 0 &&
+              hasSignature &&
+              keepSignatureOnPrimary
+            ) {
+              if (
+                lastDecisionRef.current === decisionSignature
+              ) {
+                return;
+              }
+
+              lastDecisionRef.current = decisionSignature;
+              resetStability();
+              setPhase("MEASURING");
+
+              setKeepSignatureOnPrimary(
+                false,
+              );
+
+              return;
+            }
+
+            /*
+             * If signature has moved and core content now fits,
+             * planning is stable.
+             *
+             * If core content itself still does not fit,
+             * Smart Physical Engine owns that pagination problem;
+             * do not hide/truncate anything here.
+             */
+            const allSmartLayoutsFrozen = smartViewports.every(
+              (viewport) =>
+                viewport.dataset.smartA4Phase === "FROZEN",
+            );
+
+            const unsettledImages = Array.from(
+              host.querySelectorAll<HTMLImageElement>("img"),
+            ).filter((image) => !image.complete);
+
+            if (
+              !allSmartLayoutsFrozen ||
+              unsettledImages.length > 0 ||
+              !fontsSettledRef.current
+            ) {
+              setPhase("MEASURING");
+              return;
+            }
+
+            const finalSignature =
+              createSemanticInputFingerprint({
+                decisionSignature,
+                evidenceCount: validEvidences.length,
+                pageCount:
+                  host.querySelectorAll(".pdf-report-page").length,
+                hasSignatureOverflowPage:
+                  hasSignatureOverflowPage,
+                smartLayouts: smartViewports.map((viewport) => ({
+                  candidate:
+                    viewport.dataset.smartA4Candidate || "",
+                  fieldLayout:
+                    viewport.dataset.reportFieldLayout || "comfortable",
+                  mode:
+                    viewport.dataset.reportDensity || "normal",
+                  overflowPx: roundLayoutMetric(
+                    Number(viewport.dataset.smartA4OverflowPx || "0"),
+                  ),
+                })),
+              });
+
+            if (!recordStableResult(finalSignature)) {
+              inspect();
+            }
+          },
+        );
+    };
+
+    observer =
+      new MutationObserver(
+        inspect,
+      );
+
+    observer.observe(
+      host,
+      {
+        subtree: true,
+        childList: true,
+        attributes: true,
+
+        attributeFilter: [
+          "data-smart-a4-phase",
+        ],
+      },
+    );
+
+    inspect();
+
+    const handleAssetLoad = (event: Event) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const image =
+        event.target instanceof HTMLImageElement
+          ? event.target
+          : null;
+      const source = image?.currentSrc || image?.src || "";
+
+      if (
+        source &&
+        settledAssetSourcesRef.current.has(source)
+      ) {
+        return;
+      }
+
+      if (source) {
+        settledAssetSourcesRef.current.add(source);
+      }
+
+      inspect();
+    };
+
+    host.addEventListener("load", handleAssetLoad, true);
+    host.addEventListener("error", handleAssetLoad, true);
+
+    const fonts = document.fonts;
+    if (!fonts) {
+      fontsSettledRef.current = true;
+      inspect();
+    } else if (fontsSettledRef.current) {
+      inspect();
+    } else {
+      void fonts.ready
+        .then(() => {
+          if (!disposed && !fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        })
+        .catch(() => {
+          if (!disposed) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        });
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      host.removeEventListener("load", handleAssetLoad, true);
+      host.removeEventListener("error", handleAssetLoad, true);
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(
+          frame,
+        );
+      }
+    };
+  }, [
+    primaryEvidenceCount,
+    keepSignatureOnPrimary,
+    evidenceAutoEnabled,
+    hasSignature,
+    hasSignatureOverflowPage,
+    resetKey,
+    validEvidences.length,
+  ]);
+
+  const compositionSemanticFingerprint =
+    createSemanticInputFingerprint({
+      keepSignatureOnPrimary,
+      primaryEvidenceCount,
+      semanticInputFingerprint: resetKey,
+    });
+
+  const developmentDiagnostics =
+    process.env.NODE_ENV === "development"
+      ? {
+          "data-report-composer-semantic-fingerprint":
+            getFingerprintPrefix(resetKey),
+          "data-report-composer-invalidation-reason":
+            invalidationReason,
+        }
+      : {};
+
+  return (
+    <div
+      ref={hostRef}
+      data-report-smart-page-composer
+      data-report-smart-page-phase={planningPhase}
+      data-report-primary-evidence-count={
+        primaryEvidenceCount
+      }
+      data-report-total-evidence-count={
+        validEvidences.length
+      }
+      data-report-signature-on-primary={
+        String(
+          keepSignatureOnPrimary,
+        )
+      }
+      {...developmentDiagnostics}
+    >
+      <ReportSmartSemanticFingerprintProvider
+        fingerprint={compositionSemanticFingerprint}
+      >
+      {/*
+       * ======================================================
+       * PRIMARY PHYSICAL PAGE
+       * ======================================================
+       */}
+      <A4DesignPage
+        designId={designId}
+        page={primaryPage}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+      />
+
+      {/*
+       * ======================================================
+       * EVIDENCE OVERFLOW
+       * ======================================================
+       *
+       * AutoEvidencePages starts exactly after the count consumed
+       * by the primary page.
+       */}
+      {evidenceAutoEnabled ? (
+        <AutoEvidencePages
+          designId={designId}
+          activePage={page}
+          context={context}
+          previewCase={previewCase}
+          primaryEvidenceCount={
+            primaryEvidenceCount
+          }
+        />
+      ) : null}
+
+      {/*
+       * ======================================================
+       * SIGNATURE OVERFLOW
+       * ======================================================
+       *
+       * This exists only when:
+       * - evidence count already reached zero
+       * - primary page still does not fit
+       * - signature was the remaining protected block
+       */}
+      {signatureOverflowPage ? (
+        <div
+          className="mt-6 print:mt-0 print:break-before-page"
+          data-report-signature-overflow-page
+        >
+          <A4DesignPage
+            designId={designId}
+            page={
+              signatureOverflowPage
+            }
+            context={context}
+            previewCase={previewCase}
+            pageLabel="اعتماد التقرير"
+          />
+        </div>
+      ) : null}
+      </ReportSmartSemanticFingerprintProvider>
+    </div>
+  );
+}
+
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-measure.ts
+================================================================
+
+import {
+  REPORT_SMART_A4_TOLERANCE_PX,
+  type ReportSmartA4PriorityMode,
+  type ReportSmartA4Profile,
+} from "./report-smart-a4-config";
+
+export type ReportSmartA4BlockRole =
+  | "fields"
+  | "evidence"
+  | "narrative"
+  | "table"
+  | "signature"
+  | "title"
+  | "general";
+
+export type ReportSmartA4BlockMeasurement = {
+  role: ReportSmartA4BlockRole;
+  kind: string;
+  heightPx: number;
+  topPx: number;
+  bottomPx: number;
+  overflowPx: number;
+};
+
+export type ReportSmartA4Measurement = {
+  fits: boolean;
+
+  viewportHeightPx: number;
+  contentHeightPx: number;
+
+  overflowPx: number;
+
+  signatureHeightPx: number;
+  signatureReservedPx: number;
+
+  mainContentBottomPx: number;
+  mainContentBudgetPx: number;
+  mainContentOverflowPx: number;
+
+  fieldHeightPx: number;
+  evidenceHeightPx: number;
+  narrativeHeightPx: number;
+  tableHeightPx: number;
+
+  dominantRole: ReportSmartA4BlockRole;
+
+  blocks: ReportSmartA4BlockMeasurement[];
+};
+
+function round(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function getBlockRole(
+  element: HTMLElement,
+): ReportSmartA4BlockRole {
+  if (
+    element.dataset.reportPriorityBlock === "signature" ||
+    element.hasAttribute("data-report-design-signature-block")
+  ) {
+    return "signature";
+  }
+
+  const kind = String(
+    element.dataset.reportSmartBlock || "",
+  ).trim();
+
+  switch (kind) {
+    case "dynamic-fields":
+    case "field-list":
+    case "case-meta":
+    case "student-summary":
+    case "service-summary":
+      return "fields";
+
+    case "evidence-gallery":
+      return "evidence";
+
+    case "multi-paragraph":
+    case "closing-note":
+      return "narrative";
+
+    case "report-one-table":
+    case "structured-table":
+      return "table";
+
+    case "hero-title":
+    case "meta-strip":
+      return "title";
+
+    default:
+      return "general";
+  }
+}
+
+function sumRoleHeight(
+  blocks: ReportSmartA4BlockMeasurement[],
+  role: ReportSmartA4BlockRole,
+) {
+  return blocks
+    .filter((block) => block.role === role)
+    .reduce((sum, block) => sum + block.heightPx, 0);
+}
+
+export function measureReportSmartA4Layout(
+  viewport: HTMLElement,
+  content: HTMLElement,
+  priorityMode: ReportSmartA4PriorityMode,
+  profile: ReportSmartA4Profile,
+): ReportSmartA4Measurement {
+  const viewportRect = viewport.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
+
+  const localScale =
+    viewport.clientHeight > 0
+      ? viewportRect.height / viewport.clientHeight
+      : 1;
+
+  const safeScale =
+    Number.isFinite(localScale) && localScale > 0
+      ? localScale
+      : 1;
+
+  const viewportHeightPx = viewport.clientHeight;
+  const footerSafeAreaMm = Math.max(
+    0,
+    Number(viewport.dataset.reportFooterSafeAreaMm || "0") || 0,
+  );
+  const footerSafeAreaPx = footerSafeAreaMm * (96 / 25.4);
+  const usableViewportHeightPx = Math.max(
+    0,
+    viewportHeightPx - footerSafeAreaPx,
+  );
+  const boundaryBottom =
+    viewportRect.bottom - footerSafeAreaPx * safeScale;
+
+  const elements = Array.from(
+    content.querySelectorAll<HTMLElement>(
+      '[data-report-smart-block], [data-report-priority-block="signature"], [data-report-design-signature-block]',
+    ),
+  );
+
+  const blocks = elements.map(
+    (element): ReportSmartA4BlockMeasurement => {
+      const rect = element.getBoundingClientRect();
+
+      const topPx =
+        (rect.top - contentRect.top) / safeScale;
+
+      const bottomPx =
+        (rect.bottom - contentRect.top) / safeScale;
+
+      return {
+        role: getBlockRole(element),
+        kind: String(
+          element.dataset.reportSmartBlock || "",
+        ),
+        heightPx: round(rect.height / safeScale),
+        topPx: round(topPx),
+        bottomPx: round(bottomPx),
+        overflowPx: round(
+          Math.max(
+            0,
+            (rect.bottom - boundaryBottom) / safeScale,
+          ),
+        ),
+      };
+    },
+  );
+
+  const signatureBlocks = blocks.filter(
+    (block) => block.role === "signature",
+  );
+
+  const nonSignatureBlocks = blocks.filter(
+    (block) => block.role !== "signature",
+  );
+
+  const signatureHeightPx = signatureBlocks.reduce(
+    (sum, block) => sum + block.heightPx,
+    0,
+  );
+
+  const signatureReservedPx =
+    priorityMode === "signature" && signatureBlocks.length
+      ? signatureHeightPx + profile.signatureSafetyGapPx
+      : 0;
+
+  const mainContentBudgetPx = Math.max(
+    0,
+    usableViewportHeightPx - signatureReservedPx,
+  );
+
+  const mainContentBottomPx = nonSignatureBlocks.reduce(
+    (largest, block) =>
+      Math.max(largest, block.bottomPx),
+    0,
+  );
+
+  const mainContentOverflowPx =
+    priorityMode === "signature"
+      ? Math.max(
+          0,
+          mainContentBottomPx - mainContentBudgetPx,
+        )
+      : 0;
+
+  const blockOverflowPx = blocks.reduce(
+    (largest, block) =>
+      Math.max(largest, block.overflowPx),
+    0,
+  );
+
+  const scrollOverflowPx = Math.max(
+    0,
+    footerSafeAreaPx > 0
+      ? 0
+      : content.scrollHeight - usableViewportHeightPx,
+  );
+
+  const boundingOverflowPx = Math.max(
+    0,
+    footerSafeAreaPx > 0
+      ? 0
+      : (contentRect.bottom - boundaryBottom) / safeScale,
+  );
+
+  const overflowPx = Math.max(
+    0,
+    blockOverflowPx,
+    scrollOverflowPx,
+    boundingOverflowPx,
+    mainContentOverflowPx,
+  );
+
+  const roleHeights = {
+    fields: sumRoleHeight(blocks, "fields"),
+    evidence: sumRoleHeight(blocks, "evidence"),
+    narrative: sumRoleHeight(blocks, "narrative"),
+    table: sumRoleHeight(blocks, "table"),
+    signature: signatureHeightPx,
+    title: sumRoleHeight(blocks, "title"),
+    general: sumRoleHeight(blocks, "general"),
+  };
+
+  const dominantRole = (
+    Object.entries(roleHeights) as Array<
+      [ReportSmartA4BlockRole, number]
+    >
+  ).reduce(
+    (best, current) =>
+      current[1] > best[1] ? current : best,
+    ["general", 0] as [
+      ReportSmartA4BlockRole,
+      number,
+    ],
+  )[0];
+
+  return {
+    fits:
+      (footerSafeAreaPx <= 0 || blockOverflowPx <= 0) &&
+      overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
+
+    viewportHeightPx: round(usableViewportHeightPx),
+    contentHeightPx: round(content.scrollHeight),
+
+    overflowPx: round(overflowPx),
+
+    signatureHeightPx: round(signatureHeightPx),
+    signatureReservedPx: round(signatureReservedPx),
+
+    mainContentBottomPx: round(mainContentBottomPx),
+    mainContentBudgetPx: round(mainContentBudgetPx),
+    mainContentOverflowPx: round(mainContentOverflowPx),
+
+    fieldHeightPx: round(roleHeights.fields),
+    evidenceHeightPx: round(roleHeights.evidence),
+    narrativeHeightPx: round(roleHeights.narrative),
+    tableHeightPx: round(roleHeights.table),
+
+    dominantRole,
+
+    blocks,
+  };
+}
+
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-planner.ts
+================================================================
+
+import type {
+  ReportSmartA4Mode,
+  ReportSmartA4Profile,
+} from "./report-smart-a4-config";
+
+import type {
+  ReportSmartA4BlockRole,
+  ReportSmartA4Measurement,
+} from "./report-smart-a4-measure";
+
+export type ReportSmartA4FieldLayout =
+  | "comfortable"
+  | "packed"
+  | "inline";
+
+export type ReportSmartA4OverflowSeverity =
+  | "none"
+  | "tiny"
+  | "small"
+  | "medium"
+  | "large";
+
+export type ReportSmartA4Candidate = {
+  id: string;
+  mode: ReportSmartA4Mode;
+  fieldLayout: ReportSmartA4FieldLayout;
+};
+
+export type ReportSmartA4EvaluatedCandidate = {
+  candidate: ReportSmartA4Candidate;
+  profile: ReportSmartA4Profile;
+  measurement: ReportSmartA4Measurement;
+  score: number;
+};
+
+export type ReportSmartA4Plan = {
+  candidateId: string;
+
+  mode: ReportSmartA4Mode;
+  fieldLayout: ReportSmartA4FieldLayout;
+
+  fits: boolean;
+  score: number;
+
+  severity: ReportSmartA4OverflowSeverity;
+  dominantRole: ReportSmartA4BlockRole;
+
+  overflowPx: number;
+
+  preferEvidenceMove: boolean;
+};
+
+/*
+ * ترتيب التجربة مقصود:
+ *
+ * 1. نحافظ على typography الطبيعية.
+ * 2. نعيد توزيع الحقول أولًا.
+ * 3. نقلل فراغات الحقول أكثر.
+ * 4. بعدها فقط نبدأ بتقليل كثافة النص العامة.
+ *
+ * لا نحتاج 12 خطة لأن هذا سيجعل ResizeObserver مكلفًا جدًا.
+ */
+export const REPORT_SMART_A4_CANDIDATES:
+  readonly ReportSmartA4Candidate[] = [
+  {
+    id: "normal-comfortable",
+    mode: "normal",
+    fieldLayout: "comfortable",
+  },
+  {
+    id: "normal-packed",
+    mode: "normal",
+    fieldLayout: "packed",
+  },
+  {
+    id: "compact-packed",
+    mode: "compact",
+    fieldLayout: "packed",
+  },
+  {
+    id: "normal-inline",
+    mode: "normal",
+    fieldLayout: "inline",
+  },
+  {
+    id: "compact-inline",
+    mode: "compact",
+    fieldLayout: "inline",
+  },
+  {
+    id: "dense-packed",
+    mode: "dense",
+    fieldLayout: "packed",
+  },
+  {
+    id: "dense-inline",
+    mode: "dense",
+    fieldLayout: "inline",
+  },
+  {
+    id: "minimum-safe-packed",
+    mode: "minimum-safe",
+    fieldLayout: "packed",
+  },
+  {
+    id: "minimum-safe-inline",
+    mode: "minimum-safe",
+    fieldLayout: "inline",
+  },
+] as const;
+
+export function getReportSmartA4OverflowSeverity(
+  overflowPx: number,
+): ReportSmartA4OverflowSeverity {
+  if (overflowPx <= 2) return "none";
+  if (overflowPx <= 12) return "tiny";
+  if (overflowPx <= 48) return "small";
+  if (overflowPx <= 120) return "medium";
+  return "large";
+}
+
+function getModeReadabilityScore(
+  mode: ReportSmartA4Mode,
+) {
+  switch (mode) {
+    case "normal":
+      return 100;
+
+    case "compact":
+      return 88;
+
+    case "dense":
+      return 69;
+
+    case "minimum-safe":
+      return 50;
+
+    default:
+      return 50;
+  }
+}
+
+function getFieldLayoutScore(
+  layout: ReportSmartA4FieldLayout,
+) {
+  switch (layout) {
+    /*
+     * Preferred production layout:
+     * compact, formal and easy to scan.
+     */
+    case "packed":
+      return 8;
+
+    /*
+     * Comfortable remains valid for very short reports.
+     */
+    case "comfortable":
+      return 10;
+
+    /*
+     * Inline is a last-resort space saver.
+     * Do not select it merely because it saves a few pixels.
+     */
+    case "inline":
+      return -8;
+
+    default:
+      return -20;
+  }
+}
+
+export function scoreReportSmartA4Candidate(
+  candidate: ReportSmartA4Candidate,
+  measurement: ReportSmartA4Measurement,
+) {
+  const fitScore =
+    measurement.fits ? 1000 : 0;
+
+  const readability =
+    getModeReadabilityScore(
+      candidate.mode,
+    );
+
+  const fieldLayoutScore =
+    getFieldLayoutScore(
+      candidate.fieldLayout,
+    );
+
+  /*
+   * إذا الخطة لا تدخل الصفحة نعاقب مقدار overflow.
+   * هذا يسمح باختيار أقرب خطة آمنة في حالة عدم نجاح أي خطة.
+   */
+  const overflowPenalty =
+    Math.min(
+      700,
+      measurement.overflowPx * 2.2,
+    );
+
+  /*
+   * إذا الحقول تستهلك جزءًا كبيرًا من الصفحة،
+   * packed/inline يصبحان أكثر منطقية.
+   */
+  const fieldRatio =
+    measurement.fieldHeightPx /
+    Math.max(
+      1,
+      measurement.viewportHeightPx,
+    );
+
+  const fieldEfficiencyBonus =
+    fieldRatio >= 0.28 &&
+    candidate.fieldLayout !==
+      "comfortable"
+      ? 5
+      : 0;
+
+  return (
+    fitScore +
+    readability +
+    fieldLayoutScore +
+    fieldEfficiencyBonus -
+    overflowPenalty
+  );
+}
+
+export function chooseReportSmartA4Plan(
+  evaluated:
+    ReportSmartA4EvaluatedCandidate[],
+): ReportSmartA4Plan {
+  if (!evaluated.length) {
+    return {
+      candidateId:
+        "minimum-safe-inline",
+
+      mode: "minimum-safe",
+      fieldLayout: "inline",
+
+      fits: false,
+      score: 0,
+
+      severity: "large",
+      dominantRole: "general",
+
+      overflowPx: 0,
+
+      preferEvidenceMove: false,
+    };
+  }
+
+  const fitting =
+    evaluated.filter(
+      (item) =>
+        item.measurement.fits,
+    );
+
+  const pool =
+    fitting.length
+      ? fitting
+      : evaluated;
+
+  const selected = [...pool].sort(
+    (a, b) => b.score - a.score,
+  )[0];
+
+  const measurement =
+    selected.measurement;
+
+  const severity =
+    getReportSmartA4OverflowSeverity(
+      measurement.overflowPx,
+    );
+
+  /*
+   * إذا التقرير لا يدخل إلا بعد dense/minimum-safe
+   * بينما يوجد شاهد في الصفحة، نفضل نقل الشاهد أولًا.
+   *
+   * هذا هو التغيير المهم:
+   * جودة النص والتوقيع أعلى أولوية من إبقاء كل الصور
+   * في الصفحة الرئيسية.
+   */
+  const aggressiveDensity =
+    selected.candidate.mode ===
+      "dense" ||
+    selected.candidate.mode ===
+      "minimum-safe";
+
+  const hasEvidence =
+    measurement.evidenceHeightPx > 0;
+
+  const preferEvidenceMove =
+    hasEvidence &&
+    (
+      !measurement.fits ||
+      aggressiveDensity
+    );
+
+  return {
+    candidateId:
+      selected.candidate.id,
+
+    mode:
+      selected.candidate.mode,
+
+    fieldLayout:
+      selected.candidate
+        .fieldLayout,
+
+    fits:
+      measurement.fits,
+
+    score:
+      Math.round(
+        selected.score * 10,
+      ) / 10,
+
+    severity,
+
+    dominantRole:
+      measurement.dominantRole,
+
+    overflowPx:
+      measurement.overflowPx,
+
+    preferEvidenceMove,
+  };
+}
+
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+================================================================
+
+"use client";
+
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  getReportSmartA4Profile,
+  getReportSmartA4StyleVariables,
+  type ReportSmartA4Mode,
+  type ReportSmartA4PriorityMode,
+  type ReportSmartA4Profile,
+} from "./report-smart-a4-config";
+
+import {
+  measureReportSmartA4Layout,
+  type ReportSmartA4BlockRole,
+} from "./report-smart-a4-measure";
+
+import {
+  REPORT_SMART_A4_CANDIDATES,
+  chooseReportSmartA4Plan,
+  scoreReportSmartA4Candidate,
+  type ReportSmartA4FieldLayout,
+  type ReportSmartA4OverflowSeverity,
+  type ReportSmartA4EvaluatedCandidate,
+} from "./report-smart-a4-planner";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  roundLayoutMetric,
+  useReportSmartSemanticFingerprint,
+} from "./report-smart-lifecycle";
+
+type ReportSmartA4LifecyclePhase =
+  | "MEASURING"
+  | "STABILIZING"
+  | "FROZEN";
+
+const MAX_SMART_A4_MEASUREMENT_ATTEMPTS = 8;
+
+export type ReportSmartA4LayoutResult = {
+  mode: ReportSmartA4Mode;
+  fieldLayout: ReportSmartA4FieldLayout;
+
+  fits: boolean;
+  needsOverflowPage: boolean;
+
+  overflowPx: number;
+
+  signatureHeightPx: number;
+  signatureReservedPx: number;
+
+  dominantRole: ReportSmartA4BlockRole;
+  severity: ReportSmartA4OverflowSeverity;
+
+  candidateId: string;
+  score: number;
+
+  preferEvidenceMove: boolean;
+};
+
+type ReportSmartA4ContentRegionProps = {
+  children: ReactNode;
+
+  heightMm: number;
+  footerSafeAreaMm?: number;
+
+  className?: string;
+  contentClassName?: string;
+
+  layoutKey?: string | number;
+
+  priorityMode?: ReportSmartA4PriorityMode;
+
+  onLayoutResult?: (
+    result: ReportSmartA4LayoutResult,
+  ) => void;
+};
+
+const INITIAL_RESULT: ReportSmartA4LayoutResult = {
+  mode: "normal",
+  fieldLayout: "comfortable",
+
+  fits: true,
+  needsOverflowPage: false,
+
+  overflowPx: 0,
+
+  signatureHeightPx: 0,
+  signatureReservedPx: 0,
+
+  dominantRole: "general",
+  severity: "none",
+
+  candidateId:
+    "normal-comfortable",
+
+  score: 0,
+
+  preferEvidenceMove: false,
+};
+
+const SMART_A4_ENGINE_CSS = `
+  /*
+   * =========================================================
+   * GENERIC SMART FIELD GRID
+   * =========================================================
+   */
+
+  .report-smart-a4-content
+  .report-smart-field-grid {
+    display: grid !important;
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr)) !important;
+    align-items: stretch;
+  }
+
+  /*
+   * Comfortable:
+   * نحافظ على شكل البطاقات الواسع.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+  /*
+   * Packed:
+   * القيم القصيرة تصبح ربع صف.
+   * المتوسط نصف صف.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-item[data-smart-field-kind="short"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-item[data-smart-field-kind="medium"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-item[data-smart-field-kind="list"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+
+  /*
+   * =========================================================
+   * SMART FIELD RENDERER
+   * =========================================================
+   *
+   * Elegant official information table.
+   *
+   * Goals:
+   * - preserve the compact horizontal packing
+   * - make labels/values immediately understandable
+   * - avoid the previous card-heavy vertical footprint
+   * - keep long/list fields readable
+   */
+
+  .report-smart-a4-content
+  .report-smart-field-grid {
+    display: grid !important;
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr)) !important;
+
+    align-items: stretch;
+
+    overflow: hidden;
+
+    border:
+      1px solid
+      #cbd5e1;
+
+    border-radius:
+      10px;
+
+    background:
+      #ffffff;
+
+    gap: 0 !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item {
+    min-width: 0;
+
+    border-inline-start:
+      1px solid
+      #dbe4ec;
+
+    border-bottom:
+      1px solid
+      #dbe4ec;
+
+    background:
+      #ffffff;
+  }
+
+  /*
+   * Remove doubled outer borders visually.
+   */
+  .report-smart-a4-content
+  .report-smart-field-item:nth-child(4n + 1) {
+    border-inline-start: 0;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * FIELD WIDTH POLICY
+   * ---------------------------------------------------------
+   */
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content
+  .report-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * BASE CELL
+   * ---------------------------------------------------------
+   */
+
+  .report-smart-a4-content
+  .report-smart-meta-card {
+    display: flex;
+    flex-direction: column;
+
+    height: 100%;
+    min-height: 0;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    background:
+      transparent !important;
+
+    padding: 0 !important;
+  }
+
+  /*
+   * Label becomes a small official header strip.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-label {
+    display: flex;
+    align-items: center;
+
+    min-height:
+      calc(
+        21px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.22rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    border-bottom:
+      1px solid
+      #edf1f5;
+
+    background:
+      #f8fafc;
+
+    color:
+      #64748b !important;
+
+    font-weight: 800 !important;
+
+    line-height: 1.25 !important;
+
+    white-space: normal;
+  }
+
+  /*
+   * Value area.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-value {
+    display: flex;
+    align-items: center;
+
+    flex: 1 1 auto;
+
+    min-height:
+      calc(
+        25px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.28rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    color:
+      #0f172a !important;
+
+    font-weight: 800 !important;
+
+    line-height:
+      var(
+        --report-content-line-height,
+        1.5
+      ) !important;
+
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * Lists stay stacked and readable.
+   */
+  .report-smart-a4-content
+  .report-smart-meta-list {
+    flex: 1 1 auto;
+
+    margin: 0 !important;
+
+    padding-inline:
+      calc(
+        0.55rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.3rem *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    color:
+      #0f172a !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-meta-list-item {
+    line-height:
+      1.45 !important;
+  }
+
+  .report-smart-a4-content
+  .report-smart-meta-bullet {
+    width: 4px !important;
+    height: 4px !important;
+
+    margin-top:
+      0.55em !important;
+
+    background:
+      #0ea5a4 !important;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * PACKED
+   * ---------------------------------------------------------
+   *
+   * Preferred default.
+   * Formal table appearance with excellent space economy.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-field-grid {
+    border-color:
+      #cbd5e1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-meta-label {
+    background:
+      #f8fafc;
+
+    min-height:
+      calc(
+        19px *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        23px *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * COMFORTABLE
+   * ---------------------------------------------------------
+   *
+   * Same table identity but slightly more breathing room.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-meta-label {
+    min-height:
+      calc(
+        23px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.32rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        29px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.4rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * INLINE
+   * ---------------------------------------------------------
+   *
+   * Emergency high-density mode.
+   *
+   * Still looks like a proper table cell rather than loose text.
+   * Short/medium fields display:
+   *
+   * label | value
+   *
+   * Long/list fields remain vertically stacked.
+   */
+
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-card,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-card {
+    display: grid;
+
+    grid-template-columns:
+      minmax(64px, auto)
+      minmax(0, 1fr);
+
+    align-items: stretch;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-label,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-label {
+    min-height:
+      calc(
+        27px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    border-bottom: 0;
+
+    border-inline-end:
+      1px solid
+      #e2e8f0;
+
+    background:
+      #f8fafc;
+
+    white-space: normal;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="short"]
+  .report-smart-meta-value,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="medium"]
+  .report-smart-meta-value {
+    min-height:
+      calc(
+        27px *
+        var(--report-field-spacing-scale, 1)
+      );
+
+    padding-block:
+      calc(
+        0.2rem *
+        var(--report-field-spacing-scale, 1)
+      );
+  }
+
+  /*
+   * Long/list items remain stacked even in inline mode.
+   */
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="long"]
+  .report-smart-meta-card,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-smart-field-item[data-smart-field-kind="list"]
+  .report-smart-meta-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * PRINT
+   * ---------------------------------------------------------
+   */
+
+  @media print {
+    .report-smart-a4-content
+    .report-smart-field-grid {
+      border-color:
+        #b8c4cf;
+
+      print-color-adjust:
+        exact;
+
+      -webkit-print-color-adjust:
+        exact;
+    }
+
+    .report-smart-a4-content
+    .report-smart-meta-label {
+      background:
+        #f3f6f8 !important;
+
+      print-color-adjust:
+        exact;
+
+      -webkit-print-color-adjust:
+        exact;
+    }
+  }
+  /*
+   * =========================================================
+   * CLASSIC FORMAL TABLE GRID
+   * =========================================================
+   */
+
+  .report-smart-a4-content
+  .report-classic-smart-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+    gap:
+      calc(
+        2.6mm *
+        var(--report-field-spacing-scale, 1)
+      );
+    align-items: stretch;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-classic-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-classic-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="comfortable"]
+  .report-classic-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-classic-smart-field-item[data-smart-field-kind="short"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-classic-smart-field-item[data-smart-field-kind="short"] {
+    grid-column: span 1;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+    grid-column: span 2;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-classic-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .report-classic-smart-field-item[data-smart-field-kind="list"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-classic-smart-field-item[data-smart-field-kind="long"],
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .report-classic-smart-field-item[data-smart-field-kind="list"] {
+    grid-column: span 4;
+  }
+
+  /*
+   * =========================================================
+   * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+   * =========================================================
+   *
+   * MOE 2024 keeps its original visual identity.
+   * We only reduce wasted vertical height and allow two-column
+   * packing for non-wide values.
+   */
+
+  .report-smart-a4-content
+  .moe24-report-detail-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .report-smart-a4-content
+  .moe24-report-field:not(.moe24-report-field-wide) {
+    grid-column: span 1 !important;
+  }
+
+  .report-smart-a4-content
+  .moe24-report-field-wide {
+    grid-column: 1 / -1 !important;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .moe24-report-details-panel,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .moe24-report-details-panel {
+    padding:
+      calc(
+        2.8mm *
+        var(--report-field-spacing-scale, 1)
+      ) !important;
+  }
+
+  .report-smart-a4-content[data-report-field-layout="packed"]
+  .moe24-report-detail-grid,
+  .report-smart-a4-content[data-report-field-layout="inline"]
+  .moe24-report-detail-grid {
+    row-gap:
+      calc(
+        1.2mm *
+        var(--report-field-spacing-scale, 1)
+      ) !important;
+
+    column-gap:
+      calc(
+        2.2mm *
+        var(--report-field-spacing-scale, 1)
+      ) !important;
+  }
+  /*
+   * =========================================================
+   * EVIDENCE
+   * =========================================================
+   */
+
+  .report-smart-a4-content
+  [data-report-smart-block="evidence-gallery"] img {
+    max-height:
+      var(
+        --report-evidence-max-height,
+        78mm
+      ) !important;
+  }
+
+  .report-smart-a4-content
+  [data-report-smart-block="evidence-gallery"]
+  .report-design-evidence-fallback {
+    max-height:
+      var(
+        --report-evidence-max-height,
+        78mm
+      ) !important;
+  }
+
+  /*
+   * =========================================================
+   * SIGNATURE
+   * =========================================================
+   */
+
+  .report-smart-a4-content
+  [data-report-priority-block="signature"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+`;
+
+function applyProfile(
+  element: HTMLElement,
+  profile: ReportSmartA4Profile,
+) {
+  const variables =
+    getReportSmartA4StyleVariables(
+      profile,
+    );
+
+  Object.entries(
+    variables,
+  ).forEach(
+    ([property, value]) => {
+      element.style.setProperty(
+        property,
+        String(value),
+      );
+    },
+  );
+}
+
+function applyCandidate(
+  viewport: HTMLElement,
+  profile: ReportSmartA4Profile,
+  fieldLayout:
+    ReportSmartA4FieldLayout,
+) {
+  applyProfile(
+    viewport,
+    profile,
+  );
+
+  viewport.dataset.reportDensity =
+    profile.mode;
+
+  viewport.dataset.reportFieldLayout =
+    fieldLayout;
+}
+
+function nextAnimationFrame() {
+  return new Promise<void>(
+    (resolve) => {
+      window.requestAnimationFrame(
+        () => resolve(),
+      );
+    },
+  );
+}
+
+function sameResult(
+  current: ReportSmartA4LayoutResult,
+  next: ReportSmartA4LayoutResult,
+) {
+  return (
+    current.mode === next.mode &&
+    current.fieldLayout ===
+      next.fieldLayout &&
+    current.fits === next.fits &&
+    current.needsOverflowPage ===
+      next.needsOverflowPage &&
+    current.overflowPx ===
+      next.overflowPx &&
+    current.signatureHeightPx ===
+      next.signatureHeightPx &&
+    current.signatureReservedPx ===
+      next.signatureReservedPx &&
+    current.dominantRole ===
+      next.dominantRole &&
+    current.severity ===
+      next.severity &&
+    current.candidateId ===
+      next.candidateId &&
+    current.score === next.score &&
+    current.preferEvidenceMove ===
+      next.preferEvidenceMove
+  );
+}
+
+export function ReportSmartA4ContentRegion({
+  children,
+  heightMm,
+  footerSafeAreaMm = 0,
+  className = "",
+  contentClassName = "",
+  layoutKey,
+  priorityMode = "signature",
+  onLayoutResult,
+}: ReportSmartA4ContentRegionProps) {
+  const inheritedSemanticFingerprint =
+    useReportSmartSemanticFingerprint();
+
+  const semanticInputFingerprint =
+    createSemanticInputFingerprint({
+      inheritedSemanticFingerprint,
+      heightMm,
+      footerSafeAreaMm,
+      layoutKey: layoutKey ?? null,
+      priorityMode,
+    });
+
+  const viewportRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
+  const contentRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
+  const scheduledFrameRef =
+    useRef<number | null>(null);
+
+  const scheduleMeasurementRef =
+    useRef<() => void>(() => undefined);
+
+  const runIdRef =
+    useRef(0);
+
+  const measuringRef =
+    useRef(false);
+
+  const frozenRef =
+    useRef(false);
+
+  const rerunRequestedRef =
+    useRef(false);
+
+  const fontsSettledRef =
+    useRef(false);
+
+  const settledAssetSourcesRef =
+    useRef(new Set<string>());
+
+  const resizeFingerprintRef =
+    useRef("");
+
+  const stabilizationRef = useRef({
+    fingerprint: "",
+    stablePasses: 0,
+    attempts: 0,
+  });
+
+  const resultRef =
+    useRef(INITIAL_RESULT);
+
+  const onLayoutResultRef =
+    useRef(onLayoutResult);
+
+  const [result, setResult] =
+    useState(INITIAL_RESULT);
+
+  const [layoutPhase, setLayoutPhase] =
+    useState<ReportSmartA4LifecyclePhase>("MEASURING");
+
+  useEffect(() => {
+    onLayoutResultRef.current =
+      onLayoutResult;
+  }, [onLayoutResult]);
+
+  const runMeasurement =
+    useCallback(async () => {
+      const viewport =
+        viewportRef.current;
+
+      const content =
+        contentRef.current;
+
+      if (
+        !viewport ||
+        !content ||
+        measuringRef.current ||
+        frozenRef.current ||
+        !fontsSettledRef.current
+      ) {
+        return;
+      }
+
+      measuringRef.current = true;
+      rerunRequestedRef.current = false;
+      setLayoutPhase("MEASURING");
+
+      const runId =
+        ++runIdRef.current;
+
+      try {
+        const evaluated:
+          ReportSmartA4EvaluatedCandidate[] =
+          [];
+
+        /*
+         * -----------------------------------------------------
+         * PLAN EXPLORATION
+         * -----------------------------------------------------
+         *
+         * كل Candidate يطبق فعلًا على DOM ثم يقاس.
+         * لا نعتمد على تقدير عدد الأحرف فقط.
+         */
+        for (
+          const candidate of
+          REPORT_SMART_A4_CANDIDATES
+        ) {
+          const profile =
+            getReportSmartA4Profile(
+              candidate.mode,
+            );
+
+          applyCandidate(
+            viewport,
+            profile,
+            candidate.fieldLayout,
+          );
+
+          await nextAnimationFrame();
+          await nextAnimationFrame();
+
+          if (
+            runId !== runIdRef.current
+          ) {
+            return;
+          }
+
+          const measurement =
+            measureReportSmartA4Layout(
+              viewport,
+              content,
+              priorityMode,
+              profile,
+            );
+
+          const score =
+            scoreReportSmartA4Candidate(
+              candidate,
+              measurement,
+            );
+
+          evaluated.push({
+            candidate,
+            profile,
+            measurement,
+            score,
+          });
+        }
+
+        if (
+          runId !== runIdRef.current ||
+          !evaluated.length
+        ) {
+          return;
+        }
+
+        const plan =
+          chooseReportSmartA4Plan(
+            evaluated,
+          );
+
+        const selected =
+          evaluated.find(
+            (item) =>
+              item.candidate.id ===
+              plan.candidateId,
+          ) || evaluated[
+            evaluated.length - 1
+          ];
+
+        /*
+         * تثبيت الخطة الفائزة فقط بعد انتهاء جميع القياسات.
+         */
+        applyCandidate(
+          viewport,
+          selected.profile,
+          selected.candidate
+            .fieldLayout,
+        );
+
+        await nextAnimationFrame();
+
+        if (
+          runId !== runIdRef.current
+        ) {
+          return;
+        }
+
+        /*
+         * قياس نهائي بعد تثبيت الخطة الفائزة.
+         * هذا يمنع اختلاف القياس بسبب frame وسيط.
+         */
+        const finalMeasurement =
+          measureReportSmartA4Layout(
+            viewport,
+            content,
+            priorityMode,
+            selected.profile,
+          );
+
+        const finalScore =
+          scoreReportSmartA4Candidate(
+            selected.candidate,
+            finalMeasurement,
+          );
+
+        const finalPlan =
+          chooseReportSmartA4Plan([
+            {
+              candidate:
+                selected.candidate,
+              profile:
+                selected.profile,
+              measurement:
+                finalMeasurement,
+              score:
+                finalScore,
+            },
+          ]);
+
+        const nextResult:
+          ReportSmartA4LayoutResult = {
+          mode:
+            selected.candidate.mode,
+
+          fieldLayout:
+            selected.candidate
+              .fieldLayout,
+
+          fits:
+            finalMeasurement.fits,
+
+          needsOverflowPage:
+            !finalMeasurement.fits,
+
+          overflowPx:
+            finalMeasurement
+              .overflowPx,
+
+          signatureHeightPx:
+            finalMeasurement
+              .signatureHeightPx,
+
+          signatureReservedPx:
+            finalMeasurement
+              .signatureReservedPx,
+
+          dominantRole:
+            finalMeasurement
+              .dominantRole,
+
+          severity:
+            finalPlan.severity,
+
+          candidateId:
+            selected.candidate.id,
+
+          score:
+            Math.round(
+              finalScore * 10,
+            ) / 10,
+
+          /*
+           * Important:
+           * preserve decision from ALL candidate evaluation.
+           * If the best overall fit required aggressive density,
+           * Composer may move evidence and let us re-plan.
+           */
+          preferEvidenceMove:
+            plan.preferEvidenceMove,
+        };
+
+        const unsettledImages = Array.from(
+          content.querySelectorAll<HTMLImageElement>("img"),
+        ).filter((image) => !image.complete);
+
+        if (unsettledImages.length > 0) {
+          setLayoutPhase("MEASURING");
+          return;
+        }
+
+        content
+          .querySelectorAll<HTMLImageElement>("img")
+          .forEach((image) => {
+            const source = image.currentSrc || image.src;
+            if (source) {
+              settledAssetSourcesRef.current.add(source);
+            }
+          });
+
+        const layoutResultFingerprint =
+          createSemanticInputFingerprint({
+            candidateId: nextResult.candidateId,
+            dominantRole: nextResult.dominantRole,
+            fieldLayout: nextResult.fieldLayout,
+            fits: nextResult.fits,
+            mode: nextResult.mode,
+            overflowPx: roundLayoutMetric(nextResult.overflowPx),
+            preferEvidenceMove: nextResult.preferEvidenceMove,
+            signatureHeightPx: roundLayoutMetric(
+              nextResult.signatureHeightPx,
+            ),
+            signatureReservedPx: roundLayoutMetric(
+              nextResult.signatureReservedPx,
+            ),
+          });
+
+        const previousStability = stabilizationRef.current;
+        const stablePasses =
+          previousStability.fingerprint === layoutResultFingerprint
+            ? previousStability.stablePasses + 1
+            : 1;
+        const attempts = previousStability.attempts + 1;
+
+        stabilizationRef.current = {
+          fingerprint: layoutResultFingerprint,
+          stablePasses,
+          attempts,
+        };
+
+        if (process.env.NODE_ENV === "development") {
+          viewport.dataset.smartA4LayoutFingerprint =
+            getFingerprintPrefix(layoutResultFingerprint);
+          viewport.dataset.smartA4StablePasses = String(stablePasses);
+          viewport.dataset.smartA4Attempts = String(attempts);
+        }
+
+        viewport.dataset
+          .smartA4DominantRole =
+          nextResult.dominantRole;
+
+        viewport.dataset
+          .smartA4Severity =
+          nextResult.severity;
+
+        viewport.dataset
+          .smartA4Candidate =
+          nextResult.candidateId;
+
+        viewport.dataset
+          .smartA4Score =
+          String(nextResult.score);
+
+        viewport.dataset
+          .smartA4PreferEvidenceMove =
+          String(
+            nextResult
+              .preferEvidenceMove,
+          );
+
+        viewport.dataset
+          .smartA4SignatureProtected =
+          String(
+            nextResult
+              .signatureHeightPx > 0,
+          );
+
+        if (
+          !sameResult(
+            resultRef.current,
+            nextResult,
+          )
+        ) {
+          resultRef.current =
+            nextResult;
+
+          setResult(nextResult);
+
+          onLayoutResultRef.current?.(
+            nextResult,
+          );
+        }
+
+        if (
+          stablePasses >= 2 ||
+          attempts >= MAX_SMART_A4_MEASUREMENT_ATTEMPTS
+        ) {
+          frozenRef.current = true;
+          rerunRequestedRef.current = false;
+          setLayoutPhase("FROZEN");
+        } else {
+          rerunRequestedRef.current = true;
+          setLayoutPhase("STABILIZING");
+        }
+      } finally {
+        measuringRef.current =
+          false;
+      }
+    }, [priorityMode]);
+
+  const scheduleMeasurement =
+    useCallback(() => {
+      if (
+        frozenRef.current ||
+        measuringRef.current ||
+        scheduledFrameRef.current !==
+          null
+      ) {
+        return;
+      }
+
+      scheduledFrameRef.current =
+        window.requestAnimationFrame(
+          () => {
+            scheduledFrameRef.current =
+              null;
+
+            void runMeasurement().finally(() => {
+              if (
+                rerunRequestedRef.current &&
+                !frozenRef.current
+              ) {
+                rerunRequestedRef.current = false;
+                scheduleMeasurementRef.current();
+              }
+            });
+          },
+        );
+    }, [runMeasurement]);
+
+  useLayoutEffect(() => {
+    scheduleMeasurementRef.current = scheduleMeasurement;
+
+    return () => {
+      scheduleMeasurementRef.current = () => undefined;
+    };
+  }, [scheduleMeasurement]);
+
+  useLayoutEffect(() => {
+    runIdRef.current += 1;
+    frozenRef.current = false;
+    rerunRequestedRef.current = false;
+    resizeFingerprintRef.current = "";
+    settledAssetSourcesRef.current.clear();
+    stabilizationRef.current = {
+      fingerprint: "",
+      stablePasses: 0,
+      attempts: 0,
+    };
+    resultRef.current = INITIAL_RESULT;
+    setResult(INITIAL_RESULT);
+    setLayoutPhase("MEASURING");
+
+    scheduleMeasurement();
+
+    return () => {
+      runIdRef.current += 1;
+
+      if (scheduledFrameRef.current !== null) {
+        window.cancelAnimationFrame(scheduledFrameRef.current);
+        scheduledFrameRef.current = null;
+      }
+    };
+  }, [
+    semanticInputFingerprint,
+    scheduleMeasurement,
+  ]);
+
+  useEffect(() => {
+    const viewport =
+      viewportRef.current;
+
+    const content =
+      contentRef.current;
+
+    if (
+      !viewport ||
+      !content
+    ) {
+      return;
+    }
+
+    const handleResize = () => {
+      if (frozenRef.current) {
+        return;
+      }
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const nextResizeFingerprint = [
+        roundLayoutMetric(viewportRect.width),
+        roundLayoutMetric(viewportRect.height),
+        roundLayoutMetric(contentRect.width),
+        roundLayoutMetric(contentRect.height),
+        roundLayoutMetric(content.scrollHeight),
+      ].join(":");
+
+      if (resizeFingerprintRef.current === nextResizeFingerprint) {
+        return;
+      }
+
+      resizeFingerprintRef.current = nextResizeFingerprint;
+      scheduleMeasurement();
+    };
+
+    const resizeObserver =
+      new ResizeObserver(handleResize);
+
+    const mutationObserver =
+      new MutationObserver(() => {
+        if (frozenRef.current) {
+          return;
+        }
+
+        scheduleMeasurement();
+      });
+
+    const handleLoadedAsset =
+      (event: Event) => {
+        if (frozenRef.current) {
+          return;
+        }
+
+        const image =
+          event.target instanceof HTMLImageElement
+            ? event.target
+            : null;
+        const source = image?.currentSrc || image?.src || "";
+
+        if (
+          source &&
+          settledAssetSourcesRef.current.has(source)
+        ) {
+          return;
+        }
+
+        if (source) {
+          settledAssetSourcesRef.current.add(source);
+        }
+
+        scheduleMeasurement();
+      };
+
+    resizeObserver.observe(
+      viewport,
+    );
+
+    resizeObserver.observe(
+      content,
+    );
+
+    mutationObserver.observe(
+      content,
+      {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      },
+    );
+
+    content.addEventListener(
+      "load",
+      handleLoadedAsset,
+      true,
+    );
+
+    content.addEventListener(
+      "error",
+      handleLoadedAsset,
+      true,
+    );
+
+    window.addEventListener(
+      "resize",
+      handleResize,
+    );
+
+    if (!document.fonts) {
+      fontsSettledRef.current = true;
+      scheduleMeasurement();
+    } else if (fontsSettledRef.current) {
+      scheduleMeasurement();
+    } else {
+      void document.fonts.ready
+        .then(() => {
+          if (!fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            scheduleMeasurement();
+          }
+        })
+        .catch(() => {
+          fontsSettledRef.current = true;
+          scheduleMeasurement();
+        });
+    }
+
+    return () => {
+      runIdRef.current += 1;
+
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+
+      content.removeEventListener(
+        "load",
+        handleLoadedAsset,
+        true,
+      );
+
+      content.removeEventListener(
+        "error",
+        handleLoadedAsset,
+        true,
+      );
+
+      window.removeEventListener(
+        "resize",
+        handleResize,
+      );
+
+      if (
+        scheduledFrameRef.current !==
+        null
+      ) {
+        window.cancelAnimationFrame(
+          scheduledFrameRef.current,
+        );
+
+        scheduledFrameRef.current =
+          null;
+      }
+    };
+  }, [scheduleMeasurement, semanticInputFingerprint]);
+
+  const selectedProfile =
+    getReportSmartA4Profile(
+      result.mode,
+    );
+
+  const selectedVariables =
+    getReportSmartA4StyleVariables(
+      selectedProfile,
+    );
+
+  const viewportStyle = {
+    ...selectedVariables,
+
+    height: `${heightMm}mm`,
+    minHeight: `${heightMm}mm`,
+    maxHeight: `${heightMm}mm`,
+
+    overflow:
+      result.needsOverflowPage
+        ? "visible"
+        : "hidden",
+  } as CSSProperties;
+
+  const developmentDiagnostics =
+    process.env.NODE_ENV ===
+    "development"
+      ? {
+          "data-smart-a4-semantic-fingerprint":
+            getFingerprintPrefix(semanticInputFingerprint),
+
+          "data-smart-a4-mode":
+            result.mode,
+
+          "data-smart-a4-field-layout":
+            result.fieldLayout,
+
+          "data-smart-a4-fits":
+            String(result.fits),
+
+          "data-smart-a4-overflow-px":
+            String(
+              result.overflowPx,
+            ),
+
+          "data-smart-a4-needs-overflow-page":
+            String(
+              result
+                .needsOverflowPage,
+            ),
+
+          "data-smart-a4-signature-height-px":
+            String(
+              result
+                .signatureHeightPx,
+            ),
+
+          "data-smart-a4-signature-reserved-px":
+            String(
+              result
+                .signatureReservedPx,
+            ),
+
+          "data-smart-a4-dominant-role":
+            result.dominantRole,
+
+          "data-smart-a4-severity":
+            result.severity,
+
+          "data-smart-a4-candidate":
+            result.candidateId,
+
+          "data-smart-a4-score":
+            String(
+              result.score,
+            ),
+        }
+      : {};
+
+  return (
+    <div
+      ref={viewportRef}
+      className={[
+        "report-smart-a4-content relative",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={viewportStyle}
+      data-report-density={
+        result.mode
+      }
+      data-report-field-layout={
+        result.fieldLayout
+      }
+      data-report-overflow={
+        result.needsOverflowPage
+          ? "minimum-overflow"
+          : "fit"
+      }
+      data-smart-a4-overflow-px={
+        result.overflowPx
+      }
+      data-smart-a4-dominant-role={
+        result.dominantRole
+      }
+      data-smart-a4-severity={
+        result.severity
+      }
+      data-smart-a4-candidate={
+        result.candidateId
+      }
+      data-smart-a4-score={
+        result.score
+      }
+      data-smart-a4-prefer-evidence-move={
+        String(
+          result
+            .preferEvidenceMove,
+        )
+      }
+      data-smart-a4-signature-reserved-px={
+        result.signatureReservedPx
+      }
+      data-report-footer-safe-area-mm={footerSafeAreaMm}
+      data-smart-a4-phase={layoutPhase}
+      {...developmentDiagnostics}
+    >
+      <style>
+        {SMART_A4_ENGINE_CSS}
+      </style>
+
+      <div
+        ref={contentRef}
+        className={[
+          "min-h-full",
+          contentClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-report-smart-content
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+
+================================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-config.ts
+================================================================
+
+import type { CSSProperties } from "react";
+
+export const REPORT_SMART_A4_MODES = [
+  "normal",
+  "compact",
+  "dense",
+  "minimum-safe",
+] as const;
+
+export type ReportSmartA4Mode = (typeof REPORT_SMART_A4_MODES)[number];
+export type ReportSmartA4PriorityMode = "signature" | "general";
+
+/** Hard bottom buffer used by every Smart A4 content region. */
+export const REPORT_SMART_A4_DEFAULT_FOOTER_SAFE_AREA_MM = 5;
+
+export type ReportSmartA4Profile = {
+  mode: ReportSmartA4Mode;
+
+  contentScale: number;
+
+  blockGapRem: number;
+  sectionGapRem: number;
+  paragraphGapRem: number;
+
+  contentLineHeight: number;
+  narrativeLineHeight: number;
+  narrativeDensityScale: number;
+  contentFontScale: number;
+
+  headingGapRem: number;
+  headingLineHeight: number;
+  headingScale: number;
+
+  fieldGapRem: number;
+  fieldPaddingXRem: number;
+  fieldPaddingYRem: number;
+  fieldLabelScale: number;
+  fieldValueScale: number;
+  fieldValueTopGapRem: number;
+  fieldValueItemGapRem: number;
+  valueGridGapRem: number;
+  fieldSpacingScale: number;
+
+  bulletGapRem: number;
+  bulletLineHeight: number;
+  bulletFontScale: number;
+
+  tablePaddingXRem: number;
+  tablePaddingYRem: number;
+  tableHeaderPaddingYRem: number;
+  tableFontScale: number;
+  tableLineHeight: number;
+  tableSpacingScale: number;
+
+  signatureTopGapRem: number;
+  signatureImageHeightMm: number;
+  signatureNameScale: number;
+  signatureLabelScale: number;
+  signatureSafetyGapPx: number;
+
+  evidenceGapRem: number;
+  evidenceSpacingScale: number;
+  evidenceCaptionScale: number;
+  evidenceMaxHeightMm: number;
+
+  captionFontScale: number;
+};
+
+export const REPORT_SMART_A4_PROFILES: readonly ReportSmartA4Profile[] = [
+  {
+    mode: "normal",
+
+    contentScale: 1,
+
+    blockGapRem: 1,
+    sectionGapRem: 0.75,
+    paragraphGapRem: 0.75,
+
+    contentLineHeight: 2,
+    narrativeLineHeight: 2,
+    narrativeDensityScale: 1,
+    contentFontScale: 1,
+
+    headingGapRem: 0.75,
+    headingLineHeight: 1.65,
+    headingScale: 1,
+
+    fieldGapRem: 0.5,
+    fieldPaddingXRem: 0.75,
+    fieldPaddingYRem: 0.5,
+    fieldLabelScale: 1,
+    fieldValueScale: 1,
+    fieldValueTopGapRem: 0.25,
+    fieldValueItemGapRem: 0.25,
+    valueGridGapRem: 0.5,
+    fieldSpacingScale: 1,
+
+    bulletGapRem: 0.5,
+    bulletLineHeight: 1.75,
+    bulletFontScale: 1,
+
+    tablePaddingXRem: 0.75,
+    tablePaddingYRem: 0.75,
+    tableHeaderPaddingYRem: 0.75,
+    tableFontScale: 1,
+    tableLineHeight: 1.5,
+    tableSpacingScale: 1,
+
+    signatureTopGapRem: 1.5,
+    signatureImageHeightMm: 10,
+    signatureNameScale: 1,
+    signatureLabelScale: 1,
+    signatureSafetyGapPx: 14,
+
+    evidenceGapRem: 1,
+    evidenceSpacingScale: 1,
+    evidenceCaptionScale: 1,
+    evidenceMaxHeightMm: 78,
+
+    captionFontScale: 1,
+  },
+
+  {
+    mode: "compact",
+
+    contentScale: 1,
+
+    blockGapRem: 0.72,
+    sectionGapRem: 0.54,
+    paragraphGapRem: 0.46,
+
+    contentLineHeight: 1.82,
+    narrativeLineHeight: 1.82,
+    narrativeDensityScale: 0.91,
+    contentFontScale: 0.985,
+
+    headingGapRem: 0.5,
+    headingLineHeight: 1.54,
+    headingScale: 0.98,
+
+    fieldGapRem: 0.36,
+    fieldPaddingXRem: 0.58,
+    fieldPaddingYRem: 0.34,
+    fieldLabelScale: 0.98,
+    fieldValueScale: 0.99,
+    fieldValueTopGapRem: 0.16,
+    fieldValueItemGapRem: 0.16,
+    valueGridGapRem: 0.34,
+    fieldSpacingScale: 0.76,
+
+    bulletGapRem: 0.32,
+    bulletLineHeight: 1.6,
+    bulletFontScale: 0.98,
+
+    tablePaddingXRem: 0.6,
+    tablePaddingYRem: 0.48,
+    tableHeaderPaddingYRem: 0.46,
+    tableFontScale: 0.98,
+    tableLineHeight: 1.4,
+    tableSpacingScale: 0.72,
+
+    signatureTopGapRem: 0.9,
+    signatureImageHeightMm: 10,
+    signatureNameScale: 0.98,
+    signatureLabelScale: 0.98,
+    signatureSafetyGapPx: 10,
+
+    evidenceGapRem: 0.7,
+    evidenceSpacingScale: 0.8,
+    evidenceCaptionScale: 0.98,
+    evidenceMaxHeightMm: 62,
+
+    captionFontScale: 0.98,
+  },
+
+  {
+    mode: "dense",
+
+    contentScale: 1,
+
+    blockGapRem: 0.5,
+    sectionGapRem: 0.36,
+    paragraphGapRem: 0.28,
+
+    contentLineHeight: 1.62,
+    narrativeLineHeight: 1.62,
+    narrativeDensityScale: 0.82,
+    contentFontScale: 0.95,
+
+    headingGapRem: 0.34,
+    headingLineHeight: 1.43,
+    headingScale: 0.95,
+
+    fieldGapRem: 0.26,
+    fieldPaddingXRem: 0.44,
+    fieldPaddingYRem: 0.24,
+    fieldLabelScale: 0.96,
+    fieldValueScale: 0.97,
+    fieldValueTopGapRem: 0.1,
+    fieldValueItemGapRem: 0.1,
+    valueGridGapRem: 0.24,
+    fieldSpacingScale: 0.56,
+
+    bulletGapRem: 0.18,
+    bulletLineHeight: 1.48,
+    bulletFontScale: 0.94,
+
+    tablePaddingXRem: 0.44,
+    tablePaddingYRem: 0.3,
+    tableHeaderPaddingYRem: 0.28,
+    tableFontScale: 0.94,
+    tableLineHeight: 1.32,
+    tableSpacingScale: 0.52,
+
+    signatureTopGapRem: 0.52,
+    signatureImageHeightMm: 9.5,
+    signatureNameScale: 0.96,
+    signatureLabelScale: 0.95,
+    signatureSafetyGapPx: 8,
+
+    evidenceGapRem: 0.48,
+    evidenceSpacingScale: 0.62,
+    evidenceCaptionScale: 0.94,
+    evidenceMaxHeightMm: 48,
+
+    captionFontScale: 0.94,
+  },
+
+  {
+    mode: "minimum-safe",
+
+    contentScale: 1,
+
+    blockGapRem: 0.34,
+    sectionGapRem: 0.24,
+    paragraphGapRem: 0.16,
+
+    contentLineHeight: 1.48,
+    narrativeLineHeight: 1.48,
+    narrativeDensityScale: 0.76,
+    contentFontScale: 0.91,
+
+    headingGapRem: 0.22,
+    headingLineHeight: 1.35,
+    headingScale: 0.91,
+
+    fieldGapRem: 0.18,
+    fieldPaddingXRem: 0.34,
+    fieldPaddingYRem: 0.14,
+    fieldLabelScale: 0.94,
+    fieldValueScale: 0.95,
+    fieldValueTopGapRem: 0.06,
+    fieldValueItemGapRem: 0.06,
+    valueGridGapRem: 0.16,
+    fieldSpacingScale: 0.48,
+
+    bulletGapRem: 0.1,
+    bulletLineHeight: 1.4,
+    bulletFontScale: 0.9,
+
+    tablePaddingXRem: 0.34,
+    tablePaddingYRem: 0.16,
+    tableHeaderPaddingYRem: 0.14,
+    tableFontScale: 0.92,
+    tableLineHeight: 1.25,
+    tableSpacingScale: 0.38,
+
+    signatureTopGapRem: 0.24,
+    signatureImageHeightMm: 9,
+    signatureNameScale: 0.92,
+    signatureLabelScale: 0.9,
+    signatureSafetyGapPx: 6,
+
+    evidenceGapRem: 0.32,
+    evidenceSpacingScale: 0.48,
+    evidenceCaptionScale: 0.9,
+    evidenceMaxHeightMm: 36,
+
+    captionFontScale: 0.9,
+  },
+] as const;
+
+export const REPORT_SMART_A4_TOLERANCE_PX = 2;
+
+type SmartA4Style =
+  CSSProperties &
+  Record<`--report-${string}`, string | number>;
+
+export function getReportSmartA4Profile(mode: ReportSmartA4Mode) {
+  return (
+    REPORT_SMART_A4_PROFILES.find(
+      (profile) => profile.mode === mode,
+    ) || REPORT_SMART_A4_PROFILES[0]
+  );
+}
+
+export function getReportSmartA4StyleVariables(
+  profile: ReportSmartA4Profile,
+): SmartA4Style {
+  return {
+    "--report-smart-scale": profile.contentScale,
+
+    "--report-block-gap": `${profile.blockGapRem}rem`,
+    "--report-section-gap": `${profile.sectionGapRem}rem`,
+    "--report-paragraph-gap": `${profile.paragraphGapRem}rem`,
+
+    "--report-content-line-height": profile.contentLineHeight,
+    "--report-narrative-line-height": profile.narrativeLineHeight,
+    "--report-narrative-density-scale": profile.narrativeDensityScale,
+    "--report-content-font-scale": profile.contentFontScale,
+
+    "--report-heading-gap": `${profile.headingGapRem}rem`,
+    "--report-heading-line-height": profile.headingLineHeight,
+    "--report-heading-scale": profile.headingScale,
+
+    "--report-field-gap": `${profile.fieldGapRem}rem`,
+    "--report-field-padding-x": `${profile.fieldPaddingXRem}rem`,
+    "--report-field-padding-y": `${profile.fieldPaddingYRem}rem`,
+    "--report-field-label-scale": profile.fieldLabelScale,
+    "--report-field-value-scale": profile.fieldValueScale,
+    "--report-field-value-top-gap": `${profile.fieldValueTopGapRem}rem`,
+    "--report-field-value-item-gap": `${profile.fieldValueItemGapRem}rem`,
+    "--report-value-grid-gap": `${profile.valueGridGapRem}rem`,
+    "--report-field-spacing-scale": profile.fieldSpacingScale,
+
+    "--report-bullet-gap": `${profile.bulletGapRem}rem`,
+    "--report-bullet-line-height": profile.bulletLineHeight,
+    "--report-bullet-font-scale": profile.bulletFontScale,
+
+    "--report-table-padding-x": `${profile.tablePaddingXRem}rem`,
+    "--report-table-padding-y": `${profile.tablePaddingYRem}rem`,
+    "--report-table-header-padding-y": `${profile.tableHeaderPaddingYRem}rem`,
+    "--report-table-font-scale": profile.tableFontScale,
+    "--report-table-line-height": profile.tableLineHeight,
+    "--report-table-spacing-scale": profile.tableSpacingScale,
+
+    "--report-signature-top-gap": `${profile.signatureTopGapRem}rem`,
+    "--report-signature-image-height": `${profile.signatureImageHeightMm}mm`,
+    "--report-signature-name-scale": profile.signatureNameScale,
+    "--report-signature-label-scale": profile.signatureLabelScale,
+    "--report-signature-safety-gap": `${profile.signatureSafetyGapPx}px`,
+
+    "--report-evidence-gap": `${profile.evidenceGapRem}rem`,
+    "--report-evidence-spacing-scale": profile.evidenceSpacingScale,
+    "--report-evidence-caption-scale": profile.evidenceCaptionScale,
+    "--report-evidence-max-height": `${profile.evidenceMaxHeightMm}mm`,
+
+    "--report-caption-font-scale": profile.captionFontScale,
+  };
+}

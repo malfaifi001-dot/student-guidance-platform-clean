@@ -59,7 +59,7 @@ function MoeReportPage({
         {children}
       </div>
 
-      <footer className="moe24-page-footer">
+      <footer data-report-page-footer className="moe24-page-footer">
         <span />
         <span />
         <span className="moe24-page-number" />

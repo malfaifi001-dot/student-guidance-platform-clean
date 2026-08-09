@@ -2,6 +2,7 @@ import type { ReportDesignId } from "../report-design-types";
 import { A4DesignPage } from "./report-blocks";
 import {
   getEvidencePerPage,
+  getEvidenceStartIndex,
   getValidPreviewEvidences,
 } from "./report-evidence-data";
 import type { PreviewCaseData } from "./report-types";
@@ -56,10 +57,15 @@ export function AutoEvidencePages({
     getEvidencePerPage(
       evidenceBlock,
     );
+  const initialStartIndex = getEvidenceStartIndex(evidenceBlock);
+  const availableEvidenceCount = Math.max(
+    0,
+    evidences.length - initialStartIndex,
+  );
 
   const legacyPrimaryCount =
     Math.min(
-      evidences.length,
+      availableEvidenceCount,
       perPage,
     );
 
@@ -68,7 +74,7 @@ export function AutoEvidencePages({
       Number(primaryEvidenceCount),
     )
       ? Math.min(
-          evidences.length,
+          availableEvidenceCount,
           Math.max(
             0,
             Math.floor(
@@ -83,7 +89,7 @@ export function AutoEvidencePages({
   const remainingCount =
     Math.max(
       0,
-      evidences.length -
+      availableEvidenceCount -
         consumedByPrimary,
     );
 
@@ -114,6 +120,7 @@ export function AutoEvidencePages({
           index + 2;
 
         const startIndex =
+          initialStartIndex +
           consumedByPrimary +
           index * perPage;
 

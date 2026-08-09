@@ -17,6 +17,7 @@ export {
   getDesignLogoFit,
   getDesignLogoNumber,
   getDesignLogoSrc,
+  getReportDesignLogoStyleText,
 } from "./shared/report-logo";
 export { collectFinalValues } from "./shared/final-report";
 export { A4DesignPage } from "./shared/report-blocks";

@@ -2,11 +2,10 @@
 
 import {
   getDesignLogoSrc,
-  getReportHeaderSettingsStyle,
+  ReportDesignRenderer,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
-import { SmartPhysicalReportComposer } from "@/components/report-engine/design-renderers/smart-layout/report-smart-physical-pages";
 import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
 import {
@@ -44,9 +43,6 @@ export function ReportTwoPrintDocument({
     : null;
 
   const logoSrc = getDesignLogoSrc(context);
-  const headerStyleText = getReportHeaderSettingsStyle(
-    template?.designConfig?.header,
-  );
 
   if (!designId) {
     return (
@@ -123,22 +119,27 @@ export function ReportTwoPrintDocument({
           page-break-after: auto !important;
         }
 
-        img {
+        .report-two-print-document img {
           max-width: 100%;
         }
       `}</style>
-      {headerStyleText ? <style>{headerStyleText}</style> : null}
-
       {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
 
-      <SmartPhysicalReportComposer
+      <ReportDesignRenderer
         designId={designId}
-        pages={pages}
+        template={template}
+        activePage={pages[0] || null}
+        activePageId={pages[0]?.id || ""}
         context={context}
         previewCase={previewCase}
-        fallbackPageLabel={template?.name || "التقرير"}
         renderMode="stack"
-        suppressAutoEvidencePages
+        chromeLayout="none"
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
       />
     </main>
   );

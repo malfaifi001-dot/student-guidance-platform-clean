@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -75,16 +74,6 @@ type FlowItem = {
   sourcePageTitle: string;
 };
 
-type LogicalPageModel = {
-  sourcePageId: string;
-  sourcePageTitle: string;
-  kind: string;
-  regularItems: FlowItem[];
-  signatureItems: FlowItem[];
-  evidenceItems: FlowItem[];
-  fixedBlocks: LogicalReportBlock[];
-};
-
 function normalizePlacement(block: LogicalReportBlock) {
   return String(block?.placement || "flow").trim() || "flow";
 }
@@ -136,20 +125,13 @@ function canonicalizePhysicalPages(pages: readonly PhysicalPage[]) {
   }));
 }
 
-function buildLogicalPageModels(pages: LogicalPage[]): LogicalPageModel[] {
-  const sourcePages = pages.length > 0
-    ? pages
-    : [{
-        id: "logical-page-1",
-        title: "التقرير",
-        kind: "content",
-        blocks: [],
-      }];
+function buildLogicalModel(pages: LogicalPage[]) {
+  const regularItems: FlowItem[] = [];
+  const signatureItems: FlowItem[] = [];
+  const evidenceItems: FlowItem[] = [];
+  const fixedBlocksBySourcePage = new Map<string, LogicalReportBlock[]>();
 
-  return sourcePages.map((page, pageIndex) => {
-    const regularItems: FlowItem[] = [];
-    const signatureItems: FlowItem[] = [];
-    const evidenceItems: FlowItem[] = [];
+  pages.forEach((page, pageIndex) => {
     const sourcePageId =
       String(page?.id || `logical-page-${pageIndex + 1}`);
 
@@ -165,6 +147,13 @@ function buildLogicalPageModels(pages: LogicalPage[]): LogicalPageModel[] {
         normalizePlacement(block) !== "flow" &&
         !isSignatureBlock(block),
     );
+
+    if (fixedBlocks.length) {
+      fixedBlocksBySourcePage.set(
+        sourcePageId,
+        fixedBlocks,
+      );
+    }
 
     blocks
       .filter(
@@ -192,16 +181,14 @@ function buildLogicalPageModels(pages: LogicalPage[]): LogicalPageModel[] {
 
         regularItems.push(item);
       });
-    return {
-      sourcePageId,
-      sourcePageTitle,
-      kind: String(page?.kind || "content"),
-      regularItems,
-      signatureItems,
-      evidenceItems,
-      fixedBlocks,
-    };
   });
+
+  return {
+    regularItems,
+    signatureItems,
+    evidenceItems,
+    fixedBlocksBySourcePage,
+  };
 }
 
 function buildSemanticInputFingerprint(
@@ -224,24 +211,52 @@ function buildSemanticInputFingerprint(
 
 function makePhysicalPage(
   index: number,
-  logicalPage: LogicalPageModel,
+  items: FlowItem[],
   blocks: LogicalReportBlock[],
 ): PhysicalPage {
+  const sourcePageIds = uniqueStrings(
+    items.map((item) => item.sourcePageId),
+  );
+
+  const sourceTitles = uniqueStrings(
+    items.map((item) => item.sourcePageTitle),
+  );
+
   return {
     id: `smart-physical-${index + 1}`,
-    title: logicalPage.sourcePageTitle,
-    kind: logicalPage.kind,
+    title:
+      sourceTitles.length === 1
+        ? sourceTitles[0]
+        : `التقرير - صفحة ${index + 1}`,
+    kind: "content",
     blocks,
-    sourcePageIds: [logicalPage.sourcePageId],
+    sourcePageIds,
   };
 }
 
-function addLogicalPageFixedBlocks(
+function addFixedBlocks(
   physicalPage: PhysicalPage,
-  logicalPage: LogicalPageModel,
-  includeFixedBlocks: boolean,
+  fixedBlocksBySourcePage: Map<string, LogicalReportBlock[]>,
+  alreadyConsumedSources: Set<string>,
 ) {
-  if (!includeFixedBlocks || !logicalPage.fixedBlocks.length) {
+  const fixedBlocks: LogicalReportBlock[] = [];
+
+  for (const sourcePageId of physicalPage.sourcePageIds) {
+    if (alreadyConsumedSources.has(sourcePageId)) {
+      continue;
+    }
+
+    const sourceFixed =
+      fixedBlocksBySourcePage.get(sourcePageId) || [];
+
+    if (sourceFixed.length) {
+      fixedBlocks.push(...sourceFixed);
+    }
+
+    alreadyConsumedSources.add(sourcePageId);
+  }
+
+  if (!fixedBlocks.length) {
     return physicalPage;
   }
 
@@ -249,14 +264,15 @@ function addLogicalPageFixedBlocks(
     ...physicalPage,
     blocks: [
       ...physicalPage.blocks,
-      ...logicalPage.fixedBlocks,
+      ...fixedBlocks,
     ],
   };
 }
 
-function appendLogicalPageSpecialBlocks(
+function appendSpecialBlocks(
   pages: PhysicalPage[],
-  logicalPage: LogicalPageModel,
+  evidenceItems: FlowItem[],
+  signatureItems: FlowItem[],
 ) {
   const result =
     pages.length > 0
@@ -268,10 +284,10 @@ function appendLogicalPageSpecialBlocks(
       : [
           {
             id: "smart-physical-1",
-            title: logicalPage.sourcePageTitle,
-            kind: logicalPage.kind,
-            blocks: [...logicalPage.fixedBlocks],
-            sourcePageIds: [logicalPage.sourcePageId],
+            title: "التقرير",
+            kind: "content",
+            blocks: [],
+            sourcePageIds: [],
           } satisfies PhysicalPage,
         ];
 
@@ -285,22 +301,26 @@ function appendLogicalPageSpecialBlocks(
    * 2 evidence / 1 evidence / 0 evidence on this page,
    * while the remaining evidence goes to AutoEvidencePages.
    */
-  const primaryEvidenceItem = logicalPage.evidenceItems.find(
+  const primaryEvidenceItem = evidenceItems.find(
     (item) => Number(item.block?.evidenceStartIndex || 0) <= 0,
-  ) || logicalPage.evidenceItems[0];
+  ) || evidenceItems[0];
   const evidenceBlocks = primaryEvidenceItem
     ? [primaryEvidenceItem.block]
     : [];
-  const evidenceContinuationItems = logicalPage.evidenceItems.filter(
+  const evidenceContinuationItems = evidenceItems.filter(
     (item) => item !== primaryEvidenceItem,
   );
 
   const signatureBlocks =
-    logicalPage.signatureItems.map((item) => item.block);
+    signatureItems.map((item) => item.block);
 
   result[lastIndex] = {
     ...last,
-    sourcePageIds: [logicalPage.sourcePageId],
+    sourcePageIds: uniqueStrings([
+      ...last.sourcePageIds,
+      ...evidenceItems.map((item) => item.sourcePageId),
+      ...signatureItems.map((item) => item.sourcePageId),
+    ]),
     blocks: [
       ...last.blocks,
       ...evidenceBlocks,
@@ -312,7 +332,7 @@ function appendLogicalPageSpecialBlocks(
     result.push(
       makePhysicalPage(
         result.length,
-        logicalPage,
+        [item],
         [item.block],
       ),
     );
@@ -331,8 +351,8 @@ export function SmartPhysicalReportComposer({
   renderMode = "stack",
   suppressAutoEvidencePages = false,
 }: SmartPhysicalReportComposerProps) {
-  const logicalPageModels = useMemo(
-    () => buildLogicalPageModels(pages || []),
+  const model = useMemo(
+    () => buildLogicalModel(pages || []),
     [pages],
   );
 
@@ -427,12 +447,6 @@ export function SmartPhysicalReportComposer({
   const [acceptedItems, setAcceptedItems] =
     useState<FlowItem[]>([]);
 
-  const [logicalPageIndex, setLogicalPageIndex] =
-    useState(0);
-
-  const [currentLogicalPhysicalPages, setCurrentLogicalPhysicalPages] =
-    useState<PhysicalPage[]>([]);
-
   const [cursor, setCursor] =
     useState(0);
 
@@ -512,8 +526,6 @@ export function SmartPhysicalReportComposer({
     setPhysicalPages([]);
     setFinalPhysicalPages([]);
     setAcceptedItems([]);
-    setLogicalPageIndex(0);
-    setCurrentLogicalPhysicalPages([]);
     setCursor(0);
     setCandidateVersion(
       (current) => current + 1,
@@ -534,62 +546,11 @@ export function SmartPhysicalReportComposer({
     semanticFingerprintPartsFingerprint,
   ]);
 
-  const activeLogicalPage =
-    logicalPageModels[logicalPageIndex] ?? logicalPageModels[0]!;
-
-  const completeCurrentLogicalPage = useCallback(
-    (corePages: PhysicalPage[]) => {
-      if (!activeLogicalPage) {
-        setDone(true);
-        return;
-      }
-
-      const logicalPhysicalPages = corePages.length > 0
-        ? corePages
-        : [
-            makePhysicalPage(
-              physicalPages.length,
-              activeLogicalPage,
-              [...activeLogicalPage.fixedBlocks],
-            ),
-          ];
-
-      const completedLogicalPages =
-        appendLogicalPageSpecialBlocks(
-          logicalPhysicalPages,
-          activeLogicalPage,
-        );
-
-      setPhysicalPages(
-        canonicalizePhysicalPages([
-          ...physicalPages,
-          ...completedLogicalPages,
-        ]),
-      );
-      setCurrentLogicalPhysicalPages([]);
-      setAcceptedItems([]);
-      setCursor(0);
-
-      if (logicalPageIndex >= logicalPageModels.length - 1) {
-        setDone(true);
-      } else {
-        setLogicalPageIndex((current) => current + 1);
-        setCandidateVersion((current) => current + 1);
-      }
-    },
-    [
-      activeLogicalPage,
-      logicalPageIndex,
-      logicalPageModels.length,
-      physicalPages,
-    ],
-  );
-
   const hasRegularItems =
-    activeLogicalPage.regularItems.length > 0;
+    model.regularItems.length > 0;
 
   const nextItem =
-    activeLogicalPage.regularItems[cursor];
+    model.regularItems[cursor];
 
   const candidateItems = useMemo(() => {
     if (done) {
@@ -622,16 +583,17 @@ export function SmartPhysicalReportComposer({
        * signature is the core content because there are no
        * regular blocks to pack.
        */
-      const signatureBlocks = activeLogicalPage.signatureItems.map(
+      const signatureBlocks = model.signatureItems.map(
         (item) => item.block,
       );
+      const signatureSourceIds = uniqueStrings(
+        model.signatureItems.map((item) => item.sourcePageId),
+      );
+      const fixedBlocks = signatureSourceIds.flatMap(
+        (sourceId) => model.fixedBlocksBySourcePage.get(sourceId) || [],
+      );
 
-      return [
-        ...signatureBlocks,
-        ...(currentLogicalPhysicalPages.length === 0
-          ? activeLogicalPage.fixedBlocks
-          : []),
-      ];
+      return [...signatureBlocks, ...fixedBlocks];
     }
 
     /*
@@ -655,25 +617,36 @@ export function SmartPhysicalReportComposer({
      * physical pages have been built, and SmartReportPageComposer
      * negotiates their final placement.
      */
+    const consumedSourceIds = new Set(
+      physicalPages.flatMap((physicalPage) => physicalPage.sourcePageIds),
+    );
+    const candidateSourceIds = uniqueStrings(
+      candidateItems.map((item) => item.sourcePageId),
+    );
+    const fixedBlocks = candidateSourceIds.flatMap((sourceId) =>
+      consumedSourceIds.has(sourceId)
+        ? []
+        : model.fixedBlocksBySourcePage.get(sourceId) || [],
+    );
+
     return [
       ...candidateItems.map((item) => item.block),
-      ...(currentLogicalPhysicalPages.length === 0
-        ? activeLogicalPage.fixedBlocks
-        : []),
+      ...fixedBlocks,
     ];
   }, [
-    activeLogicalPage,
     candidateItems,
-    currentLogicalPhysicalPages.length,
     hasRegularItems,
+    model.fixedBlocksBySourcePage,
+    model.signatureItems,
+    physicalPages,
   ]);
 
   const candidatePage = useMemo(
     () => ({
       id:
-        `smart-measure-${candidateVersion}-${logicalPageIndex}-${cursor}-${acceptedItems.length}`,
+        `smart-measure-${candidateVersion}-${cursor}-${acceptedItems.length}`,
 
-      title: activeLogicalPage.sourcePageTitle || fallbackPageLabel,
+      title: fallbackPageLabel,
 
       kind: "content",
 
@@ -681,12 +654,10 @@ export function SmartPhysicalReportComposer({
     }),
     [
       candidateVersion,
-      logicalPageIndex,
       cursor,
       acceptedItems.length,
       fallbackPageLabel,
       candidateBlocks,
-      activeLogicalPage.sourcePageTitle,
     ],
   );
 
@@ -706,16 +677,43 @@ export function SmartPhysicalReportComposer({
      * We still render the hidden measurement candidate first
      * if signatures exist.
      */
-    if (activeLogicalPage.signatureItems.length > 0) {
+    if (
+      model.signatureItems.length > 0
+    ) {
       return;
     }
 
-    completeCurrentLogicalPage([]);
+    const fixedItems = Array.from(
+      model.fixedBlocksBySourcePage.entries(),
+    ).flatMap(([sourcePageId, blocks]) =>
+      blocks.map((block) => ({
+        block,
+        sourcePageId,
+        sourcePageTitle: fallbackPageLabel,
+      })),
+    );
+    const emptyBase = makePhysicalPage(
+      0,
+      fixedItems,
+      fixedItems.map((item) => item.block),
+    );
+
+    const completed =
+      appendSpecialBlocks(
+        [emptyBase],
+        model.evidenceItems,
+        model.signatureItems,
+      );
+
+    setPhysicalPages(canonicalizePhysicalPages(completed));
+    setDone(true);
   }, [
-    activeLogicalPage.signatureItems.length,
-    completeCurrentLogicalPage,
     done,
     hasRegularItems,
+    fallbackPageLabel,
+    model.fixedBlocksBySourcePage,
+    model.evidenceItems,
+    model.signatureItems,
   ]);
 
   /*
@@ -810,7 +808,44 @@ export function SmartPhysicalReportComposer({
            * ---------------------------------------------------
            */
           if (!hasRegularItems) {
-            completeCurrentLogicalPage([]);
+            const signatureItems =
+              model.signatureItems;
+
+            const base =
+              makePhysicalPage(
+                0,
+                signatureItems,
+                signatureItems.map(
+                  (item) => item.block,
+                ),
+              );
+
+            const withFixed = addFixedBlocks(
+              base,
+              model.fixedBlocksBySourcePage,
+              new Set<string>(),
+            );
+
+            const completed =
+              appendSpecialBlocks(
+                [
+                  {
+                    ...withFixed,
+                    /*
+                     * Signature already exists in this measured
+                     * base, so prevent duplicate append below.
+                     */
+                    blocks: withFixed.blocks.filter(
+                      (block) => !isSignatureBlock(block),
+                    ),
+                  },
+                ],
+                model.evidenceItems,
+                model.signatureItems,
+              );
+
+            setPhysicalPages(canonicalizePhysicalPages(completed));
+            setDone(true);
 
             decisionLockRef.current = false;
             return;
@@ -818,7 +853,7 @@ export function SmartPhysicalReportComposer({
 
           const isLastItem =
             cursor >=
-            activeLogicalPage.regularItems.length - 1;
+            model.regularItems.length - 1;
 
           /*
            * Candidate fits:
@@ -842,24 +877,49 @@ export function SmartPhysicalReportComposer({
                */
               const basePage =
                 makePhysicalPage(
-                  physicalPages.length + currentLogicalPhysicalPages.length,
-                  activeLogicalPage,
+                  physicalPages.length,
+                  nextAccepted,
                   nextAccepted.map(
                     (item) => item.block,
                   ),
                 );
 
+              const consumedFixedSources =
+                new Set<string>();
+
+              physicalPages.forEach(
+                (page) =>
+                  page.sourcePageIds.forEach(
+                    (sourceId) =>
+                      consumedFixedSources.add(
+                        sourceId,
+                      ),
+                  ),
+              );
+
               const withFixed =
-                addLogicalPageFixedBlocks(
+                addFixedBlocks(
                   basePage,
-                  activeLogicalPage,
-                  currentLogicalPhysicalPages.length === 0,
+                  model.fixedBlocksBySourcePage,
+                  consumedFixedSources,
                 );
 
-              completeCurrentLogicalPage([
-                ...currentLogicalPhysicalPages,
+              const completedBase = [
+                ...physicalPages,
                 withFixed,
-              ]);
+              ];
+
+              const completed =
+                appendSpecialBlocks(
+                  completedBase,
+                  model.evidenceItems,
+                  model.signatureItems,
+                );
+
+              setPhysicalPages(canonicalizePhysicalPages(completed));
+
+              setAcceptedItems([]);
+              setDone(true);
 
               decisionLockRef.current = false;
               return;
@@ -894,22 +954,38 @@ export function SmartPhysicalReportComposer({
           ) {
             const basePage =
               makePhysicalPage(
-                physicalPages.length + currentLogicalPhysicalPages.length,
-                activeLogicalPage,
+                physicalPages.length,
+                acceptedItems,
                 acceptedItems.map(
                   (item) => item.block,
                 ),
               );
 
+            const consumedFixedSources =
+              new Set<string>();
+
+            physicalPages.forEach(
+              (page) =>
+                page.sourcePageIds.forEach(
+                  (sourceId) =>
+                    consumedFixedSources.add(
+                      sourceId,
+                    ),
+                ),
+            );
+
             const finalized =
-              addLogicalPageFixedBlocks(
+              addFixedBlocks(
                 basePage,
-                activeLogicalPage,
-                currentLogicalPhysicalPages.length === 0,
+                model.fixedBlocksBySourcePage,
+                consumedFixedSources,
               );
 
-            setCurrentLogicalPhysicalPages((current) =>
-              [...current, finalized],
+            setPhysicalPages((current) =>
+              canonicalizePhysicalPages([
+                ...current,
+                finalized,
+              ]),
             );
 
             setAcceptedItems([]);
@@ -938,27 +1014,49 @@ export function SmartPhysicalReportComposer({
           if (nextItem) {
             const oversizedPage =
               makePhysicalPage(
-                physicalPages.length + currentLogicalPhysicalPages.length,
-                activeLogicalPage,
+                physicalPages.length,
+                [nextItem],
                 [nextItem.block],
               );
 
+            const consumedFixedSources =
+              new Set<string>();
+
+            physicalPages.forEach(
+              (page) =>
+                page.sourcePageIds.forEach(
+                  (sourceId) =>
+                    consumedFixedSources.add(
+                      sourceId,
+                    ),
+                ),
+            );
+
             const withFixed =
-              addLogicalPageFixedBlocks(
+              addFixedBlocks(
                 oversizedPage,
-                activeLogicalPage,
-                currentLogicalPhysicalPages.length === 0,
+                model.fixedBlocksBySourcePage,
+                consumedFixedSources,
               );
 
             const newPages = [
-              ...currentLogicalPhysicalPages,
+              ...physicalPages,
               withFixed,
             ];
 
             if (isLastItem) {
-              completeCurrentLogicalPage(newPages);
+              const completed =
+                appendSpecialBlocks(
+                  newPages,
+                  model.evidenceItems,
+                  model.signatureItems,
+                );
+
+              setPhysicalPages(canonicalizePhysicalPages(completed));
+
+              setDone(true);
             } else {
-              setCurrentLogicalPhysicalPages(newPages);
+              setPhysicalPages(canonicalizePhysicalPages(newPages));
 
               setCursor(
                 (current) =>
@@ -1001,14 +1099,15 @@ export function SmartPhysicalReportComposer({
       }
     };
   }, [
-    activeLogicalPage,
     acceptedItems,
     candidateVersion,
-    completeCurrentLogicalPage,
-    currentLogicalPhysicalPages,
     cursor,
     done,
     hasRegularItems,
+    model.evidenceItems,
+    model.fixedBlocksBySourcePage,
+    model.regularItems,
+    model.signatureItems,
     nextItem,
     physicalPages,
   ]);

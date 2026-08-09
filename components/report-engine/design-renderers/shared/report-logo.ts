@@ -31,6 +31,41 @@ export function getDesignLogoFilter(context: Record<string, string>) {
 
   return value === "none" ? "none" : "brightness(0) invert(1)";
 }
+
+export function getReportDesignLogoStyleText(
+  context: Record<string, string>,
+  defaultWidthPx: number,
+  defaultHeightPx: number,
+) {
+  const widthPx = getDesignLogoNumber(
+    context,
+    "report.logoWidthPx",
+    defaultWidthPx,
+    24,
+    240,
+  );
+  const heightPx = getDesignLogoNumber(
+    context,
+    "report.logoHeightPx",
+    defaultHeightPx,
+    20,
+    160,
+  );
+  const fit = getDesignLogoFit(context);
+  const filter = getDesignLogoFilter(context);
+
+  return `
+    .report-design-logo-control-style img[alt="شعار وزارة التعليم"],
+    .pdf-report-page img[alt="شعار وزارة التعليم"] {
+      width: ${widthPx}px !important;
+      max-width: ${widthPx}px !important;
+      height: ${heightPx}px !important;
+      max-height: ${heightPx}px !important;
+      object-fit: ${fit} !important;
+      filter: ${filter} !important;
+    }
+  `;
+}
 export function getDesignHeaderAlign(
   context: Record<string, string>,
   key: string,

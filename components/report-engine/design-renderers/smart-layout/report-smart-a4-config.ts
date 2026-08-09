@@ -10,6 +10,10 @@ export const REPORT_SMART_A4_MODES = [
 export type ReportSmartA4Mode = (typeof REPORT_SMART_A4_MODES)[number];
 export type ReportSmartA4PriorityMode = "signature" | "general";
 
+/** Hard bottom buffer used by every Smart A4 content region. */
+export const REPORT_SMART_A4_DEFAULT_FOOTER_SAFE_AREA_MM = 5;
+export const REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM = 2;
+
 export type ReportSmartA4Profile = {
   mode: ReportSmartA4Mode;
 

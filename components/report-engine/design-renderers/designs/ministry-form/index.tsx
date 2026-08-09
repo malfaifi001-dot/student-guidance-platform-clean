@@ -49,10 +49,9 @@ export function MinistryFormReportDesign({
             className="min-h-full"
           />
         </ReportDesignSmartContent>
-        <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
+        <footer data-report-page-footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
           <div className="h-1 rounded-full bg-gradient-to-l from-slate-900 to-emerald-300" />
         </footer>
     </article>
   );
 }
-

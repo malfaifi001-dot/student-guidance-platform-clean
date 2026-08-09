@@ -93,6 +93,7 @@ export function MoeClassicFrameReportDesign({
 
         {/* الفوتر المتدرج بدون بيانات */}
         <footer
+          data-report-page-footer
           className="absolute inset-x-0 bottom-0 z-30 h-[7mm] overflow-hidden"
           aria-hidden="true"
         >

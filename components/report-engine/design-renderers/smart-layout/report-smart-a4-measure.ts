@@ -1,4 +1,5 @@
 import {
+  REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM,
   REPORT_SMART_A4_TOLERANCE_PX,
   type ReportSmartA4PriorityMode,
   type ReportSmartA4Profile,
@@ -36,6 +37,9 @@ export type ReportSmartA4Measurement = {
   mainContentBottomPx: number;
   mainContentBudgetPx: number;
   mainContentOverflowPx: number;
+
+  boundaryBottomPx: number;
+  footerBoundaryUsed: boolean;
 
   fieldHeightPx: number;
   evidenceHeightPx: number;
@@ -122,7 +126,34 @@ export function measureReportSmartA4Layout(
       : 1;
 
   const viewportHeightPx = viewport.clientHeight;
-  const boundaryBottom = viewportRect.bottom;
+  const footerSafeAreaMm = Math.max(
+    0,
+    Number(viewport.dataset.reportFooterSafeAreaMm || "0") || 0,
+  );
+  const footerSafeAreaPx = footerSafeAreaMm * (96 / 25.4);
+  const footerBoundaryGapPx =
+    REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM * (96 / 25.4);
+  const physicalPage = viewport.closest<HTMLElement>(".pdf-report-page");
+  const pageFooter =
+    physicalPage?.querySelector<HTMLElement>("[data-report-page-footer]") ||
+    null;
+  const fallbackBoundaryBottom =
+    viewportRect.bottom - footerSafeAreaPx * safeScale;
+  const realFooterBoundaryBottom = pageFooter
+    ? pageFooter.getBoundingClientRect().top - footerBoundaryGapPx * safeScale
+    : Number.POSITIVE_INFINITY;
+  const boundaryBottom = Math.min(
+    fallbackBoundaryBottom,
+    realFooterBoundaryBottom,
+  );
+  const footerBoundaryUsed = Boolean(pageFooter);
+  const usableViewportHeightPx = Math.max(
+    0,
+    Math.min(
+      viewportHeightPx,
+      (boundaryBottom - viewportRect.top) / safeScale,
+    ),
+  );
 
   const elements = Array.from(
     content.querySelectorAll<HTMLElement>(
@@ -157,6 +188,9 @@ export function measureReportSmartA4Layout(
       };
     },
   );
+  const crossesHardBoundary = elements.some(
+    (element) => element.getBoundingClientRect().bottom > boundaryBottom,
+  );
 
   const signatureBlocks = blocks.filter(
     (block) => block.role === "signature",
@@ -178,7 +212,7 @@ export function measureReportSmartA4Layout(
 
   const mainContentBudgetPx = Math.max(
     0,
-    viewportHeightPx - signatureReservedPx,
+    usableViewportHeightPx - signatureReservedPx,
   );
 
   const mainContentBottomPx = nonSignatureBlocks.reduce(
@@ -208,7 +242,7 @@ export function measureReportSmartA4Layout(
 
   const boundingOverflowPx = Math.max(
     0,
-    (contentRect.bottom - boundaryBottom) / safeScale,
+    (contentRect.bottom - viewportRect.bottom) / safeScale,
   );
 
   const overflowPx = Math.max(
@@ -244,9 +278,11 @@ export function measureReportSmartA4Layout(
 
   return {
     fits:
+      !crossesHardBoundary &&
+      blockOverflowPx <= 0 &&
       overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
 
-    viewportHeightPx: round(viewportHeightPx),
+    viewportHeightPx: round(usableViewportHeightPx),
     contentHeightPx: round(content.scrollHeight),
 
     overflowPx: round(overflowPx),
@@ -257,6 +293,11 @@ export function measureReportSmartA4Layout(
     mainContentBottomPx: round(mainContentBottomPx),
     mainContentBudgetPx: round(mainContentBudgetPx),
     mainContentOverflowPx: round(mainContentOverflowPx),
+
+    boundaryBottomPx: round(
+      (boundaryBottom - viewportRect.top) / safeScale,
+    ),
+    footerBoundaryUsed,
 
     fieldHeightPx: round(roleHeights.fields),
     evidenceHeightPx: round(roleHeights.evidence),
