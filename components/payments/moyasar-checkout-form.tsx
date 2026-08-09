@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 
@@ -73,7 +73,7 @@ export function MoyasarCheckoutForm({
           "visa",
           "mastercard",
         ],
-        methods: ["creditcard"],
+        methods: ["creditcard", "applepay"],
         metadata: {
           transactionId,
         },
@@ -129,15 +129,15 @@ export function MoyasarCheckoutForm({
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
-        بوابة الدفع الآمنة
+        Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¢Ù…Ù†Ø©
       </p>
 
       <h2 className="mt-2 text-lg font-black text-slate-950 dark:text-white">
-        الدفع بالبطاقة
+        Ø§Ù„Ø¯ÙØ¹ Ø¨Ø§Ù„Ø¨Ø·Ø§Ù‚Ø©
       </h2>
 
       <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-        أكمل بيانات البطاقة عبر بوابة Moyasar الآمنة.
+        Ø£ÙƒÙ…Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¨Ø·Ø§Ù‚Ø© Ø¹Ø¨Ø± Ø¨ÙˆØ§Ø¨Ø© Moyasar Ø§Ù„Ø¢Ù…Ù†Ø©.
       </p>
 
       <div className="mysr-form mt-5" dir="rtl" />
