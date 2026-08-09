@@ -5,10 +5,29 @@ import { useEffect } from "react";
 declare global {
   interface Window {
     Moyasar?: {
-      init: (config: Record<string, unknown>) => void;
+      init: (config: MoyasarFormConfig) => void;
     };
   }
 }
+
+type MoyasarFormConfig = {
+  element: string;
+  amount: number;
+  currency: string;
+  description: string;
+  publishable_api_key: string;
+  callback_url: string;
+  supported_networks: string[];
+  methods: string[];
+  apple_pay?: {
+    country: string;
+    label: string;
+    validate_merchant_url: string;
+  };
+  metadata: {
+    transactionId: string;
+  };
+};
 
 type Props = {
   amount: number;
@@ -74,6 +93,12 @@ export function MoyasarCheckoutForm({
           "mastercard",
         ],
         methods: ["creditcard", "applepay"],
+        apple_pay: {
+          country: "SA",
+          label: "Teachix",
+          validate_merchant_url:
+            `${window.location.origin}/api/payments/moyasar/apple-pay/session`,
+        },
         metadata: {
           transactionId,
         },
