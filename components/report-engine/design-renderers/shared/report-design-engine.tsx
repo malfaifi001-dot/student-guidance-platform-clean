@@ -35,6 +35,7 @@ export function ReportDesignRenderer({
   previewCase,
   onDesignChange,
   onActivePageChange,
+  onAddPage,
   onMovePage,
   onDeletePage,
   canMovePage,
@@ -328,6 +329,14 @@ export function ReportDesignRenderer({
             </div>
           );
           })}
+
+          <button
+            type="button"
+            onClick={onAddPage}
+            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+          >
+            + صفحة محتوى
+          </button>
         </div>
 
         {onDesignChange ? (

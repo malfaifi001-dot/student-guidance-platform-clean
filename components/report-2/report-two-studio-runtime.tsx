@@ -4852,7 +4852,7 @@ export function ReportTwoStudioRuntime({
                   setSelectedBlockId("");
                 }
               }}
-              onAddPage={runtimeMode === "preview" ? () => undefined : addPage}
+              onAddPage={addPage}
               onMovePage={
                 runtimeMode === "preview" ? () => undefined : moveReportTwoPage
               }
