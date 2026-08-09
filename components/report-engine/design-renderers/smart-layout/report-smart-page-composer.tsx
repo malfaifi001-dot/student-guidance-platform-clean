@@ -819,6 +819,7 @@ export function SmartReportPageComposer({
             if (
               evidenceAutoEnabled &&
               primaryEvidenceCount > 0 &&
+              (!hasSignature || !keepSignatureOnPrimary) &&
               !signatureDoesNotFit &&
               (
                 doesNotFit ||
@@ -868,10 +869,8 @@ export function SmartReportPageComposer({
               keepSignatureOnPrimary &&
               (
                 signatureDoesNotFit ||
-                (
-                  doesNotFit &&
-                  primaryEvidenceCount <= 0
-                )
+                doesNotFit ||
+                minimumSafeSelected
               )
             ) {
               if (
