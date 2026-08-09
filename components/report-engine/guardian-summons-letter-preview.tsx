@@ -281,9 +281,9 @@ function OfficialHeader({ values }: { values: LetterValues }) {
 
             <td className="w-1/3 align-top">
               <div className="text-left text-[11.5px] font-bold leading-7">
-                <div>{values.schoolName}</div>
+                <div aria-hidden="true">&nbsp;</div>
                 <div>{values.academicYear}</div>
-                <div>{values.guidanceUnitName}</div>
+                <div aria-hidden="true">&nbsp;</div>
               </div>
             </td>
           </tr>
@@ -313,7 +313,9 @@ function StudentGuardianLine({ values }: { values: LetterValues }) {
               {values.studentClass}
             </td>
 
-            <td className="w-[22mm] whitespace-nowrap text-left">سلمه الله</td>
+            <td className="w-[22mm] whitespace-nowrap text-left" aria-hidden="true">
+              &nbsp;
+            </td>
           </tr>
         </tbody>
       </table>

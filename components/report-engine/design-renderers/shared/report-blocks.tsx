@@ -75,7 +75,15 @@ export function PageBlocks({
   return (
     <main className={`relative flex flex-col ${className}`}>
       <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
-        {flowBlocks.map((block: any) => (
+        {flowBlocks.flatMap((block: any) => [
+          isSignatureGridDesignBlock(block) ? (
+            <div
+              key={`${block.id}-bottom-reservation`}
+              aria-hidden="true"
+              className="min-h-0 flex-1"
+              data-report-signature-bottom-reservation
+            />
+          ) : null,
           <div
             key={block.id}
             data-report-smart-block={block.kind || "content"}
@@ -98,8 +106,8 @@ export function PageBlocks({
             }
           >
             <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
-          </div>
-        ))}
+          </div>,
+        ])}
       </div>
 
       <div className="pointer-events-none absolute inset-0">
@@ -615,7 +623,6 @@ function DesignBlock({
         style={{
           breakInside: "avoid",
           pageBreakInside: "avoid",
-          fontSize: "calc(1rem * var(--report-signature-label-scale, 1))",
         }}
       >
         {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
@@ -670,8 +677,8 @@ function DesignBlock({
                 className="report-design-signature-name font-black text-slate-950"
                 style={{
                   marginTop: "var(--report-field-value-top-gap, 0.25rem)",
-                  fontSize: "calc(10px * var(--report-signature-name-scale, 1))",
-                  lineHeight: "var(--report-table-line-height, 1.5)",
+                  fontSize: "12px",
+                  lineHeight: "1.25",
                 }}
               >
                 {signature.signerName || "—"}
@@ -679,11 +686,11 @@ function DesignBlock({
 
               {signature.signerTitle ? (
                 <div
-                  className="font-bold text-slate-500"
+                  className="report-design-signature-role font-bold text-slate-500"
                   style={{
                     marginTop: "var(--report-field-value-top-gap, 0.125rem)",
-                    fontSize: "calc(8px * var(--report-signature-label-scale, 1))",
-                    lineHeight: "var(--report-table-line-height, 1.5)",
+                    fontSize: "10px",
+                    lineHeight: "1.25",
                   }}
                 >
                   {signature.signerTitle}

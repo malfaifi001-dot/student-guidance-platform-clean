@@ -14,7 +14,10 @@ import {
   getEvidenceStartIndex,
   getValidPreviewEvidences,
 } from "../shared/report-evidence-data";
-import { AutoEvidencePages } from "../shared/report-auto-evidence";
+import {
+  AutoEvidencePages,
+  buildAutoEvidencePhysicalPages,
+} from "../shared/report-auto-evidence";
 import type { PreviewCaseData } from "../shared/report-types";
 import {
   createSemanticInputFingerprint,
@@ -22,14 +25,23 @@ import {
   ReportSmartSemanticFingerprintProvider,
   roundLayoutMetric,
 } from "./report-smart-lifecycle";
+import type {
+  ReportPhysicalPageComposition,
+  ReportPhysicalPageModel,
+} from "./report-smart-physical-types";
 
 type SmartReportPageComposerProps = {
   designId: ReportDesignId;
-  page?: any;
+  page?: ReportPhysicalPageModel;
   context: Record<string, string>;
   previewCase: PreviewCaseData | null;
   pageLabel: string;
   suppressAutoEvidencePages?: boolean;
+  renderMode?: "single" | "stack";
+  activePhysicalPageId?: string;
+  onCompositionReady?: (
+    composition: ReportPhysicalPageComposition,
+  ) => void;
 };
 
 type ReportPagePlanningPhase =
@@ -113,7 +125,7 @@ function getCompositionResetKey(
 }
 
 function makePrimaryPage(
-  page: any,
+  page: ReportPhysicalPageModel | undefined,
   evidenceBlock: any,
   primaryEvidenceCount: number,
   keepSignatureOnPrimary: boolean,
@@ -181,7 +193,7 @@ function makePrimaryPage(
 }
 
 function makeSignatureOverflowPage(
-  page: any,
+  page: ReportPhysicalPageModel,
   signatureBlocks: any[],
 ) {
   return {
@@ -195,6 +207,15 @@ function makeSignatureOverflowPage(
 
     kind:
       "signature",
+
+    corePhysicalPageId:
+      page.corePhysicalPageId || page.id,
+
+    physicalPageRole:
+      "signature" as const,
+
+    sourcePageIds:
+      [...page.sourcePageIds],
 
     blocks:
       signatureBlocks.map(
@@ -221,6 +242,9 @@ export function SmartReportPageComposer({
   previewCase,
   pageLabel,
   suppressAutoEvidencePages = false,
+  renderMode = "stack",
+  activePhysicalPageId,
+  onCompositionReady,
 }: SmartReportPageComposerProps) {
   const hostRef =
     useRef<HTMLDivElement | null>(
@@ -253,6 +277,7 @@ export function SmartReportPageComposer({
     );
 
   const evidenceAutoEnabled =
+    !suppressAutoEvidencePages &&
     Boolean(evidenceBlock) &&
     evidenceBlock
       ?.evidenceAutoCreatePages !==
@@ -402,7 +427,8 @@ export function SmartReportPageComposer({
     useMemo(
       () =>
         !keepSignatureOnPrimary &&
-        hasSignature
+        hasSignature &&
+        page
           ? makeSignatureOverflowPage(
               page,
               signatureBlocks,
@@ -419,6 +445,54 @@ export function SmartReportPageComposer({
   const hasSignatureOverflowPage = Boolean(
     signatureOverflowPage,
   );
+
+  const autoEvidencePhysicalPages = useMemo(
+    () =>
+      evidenceAutoEnabled
+        ? buildAutoEvidencePhysicalPages({
+            activePage: page,
+            previewCase,
+            primaryEvidenceCount,
+          })
+        : [],
+    [
+      evidenceAutoEnabled,
+      page,
+      previewCase,
+      primaryEvidenceCount,
+    ],
+  );
+
+  const composedPhysicalPages = useMemo(
+    () => [
+      primaryPage,
+      ...autoEvidencePhysicalPages.map(({ page: evidencePage }) => evidencePage),
+      ...(signatureOverflowPage ? [signatureOverflowPage] : []),
+    ].filter((physicalPage): physicalPage is ReportPhysicalPageModel =>
+      Boolean(physicalPage),
+    ),
+    [autoEvidencePhysicalPages, primaryPage, signatureOverflowPage],
+  );
+
+  useEffect(() => {
+    if (
+      planningPhase !== "FROZEN" ||
+      !page?.id ||
+      !onCompositionReady
+    ) {
+      return;
+    }
+
+    onCompositionReady({
+      corePhysicalPageId: page.id,
+      pages: composedPhysicalPages,
+    });
+  }, [
+    composedPhysicalPages,
+    onCompositionReady,
+    page?.id,
+    planningPhase,
+  ]);
 
   useEffect(() => {
     const host =
@@ -1019,13 +1093,17 @@ export function SmartReportPageComposer({
        * PRIMARY PHYSICAL PAGE
        * ======================================================
        */}
-      <A4DesignPage
-        designId={designId}
-        page={primaryPage}
-        context={context}
-        previewCase={previewCase}
-        pageLabel={pageLabel}
-      />
+      {renderMode === "stack" ||
+      !activePhysicalPageId ||
+      primaryPage?.id === activePhysicalPageId ? (
+        <A4DesignPage
+          designId={designId}
+          page={primaryPage}
+          context={context}
+          previewCase={previewCase}
+          pageLabel={pageLabel}
+        />
+      ) : null}
 
       {/*
        * ======================================================
@@ -1035,7 +1113,7 @@ export function SmartReportPageComposer({
        * AutoEvidencePages starts exactly after the count consumed
        * by the primary page.
        */}
-      {evidenceAutoEnabled && !suppressAutoEvidencePages ? (
+      {evidenceAutoEnabled ? (
         <AutoEvidencePages
           designId={designId}
           activePage={page}
@@ -1044,6 +1122,9 @@ export function SmartReportPageComposer({
           primaryEvidenceCount={
             primaryEvidenceCount
           }
+          preparedPages={autoEvidencePhysicalPages}
+          activePhysicalPageId={activePhysicalPageId}
+          renderMode={renderMode}
         />
       ) : null}
 
@@ -1057,9 +1138,15 @@ export function SmartReportPageComposer({
        * - primary page still does not fit
        * - signature was the remaining protected block
        */}
-      {signatureOverflowPage ? (
+      {signatureOverflowPage &&
+      (renderMode === "stack" ||
+        signatureOverflowPage.id === activePhysicalPageId) ? (
         <div
-          className="mt-6 print:mt-0 print:break-before-page"
+          className={
+            renderMode === "stack"
+              ? "mt-6 print:mt-0 print:break-before-page"
+              : ""
+          }
           data-report-signature-overflow-page
         >
           <A4DesignPage

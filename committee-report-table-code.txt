@@ -1,0 +1,3215 @@
+============================================================
+FILE: lib\report-engine\report-structured-table-extractor.ts
+============================================================
+
+import type {
+  SmartReportTable,
+  SmartReportTableColumn,
+  SmartReportTableRow,
+} from "@/lib/report-engine/smart-report-types";
+import { getStructuredValueTableMetadata } from "@/lib/workflow-values/structured-value-metadata";
+import { resolveStructuredTableDisplayMetadata } from "@/lib/report-engine/report-structured-table-display";
+
+export type StructuredTableOptionLike = {
+  id?: string | null;
+  key?: string | null;
+  value?: string | null;
+  label?: string | null;
+  name?: string | null;
+};
+
+export type StructuredTableFieldLike = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  defaultJson?: unknown;
+  settings?: unknown;
+  metadata?: unknown;
+  options?: StructuredTableOptionLike[] | null;
+};
+
+export type StructuredTableValueLike = {
+  id?: string | null;
+  fieldKey?: string | null;
+  value?: unknown;
+  jsonValue?: unknown;
+  field?: StructuredTableFieldLike | null;
+};
+
+type StructuredTableConfig = {
+  tableTitle?: string;
+  tableColumns?: unknown;
+  columns?: unknown;
+  hiddenColumns?: unknown;
+  repeatHeader?: boolean;
+  compact?: boolean;
+  stripedRows?: boolean;
+  highlightFirstColumn?: boolean;
+};
+
+const ARABIC_COLUMN_LABELS: Record<string, string> = {
+  agenda: "جدول الأعمال",
+  discussion: "محور النقاش",
+  recommendation: "التوصية",
+  name: "الاسم",
+  role: "الصفة",
+  signature: "التوقيع",
+  title: "العنوان",
+  description: "الوصف",
+  result: "النتيجة",
+  notes: "الملاحظات",
+  note: "ملاحظة",
+  count: "العدد",
+  category: "التصنيف",
+  type: "النوع",
+};
+
+const TABLE_TITLE_FALLBACKS: Record<string, string> = {
+  committee_items: "جدول الاجتماع",
+  committee_members: "أعضاء اللجنة",
+};
+
+const TECHNICAL_KEYS = new Set([
+  "id",
+  "_id",
+  "rowid",
+  "row_id",
+  "uuid",
+  "key",
+  "order",
+  "sortorder",
+  "createdat",
+  "updatedat",
+  "created_at",
+  "updated_at",
+  "metadata",
+  "settings",
+  "linkedtovalue",
+  "sourcefieldkey",
+]);
+
+function text(value: unknown) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+  return "";
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function normalizeKey(value: unknown) {
+  return text(value)
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function parseJson(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const clean = value.trim();
+  if (!clean || (!clean.startsWith("[") && !clean.startsWith("{"))) return value;
+
+  try {
+    return JSON.parse(clean);
+  } catch {
+    return value;
+  }
+}
+
+function getRowRecords(value: unknown): Array<Record<string, unknown>> {
+  const parsed = parseJson(value);
+  const direct = Array.isArray(parsed)
+    ? parsed
+    : (() => {
+        const source = record(parsed);
+        if (!source) return [];
+        for (const key of ["rows", "items", "entries", "data"]) {
+          if (Array.isArray(source[key])) return source[key] as unknown[];
+        }
+        return [];
+      })();
+
+  if (!direct.length) return [];
+  if (!direct.some((item) => record(item))) return [];
+
+  return direct.map(record).filter((item): item is Record<string, unknown> => Boolean(item));
+}
+
+function readConfig(source: unknown): StructuredTableConfig {
+  const root = record(source);
+  if (!root) return {};
+  const nested =
+    record(root.reportTable) ||
+    record(root.table) ||
+    record(root.tableConfig) ||
+    record(root.defaultJson)?.reportTable ||
+    record(root.defaultJson)?.table ||
+    record(root.defaultJson)?.tableConfig ||
+    record(root.settings)?.reportTable ||
+    record(root.settings)?.table;
+  const config = record(nested) || root;
+
+  const schema = record(config.schema) || record(config.jsonSchema) || config;
+  const itemSchema = record(schema.items) || schema;
+  const properties = record(itemSchema.properties);
+  const schemaColumns = properties
+    ? Object.entries(properties).map(([key, definition]) => {
+        const property = record(definition);
+        return {
+          key,
+          label: text(property?.label || property?.title),
+          hidden: property?.hidden === true,
+          width: property?.width,
+          optionLabels: property?.optionLabels,
+        };
+      })
+    : undefined;
+
+  const result: StructuredTableConfig = {};
+  const tableTitle = text(config.tableTitle || config.title);
+  if (tableTitle) result.tableTitle = tableTitle;
+  if (config.tableColumns !== undefined) result.tableColumns = config.tableColumns;
+  else if (config.columns !== undefined) result.columns = config.columns;
+  else if (schemaColumns?.length) result.columns = schemaColumns;
+  if (config.hiddenColumns !== undefined) result.hiddenColumns = config.hiddenColumns;
+  if (typeof config.repeatHeader === "boolean") result.repeatHeader = config.repeatHeader;
+  if (typeof config.compact === "boolean") result.compact = config.compact;
+  if (typeof config.stripedRows === "boolean") result.stripedRows = config.stripedRows;
+  if (typeof config.highlightFirstColumn === "boolean") {
+    result.highlightFirstColumn = config.highlightFirstColumn;
+  }
+  return result;
+}
+
+function mergeConfigs(...sources: unknown[]): StructuredTableConfig {
+  return sources.reduce<StructuredTableConfig>(
+    (result, source) => ({ ...result, ...readConfig(source) }),
+    {},
+  );
+}
+
+function humanizeColumnKey(key: string) {
+  const normalized = normalizeKey(key);
+  if (ARABIC_COLUMN_LABELS[normalized]) return ARABIC_COLUMN_LABELS[normalized];
+
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function humanizeTableTitle(key: string) {
+  const withoutTechnicalAffixes = normalizeKey(key)
+    .replace(/^selected_/, "")
+    .replace(/_(?:json|values?)$/, "");
+  return humanizeColumnKey(withoutTechnicalAffixes || key) || "جدول بيانات";
+}
+
+function isHelperKey(key: string, availableKeys: Set<string>) {
+  const normalized = normalizeKey(key);
+  if (TECHNICAL_KEYS.has(normalized)) return true;
+
+  const helperMatch = key.match(/^(.*?)(Label|Other)$/i);
+  if (!helperMatch) return false;
+
+  const base = helperMatch[1];
+  return availableKeys.has(base) || availableKeys.has(normalizeKey(base));
+}
+
+function getConfiguredColumns(config: StructuredTableConfig): SmartReportTableColumn[] {
+  const source = Array.isArray(config.tableColumns)
+    ? config.tableColumns
+    : Array.isArray(config.columns)
+      ? config.columns
+      : [];
+  const hidden = new Set(
+    Array.isArray(config.hiddenColumns)
+      ? config.hiddenColumns.map(normalizeKey).filter(Boolean)
+      : [],
+  );
+
+  return source
+    .map((item): SmartReportTableColumn | null => {
+      if (typeof item === "string") {
+        const key = normalizeKey(item);
+        return key && !hidden.has(key) ? { key, label: humanizeColumnKey(item) } : null;
+      }
+
+      const sourceColumn = record(item);
+      const key = normalizeKey(sourceColumn?.key || sourceColumn?.id || sourceColumn?.value);
+      if (!key || hidden.has(key) || sourceColumn?.hidden === true) return null;
+      const width = Number(sourceColumn?.width);
+
+      return {
+        key,
+        label: text(sourceColumn?.label || sourceColumn?.title) || humanizeColumnKey(key),
+        ...(Number.isFinite(width) && width > 0 ? { width } : {}),
+        ...(record(sourceColumn?.optionLabels)
+          ? {
+              optionLabels: Object.fromEntries(
+                Object.entries(record(sourceColumn?.optionLabels)!)
+                  .map(([value, label]) => [text(value), text(label)])
+                  .filter(([value, label]) => Boolean(value && label)),
+              ),
+            }
+          : {}),
+      };
+    })
+    .filter((item): item is SmartReportTableColumn => Boolean(item));
+}
+
+function inferColumns(
+  rows: Array<Record<string, unknown>>,
+  config: StructuredTableConfig,
+  fields: StructuredTableFieldLike[],
+): SmartReportTableColumn[] {
+  const configured = getConfiguredColumns(config);
+  if (configured.length) return configured;
+
+  const firstSeen: string[] = [];
+  const availableKeys = new Set<string>();
+  rows.forEach((row) => {
+    Object.keys(row).forEach((key) => {
+      availableKeys.add(key);
+      availableKeys.add(normalizeKey(key));
+    });
+  });
+
+  rows.forEach((row) => {
+    Object.keys(row).forEach((key) => {
+      const normalized = normalizeKey(key);
+      if (!normalized || firstSeen.includes(normalized) || isHelperKey(key, availableKeys)) return;
+      firstSeen.push(normalized);
+    });
+  });
+
+  const configuredLabels = new Map(
+    fields
+      .map((field) => [normalizeKey(field.key), text(field.label)] as const)
+      .filter(([key, label]) => Boolean(key && label)),
+  );
+
+  return firstSeen.map((key) => ({
+    key,
+    label: configuredLabels.get(key) || humanizeColumnKey(key),
+  }));
+}
+
+function optionLabel(option: StructuredTableOptionLike) {
+  return text(option.label || option.name || option.value || option.key || option.id);
+}
+
+function buildOptionResolvers(fields: StructuredTableFieldLike[]) {
+  const byField = new Map<string, Map<string, string>>();
+  const globalCandidates = new Map<string, Set<string>>();
+
+  fields.forEach((field) => {
+    const fieldKeys = [normalizeKey(field.key), normalizeKey(field.label)].filter(Boolean);
+    const labels = new Map<string, string>();
+    (field.options || []).forEach((option) => {
+      const label = optionLabel(option);
+      if (!label) return;
+      [option.value, option.key, option.id, option.label, option.name].forEach((candidate) => {
+        const key = text(candidate);
+        if (!key) return;
+        labels.set(key, label);
+        const global = globalCandidates.get(key) || new Set<string>();
+        global.add(label);
+        globalCandidates.set(key, global);
+      });
+    });
+    fieldKeys.forEach((key) => byField.set(key, labels));
+  });
+
+  return { byField, globalCandidates };
+}
+
+function findRawValue(row: Record<string, unknown>, key: string) {
+  if (key in row) return row[key];
+  const sourceKey = Object.keys(row).find((candidate) => normalizeKey(candidate) === key);
+  return sourceKey ? row[sourceKey] : undefined;
+}
+
+function getCompanionValue(row: Record<string, unknown>, key: string, suffix: string) {
+  const target = `${normalizeKey(key)}_${suffix.toLowerCase()}`;
+  const sourceKey = Object.keys(row).find((candidate) => {
+    const normalized = normalizeKey(candidate);
+    return normalized === target || normalized === `${normalizeKey(key)}${suffix.toLowerCase()}`;
+  });
+  return sourceKey ? text(row[sourceKey]) : "";
+}
+
+function resolveCell(
+  row: Record<string, unknown>,
+  column: SmartReportTableColumn,
+  resolvers: ReturnType<typeof buildOptionResolvers>,
+) {
+  const columnKey = column.key;
+  const other = getCompanionValue(row, columnKey, "Other");
+  if (other) return other;
+
+  const explicitLabel = getCompanionValue(row, columnKey, "Label");
+  if (explicitLabel && explicitLabel !== "أخرى") return explicitLabel;
+
+  const raw = findRawValue(row, columnKey);
+  if (Array.isArray(raw)) {
+    return raw.map((item) => text(item)).filter(Boolean).join("، ");
+  }
+  if (record(raw)) {
+    const rawRecord = record(raw)!;
+    return text(rawRecord.label || rawRecord.name || rawRecord.title || rawRecord.value);
+  }
+
+  const value = text(raw);
+  if (!value || value === "OTHER" || value === "other" || value === "أخرى") return "";
+
+  const configuredOptionLabel = column.optionLabels?.[value];
+  if (configuredOptionLabel) return configuredOptionLabel;
+
+  const matchingField = Array.from(resolvers.byField.entries()).find(([fieldKey]) =>
+    fieldKey === columnKey || fieldKey.includes(columnKey) || columnKey.includes(fieldKey),
+  );
+  const scopedLabel = matchingField?.[1].get(value);
+  if (scopedLabel) return scopedLabel;
+
+  const globalLabels = resolvers.globalCandidates.get(value);
+  if (globalLabels?.size === 1) return Array.from(globalLabels)[0];
+  return value;
+}
+
+export function extractSmartReportTable({
+  value,
+  fields = [],
+  snapshotField,
+}: {
+  value: StructuredTableValueLike;
+  fields?: StructuredTableFieldLike[];
+  snapshotField?: unknown;
+}): SmartReportTable | null {
+  const sourceFieldKey = normalizeKey(value.field?.key || value.fieldKey);
+  if (!sourceFieldKey) return null;
+
+  const rows = getRowRecords(value.jsonValue ?? value.value);
+  if (!rows.length) return null;
+
+  const domainConfig = getStructuredValueTableMetadata(sourceFieldKey);
+  const sourceConfig = mergeConfigs(
+    snapshotField,
+    value.field?.defaultJson,
+    value.field?.settings,
+    value.field?.metadata,
+  );
+  const config = mergeConfigs(
+    domainConfig,
+    sourceConfig,
+  );
+  const columns = inferColumns(rows, config, fields);
+  if (!columns.length) return null;
+
+  const resolvers = buildOptionResolvers(fields);
+  const normalizedRows: SmartReportTableRow[] = rows
+    .map((row, index) => {
+      const cells = Object.fromEntries(
+        columns.map((column) => [column.key, resolveCell(row, column, resolvers)]),
+      );
+      return {
+        id: text(row.id) || `${sourceFieldKey}-row-${index + 1}`,
+        cells,
+      };
+    })
+    .filter((row) => Object.values(row.cells).some((cell) => text(cell)));
+
+  if (!normalizedRows.length) return null;
+
+  return resolveStructuredTableDisplayMetadata({
+    id: `table:${sourceFieldKey}`,
+    sourceFieldKey,
+    title:
+      sourceConfig.tableTitle ||
+      text(value.field?.label) ||
+      text(record(snapshotField)?.label) ||
+      domainConfig?.tableTitle ||
+      TABLE_TITLE_FALLBACKS[sourceFieldKey] ||
+      humanizeTableTitle(sourceFieldKey),
+    columns,
+    rows: normalizedRows,
+    settings: {
+      repeatHeader: config.repeatHeader ?? true,
+      compact: config.compact ?? false,
+      stripedRows: config.stripedRows ?? true,
+      highlightFirstColumn: config.highlightFirstColumn ?? false,
+    },
+  });
+}
+
+export function extractSmartReportTables({
+  values,
+  fields = [],
+  snapshotFields = new Map<string, unknown>(),
+}: {
+  values: StructuredTableValueLike[];
+  fields?: StructuredTableFieldLike[];
+  snapshotFields?: Map<string, unknown>;
+}) {
+  return values
+    .map((value) =>
+      extractSmartReportTable({
+        value,
+        fields,
+        snapshotField: snapshotFields.get(normalizeKey(value.field?.key || value.fieldKey)),
+      }),
+    )
+    .filter((table): table is SmartReportTable => Boolean(table));
+}
+
+function estimateRowUnits(row: SmartReportTableRow, columns: SmartReportTableColumn[]) {
+  const longestLines = columns.reduce((max, column) => {
+    const cell = text(row.cells[column.key]);
+    const widthShare = column.width && column.width > 0 ? column.width / 100 : 1 / columns.length;
+    const charsPerLine = Math.max(9, Math.floor(62 * widthShare));
+    const lines = cell
+      .split(/\n+/)
+      .reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
+    return Math.max(max, lines);
+  }, 1);
+  return Math.max(8, 5 + longestLines * 4.5);
+}
+
+export function paginateSmartReportTable(
+  table: SmartReportTable,
+  options: { maxPageUnits?: number } = {},
+) {
+  const maxPageUnits = Math.max(36, options.maxPageUnits || 130);
+  const chunks: SmartReportTable[] = [];
+  let rows: SmartReportTableRow[] = [];
+  let units = 14;
+
+  const push = () => {
+    if (!rows.length) return;
+    const index = chunks.length;
+    chunks.push({
+      ...table,
+      id: index === 0 ? table.id : `${table.id}:continuation:${index + 1}`,
+      title: index === 0 ? table.title : `${table.title} - تكملة`,
+      rows,
+    });
+    rows = [];
+    units = 14;
+  };
+
+  table.rows.forEach((row) => {
+    const rowUnits = estimateRowUnits(row, table.columns);
+    if (rows.length && units + rowUnits > maxPageUnits) push();
+    rows.push(row);
+    units += Math.min(rowUnits, maxPageUnits - 14);
+  });
+  push();
+
+  return chunks;
+}
+
+export function getSmartReportTableCell(
+  table: SmartReportTable | null | undefined,
+  rowIndex: number,
+  columnKey: string,
+) {
+  return text(table?.rows[rowIndex]?.cells[normalizeKey(columnKey)]);
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-table-pagination.ts
+============================================================
+
+import { paginateSmartReportTable } from "@/lib/report-engine/report-structured-table-extractor";
+import type { SmartReportTable } from "@/lib/report-engine/smart-report-types";
+
+export type LogicalReportBlock = {
+  id?: string;
+  kind?: string;
+  title?: string;
+  sourceBlockId?: string;
+  sourceTableId?: string;
+  sourceFieldKey?: string;
+  visible?: boolean;
+  placement?: string;
+  settings?: Record<string, unknown>;
+  signatures?: unknown[];
+  evidenceStartIndex?: number;
+  columns?: unknown[];
+  columnWidths?: unknown[];
+  rows?: unknown[];
+  rowMetadata?: Array<{ gender?: string | null }>;
+  tableSettings?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+function text(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+/**
+ * Splits only table rows into generic continuation blocks. It never creates
+ * logical or physical pages; SmartPhysicalReportComposer still performs the
+ * real DOM-driven A4 packing for every resulting block.
+ */
+export function paginateStructuredTableBlock(
+  block: LogicalReportBlock,
+): LogicalReportBlock[] {
+  if (block.kind !== "structured-table") {
+    return [block];
+  }
+
+  const columns = Array.isArray(block.columns)
+    ? block.columns.map((column) => text(column))
+    : [];
+  const rows = Array.isArray(block.rows) ? block.rows : [];
+
+  if (!columns.length || !rows.length) {
+    return [block];
+  }
+
+  const sourceBlockId = text(block.sourceBlockId) || text(block.id) || "structured-table";
+  const settings = block.tableSettings || {};
+  const table: SmartReportTable = {
+    id: text(block.sourceTableId) || sourceBlockId,
+    sourceFieldKey: text(block.sourceFieldKey),
+    title: text(block.title),
+    columns: columns.map((label, index) => ({
+      key: `column_${index}`,
+      label,
+      ...(Number(block.columnWidths?.[index]) > 0
+        ? { width: Number(block.columnWidths?.[index]) }
+        : {}),
+    })),
+    rows: rows.map((rawRow, rowIndex) => {
+      const row = Array.isArray(rawRow) ? rawRow : [];
+
+      return {
+        id: `${sourceBlockId}-row-${rowIndex + 1}`,
+        cells: Object.fromEntries(
+          columns.map((_, columnIndex) => [
+            `column_${columnIndex}`,
+            text(row[columnIndex]),
+          ]),
+        ),
+        metadata: {
+          gender: block.rowMetadata?.[rowIndex]?.gender || null,
+        },
+      };
+    }),
+    settings: {
+      repeatHeader: settings.repeatHeader !== false,
+      compact: Boolean(settings.compact),
+      stripedRows: settings.stripedRows !== false,
+      highlightFirstColumn: Boolean(settings.highlightFirstColumn),
+    },
+  };
+
+  return paginateSmartReportTable(table).map((chunk, index) => ({
+    ...block,
+    id: index === 0 ? block.id : `${sourceBlockId}-table-part-${index + 1}`,
+    title: chunk.title,
+    sourceBlockId,
+    rows: chunk.rows.map((row) =>
+      chunk.columns.map((column) => row.cells[column.key] || ""),
+    ),
+    rowMetadata: chunk.rows.map((row) => ({
+      gender: row.metadata?.gender || null,
+    })),
+  }));
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-physical-pages.tsx
+============================================================
+
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import type { ReportDesignId } from "../report-design-types";
+import { A4DesignPage } from "../shared/report-blocks";
+import type { PreviewCaseData } from "../shared/report-types";
+import { SmartReportPageComposer } from "./report-smart-page-composer";
+import {
+  createSemanticInputFingerprint,
+  getFingerprintPrefix,
+  ReportSmartSemanticFingerprintProvider,
+  roundLayoutMetric,
+} from "./report-smart-lifecycle";
+import {
+  paginateStructuredTableBlock,
+  type LogicalReportBlock,
+} from "./report-smart-table-pagination";
+import type {
+  ReportPhysicalPageComposition,
+  ReportPhysicalPageModel,
+  ReportTwoPhysicalNavigationItem,
+} from "./report-smart-physical-types";
+
+type LogicalPage = {
+  id?: string;
+  title?: string;
+  kind?: string;
+  blocks?: LogicalReportBlock[];
+  [key: string]: any;
+};
+
+type PhysicalPage = ReportPhysicalPageModel;
+
+type SmartPhysicalReportComposerProps = {
+  designId: ReportDesignId;
+  pages: LogicalPage[];
+  activePageId?: string;
+  activePhysicalPageId?: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  fallbackPageLabel?: string;
+  renderMode?: "single" | "stack";
+  suppressAutoEvidencePages?: boolean;
+  onPhysicalPagesChange?: (
+    pages: ReportTwoPhysicalNavigationItem[],
+  ) => void;
+};
+
+type PhysicalPlanningPhase =
+  | "DIRTY"
+  | "PLANNING"
+  | "MEASURING"
+  | "STABILIZING"
+  | "READY"
+  | "FROZEN";
+
+type PhysicalInvalidationReason =
+  | "initial"
+  | "design-change"
+  | "page-structure-change"
+  | "content-change"
+  | "evidence-change"
+  | "signature-change"
+  | "header-settings-change";
+
+const MAX_PHYSICAL_STABILIZATION_ATTEMPTS = 80;
+
+type FlowItem = {
+  block: LogicalReportBlock;
+  sourcePageId: string;
+  sourcePageTitle: string;
+};
+
+type LogicalPageModel = {
+  sourcePageId: string;
+  sourcePageTitle: string;
+  kind: string;
+  regularItems: FlowItem[];
+  signatureItems: FlowItem[];
+  evidenceItems: FlowItem[];
+  fixedBlocks: LogicalReportBlock[];
+};
+
+function normalizePlacement(block: LogicalReportBlock) {
+  return String(block?.placement || "flow").trim() || "flow";
+}
+
+function isVisibleBlock(block: LogicalReportBlock) {
+  return Boolean(block) && block.visible !== false;
+}
+
+function isEvidenceBlock(block: LogicalReportBlock) {
+  return String(block?.kind || "").trim() === "evidence-gallery";
+}
+
+function isSignatureBlock(block: LogicalReportBlock) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(
+    block?.settings?.smartBlockKind || "",
+  ).trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+/** Normalize deterministic physical identities without discarding content. */
+function canonicalizePhysicalPages(pages: readonly PhysicalPage[]) {
+  return pages.map((page, index) => {
+    const id = `smart-physical-${index + 1}`;
+
+    return {
+      ...page,
+      id,
+      corePhysicalPageId: id,
+      physicalPageRole: "primary" as const,
+      blocks: [...page.blocks],
+      sourcePageIds: uniqueStrings(page.sourcePageIds),
+    };
+  });
+}
+
+function buildLogicalPageModels(pages: LogicalPage[]): LogicalPageModel[] {
+  const sourcePages = pages.length > 0
+    ? pages
+    : [{
+        id: "logical-page-1",
+        title: "التقرير",
+        kind: "content",
+        blocks: [],
+      }];
+
+  return sourcePages.map((page, pageIndex) => {
+    const regularItems: FlowItem[] = [];
+    const signatureItems: FlowItem[] = [];
+    const evidenceItems: FlowItem[] = [];
+    const sourcePageId =
+      String(page?.id || `logical-page-${pageIndex + 1}`);
+
+    const sourcePageTitle =
+      String(page?.title || `صفحة ${pageIndex + 1}`);
+
+    const blocks = Array.isArray(page?.blocks)
+      ? page.blocks.filter(isVisibleBlock)
+      : [];
+
+    const fixedBlocks = blocks.filter(
+      (block) =>
+        normalizePlacement(block) !== "flow" &&
+        !isSignatureBlock(block),
+    );
+
+    blocks
+      .filter(
+        (block) =>
+          normalizePlacement(block) === "flow" ||
+          isSignatureBlock(block),
+      )
+      .flatMap((block) => paginateStructuredTableBlock(block))
+      .forEach((block) => {
+        const item: FlowItem = {
+          block,
+          sourcePageId,
+          sourcePageTitle,
+        };
+
+        if (isSignatureBlock(block)) {
+          signatureItems.push(item);
+          return;
+        }
+
+        if (isEvidenceBlock(block)) {
+          evidenceItems.push(item);
+          return;
+        }
+
+        regularItems.push(item);
+      });
+    return {
+      sourcePageId,
+      sourcePageTitle,
+      kind: String(page?.kind || "content"),
+      regularItems,
+      signatureItems,
+      evidenceItems,
+      fixedBlocks,
+    };
+  });
+}
+
+function buildSemanticInputFingerprint(
+  designId: ReportDesignId,
+  pages: LogicalPage[],
+  context: Record<string, string>,
+  previewCase: PreviewCaseData | null,
+  fallbackPageLabel: string,
+  suppressAutoEvidencePages: boolean,
+) {
+  return createSemanticInputFingerprint({
+    designId,
+    fallbackPageLabel,
+    suppressAutoEvidencePages,
+    context,
+    pages,
+    previewCase,
+  });
+}
+
+function makePhysicalPage(
+  index: number,
+  logicalPage: LogicalPageModel,
+  blocks: LogicalReportBlock[],
+): PhysicalPage {
+  return {
+    id: `smart-physical-${index + 1}`,
+    title: logicalPage.sourcePageTitle,
+    kind: logicalPage.kind,
+    blocks,
+    sourcePageIds: [logicalPage.sourcePageId],
+    corePhysicalPageId: `smart-physical-${index + 1}`,
+    physicalPageRole: "primary",
+  };
+}
+
+function addLogicalPageFixedBlocks(
+  physicalPage: PhysicalPage,
+  logicalPage: LogicalPageModel,
+  includeFixedBlocks: boolean,
+) {
+  if (!includeFixedBlocks || !logicalPage.fixedBlocks.length) {
+    return physicalPage;
+  }
+
+  return {
+    ...physicalPage,
+    blocks: [
+      ...physicalPage.blocks,
+      ...logicalPage.fixedBlocks,
+    ],
+  };
+}
+
+function appendLogicalPageSpecialBlocks(
+  pages: PhysicalPage[],
+  logicalPage: LogicalPageModel,
+) {
+  const result =
+    pages.length > 0
+      ? pages.map((page) => ({
+          ...page,
+          blocks: [...page.blocks],
+          sourcePageIds: [...page.sourcePageIds],
+        }))
+      : [
+          {
+            id: "smart-physical-1",
+            title: logicalPage.sourcePageTitle,
+            kind: logicalPage.kind,
+            blocks: [...logicalPage.fixedBlocks],
+            sourcePageIds: [logicalPage.sourcePageId],
+            corePhysicalPageId: "smart-physical-1",
+            physicalPageRole: "primary",
+          } satisfies PhysicalPage,
+        ];
+
+  const lastIndex = result.length - 1;
+  const last = result[lastIndex];
+
+  /*
+   * Evidence is intentionally placed BEFORE signature.
+   *
+   * SmartReportPageComposer then decides:
+   * 2 evidence / 1 evidence / 0 evidence on this page,
+   * while the remaining evidence goes to AutoEvidencePages.
+   */
+  const primaryEvidenceItem = logicalPage.evidenceItems.find(
+    (item) => Number(item.block?.evidenceStartIndex || 0) <= 0,
+  ) || logicalPage.evidenceItems[0];
+  const evidenceBlocks = primaryEvidenceItem
+    ? [primaryEvidenceItem.block]
+    : [];
+  const evidenceContinuationItems = logicalPage.evidenceItems.filter(
+    (item) => item !== primaryEvidenceItem,
+  );
+
+  const signatureBlocks =
+    logicalPage.signatureItems.map((item) => item.block);
+
+  result[lastIndex] = {
+    ...last,
+    sourcePageIds: [logicalPage.sourcePageId],
+    blocks: [
+      ...last.blocks,
+      ...evidenceBlocks,
+      ...signatureBlocks,
+    ],
+  };
+
+  evidenceContinuationItems.forEach((item) => {
+    result.push(
+      makePhysicalPage(
+        result.length,
+        logicalPage,
+        [item.block],
+      ),
+    );
+  });
+
+  return result;
+}
+
+function buildComposedPhysicalPages(
+  corePages: readonly PhysicalPage[],
+  compositions: Readonly<Record<string, ReportPhysicalPageComposition>>,
+  logicalPages: readonly LogicalPageModel[],
+) {
+  const logicalTitles = new Map(
+    logicalPages.map((page) => [page.sourcePageId, page.sourcePageTitle]),
+  );
+  const logicalPageCounters = new Map<string, number>();
+  const seenPhysicalIds = new Set<string>();
+
+  return corePages.flatMap((corePage) => {
+    const composedPages =
+      compositions[corePage.id]?.pages?.length
+        ? compositions[corePage.id].pages
+        : [corePage];
+
+    return composedPages.flatMap((page) => {
+      const id = String(page.id || "").trim();
+
+      if (!id || seenPhysicalIds.has(id)) {
+        return [];
+      }
+
+      seenPhysicalIds.add(id);
+      const sourcePageIds = uniqueStrings(
+        page.sourcePageIds.length
+          ? page.sourcePageIds
+          : corePage.sourcePageIds,
+      );
+      const sourceLogicalPageId = sourcePageIds[0] || "logical-page-1";
+      const physicalIndexWithinLogicalPage =
+        (logicalPageCounters.get(sourceLogicalPageId) || 0) + 1;
+      logicalPageCounters.set(
+        sourceLogicalPageId,
+        physicalIndexWithinLogicalPage,
+      );
+      const sourceTitle =
+        logicalTitles.get(sourceLogicalPageId) || corePage.title || "التقرير";
+      const title =
+        physicalIndexWithinLogicalPage === 1
+          ? sourceTitle
+          : `${sourceTitle} - صفحة ${physicalIndexWithinLogicalPage}`;
+
+      return [{
+        ...page,
+        title,
+        sourcePageIds,
+        corePhysicalPageId: corePage.id,
+        physicalPageIndex: seenPhysicalIds.size - 1,
+        physicalIndexWithinLogicalPage,
+      }];
+    });
+  });
+}
+
+function buildPhysicalNavigationItems(
+  pages: readonly PhysicalPage[],
+): ReportTwoPhysicalNavigationItem[] {
+  return pages.map((page, index) => ({
+    physicalPageId: page.id,
+    corePhysicalPageId: page.corePhysicalPageId,
+    sourceLogicalPageId: page.sourcePageIds[0] || "logical-page-1",
+    sourcePageIds: [...page.sourcePageIds],
+    label: page.title,
+    physicalPageIndex: index,
+    physicalIndexWithinLogicalPage:
+      page.physicalIndexWithinLogicalPage || 1,
+    role: page.physicalPageRole,
+  }));
+}
+
+export function SmartPhysicalReportComposer({
+  designId,
+  pages,
+  activePageId,
+  activePhysicalPageId,
+  context,
+  previewCase,
+  fallbackPageLabel = "التقرير",
+  renderMode = "stack",
+  suppressAutoEvidencePages = false,
+  onPhysicalPagesChange,
+}: SmartPhysicalReportComposerProps) {
+  const logicalPageModels = useMemo(
+    () => buildLogicalPageModels(pages || []),
+    [pages],
+  );
+
+  const semanticInputFingerprint = useMemo(
+    () =>
+      buildSemanticInputFingerprint(
+        designId,
+        pages || [],
+        context,
+        previewCase,
+        fallbackPageLabel,
+        suppressAutoEvidencePages,
+      ),
+    [
+      context,
+      designId,
+      fallbackPageLabel,
+      pages,
+      previewCase,
+      suppressAutoEvidencePages,
+    ],
+  );
+
+  const semanticFingerprintParts = useMemo(
+    () => ({
+      content: semanticInputFingerprint,
+      design: createSemanticInputFingerprint(designId),
+      evidence: createSemanticInputFingerprint({
+        blocks: pages.flatMap((page) =>
+          (page.blocks || []).filter(isEvidenceBlock),
+        ),
+        evidences: previewCase?.evidences || [],
+      }),
+      header: createSemanticInputFingerprint({
+        fallbackPageLabel,
+        settings: Object.fromEntries(
+          Object.entries(context).filter(([key]) =>
+            key.startsWith("identity.") ||
+            key.startsWith("report."),
+          ),
+        ),
+      }),
+      pageStructure: createSemanticInputFingerprint(
+        pages.map((page) => ({
+          blocks: (page.blocks || []).map((block) => ({
+            id: block?.id,
+            kind: block?.kind,
+            placement: block?.placement,
+          })),
+          id: page.id,
+          kind: page.kind,
+        })),
+      ),
+      signatures: createSemanticInputFingerprint({
+        blocks: pages.flatMap((page) =>
+          (page.blocks || []).filter(isSignatureBlock),
+        ),
+        context: Object.fromEntries(
+          Object.entries(context).filter(([key]) =>
+            key.toLowerCase().includes("signature"),
+          ),
+        ),
+      }),
+    }),
+    [
+      context,
+      designId,
+      fallbackPageLabel,
+      pages,
+      previewCase?.evidences,
+      semanticInputFingerprint,
+    ],
+  );
+
+  const semanticFingerprintPartsFingerprint = useMemo(
+    () => createSemanticInputFingerprint(semanticFingerprintParts),
+    [semanticFingerprintParts],
+  );
+
+  const measurementHostRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const outputHostRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const [physicalPages, setPhysicalPages] =
+    useState<PhysicalPage[]>([]);
+
+  const [finalPhysicalPages, setFinalPhysicalPages] =
+    useState<PhysicalPage[]>([]);
+
+  const [pageCompositions, setPageCompositions] =
+    useState<Record<string, ReportPhysicalPageComposition>>({});
+
+  const [acceptedItems, setAcceptedItems] =
+    useState<FlowItem[]>([]);
+
+  const [logicalPageIndex, setLogicalPageIndex] =
+    useState(0);
+
+  const [currentLogicalPhysicalPages, setCurrentLogicalPhysicalPages] =
+    useState<PhysicalPage[]>([]);
+
+  const [cursor, setCursor] =
+    useState(0);
+
+  const [candidateVersion, setCandidateVersion] =
+    useState(0);
+
+  const [done, setDone] =
+    useState(false);
+
+  const [planningPhase, setPlanningPhase] =
+    useState<PhysicalPlanningPhase>("DIRTY");
+
+  const [plannedResetKey, setPlannedResetKey] =
+    useState(semanticInputFingerprint);
+
+  const planningPhaseRef =
+    useRef<PhysicalPlanningPhase>("DIRTY");
+
+  const outputStabilityRef = useRef({
+    signature: "",
+    count: 0,
+    attempts: 0,
+  });
+
+  const finalizedPlanRef = useRef<{
+    semanticInputFingerprint: string;
+    layoutResultFingerprint: string;
+    pages: readonly PhysicalPage[];
+  } | null>(null);
+
+  const previousSemanticPartsRef =
+    useRef<typeof semanticFingerprintParts | null>(null);
+
+  const [invalidationReason, setInvalidationReason] =
+    useState<PhysicalInvalidationReason>("initial");
+
+  const fontsSettledRef = useRef(false);
+  const settledAssetSourcesRef = useRef(new Set<string>());
+  const outputResizeFingerprintRef = useRef("");
+
+  const decisionLockRef =
+    useRef(false);
+
+  /*
+   * New report/template data => rebuild physical pagination.
+   */
+  useEffect(() => {
+    const currentParts = JSON.parse(
+      semanticFingerprintPartsFingerprint,
+    ) as typeof semanticFingerprintParts;
+    const previousParts = previousSemanticPartsRef.current;
+
+    const nextInvalidationReason: PhysicalInvalidationReason = !previousParts
+      ? "initial"
+      : previousParts.design !== currentParts.design
+        ? "design-change"
+        : previousParts.pageStructure !==
+            currentParts.pageStructure
+          ? "page-structure-change"
+          : previousParts.evidence !== currentParts.evidence
+            ? "evidence-change"
+            : previousParts.signatures !==
+                currentParts.signatures
+              ? "signature-change"
+              : previousParts.header !== currentParts.header
+                ? "header-settings-change"
+                : "content-change";
+
+    setInvalidationReason(nextInvalidationReason);
+
+    previousSemanticPartsRef.current = currentParts;
+    finalizedPlanRef.current = null;
+    decisionLockRef.current = false;
+
+    planningPhaseRef.current = "DIRTY";
+    setPlanningPhase("DIRTY");
+    setPhysicalPages([]);
+    setFinalPhysicalPages([]);
+    setPageCompositions({});
+    setAcceptedItems([]);
+    setLogicalPageIndex(0);
+    setCurrentLogicalPhysicalPages([]);
+    setCursor(0);
+    setCandidateVersion(
+      (current) => current + 1,
+    );
+    setDone(false);
+    planningPhaseRef.current = "PLANNING";
+    setPlanningPhase("PLANNING");
+    outputStabilityRef.current = {
+      signature: "",
+      count: 0,
+      attempts: 0,
+    };
+    settledAssetSourcesRef.current.clear();
+    outputResizeFingerprintRef.current = "";
+    setPlannedResetKey(semanticInputFingerprint);
+  }, [
+    semanticInputFingerprint,
+    semanticFingerprintPartsFingerprint,
+  ]);
+
+  const activeLogicalPage =
+    logicalPageModels[logicalPageIndex] ?? logicalPageModels[0]!;
+
+  const completeCurrentLogicalPage = useCallback(
+    (corePages: PhysicalPage[]) => {
+      if (!activeLogicalPage) {
+        setDone(true);
+        return;
+      }
+
+      const logicalPhysicalPages = corePages.length > 0
+        ? corePages
+        : [
+            makePhysicalPage(
+              physicalPages.length,
+              activeLogicalPage,
+              [...activeLogicalPage.fixedBlocks],
+            ),
+          ];
+
+      const completedLogicalPages =
+        appendLogicalPageSpecialBlocks(
+          logicalPhysicalPages,
+          activeLogicalPage,
+        );
+
+      setPhysicalPages(
+        canonicalizePhysicalPages([
+          ...physicalPages,
+          ...completedLogicalPages,
+        ]),
+      );
+      setCurrentLogicalPhysicalPages([]);
+      setAcceptedItems([]);
+      setCursor(0);
+
+      if (logicalPageIndex >= logicalPageModels.length - 1) {
+        setDone(true);
+      } else {
+        setLogicalPageIndex((current) => current + 1);
+        setCandidateVersion((current) => current + 1);
+      }
+    },
+    [
+      activeLogicalPage,
+      logicalPageIndex,
+      logicalPageModels.length,
+      physicalPages,
+    ],
+  );
+
+  const hasRegularItems =
+    activeLogicalPage.regularItems.length > 0;
+
+  const nextItem =
+    activeLogicalPage.regularItems[cursor];
+
+  const candidateItems = useMemo(() => {
+    if (done) {
+      return [];
+    }
+
+    if (!hasRegularItems) {
+      return [];
+    }
+
+    if (!nextItem) {
+      return acceptedItems;
+    }
+
+    return [
+      ...acceptedItems,
+      nextItem,
+    ];
+  }, [
+    acceptedItems,
+    done,
+    hasRegularItems,
+    nextItem,
+  ]);
+
+  const candidateBlocks = useMemo(() => {
+    if (!hasRegularItems) {
+      /*
+       * Signature-only report:
+       * signature is the core content because there are no
+       * regular blocks to pack.
+       */
+      const signatureBlocks = activeLogicalPage.signatureItems.map(
+        (item) => item.block,
+      );
+
+      return [
+        ...signatureBlocks,
+        ...(currentLogicalPhysicalPages.length === 0
+          ? activeLogicalPage.fixedBlocks
+          : []),
+      ];
+    }
+
+    /*
+     * IMPORTANT:
+     *
+     * Physical pagination packs REGULAR CONTENT ONLY.
+     *
+     * Do not inject signature into the final regular candidate.
+     * Doing that caused this failure:
+     *
+     * fields                         -> fits
+     * fields + narrative + signature -> fails
+     * engine closes page at fields   -> WRONG
+     *
+     * Now:
+     *
+     * fields + narrative + other regular blocks
+     * are packed using the real Smart A4 measurement first.
+     *
+     * Evidence and signature are appended only after the core
+     * physical pages have been built, and SmartReportPageComposer
+     * negotiates their final placement.
+     */
+    return [
+      ...candidateItems.map((item) => item.block),
+      ...(currentLogicalPhysicalPages.length === 0
+        ? activeLogicalPage.fixedBlocks
+        : []),
+    ];
+  }, [
+    activeLogicalPage,
+    candidateItems,
+    currentLogicalPhysicalPages.length,
+    hasRegularItems,
+  ]);
+
+  const candidatePage = useMemo(
+    () => ({
+      id:
+        `smart-measure-${candidateVersion}-${logicalPageIndex}-${cursor}-${acceptedItems.length}`,
+
+      title: activeLogicalPage.sourcePageTitle || fallbackPageLabel,
+
+      kind: "content",
+
+      blocks: candidateBlocks,
+    }),
+    [
+      candidateVersion,
+      logicalPageIndex,
+      cursor,
+      acceptedItems.length,
+      fallbackPageLabel,
+      candidateBlocks,
+      activeLogicalPage.sourcePageTitle,
+    ],
+  );
+
+  /*
+   * Special case:
+   * no regular blocks at all.
+   */
+  useEffect(() => {
+    if (
+      done ||
+      hasRegularItems
+    ) {
+      return;
+    }
+
+    /*
+     * We still render the hidden measurement candidate first
+     * if signatures exist.
+     */
+    if (activeLogicalPage.signatureItems.length > 0) {
+      return;
+    }
+
+    completeCurrentLogicalPage([]);
+  }, [
+    activeLogicalPage.signatureItems.length,
+    completeCurrentLogicalPage,
+    done,
+    hasRegularItems,
+  ]);
+
+  /*
+   * DOM-driven physical page packing.
+   *
+   * Greedy but measured:
+   *
+   * current accepted blocks + next block
+   *              ↓
+   *     real A4 Smart engine
+   *              ↓
+   * fits? yes => accept block
+   * fits? no  => finalize previous physical page
+   */
+  useEffect(() => {
+    const host =
+      measurementHostRef.current;
+
+    if (
+      !host ||
+      done
+    ) {
+      return;
+    }
+
+    let frame: number | null = null;
+
+    const inspect = () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      frame =
+        window.requestAnimationFrame(() => {
+          frame = null;
+
+          if (decisionLockRef.current) {
+            return;
+          }
+
+          const viewport =
+            host.querySelector<HTMLElement>(
+              ".report-smart-a4-content",
+            );
+
+          if (!viewport) {
+            return;
+          }
+
+          /*
+           * score=0 is the initial React state.
+           * Wait until the internal Smart A4 multi-plan engine
+           * has completed a real measurement.
+           */
+          const scoreValue =
+            Number(
+              viewport.getAttribute(
+                "data-smart-a4-score",
+              ) || "0",
+            );
+
+          const candidateId =
+            viewport.getAttribute(
+              "data-smart-a4-candidate",
+            );
+
+          const smartA4Phase =
+            viewport.getAttribute(
+              "data-smart-a4-phase",
+            );
+
+          if (
+            smartA4Phase !== "FROZEN" ||
+            !candidateId ||
+            !Number.isFinite(scoreValue) ||
+            scoreValue === 0
+          ) {
+            return;
+          }
+
+          const minimumSafeSelected =
+            viewport.dataset.reportDensity === "minimum-safe";
+          const fits =
+            viewport.dataset.reportOverflow === "fit" &&
+            !(minimumSafeSelected && acceptedItems.length > 0);
+
+          decisionLockRef.current = true;
+
+          /*
+           * ---------------------------------------------------
+           * NO REGULAR CONTENT, SIGNATURE-ONLY CORE PAGE
+           * ---------------------------------------------------
+           */
+          if (!hasRegularItems) {
+            completeCurrentLogicalPage([]);
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          const isLastItem =
+            cursor >=
+            activeLogicalPage.regularItems.length - 1;
+
+          /*
+           * Candidate fits:
+           * accept next block.
+           */
+          if (fits) {
+            const nextAccepted =
+              nextItem
+                ? [
+                    ...acceptedItems,
+                    nextItem,
+                  ]
+                : acceptedItems;
+
+            if (isLastItem) {
+              /*
+               * Entire last REGULAR physical page fits.
+               *
+               * Evidence and signature placement happens only
+               * after the regular packing phase completes.
+               */
+              const basePage =
+                makePhysicalPage(
+                  physicalPages.length + currentLogicalPhysicalPages.length,
+                  activeLogicalPage,
+                  nextAccepted.map(
+                    (item) => item.block,
+                  ),
+                );
+
+              const withFixed =
+                addLogicalPageFixedBlocks(
+                  basePage,
+                  activeLogicalPage,
+                  currentLogicalPhysicalPages.length === 0,
+                );
+
+              completeCurrentLogicalPage([
+                ...currentLogicalPhysicalPages,
+                withFixed,
+              ]);
+
+              decisionLockRef.current = false;
+              return;
+            }
+
+            setAcceptedItems(
+              nextAccepted,
+            );
+
+            setCursor(
+              (current) =>
+                current + 1,
+            );
+
+            setCandidateVersion(
+              (current) =>
+                current + 1,
+            );
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          /*
+           * Candidate does NOT fit.
+           *
+           * If we already had accepted content,
+           * finalize it and retry the same next item on a new page.
+           */
+          if (
+            acceptedItems.length > 0
+          ) {
+            const basePage =
+              makePhysicalPage(
+                physicalPages.length + currentLogicalPhysicalPages.length,
+                activeLogicalPage,
+                acceptedItems.map(
+                  (item) => item.block,
+                ),
+              );
+
+            const finalized =
+              addLogicalPageFixedBlocks(
+                basePage,
+                activeLogicalPage,
+                currentLogicalPhysicalPages.length === 0,
+              );
+
+            setCurrentLogicalPhysicalPages((current) =>
+              [...current, finalized],
+            );
+
+            setAcceptedItems([]);
+
+            /*
+             * Do NOT advance cursor.
+             * Retry the overflowing block as the first block
+             * of the next physical page.
+             */
+            setCandidateVersion(
+              (current) =>
+                current + 1,
+            );
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          /*
+           * A single block itself does not fit.
+           *
+           * We cannot safely split arbitrary blocks here.
+           * Preserve it intact on its own physical page and let
+           * Smart A4 minimum-safe handle it without data loss.
+           */
+          if (nextItem) {
+            const oversizedPage =
+              makePhysicalPage(
+                physicalPages.length + currentLogicalPhysicalPages.length,
+                activeLogicalPage,
+                [nextItem.block],
+              );
+
+            const withFixed =
+              addLogicalPageFixedBlocks(
+                oversizedPage,
+                activeLogicalPage,
+                currentLogicalPhysicalPages.length === 0,
+              );
+
+            const newPages = [
+              ...currentLogicalPhysicalPages,
+              withFixed,
+            ];
+
+            if (isLastItem) {
+              completeCurrentLogicalPage(newPages);
+            } else {
+              setCurrentLogicalPhysicalPages(newPages);
+
+              setCursor(
+                (current) =>
+                  current + 1,
+              );
+
+              setCandidateVersion(
+                (current) =>
+                  current + 1,
+              );
+            }
+
+            decisionLockRef.current = false;
+            return;
+          }
+
+          decisionLockRef.current = false;
+        });
+    };
+
+    const observer =
+      new MutationObserver(inspect);
+
+    observer.observe(host, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "data-smart-a4-phase",
+      ],
+    });
+
+    inspect();
+
+    return () => {
+      observer.disconnect();
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [
+    activeLogicalPage,
+    acceptedItems,
+    candidateVersion,
+    completeCurrentLogicalPage,
+    currentLogicalPhysicalPages,
+    cursor,
+    done,
+    hasRegularItems,
+    nextItem,
+    physicalPages,
+  ]);
+
+  /*
+   * During calculation keep old/new physical pages hidden
+   * until a stable plan exists.
+   */
+  const isPlanCurrent =
+    plannedResetKey === semanticInputFingerprint;
+
+  const handlePageCompositionReady = useCallback(
+    (composition: ReportPhysicalPageComposition) => {
+      setPageCompositions((current) => {
+        const previous = current[composition.corePhysicalPageId];
+        const previousFingerprint = previous
+          ? createSemanticInputFingerprint(previous.pages)
+          : "";
+        const nextFingerprint = createSemanticInputFingerprint(
+          composition.pages,
+        );
+
+        if (previousFingerprint === nextFingerprint) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [composition.corePhysicalPageId]: composition,
+        };
+      });
+    },
+    [],
+  );
+
+  const composedPhysicalPages = useMemo(
+    () =>
+      buildComposedPhysicalPages(
+        physicalPages,
+        pageCompositions,
+        logicalPageModels,
+      ),
+    [logicalPageModels, pageCompositions, physicalPages],
+  );
+
+  const allCoreCompositionsReady =
+    physicalPages.length > 0 &&
+    physicalPages.every((page) => Boolean(pageCompositions[page.id]));
+
+  const renderablePhysicalPages = useMemo(
+    () =>
+      finalPhysicalPages.length > 0
+        ? finalPhysicalPages
+        : composedPhysicalPages,
+    [composedPhysicalPages, finalPhysicalPages],
+  );
+
+  const visiblePages =
+    done && isPlanCurrent && renderablePhysicalPages.length
+      ? renderablePhysicalPages
+      : [];
+
+  const selectedPhysicalPages =
+    renderMode === "stack"
+      ? visiblePages
+      : (() => {
+          if (!visiblePages.length) {
+            return [];
+          }
+
+          if (activePhysicalPageId) {
+            const matchingPhysicalPage = visiblePages.find(
+              (page) => page.id === activePhysicalPageId,
+            );
+
+            if (matchingPhysicalPage) {
+              return [matchingPhysicalPage];
+            }
+          }
+
+          if (activePageId) {
+            const matching =
+              visiblePages.find(
+                (page) =>
+                  page.sourcePageIds.includes(
+                    activePageId,
+                  ),
+              );
+
+            if (matching) {
+              return [matching];
+            }
+          }
+
+          return [visiblePages[0]];
+        })();
+
+  useEffect(() => {
+    if (!done) {
+      return;
+    }
+
+    if (
+      finalizedPlanRef.current?.semanticInputFingerprint ===
+        semanticInputFingerprint &&
+      (planningPhaseRef.current === "READY" ||
+        planningPhaseRef.current === "FROZEN")
+    ) {
+      return;
+    }
+
+    const host = outputHostRef.current;
+
+    if (!host) {
+      return;
+    }
+
+    let frame: number | null = null;
+    let disposed = false;
+    let observer: MutationObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const setPhase = (next: PhysicalPlanningPhase) => {
+      planningPhaseRef.current = next;
+      setPlanningPhase((current) =>
+        current === next ? current : next,
+      );
+    };
+
+    const isTerminalPhase = () =>
+      planningPhaseRef.current === "READY" ||
+      planningPhaseRef.current === "FROZEN";
+
+    const resetStability = () => {
+      outputStabilityRef.current = {
+        signature: "",
+        count: 0,
+        attempts: outputStabilityRef.current.attempts,
+      };
+    };
+
+    const freezeFinalPlan = (
+      layoutResultFingerprint: string,
+    ) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const frozenPages = composedPhysicalPages.map((page) => ({
+        ...page,
+        blocks: [...page.blocks],
+        sourcePageIds: [...page.sourcePageIds],
+      }));
+
+      finalizedPlanRef.current = {
+        semanticInputFingerprint,
+        layoutResultFingerprint,
+        pages: frozenPages,
+      };
+
+      setFinalPhysicalPages(frozenPages);
+
+      if (process.env.NODE_ENV === "development") {
+        host.dataset.reportPhysicalLayoutFingerprint =
+          getFingerprintPrefix(layoutResultFingerprint);
+        host.dataset.reportPhysicalStablePasses = String(
+          outputStabilityRef.current.count,
+        );
+        host.dataset.reportPhysicalAttempts = String(
+          outputStabilityRef.current.attempts,
+        );
+      }
+
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      setPhase("READY");
+
+      queueMicrotask(() => {
+        if (
+          !disposed &&
+          planningPhaseRef.current === "READY" &&
+          finalizedPlanRef.current?.semanticInputFingerprint ===
+            semanticInputFingerprint
+        ) {
+          setPhase("FROZEN");
+        }
+      });
+    };
+
+    const inspect = () => {
+      if (
+        disposed ||
+        isTerminalPhase() ||
+        frame !== null
+      ) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+
+        if (
+          disposed ||
+          isTerminalPhase()
+        ) {
+          return;
+        }
+
+        outputStabilityRef.current.attempts += 1;
+
+        const renderedPages = host.querySelectorAll(
+          ".pdf-report-page",
+        );
+
+        if (!renderedPages.length) {
+          resetStability();
+          setPhase("MEASURING");
+          if (
+            outputStabilityRef.current.attempts <
+            MAX_PHYSICAL_STABILIZATION_ATTEMPTS
+          ) {
+            inspect();
+          } else {
+            freezeFinalPlan(
+              createSemanticInputFingerprint({
+                fallback: "missing-rendered-page-dom",
+                physicalPageCount: physicalPages.length,
+                blocks: physicalPages.map((page) =>
+                  page.blocks.map((block) => block?.id || block?.kind),
+                ),
+              }),
+            );
+          }
+          return;
+        }
+
+        const smartViewports = Array.from(
+          host.querySelectorAll<HTMLElement>(
+            ".report-smart-a4-content",
+          ),
+        );
+
+        const pageComposers = Array.from(
+          host.querySelectorAll<HTMLElement>(
+            "[data-report-smart-page-composer]",
+          ),
+        );
+
+        const smartLayoutsFinal = smartViewports.every(
+          (viewport) =>
+            viewport.dataset.smartA4Phase === "FROZEN",
+        );
+        const smartLayoutsFit = smartViewports.every(
+          (viewport) => viewport.dataset.reportOverflow === "fit",
+        );
+
+        const pageComposersReady = pageComposers.every(
+          (composer) =>
+            composer.dataset.reportSmartPagePhase === "FROZEN" ||
+            composer.dataset.reportSmartPagePhase === "READY",
+        );
+        const hasExpectedComposerCount =
+          pageComposers.length === physicalPages.length;
+        const renderedPageCountMatchesComposition =
+          renderedPages.length === composedPhysicalPages.length;
+
+        const images = Array.from(
+          host.querySelectorAll<HTMLImageElement>("img"),
+        );
+        const assetsSettled = images.every((image) => image.complete);
+        const reachedAttemptLimit =
+          outputStabilityRef.current.attempts >=
+          MAX_PHYSICAL_STABILIZATION_ATTEMPTS;
+
+        if (
+          !smartLayoutsFinal ||
+          !smartLayoutsFit ||
+          !pageComposersReady ||
+          !hasExpectedComposerCount ||
+          !allCoreCompositionsReady ||
+          !renderedPageCountMatchesComposition ||
+          !assetsSettled ||
+          !fontsSettledRef.current
+        ) {
+          resetStability();
+          setPhase("MEASURING");
+
+          if (reachedAttemptLimit) {
+            freezeFinalPlan(
+              createSemanticInputFingerprint({
+                fallback: true,
+                physicalPages: composedPhysicalPages.map((page) => ({
+                  blocks: page.blocks.map((block) => block?.id || block?.kind),
+                  sourcePageIds: page.sourcePageIds,
+                })),
+                renderedPageCount: renderedPages.length,
+              }),
+            );
+          } else {
+            inspect();
+          }
+          return;
+        }
+
+        const smartSignature = smartViewports.map((viewport) =>
+          [
+            viewport.dataset.smartA4Candidate || "legacy",
+            viewport.dataset.reportDensity || "normal",
+            viewport.dataset.reportFieldLayout || "comfortable",
+            viewport.dataset.reportOverflow || "fit",
+            roundLayoutMetric(
+              Number(viewport.dataset.smartA4OverflowPx || "0"),
+            ),
+            roundLayoutMetric(
+              Number(
+                viewport.dataset.smartA4SignatureReservedPx || "0",
+              ),
+            ),
+            viewport.dataset.smartA4FooterBoundaryUsed || "false",
+            roundLayoutMetric(
+              Number(viewport.dataset.smartA4BoundaryBottomPx || "0"),
+            ),
+          ].join(":"),
+        );
+
+        const composerSignature = pageComposers.map((composer) =>
+          [
+            composer.dataset.reportPrimaryEvidenceCount || "0",
+            composer.dataset.reportTotalEvidenceCount || "0",
+            composer.dataset.reportSignatureOnPrimary || "true",
+            composer.dataset.reportSmartPagePhase || "",
+          ].join(":"),
+        );
+
+        const signature = createSemanticInputFingerprint({
+          physicalPages: composedPhysicalPages.map((page) => ({
+            blocks: page.blocks.map((block) => block?.id || block?.kind),
+            sourcePageIds: page.sourcePageIds,
+          })),
+          renderedPageCount: renderedPages.length,
+          smartSignature,
+          composerSignature,
+        });
+
+        const previous = outputStabilityRef.current;
+
+        outputStabilityRef.current =
+          previous.signature === signature
+            ? {
+              signature,
+              count: previous.count + 1,
+              attempts: previous.attempts,
+            }
+            : {
+                signature,
+                count: 1,
+                attempts: previous.attempts,
+              };
+
+        if (process.env.NODE_ENV === "development") {
+          host.dataset.reportPhysicalLayoutFingerprint =
+            getFingerprintPrefix(signature);
+          host.dataset.reportPhysicalStablePasses = String(
+            outputStabilityRef.current.count,
+          );
+          host.dataset.reportPhysicalAttempts = String(
+            outputStabilityRef.current.attempts,
+          );
+        }
+
+        if (
+          outputStabilityRef.current.count >= 2 ||
+          reachedAttemptLimit
+        ) {
+          freezeFinalPlan(signature);
+          return;
+        }
+
+        setPhase("STABILIZING");
+        inspect();
+      });
+    };
+
+    resetStability();
+    setPhase("MEASURING");
+
+    observer = new MutationObserver(inspect);
+
+    observer.observe(host, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "data-smart-a4-phase",
+        "data-report-smart-page-phase",
+      ],
+    });
+
+    resizeObserver = new ResizeObserver(() => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const rect = host.getBoundingClientRect();
+      const nextResizeFingerprint = [
+        roundLayoutMetric(rect.width),
+        roundLayoutMetric(rect.height),
+        roundLayoutMetric(host.scrollWidth),
+        roundLayoutMetric(host.scrollHeight),
+      ].join(":");
+
+      if (
+        outputResizeFingerprintRef.current === nextResizeFingerprint
+      ) {
+        return;
+      }
+
+      outputResizeFingerprintRef.current = nextResizeFingerprint;
+      inspect();
+    });
+    resizeObserver.observe(host);
+
+    const handleAssetLoad = (event: Event) => {
+      if (isTerminalPhase()) {
+        return;
+      }
+
+      const image =
+        event.target instanceof HTMLImageElement
+          ? event.target
+          : null;
+      const source = image?.currentSrc || image?.src || "";
+
+      if (
+        source &&
+        settledAssetSourcesRef.current.has(source)
+      ) {
+        return;
+      }
+
+      if (source) {
+        settledAssetSourcesRef.current.add(source);
+      }
+
+      resetStability();
+      setPhase("MEASURING");
+      inspect();
+    };
+
+    host.addEventListener("load", handleAssetLoad, true);
+    host.addEventListener("error", handleAssetLoad, true);
+    inspect();
+
+    if (!document.fonts) {
+      fontsSettledRef.current = true;
+      inspect();
+    } else if (fontsSettledRef.current) {
+      inspect();
+    } else {
+      void document.fonts.ready
+        .then(() => {
+          if (!disposed && !fontsSettledRef.current) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        })
+        .catch(() => {
+          if (!disposed) {
+            fontsSettledRef.current = true;
+            inspect();
+          }
+        });
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      host.removeEventListener("load", handleAssetLoad, true);
+      host.removeEventListener("error", handleAssetLoad, true);
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [
+    allCoreCompositionsReady,
+    composedPhysicalPages,
+    done,
+    semanticInputFingerprint,
+    physicalPages,
+  ]);
+
+  const isReady =
+    done &&
+    isPlanCurrent &&
+    finalPhysicalPages.length > 0 &&
+    (planningPhase === "READY" || planningPhase === "FROZEN");
+
+  const corePhysicalPagesToRender =
+    !isReady || renderMode === "stack"
+      ? physicalPages
+      : (() => {
+          const selectedPage = selectedPhysicalPages[0];
+          const selectedCorePage = selectedPage
+            ? physicalPages.find(
+                (page) => page.id === selectedPage.corePhysicalPageId,
+              )
+            : null;
+
+          return selectedCorePage
+            ? [selectedCorePage]
+            : physicalPages.slice(0, 1);
+        })();
+
+  useEffect(() => {
+    if (!isReady || !onPhysicalPagesChange) {
+      return;
+    }
+
+    onPhysicalPagesChange(
+      buildPhysicalNavigationItems(finalPhysicalPages),
+    );
+  }, [finalPhysicalPages, isReady, onPhysicalPagesChange]);
+
+  const developmentDiagnostics =
+    process.env.NODE_ENV === "development"
+      ? {
+          "data-report-physical-semantic-fingerprint":
+            getFingerprintPrefix(semanticInputFingerprint),
+          "data-report-physical-invalidation-reason":
+            invalidationReason,
+        }
+      : {};
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          [data-report-physical-measurement-stage],
+          [data-report-physical-output-planning="true"] {
+            display: none !important;
+          }
+        }
+      `}</style>
+      {/*
+       * ======================================================
+       * OFFSCREEN MEASUREMENT STAGE
+       * ======================================================
+       *
+       * This uses the REAL design and the REAL Smart A4 engine.
+       * It is not an estimated character-count paginator.
+       */}
+      {!done ? (
+        <div
+          ref={measurementHostRef}
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-100000px] top-0 -z-50 w-[210mm]"
+          style={{
+            visibility: "hidden",
+            contain: "layout style paint",
+          }}
+          data-report-physical-measurement-stage
+          data-report-measurement-only="true"
+        >
+          <ReportSmartSemanticFingerprintProvider
+            fingerprint={createSemanticInputFingerprint({
+              blocks: candidatePage.blocks,
+              kind: candidatePage.kind,
+              semanticInputFingerprint,
+            })}
+          >
+            <A4DesignPage
+              key={candidatePage.id}
+              designId={designId}
+              page={candidatePage}
+              context={context}
+              previewCase={previewCase}
+              pageLabel={fallbackPageLabel}
+            />
+          </ReportSmartSemanticFingerprintProvider>
+        </div>
+      ) : null}
+
+      {/*
+       * ======================================================
+       * PHYSICAL A4 OUTPUT
+       * ======================================================
+       */}
+      {done ? (
+        <div
+          ref={outputHostRef}
+          className={
+            renderMode === "stack"
+              ? "space-y-6 print:space-y-0"
+              : ""
+          }
+          data-report-smart-physical-pages
+          data-report-physical-planning-phase={planningPhase}
+          data-report-physical-output-planning={String(!isReady)}
+          data-report-physical-page-count={
+            visiblePages.length
+          }
+          {...developmentDiagnostics}
+          aria-hidden={!isReady ? "true" : undefined}
+          style={
+            !isReady
+              ? {
+                  position: "fixed",
+                  left: "-100000px",
+                  top: 0,
+                  width: "210mm",
+                  visibility: "hidden",
+                  pointerEvents: "none",
+                  contain: "layout style paint",
+                  zIndex: -50,
+                }
+              : undefined
+          }
+        >
+          {corePhysicalPagesToRender.map(
+            (page, index) => (
+              <div
+                key={`${designId}:${getFingerprintPrefix(semanticInputFingerprint)}:${page.id}`}
+                className={
+                  renderMode === "stack" &&
+                  index < corePhysicalPagesToRender.length - 1
+                    ? "print:break-after-page"
+                    : ""
+                }
+                data-report-physical-page-index={
+                  index
+                }
+                data-report-source-pages={
+                  page.sourcePageIds.join(",")
+                }
+              >
+                <ReportSmartSemanticFingerprintProvider
+                  fingerprint={createSemanticInputFingerprint({
+                    page: {
+                      blocks: page.blocks,
+                      kind: page.kind,
+                      title: page.title,
+                    },
+                    semanticInputFingerprint,
+                  })}
+                >
+                  <SmartReportPageComposer
+                    designId={designId}
+                    page={page}
+                    context={context}
+                    previewCase={previewCase}
+                    pageLabel={
+                      page.title ||
+                      fallbackPageLabel
+                    }
+                    suppressAutoEvidencePages={suppressAutoEvidencePages}
+                    renderMode={isReady ? renderMode : "stack"}
+                    activePhysicalPageId={
+                      isReady ? selectedPhysicalPages[0]?.id : undefined
+                    }
+                    onCompositionReady={handlePageCompositionReady}
+                  />
+                </ReportSmartSemanticFingerprintProvider>
+              </div>
+            ),
+          )}
+        </div>
+      ) : null}
+
+      {!isReady ? (
+        <div
+          className="flex min-h-[320px] flex-col items-center justify-center gap-4 text-center font-bold text-slate-500 print:hidden"
+          data-report-physical-planning
+          data-report-physical-planning-phase={planningPhase}
+          {...developmentDiagnostics}
+        >
+          <span
+            className="h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600"
+            aria-hidden="true"
+          />
+          <span className="text-base sm:text-lg">
+            جارٍ تنظيم صفحات التقرير...
+          </span>
+          <span className="text-sm font-medium text-slate-400">
+            يتم ضبط توزيع المحتوى تلقائيًا
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\shared\report-blocks.tsx
+============================================================
+
+import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
+import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
+import { getReportDesignImplementation } from "../report-design-implementations";
+import type { ReportDesignId } from "../report-design-types";
+import { collectFinalValues, getFinalFieldListItems } from "./final-report";
+import { getValidPreviewEvidences } from "./report-evidence-data";
+import { getDesignHeaderAlign, getDesignHeaderText, getDesignLogoSrc } from "./report-logo";
+import type { PreviewCaseData } from "./report-types";
+import { cleanWorkflowDynamicText, getWorkflowDynamicFieldCards, translateWorkflowDynamicValueItems } from "./report-workflow-fields";
+import { getBlockShellClass, getPlacementClass } from "./report-block-presentation";
+import { EvidenceBlock } from "./report-evidence";
+import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
+import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
+import { DesignValueGrid } from "./report-values";
+
+export function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  const implementation = getReportDesignImplementation(designId);
+  const PageComponent = implementation.Page;
+
+  return (
+    <PageComponent
+      page={page}
+      context={context}
+      previewCase={previewCase}
+      pageLabel={pageLabel}
+      PageBlocks={PageBlocks}
+      MetaCard={MetaCard}
+      SideMeta={SideMeta}
+      MiniStat={MiniStat}
+      DesignFooter={DesignFooter}
+      getDesignLogoSrc={getDesignLogoSrc}
+      getDesignHeaderAlign={getDesignHeaderAlign}
+      getDesignHeaderText={getDesignHeaderText}
+      collectFinalValues={collectFinalValues}
+      getValidPreviewEvidences={getValidPreviewEvidences}
+    />
+  );
+}
+
+export function PageBlocks({
+  page,
+  context,
+  previewCase,
+  designId,
+  className,
+}: {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  className: string;
+}) {
+  const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
+  const flowBlocks = blocks.filter(
+    (block: any) =>
+      isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+  );
+  const fixedBlocks = blocks.filter(
+    (block: any) =>
+      !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+  );
+
+  return (
+    <main className={`relative flex flex-col ${className}`}>
+      <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
+        {flowBlocks.flatMap((block: any) => [
+          isSignatureGridDesignBlock(block) ? (
+            <div
+              key={`${block.id}-bottom-reservation`}
+              aria-hidden="true"
+              className="min-h-0 flex-1"
+              data-report-signature-bottom-reservation
+            />
+          ) : null,
+          <div
+            key={block.id}
+            data-report-smart-block={block.kind || "content"}
+            data-report-smart-placement={block.placement || "flow"}
+            data-report-smart-movable={
+              block.kind === "evidence-gallery" ? "evidence" : "content"
+            }
+            data-report-priority-block={
+              isSignatureGridDesignBlock(block) ? "signature" : undefined
+            }
+            className={
+              isSignatureGridDesignBlock(block)
+                ? "break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
+                : ""
+            }
+            style={
+              isSignatureGridDesignBlock(block)
+                ? { breakInside: "avoid", pageBreakInside: "avoid" }
+                : undefined
+            }
+          >
+            <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+          </div>,
+        ])}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {fixedBlocks.map((block: any) => (
+          <div
+            key={block.id}
+            data-report-smart-block={block.kind || "fixed-content"}
+            data-report-smart-placement={block.placement || "flow"}
+            data-report-smart-fixed="true"
+            className={getPlacementClass(block.placement || "flow")}
+          >
+            <div className="pointer-events-auto">
+              <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+
+
+function isDynamicFieldsDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+    ? block.dynamicFields
+    : [];
+
+  if (configuredItems.length) {
+    return configuredItems
+      .map((item: any, index: number) => {
+        const id =
+          cleanWorkflowDynamicText(item.id) ||
+          cleanWorkflowDynamicText(item.key) ||
+          `dynamic-field-${index + 1}`;
+        const valueItems = Array.isArray(item.valueItems)
+          ? translateWorkflowDynamicValueItems(item.valueItems)
+          : translateWorkflowDynamicValueItems(item.value);
+
+        return {
+          id,
+          key:
+            cleanWorkflowDynamicText(item.key) ||
+            id,
+          label:
+            item.label !== undefined
+              ? cleanWorkflowDynamicText(item.label)
+              : `حقل ${index + 1}`,
+          value:
+            item.value !== undefined
+              ? cleanWorkflowDynamicText(item.value)
+              : "",
+          valueItems,
+          visible: item.visible !== false,
+        };
+      })
+      .filter((item: any) => item.visible && item.label)
+      .filter(
+        (item: any) =>
+          !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+      );
+  }
+
+  return getWorkflowDynamicFieldCards(previewCase)
+    .map((item: any, index: number) => {
+      const id =
+        cleanWorkflowDynamicText(item.key) ||
+        cleanWorkflowDynamicText(item.label) ||
+        `workflow-field-${index + 1}`;
+
+      return {
+        id,
+        key: id,
+        label: cleanWorkflowDynamicText(item.label),
+        value: cleanWorkflowDynamicText(item.value),
+        valueItems: Array.isArray(item.valueItems)
+          ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+          : [],
+        visible: true,
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value)
+    .filter(
+      (item: any) =>
+        !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+    );
+}
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+}) {
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const value = String(context[`field.${block.boundFieldKey}`] || "").trim();
+    if (!value) return null;
+  }
+
+  const rendered = renderText(block.content || "", context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+  const implementation = getReportDesignImplementation(designId);
+  const accent = implementation.palette;
+  const BlockRenderer = implementation.BlockRenderer;
+
+  if (BlockRenderer) {
+    return (
+      <BlockRenderer
+        block={block}
+        renderedContent={rendered}
+        textAlign={textAlign}
+        context={context}
+        splitLines={splitLines}
+        splitParagraphs={splitParagraphs}
+      />
+    );
+  }
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className={getBlockShellClass(implementation, "hero", "text-center")}>
+        <p
+          className={["text-sm font-black", accent.subtleTextClass].join(" ")}
+          style={{
+            fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
+            lineHeight: "var(--report-content-line-height, 1.75)",
+          }}
+        >
+          {context["service.name"]}
+        </p>
+        <h1
+          className="mx-auto max-w-[145mm] font-black text-slate-950"
+          style={{
+            marginTop: "var(--report-heading-gap, 0.75rem)",
+            fontSize: `calc(1.875rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "titleFontSize"))})`,
+            lineHeight: "var(--report-heading-line-height, 1.65)",
+          }}
+        >
+          {rendered}
+        </h1>
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className={getBlockShellClass(implementation, "soft", textAlign)}>
+        <div
+          className="grid md:grid-cols-2"
+          style={{
+            gap: "var(--report-value-grid-gap, 0.5rem)",
+          }}
+        >
+          {splitLines(rendered).map((line) => (
+            <div
+              key={line}
+              className="rounded-2xl border border-slate-100 bg-white text-sm font-bold text-slate-700"
+              style={{
+                paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+                paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    const customBulletList = implementation.renderBulletList?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customBulletList !== undefined) return customBulletList;
+
+    const contentFontSizeClass = getReportFontSizeClass(
+      getBlockSetting(block, "contentFontSize"),
+      "text-sm",
+    );
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <ul
+          style={{
+            display: "grid",
+            gap: "var(--report-bullet-gap, 0.5rem)",
+          }}
+        >
+          {splitLines(rendered).map((line) => (
+            <li
+              key={line}
+              className={["flex text-slate-700", contentFontSizeClass].join(" ")}
+              style={{
+                gap: "var(--report-field-gap, 0.5rem)",
+                lineHeight: "var(--report-bullet-line-height, 1.75)",
+                fontSize: "calc(0.875rem * var(--report-bullet-font-scale, 1))",
+              }}
+            >
+              <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  if (block.kind === "multi-paragraph") {
+    const customNarrative = implementation.renderNarrative?.({
+      block,
+      renderedContent: rendered,
+      textAlign,
+      context,
+      splitLines,
+      splitParagraphs,
+    });
+
+    if (customNarrative !== undefined) return customNarrative;
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <div
+          style={{
+            display: "grid",
+            gap: "var(--report-paragraph-gap, 0.75rem)",
+          }}
+        >
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p
+              key={paragraph}
+              className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+              style={{
+                margin: 0,
+                lineHeight: "var(--report-narrative-line-height, 2)",
+                fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "report-one-table" || block.kind === "structured-table") {
+    const tableBlock = block.kind === "structured-table"
+      ? normalizeStructuredTableBlockPresentation(block)
+      : block;
+    const columns = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.columns) ? tableBlock.columns : [])
+      : Array.isArray(tableBlock.columns) && tableBlock.columns.length
+        ? tableBlock.columns
+        : ["المجال", "الإجراء", "ملاحظات"];
+
+    const rows = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.rows) ? tableBlock.rows : [])
+      : Array.isArray(tableBlock.rows) && tableBlock.rows.length
+        ? tableBlock.rows
+        : [["", "", ""]];
+
+    const tableSettings = tableBlock.tableSettings || {};
+    const compact = Boolean(tableSettings.compact);
+    const rounded = tableSettings.rounded !== false;
+    const highlightHeader = tableSettings.highlightHeader !== false;
+    const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
+    const stripedRows = Boolean(tableSettings.stripedRows);
+    const colorTheme = tableSettings.colorTheme || "light-gray";
+    const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
+
+    const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
+      "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+      "soft-blue": { border: "border-sky-200", headerBg: "bg-sky-50", firstColBg: "bg-sky-50", stripedBg: "bg-sky-50/40", headerText: "text-sky-900", cellText: "text-slate-700", firstColText: "text-sky-900" },
+      "green": { border: "border-emerald-200", headerBg: "bg-emerald-50", firstColBg: "bg-emerald-50", stripedBg: "bg-emerald-50/40", headerText: "text-emerald-900", cellText: "text-slate-700", firstColText: "text-emerald-900" },
+      "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+    };
+    const tc = themeColors[colorTheme] || themeColors["light-gray"];
+    return (
+      <section
+        dir="rtl"
+        data-report-structured-table={tableBlock.kind === "structured-table" ? tableBlock.sourceTableId || "true" : undefined}
+        className={
+          tableBlock.kind === "structured-table"
+            ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
+            : getBlockShellClass(implementation, tableBlock.variant, textAlign)
+        }
+        style={{ breakInside: "avoid" }}
+      >
+        {tableBlock.showTitle ? <BlockTitle title={tableBlock.title} fontSize={getBlockSetting(tableBlock, "titleFontSize")} /> : null}
+
+        <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
+          <table className="w-full table-fixed border-collapse text-xs">
+            <thead
+              className={highlightHeader ? tc.headerBg : "bg-white"}
+              style={{ display: tableSettings.repeatHeader === false ? undefined : "table-header-group" }}
+            >
+              <tr>
+                {columns.map((column: string, columnIndex: number) => (
+                  <th
+                    key={`${column}-${columnIndex}`}
+                    className={[
+                      `border ${tc.border} text-center font-black ${tc.headerText}`,
+                    ].join(" ")}
+                    style={{
+                      ...(Number(columnWidths[columnIndex]) > 0
+                        ? { width: `${Number(columnWidths[columnIndex])}%` }
+                        : {}),
+                      paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+                      paddingBlock: `calc(var(--report-table-header-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+                      fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+                      lineHeight: "calc(1.25rem * var(--report-narrative-density-scale, 1))",
+                    }}
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row: string[], rowIndex: number) => (
+                <tr
+                  key={`row-${rowIndex}`}
+                  className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
+                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                  {columns.map((_: string, columnIndex: number) => (
+                    <td
+                      key={`cell-${rowIndex}-${columnIndex}`}
+                      className={[
+                        `break-words whitespace-pre-wrap border ${tc.border} text-center font-bold ${tc.cellText}`,
+                        highlightFirstColumn && columnIndex === 0
+                          ? `${tc.firstColBg} font-black ${tc.firstColText}`
+                          : "",
+                      ].join(" ")}
+                      style={{
+                        paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+                        paddingBlock: `calc(var(--report-table-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+                        fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+                        lineHeight: "calc(1.5rem * var(--report-narrative-density-scale, 1))",
+                      }}
+                    >
+                      {String(row?.[columnIndex] || "—")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  }
+  if (isDynamicFieldsDesignBlock(block)) {
+    const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+
+    if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) {
+      return null;
+    }
+
+    return (
+      <section
+        className={getBlockShellClass(implementation, block.variant, textAlign)}
+        data-report-dynamic-fields
+      >
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {dynamicFieldItems.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={dynamicFieldItems.map(({ id, label, value, valueItems }: any) => ({
+              key: id,
+              label,
+              value: Array.isArray(valueItems) && valueItems.length ? valueItems : value,
+              valueItems,
+            }))}
+          />
+        ) : (
+          <p
+            className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+            style={{
+              paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+              paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+            }}
+          >
+            لا توجد حقول ظاهرة داخل هذا البلوك.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (block.kind === "field-list") {
+    const values = getFinalFieldListItems(block, previewCase);
+
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? (
+          <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+        ) : null}
+
+        {values.length ? (
+          <DesignValueGrid
+            implementation={implementation}
+            block={block}
+            items={values.map((item: any) => ({
+              key: item.key || item.label || item.fieldKey || item.fieldLabel,
+                label: item.label || item.fieldLabel || "تفصيل",
+              value: Array.isArray(item.valueItems) && item.valueItems.length
+                ? item.valueItems
+                : item.value || "غير متوفر",
+              valueItems: item.valueItems,
+            }))}
+          />
+        ) : (
+          <p
+            className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+            style={{
+              paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+              paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+              fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+            }}
+          >
+            لا توجد قيم مرتبطة بهذا البلوك.
+          </p>
+        )}
+      </section>
+    );
+  }
+  if (isSignatureGridDesignBlock(block)) {
+    const signatures = getDesignSignatureCards(block);
+
+    if (!signatures.length) return null;
+
+    const SignatureRenderer = implementation.SignatureRenderer;
+    if (SignatureRenderer) {
+      return (
+        <SignatureRenderer
+          block={block}
+          items={signatures}
+          renderTitle={() => block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        />
+      );
+    }
+
+    return (
+      <section
+        data-report-design-signature-block
+        className="report-design-signature-grid-block break-inside-avoid"
+        style={{
+          breakInside: "avoid",
+          pageBreakInside: "avoid",
+        }}
+      >
+        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+
+        <div
+          className={[
+            signatures.length === 2
+              ? "mx-auto grid w-[72%] max-w-[132mm] grid-cols-2 items-end gap-x-[8mm]"
+              : "flex w-full items-end gap-6",
+            signatures.length === 1
+              ? "justify-center"
+              : signatures.length >= 3
+                ? "justify-between"
+                : "",
+          ].join(" ")}
+        >
+          {signatures.map((signature: any) => (
+            <div
+              key={signature.key}
+              className={[
+                "text-center",
+                signatures.length >= 3
+                  ? "w-[31%]"
+                  : signatures.length === 2
+                    ? "min-w-0 w-full"
+                    : "w-[58mm]",
+              ].join(" ")}
+            >
+              <div
+                className="report-design-signature-image-frame flex items-end justify-center rounded-md bg-white"
+                style={{ height: "var(--report-signature-image-height, 10mm)" }}
+              >
+                {signature.imageUrl ? (
+                  <img
+                    src={signature.imageUrl}
+                    alt={signature.label}
+                    className="report-design-signature-image max-w-[42mm] object-contain"
+                    style={{
+                      maxHeight: "var(--report-signature-image-height, 10mm)",
+                      background: "#ffffff",
+                      objectFit: "contain",
+                      mixBlendMode: "normal",
+                      filter: "none",
+                    }}
+                  />
+                ) : (
+                  <div className="mb-1 w-full border-b border-dashed border-slate-400" />
+                )}
+              </div>
+
+              <div
+                className="report-design-signature-name font-black text-slate-950"
+                style={{
+                  marginTop: "var(--report-field-value-top-gap, 0.25rem)",
+                  fontSize: "12px",
+                  lineHeight: "1.25",
+                }}
+              >
+                {signature.signerName || "—"}
+              </div>
+
+              {signature.signerTitle ? (
+                <div
+                  className="report-design-signature-role font-bold text-slate-500"
+                  style={{
+                    marginTop: "var(--report-field-value-top-gap, 0.125rem)",
+                    fontSize: "10px",
+                    lineHeight: "1.25",
+                  }}
+                >
+                  {signature.signerTitle}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} implementation={implementation} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <p
+          className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+          style={{
+            margin: 0,
+            fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+            lineHeight: "var(--report-narrative-line-height, 2)",
+          }}
+        >
+          {rendered}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+      <p
+        className={["whitespace-pre-line text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" ")}
+        style={{
+          margin: 0,
+          fontSize: `calc(1.125rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+          lineHeight: "var(--report-narrative-line-height, 2)",
+        }}
+      >
+        {rendered}
+      </p>
+    </section>
+  );
+}
+
+function DesignFieldValueBlock({
+  title,
+  showTitle,
+  variant,
+  textAlign,
+  designId,
+  items,
+}: {
+  title: string;
+  showTitle?: boolean;
+  variant: string;
+  textAlign: string;
+  designId: ReportDesignId;
+  items: Array<{
+    key?: string;
+    label: string;
+    value?: string | null;
+  }>;
+}) {
+  const visibleItems = items.filter((item) => String(item.value || "").trim());
+  const implementation = getReportDesignImplementation(designId);
+
+  return (
+    <section className={getBlockShellClass(implementation, variant, textAlign)}>
+      {showTitle ? <BlockTitle title={title} /> : null}
+
+      {visibleItems.length ? (
+        <DesignValueGrid implementation={implementation} items={visibleItems} />
+      ) : (
+        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+          لا توجد قيم مرتبطة بهذا البلوك.
+        </p>
+      )}
+    </section>
+  );
+}
+

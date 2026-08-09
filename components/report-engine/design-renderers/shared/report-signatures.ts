@@ -21,6 +21,16 @@ export function getReportDesignSignatureStyleText() {
       filter: none !important;
     }
 
+    .report-design-signature-name {
+      font-size: 12px !important;
+      line-height: 1.25 !important;
+    }
+
+    .report-design-signature-role {
+      font-size: 10px !important;
+      line-height: 1.25 !important;
+    }
+
     .report-design-evidence-fallback[data-report-design-real-evidence="true"] p {
       font-size: 0 !important;
       line-height: 0 !important;

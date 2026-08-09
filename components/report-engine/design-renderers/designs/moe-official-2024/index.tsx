@@ -31,9 +31,15 @@ function BrandRule() {
 function MoeReportPage({
   children,
   sectionLabel,
+  schoolName,
+  educationDepartment,
+  ministryLogoSrc,
 }: {
   children: ReactNode;
   sectionLabel: string;
+  schoolName: string;
+  educationDepartment: string;
+  ministryLogoSrc: string;
 }) {
   return (
     <section
@@ -45,14 +51,20 @@ function MoeReportPage({
 
       <header className="moe24-page-header">
         <div className="moe24-header-brand">
-          <span
-            className="moe24-header-dot"
-            aria-hidden="true"
+          <img
+            src={ministryLogoSrc}
+            alt="شعار الوزارة الرسمي"
+            className="h-[8mm] w-[25mm] object-contain"
           />
-          <span>ملف الإنجاز</span>
         </div>
 
-        <span>وزارة التعليم</span>
+        <div
+          dir="rtl"
+          className="flex min-w-0 max-w-[82mm] flex-col items-start text-left leading-[1.45]"
+        >
+          {educationDepartment ? <span>{educationDepartment}</span> : null}
+          {schoolName ? <span>{schoolName}</span> : null}
+        </div>
       </header>
 
       <div className="moe24-page-body">
@@ -74,6 +86,7 @@ export function MoeOfficial2024ReportDesign({
   previewCase,
   pageLabel,
   PageBlocks,
+  getDesignLogoSrc,
 }: ReportDesignPageComponentProps) {
   const designId = "moe-official-2024" as const;
 
@@ -85,6 +98,14 @@ export function MoeOfficial2024ReportDesign({
   const serviceName =
     String(context["service.name"] || "").trim() ||
     "التقرير";
+
+  const schoolName =
+    String(context["identity.schoolName"] || "").trim();
+
+  const educationDepartment =
+    String(context["identity.educationDepartment"] || "").trim();
+
+  const ministryLogoSrc = getDesignLogoSrc(context);
 
   return (
     <div
@@ -109,7 +130,12 @@ export function MoeOfficial2024ReportDesign({
       <style>{MOE_OFFICIAL_2024_EXACT_CSS}</style>
       <style>{MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS}</style>
 
-      <MoeReportPage sectionLabel={serviceName}>
+      <MoeReportPage
+        sectionLabel={serviceName}
+        schoolName={schoolName}
+        educationDepartment={educationDepartment}
+        ministryLogoSrc={ministryLogoSrc}
+      >
         <ReportDesignSmartContent
           availableHeightMm={241}
           contentClassName="flex min-h-full flex-col"

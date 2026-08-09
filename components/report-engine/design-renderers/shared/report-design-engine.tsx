@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   isReportDesignId,
   reportDesignTemplates,
@@ -20,6 +22,7 @@ import type { PreviewCaseData, ReportDesignRendererProps } from "./report-types"
 
 import { getReportDesignSignatureStyleText } from "./report-signatures";
 import { SmartPhysicalReportComposer } from "../smart-layout/report-smart-physical-pages";
+import type { ReportTwoPhysicalNavigationItem } from "../smart-layout/report-smart-physical-types";
 
 
 export function ReportDesignRenderer({
@@ -53,7 +56,89 @@ export function ReportDesignRenderer({
     template?.designConfig?.header,
   );
   const signatureStyleText = getReportDesignSignatureStyleText();
-  const pages = template?.pages || [];
+  const pages = useMemo<any[]>(
+    () => template?.pages || [],
+    [template?.pages],
+  );
+  const [physicalNavigationItems, setPhysicalNavigationItems] = useState<
+    ReportTwoPhysicalNavigationItem[]
+  >([]);
+  const [activePhysicalPageId, setActivePhysicalPageId] = useState("");
+
+  useEffect(() => {
+    setPhysicalNavigationItems([]);
+    setActivePhysicalPageId("");
+  }, [pages, selectedDesign]);
+
+  const handlePhysicalPagesChange = useCallback(
+    (items: ReportTwoPhysicalNavigationItem[]) => {
+      setPhysicalNavigationItems((current) => {
+        const currentKey = current
+          .map((item) => `${item.physicalPageId}:${item.label}`)
+          .join("|");
+        const nextKey = items
+          .map((item) => `${item.physicalPageId}:${item.label}`)
+          .join("|");
+
+        return currentKey === nextKey ? current : items;
+      });
+      setActivePhysicalPageId((current) => {
+        const currentItem = items.find(
+          (item) => item.physicalPageId === current,
+        );
+
+        if (currentItem?.sourcePageIds.includes(activePageId)) {
+          return current;
+        }
+
+        return (
+          items.find((item) =>
+            item.sourcePageIds.includes(activePageId),
+          )?.physicalPageId || items[0]?.physicalPageId || ""
+        );
+      });
+    },
+    [activePageId],
+  );
+
+  useEffect(() => {
+    if (!physicalNavigationItems.length) {
+      return;
+    }
+
+    setActivePhysicalPageId((current) => {
+      const currentItem = physicalNavigationItems.find(
+        (item) => item.physicalPageId === current,
+      );
+
+      if (currentItem?.sourcePageIds.includes(activePageId)) {
+        return current;
+      }
+
+      return (
+        physicalNavigationItems.find((item) =>
+          item.sourcePageIds.includes(activePageId),
+        )?.physicalPageId || current
+      );
+    });
+  }, [activePageId, physicalNavigationItems]);
+
+  const pageNavigationItems = useMemo<ReportTwoPhysicalNavigationItem[]>(
+    () =>
+      physicalNavigationItems.length > 0
+        ? physicalNavigationItems
+        : pages.map((page: any, index: number) => ({
+            physicalPageId: "",
+            corePhysicalPageId: "",
+            sourceLogicalPageId: page.id,
+            sourcePageIds: [page.id],
+            label: page.title,
+            physicalPageIndex: index,
+            physicalIndexWithinLogicalPage: 1,
+            role: "primary" as const,
+          })),
+    [pages, physicalNavigationItems],
+  );
 
   const logoStyle = <style>{logoStyleText}</style>;
   const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
@@ -77,17 +162,34 @@ export function ReportDesignRenderer({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {pages.map((page: any, index: number) => {
-          const active = page.id === activePageId;
+        {pageNavigationItems.map((navigationItem, index) => {
+          const page = pages.find(
+            (candidate: any) =>
+              candidate.id === navigationItem.sourceLogicalPageId,
+          );
+          const active = navigationItem.physicalPageId
+            ? navigationItem.physicalPageId === activePhysicalPageId
+            : navigationItem.sourceLogicalPageId === activePageId;
+          const isLogicalPageControl =
+            navigationItem.physicalIndexWithinLogicalPage === 1;
           const canMovePrevious =
-            canMovePage?.(page.id, "previous") ?? index > 0;
+            page && isLogicalPageControl
+              ? canMovePage?.(page.id, "previous") ??
+                pages.findIndex((candidate: any) => candidate.id === page.id) > 0
+              : false;
           const canMoveNext =
-            canMovePage?.(page.id, "next") ?? index < pages.length - 1;
-          const canDelete = canDeletePage?.(page.id) ?? false;
+            page && isLogicalPageControl
+              ? canMovePage?.(page.id, "next") ??
+                pages.findIndex((candidate: any) => candidate.id === page.id) < pages.length - 1
+              : false;
+          const canDelete =
+            page && isLogicalPageControl
+              ? canDeletePage?.(page.id) ?? false
+              : false;
 
           return (
             <div
-              key={`${page.id}-${index}`}
+              key={`${navigationItem.physicalPageId || navigationItem.sourceLogicalPageId}-${index}`}
               className={[
                 "inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs font-black transition",
                 active
@@ -97,14 +199,22 @@ export function ReportDesignRenderer({
             >
               <button
                 type="button"
-                onClick={() => onActivePageChange(page.id)}
+                onClick={() => {
+                  if (navigationItem.physicalPageId) {
+                    setActivePhysicalPageId(navigationItem.physicalPageId);
+                  }
+
+                  if (navigationItem.sourceLogicalPageId !== activePageId) {
+                    onActivePageChange(navigationItem.sourceLogicalPageId);
+                  }
+                }}
                 className="max-w-[220px] truncate px-2 py-1"
-                title={page.title}
+                title={navigationItem.label}
               >
-                {index + 1}. {page.title}
+                {navigationItem.label}
               </button>
 
-              {active ? (
+              {active && page && isLogicalPageControl ? (
                 <>
                   <button
                     type="button"
@@ -168,11 +278,13 @@ export function ReportDesignRenderer({
         designId={selectedDesign}
         pages={pages}
         activePageId={activePageId}
+        activePhysicalPageId={activePhysicalPageId}
         context={context}
         previewCase={previewCase}
         fallbackPageLabel={activePage?.title || "التقرير"}
         renderMode={renderMode}
         suppressAutoEvidencePages={suppressAutoEvidencePages}
+        onPhysicalPagesChange={handlePhysicalPagesChange}
       />
     </div>
   );

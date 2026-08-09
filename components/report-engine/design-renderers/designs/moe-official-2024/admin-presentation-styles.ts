@@ -97,6 +97,7 @@ export const MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS = `
     justify-content: initial !important;
     background: transparent !important;
     overflow: visible !important;
+    font-family: inherit !important;
   }
 
   .moe24-root > .moe24-page {

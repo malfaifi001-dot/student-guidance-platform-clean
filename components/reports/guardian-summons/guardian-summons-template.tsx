@@ -61,10 +61,6 @@ function stripLeadingPhrases(value: string, phrases: string[]) {
   return text;
 }
 
-function normalizeSchoolNameForOfficialHeader(value?: string | null) {
-  return stripLeadingPhrases(display(value), ["مدرسة"]);
-}
-
 function normalizeEducationDepartment(value?: string | null) {
   return stripLeadingPhrases(display(value), [
     "الإدارة العامة للتعليم بمنطقة",
@@ -231,7 +227,6 @@ export function GuardianSummonsTemplate({
 }: {
   data: GuardianSummonsTemplateData;
 }) {
-  const schoolName = normalizeSchoolNameForOfficialHeader(data.schoolName);
   const educationDepartment = normalizeEducationDepartment(
     data.educationDepartment,
   );
@@ -532,9 +527,9 @@ export function GuardianSummonsTemplate({
         </div>
 
         <div className="header-column header-left">
-          <div>{schoolName ? `مدرسة ${schoolName}` : "مدرسة"}</div>
+          <div aria-hidden="true">&nbsp;</div>
           {hijriYear ? <div>{`العام الدراسي ${hijriYear} هـ`}</div> : null}
-          <div>الإرشاد الطلابي</div>
+          <div aria-hidden="true">&nbsp;</div>
         </div>
       </header>
 
@@ -542,7 +537,7 @@ export function GuardianSummonsTemplate({
         <p className="recipient-line">
           {`المكرم ولي أمر الطالب / ${display(data.guardianName)}${
             classroom ? ` بالصف ${classroom}` : ""
-          } سلّمه الله`}
+          }`}
         </p>
 
         <p className="greeting">السلام عليكم ورحمة الله وبركاته ،،،</p>
