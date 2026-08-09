@@ -3,6 +3,7 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
   createCheckoutPaymentTransaction,
   ElectronicPaymentError,
+  getPublicProviderConfig,
 } from "@/lib/payments/electronic-payments";
 
 export async function POST(request: NextRequest) {
@@ -33,8 +34,27 @@ export async function POST(request: NextRequest) {
       providerSlug: String(body?.providerSlug || ""),
     });
 
+    const provider = result.transaction.provider;
+    const paymentConfig = getPublicProviderConfig(provider?.configJson);
+    const publicProvider = provider
+      ? {
+          id: provider.id,
+          name: provider.name,
+          slug: provider.slug,
+          isActive: provider.isActive,
+          createdAt: provider.createdAt,
+          updatedAt: provider.updatedAt,
+        }
+      : null;
+
     return NextResponse.json({
-      transaction: result.transaction,
+      transaction: {
+        ...result.transaction,
+        provider: publicProvider,
+      },
+      paymentConfig: {
+        publicKey: paymentConfig.publicKey,
+      },
       checkoutUrl: result.checkoutUrl,
     });
   } catch (error) {
