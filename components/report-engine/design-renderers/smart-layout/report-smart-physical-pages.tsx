@@ -11,6 +11,7 @@ import {
 import type { ReportDesignId } from "../report-design-types";
 import { A4DesignPage } from "../shared/report-blocks";
 import type { PreviewCaseData } from "../shared/report-types";
+import { splitOversizedReportBlock } from "./report-smart-block-pagination";
 import { SmartReportPageComposer } from "./report-smart-page-composer";
 import {
   createSemanticInputFingerprint,
@@ -518,6 +519,11 @@ export function SmartPhysicalReportComposer({
   const [acceptedItems, setAcceptedItems] =
     useState<FlowItem[]>([]);
 
+  const [effectiveRegularItems, setEffectiveRegularItems] =
+    useState<FlowItem[]>(
+      () => logicalPageModels[0]?.regularItems ?? [],
+    );
+
   const [logicalPageIndex, setLogicalPageIndex] =
     useState(0);
 
@@ -604,6 +610,9 @@ export function SmartPhysicalReportComposer({
     setFinalPhysicalPages([]);
     setPageCompositions({});
     setAcceptedItems([]);
+    setEffectiveRegularItems(
+      logicalPageModels[0]?.regularItems ?? [],
+    );
     setLogicalPageIndex(0);
     setCurrentLogicalPhysicalPages([]);
     setCursor(0);
@@ -665,6 +674,9 @@ export function SmartPhysicalReportComposer({
       if (logicalPageIndex >= logicalPageModels.length - 1) {
         setDone(true);
       } else {
+        setEffectiveRegularItems(
+          logicalPageModels[logicalPageIndex + 1]?.regularItems ?? [],
+        );
         setLogicalPageIndex((current) => current + 1);
         setCandidateVersion((current) => current + 1);
       }
@@ -678,10 +690,10 @@ export function SmartPhysicalReportComposer({
   );
 
   const hasRegularItems =
-    activeLogicalPage.regularItems.length > 0;
+    effectiveRegularItems.length > 0;
 
   const nextItem =
-    activeLogicalPage.regularItems[cursor];
+    effectiveRegularItems[cursor];
 
   const candidateItems = useMemo(() => {
     if (done) {
@@ -912,7 +924,7 @@ export function SmartPhysicalReportComposer({
 
           const isLastItem =
             cursor >=
-            activeLogicalPage.regularItems.length - 1;
+            effectiveRegularItems.length - 1;
 
           /*
            * Candidate fits:
@@ -1030,6 +1042,27 @@ export function SmartPhysicalReportComposer({
            * Smart A4 minimum-safe handle it without data loss.
            */
           if (nextItem) {
+            const splitBlocks =
+              splitOversizedReportBlock(nextItem.block);
+
+            if (splitBlocks.length > 1) {
+              const splitItems = splitBlocks.map((block) => ({
+                block,
+                sourcePageId: nextItem.sourcePageId,
+                sourcePageTitle: nextItem.sourcePageTitle,
+              }));
+
+              setEffectiveRegularItems((current) => [
+                ...current.slice(0, cursor),
+                ...splitItems,
+                ...current.slice(cursor + 1),
+              ]);
+
+              setCandidateVersion((current) => current + 1);
+              decisionLockRef.current = false;
+              return;
+            }
+
             const oversizedPage =
               makePhysicalPage(
                 physicalPages.length + currentLogicalPhysicalPages.length,
@@ -1102,6 +1135,7 @@ export function SmartPhysicalReportComposer({
     currentLogicalPhysicalPages,
     cursor,
     done,
+    effectiveRegularItems.length,
     hasRegularItems,
     nextItem,
     physicalPages,

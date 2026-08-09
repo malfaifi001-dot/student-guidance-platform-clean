@@ -1,0 +1,5501 @@
+
+============================================================
+REPORT SMART PAGE COMPOSER AUDIT
+============================================================
+Project: D:\student-guidance-platform-clean
+Generated: 2026-08-09 15:38:52
+
+Goal:
+Inspect evidence/signature overflow and continuation-page behavior.
+No source files are modified.
+
+============================================================
+1. GIT STATUS
+============================================================
+?? physical-pagination-final-audit.txt
+?? report-pagination-evidence-signatures-debug.txt
+
+============================================================
+2. TARGET FILE EXISTENCE
+============================================================
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-physical-types.ts
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-a4-measure.ts
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-a4-planner.ts
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-a4-config.ts
+FOUND | components\report-engine\design-renderers\smart-layout\report-smart-lifecycle.tsx
+FOUND | components\report-engine\design-renderers\shared\report-evidence.tsx
+FOUND | components\report-engine\design-renderers\shared\report-auto-evidence.tsx
+FOUND | components\report-engine\design-renderers\shared\report-signatures.ts
+FOUND | components\report-engine\design-renderers\shared\report-blocks.tsx
+FOUND | components\report-engine\design-renderers\designs\moe-official-2024\index.tsx
+FOUND | components\report-engine\design-renderers\designs\moe-official-2024\evidence.tsx
+
+============================================================
+3. CRITICAL KEYWORD SEARCH
+============================================================
+
+============================================================
+4. FULL CORE FILES
+============================================================
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+============================================================
+    1: "use client";
+    2: 
+    3: import {
+    4:   useEffect,
+    5:   useMemo,
+    6:   useRef,
+    7:   useState,
+    8: } from "react";
+    9: 
+   10: import type { ReportDesignId } from "../report-design-types";
+   11: import { A4DesignPage } from "../shared/report-blocks";
+   12: import {
+   13:   getEvidencePerPage,
+   14:   getEvidenceStartIndex,
+   15:   getValidPreviewEvidences,
+   16: } from "../shared/report-evidence-data";
+   17: import {
+   18:   AutoEvidencePages,
+   19:   buildAutoEvidencePhysicalPages,
+   20: } from "../shared/report-auto-evidence";
+   21: import type { PreviewCaseData } from "../shared/report-types";
+   22: import {
+   23:   createSemanticInputFingerprint,
+   24:   getFingerprintPrefix,
+   25:   ReportSmartSemanticFingerprintProvider,
+   26:   roundLayoutMetric,
+   27: } from "./report-smart-lifecycle";
+   28: import type {
+   29:   ReportPhysicalPageComposition,
+   30:   ReportPhysicalPageModel,
+   31: } from "./report-smart-physical-types";
+   32: 
+   33: type SmartReportPageComposerProps = {
+   34:   designId: ReportDesignId;
+   35:   page?: ReportPhysicalPageModel;
+   36:   context: Record<string, string>;
+   37:   previewCase: PreviewCaseData | null;
+   38:   pageLabel: string;
+   39:   suppressAutoEvidencePages?: boolean;
+   40:   renderMode?: "single" | "stack";
+   41:   activePhysicalPageId?: string;
+   42:   onCompositionReady?: (
+   43:     composition: ReportPhysicalPageComposition,
+   44:   ) => void;
+   45: };
+   46: 
+   47: type ReportPagePlanningPhase =
+   48:   | "DIRTY"
+   49:   | "PLANNING"
+   50:   | "MEASURING"
+   51:   | "STABILIZING"
+   52:   | "READY"
+   53:   | "FROZEN";
+   54: 
+   55: const MAX_PAGE_COMPOSITION_ATTEMPTS = 40;
+   56: 
+   57: function isSignatureBlock(block: any) {
+   58:   const kind =
+   59:     String(block?.kind || "").trim();
+   60: 
+   61:   const smartKind =
+   62:     String(
+   63:       block?.settings?.smartBlockKind || "",
+   64:     ).trim();
+   65: 
+   66:   const title =
+   67:     String(block?.title || "").trim();
+   68: 
+   69:   return (
+   70:     kind === "signature-grid" ||
+   71:     kind === "signatures" ||
+   72:     kind === "approval-signatures" ||
+   73:     smartKind === "signature-grid" ||
+   74:     smartKind === "signatures" ||
+   75:     title.includes("توقيع") ||
+   76:     title.includes("اعتماد") ||
+   77:     Array.isArray(block?.signatures)
+   78:   );
+   79: }
+   80: 
+   81: function getSignatureBlocks(page: any) {
+   82:   const blocks =
+   83:     Array.isArray(page?.blocks)
+   84:       ? page.blocks
+   85:       : [];
+   86: 
+   87:   return blocks.filter(
+   88:     isSignatureBlock,
+   89:   );
+   90: }
+   91: 
+   92: function getEvidenceBlock(page: any) {
+   93:   const blocks =
+   94:     Array.isArray(page?.blocks)
+   95:       ? page.blocks
+   96:       : [];
+   97: 
+   98:   return (
+   99:     blocks.find(
+  100:       (block: any) =>
+  101:         block?.kind ===
+  102:         "evidence-gallery",
+  103:     ) || null
+  104:   );
+  105: }
+  106: 
+  107: function getCompositionResetKey(
+  108:   designId: ReportDesignId,
+  109:   page: any,
+  110:   context: Record<string, string>,
+  111:   previewCase: PreviewCaseData | null,
+  112:   pageLabel: string,
+  113: ) {
+  114:   return createSemanticInputFingerprint({
+  115:     designId,
+  116:     page: {
+  117:       blocks: Array.isArray(page?.blocks) ? page.blocks : [],
+  118:       kind: page?.kind || "content",
+  119:       title: page?.title || "",
+  120:     },
+  121:     pageLabel,
+  122:     context,
+  123:     previewCase,
+  124:   });
+  125: }
+  126: 
+  127: function makePrimaryPage(
+  128:   page: ReportPhysicalPageModel | undefined,
+  129:   evidenceBlock: any,
+  130:   primaryEvidenceCount: number,
+  131:   keepSignatureOnPrimary: boolean,
+  132: ) {
+  133:   if (!page) {
+  134:     return page;
+  135:   }
+  136: 
+  137:   const originalBlocks =
+  138:     Array.isArray(page.blocks)
+  139:       ? page.blocks
+  140:       : [];
+  141: 
+  142:   let blocks =
+  143:     keepSignatureOnPrimary
+  144:       ? [...originalBlocks]
+  145:       : originalBlocks.filter(
+  146:           (block: any) =>
+  147:             !isSignatureBlock(block),
+  148:         );
+  149: 
+  150:   if (!evidenceBlock) {
+  151:     return {
+  152:       ...page,
+  153:       blocks,
+  154:     };
+  155:   }
+  156: 
+  157:   /*
+  158:    * Zero evidence means:
+  159:    * remove evidence-gallery from the primary page.
+  160:    *
+  161:    * AutoEvidencePages still receives the ORIGINAL page,
+  162:    * so no evidence is lost.
+  163:    */
+  164:   if (primaryEvidenceCount <= 0) {
+  165:     blocks = blocks.filter(
+  166:       (block: any) =>
+  167:         block?.id !==
+  168:         evidenceBlock.id,
+  169:     );
+  170: 
+  171:     return {
+  172:       ...page,
+  173:       blocks,
+  174:     };
+  175:   }
+  176: 
+  177:   blocks = blocks.map(
+  178:     (block: any) =>
+  179:       block?.id === evidenceBlock.id
+  180:         ? {
+  181:             ...block,
+  182:             evidenceStartIndex: getEvidenceStartIndex(evidenceBlock),
+  183:             evidenceLimit:
+  184:               primaryEvidenceCount,
+  185:           }
+  186:         : block,
+  187:   );
+  188: 
+  189:   return {
+  190:     ...page,
+  191:     blocks,
+  192:   };
+  193: }
+  194: 
+  195: function makeSignatureOverflowPage(
+  196:   page: ReportPhysicalPageModel,
+  197:   signatureBlocks: any[],
+  198: ) {
+  199:   return {
+  200:     ...page,
+  201: 
+  202:     id:
+  203:       `${page?.id || "report"}-signature-overflow`,
+  204: 
+  205:     title:
+  206:       "اعتماد التقرير",
+  207: 
+  208:     kind:
+  209:       "signature",
+  210: 
+  211:     corePhysicalPageId:
+  212:       page.corePhysicalPageId || page.id,
+  213: 
+  214:     physicalPageRole:
+  215:       "signature" as const,
+  216: 
+  217:     sourcePageIds:
+  218:       [...page.sourcePageIds],
+  219: 
+  220:     blocks:
+  221:       signatureBlocks.map(
+  222:         (block, index) => ({
+  223:           ...block,
+  224: 
+  225:           id:
+  226:             `${block?.id || "signature"}-overflow-${index + 1}`,
+  227: 
+  228:           /*
+  229:            * This page is already an explicit overflow page.
+  230:            */
+  231:           placement:
+  232:             "flow",
+  233:         }),
+  234:       ),
+  235:   };
+  236: }
+  237: 
+  238: export function SmartReportPageComposer({
+  239:   designId,
+  240:   page,
+  241:   context,
+  242:   previewCase,
+  243:   pageLabel,
+  244:   suppressAutoEvidencePages = false,
+  245:   renderMode = "stack",
+  246:   activePhysicalPageId,
+  247:   onCompositionReady,
+  248: }: SmartReportPageComposerProps) {
+  249:   const hostRef =
+  250:     useRef<HTMLDivElement | null>(
+  251:       null,
+  252:     );
+  253: 
+  254:   const evidenceBlock =
+  255:     useMemo(
+  256:       () => getEvidenceBlock(page),
+  257:       [page],
+  258:     );
+  259: 
+  260:   const signatureBlocks =
+  261:     useMemo(
+  262:       () =>
+  263:         getSignatureBlocks(page),
+  264:       [page],
+  265:     );
+  266: 
+  267:   const hasSignature =
+  268:     signatureBlocks.length > 0;
+  269: 
+  270:   const validEvidences =
+  271:     useMemo(
+  272:       () =>
+  273:         getValidPreviewEvidences(
+  274:           previewCase,
+  275:         ),
+  276:       [previewCase],
+  277:     );
+  278: 
+  279:   const evidenceAutoEnabled =
+  280:     !suppressAutoEvidencePages &&
+  281:     Boolean(evidenceBlock) &&
+  282:     evidenceBlock
+  283:       ?.evidenceAutoCreatePages !==
+  284:       false;
+  285: 
+  286:   const maxPrimaryEvidenceCount =
+  287:     evidenceBlock
+  288:       ? Math.min(
+  289:           Math.max(
+  290:             0,
+  291:             validEvidences.length - getEvidenceStartIndex(evidenceBlock),
+  292:           ),
+  293:           getEvidencePerPage(
+  294:             evidenceBlock,
+  295:           ),
+  296:         )
+  297:       : 0;
+  298: 
+  299:   const resetKey =
+  300:     useMemo(
+  301:       () =>
+  302:         getCompositionResetKey(
+  303:           designId,
+  304:           page,
+  305:           context,
+  306:           previewCase,
+  307:           pageLabel,
+  308:         ),
+  309:       [
+  310:         designId,
+  311:         page,
+  312:         context,
+  313:         previewCase,
+  314:         pageLabel,
+  315:       ],
+  316:     );
+  317: 
+  318:   const [
+  319:     primaryEvidenceCount,
+  320:     setPrimaryEvidenceCount,
+  321:   ] =
+  322:     useState(
+  323:       maxPrimaryEvidenceCount,
+  324:     );
+  325: 
+  326:   const [
+  327:     keepSignatureOnPrimary,
+  328:     setKeepSignatureOnPrimary,
+  329:   ] =
+  330:     useState(true);
+  331: 
+  332:   const lastDecisionRef =
+  333:     useRef("");
+  334: 
+  335:   const [planningPhase, setPlanningPhase] =
+  336:     useState<ReportPagePlanningPhase>("DIRTY");
+  337: 
+  338:   const planningPhaseRef =
+  339:     useRef<ReportPagePlanningPhase>("DIRTY");
+  340: 
+  341:   const stabilityRef = useRef({
+  342:     signature: "",
+  343:     count: 0,
+  344:     attempts: 0,
+  345:   });
+  346: 
+  347:   const finalizedPlacementRef = useRef<{
+  348:     semanticInputFingerprint: string;
+  349:     layoutResultFingerprint: string;
+  350:     primaryEvidenceCount: number;
+  351:     keepSignatureOnPrimary: boolean;
+  352:   } | null>(null);
+  353: 
+  354:   const fontsSettledRef = useRef(false);
+  355:   const settledAssetSourcesRef = useRef(new Set<string>());
+  356:   const [invalidationReason, setInvalidationReason] = useState<
+  357:     "initial" | "content-change"
+  358:   >("initial");
+  359: 
+  360:   const setPhase = (next: ReportPagePlanningPhase) => {
+  361:     planningPhaseRef.current = next;
+  362:     setPlanningPhase((current) =>
+  363:       current === next ? current : next,
+  364:     );
+  365:   };
+  366: 
+  367:   const isTerminalPhase = () =>
+  368:     planningPhaseRef.current === "READY" ||
+  369:     planningPhaseRef.current === "FROZEN";
+  370: 
+  371:   /*
+  372:    * New report content:
+  373:    *
+  374:    * Start optimistically:
+  375:    * - keep maximum allowed evidence
+  376:    * - keep signature on primary page
+  377:    *
+  378:    * Real DOM measurement then negotiates downward.
+  379:    */
+  380:   useEffect(() => {
+  381:     setInvalidationReason(
+  382:       finalizedPlacementRef.current === null
+  383:         ? "initial"
+  384:         : "content-change",
+  385:     );
+  386:     finalizedPlacementRef.current = null;
+  387:     lastDecisionRef.current = "";
+  388:     stabilityRef.current = {
+  389:       signature: "",
+  390:       count: 0,
+  391:       attempts: 0,
+  392:     };
+  393:     settledAssetSourcesRef.current.clear();
+  394:     setPhase("DIRTY");
+  395:     setPhase("PLANNING");
+  396: 
+  397:     setPrimaryEvidenceCount(
+  398:       maxPrimaryEvidenceCount,
+  399:     );
+  400: 
+  401:     setKeepSignatureOnPrimary(
+  402:       true,
+  403:     );
+  404:   }, [
+  405:     resetKey,
+  406:     maxPrimaryEvidenceCount,
+  407:   ]);
+  408: 
+  409:   const primaryPage =
+  410:     useMemo(
+  411:       () =>
+  412:         makePrimaryPage(
+  413:           page,
+  414:           evidenceBlock,
+  415:           primaryEvidenceCount,
+  416:           keepSignatureOnPrimary,
+  417:         ),
+  418:       [
+  419:         page,
+  420:         evidenceBlock,
+  421:         primaryEvidenceCount,
+  422:         keepSignatureOnPrimary,
+  423:       ],
+  424:     );
+  425: 
+  426:   const signatureOverflowPage =
+  427:     useMemo(
+  428:       () =>
+  429:         !keepSignatureOnPrimary &&
+  430:         hasSignature &&
+  431:         page
+  432:           ? makeSignatureOverflowPage(
+  433:               page,
+  434:               signatureBlocks,
+  435:             )
+  436:           : null,
+  437:       [
+  438:         page,
+  439:         signatureBlocks,
+  440:         hasSignature,
+  441:         keepSignatureOnPrimary,
+  442:       ],
+  443:     );
+  444: 
+  445:   const hasSignatureOverflowPage = Boolean(
+  446:     signatureOverflowPage,
+  447:   );
+  448: 
+  449:   const autoEvidencePhysicalPages = useMemo(
+  450:     () =>
+  451:       evidenceAutoEnabled
+  452:         ? buildAutoEvidencePhysicalPages({
+  453:             activePage: page,
+  454:             previewCase,
+  455:             primaryEvidenceCount,
+  456:           })
+  457:         : [],
+  458:     [
+  459:       evidenceAutoEnabled,
+  460:       page,
+  461:       previewCase,
+  462:       primaryEvidenceCount,
+  463:     ],
+  464:   );
+  465: 
+  466:   const composedPhysicalPages = useMemo(
+  467:     () => [
+  468:       primaryPage,
+  469:       ...autoEvidencePhysicalPages.map(({ page: evidencePage }) => evidencePage),
+  470:       ...(signatureOverflowPage ? [signatureOverflowPage] : []),
+  471:     ].filter((physicalPage): physicalPage is ReportPhysicalPageModel =>
+  472:       Boolean(physicalPage),
+  473:     ),
+  474:     [autoEvidencePhysicalPages, primaryPage, signatureOverflowPage],
+  475:   );
+  476: 
+  477:   useEffect(() => {
+  478:     if (
+  479:       planningPhase !== "FROZEN" ||
+  480:       !page?.id ||
+  481:       !onCompositionReady
+  482:     ) {
+  483:       return;
+  484:     }
+  485: 
+  486:     onCompositionReady({
+  487:       corePhysicalPageId: page.id,
+  488:       pages: composedPhysicalPages,
+  489:     });
+  490:   }, [
+  491:     composedPhysicalPages,
+  492:     onCompositionReady,
+  493:     page?.id,
+  494:     planningPhase,
+  495:   ]);
+  496: 
+  497:   useEffect(() => {
+  498:     const host =
+  499:       hostRef.current;
+  500: 
+  501:     if (!host) {
+  502:       return;
+  503:     }
+  504: 
+  505:     let frame:
+  506:       | number
+  507:       | null = null;
+  508: 
+  509:     let disposed = false;
+  510:     let observer: MutationObserver | null = null;
+  511: 
+  512:     const resetStability = () => {
+  513:       stabilityRef.current = {
+  514:         signature: "",
+  515:         count: 0,
+  516:         attempts: stabilityRef.current.attempts,
+  517:       };
+  518:     };
+  519: 
+  520:     const recordStableResult = (signature: string) => {
+  521:       const previous = stabilityRef.current;
+  522: 
+  523:       stabilityRef.current =
+  524:         previous.signature === signature
+  525:           ? {
+  526:               signature,
+  527:               count: previous.count + 1,
+  528:               attempts: previous.attempts + 1,
+  529:             }
+  530:           : {
+  531:               signature,
+  532:               count: 1,
+  533:               attempts: previous.attempts + 1,
+  534:             };
+  535: 
+  536:       if (process.env.NODE_ENV === "development") {
+  537:         host.dataset.reportComposerLayoutFingerprint =
+  538:           getFingerprintPrefix(signature);
+  539:         host.dataset.reportComposerStablePasses = String(
+  540:           stabilityRef.current.count,
+  541:         );
+  542:         host.dataset.reportComposerAttempts = String(
+  543:           stabilityRef.current.attempts,
+  544:         );
+  545:       }
+  546: 
+  547:       if (
+  548:         stabilityRef.current.count >= 2 ||
+  549:         stabilityRef.current.attempts >=
+  550:           MAX_PAGE_COMPOSITION_ATTEMPTS
+  551:       ) {
+  552:         finalizedPlacementRef.current = {
+  553:           semanticInputFingerprint: resetKey,
+  554:           layoutResultFingerprint: signature,
+  555:           primaryEvidenceCount,
+  556:           keepSignatureOnPrimary,
+  557:         };
+  558:         observer?.disconnect();
+  559:         setPhase("READY");
+  560: 
+  561:         queueMicrotask(() => {
+  562:           if (
+  563:             !disposed &&
+  564:             planningPhaseRef.current === "READY" &&
+  565:             finalizedPlacementRef.current
+  566:               ?.semanticInputFingerprint === resetKey
+  567:           ) {
+  568:             setPhase("FROZEN");
+  569:           }
+  570:         });
+  571:         return true;
+  572:       }
+  573: 
+  574:       setPhase("STABILIZING");
+  575:       return false;
+  576:     };
+  577: 
+  578:     const inspect = () => {
+  579:       if (isTerminalPhase()) {
+  580:         return;
+  581:       }
+  582: 
+  583:       if (frame !== null) {
+  584:         window.cancelAnimationFrame(
+  585:           frame,
+  586:         );
+  587:       }
+  588: 
+  589:       frame =
+  590:         window.requestAnimationFrame(
+  591:           () => {
+  592:             frame = null;
+  593: 
+  594:             if (disposed) {
+  595:               return;
+  596:             }
+  597: 
+  598:             const smartViewports = Array.from(
+  599:               host.querySelectorAll<HTMLElement>(
+  600:                 ".report-smart-a4-content",
+  601:               ),
+  602:             );
+  603: 
+  604:             /*
+  605:              * Always bind composition decisions to the PRIMARY A4 page.
+  606:              *
+  607:              * The composer may also render evidence/signature overflow
+  608:              * pages. Using smartViewports[0] blindly can make footer and
+  609:              * signature decisions against the wrong A4 viewport.
+  610:              */
+  611:             const primaryPageElement =
+  612:               host.querySelector<HTMLElement>(
+  613:                 ".pdf-report-page",
+  614:               );
+  615: 
+  616:             const smartViewport =
+  617:               primaryPageElement?.querySelector<HTMLElement>(
+  618:                 ".report-smart-a4-content",
+  619:               ) ||
+  620:               smartViewports[0];
+  621: 
+  622:             if (!smartViewport) {
+  623:               const physicalPageCount =
+  624:                 host.querySelectorAll(".pdf-report-page").length;
+  625: 
+  626:               if (physicalPageCount > 0) {
+  627:                 const legacySignature = [
+  628:                   resetKey,
+  629:                   primaryEvidenceCount,
+  630:                   keepSignatureOnPrimary,
+  631:                   physicalPageCount,
+  632:                   host.scrollHeight,
+  633:                 ].join("::");
+  634: 
+  635:                 if (!recordStableResult(legacySignature)) {
+  636:                   inspect();
+  637:                 }
+  638:               }
+  639: 
+  640:               return;
+  641:             }
+  642: 
+  643:             if (
+  644:               smartViewport.dataset.smartA4Phase !== "FROZEN"
+  645:             ) {
+  646:               setPhase("MEASURING");
+  647:               return;
+  648:             }
+  649: 
+  650:             /*
+  651:              * Wait for a REAL Smart A4 planning pass.
+  652:              */
+  653:             const candidate =
+  654:               smartViewport.dataset
+  655:                 .smartA4Candidate;
+  656: 
+  657:             const severity =
+  658:               smartViewport.dataset
+  659:                 .smartA4Severity;
+  660: 
+  661:             if (
+  662:               !candidate ||
+  663:               !severity
+  664:             ) {
+  665:               setPhase("MEASURING");
+  666:               resetStability();
+  667:               return;
+  668:             }
+  669: 
+  670:             const overflowState =
+  671:               smartViewport.dataset
+  672:                 .reportOverflow;
+  673: 
+  674:             /*
+  675:              * Final physical footer verification.
+  676:              *
+  677:              * The primary page may have received evidence and
+  678:              * signatures after regular physical packing.
+  679:              * Therefore verify the COMPOSED page itself against
+  680:              * its real footer before deciding to keep those
+  681:              * special blocks on the primary page.
+  682:              */
+  683:             const primaryPhysicalPage =
+  684:               primaryPageElement ||
+  685:               smartViewport.closest<HTMLElement>(
+  686:                 ".pdf-report-page",
+  687:               );
+  688: 
+  689:             const primaryFooter =
+  690:               primaryPhysicalPage?.querySelector<HTMLElement>(
+  691:                 "[data-report-page-footer]",
+  692:               ) || null;
+  693: 
+  694:             const footerSafetyGapPx =
+  695:               2 * (96 / 25.4);
+  696: 
+  697:             const footerBoundaryTop =
+  698:               primaryFooter
+  699:                 ? primaryFooter.getBoundingClientRect().top -
+  700:                   footerSafetyGapPx
+  701:                 : Number.POSITIVE_INFINITY;
+  702: 
+  703:             const primarySmartBlocks =
+  704:               primaryPhysicalPage
+  705:                 ? Array.from(
+  706:                     primaryPhysicalPage.querySelectorAll<HTMLElement>(
+  707:                       '[data-report-smart-block], [data-report-priority-block="signature"], [data-report-design-signature-block]',
+  708:                     ),
+  709:                   )
+  710:                 : [];
+  711: 
+  712:             const crossesPhysicalFooter =
+  713:               primaryFooter !== null &&
+  714:               primarySmartBlocks.some((blockElement) => {
+  715:                 const rect =
+  716:                   blockElement.getBoundingClientRect();
+  717: 
+  718:                 return (
+  719:                   rect.height > 0 &&
+  720:                   rect.bottom > footerBoundaryTop + 1
+  721:                 );
+  722:               });
+  723: 
+  724:             /*
+  725:              * Signature collision is a separate physical condition.
+  726:              *
+  727:              * If everything else fits but the signature crosses the
+  728:              * footer, move the signature itself. Do NOT unnecessarily
+  729:              * remove evidence first.
+  730:              */
+  731:             const primarySignatureBlocks =
+  732:               primaryPhysicalPage
+  733:                 ? Array.from(
+  734:                     primaryPhysicalPage.querySelectorAll<HTMLElement>(
+  735:                       '[data-report-priority-block="signature"], [data-report-design-signature-block]',
+  736:                     ),
+  737:                   )
+  738:                 : [];
+  739: 
+  740:             const signatureCrossesPhysicalFooter =
+  741:               primaryFooter !== null &&
+  742:               primarySignatureBlocks.some((signatureElement) => {
+  743:                 const rect =
+  744:                   signatureElement.getBoundingClientRect();
+  745: 
+  746:                 return (
+  747:                   rect.height > 0 &&
+  748:                   rect.bottom > footerBoundaryTop + 1
+  749:                 );
+  750:               });
+  751: 
+  752:             const doesNotFit =
+  753:               overflowState !==
+  754:                 "fit" ||
+  755:               crossesPhysicalFooter;
+  756: 
+  757:             const preferEvidenceMove =
+  758:               smartViewport.dataset
+  759:                 .smartA4PreferEvidenceMove ===
+  760:               "true";
+  761: 
+  762:             const density =
+  763:               smartViewport.dataset
+  764:                 .reportDensity ||
+  765:               "normal";
+  766: 
+  767:             const fieldLayout =
+  768:               smartViewport.dataset
+  769:                 .reportFieldLayout ||
+  770:               "comfortable";
+  771: 
+  772:             const minimumSafeSelected =
+  773:               density === "minimum-safe";
+  774: 
+  775:             const overflowPx =
+  776:               Number(
+  777:                 smartViewport.getAttribute(
+  778:                   "data-smart-a4-overflow-px",
+  779:                 ) || "0",
+  780:               );
+  781: 
+  782:             const decisionSignature = [
+  783:               getFingerprintPrefix(resetKey),
+  784:               primaryEvidenceCount,
+  785:               keepSignatureOnPrimary,
+  786:               doesNotFit,
+  787:               signatureCrossesPhysicalFooter,
+  788:               preferEvidenceMove,
+  789:               severity,
+  790:               density,
+  791:               fieldLayout,
+  792:               candidate,
+  793:               Number.isFinite(
+  794:                 overflowPx,
+  795:               )
+  796:                 ? overflowPx
+  797:                 : 0,
+  798:             ].join("::");
+  799: 
+  800:             /*
+  801:              * =================================================
+  802:              * PHASE 1:
+  803:              * MOVE EVIDENCE BEFORE SACRIFICING CORE CONTENT
+  804:              * =================================================
+  805:              *
+  806:              * Reduce one evidence at a time.
+  807:              *
+  808:              * Every reduction triggers a fresh complete Smart A4
+  809:              * multi-plan evaluation.
+  810:              */
+  811:             if (
+  812:               evidenceAutoEnabled &&
+  813:               primaryEvidenceCount > 0 &&
+  814:               !signatureCrossesPhysicalFooter &&
+  815:               (
+  816:                 doesNotFit ||
+  817:                 preferEvidenceMove ||
+  818:                 minimumSafeSelected
+  819:               )
+  820:             ) {
+  821:               if (
+  822:                 lastDecisionRef.current === decisionSignature
+  823:               ) {
+  824:                 return;
+  825:               }
+  826: 
+  827:               lastDecisionRef.current = decisionSignature;
+  828:               resetStability();
+  829:               setPhase("MEASURING");
+  830: 
+  831:               setPrimaryEvidenceCount(
+  832:                 (current) =>
+  833:                   Math.max(
+  834:                     0,
+  835:                     current - 1,
+  836:                   ),
+  837:               );
+  838: 
+  839:               return;
+  840:             }
+  841: 
+  842:             /*
+  843:              * =================================================
+  844:              * PHASE 2:
+  845:              * SIGNATURE OVERFLOW FALLBACK
+  846:              * =================================================
+  847:              *
+  848:              * Only after:
+  849:              *
+  850:              * - all movable evidence has left the primary page
+  851:              * - Smart A4 still says the page does not fit
+  852:              *
+  853:              * do we move signature to a dedicated final page.
+  854:              *
+  855:              * We NEVER move regular narrative/fields just because
+  856:              * the signature itself is the final obstruction.
+  857:              */
+  858:             if (
+  859:               hasSignature &&
+  860:               keepSignatureOnPrimary &&
+  861:               (
+  862:                 signatureCrossesPhysicalFooter ||
+  863:                 (
+  864:                   doesNotFit &&
+  865:                   primaryEvidenceCount <= 0
+  866:                 )
+  867:               )
+  868:             ) {
+  869:               if (
+  870:                 lastDecisionRef.current === decisionSignature
+  871:               ) {
+  872:                 return;
+  873:               }
+  874: 
+  875:               lastDecisionRef.current = decisionSignature;
+  876:               resetStability();
+  877:               setPhase("MEASURING");
+  878: 
+  879:               setKeepSignatureOnPrimary(
+  880:                 false,
+  881:               );
+  882: 
+  883:               return;
+  884:             }
+  885: 
+  886:             if (
+  887:               minimumSafeSelected &&
+  888:               primaryEvidenceCount <= 0 &&
+  889:               hasSignature &&
+  890:               keepSignatureOnPrimary
+  891:             ) {
+  892:               if (lastDecisionRef.current === decisionSignature) {
+  893:                 return;
+  894:               }
+  895: 
+  896:               lastDecisionRef.current = decisionSignature;
+  897:               resetStability();
+  898:               setPhase("MEASURING");
+  899:               setKeepSignatureOnPrimary(false);
+  900:               return;
+  901:             }
+  902: 
+  903:             /*
+  904:              * If signature has moved and core content now fits,
+  905:              * planning is stable.
+  906:              *
+  907:              * If core content itself still does not fit,
+  908:              * Smart Physical Engine owns that pagination problem;
+  909:              * do not hide/truncate anything here.
+  910:              */
+  911:             const allSmartLayoutsFrozen = smartViewports.every(
+  912:               (viewport) =>
+  913:                 viewport.dataset.smartA4Phase === "FROZEN",
+  914:             );
+  915:             const allSmartLayoutsFit = smartViewports.every(
+  916:               (viewport) => viewport.dataset.reportOverflow === "fit",
+  917:             );
+  918: 
+  919:             const unsettledImages = Array.from(
+  920:               host.querySelectorAll<HTMLImageElement>("img"),
+  921:             ).filter((image) => !image.complete);
+  922: 
+  923:             if (
+  924:               !allSmartLayoutsFrozen ||
+  925:               !allSmartLayoutsFit ||
+  926:               unsettledImages.length > 0 ||
+  927:               !fontsSettledRef.current
+  928:             ) {
+  929:               setPhase("MEASURING");
+  930:               return;
+  931:             }
+  932: 
+  933:             const finalSignature =
+  934:               createSemanticInputFingerprint({
+  935:                 decisionSignature,
+  936:                 evidenceCount: validEvidences.length,
+  937:                 pageCount:
+  938:                   host.querySelectorAll(".pdf-report-page").length,
+  939:                 hasSignatureOverflowPage:
+  940:                   hasSignatureOverflowPage,
+  941:                 smartLayouts: smartViewports.map((viewport) => ({
+  942:                   candidate:
+  943:                     viewport.dataset.smartA4Candidate || "",
+  944:                   fieldLayout:
+  945:                     viewport.dataset.reportFieldLayout || "comfortable",
+  946:                   mode:
+  947:                     viewport.dataset.reportDensity || "normal",
+  948:                   overflowPx: roundLayoutMetric(
+  949:                     Number(viewport.dataset.smartA4OverflowPx || "0"),
+  950:                   ),
+  951:                 })),
+  952:               });
+  953: 
+  954:             if (!recordStableResult(finalSignature)) {
+  955:               inspect();
+  956:             }
+  957:           },
+  958:         );
+  959:     };
+  960: 
+  961:     observer =
+  962:       new MutationObserver(
+  963:         inspect,
+  964:       );
+  965: 
+  966:     observer.observe(
+  967:       host,
+  968:       {
+  969:         subtree: true,
+  970:         childList: true,
+  971:         attributes: true,
+  972: 
+  973:         attributeFilter: [
+  974:           "data-smart-a4-phase",
+  975:         ],
+  976:       },
+  977:     );
+  978: 
+  979:     inspect();
+  980: 
+  981:     const handleAssetLoad = (event: Event) => {
+  982:       if (isTerminalPhase()) {
+  983:         return;
+  984:       }
+  985: 
+  986:       const image =
+  987:         event.target instanceof HTMLImageElement
+  988:           ? event.target
+  989:           : null;
+  990:       const source = image?.currentSrc || image?.src || "";
+  991: 
+  992:       if (
+  993:         source &&
+  994:         settledAssetSourcesRef.current.has(source)
+  995:       ) {
+  996:         return;
+  997:       }
+  998: 
+  999:       if (source) {
+ 1000:         settledAssetSourcesRef.current.add(source);
+ 1001:       }
+ 1002: 
+ 1003:       inspect();
+ 1004:     };
+ 1005: 
+ 1006:     host.addEventListener("load", handleAssetLoad, true);
+ 1007:     host.addEventListener("error", handleAssetLoad, true);
+ 1008: 
+ 1009:     const fonts = document.fonts;
+ 1010:     if (!fonts) {
+ 1011:       fontsSettledRef.current = true;
+ 1012:       inspect();
+ 1013:     } else if (fontsSettledRef.current) {
+ 1014:       inspect();
+ 1015:     } else {
+ 1016:       void fonts.ready
+ 1017:         .then(() => {
+ 1018:           if (!disposed && !fontsSettledRef.current) {
+ 1019:             fontsSettledRef.current = true;
+ 1020:             inspect();
+ 1021:           }
+ 1022:         })
+ 1023:         .catch(() => {
+ 1024:           if (!disposed) {
+ 1025:             fontsSettledRef.current = true;
+ 1026:             inspect();
+ 1027:           }
+ 1028:         });
+ 1029:     }
+ 1030: 
+ 1031:     return () => {
+ 1032:       disposed = true;
+ 1033:       observer?.disconnect();
+ 1034:       host.removeEventListener("load", handleAssetLoad, true);
+ 1035:       host.removeEventListener("error", handleAssetLoad, true);
+ 1036: 
+ 1037:       if (frame !== null) {
+ 1038:         window.cancelAnimationFrame(
+ 1039:           frame,
+ 1040:         );
+ 1041:       }
+ 1042:     };
+ 1043:   }, [
+ 1044:     primaryEvidenceCount,
+ 1045:     keepSignatureOnPrimary,
+ 1046:     evidenceAutoEnabled,
+ 1047:     hasSignature,
+ 1048:     hasSignatureOverflowPage,
+ 1049:     resetKey,
+ 1050:     validEvidences.length,
+ 1051:   ]);
+ 1052: 
+ 1053:   const compositionSemanticFingerprint =
+ 1054:     createSemanticInputFingerprint({
+ 1055:       keepSignatureOnPrimary,
+ 1056:       primaryEvidenceCount,
+ 1057:       semanticInputFingerprint: resetKey,
+ 1058:     });
+ 1059: 
+ 1060:   const developmentDiagnostics =
+ 1061:     process.env.NODE_ENV === "development"
+ 1062:       ? {
+ 1063:           "data-report-composer-semantic-fingerprint":
+ 1064:             getFingerprintPrefix(resetKey),
+ 1065:           "data-report-composer-invalidation-reason":
+ 1066:             invalidationReason,
+ 1067:         }
+ 1068:       : {};
+ 1069: 
+ 1070:   return (
+ 1071:     <div
+ 1072:       ref={hostRef}
+ 1073:       data-report-smart-page-composer
+ 1074:       data-report-smart-page-phase={planningPhase}
+ 1075:       data-report-primary-evidence-count={
+ 1076:         primaryEvidenceCount
+ 1077:       }
+ 1078:       data-report-total-evidence-count={
+ 1079:         validEvidences.length
+ 1080:       }
+ 1081:       data-report-signature-on-primary={
+ 1082:         String(
+ 1083:           keepSignatureOnPrimary,
+ 1084:         )
+ 1085:       }
+ 1086:       {...developmentDiagnostics}
+ 1087:     >
+ 1088:       <ReportSmartSemanticFingerprintProvider
+ 1089:         fingerprint={compositionSemanticFingerprint}
+ 1090:       >
+ 1091:       {/*
+ 1092:        * ======================================================
+ 1093:        * PRIMARY PHYSICAL PAGE
+ 1094:        * ======================================================
+ 1095:        */}
+ 1096:       {renderMode === "stack" ||
+ 1097:       !activePhysicalPageId ||
+ 1098:       primaryPage?.id === activePhysicalPageId ? (
+ 1099:         <A4DesignPage
+ 1100:           designId={designId}
+ 1101:           page={primaryPage}
+ 1102:           context={context}
+ 1103:           previewCase={previewCase}
+ 1104:           pageLabel={pageLabel}
+ 1105:         />
+ 1106:       ) : null}
+ 1107: 
+ 1108:       {/*
+ 1109:        * ======================================================
+ 1110:        * EVIDENCE OVERFLOW
+ 1111:        * ======================================================
+ 1112:        *
+ 1113:        * AutoEvidencePages starts exactly after the count consumed
+ 1114:        * by the primary page.
+ 1115:        */}
+ 1116:       {evidenceAutoEnabled ? (
+ 1117:         <AutoEvidencePages
+ 1118:           designId={designId}
+ 1119:           activePage={page}
+ 1120:           context={context}
+ 1121:           previewCase={previewCase}
+ 1122:           primaryEvidenceCount={
+ 1123:             primaryEvidenceCount
+ 1124:           }
+ 1125:           preparedPages={autoEvidencePhysicalPages}
+ 1126:           activePhysicalPageId={activePhysicalPageId}
+ 1127:           renderMode={renderMode}
+ 1128:         />
+ 1129:       ) : null}
+ 1130: 
+ 1131:       {/*
+ 1132:        * ======================================================
+ 1133:        * SIGNATURE OVERFLOW
+ 1134:        * ======================================================
+ 1135:        *
+ 1136:        * This exists only when:
+ 1137:        * - evidence count already reached zero
+ 1138:        * - primary page still does not fit
+ 1139:        * - signature was the remaining protected block
+ 1140:        */}
+ 1141:       {signatureOverflowPage &&
+ 1142:       (renderMode === "stack" ||
+ 1143:         signatureOverflowPage.id === activePhysicalPageId) ? (
+ 1144:         <div
+ 1145:           className={
+ 1146:             renderMode === "stack"
+ 1147:               ? "mt-6 print:mt-0 print:break-before-page"
+ 1148:               : ""
+ 1149:           }
+ 1150:           data-report-signature-overflow-page
+ 1151:         >
+ 1152:           <A4DesignPage
+ 1153:             designId={designId}
+ 1154:             page={
+ 1155:               signatureOverflowPage
+ 1156:             }
+ 1157:             context={context}
+ 1158:             previewCase={previewCase}
+ 1159:             pageLabel="اعتماد التقرير"
+ 1160:           />
+ 1161:         </div>
+ 1162:       ) : null}
+ 1163:       </ReportSmartSemanticFingerprintProvider>
+ 1164:     </div>
+ 1165:   );
+ 1166: }
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-physical-types.ts
+============================================================
+    1: import type { LogicalReportBlock } from "./report-smart-table-pagination";
+    2: 
+    3: export type ReportPhysicalPageRole =
+    4:   | "primary"
+    5:   | "evidence"
+    6:   | "signature";
+    7: 
+    8: export type ReportPhysicalPageModel = {
+    9:   id: string;
+   10:   title: string;
+   11:   kind: string;
+   12:   blocks: LogicalReportBlock[];
+   13:   sourcePageIds: string[];
+   14:   corePhysicalPageId: string;
+   15:   physicalPageRole: ReportPhysicalPageRole;
+   16:   physicalPageIndex?: number;
+   17:   physicalIndexWithinLogicalPage?: number;
+   18: };
+   19: 
+   20: export type ReportPhysicalPageComposition = {
+   21:   corePhysicalPageId: string;
+   22:   pages: ReportPhysicalPageModel[];
+   23: };
+   24: 
+   25: export type ReportTwoPhysicalNavigationItem = {
+   26:   physicalPageId: string;
+   27:   corePhysicalPageId: string;
+   28:   sourceLogicalPageId: string;
+   29:   sourcePageIds: string[];
+   30:   label: string;
+   31:   physicalPageIndex: number;
+   32:   physicalIndexWithinLogicalPage: number;
+   33:   role: ReportPhysicalPageRole;
+   34: };
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+============================================================
+    1: "use client";
+    2: 
+    3: import {
+    4:   type CSSProperties,
+    5:   type ReactNode,
+    6:   useCallback,
+    7:   useEffect,
+    8:   useLayoutEffect,
+    9:   useRef,
+   10:   useState,
+   11: } from "react";
+   12: 
+   13: import {
+   14:   getReportSmartA4Profile,
+   15:   getReportSmartA4StyleVariables,
+   16:   type ReportSmartA4Mode,
+   17:   type ReportSmartA4PriorityMode,
+   18:   type ReportSmartA4Profile,
+   19: } from "./report-smart-a4-config";
+   20: 
+   21: import {
+   22:   measureReportSmartA4Layout,
+   23:   type ReportSmartA4BlockRole,
+   24: } from "./report-smart-a4-measure";
+   25: 
+   26: import {
+   27:   REPORT_SMART_A4_CANDIDATES,
+   28:   chooseReportSmartA4Plan,
+   29:   scoreReportSmartA4Candidate,
+   30:   type ReportSmartA4FieldLayout,
+   31:   type ReportSmartA4OverflowSeverity,
+   32:   type ReportSmartA4EvaluatedCandidate,
+   33: } from "./report-smart-a4-planner";
+   34: import {
+   35:   createSemanticInputFingerprint,
+   36:   getFingerprintPrefix,
+   37:   roundLayoutMetric,
+   38:   useReportSmartSemanticFingerprint,
+   39: } from "./report-smart-lifecycle";
+   40: 
+   41: type ReportSmartA4LifecyclePhase =
+   42:   | "MEASURING"
+   43:   | "STABILIZING"
+   44:   | "FROZEN";
+   45: 
+   46: const MAX_SMART_A4_MEASUREMENT_ATTEMPTS = 8;
+   47: 
+   48: export type ReportSmartA4LayoutResult = {
+   49:   mode: ReportSmartA4Mode;
+   50:   fieldLayout: ReportSmartA4FieldLayout;
+   51: 
+   52:   fits: boolean;
+   53:   needsOverflowPage: boolean;
+   54: 
+   55:   overflowPx: number;
+   56: 
+   57:   signatureHeightPx: number;
+   58:   signatureReservedPx: number;
+   59:   boundaryBottomPx: number;
+   60:   footerBoundaryUsed: boolean;
+   61: 
+   62:   dominantRole: ReportSmartA4BlockRole;
+   63:   severity: ReportSmartA4OverflowSeverity;
+   64: 
+   65:   candidateId: string;
+   66:   score: number;
+   67: 
+   68:   preferEvidenceMove: boolean;
+   69: };
+   70: 
+   71: type ReportSmartA4ContentRegionProps = {
+   72:   children: ReactNode;
+   73: 
+   74:   heightMm: number;
+   75:   footerSafeAreaMm?: number;
+   76: 
+   77:   className?: string;
+   78:   contentClassName?: string;
+   79: 
+   80:   layoutKey?: string | number;
+   81: 
+   82:   priorityMode?: ReportSmartA4PriorityMode;
+   83: 
+   84:   onLayoutResult?: (
+   85:     result: ReportSmartA4LayoutResult,
+   86:   ) => void;
+   87: };
+   88: 
+   89: const INITIAL_RESULT: ReportSmartA4LayoutResult = {
+   90:   mode: "normal",
+   91:   fieldLayout: "comfortable",
+   92: 
+   93:   fits: true,
+   94:   needsOverflowPage: false,
+   95: 
+   96:   overflowPx: 0,
+   97: 
+   98:   signatureHeightPx: 0,
+   99:   signatureReservedPx: 0,
+  100:   boundaryBottomPx: 0,
+  101:   footerBoundaryUsed: false,
+  102: 
+  103:   dominantRole: "general",
+  104:   severity: "none",
+  105: 
+  106:   candidateId:
+  107:     "normal-comfortable",
+  108: 
+  109:   score: 0,
+  110: 
+  111:   preferEvidenceMove: false,
+  112: };
+  113: 
+  114: const SMART_A4_ENGINE_CSS = `
+  115:   /*
+  116:    * =========================================================
+  117:    * GENERIC SMART FIELD GRID
+  118:    * =========================================================
+  119:    */
+  120: 
+  121:   .report-smart-a4-content
+  122:   .report-smart-field-grid {
+  123:     display: grid !important;
+  124:     grid-template-columns:
+  125:       repeat(4, minmax(0, 1fr)) !important;
+  126:     align-items: stretch;
+  127:   }
+  128: 
+  129:   /*
+  130:    * Comfortable:
+  131:    * نحافظ على شكل البطاقات الواسع.
+  132:    */
+  133: 
+  134:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  135:   .report-smart-field-item[data-smart-field-kind="short"] {
+  136:     grid-column: span 1;
+  137:   }
+  138: 
+  139:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  140:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  141:     grid-column: span 2;
+  142:   }
+  143: 
+  144:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  145:   .report-smart-field-item[data-smart-field-kind="long"],
+  146:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  147:   .report-smart-field-item[data-smart-field-kind="list"] {
+  148:     grid-column: span 4;
+  149:   }
+  150: 
+  151:   /*
+  152:    * Packed:
+  153:    * القيم القصيرة تصبح ربع صف.
+  154:    * المتوسط نصف صف.
+  155:    */
+  156: 
+  157:   .report-smart-a4-content[data-report-field-layout="packed"]
+  158:   .report-smart-field-item[data-smart-field-kind="short"],
+  159:   .report-smart-a4-content[data-report-field-layout="inline"]
+  160:   .report-smart-field-item[data-smart-field-kind="short"] {
+  161:     grid-column: span 1;
+  162:   }
+  163: 
+  164:   .report-smart-a4-content[data-report-field-layout="packed"]
+  165:   .report-smart-field-item[data-smart-field-kind="medium"],
+  166:   .report-smart-a4-content[data-report-field-layout="inline"]
+  167:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  168:     grid-column: span 2;
+  169:   }
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="long"],
+  173:   .report-smart-a4-content[data-report-field-layout="packed"]
+  174:   .report-smart-field-item[data-smart-field-kind="list"],
+  175:   .report-smart-a4-content[data-report-field-layout="inline"]
+  176:   .report-smart-field-item[data-smart-field-kind="long"],
+  177:   .report-smart-a4-content[data-report-field-layout="inline"]
+  178:   .report-smart-field-item[data-smart-field-kind="list"] {
+  179:     grid-column: span 4;
+  180:   }
+  181: 
+  182: 
+  183:   /*
+  184:    * =========================================================
+  185:    * SMART FIELD RENDERER
+  186:    * =========================================================
+  187:    *
+  188:    * Elegant official information table.
+  189:    *
+  190:    * Goals:
+  191:    * - preserve the compact horizontal packing
+  192:    * - make labels/values immediately understandable
+  193:    * - avoid the previous card-heavy vertical footprint
+  194:    * - keep long/list fields readable
+  195:    */
+  196: 
+  197:   .report-smart-a4-content
+  198:   .report-smart-field-grid {
+  199:     display: grid !important;
+  200:     grid-template-columns:
+  201:       repeat(4, minmax(0, 1fr)) !important;
+  202: 
+  203:     align-items: stretch;
+  204: 
+  205:     overflow: hidden;
+  206: 
+  207:     border:
+  208:       1px solid
+  209:       #cbd5e1;
+  210: 
+  211:     border-radius:
+  212:       10px;
+  213: 
+  214:     background:
+  215:       #ffffff;
+  216: 
+  217:     gap: 0 !important;
+  218:   }
+  219: 
+  220:   .report-smart-a4-content
+  221:   .report-smart-field-item {
+  222:     min-width: 0;
+  223: 
+  224:     border-inline-start:
+  225:       1px solid
+  226:       #dbe4ec;
+  227: 
+  228:     border-bottom:
+  229:       1px solid
+  230:       #dbe4ec;
+  231: 
+  232:     background:
+  233:       #ffffff;
+  234:   }
+  235: 
+  236:   /*
+  237:    * Remove doubled outer borders visually.
+  238:    */
+  239:   .report-smart-a4-content
+  240:   .report-smart-field-item:nth-child(4n + 1) {
+  241:     border-inline-start: 0;
+  242:   }
+  243: 
+  244:   /*
+  245:    * ---------------------------------------------------------
+  246:    * FIELD WIDTH POLICY
+  247:    * ---------------------------------------------------------
+  248:    */
+  249: 
+  250:   .report-smart-a4-content
+  251:   .report-smart-field-item[data-smart-field-kind="short"] {
+  252:     grid-column: span 1;
+  253:   }
+  254: 
+  255:   .report-smart-a4-content
+  256:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  257:     grid-column: span 2;
+  258:   }
+  259: 
+  260:   .report-smart-a4-content
+  261:   .report-smart-field-item[data-smart-field-kind="long"],
+  262:   .report-smart-a4-content
+  263:   .report-smart-field-item[data-smart-field-kind="list"] {
+  264:     grid-column: span 4;
+  265:   }
+  266: 
+  267:   /*
+  268:    * ---------------------------------------------------------
+  269:    * BASE CELL
+  270:    * ---------------------------------------------------------
+  271:    */
+  272: 
+  273:   .report-smart-a4-content
+  274:   .report-smart-meta-card {
+  275:     display: flex;
+  276:     flex-direction: column;
+  277: 
+  278:     height: 100%;
+  279:     min-height: 0;
+  280: 
+  281:     border: 0 !important;
+  282:     border-radius: 0 !important;
+  283:     box-shadow: none !important;
+  284: 
+  285:     background:
+  286:       transparent !important;
+  287: 
+  288:     padding: 0 !important;
+  289:   }
+  290: 
+  291:   /*
+  292:    * Label becomes a small official header strip.
+  293:    */
+  294:   .report-smart-a4-content
+  295:   .report-smart-meta-label {
+  296:     display: flex;
+  297:     align-items: center;
+  298: 
+  299:     min-height:
+  300:       calc(
+  301:         21px *
+  302:         var(--report-field-spacing-scale, 1)
+  303:       );
+  304: 
+  305:     margin: 0 !important;
+  306: 
+  307:     padding-inline:
+  308:       calc(
+  309:         0.55rem *
+  310:         var(--report-field-spacing-scale, 1)
+  311:       );
+  312: 
+  313:     padding-block:
+  314:       calc(
+  315:         0.22rem *
+  316:         var(--report-field-spacing-scale, 1)
+  317:       );
+  318: 
+  319:     border-bottom:
+  320:       1px solid
+  321:       #edf1f5;
+  322: 
+  323:     background:
+  324:       #f8fafc;
+  325: 
+  326:     color:
+  327:       #64748b !important;
+  328: 
+  329:     font-weight: 800 !important;
+  330: 
+  331:     line-height: 1.25 !important;
+  332: 
+  333:     white-space: normal;
+  334:   }
+  335: 
+  336:   /*
+  337:    * Value area.
+  338:    */
+  339:   .report-smart-a4-content
+  340:   .report-smart-meta-value {
+  341:     display: flex;
+  342:     align-items: center;
+  343: 
+  344:     flex: 1 1 auto;
+  345: 
+  346:     min-height:
+  347:       calc(
+  348:         25px *
+  349:         var(--report-field-spacing-scale, 1)
+  350:       );
+  351: 
+  352:     margin: 0 !important;
+  353: 
+  354:     padding-inline:
+  355:       calc(
+  356:         0.55rem *
+  357:         var(--report-field-spacing-scale, 1)
+  358:       );
+  359: 
+  360:     padding-block:
+  361:       calc(
+  362:         0.28rem *
+  363:         var(--report-field-spacing-scale, 1)
+  364:       );
+  365: 
+  366:     color:
+  367:       #0f172a !important;
+  368: 
+  369:     font-weight: 800 !important;
+  370: 
+  371:     line-height:
+  372:       var(
+  373:         --report-content-line-height,
+  374:         1.5
+  375:       ) !important;
+  376: 
+  377:     overflow-wrap: anywhere;
+  378:   }
+  379: 
+  380:   /*
+  381:    * Lists stay stacked and readable.
+  382:    */
+  383:   .report-smart-a4-content
+  384:   .report-smart-meta-list {
+  385:     flex: 1 1 auto;
+  386: 
+  387:     margin: 0 !important;
+  388: 
+  389:     padding-inline:
+  390:       calc(
+  391:         0.55rem *
+  392:         var(--report-field-spacing-scale, 1)
+  393:       );
+  394: 
+  395:     padding-block:
+  396:       calc(
+  397:         0.3rem *
+  398:         var(--report-field-spacing-scale, 1)
+  399:       );
+  400: 
+  401:     color:
+  402:       #0f172a !important;
+  403:   }
+  404: 
+  405:   .report-smart-a4-content
+  406:   .report-smart-meta-list-item {
+  407:     line-height:
+  408:       1.45 !important;
+  409:   }
+  410: 
+  411:   .report-smart-a4-content
+  412:   .report-smart-meta-bullet {
+  413:     width: 4px !important;
+  414:     height: 4px !important;
+  415: 
+  416:     margin-top:
+  417:       0.55em !important;
+  418: 
+  419:     background:
+  420:       #0ea5a4 !important;
+  421:   }
+  422: 
+  423:   /*
+  424:    * ---------------------------------------------------------
+  425:    * PACKED
+  426:    * ---------------------------------------------------------
+  427:    *
+  428:    * Preferred default.
+  429:    * Formal table appearance with excellent space economy.
+  430:    */
+  431: 
+  432:   .report-smart-a4-content[data-report-field-layout="packed"]
+  433:   .report-smart-field-grid {
+  434:     border-color:
+  435:       #cbd5e1;
+  436:   }
+  437: 
+  438:   .report-smart-a4-content[data-report-field-layout="packed"]
+  439:   .report-smart-meta-label {
+  440:     background:
+  441:       #f8fafc;
+  442: 
+  443:     min-height:
+  444:       calc(
+  445:         19px *
+  446:         var(--report-field-spacing-scale, 1)
+  447:       );
+  448:   }
+  449: 
+  450:   .report-smart-a4-content[data-report-field-layout="packed"]
+  451:   .report-smart-meta-value {
+  452:     min-height:
+  453:       calc(
+  454:         23px *
+  455:         var(--report-field-spacing-scale, 1)
+  456:       );
+  457:   }
+  458: 
+  459:   /*
+  460:    * ---------------------------------------------------------
+  461:    * COMFORTABLE
+  462:    * ---------------------------------------------------------
+  463:    *
+  464:    * Same table identity but slightly more breathing room.
+  465:    */
+  466: 
+  467:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  468:   .report-smart-meta-label {
+  469:     min-height:
+  470:       calc(
+  471:         23px *
+  472:         var(--report-field-spacing-scale, 1)
+  473:       );
+  474: 
+  475:     padding-block:
+  476:       calc(
+  477:         0.32rem *
+  478:         var(--report-field-spacing-scale, 1)
+  479:       );
+  480:   }
+  481: 
+  482:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  483:   .report-smart-meta-value {
+  484:     min-height:
+  485:       calc(
+  486:         29px *
+  487:         var(--report-field-spacing-scale, 1)
+  488:       );
+  489: 
+  490:     padding-block:
+  491:       calc(
+  492:         0.4rem *
+  493:         var(--report-field-spacing-scale, 1)
+  494:       );
+  495:   }
+  496: 
+  497:   /*
+  498:    * ---------------------------------------------------------
+  499:    * INLINE
+  500:    * ---------------------------------------------------------
+  501:    *
+  502:    * Emergency high-density mode.
+  503:    *
+  504:    * Still looks like a proper table cell rather than loose text.
+  505:    * Short/medium fields display:
+  506:    *
+  507:    * label | value
+  508:    *
+  509:    * Long/list fields remain vertically stacked.
+  510:    */
+  511: 
+  512:   .report-smart-a4-content[data-report-field-layout="inline"]
+  513:   .report-smart-field-item[data-smart-field-kind="short"]
+  514:   .report-smart-meta-card,
+  515:   .report-smart-a4-content[data-report-field-layout="inline"]
+  516:   .report-smart-field-item[data-smart-field-kind="medium"]
+  517:   .report-smart-meta-card {
+  518:     display: grid;
+  519: 
+  520:     grid-template-columns:
+  521:       minmax(64px, auto)
+  522:       minmax(0, 1fr);
+  523: 
+  524:     align-items: stretch;
+  525:   }
+  526: 
+  527:   .report-smart-a4-content[data-report-field-layout="inline"]
+  528:   .report-smart-field-item[data-smart-field-kind="short"]
+  529:   .report-smart-meta-label,
+  530:   .report-smart-a4-content[data-report-field-layout="inline"]
+  531:   .report-smart-field-item[data-smart-field-kind="medium"]
+  532:   .report-smart-meta-label {
+  533:     min-height:
+  534:       calc(
+  535:         27px *
+  536:         var(--report-field-spacing-scale, 1)
+  537:       );
+  538: 
+  539:     border-bottom: 0;
+  540: 
+  541:     border-inline-end:
+  542:       1px solid
+  543:       #e2e8f0;
+  544: 
+  545:     background:
+  546:       #f8fafc;
+  547: 
+  548:     white-space: normal;
+  549:   }
+  550: 
+  551:   .report-smart-a4-content[data-report-field-layout="inline"]
+  552:   .report-smart-field-item[data-smart-field-kind="short"]
+  553:   .report-smart-meta-value,
+  554:   .report-smart-a4-content[data-report-field-layout="inline"]
+  555:   .report-smart-field-item[data-smart-field-kind="medium"]
+  556:   .report-smart-meta-value {
+  557:     min-height:
+  558:       calc(
+  559:         27px *
+  560:         var(--report-field-spacing-scale, 1)
+  561:       );
+  562: 
+  563:     padding-block:
+  564:       calc(
+  565:         0.2rem *
+  566:         var(--report-field-spacing-scale, 1)
+  567:       );
+  568:   }
+  569: 
+  570:   /*
+  571:    * Long/list items remain stacked even in inline mode.
+  572:    */
+  573:   .report-smart-a4-content[data-report-field-layout="inline"]
+  574:   .report-smart-field-item[data-smart-field-kind="long"]
+  575:   .report-smart-meta-card,
+  576:   .report-smart-a4-content[data-report-field-layout="inline"]
+  577:   .report-smart-field-item[data-smart-field-kind="list"]
+  578:   .report-smart-meta-card {
+  579:     display: flex;
+  580:     flex-direction: column;
+  581:   }
+  582: 
+  583:   /*
+  584:    * ---------------------------------------------------------
+  585:    * PRINT
+  586:    * ---------------------------------------------------------
+  587:    */
+  588: 
+  589:   @media print {
+  590:     .report-smart-a4-content
+  591:     .report-smart-field-grid {
+  592:       border-color:
+  593:         #b8c4cf;
+  594: 
+  595:       print-color-adjust:
+  596:         exact;
+  597: 
+  598:       -webkit-print-color-adjust:
+  599:         exact;
+  600:     }
+  601: 
+  602:     .report-smart-a4-content
+  603:     .report-smart-meta-label {
+  604:       background:
+  605:         #f3f6f8 !important;
+  606: 
+  607:       print-color-adjust:
+  608:         exact;
+  609: 
+  610:       -webkit-print-color-adjust:
+  611:         exact;
+  612:     }
+  613:   }
+  614:   /*
+  615:    * =========================================================
+  616:    * CLASSIC FORMAL TABLE GRID
+  617:    * =========================================================
+  618:    */
+  619: 
+  620:   .report-smart-a4-content
+  621:   .report-classic-smart-grid {
+  622:     display: grid;
+  623:     grid-template-columns:
+  624:       repeat(4, minmax(0, 1fr));
+  625:     gap:
+  626:       calc(
+  627:         2.6mm *
+  628:         var(--report-field-spacing-scale, 1)
+  629:       );
+  630:     align-items: stretch;
+  631:   }
+  632: 
+  633:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  634:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  635:     grid-column: span 1;
+  636:   }
+  637: 
+  638:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  639:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  640:     grid-column: span 2;
+  641:   }
+  642: 
+  643:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  644:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  645:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  646:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  647:     grid-column: span 4;
+  648:   }
+  649: 
+  650:   .report-smart-a4-content[data-report-field-layout="packed"]
+  651:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  652:   .report-smart-a4-content[data-report-field-layout="inline"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  654:     grid-column: span 1;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="packed"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  659:   .report-smart-a4-content[data-report-field-layout="inline"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  661:     grid-column: span 2;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  666:   .report-smart-a4-content[data-report-field-layout="packed"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  668:   .report-smart-a4-content[data-report-field-layout="inline"]
+  669:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  670:   .report-smart-a4-content[data-report-field-layout="inline"]
+  671:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  672:     grid-column: span 4;
+  673:   }
+  674: 
+  675:   /*
+  676:    * =========================================================
+  677:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  678:    * =========================================================
+  679:    *
+  680:    * MOE 2024 keeps its original visual identity.
+  681:    * We only reduce wasted vertical height and allow two-column
+  682:    * packing for non-wide values.
+  683:    */
+  684: 
+  685:   .report-smart-a4-content
+  686:   .moe24-report-detail-grid {
+  687:     grid-template-columns:
+  688:       repeat(2, minmax(0, 1fr)) !important;
+  689:   }
+  690: 
+  691:   .report-smart-a4-content
+  692:   .moe24-report-field:not(.moe24-report-field-wide) {
+  693:     grid-column: span 1 !important;
+  694:   }
+  695: 
+  696:   .report-smart-a4-content
+  697:   .moe24-report-field-wide {
+  698:     grid-column: 1 / -1 !important;
+  699:   }
+  700: 
+  701:   .report-smart-a4-content[data-report-field-layout="packed"]
+  702:   .moe24-report-details-panel,
+  703:   .report-smart-a4-content[data-report-field-layout="inline"]
+  704:   .moe24-report-details-panel {
+  705:     padding:
+  706:       calc(
+  707:         2.8mm *
+  708:         var(--report-field-spacing-scale, 1)
+  709:       ) !important;
+  710:   }
+  711: 
+  712:   .report-smart-a4-content[data-report-field-layout="packed"]
+  713:   .moe24-report-detail-grid,
+  714:   .report-smart-a4-content[data-report-field-layout="inline"]
+  715:   .moe24-report-detail-grid {
+  716:     row-gap:
+  717:       calc(
+  718:         1.2mm *
+  719:         var(--report-field-spacing-scale, 1)
+  720:       ) !important;
+  721: 
+  722:     column-gap:
+  723:       calc(
+  724:         2.2mm *
+  725:         var(--report-field-spacing-scale, 1)
+  726:       ) !important;
+  727:   }
+  728:   /*
+  729:    * =========================================================
+  730:    * EVIDENCE
+  731:    * =========================================================
+  732:    */
+  733: 
+  734:   .report-smart-a4-content
+  735:   [data-report-smart-block="evidence-gallery"] img {
+  736:     max-height:
+  737:       var(
+  738:         --report-evidence-max-height,
+  739:         78mm
+  740:       ) !important;
+  741:   }
+  742: 
+  743:   .report-smart-a4-content
+  744:   [data-report-smart-block="evidence-gallery"]
+  745:   .report-design-evidence-fallback {
+  746:     max-height:
+  747:       var(
+  748:         --report-evidence-max-height,
+  749:         78mm
+  750:       ) !important;
+  751:   }
+  752: 
+  753:   /*
+  754:    * =========================================================
+  755:    * SIGNATURE
+  756:    * =========================================================
+  757:    */
+  758: 
+  759:   .report-smart-a4-content
+  760:   [data-report-priority-block="signature"] {
+  761:     break-inside: avoid !important;
+  762:     page-break-inside: avoid !important;
+  763:   }
+  764: `;
+  765: 
+  766: function applyProfile(
+  767:   element: HTMLElement,
+  768:   profile: ReportSmartA4Profile,
+  769: ) {
+  770:   const variables =
+  771:     getReportSmartA4StyleVariables(
+  772:       profile,
+  773:     );
+  774: 
+  775:   Object.entries(
+  776:     variables,
+  777:   ).forEach(
+  778:     ([property, value]) => {
+  779:       element.style.setProperty(
+  780:         property,
+  781:         String(value),
+  782:       );
+  783:     },
+  784:   );
+  785: }
+  786: 
+  787: function applyCandidate(
+  788:   viewport: HTMLElement,
+  789:   profile: ReportSmartA4Profile,
+  790:   fieldLayout:
+  791:     ReportSmartA4FieldLayout,
+  792: ) {
+  793:   applyProfile(
+  794:     viewport,
+  795:     profile,
+  796:   );
+  797: 
+  798:   viewport.dataset.reportDensity =
+  799:     profile.mode;
+  800: 
+  801:   viewport.dataset.reportFieldLayout =
+  802:     fieldLayout;
+  803: }
+  804: 
+  805: function nextAnimationFrame() {
+  806:   return new Promise<void>(
+  807:     (resolve) => {
+  808:       window.requestAnimationFrame(
+  809:         () => resolve(),
+  810:       );
+  811:     },
+  812:   );
+  813: }
+  814: 
+  815: function sameResult(
+  816:   current: ReportSmartA4LayoutResult,
+  817:   next: ReportSmartA4LayoutResult,
+  818: ) {
+  819:   return (
+  820:     current.mode === next.mode &&
+  821:     current.fieldLayout ===
+  822:       next.fieldLayout &&
+  823:     current.fits === next.fits &&
+  824:     current.needsOverflowPage ===
+  825:       next.needsOverflowPage &&
+  826:     current.overflowPx ===
+  827:       next.overflowPx &&
+  828:     current.signatureHeightPx ===
+  829:       next.signatureHeightPx &&
+  830:     current.signatureReservedPx ===
+  831:       next.signatureReservedPx &&
+  832:     current.boundaryBottomPx === next.boundaryBottomPx &&
+  833:     current.footerBoundaryUsed === next.footerBoundaryUsed &&
+  834:     current.dominantRole ===
+  835:       next.dominantRole &&
+  836:     current.severity ===
+  837:       next.severity &&
+  838:     current.candidateId ===
+  839:       next.candidateId &&
+  840:     current.score === next.score &&
+  841:     current.preferEvidenceMove ===
+  842:       next.preferEvidenceMove
+  843:   );
+  844: }
+  845: 
+  846: export function ReportSmartA4ContentRegion({
+  847:   children,
+  848:   heightMm,
+  849:   footerSafeAreaMm = 0,
+  850:   className = "",
+  851:   contentClassName = "",
+  852:   layoutKey,
+  853:   priorityMode = "signature",
+  854:   onLayoutResult,
+  855: }: ReportSmartA4ContentRegionProps) {
+  856:   const inheritedSemanticFingerprint =
+  857:     useReportSmartSemanticFingerprint();
+  858: 
+  859:   const semanticInputFingerprint =
+  860:     createSemanticInputFingerprint({
+  861:       inheritedSemanticFingerprint,
+  862:       heightMm,
+  863:       footerSafeAreaMm,
+  864:       layoutKey: layoutKey ?? null,
+  865:       priorityMode,
+  866:     });
+  867: 
+  868:   const viewportRef =
+  869:     useRef<HTMLDivElement | null>(
+  870:       null,
+  871:     );
+  872: 
+  873:   const contentRef =
+  874:     useRef<HTMLDivElement | null>(
+  875:       null,
+  876:     );
+  877: 
+  878:   const scheduledFrameRef =
+  879:     useRef<number | null>(null);
+  880: 
+  881:   const scheduleMeasurementRef =
+  882:     useRef<() => void>(() => undefined);
+  883: 
+  884:   const runIdRef =
+  885:     useRef(0);
+  886: 
+  887:   const measuringRef =
+  888:     useRef(false);
+  889: 
+  890:   const frozenRef =
+  891:     useRef(false);
+  892: 
+  893:   const rerunRequestedRef =
+  894:     useRef(false);
+  895: 
+  896:   const fontsSettledRef =
+  897:     useRef(false);
+  898: 
+  899:   const settledAssetSourcesRef =
+  900:     useRef(new Set<string>());
+  901: 
+  902:   const resizeFingerprintRef =
+  903:     useRef("");
+  904: 
+  905:   const stabilizationRef = useRef({
+  906:     fingerprint: "",
+  907:     stablePasses: 0,
+  908:     attempts: 0,
+  909:   });
+  910: 
+  911:   const resultRef =
+  912:     useRef(INITIAL_RESULT);
+  913: 
+  914:   const onLayoutResultRef =
+  915:     useRef(onLayoutResult);
+  916: 
+  917:   const [result, setResult] =
+  918:     useState(INITIAL_RESULT);
+  919: 
+  920:   const [layoutPhase, setLayoutPhase] =
+  921:     useState<ReportSmartA4LifecyclePhase>("MEASURING");
+  922: 
+  923:   useEffect(() => {
+  924:     onLayoutResultRef.current =
+  925:       onLayoutResult;
+  926:   }, [onLayoutResult]);
+  927: 
+  928:   const runMeasurement =
+  929:     useCallback(async () => {
+  930:       const viewport =
+  931:         viewportRef.current;
+  932: 
+  933:       const content =
+  934:         contentRef.current;
+  935: 
+  936:       if (
+  937:         !viewport ||
+  938:         !content ||
+  939:         measuringRef.current ||
+  940:         frozenRef.current ||
+  941:         !fontsSettledRef.current
+  942:       ) {
+  943:         return;
+  944:       }
+  945: 
+  946:       measuringRef.current = true;
+  947:       rerunRequestedRef.current = false;
+  948:       setLayoutPhase("MEASURING");
+  949: 
+  950:       const runId =
+  951:         ++runIdRef.current;
+  952: 
+  953:       try {
+  954:         const evaluated:
+  955:           ReportSmartA4EvaluatedCandidate[] =
+  956:           [];
+  957: 
+  958:         /*
+  959:          * -----------------------------------------------------
+  960:          * PLAN EXPLORATION
+  961:          * -----------------------------------------------------
+  962:          *
+  963:          * كل Candidate يطبق فعلًا على DOM ثم يقاس.
+  964:          * لا نعتمد على تقدير عدد الأحرف فقط.
+  965:          */
+  966:         for (
+  967:           const candidate of
+  968:           REPORT_SMART_A4_CANDIDATES
+  969:         ) {
+  970:           const profile =
+  971:             getReportSmartA4Profile(
+  972:               candidate.mode,
+  973:             );
+  974: 
+  975:           applyCandidate(
+  976:             viewport,
+  977:             profile,
+  978:             candidate.fieldLayout,
+  979:           );
+  980: 
+  981:           await nextAnimationFrame();
+  982:           await nextAnimationFrame();
+  983: 
+  984:           if (
+  985:             runId !== runIdRef.current
+  986:           ) {
+  987:             return;
+  988:           }
+  989: 
+  990:           const measurement =
+  991:             measureReportSmartA4Layout(
+  992:               viewport,
+  993:               content,
+  994:               priorityMode,
+  995:               profile,
+  996:             );
+  997: 
+  998:           const score =
+  999:             scoreReportSmartA4Candidate(
+ 1000:               candidate,
+ 1001:               measurement,
+ 1002:             );
+ 1003: 
+ 1004:           evaluated.push({
+ 1005:             candidate,
+ 1006:             profile,
+ 1007:             measurement,
+ 1008:             score,
+ 1009:           });
+ 1010:         }
+ 1011: 
+ 1012:         if (
+ 1013:           runId !== runIdRef.current ||
+ 1014:           !evaluated.length
+ 1015:         ) {
+ 1016:           return;
+ 1017:         }
+ 1018: 
+ 1019:         const plan =
+ 1020:           chooseReportSmartA4Plan(
+ 1021:             evaluated,
+ 1022:           );
+ 1023: 
+ 1024:         const selected =
+ 1025:           evaluated.find(
+ 1026:             (item) =>
+ 1027:               item.candidate.id ===
+ 1028:               plan.candidateId,
+ 1029:           ) || evaluated[
+ 1030:             evaluated.length - 1
+ 1031:           ];
+ 1032: 
+ 1033:         /*
+ 1034:          * تثبيت الخطة الفائزة فقط بعد انتهاء جميع القياسات.
+ 1035:          */
+ 1036:         applyCandidate(
+ 1037:           viewport,
+ 1038:           selected.profile,
+ 1039:           selected.candidate
+ 1040:             .fieldLayout,
+ 1041:         );
+ 1042: 
+ 1043:         await nextAnimationFrame();
+ 1044: 
+ 1045:         if (
+ 1046:           runId !== runIdRef.current
+ 1047:         ) {
+ 1048:           return;
+ 1049:         }
+ 1050: 
+ 1051:         /*
+ 1052:          * قياس نهائي بعد تثبيت الخطة الفائزة.
+ 1053:          * هذا يمنع اختلاف القياس بسبب frame وسيط.
+ 1054:          */
+ 1055:         const finalMeasurement =
+ 1056:           measureReportSmartA4Layout(
+ 1057:             viewport,
+ 1058:             content,
+ 1059:             priorityMode,
+ 1060:             selected.profile,
+ 1061:           );
+ 1062: 
+ 1063:         const finalScore =
+ 1064:           scoreReportSmartA4Candidate(
+ 1065:             selected.candidate,
+ 1066:             finalMeasurement,
+ 1067:           );
+ 1068: 
+ 1069:         const finalPlan =
+ 1070:           chooseReportSmartA4Plan([
+ 1071:             {
+ 1072:               candidate:
+ 1073:                 selected.candidate,
+ 1074:               profile:
+ 1075:                 selected.profile,
+ 1076:               measurement:
+ 1077:                 finalMeasurement,
+ 1078:               score:
+ 1079:                 finalScore,
+ 1080:             },
+ 1081:           ]);
+ 1082: 
+ 1083:         const nextResult:
+ 1084:           ReportSmartA4LayoutResult = {
+ 1085:           mode:
+ 1086:             selected.candidate.mode,
+ 1087: 
+ 1088:           fieldLayout:
+ 1089:             selected.candidate
+ 1090:               .fieldLayout,
+ 1091: 
+ 1092:           fits:
+ 1093:             finalMeasurement.fits,
+ 1094: 
+ 1095:           needsOverflowPage:
+ 1096:             !finalMeasurement.fits,
+ 1097: 
+ 1098:           overflowPx:
+ 1099:             finalMeasurement
+ 1100:               .overflowPx,
+ 1101: 
+ 1102:           signatureHeightPx:
+ 1103:             finalMeasurement
+ 1104:               .signatureHeightPx,
+ 1105: 
+ 1106:           signatureReservedPx:
+ 1107:             finalMeasurement
+ 1108:               .signatureReservedPx,
+ 1109: 
+ 1110:           boundaryBottomPx:
+ 1111:             finalMeasurement.boundaryBottomPx,
+ 1112: 
+ 1113:           footerBoundaryUsed:
+ 1114:             finalMeasurement.footerBoundaryUsed,
+ 1115: 
+ 1116:           dominantRole:
+ 1117:             finalMeasurement
+ 1118:               .dominantRole,
+ 1119: 
+ 1120:           severity:
+ 1121:             finalPlan.severity,
+ 1122: 
+ 1123:           candidateId:
+ 1124:             selected.candidate.id,
+ 1125: 
+ 1126:           score:
+ 1127:             Math.round(
+ 1128:               finalScore * 10,
+ 1129:             ) / 10,
+ 1130: 
+ 1131:           /*
+ 1132:            * Important:
+ 1133:            * preserve decision from ALL candidate evaluation.
+ 1134:            * If the best overall fit required aggressive density,
+ 1135:            * Composer may move evidence and let us re-plan.
+ 1136:            */
+ 1137:           preferEvidenceMove:
+ 1138:             plan.preferEvidenceMove,
+ 1139:         };
+ 1140: 
+ 1141:         const unsettledImages = Array.from(
+ 1142:           content.querySelectorAll<HTMLImageElement>("img"),
+ 1143:         ).filter((image) => !image.complete);
+ 1144: 
+ 1145:         if (unsettledImages.length > 0) {
+ 1146:           setLayoutPhase("MEASURING");
+ 1147:           return;
+ 1148:         }
+ 1149: 
+ 1150:         content
+ 1151:           .querySelectorAll<HTMLImageElement>("img")
+ 1152:           .forEach((image) => {
+ 1153:             const source = image.currentSrc || image.src;
+ 1154:             if (source) {
+ 1155:               settledAssetSourcesRef.current.add(source);
+ 1156:             }
+ 1157:           });
+ 1158: 
+ 1159:         const layoutResultFingerprint =
+ 1160:           createSemanticInputFingerprint({
+ 1161:             candidateId: nextResult.candidateId,
+ 1162:             dominantRole: nextResult.dominantRole,
+ 1163:             fieldLayout: nextResult.fieldLayout,
+ 1164:             fits: nextResult.fits,
+ 1165:             mode: nextResult.mode,
+ 1166:             overflowPx: roundLayoutMetric(nextResult.overflowPx),
+ 1167:             preferEvidenceMove: nextResult.preferEvidenceMove,
+ 1168:             signatureHeightPx: roundLayoutMetric(
+ 1169:               nextResult.signatureHeightPx,
+ 1170:             ),
+ 1171:             signatureReservedPx: roundLayoutMetric(
+ 1172:               nextResult.signatureReservedPx,
+ 1173:             ),
+ 1174:             boundaryBottomPx: roundLayoutMetric(
+ 1175:               nextResult.boundaryBottomPx,
+ 1176:             ),
+ 1177:             footerBoundaryUsed: nextResult.footerBoundaryUsed,
+ 1178:           });
+ 1179: 
+ 1180:         const previousStability = stabilizationRef.current;
+ 1181:         const stablePasses =
+ 1182:           previousStability.fingerprint === layoutResultFingerprint
+ 1183:             ? previousStability.stablePasses + 1
+ 1184:             : 1;
+ 1185:         const attempts = previousStability.attempts + 1;
+ 1186: 
+ 1187:         stabilizationRef.current = {
+ 1188:           fingerprint: layoutResultFingerprint,
+ 1189:           stablePasses,
+ 1190:           attempts,
+ 1191:         };
+ 1192: 
+ 1193:         if (process.env.NODE_ENV === "development") {
+ 1194:           viewport.dataset.smartA4LayoutFingerprint =
+ 1195:             getFingerprintPrefix(layoutResultFingerprint);
+ 1196:           viewport.dataset.smartA4StablePasses = String(stablePasses);
+ 1197:           viewport.dataset.smartA4Attempts = String(attempts);
+ 1198:         }
+ 1199: 
+ 1200:         viewport.dataset
+ 1201:           .smartA4DominantRole =
+ 1202:           nextResult.dominantRole;
+ 1203: 
+ 1204:         viewport.dataset
+ 1205:           .smartA4Severity =
+ 1206:           nextResult.severity;
+ 1207: 
+ 1208:         viewport.dataset
+ 1209:           .smartA4Candidate =
+ 1210:           nextResult.candidateId;
+ 1211: 
+ 1212:         viewport.dataset
+ 1213:           .smartA4Score =
+ 1214:           String(nextResult.score);
+ 1215: 
+ 1216:         viewport.dataset
+ 1217:           .smartA4PreferEvidenceMove =
+ 1218:           String(
+ 1219:             nextResult
+ 1220:               .preferEvidenceMove,
+ 1221:           );
+ 1222: 
+ 1223:         viewport.dataset
+ 1224:           .smartA4SignatureProtected =
+ 1225:           String(
+ 1226:             nextResult
+ 1227:               .signatureHeightPx > 0,
+ 1228:           );
+ 1229: 
+ 1230:         if (
+ 1231:           !sameResult(
+ 1232:             resultRef.current,
+ 1233:             nextResult,
+ 1234:           )
+ 1235:         ) {
+ 1236:           resultRef.current =
+ 1237:             nextResult;
+ 1238: 
+ 1239:           setResult(nextResult);
+ 1240: 
+ 1241:           onLayoutResultRef.current?.(
+ 1242:             nextResult,
+ 1243:           );
+ 1244:         }
+ 1245: 
+ 1246:         if (
+ 1247:           stablePasses >= 2 ||
+ 1248:           attempts >= MAX_SMART_A4_MEASUREMENT_ATTEMPTS
+ 1249:         ) {
+ 1250:           frozenRef.current = true;
+ 1251:           rerunRequestedRef.current = false;
+ 1252:           setLayoutPhase("FROZEN");
+ 1253:         } else {
+ 1254:           rerunRequestedRef.current = true;
+ 1255:           setLayoutPhase("STABILIZING");
+ 1256:         }
+ 1257:       } finally {
+ 1258:         measuringRef.current =
+ 1259:           false;
+ 1260:       }
+ 1261:     }, [priorityMode]);
+ 1262: 
+ 1263:   const scheduleMeasurement =
+ 1264:     useCallback(() => {
+ 1265:       if (
+ 1266:         frozenRef.current ||
+ 1267:         measuringRef.current ||
+ 1268:         scheduledFrameRef.current !==
+ 1269:           null
+ 1270:       ) {
+ 1271:         return;
+ 1272:       }
+ 1273: 
+ 1274:       scheduledFrameRef.current =
+ 1275:         window.requestAnimationFrame(
+ 1276:           () => {
+ 1277:             scheduledFrameRef.current =
+ 1278:               null;
+ 1279: 
+ 1280:             void runMeasurement().finally(() => {
+ 1281:               if (
+ 1282:                 rerunRequestedRef.current &&
+ 1283:                 !frozenRef.current
+ 1284:               ) {
+ 1285:                 rerunRequestedRef.current = false;
+ 1286:                 scheduleMeasurementRef.current();
+ 1287:               }
+ 1288:             });
+ 1289:           },
+ 1290:         );
+ 1291:     }, [runMeasurement]);
+ 1292: 
+ 1293:   useLayoutEffect(() => {
+ 1294:     scheduleMeasurementRef.current = scheduleMeasurement;
+ 1295: 
+ 1296:     return () => {
+ 1297:       scheduleMeasurementRef.current = () => undefined;
+ 1298:     };
+ 1299:   }, [scheduleMeasurement]);
+ 1300: 
+ 1301:   useLayoutEffect(() => {
+ 1302:     runIdRef.current += 1;
+ 1303:     frozenRef.current = false;
+ 1304:     rerunRequestedRef.current = false;
+ 1305:     resizeFingerprintRef.current = "";
+ 1306:     settledAssetSourcesRef.current.clear();
+ 1307:     stabilizationRef.current = {
+ 1308:       fingerprint: "",
+ 1309:       stablePasses: 0,
+ 1310:       attempts: 0,
+ 1311:     };
+ 1312:     resultRef.current = INITIAL_RESULT;
+ 1313:     setResult(INITIAL_RESULT);
+ 1314:     setLayoutPhase("MEASURING");
+ 1315: 
+ 1316:     scheduleMeasurement();
+ 1317: 
+ 1318:     return () => {
+ 1319:       runIdRef.current += 1;
+ 1320: 
+ 1321:       if (scheduledFrameRef.current !== null) {
+ 1322:         window.cancelAnimationFrame(scheduledFrameRef.current);
+ 1323:         scheduledFrameRef.current = null;
+ 1324:       }
+ 1325:     };
+ 1326:   }, [
+ 1327:     semanticInputFingerprint,
+ 1328:     scheduleMeasurement,
+ 1329:   ]);
+ 1330: 
+ 1331:   useEffect(() => {
+ 1332:     const viewport =
+ 1333:       viewportRef.current;
+ 1334: 
+ 1335:     const content =
+ 1336:       contentRef.current;
+ 1337: 
+ 1338:     if (
+ 1339:       !viewport ||
+ 1340:       !content
+ 1341:     ) {
+ 1342:       return;
+ 1343:     }
+ 1344: 
+ 1345:     const handleResize = () => {
+ 1346:       if (frozenRef.current) {
+ 1347:         return;
+ 1348:       }
+ 1349: 
+ 1350:       const viewportRect = viewport.getBoundingClientRect();
+ 1351:       const contentRect = content.getBoundingClientRect();
+ 1352:       const nextResizeFingerprint = [
+ 1353:         roundLayoutMetric(viewportRect.width),
+ 1354:         roundLayoutMetric(viewportRect.height),
+ 1355:         roundLayoutMetric(contentRect.width),
+ 1356:         roundLayoutMetric(contentRect.height),
+ 1357:         roundLayoutMetric(content.scrollHeight),
+ 1358:       ].join(":");
+ 1359: 
+ 1360:       if (resizeFingerprintRef.current === nextResizeFingerprint) {
+ 1361:         return;
+ 1362:       }
+ 1363: 
+ 1364:       resizeFingerprintRef.current = nextResizeFingerprint;
+ 1365:       scheduleMeasurement();
+ 1366:     };
+ 1367: 
+ 1368:     const resizeObserver =
+ 1369:       new ResizeObserver(handleResize);
+ 1370: 
+ 1371:     const mutationObserver =
+ 1372:       new MutationObserver(() => {
+ 1373:         if (frozenRef.current) {
+ 1374:           return;
+ 1375:         }
+ 1376: 
+ 1377:         scheduleMeasurement();
+ 1378:       });
+ 1379: 
+ 1380:     const handleLoadedAsset =
+ 1381:       (event: Event) => {
+ 1382:         if (frozenRef.current) {
+ 1383:           return;
+ 1384:         }
+ 1385: 
+ 1386:         const image =
+ 1387:           event.target instanceof HTMLImageElement
+ 1388:             ? event.target
+ 1389:             : null;
+ 1390:         const source = image?.currentSrc || image?.src || "";
+ 1391: 
+ 1392:         if (
+ 1393:           source &&
+ 1394:           settledAssetSourcesRef.current.has(source)
+ 1395:         ) {
+ 1396:           return;
+ 1397:         }
+ 1398: 
+ 1399:         if (source) {
+ 1400:           settledAssetSourcesRef.current.add(source);
+ 1401:         }
+ 1402: 
+ 1403:         scheduleMeasurement();
+ 1404:       };
+ 1405: 
+ 1406:     resizeObserver.observe(
+ 1407:       viewport,
+ 1408:     );
+ 1409: 
+ 1410:     resizeObserver.observe(
+ 1411:       content,
+ 1412:     );
+ 1413: 
+ 1414:     mutationObserver.observe(
+ 1415:       content,
+ 1416:       {
+ 1417:         childList: true,
+ 1418:         characterData: true,
+ 1419:         subtree: true,
+ 1420:       },
+ 1421:     );
+ 1422: 
+ 1423:     content.addEventListener(
+ 1424:       "load",
+ 1425:       handleLoadedAsset,
+ 1426:       true,
+ 1427:     );
+ 1428: 
+ 1429:     content.addEventListener(
+ 1430:       "error",
+ 1431:       handleLoadedAsset,
+ 1432:       true,
+ 1433:     );
+ 1434: 
+ 1435:     window.addEventListener(
+ 1436:       "resize",
+ 1437:       handleResize,
+ 1438:     );
+ 1439: 
+ 1440:     if (!document.fonts) {
+ 1441:       fontsSettledRef.current = true;
+ 1442:       scheduleMeasurement();
+ 1443:     } else if (fontsSettledRef.current) {
+ 1444:       scheduleMeasurement();
+ 1445:     } else {
+ 1446:       void document.fonts.ready
+ 1447:         .then(() => {
+ 1448:           if (!fontsSettledRef.current) {
+ 1449:             fontsSettledRef.current = true;
+ 1450:             scheduleMeasurement();
+ 1451:           }
+ 1452:         })
+ 1453:         .catch(() => {
+ 1454:           fontsSettledRef.current = true;
+ 1455:           scheduleMeasurement();
+ 1456:         });
+ 1457:     }
+ 1458: 
+ 1459:     return () => {
+ 1460:       runIdRef.current += 1;
+ 1461: 
+ 1462:       resizeObserver.disconnect();
+ 1463:       mutationObserver.disconnect();
+ 1464: 
+ 1465:       content.removeEventListener(
+ 1466:         "load",
+ 1467:         handleLoadedAsset,
+ 1468:         true,
+ 1469:       );
+ 1470: 
+ 1471:       content.removeEventListener(
+ 1472:         "error",
+ 1473:         handleLoadedAsset,
+ 1474:         true,
+ 1475:       );
+ 1476: 
+ 1477:       window.removeEventListener(
+ 1478:         "resize",
+ 1479:         handleResize,
+ 1480:       );
+ 1481: 
+ 1482:       if (
+ 1483:         scheduledFrameRef.current !==
+ 1484:         null
+ 1485:       ) {
+ 1486:         window.cancelAnimationFrame(
+ 1487:           scheduledFrameRef.current,
+ 1488:         );
+ 1489: 
+ 1490:         scheduledFrameRef.current =
+ 1491:           null;
+ 1492:       }
+ 1493:     };
+ 1494:   }, [scheduleMeasurement, semanticInputFingerprint]);
+ 1495: 
+ 1496:   const selectedProfile =
+ 1497:     getReportSmartA4Profile(
+ 1498:       result.mode,
+ 1499:     );
+ 1500: 
+ 1501:   const selectedVariables =
+ 1502:     getReportSmartA4StyleVariables(
+ 1503:       selectedProfile,
+ 1504:     );
+ 1505: 
+ 1506:   const viewportStyle = {
+ 1507:     ...selectedVariables,
+ 1508: 
+ 1509:     height: `${heightMm}mm`,
+ 1510:     minHeight: `${heightMm}mm`,
+ 1511:     maxHeight: `${heightMm}mm`,
+ 1512: 
+ 1513:     overflow:
+ 1514:       result.needsOverflowPage
+ 1515:         ? "visible"
+ 1516:         : "hidden",
+ 1517:   } as CSSProperties;
+ 1518: 
+ 1519:   const developmentDiagnostics =
+ 1520:     process.env.NODE_ENV ===
+ 1521:     "development"
+ 1522:       ? {
+ 1523:           "data-smart-a4-semantic-fingerprint":
+ 1524:             getFingerprintPrefix(semanticInputFingerprint),
+ 1525: 
+ 1526:           "data-smart-a4-mode":
+ 1527:             result.mode,
+ 1528: 
+ 1529:           "data-smart-a4-field-layout":
+ 1530:             result.fieldLayout,
+ 1531: 
+ 1532:           "data-smart-a4-fits":
+ 1533:             String(result.fits),
+ 1534: 
+ 1535:           "data-smart-a4-overflow-px":
+ 1536:             String(
+ 1537:               result.overflowPx,
+ 1538:             ),
+ 1539: 
+ 1540:           "data-smart-a4-needs-overflow-page":
+ 1541:             String(
+ 1542:               result
+ 1543:                 .needsOverflowPage,
+ 1544:             ),
+ 1545: 
+ 1546:           "data-smart-a4-signature-height-px":
+ 1547:             String(
+ 1548:               result
+ 1549:                 .signatureHeightPx,
+ 1550:             ),
+ 1551: 
+ 1552:           "data-smart-a4-signature-reserved-px":
+ 1553:             String(
+ 1554:               result
+ 1555:                 .signatureReservedPx,
+ 1556:             ),
+ 1557: 
+ 1558:           "data-smart-a4-boundary-bottom-px":
+ 1559:             String(result.boundaryBottomPx),
+ 1560: 
+ 1561:           "data-smart-a4-footer-boundary-used":
+ 1562:             String(result.footerBoundaryUsed),
+ 1563: 
+ 1564:           "data-smart-a4-dominant-role":
+ 1565:             result.dominantRole,
+ 1566: 
+ 1567:           "data-smart-a4-severity":
+ 1568:             result.severity,
+ 1569: 
+ 1570:           "data-smart-a4-candidate":
+ 1571:             result.candidateId,
+ 1572: 
+ 1573:           "data-smart-a4-score":
+ 1574:             String(
+ 1575:               result.score,
+ 1576:             ),
+ 1577:         }
+ 1578:       : {};
+ 1579: 
+ 1580:   return (
+ 1581:     <div
+ 1582:       ref={viewportRef}
+ 1583:       className={[
+ 1584:         "report-smart-a4-content relative",
+ 1585:         className,
+ 1586:       ]
+ 1587:         .filter(Boolean)
+ 1588:         .join(" ")}
+ 1589:       style={viewportStyle}
+ 1590:       data-report-density={
+ 1591:         result.mode
+ 1592:       }
+ 1593:       data-report-field-layout={
+ 1594:         result.fieldLayout
+ 1595:       }
+ 1596:       data-report-overflow={
+ 1597:         result.needsOverflowPage
+ 1598:           ? "minimum-overflow"
+ 1599:           : "fit"
+ 1600:       }
+ 1601:       data-smart-a4-overflow-px={
+ 1602:         result.overflowPx
+ 1603:       }
+ 1604:       data-smart-a4-dominant-role={
+ 1605:         result.dominantRole
+ 1606:       }
+ 1607:       data-smart-a4-severity={
+ 1608:         result.severity
+ 1609:       }
+ 1610:       data-smart-a4-candidate={
+ 1611:         result.candidateId
+ 1612:       }
+ 1613:       data-smart-a4-score={
+ 1614:         result.score
+ 1615:       }
+ 1616:       data-smart-a4-prefer-evidence-move={
+ 1617:         String(
+ 1618:           result
+ 1619:             .preferEvidenceMove,
+ 1620:         )
+ 1621:       }
+ 1622:       data-smart-a4-signature-reserved-px={
+ 1623:         result.signatureReservedPx
+ 1624:       }
+ 1625:       data-smart-a4-boundary-bottom-px={result.boundaryBottomPx}
+ 1626:       data-smart-a4-footer-boundary-used={String(result.footerBoundaryUsed)}
+ 1627:       data-report-footer-safe-area-mm={footerSafeAreaMm}
+ 1628:       data-smart-a4-phase={layoutPhase}
+ 1629:       {...developmentDiagnostics}
+ 1630:     >
+ 1631:       <style>
+ 1632:         {SMART_A4_ENGINE_CSS}
+ 1633:       </style>
+ 1634: 
+ 1635:       <div
+ 1636:         ref={contentRef}
+ 1637:         className={[
+ 1638:           "min-h-full",
+ 1639:           contentClassName,
+ 1640:         ]
+ 1641:           .filter(Boolean)
+ 1642:           .join(" ")}
+ 1643:         data-report-smart-content
+ 1644:       >
+ 1645:         {children}
+ 1646:       </div>
+ 1647:     </div>
+ 1648:   );
+ 1649: }
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-measure.ts
+============================================================
+    1: import {
+    2:   REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM,
+    3:   REPORT_SMART_A4_TOLERANCE_PX,
+    4:   type ReportSmartA4PriorityMode,
+    5:   type ReportSmartA4Profile,
+    6: } from "./report-smart-a4-config";
+    7: 
+    8: export type ReportSmartA4BlockRole =
+    9:   | "fields"
+   10:   | "evidence"
+   11:   | "narrative"
+   12:   | "table"
+   13:   | "signature"
+   14:   | "title"
+   15:   | "general";
+   16: 
+   17: export type ReportSmartA4BlockMeasurement = {
+   18:   role: ReportSmartA4BlockRole;
+   19:   kind: string;
+   20:   heightPx: number;
+   21:   topPx: number;
+   22:   bottomPx: number;
+   23:   overflowPx: number;
+   24: };
+   25: 
+   26: export type ReportSmartA4Measurement = {
+   27:   fits: boolean;
+   28: 
+   29:   viewportHeightPx: number;
+   30:   contentHeightPx: number;
+   31: 
+   32:   overflowPx: number;
+   33: 
+   34:   signatureHeightPx: number;
+   35:   signatureReservedPx: number;
+   36: 
+   37:   mainContentBottomPx: number;
+   38:   mainContentBudgetPx: number;
+   39:   mainContentOverflowPx: number;
+   40: 
+   41:   boundaryBottomPx: number;
+   42:   footerBoundaryUsed: boolean;
+   43: 
+   44:   fieldHeightPx: number;
+   45:   evidenceHeightPx: number;
+   46:   narrativeHeightPx: number;
+   47:   tableHeightPx: number;
+   48: 
+   49:   dominantRole: ReportSmartA4BlockRole;
+   50: 
+   51:   blocks: ReportSmartA4BlockMeasurement[];
+   52: };
+   53: 
+   54: function round(value: number) {
+   55:   return Math.round(value * 10) / 10;
+   56: }
+   57: 
+   58: function getBlockRole(
+   59:   element: HTMLElement,
+   60: ): ReportSmartA4BlockRole {
+   61:   if (
+   62:     element.dataset.reportPriorityBlock === "signature" ||
+   63:     element.hasAttribute("data-report-design-signature-block")
+   64:   ) {
+   65:     return "signature";
+   66:   }
+   67: 
+   68:   const kind = String(
+   69:     element.dataset.reportSmartBlock || "",
+   70:   ).trim();
+   71: 
+   72:   switch (kind) {
+   73:     case "dynamic-fields":
+   74:     case "field-list":
+   75:     case "case-meta":
+   76:     case "student-summary":
+   77:     case "service-summary":
+   78:       return "fields";
+   79: 
+   80:     case "evidence-gallery":
+   81:       return "evidence";
+   82: 
+   83:     case "multi-paragraph":
+   84:     case "closing-note":
+   85:       return "narrative";
+   86: 
+   87:     case "report-one-table":
+   88:     case "structured-table":
+   89:       return "table";
+   90: 
+   91:     case "hero-title":
+   92:     case "meta-strip":
+   93:       return "title";
+   94: 
+   95:     default:
+   96:       return "general";
+   97:   }
+   98: }
+   99: 
+  100: function sumRoleHeight(
+  101:   blocks: ReportSmartA4BlockMeasurement[],
+  102:   role: ReportSmartA4BlockRole,
+  103: ) {
+  104:   return blocks
+  105:     .filter((block) => block.role === role)
+  106:     .reduce((sum, block) => sum + block.heightPx, 0);
+  107: }
+  108: 
+  109: export function measureReportSmartA4Layout(
+  110:   viewport: HTMLElement,
+  111:   content: HTMLElement,
+  112:   priorityMode: ReportSmartA4PriorityMode,
+  113:   profile: ReportSmartA4Profile,
+  114: ): ReportSmartA4Measurement {
+  115:   const viewportRect = viewport.getBoundingClientRect();
+  116:   const contentRect = content.getBoundingClientRect();
+  117: 
+  118:   const localScale =
+  119:     viewport.clientHeight > 0
+  120:       ? viewportRect.height / viewport.clientHeight
+  121:       : 1;
+  122: 
+  123:   const safeScale =
+  124:     Number.isFinite(localScale) && localScale > 0
+  125:       ? localScale
+  126:       : 1;
+  127: 
+  128:   const viewportHeightPx = viewport.clientHeight;
+  129:   const footerSafeAreaMm = Math.max(
+  130:     0,
+  131:     Number(viewport.dataset.reportFooterSafeAreaMm || "0") || 0,
+  132:   );
+  133:   const footerSafeAreaPx = footerSafeAreaMm * (96 / 25.4);
+  134:   const footerBoundaryGapPx =
+  135:     REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM * (96 / 25.4);
+  136:   const physicalPage = viewport.closest<HTMLElement>(".pdf-report-page");
+  137:   const pageFooter =
+  138:     physicalPage?.querySelector<HTMLElement>("[data-report-page-footer]") ||
+  139:     null;
+  140:   const fallbackBoundaryBottom =
+  141:     viewportRect.bottom - footerSafeAreaPx * safeScale;
+  142:   const realFooterBoundaryBottom = pageFooter
+  143:     ? pageFooter.getBoundingClientRect().top - footerBoundaryGapPx * safeScale
+  144:     : Number.POSITIVE_INFINITY;
+  145:   const boundaryBottom = Math.min(
+  146:     fallbackBoundaryBottom,
+  147:     realFooterBoundaryBottom,
+  148:   );
+  149:   const footerBoundaryUsed = Boolean(pageFooter);
+  150:   const usableViewportHeightPx = Math.max(
+  151:     0,
+  152:     Math.min(
+  153:       viewportHeightPx,
+  154:       (boundaryBottom - viewportRect.top) / safeScale,
+  155:     ),
+  156:   );
+  157: 
+  158:   const elements = Array.from(
+  159:     content.querySelectorAll<HTMLElement>(
+  160:       '[data-report-smart-block], [data-report-priority-block="signature"], [data-report-design-signature-block]',
+  161:     ),
+  162:   );
+  163: 
+  164:   const blocks = elements.map(
+  165:     (element): ReportSmartA4BlockMeasurement => {
+  166:       const rect = element.getBoundingClientRect();
+  167: 
+  168:       const topPx =
+  169:         (rect.top - contentRect.top) / safeScale;
+  170: 
+  171:       const bottomPx =
+  172:         (rect.bottom - contentRect.top) / safeScale;
+  173: 
+  174:       return {
+  175:         role: getBlockRole(element),
+  176:         kind: String(
+  177:           element.dataset.reportSmartBlock || "",
+  178:         ),
+  179:         heightPx: round(rect.height / safeScale),
+  180:         topPx: round(topPx),
+  181:         bottomPx: round(bottomPx),
+  182:         overflowPx: round(
+  183:           Math.max(
+  184:             0,
+  185:             (rect.bottom - boundaryBottom) / safeScale,
+  186:           ),
+  187:         ),
+  188:       };
+  189:     },
+  190:   );
+  191:   const crossesHardBoundary = elements.some(
+  192:     (element) => element.getBoundingClientRect().bottom > boundaryBottom,
+  193:   );
+  194: 
+  195:   const signatureBlocks = blocks.filter(
+  196:     (block) => block.role === "signature",
+  197:   );
+  198: 
+  199:   const nonSignatureBlocks = blocks.filter(
+  200:     (block) => block.role !== "signature",
+  201:   );
+  202: 
+  203:   const signatureHeightPx = signatureBlocks.reduce(
+  204:     (sum, block) => sum + block.heightPx,
+  205:     0,
+  206:   );
+  207: 
+  208:   const signatureReservedPx =
+  209:     priorityMode === "signature" && signatureBlocks.length
+  210:       ? signatureHeightPx + profile.signatureSafetyGapPx
+  211:       : 0;
+  212: 
+  213:   const mainContentBudgetPx = Math.max(
+  214:     0,
+  215:     usableViewportHeightPx - signatureReservedPx,
+  216:   );
+  217: 
+  218:   const mainContentBottomPx = nonSignatureBlocks.reduce(
+  219:     (largest, block) =>
+  220:       Math.max(largest, block.bottomPx),
+  221:     0,
+  222:   );
+  223: 
+  224:   const mainContentOverflowPx =
+  225:     priorityMode === "signature"
+  226:       ? Math.max(
+  227:           0,
+  228:           mainContentBottomPx - mainContentBudgetPx,
+  229:         )
+  230:       : 0;
+  231: 
+  232:   const blockOverflowPx = blocks.reduce(
+  233:     (largest, block) =>
+  234:       Math.max(largest, block.overflowPx),
+  235:     0,
+  236:   );
+  237: 
+  238:   const scrollOverflowPx = Math.max(
+  239:     0,
+  240:     content.scrollHeight - viewportHeightPx,
+  241:   );
+  242: 
+  243:   const boundingOverflowPx = Math.max(
+  244:     0,
+  245:     (contentRect.bottom - viewportRect.bottom) / safeScale,
+  246:   );
+  247: 
+  248:   const overflowPx = Math.max(
+  249:     0,
+  250:     blockOverflowPx,
+  251:     scrollOverflowPx,
+  252:     boundingOverflowPx,
+  253:     mainContentOverflowPx,
+  254:   );
+  255: 
+  256:   const roleHeights = {
+  257:     fields: sumRoleHeight(blocks, "fields"),
+  258:     evidence: sumRoleHeight(blocks, "evidence"),
+  259:     narrative: sumRoleHeight(blocks, "narrative"),
+  260:     table: sumRoleHeight(blocks, "table"),
+  261:     signature: signatureHeightPx,
+  262:     title: sumRoleHeight(blocks, "title"),
+  263:     general: sumRoleHeight(blocks, "general"),
+  264:   };
+  265: 
+  266:   const dominantRole = (
+  267:     Object.entries(roleHeights) as Array<
+  268:       [ReportSmartA4BlockRole, number]
+  269:     >
+  270:   ).reduce(
+  271:     (best, current) =>
+  272:       current[1] > best[1] ? current : best,
+  273:     ["general", 0] as [
+  274:       ReportSmartA4BlockRole,
+  275:       number,
+  276:     ],
+  277:   )[0];
+  278: 
+  279:   return {
+  280:     fits:
+  281:       !crossesHardBoundary &&
+  282:       blockOverflowPx <= 0 &&
+  283:       overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
+  284: 
+  285:     viewportHeightPx: round(usableViewportHeightPx),
+  286:     contentHeightPx: round(content.scrollHeight),
+  287: 
+  288:     overflowPx: round(overflowPx),
+  289: 
+  290:     signatureHeightPx: round(signatureHeightPx),
+  291:     signatureReservedPx: round(signatureReservedPx),
+  292: 
+  293:     mainContentBottomPx: round(mainContentBottomPx),
+  294:     mainContentBudgetPx: round(mainContentBudgetPx),
+  295:     mainContentOverflowPx: round(mainContentOverflowPx),
+  296: 
+  297:     boundaryBottomPx: round(
+  298:       (boundaryBottom - viewportRect.top) / safeScale,
+  299:     ),
+  300:     footerBoundaryUsed,
+  301: 
+  302:     fieldHeightPx: round(roleHeights.fields),
+  303:     evidenceHeightPx: round(roleHeights.evidence),
+  304:     narrativeHeightPx: round(roleHeights.narrative),
+  305:     tableHeightPx: round(roleHeights.table),
+  306: 
+  307:     dominantRole,
+  308: 
+  309:     blocks,
+  310:   };
+  311: }
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-planner.ts
+============================================================
+    1: import type {
+    2:   ReportSmartA4Mode,
+    3:   ReportSmartA4Profile,
+    4: } from "./report-smart-a4-config";
+    5: 
+    6: import type {
+    7:   ReportSmartA4BlockRole,
+    8:   ReportSmartA4Measurement,
+    9: } from "./report-smart-a4-measure";
+   10: 
+   11: export type ReportSmartA4FieldLayout =
+   12:   | "comfortable"
+   13:   | "packed"
+   14:   | "inline";
+   15: 
+   16: export type ReportSmartA4OverflowSeverity =
+   17:   | "none"
+   18:   | "tiny"
+   19:   | "small"
+   20:   | "medium"
+   21:   | "large";
+   22: 
+   23: export type ReportSmartA4Candidate = {
+   24:   id: string;
+   25:   mode: ReportSmartA4Mode;
+   26:   fieldLayout: ReportSmartA4FieldLayout;
+   27: };
+   28: 
+   29: export type ReportSmartA4EvaluatedCandidate = {
+   30:   candidate: ReportSmartA4Candidate;
+   31:   profile: ReportSmartA4Profile;
+   32:   measurement: ReportSmartA4Measurement;
+   33:   score: number;
+   34: };
+   35: 
+   36: export type ReportSmartA4Plan = {
+   37:   candidateId: string;
+   38: 
+   39:   mode: ReportSmartA4Mode;
+   40:   fieldLayout: ReportSmartA4FieldLayout;
+   41: 
+   42:   fits: boolean;
+   43:   score: number;
+   44: 
+   45:   severity: ReportSmartA4OverflowSeverity;
+   46:   dominantRole: ReportSmartA4BlockRole;
+   47: 
+   48:   overflowPx: number;
+   49: 
+   50:   preferEvidenceMove: boolean;
+   51: };
+   52: 
+   53: /*
+   54:  * ترتيب التجربة مقصود:
+   55:  *
+   56:  * 1. نحافظ على typography الطبيعية.
+   57:  * 2. نعيد توزيع الحقول أولًا.
+   58:  * 3. نقلل فراغات الحقول أكثر.
+   59:  * 4. بعدها فقط نبدأ بتقليل كثافة النص العامة.
+   60:  *
+   61:  * لا نحتاج 12 خطة لأن هذا سيجعل ResizeObserver مكلفًا جدًا.
+   62:  */
+   63: export const REPORT_SMART_A4_CANDIDATES:
+   64:   readonly ReportSmartA4Candidate[] = [
+   65:   {
+   66:     id: "normal-comfortable",
+   67:     mode: "normal",
+   68:     fieldLayout: "comfortable",
+   69:   },
+   70:   {
+   71:     id: "normal-packed",
+   72:     mode: "normal",
+   73:     fieldLayout: "packed",
+   74:   },
+   75:   {
+   76:     id: "compact-packed",
+   77:     mode: "compact",
+   78:     fieldLayout: "packed",
+   79:   },
+   80:   {
+   81:     id: "normal-inline",
+   82:     mode: "normal",
+   83:     fieldLayout: "inline",
+   84:   },
+   85:   {
+   86:     id: "compact-inline",
+   87:     mode: "compact",
+   88:     fieldLayout: "inline",
+   89:   },
+   90:   {
+   91:     id: "dense-packed",
+   92:     mode: "dense",
+   93:     fieldLayout: "packed",
+   94:   },
+   95:   {
+   96:     id: "dense-inline",
+   97:     mode: "dense",
+   98:     fieldLayout: "inline",
+   99:   },
+  100:   {
+  101:     id: "minimum-safe-packed",
+  102:     mode: "minimum-safe",
+  103:     fieldLayout: "packed",
+  104:   },
+  105:   {
+  106:     id: "minimum-safe-inline",
+  107:     mode: "minimum-safe",
+  108:     fieldLayout: "inline",
+  109:   },
+  110: ] as const;
+  111: 
+  112: export function getReportSmartA4OverflowSeverity(
+  113:   overflowPx: number,
+  114: ): ReportSmartA4OverflowSeverity {
+  115:   if (overflowPx <= 2) return "none";
+  116:   if (overflowPx <= 12) return "tiny";
+  117:   if (overflowPx <= 48) return "small";
+  118:   if (overflowPx <= 120) return "medium";
+  119:   return "large";
+  120: }
+  121: 
+  122: function getModeReadabilityScore(
+  123:   mode: ReportSmartA4Mode,
+  124: ) {
+  125:   switch (mode) {
+  126:     case "normal":
+  127:       return 100;
+  128: 
+  129:     case "compact":
+  130:       return 88;
+  131: 
+  132:     case "dense":
+  133:       return 69;
+  134: 
+  135:     case "minimum-safe":
+  136:       return 50;
+  137: 
+  138:     default:
+  139:       return 50;
+  140:   }
+  141: }
+  142: 
+  143: function getFieldLayoutScore(
+  144:   layout: ReportSmartA4FieldLayout,
+  145: ) {
+  146:   switch (layout) {
+  147:     /*
+  148:      * Preferred production layout:
+  149:      * compact, formal and easy to scan.
+  150:      */
+  151:     case "packed":
+  152:       return 8;
+  153: 
+  154:     /*
+  155:      * Comfortable remains valid for very short reports.
+  156:      */
+  157:     case "comfortable":
+  158:       return 10;
+  159: 
+  160:     /*
+  161:      * Inline is a last-resort space saver.
+  162:      * Do not select it merely because it saves a few pixels.
+  163:      */
+  164:     case "inline":
+  165:       return -8;
+  166: 
+  167:     default:
+  168:       return -20;
+  169:   }
+  170: }
+  171: 
+  172: export function scoreReportSmartA4Candidate(
+  173:   candidate: ReportSmartA4Candidate,
+  174:   measurement: ReportSmartA4Measurement,
+  175: ) {
+  176:   const fitScore =
+  177:     measurement.fits ? 1000 : 0;
+  178: 
+  179:   const readability =
+  180:     getModeReadabilityScore(
+  181:       candidate.mode,
+  182:     );
+  183: 
+  184:   const fieldLayoutScore =
+  185:     getFieldLayoutScore(
+  186:       candidate.fieldLayout,
+  187:     );
+  188: 
+  189:   /*
+  190:    * إذا الخطة لا تدخل الصفحة نعاقب مقدار overflow.
+  191:    * هذا يسمح باختيار أقرب خطة آمنة في حالة عدم نجاح أي خطة.
+  192:    */
+  193:   const overflowPenalty =
+  194:     Math.min(
+  195:       700,
+  196:       measurement.overflowPx * 2.2,
+  197:     );
+  198: 
+  199:   /*
+  200:    * إذا الحقول تستهلك جزءًا كبيرًا من الصفحة،
+  201:    * packed/inline يصبحان أكثر منطقية.
+  202:    */
+  203:   const fieldRatio =
+  204:     measurement.fieldHeightPx /
+  205:     Math.max(
+  206:       1,
+  207:       measurement.viewportHeightPx,
+  208:     );
+  209: 
+  210:   const fieldEfficiencyBonus =
+  211:     fieldRatio >= 0.28 &&
+  212:     candidate.fieldLayout !==
+  213:       "comfortable"
+  214:       ? 5
+  215:       : 0;
+  216: 
+  217:   return (
+  218:     fitScore +
+  219:     readability +
+  220:     fieldLayoutScore +
+  221:     fieldEfficiencyBonus -
+  222:     overflowPenalty
+  223:   );
+  224: }
+  225: 
+  226: export function chooseReportSmartA4Plan(
+  227:   evaluated:
+  228:     ReportSmartA4EvaluatedCandidate[],
+  229: ): ReportSmartA4Plan {
+  230:   if (!evaluated.length) {
+  231:     return {
+  232:       candidateId:
+  233:         "minimum-safe-inline",
+  234: 
+  235:       mode: "minimum-safe",
+  236:       fieldLayout: "inline",
+  237: 
+  238:       fits: false,
+  239:       score: 0,
+  240: 
+  241:       severity: "large",
+  242:       dominantRole: "general",
+  243: 
+  244:       overflowPx: 0,
+  245: 
+  246:       preferEvidenceMove: false,
+  247:     };
+  248:   }
+  249: 
+  250:   const fitting =
+  251:     evaluated.filter(
+  252:       (item) =>
+  253:         item.measurement.fits,
+  254:     );
+  255: 
+  256:   const pool =
+  257:     fitting.length
+  258:       ? fitting
+  259:       : evaluated;
+  260: 
+  261:   const selected = [...pool].sort(
+  262:     (a, b) => b.score - a.score,
+  263:   )[0];
+  264: 
+  265:   const measurement =
+  266:     selected.measurement;
+  267: 
+  268:   const severity =
+  269:     getReportSmartA4OverflowSeverity(
+  270:       measurement.overflowPx,
+  271:     );
+  272: 
+  273:   /*
+  274:    * إذا التقرير لا يدخل إلا بعد dense/minimum-safe
+  275:    * بينما يوجد شاهد في الصفحة، نفضل نقل الشاهد أولًا.
+  276:    *
+  277:    * هذا هو التغيير المهم:
+  278:    * جودة النص والتوقيع أعلى أولوية من إبقاء كل الصور
+  279:    * في الصفحة الرئيسية.
+  280:    */
+  281:   const aggressiveDensity =
+  282:     selected.candidate.mode ===
+  283:       "dense" ||
+  284:     selected.candidate.mode ===
+  285:       "minimum-safe";
+  286: 
+  287:   const hasEvidence =
+  288:     measurement.evidenceHeightPx > 0;
+  289: 
+  290:   const preferEvidenceMove =
+  291:     hasEvidence &&
+  292:     (
+  293:       !measurement.fits ||
+  294:       aggressiveDensity
+  295:     );
+  296: 
+  297:   return {
+  298:     candidateId:
+  299:       selected.candidate.id,
+  300: 
+  301:     mode:
+  302:       selected.candidate.mode,
+  303: 
+  304:     fieldLayout:
+  305:       selected.candidate
+  306:         .fieldLayout,
+  307: 
+  308:     fits:
+  309:       measurement.fits,
+  310: 
+  311:     score:
+  312:       Math.round(
+  313:         selected.score * 10,
+  314:       ) / 10,
+  315: 
+  316:     severity,
+  317: 
+  318:     dominantRole:
+  319:       measurement.dominantRole,
+  320: 
+  321:     overflowPx:
+  322:       measurement.overflowPx,
+  323: 
+  324:     preferEvidenceMove,
+  325:   };
+  326: }
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-a4-config.ts
+============================================================
+    1: import type { CSSProperties } from "react";
+    2: 
+    3: export const REPORT_SMART_A4_MODES = [
+    4:   "normal",
+    5:   "compact",
+    6:   "dense",
+    7:   "minimum-safe",
+    8: ] as const;
+    9: 
+   10: export type ReportSmartA4Mode = (typeof REPORT_SMART_A4_MODES)[number];
+   11: export type ReportSmartA4PriorityMode = "signature" | "general";
+   12: 
+   13: /** Hard bottom buffer used by every Smart A4 content region. */
+   14: export const REPORT_SMART_A4_DEFAULT_FOOTER_SAFE_AREA_MM = 5;
+   15: export const REPORT_SMART_A4_FOOTER_BOUNDARY_GAP_MM = 2;
+   16: 
+   17: export type ReportSmartA4Profile = {
+   18:   mode: ReportSmartA4Mode;
+   19: 
+   20:   contentScale: number;
+   21: 
+   22:   blockGapRem: number;
+   23:   sectionGapRem: number;
+   24:   paragraphGapRem: number;
+   25: 
+   26:   contentLineHeight: number;
+   27:   narrativeLineHeight: number;
+   28:   narrativeDensityScale: number;
+   29:   contentFontScale: number;
+   30: 
+   31:   headingGapRem: number;
+   32:   headingLineHeight: number;
+   33:   headingScale: number;
+   34: 
+   35:   fieldGapRem: number;
+   36:   fieldPaddingXRem: number;
+   37:   fieldPaddingYRem: number;
+   38:   fieldLabelScale: number;
+   39:   fieldValueScale: number;
+   40:   fieldValueTopGapRem: number;
+   41:   fieldValueItemGapRem: number;
+   42:   valueGridGapRem: number;
+   43:   fieldSpacingScale: number;
+   44: 
+   45:   bulletGapRem: number;
+   46:   bulletLineHeight: number;
+   47:   bulletFontScale: number;
+   48: 
+   49:   tablePaddingXRem: number;
+   50:   tablePaddingYRem: number;
+   51:   tableHeaderPaddingYRem: number;
+   52:   tableFontScale: number;
+   53:   tableLineHeight: number;
+   54:   tableSpacingScale: number;
+   55: 
+   56:   signatureTopGapRem: number;
+   57:   signatureImageHeightMm: number;
+   58:   signatureNameScale: number;
+   59:   signatureLabelScale: number;
+   60:   signatureSafetyGapPx: number;
+   61: 
+   62:   evidenceGapRem: number;
+   63:   evidenceSpacingScale: number;
+   64:   evidenceCaptionScale: number;
+   65:   evidenceMaxHeightMm: number;
+   66: 
+   67:   captionFontScale: number;
+   68: };
+   69: 
+   70: export const REPORT_SMART_A4_PROFILES: readonly ReportSmartA4Profile[] = [
+   71:   {
+   72:     mode: "normal",
+   73: 
+   74:     contentScale: 1,
+   75: 
+   76:     blockGapRem: 1,
+   77:     sectionGapRem: 0.75,
+   78:     paragraphGapRem: 0.75,
+   79: 
+   80:     contentLineHeight: 2,
+   81:     narrativeLineHeight: 2,
+   82:     narrativeDensityScale: 1,
+   83:     contentFontScale: 1,
+   84: 
+   85:     headingGapRem: 0.75,
+   86:     headingLineHeight: 1.65,
+   87:     headingScale: 1,
+   88: 
+   89:     fieldGapRem: 0.5,
+   90:     fieldPaddingXRem: 0.75,
+   91:     fieldPaddingYRem: 0.5,
+   92:     fieldLabelScale: 1,
+   93:     fieldValueScale: 1,
+   94:     fieldValueTopGapRem: 0.25,
+   95:     fieldValueItemGapRem: 0.25,
+   96:     valueGridGapRem: 0.5,
+   97:     fieldSpacingScale: 1,
+   98: 
+   99:     bulletGapRem: 0.5,
+  100:     bulletLineHeight: 1.75,
+  101:     bulletFontScale: 1,
+  102: 
+  103:     tablePaddingXRem: 0.75,
+  104:     tablePaddingYRem: 0.75,
+  105:     tableHeaderPaddingYRem: 0.75,
+  106:     tableFontScale: 1,
+  107:     tableLineHeight: 1.5,
+  108:     tableSpacingScale: 1,
+  109: 
+  110:     signatureTopGapRem: 1.5,
+  111:     signatureImageHeightMm: 10,
+  112:     signatureNameScale: 1,
+  113:     signatureLabelScale: 1,
+  114:     signatureSafetyGapPx: 14,
+  115: 
+  116:     evidenceGapRem: 1,
+  117:     evidenceSpacingScale: 1,
+  118:     evidenceCaptionScale: 1,
+  119:     evidenceMaxHeightMm: 78,
+  120: 
+  121:     captionFontScale: 1,
+  122:   },
+  123: 
+  124:   {
+  125:     mode: "compact",
+  126: 
+  127:     contentScale: 1,
+  128: 
+  129:     blockGapRem: 0.72,
+  130:     sectionGapRem: 0.54,
+  131:     paragraphGapRem: 0.46,
+  132: 
+  133:     contentLineHeight: 1.82,
+  134:     narrativeLineHeight: 1.82,
+  135:     narrativeDensityScale: 0.91,
+  136:     contentFontScale: 0.985,
+  137: 
+  138:     headingGapRem: 0.5,
+  139:     headingLineHeight: 1.54,
+  140:     headingScale: 0.98,
+  141: 
+  142:     fieldGapRem: 0.36,
+  143:     fieldPaddingXRem: 0.58,
+  144:     fieldPaddingYRem: 0.34,
+  145:     fieldLabelScale: 0.98,
+  146:     fieldValueScale: 0.99,
+  147:     fieldValueTopGapRem: 0.16,
+  148:     fieldValueItemGapRem: 0.16,
+  149:     valueGridGapRem: 0.34,
+  150:     fieldSpacingScale: 0.76,
+  151: 
+  152:     bulletGapRem: 0.32,
+  153:     bulletLineHeight: 1.6,
+  154:     bulletFontScale: 0.98,
+  155: 
+  156:     tablePaddingXRem: 0.6,
+  157:     tablePaddingYRem: 0.48,
+  158:     tableHeaderPaddingYRem: 0.46,
+  159:     tableFontScale: 0.98,
+  160:     tableLineHeight: 1.4,
+  161:     tableSpacingScale: 0.72,
+  162: 
+  163:     signatureTopGapRem: 0.9,
+  164:     signatureImageHeightMm: 10,
+  165:     signatureNameScale: 0.98,
+  166:     signatureLabelScale: 0.98,
+  167:     signatureSafetyGapPx: 10,
+  168: 
+  169:     evidenceGapRem: 0.7,
+  170:     evidenceSpacingScale: 0.8,
+  171:     evidenceCaptionScale: 0.98,
+  172:     evidenceMaxHeightMm: 62,
+  173: 
+  174:     captionFontScale: 0.98,
+  175:   },
+  176: 
+  177:   {
+  178:     mode: "dense",
+  179: 
+  180:     contentScale: 1,
+  181: 
+  182:     blockGapRem: 0.5,
+  183:     sectionGapRem: 0.36,
+  184:     paragraphGapRem: 0.28,
+  185: 
+  186:     contentLineHeight: 1.62,
+  187:     narrativeLineHeight: 1.62,
+  188:     narrativeDensityScale: 0.82,
+  189:     contentFontScale: 0.95,
+  190: 
+  191:     headingGapRem: 0.34,
+  192:     headingLineHeight: 1.43,
+  193:     headingScale: 0.95,
+  194: 
+  195:     fieldGapRem: 0.26,
+  196:     fieldPaddingXRem: 0.44,
+  197:     fieldPaddingYRem: 0.24,
+  198:     fieldLabelScale: 0.96,
+  199:     fieldValueScale: 0.97,
+  200:     fieldValueTopGapRem: 0.1,
+  201:     fieldValueItemGapRem: 0.1,
+  202:     valueGridGapRem: 0.24,
+  203:     fieldSpacingScale: 0.56,
+  204: 
+  205:     bulletGapRem: 0.18,
+  206:     bulletLineHeight: 1.48,
+  207:     bulletFontScale: 0.94,
+  208: 
+  209:     tablePaddingXRem: 0.44,
+  210:     tablePaddingYRem: 0.3,
+  211:     tableHeaderPaddingYRem: 0.28,
+  212:     tableFontScale: 0.94,
+  213:     tableLineHeight: 1.32,
+  214:     tableSpacingScale: 0.52,
+  215: 
+  216:     signatureTopGapRem: 0.52,
+  217:     signatureImageHeightMm: 9.5,
+  218:     signatureNameScale: 0.96,
+  219:     signatureLabelScale: 0.95,
+  220:     signatureSafetyGapPx: 8,
+  221: 
+  222:     evidenceGapRem: 0.48,
+  223:     evidenceSpacingScale: 0.62,
+  224:     evidenceCaptionScale: 0.94,
+  225:     evidenceMaxHeightMm: 48,
+  226: 
+  227:     captionFontScale: 0.94,
+  228:   },
+  229: 
+  230:   {
+  231:     mode: "minimum-safe",
+  232: 
+  233:     contentScale: 1,
+  234: 
+  235:     blockGapRem: 0.34,
+  236:     sectionGapRem: 0.24,
+  237:     paragraphGapRem: 0.16,
+  238: 
+  239:     contentLineHeight: 1.48,
+  240:     narrativeLineHeight: 1.48,
+  241:     narrativeDensityScale: 0.76,
+  242:     contentFontScale: 0.91,
+  243: 
+  244:     headingGapRem: 0.22,
+  245:     headingLineHeight: 1.35,
+  246:     headingScale: 0.91,
+  247: 
+  248:     fieldGapRem: 0.18,
+  249:     fieldPaddingXRem: 0.34,
+  250:     fieldPaddingYRem: 0.14,
+  251:     fieldLabelScale: 0.94,
+  252:     fieldValueScale: 0.95,
+  253:     fieldValueTopGapRem: 0.06,
+  254:     fieldValueItemGapRem: 0.06,
+  255:     valueGridGapRem: 0.16,
+  256:     fieldSpacingScale: 0.48,
+  257: 
+  258:     bulletGapRem: 0.1,
+  259:     bulletLineHeight: 1.4,
+  260:     bulletFontScale: 0.9,
+  261: 
+  262:     tablePaddingXRem: 0.34,
+  263:     tablePaddingYRem: 0.16,
+  264:     tableHeaderPaddingYRem: 0.14,
+  265:     tableFontScale: 0.92,
+  266:     tableLineHeight: 1.25,
+  267:     tableSpacingScale: 0.38,
+  268: 
+  269:     signatureTopGapRem: 0.24,
+  270:     signatureImageHeightMm: 9,
+  271:     signatureNameScale: 0.92,
+  272:     signatureLabelScale: 0.9,
+  273:     signatureSafetyGapPx: 6,
+  274: 
+  275:     evidenceGapRem: 0.32,
+  276:     evidenceSpacingScale: 0.48,
+  277:     evidenceCaptionScale: 0.9,
+  278:     evidenceMaxHeightMm: 36,
+  279: 
+  280:     captionFontScale: 0.9,
+  281:   },
+  282: ] as const;
+  283: 
+  284: export const REPORT_SMART_A4_TOLERANCE_PX = 2;
+  285: 
+  286: type SmartA4Style =
+  287:   CSSProperties &
+  288:   Record<`--report-${string}`, string | number>;
+  289: 
+  290: export function getReportSmartA4Profile(mode: ReportSmartA4Mode) {
+  291:   return (
+  292:     REPORT_SMART_A4_PROFILES.find(
+  293:       (profile) => profile.mode === mode,
+  294:     ) || REPORT_SMART_A4_PROFILES[0]
+  295:   );
+  296: }
+  297: 
+  298: export function getReportSmartA4StyleVariables(
+  299:   profile: ReportSmartA4Profile,
+  300: ): SmartA4Style {
+  301:   return {
+  302:     "--report-smart-scale": profile.contentScale,
+  303: 
+  304:     "--report-block-gap": `${profile.blockGapRem}rem`,
+  305:     "--report-section-gap": `${profile.sectionGapRem}rem`,
+  306:     "--report-paragraph-gap": `${profile.paragraphGapRem}rem`,
+  307: 
+  308:     "--report-content-line-height": profile.contentLineHeight,
+  309:     "--report-narrative-line-height": profile.narrativeLineHeight,
+  310:     "--report-narrative-density-scale": profile.narrativeDensityScale,
+  311:     "--report-content-font-scale": profile.contentFontScale,
+  312: 
+  313:     "--report-heading-gap": `${profile.headingGapRem}rem`,
+  314:     "--report-heading-line-height": profile.headingLineHeight,
+  315:     "--report-heading-scale": profile.headingScale,
+  316: 
+  317:     "--report-field-gap": `${profile.fieldGapRem}rem`,
+  318:     "--report-field-padding-x": `${profile.fieldPaddingXRem}rem`,
+  319:     "--report-field-padding-y": `${profile.fieldPaddingYRem}rem`,
+  320:     "--report-field-label-scale": profile.fieldLabelScale,
+  321:     "--report-field-value-scale": profile.fieldValueScale,
+  322:     "--report-field-value-top-gap": `${profile.fieldValueTopGapRem}rem`,
+  323:     "--report-field-value-item-gap": `${profile.fieldValueItemGapRem}rem`,
+  324:     "--report-value-grid-gap": `${profile.valueGridGapRem}rem`,
+  325:     "--report-field-spacing-scale": profile.fieldSpacingScale,
+  326: 
+  327:     "--report-bullet-gap": `${profile.bulletGapRem}rem`,
+  328:     "--report-bullet-line-height": profile.bulletLineHeight,
+  329:     "--report-bullet-font-scale": profile.bulletFontScale,
+  330: 
+  331:     "--report-table-padding-x": `${profile.tablePaddingXRem}rem`,
+  332:     "--report-table-padding-y": `${profile.tablePaddingYRem}rem`,
+  333:     "--report-table-header-padding-y": `${profile.tableHeaderPaddingYRem}rem`,
+  334:     "--report-table-font-scale": profile.tableFontScale,
+  335:     "--report-table-line-height": profile.tableLineHeight,
+  336:     "--report-table-spacing-scale": profile.tableSpacingScale,
+  337: 
+  338:     "--report-signature-top-gap": `${profile.signatureTopGapRem}rem`,
+  339:     "--report-signature-image-height": `${profile.signatureImageHeightMm}mm`,
+  340:     "--report-signature-name-scale": profile.signatureNameScale,
+  341:     "--report-signature-label-scale": profile.signatureLabelScale,
+  342:     "--report-signature-safety-gap": `${profile.signatureSafetyGapPx}px`,
+  343: 
+  344:     "--report-evidence-gap": `${profile.evidenceGapRem}rem`,
+  345:     "--report-evidence-spacing-scale": profile.evidenceSpacingScale,
+  346:     "--report-evidence-caption-scale": profile.evidenceCaptionScale,
+  347:     "--report-evidence-max-height": `${profile.evidenceMaxHeightMm}mm`,
+  348: 
+  349:     "--report-caption-font-scale": profile.captionFontScale,
+  350:   };
+  351: }
+
+============================================================
+FILE: components\report-engine\design-renderers\smart-layout\report-smart-lifecycle.tsx
+============================================================
+    1: "use client";
+    2: 
+    3: import {
+    4:   createContext,
+    5:   type ReactNode,
+    6:   useContext,
+    7: } from "react";
+    8: 
+    9: const TRANSIENT_KEYS = new Set([
+   10:   "candidateVersion",
+   11:   "layoutResultFingerprint",
+   12:   "measuredOverflow",
+   13:   "measurementVersion",
+   14:   "planningPhase",
+   15:   "smartA4Candidate",
+   16:   "smartA4Mode",
+   17: ]);
+   18: 
+   19: function canonicalize(
+   20:   value: unknown,
+   21:   seen: WeakSet<object>,
+   22: ): unknown {
+   23:   if (
+   24:     value === null ||
+   25:     typeof value === "string" ||
+   26:     typeof value === "number" ||
+   27:     typeof value === "boolean"
+   28:   ) {
+   29:     return value;
+   30:   }
+   31: 
+   32:   if (typeof value === "bigint") {
+   33:     return String(value);
+   34:   }
+   35: 
+   36:   if (
+   37:     typeof value === "undefined" ||
+   38:     typeof value === "function" ||
+   39:     typeof value === "symbol"
+   40:   ) {
+   41:     return null;
+   42:   }
+   43: 
+   44:   if (value instanceof Date) {
+   45:     return value.toISOString();
+   46:   }
+   47: 
+   48:   if (Array.isArray(value)) {
+   49:     return value.map((item) => canonicalize(item, seen));
+   50:   }
+   51: 
+   52:   if (typeof value === "object") {
+   53:     if (seen.has(value)) {
+   54:       return "[circular]";
+   55:     }
+   56: 
+   57:     seen.add(value);
+   58: 
+   59:     const normalized = Object.fromEntries(
+   60:       Object.entries(value as Record<string, unknown>)
+   61:         .filter(
+   62:           ([key]) =>
+   63:             !TRANSIENT_KEYS.has(key) &&
+   64:             !key.startsWith("data-smart-a4-") &&
+   65:             !key.startsWith("data-report-density"),
+   66:         )
+   67:         .sort(([left], [right]) =>
+   68:           left < right ? -1 : left > right ? 1 : 0,
+   69:         )
+   70:         .map(([key, item]) => [key, canonicalize(item, seen)]),
+   71:     );
+   72: 
+   73:     seen.delete(value);
+   74:     return normalized;
+   75:   }
+   76: 
+   77:   return String(value);
+   78: }
+   79: 
+   80: export function createSemanticInputFingerprint(value: unknown) {
+   81:   return JSON.stringify(canonicalize(value, new WeakSet()));
+   82: }
+   83: 
+   84: export function getFingerprintPrefix(fingerprint: string) {
+   85:   let hash = 2166136261;
+   86: 
+   87:   for (let index = 0; index < fingerprint.length; index += 1) {
+   88:     hash ^= fingerprint.charCodeAt(index);
+   89:     hash = Math.imul(hash, 16777619);
+   90:   }
+   91: 
+   92:   return (hash >>> 0).toString(16).padStart(8, "0");
+   93: }
+   94: 
+   95: export function roundLayoutMetric(value: number, precision = 1) {
+   96:   if (!Number.isFinite(value)) {
+   97:     return 0;
+   98:   }
+   99: 
+  100:   const factor = 10 ** precision;
+  101:   return Math.round(value * factor) / factor;
+  102: }
+  103: 
+  104: const ReportSmartSemanticFingerprintContext =
+  105:   createContext("standalone-report-layout");
+  106: 
+  107: export function ReportSmartSemanticFingerprintProvider({
+  108:   fingerprint,
+  109:   children,
+  110: }: {
+  111:   fingerprint: string;
+  112:   children: ReactNode;
+  113: }) {
+  114:   return (
+  115:     <ReportSmartSemanticFingerprintContext.Provider value={fingerprint}>
+  116:       {children}
+  117:     </ReportSmartSemanticFingerprintContext.Provider>
+  118:   );
+  119: }
+  120: 
+  121: export function useReportSmartSemanticFingerprint() {
+  122:   return useContext(ReportSmartSemanticFingerprintContext);
+  123: }
+
+============================================================
+FILE: components\report-engine\design-renderers\shared\report-evidence.tsx
+============================================================
+    1: import type { ReportDesignImplementation, ReportEvidenceItem } from "../designs/report-design-component-types";
+    2: import type { PreviewCaseData } from "./report-types";
+    3: import { createEvidencePlaceholders, getEvidenceFigureStyle, getEvidenceGridClass, getEvidenceGridStyle, getEvidenceImageClass, getEvidenceImageHeightClass, getEvidenceImageStyle, getEvidencePerPage, getReportDesignEvidenceImageUrl, getValidPreviewEvidences } from "./report-evidence-data";
+    4: import { BlockTitle } from "./report-primitives";
+    5: import { getBlockSetting } from "./report-text";
+    6: import { getBlockShellClass } from "./report-block-presentation";
+    7: 
+    8: export function EvidenceBlock({
+    9:   block,
+   10:   previewCase,
+   11:   implementation,
+   12:   textAlign,
+   13: }: {
+   14:   block: any;
+   15:   previewCase: PreviewCaseData | null;
+   16:   implementation: ReportDesignImplementation;
+   17:   textAlign: string;
+   18: }) {
+   19:   const hasSelectedCase = Boolean(previewCase?.caseId);
+   20:   const realEvidences = getValidPreviewEvidences(previewCase);
+   21:   const perPage = getEvidencePerPage(block);
+   22:   const startIndex = block.evidenceStartIndex || 0;
+   23:   const accent = implementation.palette;
+   24: 
+   25:   if (!realEvidences.length && hasSelectedCase) return null;
+   26:   if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") return null;
+   27: 
+   28:   const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+   29:   const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+   30:   const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
+   31:   const isPlaceholderMode = !realEvidences.length;
+   32:   const shellClassName = getBlockShellClass(implementation, block.variant, textAlign);
+   33:   const EvidenceRenderer = implementation.EvidenceRenderer;
+   34: 
+   35:   if (EvidenceRenderer) {
+   36:     return (
+   37:       <EvidenceRenderer
+   38:         block={block}
+   39:         items={visibleEvidences as ReportEvidenceItem[]}
+   40:         startIndex={startIndex}
+   41:         placeholderMode={isPlaceholderMode}
+   42:         textAlign={textAlign}
+   43:         shellClassName={shellClassName}
+   44:         gridClassName={getEvidenceGridClass(block)}
+   45:         gridStyle={getEvidenceGridStyle(block)}
+   46:         getImageUrl={getReportDesignEvidenceImageUrl}
+   47:         getFigureStyle={() => getEvidenceFigureStyle(block)}
+   48:         getImageStyle={() => getEvidenceImageStyle(block)}
+   49:         getImageClassName={() => getEvidenceImageClass(block)}
+   50:         getImageHeightClassName={() => getEvidenceImageHeightClass(block)}
+   51:         renderTitle={() => block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+   52:       />
+   53:     );
+   54:   }
+   55: 
+   56:   if (block.evidenceLayout === "ATTACHMENT_LIST") {
+   57:     return (
+   58:       <section className={shellClassName}>
+   59:         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+   60:         <div
+   61:           style={{
+   62:             display: "grid",
+   63:             gap: "var(--report-evidence-gap, 0.5rem)",
+   64:           }}
+   65:         >
+   66:           {visibleEvidences.map((evidence, index) => (
+   67:             <div
+   68:               key={evidence.id || String(index)}
+   69:               className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700"
+   70:               style={{
+   71:                 gap: "var(--report-field-gap, 0.75rem)",
+   72:                 paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+   73:                 paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+   74:                 fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
+   75:               }}
+   76:             >
+   77:               <span>{evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}</span>
+   78:               <span className={["rounded-full px-3 py-1 text-[11px] font-black", accent.badgeClass].join(" ")}>
+   79:                 {isPlaceholderMode ? "معاينة" : "شاهد"}
+   80:               </span>
+   81:             </div>
+   82:           ))}
+   83:         </div>
+   84:       </section>
+   85:     );
+   86:   }
+   87: 
+   88:   return (
+   89:     <section className={shellClassName}>
+   90:       {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+   91: 
+   92:       <div
+   93:         className={getEvidenceGridClass(block)}
+   94:         style={(() => {
+   95:           const gridStyle = getEvidenceGridStyle(block);
+   96:           const baseGap = String(gridStyle.gap || "0.75rem");
+   97: 
+   98:           return {
+   99:             ...gridStyle,
+  100:             gap: `calc(${baseGap} * var(--report-evidence-spacing-scale, 1))`,
+  101:           };
+  102:         })()}
+  103:       >
+  104:         {visibleEvidences.map((evidence, index) => {
+  105:           const imageUrl = getReportDesignEvidenceImageUrl(evidence);
+  106: 
+  107:           return (
+  108:             <figure
+  109:               key={evidence.id || imageUrl || String(index)}
+  110:               style={getEvidenceFigureStyle(block)}
+  111:               className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+  112:             >
+  113:               {imageUrl && !isPlaceholderMode ? (
+  114:                 <img
+  115:                   src={imageUrl}
+  116:                   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  117:                   style={getEvidenceImageStyle(block)}
+  118:                   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  119:                 />
+  120:               ) : (
+  121:                 <div
+  122:                   data-report-design-real-evidence={isPlaceholderMode ? undefined : "true"}
+  123:                   className={`report-design-evidence-fallback ${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}
+  124:                 >
+  125:                   <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
+  126:                   <p
+  127:                     className="text-xs font-black text-slate-500"
+  128:                     style={{
+  129:                       marginTop: "var(--report-paragraph-gap, 0.75rem)",
+  130:                       fontSize: "calc(0.75rem * var(--report-caption-font-scale, 1))",
+  131:                     }}
+  132:                   >
+  133:                     {isPlaceholderMode
+  134:                       ? "مساحة شاهد للمعاينة"
+  135:                       : evidence.title || evidence.caption || "مرفق محفوظ"}
+  136:                   </p>
+  137:                 </div>
+  138:               )}
+  139: 
+  140:               {block.evidenceShowCaptions !== false ? (
+  141:                 <figcaption
+  142:                   className="max-h-12 overflow-hidden border-t border-slate-100 text-xs font-bold text-slate-600"
+  143:                   style={{
+  144:                     paddingInline: "var(--report-table-padding-x, 0.75rem)",
+  145:                     paddingBlock: "var(--report-table-padding-y, 0.5rem)",
+  146:                     fontSize: "calc(0.75rem * var(--report-evidence-caption-scale, 1))",
+  147:                     lineHeight: "var(--report-table-line-height, 1.5)",
+  148:                   }}
+  149:                 >
+  150:                   {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
+  151:                 </figcaption>
+  152:               ) : null}
+  153:             </figure>
+  154:           );
+  155:         })}
+  156:       </div>
+  157: 
+  158:       {isPlaceholderMode ? (
+  159:         <p
+  160:           className={["rounded-2xl text-xs font-bold", accent.noticeClass].join(" ")}
+  161:           style={{
+  162:             marginTop: "var(--report-paragraph-gap, 0.75rem)",
+  163:             paddingInline: "var(--report-table-padding-x, 0.75rem)",
+  164:             paddingBlock: "var(--report-table-padding-y, 0.5rem)",
+  165:             fontSize: "calc(0.75rem * var(--report-caption-font-scale, 1))",
+  166:             lineHeight: "var(--report-table-line-height, 1.5)",
+  167:           }}
+  168:         >
+  169:           هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+  170:         </p>
+  171:       ) : null}
+  172:     </section>
+  173:   );
+  174: }
+  175: 
+
+============================================================
+FILE: components\report-engine\design-renderers\shared\report-auto-evidence.tsx
+============================================================
+    1: import type { ReportDesignId } from "../report-design-types";
+    2: import type { ReportPhysicalPageModel } from "../smart-layout/report-smart-physical-types";
+    3: import { A4DesignPage } from "./report-blocks";
+    4: import {
+    5:   getEvidencePerPage,
+    6:   getEvidenceStartIndex,
+    7:   getValidPreviewEvidences,
+    8: } from "./report-evidence-data";
+    9: import type { PreviewCaseData } from "./report-types";
+   10: 
+   11: export type AutoEvidencePhysicalPage = {
+   12:   page: ReportPhysicalPageModel;
+   13:   pageLabel: string;
+   14: };
+   15: 
+   16: export function buildAutoEvidencePhysicalPages({
+   17:   activePage,
+   18:   previewCase,
+   19:   primaryEvidenceCount,
+   20: }: {
+   21:   activePage?: ReportPhysicalPageModel | null;
+   22:   previewCase: PreviewCaseData | null;
+   23:   primaryEvidenceCount?: number;
+   24: }): AutoEvidencePhysicalPage[] {
+   25:   const evidenceBlock = activePage?.blocks?.find(
+   26:     (block) => block?.kind === "evidence-gallery",
+   27:   );
+   28: 
+   29:   if (
+   30:     !activePage ||
+   31:     !evidenceBlock ||
+   32:     evidenceBlock.evidenceAutoCreatePages === false
+   33:   ) {
+   34:     return [];
+   35:   }
+   36: 
+   37:   const evidences = getValidPreviewEvidences(previewCase);
+   38: 
+   39:   if (!evidences.length) {
+   40:     return [];
+   41:   }
+   42: 
+   43:   const perPage = getEvidencePerPage(evidenceBlock);
+   44:   const initialStartIndex = getEvidenceStartIndex(evidenceBlock);
+   45:   const availableEvidenceCount = Math.max(
+   46:     0,
+   47:     evidences.length - initialStartIndex,
+   48:   );
+   49:   const legacyPrimaryCount = Math.min(availableEvidenceCount, perPage);
+   50:   const consumedByPrimary = Number.isFinite(Number(primaryEvidenceCount))
+   51:     ? Math.min(
+   52:         availableEvidenceCount,
+   53:         Math.max(0, Math.floor(Number(primaryEvidenceCount))),
+   54:       )
+   55:     : legacyPrimaryCount;
+   56:   const remainingCount = Math.max(
+   57:     0,
+   58:     availableEvidenceCount - consumedByPrimary,
+   59:   );
+   60: 
+   61:   if (remainingCount <= 0) {
+   62:     return [];
+   63:   }
+   64: 
+   65:   const extraPagesCount = Math.ceil(remainingCount / perPage);
+   66: 
+   67:   return Array.from({ length: extraPagesCount }).map((_, index) => {
+   68:     const pageNumber = index + 2;
+   69:     const startIndex =
+   70:       initialStartIndex + consumedByPrimary + index * perPage;
+   71:     const pageEvidenceLimit = Math.min(
+   72:       perPage,
+   73:       evidences.length - startIndex,
+   74:     );
+   75:     const page: ReportPhysicalPageModel = {
+   76:       ...activePage,
+   77:       id: `${activePage.id}-evidence-${startIndex}`,
+   78:       title: `${activePage.title} - صفحة ${pageNumber}`,
+   79:       kind: "evidence",
+   80:       corePhysicalPageId: activePage.corePhysicalPageId || activePage.id,
+   81:       physicalPageRole: "evidence",
+   82:       sourcePageIds: [...activePage.sourcePageIds],
+   83:       blocks: [
+   84:         {
+   85:           ...evidenceBlock,
+   86:           id: `${evidenceBlock.id}-auto-${startIndex}`,
+   87:           title:
+   88:             index === 0 && consumedByPrimary === 0
+   89:               ? evidenceBlock.title
+   90:               : `${evidenceBlock.title} - صفحة ${pageNumber}`,
+   91:           evidenceStartIndex: startIndex,
+   92:           evidenceLimit: pageEvidenceLimit,
+   93:           evidenceAutoCreatePages: false,
+   94:         },
+   95:       ],
+   96:     };
+   97: 
+   98:     return {
+   99:       page,
+  100:       pageLabel: `صفحة شواهد ${pageNumber}`,
+  101:     };
+  102:   });
+  103: }
+  104: 
+  105: export function AutoEvidencePages({
+  106:   designId,
+  107:   activePage,
+  108:   context,
+  109:   previewCase,
+  110:   primaryEvidenceCount,
+  111:   preparedPages,
+  112:   activePhysicalPageId,
+  113:   renderMode = "stack",
+  114: }: {
+  115:   designId: ReportDesignId;
+  116:   activePage?: ReportPhysicalPageModel;
+  117:   context: Record<string, string>;
+  118:   previewCase: PreviewCaseData | null;
+  119:   primaryEvidenceCount?: number;
+  120:   preparedPages?: AutoEvidencePhysicalPage[];
+  121:   activePhysicalPageId?: string;
+  122:   renderMode?: "single" | "stack";
+  123: }) {
+  124:   const pages = preparedPages || buildAutoEvidencePhysicalPages({
+  125:     activePage,
+  126:     previewCase,
+  127:     primaryEvidenceCount,
+  128:   });
+  129:   const visiblePages = renderMode === "stack"
+  130:     ? pages
+  131:     : pages.filter(({ page }) => page.id === activePhysicalPageId);
+  132: 
+  133:   if (!visiblePages.length) {
+  134:     return null;
+  135:   }
+  136: 
+  137:   return (
+  138:     <div
+  139:       className={
+  140:         renderMode === "stack"
+  141:           ? "mt-6 space-y-6 print:mt-0 print:space-y-0"
+  142:           : ""
+  143:       }
+  144:       data-report-auto-evidence-pages
+  145:     >
+  146:       {visiblePages.map(({ page, pageLabel }) => (
+  147:         <A4DesignPage
+  148:           key={page.id}
+  149:           designId={designId}
+  150:           page={page}
+  151:           context={context}
+  152:           previewCase={previewCase}
+  153:           pageLabel={pageLabel}
+  154:         />
+  155:       ))}
+  156:     </div>
+  157:   );
+  158: }
+
+============================================================
+FILE: components\report-engine\design-renderers\shared\report-signatures.ts
+============================================================
+    1: export function getReportDesignSignatureStyleText() {
+    2:   return `
+    3:     .pdf-report-page,
+    4:     .pdf-report-page * {
+    5:       color-scheme: light !important;
+    6:     }
+    7: 
+    8:     .report-design-signature-grid-block,
+    9:     .report-design-signature-grid-block * {
+   10:       color-scheme: light !important;
+   11:     }
+   12: 
+   13:     .report-design-signature-image-frame {
+   14:       background: #ffffff !important;
+   15:     }
+   16: 
+   17:     .report-design-signature-image {
+   18:       background: #ffffff !important;
+   19:       object-fit: contain !important;
+   20:       mix-blend-mode: normal !important;
+   21:       filter: none !important;
+   22:     }
+   23: 
+   24:     .report-design-signature-name {
+   25:       font-size: 12px !important;
+   26:       line-height: 1.25 !important;
+   27:     }
+   28: 
+   29:     .report-design-signature-role {
+   30:       font-size: 10px !important;
+   31:       line-height: 1.25 !important;
+   32:     }
+   33: 
+   34:     .report-design-evidence-fallback[data-report-design-real-evidence="true"] p {
+   35:       font-size: 0 !important;
+   36:       line-height: 0 !important;
+   37:       color: transparent !important;
+   38:     }
+   39: 
+   40:     .report-design-evidence-fallback[data-report-design-real-evidence="true"] p::after {
+   41:       content: "شاهد بدون صورة";
+   42:       font-size: 12px;
+   43:       line-height: 1.5;
+   44:       color: #64748b;
+   45:     }
+   46:   `;
+   47: }
+   48: 
+
+============================================================
+FILE: components\report-engine\design-renderers\shared\report-blocks.tsx
+============================================================
+    1: import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
+    2: import { isStudentIdentityField } from "@/lib/workflow-values/structured-value-metadata";
+    3: import { getReportDesignImplementation } from "../report-design-implementations";
+    4: import type { ReportDesignId } from "../report-design-types";
+    5: import { collectFinalValues, getFinalFieldListItems } from "./final-report";
+    6: import { getValidPreviewEvidences } from "./report-evidence-data";
+    7: import { getDesignHeaderAlign, getDesignHeaderText, getDesignLogoSrc } from "./report-logo";
+    8: import type { PreviewCaseData } from "./report-types";
+    9: import { cleanWorkflowDynamicText, getWorkflowDynamicFieldCards, translateWorkflowDynamicValueItems } from "./report-workflow-fields";
+   10: import { getBlockShellClass, getPlacementClass } from "./report-block-presentation";
+   11: import { EvidenceBlock } from "./report-evidence";
+   12: import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
+   13: import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
+   14: import { DesignValueGrid } from "./report-values";
+   15: 
+   16: export function A4DesignPage({
+   17:   designId,
+   18:   page,
+   19:   context,
+   20:   previewCase,
+   21:   pageLabel,
+   22: }: {
+   23:   designId: ReportDesignId;
+   24:   page?: any;
+   25:   context: Record<string, string>;
+   26:   previewCase: PreviewCaseData | null;
+   27:   pageLabel: string;
+   28: }) {
+   29:   const implementation = getReportDesignImplementation(designId);
+   30:   const PageComponent = implementation.Page;
+   31: 
+   32:   return (
+   33:     <PageComponent
+   34:       page={page}
+   35:       context={context}
+   36:       previewCase={previewCase}
+   37:       pageLabel={pageLabel}
+   38:       PageBlocks={PageBlocks}
+   39:       MetaCard={MetaCard}
+   40:       SideMeta={SideMeta}
+   41:       MiniStat={MiniStat}
+   42:       DesignFooter={DesignFooter}
+   43:       getDesignLogoSrc={getDesignLogoSrc}
+   44:       getDesignHeaderAlign={getDesignHeaderAlign}
+   45:       getDesignHeaderText={getDesignHeaderText}
+   46:       collectFinalValues={collectFinalValues}
+   47:       getValidPreviewEvidences={getValidPreviewEvidences}
+   48:     />
+   49:   );
+   50: }
+   51: 
+   52: export function PageBlocks({
+   53:   page,
+   54:   context,
+   55:   previewCase,
+   56:   designId,
+   57:   className,
+   58: }: {
+   59:   page?: any;
+   60:   context: Record<string, string>;
+   61:   previewCase: PreviewCaseData | null;
+   62:   designId: ReportDesignId;
+   63:   className: string;
+   64: }) {
+   65:   const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
+   66:   const flowBlocks = blocks.filter(
+   67:     (block: any) =>
+   68:       isSignatureGridDesignBlock(block) || (block.placement || "flow") === "flow",
+   69:   );
+   70:   const fixedBlocks = blocks.filter(
+   71:     (block: any) =>
+   72:       !isSignatureGridDesignBlock(block) && (block.placement || "flow") !== "flow",
+   73:   );
+   74: 
+   75:   return (
+   76:     <main className={`relative flex flex-col ${className}`}>
+   77:       <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
+   78:         {flowBlocks.flatMap((block: any) => [
+   79:           isSignatureGridDesignBlock(block) ? (
+   80:             <div
+   81:               key={`${block.id}-bottom-reservation`}
+   82:               aria-hidden="true"
+   83:               className="min-h-0 flex-1"
+   84:               data-report-signature-bottom-reservation
+   85:             />
+   86:           ) : null,
+   87:           <div
+   88:             key={block.id}
+   89:             data-report-smart-block={block.kind || "content"}
+   90:             data-report-smart-placement={block.placement || "flow"}
+   91:             data-report-smart-movable={
+   92:               block.kind === "evidence-gallery" ? "evidence" : "content"
+   93:             }
+   94:             data-report-priority-block={
+   95:               isSignatureGridDesignBlock(block) ? "signature" : undefined
+   96:             }
+   97:             className={
+   98:               isSignatureGridDesignBlock(block)
+   99:                 ? "break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
+  100:                 : ""
+  101:             }
+  102:             style={
+  103:               isSignatureGridDesignBlock(block)
+  104:                 ? { breakInside: "avoid", pageBreakInside: "avoid" }
+  105:                 : undefined
+  106:             }
+  107:           >
+  108:             <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+  109:           </div>,
+  110:         ])}
+  111:       </div>
+  112: 
+  113:       <div className="pointer-events-none absolute inset-0">
+  114:         {fixedBlocks.map((block: any) => (
+  115:           <div
+  116:             key={block.id}
+  117:             data-report-smart-block={block.kind || "fixed-content"}
+  118:             data-report-smart-placement={block.placement || "flow"}
+  119:             data-report-smart-fixed="true"
+  120:             className={getPlacementClass(block.placement || "flow")}
+  121:           >
+  122:             <div className="pointer-events-auto">
+  123:               <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+  124:             </div>
+  125:           </div>
+  126:         ))}
+  127:       </div>
+  128:     </main>
+  129:   );
+  130: }
+  131: 
+  132: 
+  133: 
+  134: function isDynamicFieldsDesignBlock(block: any) {
+  135:   const kind = String(block?.kind || "").trim();
+  136:   const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  137:   const title = String(block?.title || "").trim();
+  138: 
+  139:   return (
+  140:     kind === "dynamic-fields" ||
+  141:     kind === "field-list" ||
+  142:     kind === "case-meta" ||
+  143:     kind === "student-summary" ||
+  144:     kind === "service-summary" ||
+  145:     smartKind === "dynamic-fields" ||
+  146:     smartKind === "field-list" ||
+  147:     title.includes("حقول") ||
+  148:     title.includes("بيانات الحالة") ||
+  149:     Array.isArray(block?.dynamicFields)
+  150:   );
+  151: }
+  152: function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  153:   const configuredItems = Array.isArray(block?.dynamicFields)
+  154:     ? block.dynamicFields
+  155:     : [];
+  156: 
+  157:   if (configuredItems.length) {
+  158:     return configuredItems
+  159:       .map((item: any, index: number) => {
+  160:         const id =
+  161:           cleanWorkflowDynamicText(item.id) ||
+  162:           cleanWorkflowDynamicText(item.key) ||
+  163:           `dynamic-field-${index + 1}`;
+  164:         const valueItems = Array.isArray(item.valueItems)
+  165:           ? translateWorkflowDynamicValueItems(item.valueItems)
+  166:           : translateWorkflowDynamicValueItems(item.value);
+  167: 
+  168:         return {
+  169:           id,
+  170:           key:
+  171:             cleanWorkflowDynamicText(item.key) ||
+  172:             id,
+  173:           label:
+  174:             item.label !== undefined
+  175:               ? cleanWorkflowDynamicText(item.label)
+  176:               : `حقل ${index + 1}`,
+  177:           value:
+  178:             item.value !== undefined
+  179:               ? cleanWorkflowDynamicText(item.value)
+  180:               : "",
+  181:           valueItems,
+  182:           visible: item.visible !== false,
+  183:         };
+  184:       })
+  185:       .filter((item: any) => item.visible && item.label)
+  186:       .filter(
+  187:         (item: any) =>
+  188:           !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+  189:       );
+  190:   }
+  191: 
+  192:   return getWorkflowDynamicFieldCards(previewCase)
+  193:     .map((item: any, index: number) => {
+  194:       const id =
+  195:         cleanWorkflowDynamicText(item.key) ||
+  196:         cleanWorkflowDynamicText(item.label) ||
+  197:         `workflow-field-${index + 1}`;
+  198: 
+  199:       return {
+  200:         id,
+  201:         key: id,
+  202:         label: cleanWorkflowDynamicText(item.label),
+  203:         value: cleanWorkflowDynamicText(item.value),
+  204:         valueItems: Array.isArray(item.valueItems)
+  205:           ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+  206:           : [],
+  207:         visible: true,
+  208:       };
+  209:     })
+  210:     .filter((item: any) => item.visible && item.label && item.value)
+  211:     .filter(
+  212:       (item: any) =>
+  213:         !previewCase?.hasStudentDataTable || !isStudentIdentityField(item),
+  214:     );
+  215: }
+  216: function isSignatureGridDesignBlock(block: any) {
+  217:   const kind = String(block?.kind || "").trim();
+  218:   const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  219:   const title = String(block?.title || "").trim();
+  220: 
+  221:   return (
+  222:     kind === "signature-grid" ||
+  223:     kind === "signatures" ||
+  224:     kind === "approval-signatures" ||
+  225:     smartKind === "signature-grid" ||
+  226:     smartKind === "signatures" ||
+  227:     title.includes("توقيع") ||
+  228:     title.includes("اعتماد") ||
+  229:     Array.isArray(block?.signatures)
+  230:   );
+  231: }
+  232: 
+  233: function getDesignSignatureCards(block: any) {
+  234:   const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+  235: 
+  236:   return signatures
+  237:     .map((signature: any, index: number) => ({
+  238:       key: String(signature?.key || `signature-${index + 1}`),
+  239:       label: String(signature?.label || "التوقيع"),
+  240:       signerName: String(signature?.signerName || ""),
+  241:       signerTitle: String(signature?.signerTitle || ""),
+  242:       imageUrl: String(signature?.imageUrl || ""),
+  243:       required: Boolean(signature?.required),
+  244:     }))
+  245:     .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+  246: }
+  247: function DesignBlock({
+  248:   block,
+  249:   context,
+  250:   previewCase,
+  251:   designId,
+  252: }: {
+  253:   block: any;
+  254:   context: Record<string, string>;
+  255:   previewCase: PreviewCaseData | null;
+  256:   designId: ReportDesignId;
+  257: }) {
+  258:   if (block.hideWhenMissing && block.boundFieldKey) {
+  259:     const value = String(context[`field.${block.boundFieldKey}`] || "").trim();
+  260:     if (!value) return null;
+  261:   }
+  262: 
+  263:   const rendered = renderText(block.content || "", context);
+  264:   const textAlign = block.align === "center" ? "text-center" : "text-right";
+  265:   const implementation = getReportDesignImplementation(designId);
+  266:   const accent = implementation.palette;
+  267:   const BlockRenderer = implementation.BlockRenderer;
+  268: 
+  269:   if (BlockRenderer) {
+  270:     return (
+  271:       <BlockRenderer
+  272:         block={block}
+  273:         renderedContent={rendered}
+  274:         textAlign={textAlign}
+  275:         context={context}
+  276:         splitLines={splitLines}
+  277:         splitParagraphs={splitParagraphs}
+  278:       />
+  279:     );
+  280:   }
+  281: 
+  282:   if (block.kind === "hero-title") {
+  283:     return (
+  284:       <section className={getBlockShellClass(implementation, "hero", "text-center")}>
+  285:         <p
+  286:           className={["text-sm font-black", accent.subtleTextClass].join(" ")}
+  287:           style={{
+  288:             fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
+  289:             lineHeight: "var(--report-content-line-height, 1.75)",
+  290:           }}
+  291:         >
+  292:           {context["service.name"]}
+  293:         </p>
+  294:         <h1
+  295:           className="mx-auto max-w-[145mm] font-black text-slate-950"
+  296:           style={{
+  297:             marginTop: "var(--report-heading-gap, 0.75rem)",
+  298:             fontSize: `calc(1.875rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "titleFontSize"))})`,
+  299:             lineHeight: "var(--report-heading-line-height, 1.65)",
+  300:           }}
+  301:         >
+  302:           {rendered}
+  303:         </h1>
+  304:       </section>
+  305:     );
+  306:   }
+  307: 
+  308:   if (block.kind === "meta-strip") {
+  309:     return (
+  310:       <section className={getBlockShellClass(implementation, "soft", textAlign)}>
+  311:         <div
+  312:           className="grid md:grid-cols-2"
+  313:           style={{
+  314:             gap: "var(--report-value-grid-gap, 0.5rem)",
+  315:           }}
+  316:         >
+  317:           {splitLines(rendered).map((line) => (
+  318:             <div
+  319:               key={line}
+  320:               className="rounded-2xl border border-slate-100 bg-white text-sm font-bold text-slate-700"
+  321:               style={{
+  322:                 paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+  323:                 paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+  324:               }}
+  325:             >
+  326:               {line}
+  327:             </div>
+  328:           ))}
+  329:         </div>
+  330:       </section>
+  331:     );
+  332:   }
+  333: 
+  334:   if (block.kind === "bullet-list") {
+  335:     const customBulletList = implementation.renderBulletList?.({
+  336:       block,
+  337:       renderedContent: rendered,
+  338:       textAlign,
+  339:       context,
+  340:       splitLines,
+  341:       splitParagraphs,
+  342:     });
+  343: 
+  344:     if (customBulletList !== undefined) return customBulletList;
+  345: 
+  346:     const contentFontSizeClass = getReportFontSizeClass(
+  347:       getBlockSetting(block, "contentFontSize"),
+  348:       "text-sm",
+  349:     );
+  350: 
+  351:     return (
+  352:       <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+  353:         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  354:         <ul
+  355:           style={{
+  356:             display: "grid",
+  357:             gap: "var(--report-bullet-gap, 0.5rem)",
+  358:           }}
+  359:         >
+  360:           {splitLines(rendered).map((line) => (
+  361:             <li
+  362:               key={line}
+  363:               className={["flex text-slate-700", contentFontSizeClass].join(" ")}
+  364:               style={{
+  365:                 gap: "var(--report-field-gap, 0.5rem)",
+  366:                 lineHeight: "var(--report-bullet-line-height, 1.75)",
+  367:                 fontSize: "calc(0.875rem * var(--report-bullet-font-scale, 1))",
+  368:               }}
+  369:             >
+  370:               <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+  371:               <span>{line}</span>
+  372:             </li>
+  373:           ))}
+  374:         </ul>
+  375:       </section>
+  376:     );
+  377:   }
+  378:   if (block.kind === "multi-paragraph") {
+  379:     const customNarrative = implementation.renderNarrative?.({
+  380:       block,
+  381:       renderedContent: rendered,
+  382:       textAlign,
+  383:       context,
+  384:       splitLines,
+  385:       splitParagraphs,
+  386:     });
+  387: 
+  388:     if (customNarrative !== undefined) return customNarrative;
+  389: 
+  390:     return (
+  391:       <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+  392:         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  393:         <div
+  394:           style={{
+  395:             display: "grid",
+  396:             gap: "var(--report-paragraph-gap, 0.75rem)",
+  397:           }}
+  398:         >
+  399:           {splitParagraphs(rendered).map((paragraph) => (
+  400:             <p
+  401:               key={paragraph}
+  402:               className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+  403:               style={{
+  404:                 margin: 0,
+  405:                 lineHeight: "var(--report-narrative-line-height, 2)",
+  406:                 fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+  407:               }}
+  408:             >
+  409:               {paragraph}
+  410:             </p>
+  411:           ))}
+  412:         </div>
+  413:       </section>
+  414:     );
+  415:   }
+  416:   if (block.kind === "report-one-table" || block.kind === "structured-table") {
+  417:     const tableBlock = block.kind === "structured-table"
+  418:       ? normalizeStructuredTableBlockPresentation(block)
+  419:       : block;
+  420:     const columns = tableBlock.kind === "structured-table"
+  421:       ? (Array.isArray(tableBlock.columns) ? tableBlock.columns : [])
+  422:       : Array.isArray(tableBlock.columns) && tableBlock.columns.length
+  423:         ? tableBlock.columns
+  424:         : ["المجال", "الإجراء", "ملاحظات"];
+  425: 
+  426:     const rows = tableBlock.kind === "structured-table"
+  427:       ? (Array.isArray(tableBlock.rows) ? tableBlock.rows : [])
+  428:       : Array.isArray(tableBlock.rows) && tableBlock.rows.length
+  429:         ? tableBlock.rows
+  430:         : [["", "", ""]];
+  431: 
+  432:     const tableSettings = tableBlock.tableSettings || {};
+  433:     const compact = Boolean(tableSettings.compact);
+  434:     const rounded = tableSettings.rounded !== false;
+  435:     const highlightHeader = tableSettings.highlightHeader !== false;
+  436:     const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
+  437:     const stripedRows = Boolean(tableSettings.stripedRows);
+  438:     const colorTheme = tableSettings.colorTheme || "light-gray";
+  439:     const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
+  440: 
+  441:     const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
+  442:       "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+  443:       "soft-blue": { border: "border-sky-200", headerBg: "bg-sky-50", firstColBg: "bg-sky-50", stripedBg: "bg-sky-50/40", headerText: "text-sky-900", cellText: "text-slate-700", firstColText: "text-sky-900" },
+  444:       "green": { border: "border-emerald-200", headerBg: "bg-emerald-50", firstColBg: "bg-emerald-50", stripedBg: "bg-emerald-50/40", headerText: "text-emerald-900", cellText: "text-slate-700", firstColText: "text-emerald-900" },
+  445:       "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+  446:     };
+  447:     const tc = themeColors[colorTheme] || themeColors["light-gray"];
+  448:     return (
+  449:       <section
+  450:         dir="rtl"
+  451:         data-report-structured-table={tableBlock.kind === "structured-table" ? tableBlock.sourceTableId || "true" : undefined}
+  452:         className={
+  453:           tableBlock.kind === "structured-table"
+  454:             ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
+  455:             : getBlockShellClass(implementation, tableBlock.variant, textAlign)
+  456:         }
+  457:         style={{ breakInside: "avoid" }}
+  458:       >
+  459:         {tableBlock.showTitle ? <BlockTitle title={tableBlock.title} fontSize={getBlockSetting(tableBlock, "titleFontSize")} /> : null}
+  460: 
+  461:         <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
+  462:           <table className="w-full table-fixed border-collapse text-xs">
+  463:             <thead
+  464:               className={highlightHeader ? tc.headerBg : "bg-white"}
+  465:               style={{ display: tableSettings.repeatHeader === false ? undefined : "table-header-group" }}
+  466:             >
+  467:               <tr>
+  468:                 {columns.map((column: string, columnIndex: number) => (
+  469:                   <th
+  470:                     key={`${column}-${columnIndex}`}
+  471:                     className={[
+  472:                       `border ${tc.border} text-center font-black ${tc.headerText}`,
+  473:                     ].join(" ")}
+  474:                     style={{
+  475:                       ...(Number(columnWidths[columnIndex]) > 0
+  476:                         ? { width: `${Number(columnWidths[columnIndex])}%` }
+  477:                         : {}),
+  478:                       paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+  479:                       paddingBlock: `calc(var(--report-table-header-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+  480:                       fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+  481:                       lineHeight: "calc(1.25rem * var(--report-narrative-density-scale, 1))",
+  482:                     }}
+  483:                   >
+  484:                     {column}
+  485:                   </th>
+  486:                 ))}
+  487:               </tr>
+  488:             </thead>
+  489: 
+  490:             <tbody>
+  491:               {rows.map((row: string[], rowIndex: number) => (
+  492:                 <tr
+  493:                   key={`row-${rowIndex}`}
+  494:                   className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
+  495:                   style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+  496:                 >
+  497:                   {columns.map((_: string, columnIndex: number) => (
+  498:                     <td
+  499:                       key={`cell-${rowIndex}-${columnIndex}`}
+  500:                       className={[
+  501:                         `break-words whitespace-pre-wrap border ${tc.border} text-center font-bold ${tc.cellText}`,
+  502:                         highlightFirstColumn && columnIndex === 0
+  503:                           ? `${tc.firstColBg} font-black ${tc.firstColText}`
+  504:                           : "",
+  505:                       ].join(" ")}
+  506:                       style={{
+  507:                         paddingInline: `calc(var(--report-table-padding-x, 0.75rem) * ${compact ? 0.78 : 1})`,
+  508:                         paddingBlock: `calc(var(--report-table-padding-y, 0.75rem) * ${compact ? 0.72 : 1})`,
+  509:                         fontSize: "calc(0.75rem * var(--report-table-font-scale, 1))",
+  510:                         lineHeight: "calc(1.5rem * var(--report-narrative-density-scale, 1))",
+  511:                       }}
+  512:                     >
+  513:                       {String(row?.[columnIndex] || "—")}
+  514:                     </td>
+  515:                   ))}
+  516:                 </tr>
+  517:               ))}
+  518:             </tbody>
+  519:           </table>
+  520:         </div>
+  521:       </section>
+  522:     );
+  523:   }
+  524:   if (isDynamicFieldsDesignBlock(block)) {
+  525:     const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+  526: 
+  527:     if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) {
+  528:       return null;
+  529:     }
+  530: 
+  531:     return (
+  532:       <section
+  533:         className={getBlockShellClass(implementation, block.variant, textAlign)}
+  534:         data-report-dynamic-fields
+  535:       >
+  536:         {block.showTitle ? (
+  537:           <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+  538:         ) : null}
+  539: 
+  540:         {dynamicFieldItems.length ? (
+  541:           <DesignValueGrid
+  542:             implementation={implementation}
+  543:             block={block}
+  544:             items={dynamicFieldItems.map(({ id, label, value, valueItems }: any) => ({
+  545:               key: id,
+  546:               label,
+  547:               value: Array.isArray(valueItems) && valueItems.length ? valueItems : value,
+  548:               valueItems,
+  549:             }))}
+  550:           />
+  551:         ) : (
+  552:           <p
+  553:             className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+  554:             style={{
+  555:               paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+  556:               paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+  557:               fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+  558:             }}
+  559:           >
+  560:             لا توجد حقول ظاهرة داخل هذا البلوك.
+  561:           </p>
+  562:         )}
+  563:       </section>
+  564:     );
+  565:   }
+  566:   if (block.kind === "field-list") {
+  567:     const values = getFinalFieldListItems(block, previewCase);
+  568: 
+  569:     return (
+  570:       <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+  571:         {block.showTitle ? (
+  572:           <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} />
+  573:         ) : null}
+  574: 
+  575:         {values.length ? (
+  576:           <DesignValueGrid
+  577:             implementation={implementation}
+  578:             block={block}
+  579:             items={values.map((item: any) => ({
+  580:               key: item.key || item.label || item.fieldKey || item.fieldLabel,
+  581:                 label: item.label || item.fieldLabel || "تفصيل",
+  582:               value: Array.isArray(item.valueItems) && item.valueItems.length
+  583:                 ? item.valueItems
+  584:                 : item.value || "غير متوفر",
+  585:               valueItems: item.valueItems,
+  586:             }))}
+  587:           />
+  588:         ) : (
+  589:           <p
+  590:             className="rounded-2xl bg-slate-50 text-sm font-bold text-slate-500"
+  591:             style={{
+  592:               paddingInline: "calc(1rem * var(--report-field-spacing-scale, 1))",
+  593:               paddingBlock: "calc(0.75rem * var(--report-field-spacing-scale, 1))",
+  594:               fontSize: "calc(0.875rem * var(--report-field-value-scale, 1))",
+  595:             }}
+  596:           >
+  597:             لا توجد قيم مرتبطة بهذا البلوك.
+  598:           </p>
+  599:         )}
+  600:       </section>
+  601:     );
+  602:   }
+  603:   if (isSignatureGridDesignBlock(block)) {
+  604:     const signatures = getDesignSignatureCards(block);
+  605: 
+  606:     if (!signatures.length) return null;
+  607: 
+  608:     const SignatureRenderer = implementation.SignatureRenderer;
+  609:     if (SignatureRenderer) {
+  610:       return (
+  611:         <SignatureRenderer
+  612:           block={block}
+  613:           items={signatures}
+  614:           renderTitle={() => block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  615:         />
+  616:       );
+  617:     }
+  618: 
+  619:     return (
+  620:       <section
+  621:         data-report-design-signature-block
+  622:         className="report-design-signature-grid-block break-inside-avoid"
+  623:         style={{
+  624:           breakInside: "avoid",
+  625:           pageBreakInside: "avoid",
+  626:         }}
+  627:       >
+  628:         {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  629: 
+  630:         <div
+  631:           className={[
+  632:             signatures.length === 2
+  633:               ? "mx-auto grid w-[72%] max-w-[132mm] grid-cols-2 items-end gap-x-[8mm]"
+  634:               : "flex w-full items-end gap-6",
+  635:             signatures.length === 1
+  636:               ? "justify-center"
+  637:               : signatures.length >= 3
+  638:                 ? "justify-between"
+  639:                 : "",
+  640:           ].join(" ")}
+  641:         >
+  642:           {signatures.map((signature: any) => (
+  643:             <div
+  644:               key={signature.key}
+  645:               className={[
+  646:                 "text-center",
+  647:                 signatures.length >= 3
+  648:                   ? "w-[31%]"
+  649:                   : signatures.length === 2
+  650:                     ? "min-w-0 w-full"
+  651:                     : "w-[58mm]",
+  652:               ].join(" ")}
+  653:             >
+  654:               <div
+  655:                 className="report-design-signature-image-frame flex items-end justify-center rounded-md bg-white"
+  656:                 style={{ height: "var(--report-signature-image-height, 10mm)" }}
+  657:               >
+  658:                 {signature.imageUrl ? (
+  659:                   <img
+  660:                     src={signature.imageUrl}
+  661:                     alt={signature.label}
+  662:                     className="report-design-signature-image max-w-[42mm] object-contain"
+  663:                     style={{
+  664:                       maxHeight: "var(--report-signature-image-height, 10mm)",
+  665:                       background: "#ffffff",
+  666:                       objectFit: "contain",
+  667:                       mixBlendMode: "normal",
+  668:                       filter: "none",
+  669:                     }}
+  670:                   />
+  671:                 ) : (
+  672:                   <div className="mb-1 w-full border-b border-dashed border-slate-400" />
+  673:                 )}
+  674:               </div>
+  675: 
+  676:               <div
+  677:                 className="report-design-signature-name font-black text-slate-950"
+  678:                 style={{
+  679:                   marginTop: "var(--report-field-value-top-gap, 0.25rem)",
+  680:                   fontSize: "12px",
+  681:                   lineHeight: "1.25",
+  682:                 }}
+  683:               >
+  684:                 {signature.signerName || "—"}
+  685:               </div>
+  686: 
+  687:               {signature.signerTitle ? (
+  688:                 <div
+  689:                   className="report-design-signature-role font-bold text-slate-500"
+  690:                   style={{
+  691:                     marginTop: "var(--report-field-value-top-gap, 0.125rem)",
+  692:                     fontSize: "10px",
+  693:                     lineHeight: "1.25",
+  694:                   }}
+  695:                 >
+  696:                   {signature.signerTitle}
+  697:                 </div>
+  698:               ) : null}
+  699:             </div>
+  700:           ))}
+  701:         </div>
+  702:       </section>
+  703:     );
+  704:   }
+  705:   if (block.kind === "evidence-gallery") {
+  706:     return <EvidenceBlock block={block} previewCase={previewCase} implementation={implementation} textAlign={textAlign} />;
+  707:   }
+  708: 
+  709:   if (block.kind === "closing-note") {
+  710:     return (
+  711:       <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+  712:         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  713:         <p
+  714:           className={["text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}
+  715:           style={{
+  716:             margin: 0,
+  717:             fontSize: `calc(1rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+  718:             lineHeight: "var(--report-narrative-line-height, 2)",
+  719:           }}
+  720:         >
+  721:           {rendered}
+  722:         </p>
+  723:       </section>
+  724:     );
+  725:   }
+  726: 
+  727:   return (
+  728:     <section className={getBlockShellClass(implementation, block.variant, textAlign)}>
+  729:       {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+  730:       <p
+  731:         className={["whitespace-pre-line text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" ")}
+  732:         style={{
+  733:           margin: 0,
+  734:           fontSize: `calc(1.125rem * var(--report-content-font-scale, 1) * ${getReportFontSizeMultiplier(getBlockSetting(block, "contentFontSize"))})`,
+  735:           lineHeight: "var(--report-narrative-line-height, 2)",
+  736:         }}
+  737:       >
+  738:         {rendered}
+  739:       </p>
+  740:     </section>
+  741:   );
+  742: }
+  743: 
+  744: function DesignFieldValueBlock({
+  745:   title,
+  746:   showTitle,
+  747:   variant,
+  748:   textAlign,
+  749:   designId,
+  750:   items,
+  751: }: {
+  752:   title: string;
+  753:   showTitle?: boolean;
+  754:   variant: string;
+  755:   textAlign: string;
+  756:   designId: ReportDesignId;
+  757:   items: Array<{
+  758:     key?: string;
+  759:     label: string;
+  760:     value?: string | null;
+  761:   }>;
+  762: }) {
+  763:   const visibleItems = items.filter((item) => String(item.value || "").trim());
+  764:   const implementation = getReportDesignImplementation(designId);
+  765: 
+  766:   return (
+  767:     <section className={getBlockShellClass(implementation, variant, textAlign)}>
+  768:       {showTitle ? <BlockTitle title={title} /> : null}
+  769: 
+  770:       {visibleItems.length ? (
+  771:         <DesignValueGrid implementation={implementation} items={visibleItems} />
+  772:       ) : (
+  773:         <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+  774:           لا توجد قيم مرتبطة بهذا البلوك.
+  775:         </p>
+  776:       )}
+  777:     </section>
+  778:   );
+  779: }
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\index.tsx
+============================================================
+    1: import type { CSSProperties, ReactNode } from "react";
+    2: 
+    3: import { MOE_OFFICIAL_2024_EXACT_CSS } from "./original-portfolio-styles";
+    4: import { MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS } from "./admin-presentation-styles";
+    5: import type { ReportDesignPageComponentProps } from "../report-design-component-types";
+    6: import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
+    7: 
+    8: const MOE_2024 = {
+    9:   navy: "#15445A",
+   10:   green: "#07A869",
+   11:   blue: "#3D7EB9",
+   12:   teal: "#0DA9A6",
+   13:   gold: "#C1B48A",
+   14:   gray: "#C2C1C1",
+   15:   paper: "#FFFFFF",
+   16:   soft: "#F5F7F6",
+   17:   ink: "#18313D",
+   18:   muted: "#63737B",
+   19:   line: "#D9E0E2",
+   20: } as const;
+   21: 
+   22: function BrandRule() {
+   23:   return (
+   24:     <div
+   25:       className="moe24-brand-rule"
+   26:       aria-hidden="true"
+   27:     />
+   28:   );
+   29: }
+   30: 
+   31: function MoeReportPage({
+   32:   children,
+   33:   sectionLabel,
+   34:   schoolName,
+   35:   educationDepartment,
+   36:   ministryLogoSrc,
+   37: }: {
+   38:   children: ReactNode;
+   39:   sectionLabel: string;
+   40:   schoolName: string;
+   41:   educationDepartment: string;
+   42:   ministryLogoSrc: string;
+   43: }) {
+   44:   return (
+   45:     <section
+   46:       className="moe24-page moe24-report-page pdf-report-page"
+   47:       data-page-label={sectionLabel}
+   48:       data-report-design="moe-official-2024"
+   49:     >
+   50:       <BrandRule />
+   51: 
+   52:       <header className="moe24-page-header">
+   53:         <div className="moe24-header-brand">
+   54:           <img
+   55:             src={ministryLogoSrc}
+   56:             alt="شعار الوزارة الرسمي"
+   57:             className="h-[8mm] w-[25mm] object-contain"
+   58:           />
+   59:         </div>
+   60: 
+   61:         <div
+   62:           dir="rtl"
+   63:           className="flex min-w-0 max-w-[82mm] flex-col items-start text-left leading-[1.45]"
+   64:         >
+   65:           {educationDepartment ? <span>{educationDepartment}</span> : null}
+   66:           {schoolName ? <span>{schoolName}</span> : null}
+   67:         </div>
+   68:       </header>
+   69: 
+   70:       <div className="moe24-page-body">
+   71:         {children}
+   72:       </div>
+   73: 
+   74:       <footer data-report-page-footer className="moe24-page-footer">
+   75:         <span />
+   76:         <span />
+   77:         <span className="moe24-page-number" />
+   78:       </footer>
+   79:     </section>
+   80:   );
+   81: }
+   82: 
+   83: export function MoeOfficial2024ReportDesign({
+   84:   page,
+   85:   context,
+   86:   previewCase,
+   87:   pageLabel,
+   88:   PageBlocks,
+   89:   getDesignLogoSrc,
+   90: }: ReportDesignPageComponentProps) {
+   91:   const designId = "moe-official-2024" as const;
+   92: 
+   93:   const title =
+   94:     String(context["case.title"] || "").trim() ||
+   95:     pageLabel ||
+   96:     "التقرير";
+   97: 
+   98:   const serviceName =
+   99:     String(context["service.name"] || "").trim() ||
+  100:     "التقرير";
+  101: 
+  102:   const schoolName =
+  103:     String(context["identity.schoolName"] || "").trim();
+  104: 
+  105:   const educationDepartment =
+  106:     String(context["identity.educationDepartment"] || "").trim();
+  107: 
+  108:   const ministryLogoSrc = getDesignLogoSrc(context);
+  109: 
+  110:   return (
+  111:     <div
+  112:       className="moe24-root"
+  113:       dir="rtl"
+  114:       style={
+  115:         {
+  116:           "--moe24-navy": MOE_2024.navy,
+  117:           "--moe24-green": MOE_2024.green,
+  118:           "--moe24-blue": MOE_2024.blue,
+  119:           "--moe24-teal": MOE_2024.teal,
+  120:           "--moe24-gold": MOE_2024.gold,
+  121:           "--moe24-gray": MOE_2024.gray,
+  122:           "--moe24-paper": MOE_2024.paper,
+  123:           "--moe24-soft": MOE_2024.soft,
+  124:           "--moe24-ink": MOE_2024.ink,
+  125:           "--moe24-muted": MOE_2024.muted,
+  126:           "--moe24-line": MOE_2024.line,
+  127:         } as CSSProperties
+  128:       }
+  129:     >
+  130:       <style>{MOE_OFFICIAL_2024_EXACT_CSS}</style>
+  131:       <style>{MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS}</style>
+  132: 
+  133:       <MoeReportPage
+  134:         sectionLabel={serviceName}
+  135:         schoolName={schoolName}
+  136:         educationDepartment={educationDepartment}
+  137:         ministryLogoSrc={ministryLogoSrc}
+  138:       >
+  139:         <ReportDesignSmartContent
+  140:           availableHeightMm={241}
+  141:           contentClassName="flex min-h-full flex-col"
+  142:           priorityMode="signature"
+  143:         >
+  144:           <header
+  145:             className="moe24-report-title shrink-0"
+  146:             style={{
+  147:               marginBottom: "calc(6mm * var(--report-field-spacing-scale, 1))",
+  148:               paddingBottom: "calc(4.5mm * var(--report-field-spacing-scale, 1))",
+  149:             }}
+  150:           >
+  151:             <div
+  152:               className="moe24-report-title-row"
+  153:               style={{
+  154:                 gap: "calc(3mm * var(--report-field-spacing-scale, 1))",
+  155:                 marginTop: 0,
+  156:               }}
+  157:             >
+  158:               <span
+  159:                 className="moe24-report-title-accent"
+  160:                 aria-hidden="true"
+  161:               />
+  162: 
+  163:               <h1
+  164:                 style={{
+  165:                   fontSize: "calc(26px * var(--report-heading-scale, 1))",
+  166:                 }}
+  167:               >
+  168:                 {title}
+  169:               </h1>
+  170:             </div>
+  171:           </header>
+  172: 
+  173:           <div
+  174:             className="moe24-report-sections min-h-0 flex-1"
+  175:           >
+  176:             <PageBlocks
+  177:               page={page}
+  178:               context={context}
+  179:               previewCase={previewCase}
+  180:               designId={designId}
+  181:               className="min-h-full"
+  182:             />
+  183:           </div>
+  184:         </ReportDesignSmartContent>
+  185:       </MoeReportPage>
+  186:     </div>
+  187:   );
+  188: }
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\evidence.tsx
+============================================================
+    1: import type { ReportEvidenceRendererProps } from "../report-design-component-types";
+    2: 
+    3: export function MoeOfficial2024EvidenceRenderer({
+    4:   block,
+    5:   items,
+    6:   startIndex,
+    7:   placeholderMode,
+    8:   gridStyle,
+    9:   getImageUrl,
+   10:   getFigureStyle,
+   11:   getImageStyle,
+   12:   getImageClassName,
+   13:   getImageHeightClassName,
+   14:   renderTitle,
+   15: }: ReportEvidenceRendererProps) {
+   16:   if (block.evidenceLayout === "ATTACHMENT_LIST") {
+   17:     return (
+   18:       <section className="moe24-report-section">
+   19:         {renderTitle()}
+   20:         <div
+   21:           className="moe24-evidence-grid"
+   22:           style={{ gap: "calc(5mm * var(--report-evidence-spacing-scale, 1))" }}
+   23:         >
+   24:           {items.map((evidence, index) => (
+   25:             <div key={evidence.id || String(index)} className="moe24-file-attachment">
+   26:               {evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}
+   27:             </div>
+   28:           ))}
+   29:         </div>
+   30:       </section>
+   31:     );
+   32:   }
+   33: 
+   34:   return (
+   35:     <section className="moe24-report-section">
+   36:       {renderTitle()}
+   37:       <div
+   38:         className="moe24-evidence-grid"
+   39:         style={{
+   40:           ...gridStyle,
+   41:           gap: `calc(${String(gridStyle.gap || "5mm")} * var(--report-evidence-spacing-scale, 1))`,
+   42:         }}
+   43:       >
+   44:         {items.map((evidence, index) => {
+   45:           const imageUrl = getImageUrl(evidence);
+   46: 
+   47:           return (
+   48:             <figure
+   49:               key={evidence.id || imageUrl || String(index)}
+   50:               style={getFigureStyle()}
+   51:               className="moe24-evidence-figure"
+   52:             >
+   53:               {imageUrl && !placeholderMode ? (
+   54:                 <img
+   55:                   src={imageUrl}
+   56:                   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+   57:                   style={getImageStyle()}
+   58:                   className={getImageClassName()}
+   59:                 />
+   60:               ) : (
+   61:                 <div
+   62:                   data-report-design-real-evidence={placeholderMode ? undefined : "true"}
+   63:                   className={`report-design-evidence-fallback ${getImageHeightClassName()} flex w-full flex-col items-center justify-center bg-transparent text-center`}
+   64:                 >
+   65:                   <p>{placeholderMode ? "مساحة شاهد للمعاينة" : evidence.title || evidence.caption || "مرفق محفوظ"}</p>
+   66:                 </div>
+   67:               )}
+   68: 
+   69:               {block.evidenceShowCaptions !== false ? (
+   70:                 <figcaption
+   71:                   style={{
+   72:                     fontSize: "calc(1em * var(--report-evidence-caption-scale, 1))",
+   73:                   }}
+   74:                 >
+   75:                   {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
+   76:                 </figcaption>
+   77:               ) : null}
+   78:             </figure>
+   79:           );
+   80:         })}
+   81:       </div>
+   82:     </section>
+   83:   );
+   84: }
+
+============================================================
+5. QUESTIONS THIS AUDIT MUST ANSWER
+============================================================
+1. Can SmartReportPageComposer create a continuation Physical Page?
+2. Can it move signatures to that continuation page?
+3. Can it move evidence to that continuation page?
+4. Does it support more than one continuation page?
+5. Does evidence render before or after signature?
+6. Is signature height measured before placement?
+7. Are evidence images fully loaded before final fit decision?
+8. Can generic blocks move, or only evidence/signature?
+9. Is overflow checked against the real footer boundary?
+10. Can a page freeze while content is still overflowing?
+
+NO FIX HAS BEEN APPLIED.

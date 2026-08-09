@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   isReportDesignId,
@@ -64,14 +64,63 @@ export function ReportDesignRenderer({
     ReportTwoPhysicalNavigationItem[]
   >([]);
   const [activePhysicalPageId, setActivePhysicalPageId] = useState("");
+  const previousPhysicalNavigationItemsRef = useRef<
+    ReportTwoPhysicalNavigationItem[]
+  >([]);
+  const autoSurfacedPhysicalPageIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
+    previousPhysicalNavigationItemsRef.current = [];
+    autoSurfacedPhysicalPageIdsRef.current.clear();
     setPhysicalNavigationItems([]);
     setActivePhysicalPageId("");
   }, [pages, selectedDesign]);
 
   const handlePhysicalPagesChange = useCallback(
     (items: ReportTwoPhysicalNavigationItem[]) => {
+      const previousItems = previousPhysicalNavigationItemsRef.current;
+      previousPhysicalNavigationItemsRef.current = items;
+      const previousActiveItems = previousItems.filter((item) =>
+        item.sourcePageIds.includes(activePageId),
+      );
+      const nextActiveItems = items.filter((item) =>
+        item.sourcePageIds.includes(activePageId),
+      );
+      const previousIds = new Set(
+        previousActiveItems.map((item) => item.physicalPageId),
+      );
+      const currentItem = items.find(
+        (item) => item.physicalPageId === activePhysicalPageId,
+      );
+      const currentPhysicalIndex =
+        currentItem?.sourcePageIds.includes(activePageId)
+          ? currentItem.physicalIndexWithinLogicalPage
+          : 0;
+      const nextAutomaticPage = nextActiveItems
+        .filter(
+          (item) =>
+            !previousIds.has(item.physicalPageId) &&
+            !autoSurfacedPhysicalPageIdsRef.current.has(
+              item.physicalPageId,
+            ) &&
+            item.physicalIndexWithinLogicalPage > currentPhysicalIndex &&
+            (item.role !== "primary" ||
+              item.physicalIndexWithinLogicalPage > 1),
+        )
+        .sort((left, right) => {
+          const rolePriority = {
+            primary: 0,
+            evidence: 1,
+            signature: 2,
+          } as const;
+
+          return (
+            rolePriority[right.role] - rolePriority[left.role] ||
+            right.physicalIndexWithinLogicalPage -
+              left.physicalIndexWithinLogicalPage
+          );
+        })[0];
+
       setPhysicalNavigationItems((current) => {
         const currentKey = current
           .map((item) => `${item.physicalPageId}:${item.label}`)
@@ -82,6 +131,18 @@ export function ReportDesignRenderer({
 
         return currentKey === nextKey ? current : items;
       });
+
+      if (
+        nextActiveItems.length > previousActiveItems.length &&
+        nextAutomaticPage
+      ) {
+        autoSurfacedPhysicalPageIdsRef.current.add(
+          nextAutomaticPage.physicalPageId,
+        );
+        setActivePhysicalPageId(nextAutomaticPage.physicalPageId);
+        return;
+      }
+
       setActivePhysicalPageId((current) => {
         const currentItem = items.find(
           (item) => item.physicalPageId === current,
@@ -98,7 +159,7 @@ export function ReportDesignRenderer({
         );
       });
     },
-    [activePageId],
+    [activePageId, activePhysicalPageId],
   );
 
   useEffect(() => {

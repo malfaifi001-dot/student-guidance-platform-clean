@@ -700,6 +700,15 @@ export function SmartReportPageComposer({
                   footerSafetyGapPx
                 : Number.POSITIVE_INFINITY;
 
+            const smartContentBoundaryBottom =
+              smartViewport.getBoundingClientRect().bottom;
+
+            const usablePrimaryBoundaryBottom =
+              Math.min(
+                footerBoundaryTop,
+                smartContentBoundaryBottom,
+              );
+
             const primarySmartBlocks =
               primaryPhysicalPage
                 ? Array.from(
@@ -737,15 +746,14 @@ export function SmartReportPageComposer({
                   )
                 : [];
 
-            const signatureCrossesPhysicalFooter =
-              primaryFooter !== null &&
+            const signatureDoesNotFit =
               primarySignatureBlocks.some((signatureElement) => {
                 const rect =
                   signatureElement.getBoundingClientRect();
 
                 return (
                   rect.height > 0 &&
-                  rect.bottom > footerBoundaryTop + 1
+                  rect.bottom > usablePrimaryBoundaryBottom + 1
                 );
               });
 
@@ -784,7 +792,7 @@ export function SmartReportPageComposer({
               primaryEvidenceCount,
               keepSignatureOnPrimary,
               doesNotFit,
-              signatureCrossesPhysicalFooter,
+              signatureDoesNotFit,
               preferEvidenceMove,
               severity,
               density,
@@ -811,7 +819,7 @@ export function SmartReportPageComposer({
             if (
               evidenceAutoEnabled &&
               primaryEvidenceCount > 0 &&
-              !signatureCrossesPhysicalFooter &&
+              !signatureDoesNotFit &&
               (
                 doesNotFit ||
                 preferEvidenceMove ||
@@ -859,7 +867,7 @@ export function SmartReportPageComposer({
               hasSignature &&
               keepSignatureOnPrimary &&
               (
-                signatureCrossesPhysicalFooter ||
+                signatureDoesNotFit ||
                 (
                   doesNotFit &&
                   primaryEvidenceCount <= 0
