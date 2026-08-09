@@ -55,7 +55,10 @@ function normalizeMoyasarStatus(value: unknown) {
     return "PAID";
   }
 
-  if (status === "failed" || status === "declined") {
+  if (
+    status === "failed" ||
+    status === "declined"
+  ) {
     return "FAILED";
   }
 
@@ -74,10 +77,8 @@ export async function GET(request: NextRequest) {
     url.searchParams.get("transactionId") || "";
 
   if (!paymentId || !transactionId) {
-    return redirectTo(
-      request,
-      "/dashboard/plans?payment=invalid"
-    );
+    return NextResponse.redirect(
+      new URL("/dashboard/plans?payment=invalid");
   }
 
   try {
@@ -92,27 +93,18 @@ export async function GET(request: NextRequest) {
       });
 
     if (!transaction) {
-      return redirectTo(
-        request,
-        "/dashboard/plans?payment=not-found"
-      );
+      return redirectTo(request, "/dashboard/plans?payment=not-found");
     }
 
     if (transaction.provider?.slug !== "moyasar") {
-      return redirectTo(
-        request,
-        "/dashboard/plans?payment=provider-mismatch"
-      );
+      return redirectTo(request, "/dashboard/plans?payment=provider-mismatch");
     }
 
-    const payment =
-      await retrieveMoyasarPayment(paymentId);
+    const payment = await retrieveMoyasarPayment(paymentId);
 
-    const paymentStatus =
-      normalizeMoyasarStatus(payment.status);
+    const paymentStatus = normalizeMoyasarStatus(payment.status);
 
-    const metadata =
-      getObject(payment.metadata);
+    const metadata = getObject(payment.metadata);
 
     const metadataTransactionId =
       typeof metadata.transactionId === "string"
@@ -123,10 +115,7 @@ export async function GET(request: NextRequest) {
       metadataTransactionId &&
       metadataTransactionId !== transaction.id
     ) {
-      return redirectTo(
-        request,
-        "/dashboard/plans?payment=reference-mismatch"
-      );
+      return redirectTo(request, "/dashboard/plans?payment=reference-mismatch");
     }
 
     const moyasarAmount =
@@ -134,27 +123,16 @@ export async function GET(request: NextRequest) {
         ? payment.amount
         : Number(payment.amount || 0);
 
-    const expectedAmount =
-      transaction.amount * 100;
+    const expectedAmount = transaction.amount * 100;
 
     if (moyasarAmount !== expectedAmount) {
-      return redirectTo(
-        request,
-        "/dashboard/plans?payment=amount-mismatch"
-      );
+      return redirectTo(request, "/dashboard/plans?payment=amount-mismatch");
     }
 
-    const currency =
-      String(payment.currency || "").toUpperCase();
+    const currency = String(payment.currency || "").toUpperCase();
 
-    if (
-      currency !==
-      transaction.currency.toUpperCase()
-    ) {
-      return redirectTo(
-        request,
-        "/dashboard/plans?payment=currency-mismatch"
-      );
+    if (currency !== transaction.currency.toUpperCase()) {
+      return redirectTo(request, "/dashboard/plans?payment=currency-mismatch");
     }
 
     if (paymentStatus === "PAID") {
@@ -174,10 +152,8 @@ export async function GET(request: NextRequest) {
         payload: payment,
       });
 
-      return redirectTo(
-        request,
-        `/dashboard/checkout/transactions/${transaction.id}?payment=success`
-      );
+      return redirectTo(request, 
+          `/dashboard/checkout/transactions/${transaction.id}?payment=success`);
     }
 
     if (paymentStatus === "FAILED") {
@@ -198,35 +174,22 @@ export async function GET(request: NextRequest) {
         payload: payment,
       });
 
-      return redirectTo(
-        request,
-        `/dashboard/checkout/transactions/${transaction.id}?payment=failed`
-      );
+      return redirectTo(request, 
+          `/dashboard/checkout/transactions/${transaction.id}?payment=failed`);
     }
 
-    return redirectTo(
-      request,
-      `/dashboard/checkout/transactions/${transaction.id}?payment=pending`
-    );
+    return redirectTo(request, 
+        `/dashboard/checkout/transactions/${transaction.id}?payment=pending`);
   } catch (error) {
     if (
       error instanceof MoyasarPaymentError ||
       error instanceof ElectronicPaymentError
     ) {
-      console.error(
-        "MOYASAR_CALLBACK_ERROR",
-        error.message
-      );
+      console.error("MOYASAR_CALLBACK_ERROR", error.message);
     } else {
-      console.error(
-        "MOYASAR_CALLBACK_UNKNOWN_ERROR",
-        error
-      );
+      console.error("MOYASAR_CALLBACK_UNKNOWN_ERROR", error);
     }
 
-    return redirectTo(
-      request,
-      "/dashboard/plans?payment=verification-error"
-    );
+    return redirectTo(request, "/dashboard/plans?payment=verification-error");
   }
 }
