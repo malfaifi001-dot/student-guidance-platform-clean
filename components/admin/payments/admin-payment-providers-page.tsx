@@ -11,10 +11,10 @@ type PaymentProvider = {
   configJson: {
     mode?: string;
     publicKey?: string;
-    secretKey?: string;
-    webhookSecret?: string;
     checkoutBaseUrl?: string;
     notes?: string;
+    hasSecretKey?: boolean;
+    hasWebhookSecret?: boolean;
   } | null;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +36,17 @@ const defaultForm = {
   notes: "",
 };
 
+type EditProviderForm = {
+  name: string;
+  isActive: boolean;
+  mode: string;
+  publicKey: string;
+  secretKey: string;
+  webhookSecret: string;
+  checkoutBaseUrl: string;
+  notes: string;
+};
+
 function getConfig(provider: PaymentProvider) {
   return provider.configJson && typeof provider.configJson === "object"
     ? provider.configJson
@@ -49,6 +60,10 @@ export function AdminPaymentProvidersPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [editingProvider, setEditingProvider] = useState<PaymentProvider | null>(null);
+  const [editForm, setEditForm] = useState<EditProviderForm | null>(null);
+  const [editErrorMessage, setEditErrorMessage] = useState("");
+  const [isEditSaving, setIsEditSaving] = useState(false);
 
   async function loadProviders() {
     setIsLoading(true);
@@ -124,8 +139,6 @@ export function AdminPaymentProvidersPage() {
             isActive: !provider.isActive,
             mode: config.mode || "TEST",
             publicKey: config.publicKey || "",
-            secretKey: config.secretKey || "",
-            webhookSecret: config.webhookSecret || "",
             checkoutBaseUrl: config.checkoutBaseUrl || "",
             notes: config.notes || "",
           }),
@@ -144,6 +157,80 @@ export function AdminPaymentProvidersPage() {
       setErrorMessage(
         error instanceof Error ? error.message : "حدث خطأ أثناء تحديث مزود الدفع."
       );
+    }
+  }
+
+  function openEditProvider(provider: PaymentProvider) {
+    const config = getConfig(provider);
+
+    setMessage("");
+    setErrorMessage("");
+    setEditErrorMessage("");
+    setEditingProvider(provider);
+    setEditForm({
+      name: provider.name,
+      isActive: provider.isActive,
+      mode: config.mode || "TEST",
+      publicKey: config.publicKey || "",
+      secretKey: "",
+      webhookSecret: "",
+      checkoutBaseUrl: config.checkoutBaseUrl || "",
+      notes: config.notes || "",
+    });
+  }
+
+  function closeEditProvider() {
+    if (isEditSaving) return;
+
+    setEditingProvider(null);
+    setEditForm(null);
+    setEditErrorMessage("");
+  }
+
+  async function saveProviderEdits() {
+    if (!editingProvider || !editForm) return;
+
+    setIsEditSaving(true);
+    setEditErrorMessage("");
+
+    try {
+      const secretKey = editForm.secretKey.trim();
+      const webhookSecret = editForm.webhookSecret.trim();
+      const response = await fetch(
+        `/api/dashboard/admin/payments/providers/${editingProvider.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: editForm.name,
+            isActive: editForm.isActive,
+            mode: editForm.mode,
+            publicKey: editForm.publicKey,
+            checkoutBaseUrl: editForm.checkoutBaseUrl,
+            notes: editForm.notes,
+            ...(secretKey ? { secretKey } : {}),
+            ...(webhookSecret ? { webhookSecret } : {}),
+          }),
+        }
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "تعذر حفظ تعديلات مزود الدفع.");
+      }
+
+      await loadProviders();
+      setEditingProvider(null);
+      setEditForm(null);
+      setMessage(payload?.message || "تم حفظ تعديلات مزود الدفع بنجاح.");
+    } catch (error) {
+      setEditErrorMessage(
+        error instanceof Error ? error.message : "حدث خطأ أثناء تعديل مزود الدفع."
+      );
+    } finally {
+      setIsEditSaving(false);
     }
   }
 
@@ -352,13 +439,22 @@ export function AdminPaymentProvidersPage() {
                         </span>
                       </td>
                       <td className="px-3 py-4">
-                        <button
-                          type="button"
-                          onClick={() => void toggleProvider(provider)}
-                          className="rounded-2xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-                        >
-                          {provider.isActive ? "تعطيل" : "تفعيل"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditProvider(provider)}
+                            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200"
+                          >
+                            تعديل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void toggleProvider(provider)}
+                            className="rounded-2xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                          >
+                            {provider.isActive ? "تعطيل" : "تفعيل"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -368,6 +464,157 @@ export function AdminPaymentProvidersPage() {
           </div>
         )}
       </section>
+
+      {editingProvider && editForm ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-provider-title"
+          dir="rtl"
+        >
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border border-white/70 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-950 sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-emerald-600 dark:text-emerald-300">
+                  إعدادات مزود الدفع
+                </p>
+                <h2 id="edit-provider-title" className="mt-2 text-xl font-black text-slate-950 dark:text-white">
+                  تعديل {editingProvider.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditProvider}
+                disabled={isEditSaving}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-900"
+                aria-label="إغلاق"
+              >
+                ×
+              </button>
+            </div>
+
+            {editErrorMessage ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+                {editErrorMessage}
+              </div>
+            ) : null}
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">اسم المزود</span>
+                <input
+                  value={editForm.name}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, name: event.target.value }) : old)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">الوضع</span>
+                <select
+                  value={editForm.mode}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, mode: event.target.value }) : old)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                >
+                  <option value="TEST">TEST</option>
+                  <option value="LIVE">LIVE</option>
+                </select>
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Public Key</span>
+                <input
+                  value={editForm.publicKey}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, publicKey: event.target.value }) : old)}
+                  dir="ltr"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Secret Key</span>
+                {getConfig(editingProvider).hasSecretKey ? (
+                  <span className="block text-xs font-bold text-emerald-600 dark:text-emerald-300" dir="ltr">Secret key is already configured</span>
+                ) : null}
+                <input
+                  type="password"
+                  value={editForm.secretKey}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, secretKey: event.target.value }) : old)}
+                  autoComplete="new-password"
+                  dir="ltr"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                <span className="block text-xs text-slate-500" dir="ltr">Leave empty to keep the current secret.</span>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Webhook Secret</span>
+                {getConfig(editingProvider).hasWebhookSecret ? (
+                  <span className="block text-xs font-bold text-emerald-600 dark:text-emerald-300" dir="ltr">Webhook secret is already configured</span>
+                ) : null}
+                <input
+                  type="password"
+                  value={editForm.webhookSecret}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, webhookSecret: event.target.value }) : old)}
+                  autoComplete="new-password"
+                  dir="ltr"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                <span className="block text-xs text-slate-500" dir="ltr">Leave empty to keep the current secret.</span>
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Checkout Base URL</span>
+                <input
+                  value={editForm.checkoutBaseUrl}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, checkoutBaseUrl: event.target.value }) : old)}
+                  dir="ltr"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">ملاحظات داخلية</span>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, notes: event.target.value }) : old)}
+                  rows={3}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </label>
+
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={editForm.isActive}
+                  onChange={(event) => setEditForm((old) => old ? ({ ...old, isActive: event.target.checked }) : old)}
+                />
+                {editForm.isActive ? "المزود مفعل" : "المزود معطل"}
+              </label>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => void saveProviderEdits()}
+                disabled={isEditSaving}
+                className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-50"
+              >
+                {isEditSaving ? "جارٍ الحفظ..." : "حفظ التغييرات"}
+              </button>
+              <button
+                type="button"
+                onClick={closeEditProvider}
+                disabled={isEditSaving}
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
