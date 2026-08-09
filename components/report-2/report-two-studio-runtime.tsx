@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   ReportDesignRenderer,
   reportDesignTemplates,
   selectableReportDesignTemplates,
@@ -466,7 +467,7 @@ function normalizeDesignId(value: unknown): ReportDesignId {
     return designId as ReportDesignId;
   }
 
-  return "ministry-form";
+  return DEFAULT_SELECTABLE_REPORT_DESIGN_ID;
 }
 
 function createBlock(kind: StudioBlockKind): StudioBlock {
@@ -4829,12 +4830,17 @@ export function ReportTwoStudioRuntime({
 
             <ReportDesignRenderer
               chromeLayout="split"
-              designId={template.designTemplateId || "ministry-form"}
+              designId={
+                template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID
+              }
               template={signedVisiblePreviewTemplate}
               activePage={activePage}
               activePageId={activePage?.id || activePageId}
               context={editableRuntimeContext}
               previewCase={previewCase}
+              onDesignChange={(designTemplateId) =>
+                updateTemplate({ designTemplateId })
+              }
               onActivePageChange={(pageId) => {
                 if (activePageId === pageId) return;
 

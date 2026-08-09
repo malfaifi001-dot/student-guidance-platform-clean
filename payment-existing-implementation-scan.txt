@@ -1,0 +1,655 @@
+Existing Payment Implementation Scan
+Generated: 08/09/2026 18:34:58
+
+========== RELEVANT FILES ==========
+app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+app\api\dashboard\admin\activity\metrics\route.ts
+app\api\dashboard\admin\activity\route.ts
+app\api\dashboard\admin\operational-alerts\route.ts
+app\api\dashboard\admin\payments\[transactionId]\cancel\route.ts
+app\api\dashboard\admin\payments\[transactionId]\invoice\route.ts
+app\api\dashboard\admin\payments\[transactionId]\reconcile\route.ts
+app\api\dashboard\admin\payments\[transactionId]\refund\route.ts
+app\api\dashboard\admin\payments\[transactionId]\route.ts
+app\api\dashboard\admin\payments\export\route.ts
+app\api\dashboard\admin\payments\invoices\[invoiceId]\cancel\route.ts
+app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts
+app\api\dashboard\admin\payments\invoices\[invoiceId]\route.ts
+app\api\dashboard\admin\payments\invoices\export\route.ts
+app\api\dashboard\admin\payments\invoices\route.ts
+app\api\dashboard\admin\payments\invoice-settings\route.ts
+app\api\dashboard\admin\payments\providers\[providerId]\route.ts
+app\api\dashboard\admin\payments\providers\route.ts
+app\api\dashboard\admin\payments\reconciliation\route.ts
+app\api\dashboard\admin\payments\route.ts
+app\api\dashboard\admin\users\route.ts
+app\dashboard\admin\payments\[transactionId]\invoce\page.tsx
+app\dashboard\admin\payments\[transactionId]\invoice\page.tsx
+app\dashboard\admin\payments\[transactionId]\page.tsx
+app\dashboard\admin\payments\invoices\[invoiceId]\page.tsx
+app\dashboard\admin\payments\invoices\page.tsx
+app\dashboard\admin\payments\invoice-settings\page.tsx
+app\dashboard\admin\payments\page.tsx
+app\dashboard\admin\payments\providers\page.tsx
+app\dashboard\admin\payments\reconciliation\page.tsx
+components\admin\admin-activity-center.tsx
+components\admin\admin-users-command-center.tsx
+components\admin\payments\admin-invoice-detail-page.tsx
+components\admin\payments\admin-invoices-dashboard.tsx
+components\admin\payments\admin-invoice-settings-page.tsx
+components\admin\payments\admin-payment-detail-page.tsx
+components\admin\payments\admin-payment-invoice-page.tsx
+components\admin\payments\admin-payment-providers-page.tsx
+components\admin\payments\admin-payment-reconciliation-page.tsx
+components\admin\payments\admin-payments-dashboard.tsx
+components\layout\dashboard-sidebar.tsx
+components\payments\checkout-plan-page.tsx
+components\subscription\counselor-plans-page.tsx
+lib\activation\activation-service.ts
+lib\admin\activity-events.ts
+lib\admin\activity-log.ts
+lib\admin\bank-transfer-payments.ts
+lib\admin\invoices.ts
+lib\admin\payments.ts
+lib\payments\admin-payment-operations.ts
+lib\payments\electronic-payments.ts
+lib\subscription\payment-provider-contract.ts
+
+========== MATCHED LINES ==========
+
+----- app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts -----
+Line 9: import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+Line 71:         step = "RECOVER_ALREADY_PAID_PAYMENT_TRANSACTION";
+Line 73:         const paymentResult = await createPaidBankTransferPaymentTransaction(
+Line 88:           paymentTransactionId: paymentResult.transaction?.id || null,
+Line 89:           paymentTransactionCreated: paymentResult.wasCreated,
+Line 90:           skippedReason: paymentResult.skippedReason,
+Line 187:     step = "CREATE_PAYMENT_TRANSACTION";
+Line 188:     const paymentResult = await createPaidBankTransferPaymentTransaction(
+Line 198:     if (!paymentResult.transaction) {
+Line 205:           skippedReason: paymentResult.skippedReason,
+Line 214:       category: "PAYMENT",
+Line 226:         paymentTransactionId: paymentResult.transaction.id,
+Line 227:         paymentTransactionCreated: paymentResult.wasCreated,
+Line 238:       paymentTransactionId: paymentResult.transaction.id,
+Line 239:       paymentTransactionCreated: paymentResult.wasCreated,
+
+----- app\api\dashboard\admin\activity\metrics\route.ts -----
+Line 154:       log.category === "PAYMENT"
+
+----- app\api\dashboard\admin\activity\route.ts -----
+Line 180:         log.category === "PAYMENT"
+
+----- app\api\dashboard\admin\operational-alerts\route.ts -----
+Line 11:   | "PAYMENT"
+Line 190:       category: "PAYMENT",
+
+----- app\api\dashboard\admin\payments\[transactionId]\cancel\route.ts -----
+Line 5:   AdminPaymentOperationError,
+Line 6:   cancelPaymentTransaction,
+Line 7: } from "@/lib/payments/admin-payment-operations";
+Line 33:     const result = await cancelPaymentTransaction({
+Line 43:     if (error instanceof AdminPaymentOperationError) {
+Line 47:     console.error("cancel payment transaction failed", error);
+
+----- app\api\dashboard\admin\payments\[transactionId]\invoice\route.ts -----
+Line 7:   getOrCreateInvoiceForPaymentTransaction,
+Line 28:     const result = await getOrCreateInvoiceForPaymentTransaction(
+Line 36:         category: "PAYMENT",
+Line 54:     console.error("ADMIN_PAYMENT_INVOICE_ERROR", error);
+
+----- app\api\dashboard\admin\payments\[transactionId]\reconcile\route.ts -----
+Line 5:   AdminPaymentOperationError,
+Line 6:   reconcilePaymentTransaction,
+Line 7: } from "@/lib/payments/admin-payment-operations";
+Line 33:     const result = await reconcilePaymentTransaction({
+Line 43:     if (error instanceof AdminPaymentOperationError) {
+Line 47:     console.error("reconcile payment transaction failed", error);
+
+----- app\api\dashboard\admin\payments\[transactionId]\refund\route.ts -----
+Line 5:   AdminPaymentOperationError,
+Line 6:   refundPaymentTransaction,
+Line 7: } from "@/lib/payments/admin-payment-operations";
+Line 33:     const result = await refundPaymentTransaction({
+Line 43:     if (error instanceof AdminPaymentOperationError) {
+Line 47:     console.error("refund payment transaction failed", error);
+
+----- app\api\dashboard\admin\payments\[transactionId]\route.ts -----
+Line 30:     const transaction = await prisma.paymentTransaction.findUnique({
+Line 132:     console.error("ADMIN_PAYMENT_DETAIL_ERROR", error);
+
+----- app\api\dashboard\admin\payments\export\route.ts -----
+Line 2: import { PaymentMethod, PaymentStatus } from "@prisma/client";
+Line 7:   buildAdminPaymentsWhere,
+Line 8:   getAdminPaymentsCenterData,
+Line 9:   type AdminPaymentsFilters,
+Line 10: } from "@/lib/admin/payments";
+Line 14: function parsePaymentStatus(value: string | null): PaymentStatus | "ALL" {
+Line 17:   if (Object.values(PaymentStatus).includes(value as PaymentStatus)) {
+Line 18:     return value as PaymentStatus;
+Line 24: function parsePaymentMethod(value: string | null): PaymentMethod | "ALL" {
+Line 27:   if (Object.values(PaymentMethod).includes(value as PaymentMethod)) {
+Line 28:     return value as PaymentMethod;
+Line 147:   const filters: AdminPaymentsFilters = {
+Line 149:     status: parsePaymentStatus(searchParams.get("status")),
+Line 150:     method: parsePaymentMethod(searchParams.get("method")),
+Line 161:   await getAdminPaymentsCenterData(filters);
+Line 163:   const transactions = await prisma.paymentTransaction.findMany({
+Line 164:     where: buildAdminPaymentsWhere(filters),
+Line 352:   const paymentsSheet = workbook.addWorksheet("عمليات الدفع", {
+Line 356:   paymentsSheet.columns = [
+Line 376:   paymentsSheet.addRows(
+Line 398:   applyHeaderStyle(paymentsSheet.getRow(1));
+Line 399:   applyBodyStyle(paymentsSheet);
+Line 401:   paymentsSheet.getColumn("amount").numFmt = "#,##0.00";
+Line 402:   paymentsSheet.autoFilter = {
+Line 407:   paymentsSheet.getColumn("transactionId").alignment = {
+Line 411:   paymentsSheet.getColumn("externalRef").alignment = {
+Line 415:   paymentsSheet.getColumn("subscriptionId").alignment = {
+Line 421:   const filename = `payments-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+----- app\api\dashboard\admin\payments\invoices\[invoiceId]\cancel\route.ts -----
+Line 120:     category: "PAYMENT",
+Line 129:       paymentTransactionId: invoice.paymentTransactionId,
+
+----- app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts -----
+Line 298:             <td><div class="label">رقم العملية</div><div class="value" dir="ltr" style="text-align:left;">${escapeHtml(invoice.paymentTransactionId)}</div></td>
+Line 299:             <td><div class="label">طريقة الدفع</div><div class="value">${escapeHtml(invoice.paymentTransaction.method)}</div></td>
+Line 361:       paymentTransaction: {
+Line 443:       category: "PAYMENT",
+
+----- app\api\dashboard\admin\payments\invoices\[invoiceId]\route.ts -----
+Line 30:       paymentTransaction: {
+
+----- app\api\dashboard\admin\payments\invoices\export\route.ts -----
+Line 38:       { paymentTransactionId: { contains: query } },
+Line 100:       paymentTransaction: {
+Line 189:     { header: "رقم عملية الدفع", key: "paymentTransactionId", width: 32 },
+Line 216:       paymentTransactionId: invoice.paymentTransactionId,
+Line 217:       method: invoice.paymentTransaction.method,
+Line 218:       externalRef: invoice.paymentTransaction.externalRef || "—",
+Line 229:     category: "PAYMENT",
+
+----- app\api\dashboard\admin\payments\invoices\route.ts -----
+Line 25:       { paymentTransactionId: { contains: query } },
+Line 114:         paymentTransaction: {
+
+----- app\api\dashboard\admin\payments\invoice-settings\route.ts -----
+Line 36:     category: "PAYMENT",
+
+----- app\api\dashboard\admin\payments\providers\[providerId]\route.ts -----
+Line 34:   const existing = await prisma.paymentProvider.findUnique({
+Line 46:   const provider = await prisma.paymentProvider.update({
+Line 71:         webhookSecret:
+Line 72:           typeof body.webhookSecret === "string"
+Line 73:             ? body.webhookSecret.trim()
+Line 74:             : currentConfig.webhookSecret || "",
+Line 75:         checkoutBaseUrl:
+Line 76:           typeof body.checkoutBaseUrl === "string"
+Line 77:             ? body.checkoutBaseUrl.trim()
+Line 78:             : currentConfig.checkoutBaseUrl || "",
+Line 89:     category: "PAYMENT",
+Line 90:     action: "PAYMENT_PROVIDER_UPDATED",
+
+----- app\api\dashboard\admin\payments\providers\route.ts -----
+Line 26:     webhookSecret: String(body.webhookSecret || "").trim(),
+Line 27:     checkoutBaseUrl: String(body.checkoutBaseUrl || "").trim(),
+Line 39:   const providers = await prisma.paymentProvider.findMany({
+Line 73:   const provider = await prisma.paymentProvider.upsert({
+Line 92:     category: "PAYMENT",
+Line 93:     action: "PAYMENT_PROVIDER_UPSERTED",
+
+----- app\api\dashboard\admin\payments\reconciliation\route.ts -----
+Line 2: import { PaymentStatus, Prisma } from "@prisma/client";
+Line 16:   const baseWhere: Prisma.PaymentTransactionWhereInput = {};
+Line 25:   const where: Prisma.PaymentTransactionWhereInput = {
+Line 30:     where.status = status as PaymentStatus;
+Line 65:     prisma.paymentTransaction.findMany({
+Line 124:     prisma.paymentTransaction.count({
+Line 127:     prisma.paymentTransaction.count({
+Line 130:         status: PaymentStatus.PENDING,
+Line 133:     prisma.paymentTransaction.count({
+Line 136:         status: PaymentStatus.PAID,
+Line 139:     prisma.paymentTransaction.count({
+Line 142:         status: PaymentStatus.FAILED,
+Line 145:     prisma.paymentTransaction.count({
+Line 148:         status: PaymentStatus.REFUNDED,
+Line 151:     prisma.paymentTransaction.count({
+Line 154:         status: PaymentStatus.CANCELED,
+Line 157:     prisma.paymentTransaction.aggregate({
+Line 160:         status: PaymentStatus.PAID,
+Line 166:     prisma.paymentTransaction.aggregate({
+Line 169:         status: PaymentStatus.REFUNDED,
+
+----- app\api\dashboard\admin\payments\route.ts -----
+Line 1: import { PaymentMethod, PaymentStatus } from "@prisma/client";
+Line 5:   getAdminPaymentsCenterData,
+Line 6:   type AdminPaymentsFilters,
+Line 7: } from "@/lib/admin/payments";
+Line 9: function parsePaymentStatus(value: string | null): PaymentStatus | "ALL" {
+Line 12:   if (Object.values(PaymentStatus).includes(value as PaymentStatus)) {
+Line 13:     return value as PaymentStatus;
+Line 19: function parsePaymentMethod(value: string | null): PaymentMethod | "ALL" {
+Line 22:   if (Object.values(PaymentMethod).includes(value as PaymentMethod)) {
+Line 23:     return value as PaymentMethod;
+Line 38:   const filters: AdminPaymentsFilters = {
+Line 40:     status: parsePaymentStatus(searchParams.get("status")),
+Line 41:     method: parsePaymentMethod(searchParams.get("method")),
+Line 47:   const data = await getAdminPaymentsCenterData(filters);
+
+----- app\api\dashboard\admin\users\route.ts -----
+Line 306:                 ? "PENDING_PAYMENT"
+
+----- app\dashboard\admin\payments\[transactionId]\invoce\page.tsx -----
+Line 9: export default async function AdminPaymentInvoiceTypoRedirectPage({ params }: PageProps) {
+Line 12:   redirect(`/dashboard/admin/payments/${transactionId}/invoice`);
+
+----- app\dashboard\admin\payments\[transactionId]\invoice\page.tsx -----
+Line 1: import { AdminPaymentInvoicePage } from "@/components/admin/payments/admin-payment-invoice-page";
+Line 10: export default async function AdminPaymentInvoiceRoutePage({ params }: PageProps) {
+Line 15:   return <AdminPaymentInvoicePage transactionId={transactionId} />;
+
+----- app\dashboard\admin\payments\[transactionId]\page.tsx -----
+Line 1: import { AdminPaymentDetailPage } from "@/components/admin/payments/admin-payment-detail-page";
+Line 10: export default async function AdminPaymentDetailsPage({ params }: PageProps) {
+Line 15:   return <AdminPaymentDetailPage transactionId={transactionId} />;
+
+----- app\dashboard\admin\payments\invoices\[invoiceId]\page.tsx -----
+Line 1: import { AdminInvoiceDetailPage } from "@/components/admin/payments/admin-invoice-detail-page";
+
+----- app\dashboard\admin\payments\invoices\page.tsx -----
+Line 1: import { AdminInvoicesDashboard } from "@/components/admin/payments/admin-invoices-dashboard";
+Line 4: export default async function AdminPaymentInvoicesPage() {
+
+----- app\dashboard\admin\payments\invoice-settings\page.tsx -----
+Line 1: import { AdminInvoiceSettingsPage } from "@/components/admin/payments/admin-invoice-settings-page";
+
+----- app\dashboard\admin\payments\page.tsx -----
+Line 1: import { AdminPaymentsDashboard } from "@/components/admin/payments/admin-payments-dashboard";
+Line 4: export default async function AdminPaymentsPage() {
+Line 7:   return <AdminPaymentsDashboard />;
+
+----- app\dashboard\admin\payments\providers\page.tsx -----
+Line 1: import { AdminPaymentProvidersPage } from "@/components/admin/payments/admin-payment-providers-page";
+Line 4: export default async function AdminPaymentProvidersRoutePage() {
+Line 7:   return <AdminPaymentProvidersPage />;
+
+----- app\dashboard\admin\payments\reconciliation\page.tsx -----
+Line 1: import { AdminPaymentReconciliationPage } from "@/components/admin/payments/admin-payment-reconciliation-page";
+Line 4: export default async function AdminPaymentReconciliationRoutePage() {
+Line 7:   return <AdminPaymentReconciliationPage />;
+
+----- components\admin\admin-activity-center.tsx -----
+Line 73:     PAYMENT: "المدفوعات",
+Line 103:   if (category === "PAYMENT") return WalletCards;
+
+----- components\admin\admin-users-command-center.tsx -----
+Line 54:     | "PENDING_PAYMENT"
+Line 106:   | "PENDING_PAYMENT";
+Line 134:   if (risk === "PENDING_PAYMENT") return "طلب دفع معلق";
+Line 141:   if (risk === "PENDING_PAYMENT") return "bg-violet-50 text-violet-700";
+Line 214:                     : status === "PENDING_PAYMENT"
+Line 444:                 <option value="PENDING_PAYMENT">دفع معلق</option>
+
+----- components\admin\payments\admin-invoice-detail-page.tsx -----
+Line 23:     paymentTransactionId: string;
+Line 48:     paymentTransaction: {
+Line 144:         `/api/dashboard/admin/payments/invoices/${invoiceId}`,
+Line 190:               href="/dashboard/admin/payments/invoices"
+Line 198:                 href={`/dashboard/admin/payments/${invoice.paymentTransactionId}`}
+Line 207:                 href={`/api/dashboard/admin/payments/invoices/${invoice.id}/pdf`}
+
+----- components\admin\payments\admin-invoices-dashboard.tsx -----
+Line 9:   paymentTransactionId: string;
+Line 22:   paymentTransaction: {
+Line 118:     ? `/api/dashboard/admin/payments/invoices?${queryString}`
+Line 119:     : "/api/dashboard/admin/payments/invoices";
+Line 140:     ? `/api/dashboard/admin/payments/invoices/export?${queryString}`
+Line 141:     : "/api/dashboard/admin/payments/invoices/export";
+Line 206:         `/api/dashboard/admin/payments/invoices/${cancelTarget.id}/cancel`,
+Line 263:               href="/dashboard/admin/payments"
+Line 270:               href="/dashboard/admin/payments/invoice-settings"
+Line 474:                         {invoice.paymentTransactionId.slice(0, 14)}
+Line 512:                           href={`/dashboard/admin/payments/invoices/${invoice.id}`}
+
+----- components\admin\payments\admin-invoice-settings-page.tsx -----
+Line 77:       const response = await fetch("/api/dashboard/admin/payments/invoice-settings", {
+Line 106:       const response = await fetch("/api/dashboard/admin/payments/invoice-settings", {
+Line 156:               href="/dashboard/admin/payments"
+
+----- components\admin\payments\admin-payment-detail-page.tsx -----
+Line 6: type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "CANCELED";
+Line 7: type PaymentMethod = "CARD" | "BANK_TRANSFER" | "MANUAL";
+Line 9: type PaymentDetailResponse = {
+Line 17:     method: PaymentMethod;
+Line 18:     status: PaymentStatus;
+Line 72:     status: PaymentStatus;
+Line 139: function getCounselorName(transaction: PaymentDetailResponse["transaction"]) {
+Line 155: function getCounselorSubtitle(transaction: PaymentDetailResponse["transaction"]) {
+Line 211: export function AdminPaymentDetailPage({ transactionId }: { transactionId: string }) {
+Line 212:   const [data, setData] = useState<PaymentDetailResponse | null>(null);
+Line 230:       const response = await fetch(`/api/dashboard/admin/payments/${transactionId}`, {
+Line 240:       setData(payload as PaymentDetailResponse);
+Line 272:               href="/dashboard/admin/payments"
+Line 280:                 href={`/dashboard/admin/payments/${transactionId}/invoice`}
+Line 364:             <InfoCard title="بيانات العملية" description="البيانات الأساسية المسجلة في PaymentTransaction.">
+
+----- components\admin\payments\admin-payment-invoice-page.tsx -----
+Line 433: export function AdminPaymentInvoicePage({ transactionId }: { transactionId: string }) {
+Line 444:       const response = await fetch(`/api/dashboard/admin/payments/${transactionId}/invoice`, {
+Line 601:               href={`/dashboard/admin/payments/${transactionId}`}
+
+----- components\admin\payments\admin-payment-providers-page.tsx -----
+Line 6: type PaymentProvider = {
+Line 15:     webhookSecret?: string;
+Line 16:     checkoutBaseUrl?: string;
+Line 24:   providers: PaymentProvider[];
+Line 34:   webhookSecret: "",
+Line 35:   checkoutBaseUrl: "",
+Line 39: function getConfig(provider: PaymentProvider) {
+Line 45: export function AdminPaymentProvidersPage() {
+Line 46:   const [providers, setProviders] = useState<PaymentProvider[]>([]);
+Line 58:       const response = await fetch("/api/dashboard/admin/payments/providers", {
+Line 83:       const response = await fetch("/api/dashboard/admin/payments/providers", {
+Line 109:   async function toggleProvider(provider: PaymentProvider) {
+Line 117:         `/api/dashboard/admin/payments/providers/${provider.id}`,
+Line 128:             webhookSecret: config.webhookSecret || "",
+Line 129:             checkoutBaseUrl: config.checkoutBaseUrl || "",
+Line 166:               أضف مزودي الدفع الإلكتروني، واضبط مفاتيح الربط و webhook secret. يمكن استخدام مزود تجريبي الآن ثم ربط Moyasar أو Tap لاحقًا.
+Line 172:               href="/dashboard/admin/payments"
+Line 179:               href="/dashboard/admin/payments/invoices"
+Line 209:             placeholder="اسم المزود مثل Moyasar"
+Line 216:             placeholder="slug مثل moyasar أو test-provider"
+Line 258:             value={form.webhookSecret}
+Line 260:               setForm((old) => ({ ...old, webhookSecret: event.target.value }))
+Line 262:             placeholder="Webhook Secret"
+Line 268:             value={form.checkoutBaseUrl}
+Line 270:               setForm((old) => ({ ...old, checkoutBaseUrl: event.target.value }))
+Line 272:             placeholder="Checkout Base URL اختياري"
+Line 319:                   <th className="px-3 py-3 font-black">Webhook</th>
+Line 341:                         /api/payments/webhooks/{provider.slug}
+
+----- components\admin\payments\admin-payment-reconciliation-page.tsx -----
+Line 122:     ? `/api/dashboard/admin/payments/reconciliation?${queryString}`
+Line 123:     : "/api/dashboard/admin/payments/reconciliation";
+Line 142: export function AdminPaymentReconciliationPage() {
+Line 198:         `/api/dashboard/admin/payments/${operation.transaction.id}/${operation.type}`,
+Line 269:               href="/dashboard/admin/payments"
+Line 276:               href="/dashboard/admin/payments/invoices"
+Line 419:                         href={`/dashboard/admin/payments/${transaction.id}`}
+Line 459:                             href={`/dashboard/admin/payments/invoices/${transaction.invoice.id}`}
+
+----- components\admin\payments\admin-payments-dashboard.tsx -----
+Line 6: type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "CANCELED";
+Line 7: type PaymentMethod = "CARD" | "BANK_TRANSFER" | "MANUAL";
+Line 9: type PaymentMetrics = {
+Line 21:     status: PaymentStatus;
+Line 26:     method: PaymentMethod;
+Line 32: type PaymentTransaction = {
+Line 36:   method: PaymentMethod;
+Line 37:   status: PaymentStatus;
+Line 84:   status: PaymentStatus;
+Line 107: type PaymentsCenterResponse = {
+Line 109:   metrics: PaymentMetrics;
+Line 110:   transactions: PaymentTransaction[];
+Line 114: const paymentStatusOptions: Array<{ value: "ALL" | PaymentStatus; label: string }> = [
+Line 123: const paymentMethodOptions: Array<{ value: "ALL" | PaymentMethod; label: string }> = [
+Line 147: function buildPaymentsExportUrl({
+Line 155:   status: "ALL" | PaymentStatus;
+Line 156:   method: "ALL" | PaymentMethod;
+Line 168:   return `/api/dashboard/admin/payments/export?${params.toString()}`;
+Line 209: function getTransactionMetadata(transaction: PaymentTransaction) {
+Line 215: function getCounselorName(transaction: PaymentTransaction) {
+Line 229: function getCounselorSubtitle(transaction: PaymentTransaction) {
+Line 243: function getSchoolName(transaction: PaymentTransaction) {
+Line 293: export function AdminPaymentsDashboard() {
+Line 294:   const [data, setData] = useState<PaymentsCenterResponse | null>(null);
+Line 296:   const [status, setStatus] = useState<"ALL" | PaymentStatus>("ALL");
+Line 297:   const [method, setMethod] = useState<"ALL" | PaymentMethod>("ALL");
+Line 309:       buildPaymentsExportUrl({
+Line 319:   async function loadPayments() {
+Line 332:       const response = await fetch(`/api/dashboard/admin/payments?${params.toString()}`, {
+Line 342:       setData(payload as PaymentsCenterResponse);
+Line 359:       void loadPayments();
+Line 364:     void loadPayments();
+Line 386:             onClick={() => void loadPayments()}
+Line 474:                 onChange={(event) => setStatus(event.target.value as "ALL" | PaymentStatus)}
+Line 477:                 {paymentStatusOptions.map((option) => (
+Line 486:                 onChange={(event) => setMethod(event.target.value as "ALL" | PaymentMethod)}
+Line 489:                 {paymentMethodOptions.map((option) => (
+Line 514:                 onClick={() => void loadPayments()}
+Line 621:                               href={`/dashboard/admin/payments/${transaction.id}`}
+
+----- components\layout\dashboard-sidebar.tsx -----
+Line 249: const adminPaymentLinks: SidebarLinkItem[] = [
+Line 250:   { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+Line 251:   { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+Line 252:   { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+Line 253:   { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+Line 256:     href: "/dashboard/admin/payments/invoice-settings",
+Line 566:           defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+Line 570:           {adminPaymentLinks.map((item) => (
+
+----- components\payments\checkout-plan-page.tsx -----
+Line 28: export function CheckoutPlanPage({
+Line 47:   async function startCheckout() {
+Line 52:       const response = await fetch("/api/payments/checkout", {
+Line 70:       window.location.href = payload.checkoutUrl;
+Line 96:           لا يوجد حساب مدرسة مرتبط بمستخدمك الحالي، لذلك لا يمكن إنشاء checkout.
+Line 194:             onClick={() => void startCheckout()}
+
+----- components\subscription\counselor-plans-page.tsx -----
+Line 51: type PaymentMethod = "bank" | "online";
+Line 176:   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+Line 599:                 setPaymentMethod("bank");
+Line 722:             <PaymentCard
+Line 723:               active={paymentMethod === "bank"}
+Line 727:               onClick={() => setPaymentMethod("bank")}
+Line 730:             <PaymentCard
+Line 731:               active={paymentMethod === "online"}
+Line 736:               onClick={() => setPaymentMethod("online")}
+Line 785:           {!isSelectedPlanFree && paymentMethod === "bank" ? (
+Line 856: function PaymentCard({
+
+----- lib\activation\activation-service.ts -----
+Line 2: import type { PaymentStatus, SubscriptionStatus } from "@prisma/client";
+Line 155:   status?: PaymentStatus;
+
+----- lib\admin\activity-events.ts -----
+Line 74:     category: "PAYMENT",
+Line 128:     category: "PAYMENT",
+
+----- lib\admin\activity-log.ts -----
+Line 9:   | "PAYMENT"
+
+----- lib\admin\bank-transfer-payments.ts -----
+Line 5: type CreatePaidBankTransferPaymentTransactionOptions = {
+Line 13: type CreatePaidBankTransferPaymentTransactionResult = {
+Line 26: function isUniquePaymentTransactionRaceError(error: unknown) {
+Line 42:  * ينشئ PaymentTransaction مكتملة من طلب تحويل بنكي مدفوع.
+Line 50: export async function createPaidBankTransferPaymentTransaction(
+Line 52:   options: CreatePaidBankTransferPaymentTransactionOptions = {}
+Line 53: ): Promise<CreatePaidBankTransferPaymentTransactionResult> {
+Line 102:   const existingTransaction = await prisma.paymentTransaction.findFirst({
+Line 142:     const transaction = await prisma.paymentTransaction.create({
+Line 181:         category: "PAYMENT",
+Line 182:         action: "PAYMENT_TRANSACTION_CREATED_FROM_BANK_TRANSFER",
+Line 186:           paymentTransactionId: transaction.id,
+Line 206:     if (!isUniquePaymentTransactionRaceError(error)) {
+Line 210:     const transaction = await prisma.paymentTransaction.findFirst({
+
+----- lib\admin\invoices.ts -----
+Line 46:     metaText.includes("paymentTransactionId") ||
+Line 47:     metaText.includes("Invoice_paymentTransactionId_key") ||
+Line 48:     messageText.includes("paymentTransactionId") ||
+Line 49:     messageText.includes("Invoice_paymentTransactionId_key")
+Line 161: async function findInvoiceWithTransaction(paymentTransactionId: string) {
+Line 164:       paymentTransactionId,
+Line 167:       paymentTransaction: {
+Line 214:   const transaction = invoice.paymentTransaction;
+Line 266: export async function getOrCreateInvoiceForPaymentTransaction(
+Line 267:   paymentTransactionId: string,
+Line 270:   const existingInvoice = await findInvoiceWithTransaction(paymentTransactionId);
+Line 274:       existingInvoice.paymentTransaction.externalRef
+Line 283:   const transaction = await prisma.paymentTransaction.findUnique({
+Line 285:       id: paymentTransactionId,
+Line 377:           paymentTransactionId: transaction.id,
+Line 421:           paymentTransactionId: transaction.id,
+Line 477:   const createdInvoice = await findInvoiceWithTransaction(paymentTransactionId);
+Line 484:     createdInvoice.paymentTransaction.externalRef
+
+----- lib\admin\payments.ts -----
+Line 1: import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
+Line 3: import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
+Line 5: export type AdminPaymentsFilters = {
+Line 7:   status?: PaymentStatus | "ALL";
+Line 8:   method?: PaymentMethod | "ALL";
+Line 14: export function formatPaymentAmount(amount: number, currency = "SAR") {
+Line 22: function buildDateFilter(filters: AdminPaymentsFilters) {
+Line 43: export function buildAdminPaymentsWhere(filters: AdminPaymentsFilters) {
+Line 44:   const where: Prisma.PaymentTransactionWhereInput = {};
+Line 133: async function syncPaidBankTransfersIntoPaymentTransactions() {
+Line 152:       await createPaidBankTransferPaymentTransaction(request.id, {
+Line 154:         source: "PAYMENTS_CENTER_FALLBACK_SYNC",
+Line 157:       console.error("BANK_TRANSFER_PAYMENT_TRANSACTION_FALLBACK_SYNC_ERROR", {
+Line 165: export async function getAdminPaymentsCenterData(filters: AdminPaymentsFilters) {
+Line 166:   await syncPaidBankTransfersIntoPaymentTransactions();
+Line 168:   const where = buildAdminPaymentsWhere(filters);
+Line 184:     prisma.paymentTransaction.findMany({
+Line 226:     prisma.paymentTransaction.aggregate({
+Line 232:     prisma.paymentTransaction.aggregate({
+Line 241:     prisma.paymentTransaction.groupBy({
+Line 246:     prisma.paymentTransaction.groupBy({
+Line 308:   const countForStatus = (status: PaymentStatus) =>
+
+----- lib\payments\admin-payment-operations.ts -----
+Line 1: import { PaymentStatus, Prisma } from "@prisma/client";
+Line 3: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+Line 6: export class AdminPaymentOperationError extends Error {
+Line 11:     this.name = "AdminPaymentOperationError";
+Line 43: export async function cancelPaymentTransaction(input: OperationInput) {
+Line 46:   const transaction = await prisma.paymentTransaction.findUnique({
+Line 56:     throw new AdminPaymentOperationError("عملية الدفع غير موجودة.", 404);
+Line 59:   if (transaction.status === PaymentStatus.PAID) {
+Line 60:     throw new AdminPaymentOperationError(
+Line 66:   if (transaction.status === PaymentStatus.REFUNDED) {
+Line 67:     throw new AdminPaymentOperationError("لا يمكن إلغاء عملية مستردة مسبقًا.", 409);
+Line 70:   if (transaction.status === PaymentStatus.CANCELED) {
+Line 78:   const updatedTransaction = await prisma.paymentTransaction.update({
+Line 83:       status: PaymentStatus.CANCELED,
+Line 109:     category: "PAYMENT",
+Line 110:     action: "PAYMENT_TRANSACTION_CANCELED",
+Line 132: export async function refundPaymentTransaction(input: OperationInput) {
+Line 135:   const transaction = await prisma.paymentTransaction.findUnique({
+Line 145:     throw new AdminPaymentOperationError("عملية الدفع غير موجودة.", 404);
+Line 148:   if (transaction.status === PaymentStatus.REFUNDED) {
+Line 163:   if (transaction.status !== PaymentStatus.PAID) {
+Line 164:     throw new AdminPaymentOperationError(
+Line 176:     const updatedTransaction = await tx.paymentTransaction.update({
+Line 181:         status: PaymentStatus.REFUNDED,
+Line 218:             cancelSource: "PAYMENT_REFUND",
+Line 240:             source: "PAYMENT_REFUND",
+Line 243:             paymentTransactionId: transaction.id,
+Line 262:     category: "PAYMENT",
+Line 263:     action: "PAYMENT_TRANSACTION_REFUNDED",
+Line 290: export async function reconcilePaymentTransaction(input: OperationInput) {
+Line 291:   const transaction = await prisma.paymentTransaction.findUnique({
+Line 301:     throw new AdminPaymentOperationError("عملية الدفع غير موجودة.", 404);
+Line 304:   if (transaction.status !== PaymentStatus.PAID) {
+Line 305:     throw new AdminPaymentOperationError(
+Line 315:     const result = await getOrCreateInvoiceForPaymentTransaction(
+Line 324:         paymentTransactionId: transaction.id,
+Line 329:   const updatedTransaction = await prisma.paymentTransaction.update({
+Line 359:     category: "PAYMENT",
+Line 360:     action: "PAYMENT_TRANSACTION_RECONCILED",
+
+----- lib\payments\electronic-payments.ts -----
+Line 2:   PaymentMethod,
+Line 3:   PaymentStatus,
+Line 8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+Line 12: export class ElectronicPaymentError extends Error {
+Line 17:     this.name = "ElectronicPaymentError";
+Line 24: type CheckoutInput = {
+Line 32: type WebhookApplyInput = {
+Line 51: function getCheckoutAmount(plan: {
+Line 71: function buildInternalCheckoutUrl(transactionId: string) {
+Line 72:   return `/dashboard/checkout/transactions/${transactionId}`;
+Line 81:     checkoutBaseUrl:
+Line 82:       typeof config.checkoutBaseUrl === "string" ? config.checkoutBaseUrl : "",
+Line 86: export function getWebhookSecret(configJson: unknown) {
+Line 88:   return typeof config.webhookSecret === "string" ? config.webhookSecret : "";
+Line 91: export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
+Line 112:     prisma.paymentProvider.findUnique({
+Line 134:     throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+Line 138:     throw new ElectronicPaymentError("مزود الدفع غير متاح حاليًا.", 404);
+Line 142:     throw new ElectronicPaymentError("لا يمكن إنشاء عملية الدفع لهذا الحساب.", 403);
+Line 145:   const amount = getCheckoutAmount(plan, billingCycle);
+Line 148:     throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
+Line 151:   const transaction = await prisma.paymentTransaction.create({
+Line 156:       method: PaymentMethod.CARD,
+Line 157:       status: PaymentStatus.PENDING,
+Line 159:         source: "CHECKOUT",
+Line 175:   const externalRef = `checkout:${transaction.id}`;
+Line 177:   const updatedTransaction = await prisma.paymentTransaction.update({
+Line 191:     category: "PAYMENT",
+Line 192:     action: "CHECKOUT_TRANSACTION_CREATED",
+Line 194:     title: "إنشاء عملية دفع من صفحة Checkout",
+Line 210:   const checkoutUrl = publicConfig.checkoutBaseUrl
+Line 211:     ? `${publicConfig.checkoutBaseUrl}${
+Line 212:         publicConfig.checkoutBaseUrl.includes("?") ? "&" : "?"
+Line 216:     : buildInternalCheckoutUrl(updatedTransaction.id);
+Line 220:     checkoutUrl,
+Line 224: export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyInput) {
+Line 225:   const transaction = await prisma.paymentTransaction.findFirst({
+Line 230:       ].filter(Boolean) as Prisma.PaymentTransactionWhereInput[],
+Line 238:     throw new ElectronicPaymentError("عملية الدفع غير موجودة.", 404);
+Line 241:   if (transaction.status === PaymentStatus.PAID) {
+Line 258:     throw new ElectronicPaymentError("بيانات عملية الدفع غير مكتملة للتفعيل.", 409);
+Line 284:     return tx.paymentTransaction.update({
+Line 290:         status: PaymentStatus.PAID,
+Line 294:           webhookPayload: input.payload,
+Line 313:   await getOrCreateInvoiceForPaymentTransaction(
+Line 321:     category: "PAYMENT",
+Line 322:     action: "ELECTRONIC_PAYMENT_PAID_AND_SUBSCRIPTION_ACTIVATED",
+Line 344: export async function applyFailedElectronicPaymentTransaction(input: {
+Line 351:   const transaction = await prisma.paymentTransaction.findFirst({
+Line 356:       ].filter(Boolean) as Prisma.PaymentTransactionWhereInput[],
+Line 361:     throw new ElectronicPaymentError("عملية الدفع غير موجودة.", 404);
+Line 364:   if (transaction.status === PaymentStatus.PAID) {
+Line 365:     throw new ElectronicPaymentError("لا يمكن تغيير عملية مدفوعة إلى فاشلة أو ملغاة.", 409);
+Line 370:     input.status === "CANCELED" ? PaymentStatus.CANCELED : PaymentStatus.FAILED;
+Line 372:   const updatedTransaction = await prisma.paymentTransaction.update({
+Line 381:         webhookPayload: input.payload,
+Line 393:     category: "PAYMENT",
+Line 396:         ? "ELECTRONIC_PAYMENT_CANCELED_BY_WEBHOOK"
+Line 397:         : "ELECTRONIC_PAYMENT_FAILED_BY_WEBHOOK",
+Line 401:         ? "إلغاء عملية دفع إلكتروني عبر Webhook"
+Line 402:         : "فشل عملية دفع إلكتروني عبر Webhook",
+
+----- lib\subscription\payment-provider-contract.ts -----
+Line 1: export type PaymentProviderCode =
+Line 3:   | "MOYASAR"
+Line 10: export type CreateCheckoutInput = {
+Line 11:   provider: PaymentProviderCode;
+Line 23: export type CreateCheckoutResult = {
+Line 24:   provider: PaymentProviderCode;
+Line 25:   checkoutId: string;
+Line 26:   checkoutUrl: string;
+Line 27:   paymentTransactionId?: string;
+Line 30: export type VerifyWebhookInput = {
+Line 31:   provider: PaymentProviderCode;
+Line 36: export type VerifiedWebhookResult = {
+Line 40:   providerPaymentId?: string;
+Line 41:   paymentTransactionId?: string;
+Line 46: export type PaymentProviderAdapter = {
+Line 47:   code: PaymentProviderCode;
+Line 48:   createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult>;
+Line 49:   verifyWebhook(input: VerifyWebhookInput): Promise<VerifiedWebhookResult>;
+Line 55:   - MoyasarPaymentProvider
+Line 56:   - HyperPayPaymentProvider
+Line 57:   - TapPaymentProvider
+Line 60:   هو يتعامل مع createCheckout و verifyWebhook فقط.
+Line 62: export function getPaymentProviderAdapter(
+Line 63:   provider: PaymentProviderCode
+Line 64: ): PaymentProviderAdapter {
+Line 66:     throw new Error("التحويل البنكي اليدوي لا يستخدم Checkout إلكتروني.");

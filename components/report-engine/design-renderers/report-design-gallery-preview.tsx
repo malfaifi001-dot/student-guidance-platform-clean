@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   ReportDesignRenderer,
   reportDesignTemplates,
   selectableReportDesignTemplates,
@@ -139,7 +140,7 @@ const previewCase = {
 
 export function ReportDesignGalleryPreview() {
   const [selectedDesignId, setSelectedDesignId] =
-    useState<ReportDesignId>("ministry-form");
+    useState<ReportDesignId>(DEFAULT_SELECTABLE_REPORT_DESIGN_ID);
   const [activePageId, setActivePageId] = useState("raw-preview-content");
 
   const pages = useMemo(() => createPreviewPages(), []);

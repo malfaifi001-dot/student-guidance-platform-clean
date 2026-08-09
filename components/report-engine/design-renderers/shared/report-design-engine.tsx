@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   isReportDesignId,
-  reportDesignTemplates,
+  selectableReportDesignTemplates,
 } from "../report-design-registry";
 import { getReportDesignImplementation } from "../report-design-implementations";
 import type { ReportDesignId } from "../report-design-types";
 
 export {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   reportDesignTemplates,
   selectableReportDesignTemplates,
   SELECTABLE_REPORT_DESIGN_IDS,
@@ -32,8 +33,8 @@ export function ReportDesignRenderer({
   activePageId,
   context,
   previewCase,
+  onDesignChange,
   onActivePageChange,
-  onAddPage,
   onMovePage,
   onDeletePage,
   canMovePage,
@@ -204,26 +205,32 @@ export function ReportDesignRenderer({
   const logoStyle = <style>{logoStyleText}</style>;
   const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
   const signatureStyle = <style>{signatureStyleText}</style>;
+  const selectedDesignDefinition = selectableReportDesignTemplates.find(
+    (design) => design.id === selectedDesign,
+  );
+  const previewHeading = selectedDesignDefinition
+    ? selectedDesignDefinition.name.replace(
+        /^التصميم/,
+        "المعاينة للتصميم",
+      )
+    : "معاينة التقرير";
 
   const controls = (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="text-right">
           <h2 className="text-lg font-black text-slate-900">
-            المعاينة الرسمية A4
+            {previewHeading}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            التصميم الحالي: {getDesignName(selectedDesign)}
-          </p>
         </div>
-
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-          {previewCase ? "Case ID فعلي" : "بيانات تجريبية"}
-        </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {pageNavigationItems.map((navigationItem, index) => {
+      <div
+        className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+        dir="rtl"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          {pageNavigationItems.map((navigationItem, index) => {
           const page = pages.find(
             (candidate: any) =>
               candidate.id === navigationItem.sourceLogicalPageId,
@@ -320,15 +327,33 @@ export function ReportDesignRenderer({
               ) : null}
             </div>
           );
-        })}
+          })}
+        </div>
 
-        <button
-          type="button"
-          onClick={onAddPage}
-          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
-        >
-          + صفحة محتوى
-        </button>
+        {onDesignChange ? (
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {selectableReportDesignTemplates.map((design) => {
+              const active = design.id === selectedDesign;
+
+              return (
+                <button
+                  key={design.id}
+                  type="button"
+                  onClick={() => onDesignChange(design.id)}
+                  className={[
+                    "rounded-2xl border px-4 py-2 text-xs font-black transition",
+                    active
+                      ? "border-emerald-600 bg-emerald-700 text-white shadow-sm"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+                  ].join(" ")}
+                  aria-pressed={active}
+                >
+                  {design.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -475,8 +500,5 @@ import { getReportDesignLogoStyleText } from "./report-logo";
 
 export function normalizeDesignId(value: string): ReportDesignId {
   return isReportDesignId(value) ? value : "ministry-form";
-}
-function getDesignName(designId: ReportDesignId) {
-  return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
 }
 

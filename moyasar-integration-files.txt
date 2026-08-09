@@ -1,0 +1,1320 @@
+Moyasar Integration Files
+Generated: 08/09/2026 18:36:04
+
+==================================================
+FILE: lib\payments\electronic-payments.ts
+==================================================
+import {
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+  SubscriptionStatus,
+} from "@prisma/client";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+import { prisma } from "@/lib/prisma";
+import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+
+export class ElectronicPaymentError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "ElectronicPaymentError";
+    this.status = status;
+  }
+}
+
+type BillingCycle = "MONTHLY" | "YEARLY";
+
+type CheckoutInput = {
+  requesterUserId: string;
+  schoolAccountId: string;
+  planId: string;
+  billingCycle: BillingCycle;
+  providerSlug: string;
+};
+
+type WebhookApplyInput = {
+  transactionId?: string | null;
+  externalRef?: string | null;
+  providerSlug: string;
+  payload: unknown;
+};
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function getObject(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function normalizeBillingCycle(value: unknown): BillingCycle {
+  return String(value || "MONTHLY").toUpperCase() === "YEARLY" ? "YEARLY" : "MONTHLY";
+}
+
+function getCheckoutAmount(plan: {
+  priceMonthly: number;
+  priceYearly: number;
+}, billingCycle: BillingCycle) {
+  return billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
+}
+
+function getEndsAt(billingCycle: BillingCycle) {
+  const now = new Date();
+  const endsAt = new Date(now);
+
+  if (billingCycle === "YEARLY") {
+    endsAt.setFullYear(endsAt.getFullYear() + 1);
+  } else {
+    endsAt.setDate(endsAt.getDate() + 30);
+  }
+
+  return endsAt;
+}
+
+function buildInternalCheckoutUrl(transactionId: string) {
+  return `/dashboard/checkout/transactions/${transactionId}`;
+}
+
+export function getPublicProviderConfig(configJson: unknown) {
+  const config = getObject(configJson);
+
+  return {
+    mode: String(config.mode || "TEST"),
+    publicKey: typeof config.publicKey === "string" ? config.publicKey : "",
+    checkoutBaseUrl:
+      typeof config.checkoutBaseUrl === "string" ? config.checkoutBaseUrl : "",
+  };
+}
+
+export function getWebhookSecret(configJson: unknown) {
+  const config = getObject(configJson);
+  return typeof config.webhookSecret === "string" ? config.webhookSecret : "";
+}
+
+export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
+  const billingCycle = normalizeBillingCycle(input.billingCycle);
+
+  const [plan, provider, requesterUser] = await Promise.all([
+    prisma.plan.findUnique({
+      where: {
+        id: input.planId,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        priceMonthly: true,
+        priceYearly: true,
+        isActive: true,
+        isPublic: true,
+        isArchived: true,
+        visibleRoles: true,
+        features: true,
+      },
+    }),
+    prisma.paymentProvider.findUnique({
+      where: {
+        slug: input.providerSlug,
+      },
+    }),
+    prisma.user.findUnique({
+      where: {
+        id: input.requesterUserId,
+      },
+      select: {
+        id: true,
+        name: true,
+        officialName: true,
+        email: true,
+        jobTitle: true,
+        role: true,
+        schoolAccountId: true,
+      },
+    }),
+  ]);
+
+  if (!plan || !requesterUser || !isPlanSelfServiceVisible(plan, requesterUser.role)) {
+    throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  }
+
+  if (!provider || !provider.isActive) {
+    throw new ElectronicPaymentError("مزود الدفع غير متاح حاليًا.", 404);
+  }
+
+  if (!requesterUser || requesterUser.schoolAccountId !== input.schoolAccountId) {
+    throw new ElectronicPaymentError("لا يمكن إنشاء عملية الدفع لهذا الحساب.", 403);
+  }
+
+  const amount = getCheckoutAmount(plan, billingCycle);
+
+  if (!amount || amount <= 0) {
+    throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
+  }
+
+  const transaction = await prisma.paymentTransaction.create({
+    data: {
+      providerId: provider.id,
+      amount,
+      currency: "SAR",
+      method: PaymentMethod.CARD,
+      status: PaymentStatus.PENDING,
+      metadataJson: asJson({
+        source: "CHECKOUT",
+        planId: plan.id,
+        planSlug: plan.slug,
+        planName: plan.name,
+        billingCycle,
+        schoolAccountId: input.schoolAccountId,
+        requesterUserId: requesterUser.id,
+        requesterName: requesterUser.officialName || requesterUser.name,
+        requesterEmail: requesterUser.email,
+        requesterJobTitle: requesterUser.jobTitle,
+        providerSlug: provider.slug,
+        createdAt: new Date().toISOString(),
+      }),
+    },
+  });
+
+  const externalRef = `checkout:${transaction.id}`;
+
+  const updatedTransaction = await prisma.paymentTransaction.update({
+    where: {
+      id: transaction.id,
+    },
+    data: {
+      externalRef,
+    },
+    include: {
+      provider: true,
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: requesterUser.id,
+    category: "PAYMENT",
+    action: "CHECKOUT_TRANSACTION_CREATED",
+    severity: "INFO",
+    title: "إنشاء عملية دفع من صفحة Checkout",
+    details: {
+      transactionId: updatedTransaction.id,
+      externalRef,
+      amount,
+      currency: updatedTransaction.currency,
+      planId: plan.id,
+      planName: plan.name,
+      billingCycle,
+      providerSlug: provider.slug,
+      schoolAccountId: input.schoolAccountId,
+    },
+  });
+
+  const publicConfig = getPublicProviderConfig(provider.configJson);
+
+  const checkoutUrl = publicConfig.checkoutBaseUrl
+    ? `${publicConfig.checkoutBaseUrl}${
+        publicConfig.checkoutBaseUrl.includes("?") ? "&" : "?"
+      }transactionId=${encodeURIComponent(updatedTransaction.id)}&externalRef=${encodeURIComponent(
+        externalRef
+      )}&amount=${encodeURIComponent(String(amount))}&currency=SAR`
+    : buildInternalCheckoutUrl(updatedTransaction.id);
+
+  return {
+    transaction: updatedTransaction,
+    checkoutUrl,
+  };
+}
+
+export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyInput) {
+  const transaction = await prisma.paymentTransaction.findFirst({
+    where: {
+      OR: [
+        input.transactionId ? { id: input.transactionId } : undefined,
+        input.externalRef ? { externalRef: input.externalRef } : undefined,
+      ].filter(Boolean) as Prisma.PaymentTransactionWhereInput[],
+    },
+    include: {
+      provider: true,
+    },
+  });
+
+  if (!transaction) {
+    throw new ElectronicPaymentError("عملية الدفع غير موجودة.", 404);
+  }
+
+  if (transaction.status === PaymentStatus.PAID) {
+    return {
+      transaction,
+      wasActivated: false,
+      wasAlreadyPaid: true,
+    };
+  }
+
+  const metadata = getObject(transaction.metadataJson);
+  const planId = typeof metadata.planId === "string" ? metadata.planId : null;
+  const schoolAccountId =
+    typeof metadata.schoolAccountId === "string" ? metadata.schoolAccountId : null;
+  const billingCycle = normalizeBillingCycle(metadata.billingCycle);
+  const requesterUserId =
+    typeof metadata.requesterUserId === "string" ? metadata.requesterUserId : null;
+
+  if (!planId || !schoolAccountId) {
+    throw new ElectronicPaymentError("بيانات عملية الدفع غير مكتملة للتفعيل.", 409);
+  }
+
+  const startsAt = new Date();
+  const endsAt = getEndsAt(billingCycle);
+
+  const paidTransaction = await prisma.$transaction(async (tx) => {
+    const subscription = await tx.subscription.upsert({
+      where: {
+        schoolAccountId,
+      },
+      update: {
+        planId,
+        status: SubscriptionStatus.ACTIVE,
+        startsAt,
+        endsAt,
+      },
+      create: {
+        schoolAccountId,
+        planId,
+        status: SubscriptionStatus.ACTIVE,
+        startsAt,
+        endsAt,
+      },
+    });
+
+    return tx.paymentTransaction.update({
+      where: {
+        id: transaction.id,
+      },
+      data: {
+        subscriptionId: subscription.id,
+        status: PaymentStatus.PAID,
+        metadataJson: asJson({
+          ...metadata,
+          providerSlug: input.providerSlug,
+          webhookPayload: input.payload,
+          paidAt: new Date().toISOString(),
+          activatedAt: new Date().toISOString(),
+          startsAt: startsAt.toISOString(),
+          endsAt: endsAt.toISOString(),
+        }),
+      },
+      include: {
+        provider: true,
+        subscription: {
+          include: {
+            plan: true,
+            schoolAccount: true,
+          },
+        },
+      },
+    });
+  });
+
+  await getOrCreateInvoiceForPaymentTransaction(
+    paidTransaction.id,
+    requesterUserId || null
+  );
+
+  await logAdminActivity({
+    actorUserId: requesterUserId || null,
+    schoolAccountId,
+    category: "PAYMENT",
+    action: "ELECTRONIC_PAYMENT_PAID_AND_SUBSCRIPTION_ACTIVATED",
+    severity: "SUCCESS",
+    title: "نجاح دفع إلكتروني وتفعيل الاشتراك",
+    details: {
+      transactionId: paidTransaction.id,
+      externalRef: paidTransaction.externalRef,
+      amount: paidTransaction.amount,
+      currency: paidTransaction.currency,
+      planId,
+      billingCycle,
+      providerSlug: input.providerSlug,
+      subscriptionId: paidTransaction.subscriptionId,
+    },
+  });
+
+  return {
+    transaction: paidTransaction,
+    wasActivated: true,
+    wasAlreadyPaid: false,
+  };
+}
+
+export async function applyFailedElectronicPaymentTransaction(input: {
+  transactionId?: string | null;
+  externalRef?: string | null;
+  status: "FAILED" | "CANCELED";
+  providerSlug: string;
+  payload: unknown;
+}) {
+  const transaction = await prisma.paymentTransaction.findFirst({
+    where: {
+      OR: [
+        input.transactionId ? { id: input.transactionId } : undefined,
+        input.externalRef ? { externalRef: input.externalRef } : undefined,
+      ].filter(Boolean) as Prisma.PaymentTransactionWhereInput[],
+    },
+  });
+
+  if (!transaction) {
+    throw new ElectronicPaymentError("عملية الدفع غير موجودة.", 404);
+  }
+
+  if (transaction.status === PaymentStatus.PAID) {
+    throw new ElectronicPaymentError("لا يمكن تغيير عملية مدفوعة إلى فاشلة أو ملغاة.", 409);
+  }
+
+  const metadata = getObject(transaction.metadataJson);
+  const nextStatus =
+    input.status === "CANCELED" ? PaymentStatus.CANCELED : PaymentStatus.FAILED;
+
+  const updatedTransaction = await prisma.paymentTransaction.update({
+    where: {
+      id: transaction.id,
+    },
+    data: {
+      status: nextStatus,
+      metadataJson: asJson({
+        ...metadata,
+        providerSlug: input.providerSlug,
+        webhookPayload: input.payload,
+        closedAt: new Date().toISOString(),
+        closeReason: input.status,
+      }),
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId:
+      typeof metadata.requesterUserId === "string" ? metadata.requesterUserId : null,
+    schoolAccountId:
+      typeof metadata.schoolAccountId === "string" ? metadata.schoolAccountId : null,
+    category: "PAYMENT",
+    action:
+      input.status === "CANCELED"
+        ? "ELECTRONIC_PAYMENT_CANCELED_BY_WEBHOOK"
+        : "ELECTRONIC_PAYMENT_FAILED_BY_WEBHOOK",
+    severity: input.status === "CANCELED" ? "WARNING" : "ERROR",
+    title:
+      input.status === "CANCELED"
+        ? "إلغاء عملية دفع إلكتروني عبر Webhook"
+        : "فشل عملية دفع إلكتروني عبر Webhook",
+    details: {
+      transactionId: updatedTransaction.id,
+      externalRef: updatedTransaction.externalRef,
+      amount: updatedTransaction.amount,
+      currency: updatedTransaction.currency,
+      providerSlug: input.providerSlug,
+      status: input.status,
+    },
+  });
+
+  return updatedTransaction;
+}
+
+
+==================================================
+FILE: lib\subscription\payment-provider-contract.ts
+==================================================
+export type PaymentProviderCode =
+  | "MANUAL_BANK_TRANSFER"
+  | "MOYASAR"
+  | "HYPERPAY"
+  | "TAP"
+  | "STRIPE";
+
+export type BillingCycle = "monthly" | "yearly" | "custom";
+
+export type CreateCheckoutInput = {
+  provider: PaymentProviderCode;
+  schoolAccountId: string;
+  userId: string;
+  planId: string;
+  amount: number;
+  currency: "SAR";
+  billingCycle: BillingCycle;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+};
+
+export type CreateCheckoutResult = {
+  provider: PaymentProviderCode;
+  checkoutId: string;
+  checkoutUrl: string;
+  paymentTransactionId?: string;
+};
+
+export type VerifyWebhookInput = {
+  provider: PaymentProviderCode;
+  headers: Headers;
+  rawBody: string;
+};
+
+export type VerifiedWebhookResult = {
+  ok: boolean;
+  eventId: string;
+  eventType: string;
+  providerPaymentId?: string;
+  paymentTransactionId?: string;
+  status?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  raw?: unknown;
+};
+
+export type PaymentProviderAdapter = {
+  code: PaymentProviderCode;
+  createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult>;
+  verifyWebhook(input: VerifyWebhookInput): Promise<VerifiedWebhookResult>;
+};
+
+/*
+  هذه واجهة مستقبلية فقط.
+  لاحقًا نضيف:
+  - MoyasarPaymentProvider
+  - HyperPayPaymentProvider
+  - TapPaymentProvider
+
+  النظام الحالي لا يعتمد على اسم مزود الدفع.
+  هو يتعامل مع createCheckout و verifyWebhook فقط.
+*/
+export function getPaymentProviderAdapter(
+  provider: PaymentProviderCode
+): PaymentProviderAdapter {
+  if (provider === "MANUAL_BANK_TRANSFER") {
+    throw new Error("التحويل البنكي اليدوي لا يستخدم Checkout إلكتروني.");
+  }
+
+  throw new Error(`مزود الدفع ${provider} غير مفعّل بعد.`);
+}
+
+
+==================================================
+FILE: app\api\payments\checkout\route.ts
+==================================================
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  createCheckoutPaymentTransaction,
+  ElectronicPaymentError,
+} from "@/lib/payments/electronic-payments";
+
+export async function POST(request: NextRequest) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
+  }
+
+  if (!current.user.schoolAccountId) {
+    return NextResponse.json(
+      { error: "لا يوجد حساب مدرسة مرتبط بالمستخدم الحالي." },
+      { status: 403 }
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+
+  try {
+    const result = await createCheckoutPaymentTransaction({
+      requesterUserId: current.user.id,
+      schoolAccountId: current.user.schoolAccountId,
+      planId: String(body?.planId || ""),
+      billingCycle:
+        String(body?.billingCycle || "MONTHLY").toUpperCase() === "YEARLY"
+          ? "YEARLY"
+          : "MONTHLY",
+      providerSlug: String(body?.providerSlug || ""),
+    });
+
+    return NextResponse.json({
+      transaction: result.transaction,
+      checkoutUrl: result.checkoutUrl,
+    });
+  } catch (error) {
+    if (error instanceof ElectronicPaymentError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    console.error("checkout payment failed", error);
+    return NextResponse.json(
+      { error: "تعذر إنشاء عملية الدفع." },
+      { status: 500 }
+    );
+  }
+}
+
+==================================================
+FILE: app\api\payments\webhooks\[provider]\route.ts
+==================================================
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  applyFailedElectronicPaymentTransaction,
+  applyPaidElectronicPaymentTransaction,
+  ElectronicPaymentError,
+  getWebhookSecret,
+} from "@/lib/payments/electronic-payments";
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    provider: string;
+  }>;
+};
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function normalizeStatus(value: unknown) {
+  const status = String(value || "").trim().toUpperCase();
+
+  if (["PAID", "SUCCESS", "SUCCEEDED", "CAPTURED"].includes(status)) {
+    return "PAID";
+  }
+
+  if (["CANCELED", "CANCELLED", "VOIDED"].includes(status)) {
+    return "CANCELED";
+  }
+
+  if (["FAILED", "DECLINED", "ERROR"].includes(status)) {
+    return "FAILED";
+  }
+
+  return "UNKNOWN";
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  const { provider: providerSlug } = await context.params;
+
+  const provider = await prisma.paymentProvider.findUnique({
+    where: {
+      slug: providerSlug,
+    },
+  });
+
+  if (!provider || !provider.isActive) {
+    return NextResponse.json(
+      { error: "مزود الدفع غير متاح." },
+      { status: 404 }
+    );
+  }
+
+  const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const expectedSecret = getWebhookSecret(provider.configJson);
+  const receivedSecret =
+    request.headers.get("x-payment-webhook-secret") ||
+    request.headers.get("x-webhook-secret") ||
+    "";
+
+  if (expectedSecret && expectedSecret !== receivedSecret) {
+    await prisma.webhookEvent.create({
+      data: {
+        providerId: null,
+        eventType: `payment.${providerSlug}.unauthorized`,
+        payloadJson: asJson(payload),
+        processed: false,
+      },
+    });
+
+    return NextResponse.json(
+      { error: "Webhook secret غير صحيح." },
+      { status: 401 }
+    );
+  }
+
+  const event = await prisma.webhookEvent.create({
+    data: {
+      providerId: null,
+      eventType: `payment.${providerSlug}.${String(payload.status || "unknown")}`,
+      payloadJson: asJson(payload),
+      processed: false,
+    },
+  });
+
+  const transactionId =
+    typeof payload.transactionId === "string" ? payload.transactionId : null;
+  const externalRef =
+    typeof payload.externalRef === "string" ? payload.externalRef : null;
+  const status = normalizeStatus(payload.status);
+
+  try {
+    let result: unknown;
+
+    if (status === "PAID") {
+      result = await applyPaidElectronicPaymentTransaction({
+        transactionId,
+        externalRef,
+        providerSlug,
+        payload,
+      });
+    } else if (status === "FAILED" || status === "CANCELED") {
+      result = await applyFailedElectronicPaymentTransaction({
+        transactionId,
+        externalRef,
+        status,
+        providerSlug,
+        payload,
+      });
+    } else {
+      throw new ElectronicPaymentError("حالة webhook غير مدعومة.", 400);
+    }
+
+    await prisma.webhookEvent.update({
+      where: {
+        id: event.id,
+      },
+      data: {
+        processed: true,
+        processedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      eventId: event.id,
+      result,
+    });
+  } catch (error) {
+    await prisma.webhookEvent.update({
+      where: {
+        id: event.id,
+      },
+      data: {
+        processed: false,
+      },
+    });
+
+    if (error instanceof ElectronicPaymentError) {
+      return NextResponse.json(
+        { error: error.message, eventId: event.id },
+        { status: error.status }
+      );
+    }
+
+    console.error("payment webhook failed", error);
+
+    return NextResponse.json(
+      { error: "تعذر معالجة webhook.", eventId: event.id },
+      { status: 500 }
+    );
+  }
+}
+
+==================================================
+FILE: app\api\payments\webhooks\[providerSlug]\route.ts
+==================================================
+NOT FOUND
+
+==================================================
+FILE: app\dashboard\checkout\transactions\[transactionId]\page.tsx
+==================================================
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+
+type PageProps = {
+  params: Promise<{
+    transactionId: string;
+  }>;
+};
+
+function formatAmount(amount: number, currency = "SAR") {
+  return new Intl.NumberFormat("ar-SA", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+}
+
+function getObject(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    PENDING: "بانتظار الدفع",
+    PAID: "مدفوعة",
+    FAILED: "فاشلة",
+    CANCELED: "ملغاة",
+    REFUNDED: "مستردة",
+  };
+
+  return labels[status] || status;
+}
+
+export default async function CheckoutTransactionRoutePage({ params }: PageProps) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  const { transactionId } = await params;
+
+  const transaction = await prisma.paymentTransaction.findUnique({
+    where: {
+      id: transactionId,
+    },
+    include: {
+      provider: true,
+      subscription: {
+        include: {
+          plan: true,
+        },
+      },
+      invoice: {
+        select: {
+          id: true,
+          invoiceNumber: true,
+        },
+      },
+    },
+  });
+
+  if (!transaction) {
+    notFound();
+  }
+
+  const metadata = getObject(transaction.metadataJson);
+  const ownerSchoolAccountId =
+    typeof metadata.schoolAccountId === "string" ? metadata.schoolAccountId : null;
+
+  if (
+    current.user.role !== "ADMIN" &&
+    ownerSchoolAccountId &&
+    ownerSchoolAccountId !== current.user.schoolAccountId
+  ) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
+          الدفع الإلكتروني
+        </p>
+        <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+          حالة عملية الدفع
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-400">
+          هذه الصفحة تعرض حالة عملية الدفع بعد إنشاء checkout. عند نجاح webhook يتم تفعيل الاشتراك وإصدار الفاتورة تلقائيًا.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            الحالة
+          </p>
+          <p className="mt-3 text-2xl font-black text-slate-950 dark:text-white">
+            {getStatusLabel(transaction.status)}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            المبلغ
+          </p>
+          <p className="mt-3 text-2xl font-black text-slate-950 dark:text-white">
+            {formatAmount(transaction.amount, transaction.currency)}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            المزود
+          </p>
+          <p className="mt-3 text-2xl font-black text-slate-950 dark:text-white">
+            {transaction.provider?.name || "—"}
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <h2 className="text-lg font-black text-slate-950 dark:text-white">
+          بيانات الربط
+        </h2>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-bold text-slate-500">Transaction ID</p>
+            <p className="mt-2 break-all text-sm font-black text-slate-950 dark:text-white" dir="ltr">
+              {transaction.id}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-bold text-slate-500">External Ref</p>
+            <p className="mt-2 break-all text-sm font-black text-slate-950 dark:text-white" dir="ltr">
+              {transaction.externalRef || "—"}
+            </p>
+          </div>
+        </div>
+
+        {transaction.invoice ? (
+          <Link
+            href={`/dashboard/admin/payments/invoices/${transaction.invoice.id}`}
+            className="mt-5 inline-flex rounded-2xl border border-emerald-200 px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
+          >
+            فتح الفاتورة {transaction.invoice.invoiceNumber}
+          </Link>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+==================================================
+FILE: components\payments\checkout-plan-page.tsx
+==================================================
+"use client";
+
+import { useMemo, useState } from "react";
+
+type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+  priceMonthly: number;
+  priceYearly: number;
+  isActive: boolean;
+};
+
+type Provider = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+function formatAmount(amount: number) {
+  return new Intl.NumberFormat("ar-SA", {
+    style: "currency",
+    currency: "SAR",
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+}
+
+export function CheckoutPlanPage({
+  plan,
+  providers,
+  userHasSchoolAccount,
+}: {
+  plan: Plan;
+  providers: Provider[];
+  userHasSchoolAccount: boolean;
+}) {
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+  const [providerSlug, setProviderSlug] = useState(providers[0]?.slug || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const amount = useMemo(
+    () => (billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly),
+    [billingCycle, plan.priceMonthly, plan.priceYearly]
+  );
+
+  async function startCheckout() {
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          planId: plan.id,
+          billingCycle,
+          providerSlug,
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "تعذر إنشاء عملية الدفع.");
+      }
+
+      window.location.href = payload.checkoutUrl;
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء عملية الدفع."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
+          إتمام الاشتراك
+        </p>
+        <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+          {plan.name}
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-400">
+          اختر دورة الفوترة ومزود الدفع، ثم ابدأ عملية الدفع الإلكتروني.
+        </p>
+      </section>
+
+      {!userHasSchoolAccount ? (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+          لا يوجد حساب مدرسة مرتبط بمستخدمك الحالي، لذلك لا يمكن إنشاء checkout.
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">
+            خيارات الدفع
+          </h2>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("MONTHLY")}
+              className={
+                billingCycle === "MONTHLY"
+                  ? "rounded-3xl border border-emerald-300 bg-emerald-50 p-5 text-right dark:border-emerald-900/60 dark:bg-emerald-950/30"
+                  : "rounded-3xl border border-slate-200 bg-white p-5 text-right dark:border-slate-800 dark:bg-slate-950"
+              }
+            >
+              <p className="font-black text-slate-950 dark:text-white">شهري</p>
+              <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
+                {formatAmount(plan.priceMonthly)}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBillingCycle("YEARLY")}
+              className={
+                billingCycle === "YEARLY"
+                  ? "rounded-3xl border border-emerald-300 bg-emerald-50 p-5 text-right dark:border-emerald-900/60 dark:bg-emerald-950/30"
+                  : "rounded-3xl border border-slate-200 bg-white p-5 text-right dark:border-slate-800 dark:bg-slate-950"
+              }
+            >
+              <p className="font-black text-slate-950 dark:text-white">سنوي</p>
+              <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
+                {formatAmount(plan.priceYearly)}
+              </p>
+            </button>
+          </div>
+
+          <label className="mt-5 block">
+            <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+              مزود الدفع
+            </span>
+            <select
+              value={providerSlug}
+              onChange={(event) => setProviderSlug(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            >
+              {providers.length === 0 ? (
+                <option value="">لا يوجد مزود دفع مفعل</option>
+              ) : (
+                providers.map((provider) => (
+                  <option key={provider.id} value={provider.slug}>
+                    {provider.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </div>
+
+        <aside className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">
+            ملخص الطلب
+          </h2>
+
+          <div className="mt-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400">الباقة</span>
+              <strong className="text-slate-950 dark:text-white">{plan.name}</strong>
+            </div>
+
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400">الفوترة</span>
+              <strong className="text-slate-950 dark:text-white">
+                {billingCycle === "YEARLY" ? "سنوي" : "شهري"}
+              </strong>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500 dark:text-slate-400">الإجمالي</span>
+              <strong className="text-2xl text-emerald-700 dark:text-emerald-200">
+                {formatAmount(amount)}
+              </strong>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void startCheckout()}
+            disabled={
+              isSubmitting ||
+              !userHasSchoolAccount ||
+              providers.length === 0 ||
+              !providerSlug ||
+              amount <= 0
+            }
+            className="mt-6 w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+          >
+            {isSubmitting ? "جارٍ إنشاء العملية..." : "بدء الدفع"}
+          </button>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+==================================================
+FILE: app\api\dashboard\admin\payments\providers\route.ts
+==================================================
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { prisma } from "@/lib/prisma";
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function normalizeSlug(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function buildConfig(body: Record<string, unknown>) {
+  return asJson({
+    mode: String(body.mode || "TEST").toUpperCase(),
+    publicKey: String(body.publicKey || "").trim(),
+    secretKey: String(body.secretKey || "").trim(),
+    webhookSecret: String(body.webhookSecret || "").trim(),
+    checkoutBaseUrl: String(body.checkoutBaseUrl || "").trim(),
+    notes: String(body.notes || "").trim(),
+  });
+}
+
+export async function GET() {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const providers = await prisma.paymentProvider.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return NextResponse.json({
+    providers,
+  });
+}
+
+export async function POST(request: NextRequest) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+  const device = await getRequestDeviceInfo();
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const name = String(body.name || "").trim();
+  const slug = normalizeSlug(body.slug);
+  const isActive = Boolean(body.isActive);
+
+  if (!name) {
+    return NextResponse.json({ error: "اسم مزود الدفع مطلوب." }, { status: 400 });
+  }
+
+  if (!slug) {
+    return NextResponse.json({ error: "رمز مزود الدفع مطلوب." }, { status: 400 });
+  }
+
+  const provider = await prisma.paymentProvider.upsert({
+    where: {
+      slug,
+    },
+    update: {
+      name,
+      isActive,
+      configJson: buildConfig(body),
+    },
+    create: {
+      name,
+      slug,
+      isActive,
+      configJson: buildConfig(body),
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: current?.user.id || null,
+    category: "PAYMENT",
+    action: "PAYMENT_PROVIDER_UPSERTED",
+    severity: "SUCCESS",
+    title: "حفظ مزود دفع إلكتروني",
+    details: {
+      providerId: provider.id,
+      name: provider.name,
+      slug: provider.slug,
+      isActive: provider.isActive,
+    },
+    ipAddress: device.ipAddress,
+    userAgent: device.userAgent,
+  });
+
+  return NextResponse.json({
+    provider,
+    message: "تم حفظ مزود الدفع بنجاح.",
+  });
+}
+
+==================================================
+FILE: app\api\dashboard\admin\payments\providers\[providerId]\route.ts
+==================================================
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    providerId: string;
+  }>;
+};
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function getObject(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+  const device = await getRequestDeviceInfo();
+  const { providerId } = await context.params;
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const existing = await prisma.paymentProvider.findUnique({
+    where: {
+      id: providerId,
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "مزود الدفع غير موجود." }, { status: 404 });
+  }
+
+  const currentConfig = getObject(existing.configJson);
+
+  const provider = await prisma.paymentProvider.update({
+    where: {
+      id: providerId,
+    },
+    data: {
+      name:
+        typeof body.name === "string" && body.name.trim()
+          ? body.name.trim()
+          : existing.name,
+      isActive:
+        typeof body.isActive === "boolean" ? body.isActive : existing.isActive,
+      configJson: asJson({
+        ...currentConfig,
+        mode:
+          typeof body.mode === "string"
+            ? body.mode.toUpperCase()
+            : currentConfig.mode || "TEST",
+        publicKey:
+          typeof body.publicKey === "string"
+            ? body.publicKey.trim()
+            : currentConfig.publicKey || "",
+        secretKey:
+          typeof body.secretKey === "string"
+            ? body.secretKey.trim()
+            : currentConfig.secretKey || "",
+        webhookSecret:
+          typeof body.webhookSecret === "string"
+            ? body.webhookSecret.trim()
+            : currentConfig.webhookSecret || "",
+        checkoutBaseUrl:
+          typeof body.checkoutBaseUrl === "string"
+            ? body.checkoutBaseUrl.trim()
+            : currentConfig.checkoutBaseUrl || "",
+        notes:
+          typeof body.notes === "string"
+            ? body.notes.trim()
+            : currentConfig.notes || "",
+      }),
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: current?.user.id || null,
+    category: "PAYMENT",
+    action: "PAYMENT_PROVIDER_UPDATED",
+    severity: "SUCCESS",
+    title: "تعديل مزود دفع إلكتروني",
+    details: {
+      providerId: provider.id,
+      name: provider.name,
+      slug: provider.slug,
+      isActive: provider.isActive,
+    },
+    ipAddress: device.ipAddress,
+    userAgent: device.userAgent,
+  });
+
+  return NextResponse.json({
+    provider,
+    message: "تم تحديث مزود الدفع بنجاح.",
+  });
+}
+
+
+==================================================
+OTHER PAYMENT API FILES
+==================================================

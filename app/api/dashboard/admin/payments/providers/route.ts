@@ -1,12 +1,21 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
-import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
+import {
+  getCurrentSessionUser,
+  getRequestDeviceInfo,
+} from "@/lib/auth/current-user";
 import { logAdminActivity } from "@/lib/admin/activity-log";
 import { prisma } from "@/lib/prisma";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function getObject(value: unknown) {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function normalizeSlug(value: unknown) {
@@ -29,6 +38,27 @@ function buildConfig(body: Record<string, unknown>) {
   });
 }
 
+function sanitizeProviderConfig(configJson: unknown) {
+  const config = getObject(configJson);
+
+  return {
+    mode: typeof config.mode === "string" ? config.mode : "TEST",
+    publicKey:
+      typeof config.publicKey === "string" ? config.publicKey : "",
+    checkoutBaseUrl:
+      typeof config.checkoutBaseUrl === "string"
+        ? config.checkoutBaseUrl
+        : "",
+    notes: typeof config.notes === "string" ? config.notes : "",
+    hasSecretKey:
+      typeof config.secretKey === "string" &&
+      config.secretKey.trim().length > 0,
+    hasWebhookSecret:
+      typeof config.webhookSecret === "string" &&
+      config.webhookSecret.trim().length > 0,
+  };
+}
+
 export async function GET() {
   const adminError = await requireAdminApi();
 
@@ -43,7 +73,10 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    providers,
+    providers: providers.map((provider) => ({
+      ...provider,
+      configJson: sanitizeProviderConfig(provider.configJson),
+    })),
   });
 }
 
@@ -56,18 +89,27 @@ export async function POST(request: NextRequest) {
 
   const current = await getCurrentSessionUser();
   const device = await getRequestDeviceInfo();
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const body = (await request.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
 
   const name = String(body.name || "").trim();
   const slug = normalizeSlug(body.slug);
   const isActive = Boolean(body.isActive);
 
   if (!name) {
-    return NextResponse.json({ error: "اسم مزود الدفع مطلوب." }, { status: 400 });
+    return NextResponse.json(
+      { error: "اسم مزود الدفع مطلوب." },
+      { status: 400 }
+    );
   }
 
   if (!slug) {
-    return NextResponse.json({ error: "رمز مزود الدفع مطلوب." }, { status: 400 });
+    return NextResponse.json(
+      { error: "رمز مزود الدفع مطلوب." },
+      { status: 400 }
+    );
   }
 
   const provider = await prisma.paymentProvider.upsert({
@@ -104,7 +146,10 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({
-    provider,
+    provider: {
+      ...provider,
+      configJson: sanitizeProviderConfig(provider.configJson),
+    },
     message: "تم حفظ مزود الدفع بنجاح.",
   });
 }

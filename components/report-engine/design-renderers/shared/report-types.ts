@@ -54,6 +54,7 @@ export type ReportDesignRendererProps = {
   activePageId: string;
   context: Record<string, string>;
   previewCase: PreviewCaseData | null;
+  onDesignChange?: (designId: ReportDesignId) => void;
   onActivePageChange: (pageId: string) => void;
   onAddPage: () => void;
   onMovePage?: (pageId: string, direction: "previous" | "next") => void;

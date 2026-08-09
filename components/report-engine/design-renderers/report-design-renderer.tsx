@@ -2,6 +2,7 @@
 
 export * from "./shared/report-design-engine";
 export {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   SELECTABLE_REPORT_DESIGN_IDS,
   isSelectableReportDesignId,
   selectableReportDesignTemplates,

@@ -1,0 +1,1535 @@
+=== submitOrder + payment section ===
+218:   useEffect(() => {
+219:     const notice = getEntryNoticeFromUrl();
+220: 
+221:     if (notice) {
+222:       setEntryNotice(notice);
+223:       setNoticeOpen(true);
+224:     }
+225: 
+226:     load();
+227:   }, []);
+228: 
+229:   const selectedPrice = useMemo(() => {
+230:     if (!selectedPlan) return 0;
+231:     return getPlanPrice(selectedPlan, billingCycle);
+232:   }, [billingCycle, selectedPlan]);
+233: 
+234:   const visiblePlans = useMemo(
+235:     () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+236:     [data?.plans],
+237:   );
+238: 
+239:   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+240: 
+241:   const currentSubscriptionPlan = data?.subscription
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+
+----------------------------------------
+
+219:     const notice = getEntryNoticeFromUrl();
+220: 
+221:     if (notice) {
+222:       setEntryNotice(notice);
+223:       setNoticeOpen(true);
+224:     }
+225: 
+226:     load();
+227:   }, []);
+228: 
+229:   const selectedPrice = useMemo(() => {
+230:     if (!selectedPlan) return 0;
+231:     return getPlanPrice(selectedPlan, billingCycle);
+232:   }, [billingCycle, selectedPlan]);
+233: 
+234:   const visiblePlans = useMemo(
+235:     () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+236:     [data?.plans],
+237:   );
+238: 
+239:   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+240: 
+241:   const currentSubscriptionPlan = data?.subscription
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+
+----------------------------------------
+
+220: 
+221:     if (notice) {
+222:       setEntryNotice(notice);
+223:       setNoticeOpen(true);
+224:     }
+225: 
+226:     load();
+227:   }, []);
+228: 
+229:   const selectedPrice = useMemo(() => {
+230:     if (!selectedPlan) return 0;
+231:     return getPlanPrice(selectedPlan, billingCycle);
+232:   }, [billingCycle, selectedPlan]);
+233: 
+234:   const visiblePlans = useMemo(
+235:     () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+236:     [data?.plans],
+237:   );
+238: 
+239:   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+240: 
+241:   const currentSubscriptionPlan = data?.subscription
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+
+----------------------------------------
+
+227:   }, []);
+228: 
+229:   const selectedPrice = useMemo(() => {
+230:     if (!selectedPlan) return 0;
+231:     return getPlanPrice(selectedPlan, billingCycle);
+232:   }, [billingCycle, selectedPlan]);
+233: 
+234:   const visiblePlans = useMemo(
+235:     () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+236:     [data?.plans],
+237:   );
+238: 
+239:   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+240: 
+241:   const currentSubscriptionPlan = data?.subscription
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+268:     }
+269: 
+270:     if (!isSelectedPlanFree && !phone.trim()) {
+271:       setMessage({
+272:         type: "error",
+273:         text: "اكتب رقم الجوال.",
+274:       });
+
+----------------------------------------
+
+241:   const currentSubscriptionPlan = data?.subscription
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+268:     }
+269: 
+270:     if (!isSelectedPlanFree && !phone.trim()) {
+271:       setMessage({
+272:         type: "error",
+273:         text: "اكتب رقم الجوال.",
+274:       });
+275:       return;
+276:     }
+277: 
+278:     setSubmitting(true);
+279:     setMessage(null);
+280: 
+281:     try {
+282:       const response = await fetch("/api/dashboard/plans", {
+283:         method: "POST",
+284:         headers: {
+285:           "Content-Type": "application/json",
+286:         },
+287:         body: JSON.stringify({
+288:           planId: selectedPlan.id,
+
+----------------------------------------
+
+242:     ? visiblePlans.find(
+243:         (plan) =>
+244:           plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+245:       ) ?? null
+246:     : null;
+247: 
+248:   const currentSubscriptionServicesCount =
+249:     currentSubscriptionPlan?.services.length ?? 0;
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+268:     }
+269: 
+270:     if (!isSelectedPlanFree && !phone.trim()) {
+271:       setMessage({
+272:         type: "error",
+273:         text: "اكتب رقم الجوال.",
+274:       });
+275:       return;
+276:     }
+277: 
+278:     setSubmitting(true);
+279:     setMessage(null);
+280: 
+281:     try {
+282:       const response = await fetch("/api/dashboard/plans", {
+283:         method: "POST",
+284:         headers: {
+285:           "Content-Type": "application/json",
+286:         },
+287:         body: JSON.stringify({
+288:           planId: selectedPlan.id,
+289:           billingCycle,
+
+----------------------------------------
+
+250: 
+251:   const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
+252: 
+253:   async function submitOrder() {
+254:     if (!selectedPlan) {
+255:       setMessage({
+256:         type: "error",
+257:         text: "اختر الباقة أولًا.",
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+268:     }
+269: 
+270:     if (!isSelectedPlanFree && !phone.trim()) {
+271:       setMessage({
+272:         type: "error",
+273:         text: "اكتب رقم الجوال.",
+274:       });
+275:       return;
+276:     }
+277: 
+278:     setSubmitting(true);
+279:     setMessage(null);
+280: 
+281:     try {
+282:       const response = await fetch("/api/dashboard/plans", {
+283:         method: "POST",
+284:         headers: {
+285:           "Content-Type": "application/json",
+286:         },
+287:         body: JSON.stringify({
+288:           planId: selectedPlan.id,
+289:           billingCycle,
+290:           senderName,
+291:           phone,
+292:           receiptUrl,
+293:           note,
+294:         }),
+295:       });
+296: 
+297:       const result = await readApiResponse(response);
+
+----------------------------------------
+
+258:       });
+259:       return;
+260:     }
+261: 
+262:     if (!isSelectedPlanFree && !senderName.trim()) {
+263:       setMessage({
+264:         type: "error",
+265:         text: "اكتب اسم المحوّل.",
+266:       });
+267:       return;
+268:     }
+269: 
+270:     if (!isSelectedPlanFree && !phone.trim()) {
+271:       setMessage({
+272:         type: "error",
+273:         text: "اكتب رقم الجوال.",
+274:       });
+275:       return;
+276:     }
+277: 
+278:     setSubmitting(true);
+279:     setMessage(null);
+280: 
+281:     try {
+282:       const response = await fetch("/api/dashboard/plans", {
+283:         method: "POST",
+284:         headers: {
+285:           "Content-Type": "application/json",
+286:         },
+287:         body: JSON.stringify({
+288:           planId: selectedPlan.id,
+289:           billingCycle,
+290:           senderName,
+291:           phone,
+292:           receiptUrl,
+293:           note,
+294:         }),
+295:       });
+296: 
+297:       const result = await readApiResponse(response);
+298: 
+299:       if (!response.ok) {
+300:         throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
+301:       }
+302: 
+303:       const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+304: 
+305:       setMessage({
+
+----------------------------------------
+
+276:     }
+277: 
+278:     setSubmitting(true);
+279:     setMessage(null);
+280: 
+281:     try {
+282:       const response = await fetch("/api/dashboard/plans", {
+283:         method: "POST",
+284:         headers: {
+285:           "Content-Type": "application/json",
+286:         },
+287:         body: JSON.stringify({
+288:           planId: selectedPlan.id,
+289:           billingCycle,
+290:           senderName,
+291:           phone,
+292:           receiptUrl,
+293:           note,
+294:         }),
+295:       });
+296: 
+297:       const result = await readApiResponse(response);
+298: 
+299:       if (!response.ok) {
+300:         throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
+301:       }
+302: 
+303:       const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+304: 
+305:       setMessage({
+306:         type: "success",
+307:         text:
+308:           result.message ||
+309:           (activatedImmediately
+310:             ? "تم تفعيل الباقة بنجاح."
+311:             : "تم إرسال طلب الاشتراك بنجاح."),
+312:       });
+313: 
+314:       setSenderName("");
+315:       setPhone("");
+316:       setReceiptUrl("");
+317:       setNote("");
+318: 
+319:       if (activatedImmediately) {
+320:         setEntryNotice({
+321:           title: "تم تفعيل الباقة بنجاح",
+322:           message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+323:           actionLabel: "متابعة",
+
+----------------------------------------
+
+291:           phone,
+292:           receiptUrl,
+293:           note,
+294:         }),
+295:       });
+296: 
+297:       const result = await readApiResponse(response);
+298: 
+299:       if (!response.ok) {
+300:         throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
+301:       }
+302: 
+303:       const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+304: 
+305:       setMessage({
+306:         type: "success",
+307:         text:
+308:           result.message ||
+309:           (activatedImmediately
+310:             ? "تم تفعيل الباقة بنجاح."
+311:             : "تم إرسال طلب الاشتراك بنجاح."),
+312:       });
+313: 
+314:       setSenderName("");
+315:       setPhone("");
+316:       setReceiptUrl("");
+317:       setNote("");
+318: 
+319:       if (activatedImmediately) {
+320:         setEntryNotice({
+321:           title: "تم تفعيل الباقة بنجاح",
+322:           message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+323:           actionLabel: "متابعة",
+324:         });
+325:         setNoticeOpen(true);
+326:         setSelectedPlan(null);
+327:       }
+328: 
+329:       await load();
+330:     } catch (error) {
+331:       setMessage({
+332:         type: "error",
+333:         text:
+334:           error instanceof Error
+335:             ? error.message
+336:             : "تعذر إرسال طلب الاشتراك.",
+337:       });
+338:     } finally {
+
+----------------------------------------
+
+310:             ? "تم تفعيل الباقة بنجاح."
+311:             : "تم إرسال طلب الاشتراك بنجاح."),
+312:       });
+313: 
+314:       setSenderName("");
+315:       setPhone("");
+316:       setReceiptUrl("");
+317:       setNote("");
+318: 
+319:       if (activatedImmediately) {
+320:         setEntryNotice({
+321:           title: "تم تفعيل الباقة بنجاح",
+322:           message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+323:           actionLabel: "متابعة",
+324:         });
+325:         setNoticeOpen(true);
+326:         setSelectedPlan(null);
+327:       }
+328: 
+329:       await load();
+330:     } catch (error) {
+331:       setMessage({
+332:         type: "error",
+333:         text:
+334:           error instanceof Error
+335:             ? error.message
+336:             : "تعذر إرسال طلب الاشتراك.",
+337:       });
+338:     } finally {
+339:       setSubmitting(false);
+340:     }
+341:   }
+342: 
+343:   if (loading) {
+344:     return (
+345:       <main className="grid min-h-[50vh] place-items-center" dir="rtl">
+346:         <div className="text-center">
+347:           <Loader2 className="mx-auto h-7 w-7 animate-spin text-sky-600" />
+348:           <p className="mt-3 text-sm font-black text-slate-500">
+349:             جار تحميل الباقات...
+350:           </p>
+351:         </div>
+352:       </main>
+353:     );
+354:   }
+355: 
+356:   return (
+357:     <main className="space-y-6" dir="rtl">
+
+----------------------------------------
+
+314:       setSenderName("");
+315:       setPhone("");
+316:       setReceiptUrl("");
+317:       setNote("");
+318: 
+319:       if (activatedImmediately) {
+320:         setEntryNotice({
+321:           title: "تم تفعيل الباقة بنجاح",
+322:           message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+323:           actionLabel: "متابعة",
+324:         });
+325:         setNoticeOpen(true);
+326:         setSelectedPlan(null);
+327:       }
+328: 
+329:       await load();
+330:     } catch (error) {
+331:       setMessage({
+332:         type: "error",
+333:         text:
+334:           error instanceof Error
+335:             ? error.message
+336:             : "تعذر إرسال طلب الاشتراك.",
+337:       });
+338:     } finally {
+339:       setSubmitting(false);
+340:     }
+341:   }
+342: 
+343:   if (loading) {
+344:     return (
+345:       <main className="grid min-h-[50vh] place-items-center" dir="rtl">
+346:         <div className="text-center">
+347:           <Loader2 className="mx-auto h-7 w-7 animate-spin text-sky-600" />
+348:           <p className="mt-3 text-sm font-black text-slate-500">
+349:             جار تحميل الباقات...
+350:           </p>
+351:         </div>
+352:       </main>
+353:     );
+354:   }
+355: 
+356:   return (
+357:     <main className="space-y-6" dir="rtl">
+358:       {noticeOpen && entryNotice ? (
+359:         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+360:           <section
+361:             role="dialog"
+
+----------------------------------------
+
+577:               billingCycle === "yearly"
+578:                 ? "bg-sky-600 text-white"
+579:                 : "text-slate-500 hover:bg-slate-50",
+580:             ].join(" ")}
+581:           >
+582:             عام دراسي
+583:           </button>
+584:         </div>
+585:       </section>
+586: 
+587:       <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+588:         {visiblePlans.map((plan, index) => {
+589:           const active = selectedPlan?.id === plan.id;
+590:           const price = getPlanPrice(plan, billingCycle);
+591:           const period = getBillingLabel(billingCycle);
+592: 
+593:           return (
+594:             <button
+595:               key={plan.id}
+596:               type="button"
+597:               onClick={() => {
+598:                 setSelectedPlan(plan);
+599:                 setPaymentMethod("bank");
+600:                 setMessage({
+601:                   type: "info",
+602:                   text:
+603:                     price <= 0
+604:                       ? "هذه الباقة مجانية. اضغط زر تفعيل الباقة الآن لتفعيلها مباشرة."
+605:                       : "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+606:                 });
+607:               }}
+608:               className={[
+609:                 "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+610:                 active
+611:                   ? "border-sky-300 ring-4 ring-sky-50"
+612:                   : "border-slate-100",
+613:               ].join(" ")}
+614:             >
+615:               {index === 0 ? (
+616:                 <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+617:                   الأنسب للبداية
+618:                 </div>
+619:               ) : null}
+620: 
+621:               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+622:                 <Sparkles className="h-7 w-7" />
+623:               </div>
+624: 
+
+----------------------------------------
+
+586: 
+587:       <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+588:         {visiblePlans.map((plan, index) => {
+589:           const active = selectedPlan?.id === plan.id;
+590:           const price = getPlanPrice(plan, billingCycle);
+591:           const period = getBillingLabel(billingCycle);
+592: 
+593:           return (
+594:             <button
+595:               key={plan.id}
+596:               type="button"
+597:               onClick={() => {
+598:                 setSelectedPlan(plan);
+599:                 setPaymentMethod("bank");
+600:                 setMessage({
+601:                   type: "info",
+602:                   text:
+603:                     price <= 0
+604:                       ? "هذه الباقة مجانية. اضغط زر تفعيل الباقة الآن لتفعيلها مباشرة."
+605:                       : "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+606:                 });
+607:               }}
+608:               className={[
+609:                 "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+610:                 active
+611:                   ? "border-sky-300 ring-4 ring-sky-50"
+612:                   : "border-slate-100",
+613:               ].join(" ")}
+614:             >
+615:               {index === 0 ? (
+616:                 <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+617:                   الأنسب للبداية
+618:                 </div>
+619:               ) : null}
+620: 
+621:               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+622:                 <Sparkles className="h-7 w-7" />
+623:               </div>
+624: 
+625:               <div className="mt-5 flex items-center gap-2">
+626:                 <h2 className="text-2xl font-black text-slate-950">
+627:                   {plan.name}
+628:                 </h2>
+629: 
+630:                 {plan.targetAudience && plan.targetAudience !== "ALL" ? (
+631:                   <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-black text-sky-700">
+632:                     {getPlanAudienceLabel(plan.targetAudience as PlanAudience)}
+633:                   </span>
+
+----------------------------------------
+
+587:       <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+588:         {visiblePlans.map((plan, index) => {
+589:           const active = selectedPlan?.id === plan.id;
+590:           const price = getPlanPrice(plan, billingCycle);
+591:           const period = getBillingLabel(billingCycle);
+592: 
+593:           return (
+594:             <button
+595:               key={plan.id}
+596:               type="button"
+597:               onClick={() => {
+598:                 setSelectedPlan(plan);
+599:                 setPaymentMethod("bank");
+600:                 setMessage({
+601:                   type: "info",
+602:                   text:
+603:                     price <= 0
+604:                       ? "هذه الباقة مجانية. اضغط زر تفعيل الباقة الآن لتفعيلها مباشرة."
+605:                       : "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+606:                 });
+607:               }}
+608:               className={[
+609:                 "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+610:                 active
+611:                   ? "border-sky-300 ring-4 ring-sky-50"
+612:                   : "border-slate-100",
+613:               ].join(" ")}
+614:             >
+615:               {index === 0 ? (
+616:                 <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+617:                   الأنسب للبداية
+618:                 </div>
+619:               ) : null}
+620: 
+621:               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+622:                 <Sparkles className="h-7 w-7" />
+623:               </div>
+624: 
+625:               <div className="mt-5 flex items-center gap-2">
+626:                 <h2 className="text-2xl font-black text-slate-950">
+627:                   {plan.name}
+628:                 </h2>
+629: 
+630:                 {plan.targetAudience && plan.targetAudience !== "ALL" ? (
+631:                   <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-black text-sky-700">
+632:                     {getPlanAudienceLabel(plan.targetAudience as PlanAudience)}
+633:                   </span>
+634:                 ) : null}
+
+----------------------------------------
+
+679:               </div>
+680:             </button>
+681:           );
+682:         })}
+683: 
+684:         {visiblePlans.length === 0 ? (
+685:           <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
+686:             لا توجد باقات مفعلة حاليًا.
+687:           </div>
+688:         ) : null}
+689:       </section>
+690: 
+691:       {selectedPlan ? (
+692:         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+693:           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+694:             <div>
+695:               <p className="text-sm font-black text-sky-700">
+696:                 {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+697:               </p>
+698:               <h2 className="mt-2 text-2xl font-black text-slate-950">
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+
+----------------------------------------
+
+684:         {visiblePlans.length === 0 ? (
+685:           <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
+686:             لا توجد باقات مفعلة حاليًا.
+687:           </div>
+688:         ) : null}
+689:       </section>
+690: 
+691:       {selectedPlan ? (
+692:         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+693:           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+694:             <div>
+695:               <p className="text-sm font-black text-sky-700">
+696:                 {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+697:               </p>
+698:               <h2 className="mt-2 text-2xl font-black text-slate-950">
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+
+----------------------------------------
+
+687:           </div>
+688:         ) : null}
+689:       </section>
+690: 
+691:       {selectedPlan ? (
+692:         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+693:           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+694:             <div>
+695:               <p className="text-sm font-black text-sky-700">
+696:                 {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+697:               </p>
+698:               <h2 className="mt-2 text-2xl font-black text-slate-950">
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+
+----------------------------------------
+
+688:         ) : null}
+689:       </section>
+690: 
+691:       {selectedPlan ? (
+692:         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+693:           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+694:             <div>
+695:               <p className="text-sm font-black text-sky-700">
+696:                 {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+697:               </p>
+698:               <h2 className="mt-2 text-2xl font-black text-slate-950">
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+
+----------------------------------------
+
+689:       </section>
+690: 
+691:       {selectedPlan ? (
+692:         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+693:           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+694:             <div>
+695:               <p className="text-sm font-black text-sky-700">
+696:                 {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+697:               </p>
+698:               <h2 className="mt-2 text-2xl font-black text-slate-950">
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+
+----------------------------------------
+
+699:                 {isSelectedPlanFree
+700:                   ? `تفعيل ${selectedPlan.name}`
+701:                   : `إكمال طلب ${selectedPlan.name}`}
+702:               </h2>
+703:               <p className="mt-2 text-sm font-bold text-slate-500">
+704:                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+705:               </p>
+706:             </div>
+707: 
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+
+----------------------------------------
+
+708:             <button
+709:               type="button"
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+
+----------------------------------------
+
+710:               onClick={() => {
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+
+----------------------------------------
+
+711:                 setSelectedPlan(null);
+712:                 setMessage(null);
+713:               }}
+714:               className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+758: 
+
+----------------------------------------
+
+715:             >
+716:               تغيير الباقة
+717:             </button>
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+758: 
+759:                 <div>
+760:                   <h3 className="text-lg font-black text-slate-950">
+761:                     تفعيل مباشر
+762:                   </h3>
+
+----------------------------------------
+
+718:           </div>
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+758: 
+759:                 <div>
+760:                   <h3 className="text-lg font-black text-slate-950">
+761:                     تفعيل مباشر
+762:                   </h3>
+763:                   <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+764:                     هذه الباقة مجانية، وسيتم تفعيلها مباشرة دون تحويل بنكي أو انتظار مراجعة من الأدمن.
+765:                   </p>
+
+----------------------------------------
+
+719: 
+720:           {!isSelectedPlanFree ? (
+721:             <div className="mt-6 grid gap-4 md:grid-cols-2">
+722:             <PaymentCard
+723:               active={paymentMethod === "bank"}
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+758: 
+759:                 <div>
+760:                   <h3 className="text-lg font-black text-slate-950">
+761:                     تفعيل مباشر
+762:                   </h3>
+763:                   <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+764:                     هذه الباقة مجانية، وسيتم تفعيلها مباشرة دون تحويل بنكي أو انتظار مراجعة من الأدمن.
+765:                   </p>
+766:                 </div>
+
+----------------------------------------
+
+724:               icon={<Landmark className="h-7 w-7" />}
+725:               title="تحويل بنكي"
+726:               description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+727:               onClick={() => setPaymentMethod("bank")}
+728:             />
+729: 
+730:             <PaymentCard
+731:               active={paymentMethod === "online"}
+732:               disabled
+733:               icon={<CreditCard className="h-7 w-7" />}
+734:               title="الدفع الإلكتروني"
+735:               description="Apple Pay ومدى قريبًا."
+736:               onClick={() => setPaymentMethod("online")}
+737:               footer={
+738:                 <div className="mt-4 flex flex-wrap gap-2">
+739:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+740:                     Apple Pay
+741:                   </span>
+742:                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+743:                     مدى
+744:                   </span>
+745:                   <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+746:                     قريبًا
+747:                   </span>
+748:                 </div>
+749:               }
+750:             />
+751:             </div>
+752:           ) : (
+753:             <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+754:               <div className="flex items-start gap-3">
+755:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+756:                   <ShieldCheck className="h-6 w-6" />
+757:                 </div>
+758: 
+759:                 <div>
+760:                   <h3 className="text-lg font-black text-slate-950">
+761:                     تفعيل مباشر
+762:                   </h3>
+763:                   <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+764:                     هذه الباقة مجانية، وسيتم تفعيلها مباشرة دون تحويل بنكي أو انتظار مراجعة من الأدمن.
+765:                   </p>
+766:                 </div>
+767:               </div>
+768: 
+769:               <button
+770:                 type="button"
+771:                 onClick={submitOrder}
+
+----------------------------------------
+
+773:                 className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:opacity-60"
+774:               >
+775:                 {submitting ? (
+776:                   <Loader2 className="h-5 w-5 animate-spin" />
+777:                 ) : (
+778:                   <ShieldCheck className="h-5 w-5" />
+779:                 )}
+780:                 {submitting ? "جار التفعيل..." : "تفعيل الباقة الآن"}
+781:               </button>
+782:             </div>
+783:           )}
+784: 
+785:           {!isSelectedPlanFree && paymentMethod === "bank" ? (
+786:             <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-sky-50/60 p-5">
+787:               <div className="flex items-start gap-3">
+788:                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sky-600">
+789:                   <WalletCards className="h-6 w-6" />
+790:                 </div>
+791: 
+792:                 <div>
+793:                   <h3 className="text-lg font-black text-slate-950">
+794:                     خطوات التحويل البنكي
+795:                   </h3>
+796:                   <ol className="mt-3 list-inside list-decimal space-y-2 text-sm font-bold leading-7 text-slate-600">
+797:                     <li>حوّل مبلغ الباقة إلى حساب المنصة.</li>
+798:                     <li>اكتب اسم المحوّل ورقم الجوال.</li>
+799:                     <li>ضع رقم المرجع أو رابط الإيصال إن وجد.</li>
+800:                     <li>أرسل الطلب، وسيتم تفعيله بعد المراجعة.</li>
+801:                   </ol>
+802:                 </div>
+803:               </div>
+804: 
+805:               <div className="mt-5 grid gap-3 md:grid-cols-2">
+806:                 <input
+807:                   value={senderName}
+808:                   onChange={(event) => setSenderName(event.target.value)}
+809:                   placeholder="اسم المحوّل"
+810:                   className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-sky-300"
+811:                 />
+812: 
+813:                 <input
+814:                   value={phone}
+815:                   onChange={(event) => setPhone(event.target.value)}
+816:                   placeholder="رقم الجوال"
+817:                   className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-sky-300"
+818:                 />
+819: 
+820:                 <input
+
+----------------------------------------
+
+844:                   <ShieldCheck className="h-5 w-5" />
+845:                 )}
+846:                 {submitting ? "جار إرسال الطلب..." : "إرسال طلب الاشتراك"}
+847:               </button>
+848:             </div>
+849:           ) : null}
+850:         </section>
+851:       ) : null}
+852:     </main>
+853:   );
+854: }
+855: 
+856: function PaymentCard({
+857:   active,
+858:   disabled,
+859:   icon,
+860:   title,
+861:   description,
+862:   footer,
+863:   onClick,
+864: }: {
+865:   active: boolean;
+866:   disabled?: boolean;
+867:   icon: ReactNode;
+868:   title: string;
+869:   description: string;
+870:   footer?: ReactNode;
+871:   onClick: () => void;
+872: }) {
+873:   return (
+874:     <button
+875:       type="button"
+876:       disabled={disabled}
+877:       onClick={onClick}
+878:       className={[
+879:         "rounded-[1.5rem] border bg-white p-5 text-right transition",
+880:         active ? "border-sky-300 ring-4 ring-sky-50" : "border-slate-100",
+881:         disabled
+882:           ? "cursor-not-allowed opacity-80"
+883:           : "hover:-translate-y-0.5 hover:shadow-md",
+884:       ].join(" ")}
+885:     >
+886:       <div className="flex items-start gap-4">
+887:         <div
+888:           className={[
+889:             "grid h-14 w-14 place-items-center rounded-2xl",
+890:             active ? "bg-sky-50 text-sky-600" : "bg-slate-50 text-slate-500",
+891:           ].join(" ")}
+
+----------------------------------------
+
+
+=== checkout route files ===
+app\dashboard\checkout\[planId]\page.tsx
+app\dashboard\checkout\transactions\[transactionId]\page.tsx

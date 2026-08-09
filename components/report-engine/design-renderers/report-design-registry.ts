@@ -6,7 +6,7 @@ import type {
 export const reportDesignTemplates: ReportDesignDefinition[] = [
   {
     id: "ministry-form",
-    name: "نموذج الوزارة الرسمي",
+    name: "التصميم الثاني",
     badge: "رسمي",
     description: "قريب من نماذج الوزارة: رأس داكن، شكل رسمي، وفوتر أخضر.",
     cardClass: "border-slate-200 bg-slate-50 hover:bg-white",
@@ -110,7 +110,7 @@ export const reportDesignTemplates: ReportDesignDefinition[] = [
   },
   {
     id: "ministry-elegant",
-    name: "الوزاري الأنيق",
+    name: "التصميم الثالث",
     badge: "وزاري",
     description: "هوية تعليمية رسمية بإطار متوازن وزوايا هندسية هادئة.",
     cardClass: "border-teal-200 bg-teal-50 hover:bg-white",
@@ -118,7 +118,7 @@ export const reportDesignTemplates: ReportDesignDefinition[] = [
   },
   {
     id: "moe-official-2024",
-    name: "الهوية الرسمية 2024",
+    name: "التصميم الرابع",
     badge: "وزارة",
     description: "تصميم رسمي مستوحى من الهوية البصرية التعليمية الحديثة.",
     cardClass: "border-emerald-200 bg-emerald-50 hover:bg-white",
@@ -142,7 +142,7 @@ export const reportDesignTemplates: ReportDesignDefinition[] = [
   },
   {
     id: "moe-classic-frame",
-    name: "النموذج الوزاري الكلاسيكي",
+    name: "التصميم الأول",
     badge: "وزاري",
     description: "نموذج رسمي بهيدر وفوتر وزاري كلاسيكي وجداول بيانات مباشرة.",
     cardClass: "border-cyan-200 bg-cyan-50 hover:bg-white",
@@ -151,11 +151,14 @@ export const reportDesignTemplates: ReportDesignDefinition[] = [
 ];
 
 export const SELECTABLE_REPORT_DESIGN_IDS = [
-  "ministry-elegant",
-  "ministry-form",
-  "moe-official-2024",
   "moe-classic-frame",
+  "ministry-form",
+  "ministry-elegant",
+  "moe-official-2024",
 ] as const satisfies readonly ReportDesignId[];
+
+export const DEFAULT_SELECTABLE_REPORT_DESIGN_ID =
+  SELECTABLE_REPORT_DESIGN_IDS[0];
 
 export type SelectableReportDesignId =
   (typeof SELECTABLE_REPORT_DESIGN_IDS)[number];

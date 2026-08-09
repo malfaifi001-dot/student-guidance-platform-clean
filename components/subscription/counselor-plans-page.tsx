@@ -729,21 +729,23 @@ export function CounselorPlansPage() {
 
             <PaymentCard
               active={paymentMethod === "online"}
-              disabled
               icon={<CreditCard className="h-7 w-7" />}
               title="الدفع الإلكتروني"
-              description="Apple Pay ومدى قريبًا."
-              onClick={() => setPaymentMethod("online")}
+              description="ادفع إلكترونيًا بأمان عبر Moyasar."
+              onClick={() => {
+                setPaymentMethod("online");
+                window.location.href = `/dashboard/checkout/${selectedPlan.id}`;
+              }}
               footer={
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                    Apple Pay
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    Moyasar
                   </span>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                    مدى
+                    بطاقة بنكية
                   </span>
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                    قريبًا
+                  <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                    بيئة اختبار
                   </span>
                 </div>
               }
