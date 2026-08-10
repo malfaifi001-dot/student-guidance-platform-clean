@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Award, BookOpenCheck, FileText, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -14,7 +14,7 @@ import { PortfolioSectionsPanel } from "@/components/portfolio/portfolio-section
 import { PortfolioSavedCopies } from "@/components/portfolio/portfolio-saved-copies";
 import { PortfolioSettingsPanel } from "@/components/portfolio/portfolio-settings-panel";
 import { PortfolioWizardStepper, type PortfolioWizardStep } from "@/components/portfolio/portfolio-wizard-stepper";
-import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
 import type { PortfolioCustomEvidence, PortfolioWorkspaceItem } from "@/lib/portfolio/portfolio-types";
 
 const steps = [
@@ -31,7 +31,7 @@ const steps = [
 
 type StepId = (typeof steps)[number]["id"];
 
-export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfolioWorkspace }) {
+export function PortfolioWorkspace({ initialData }: { initialData: PortfolioWorkspaceData }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
   const [activeStepId, setActiveStepId] = useState<StepId>("overview");
@@ -144,9 +144,21 @@ export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfo
 
   return <main dir="rtl" className="space-y-5">
     <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
-      <div className="max-w-3xl">
-        <h1 className="text-4xl font-black">{data.portfolio.title}</h1>
-        <p className="mt-4 text-sm font-bold leading-8 text-sky-50">{data.portfolio.description || "أدر محتوى ملف الإنجاز وترتيبه ثم راجع النسخة الحية قبل الطباعة."}</p>
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl font-black">{data.portfolio.title}</h1>
+          <p className="mt-4 text-sm font-bold leading-8 text-sky-50">{data.portfolio.description || "أدر محتوى ملف الإنجاز وترتيبه ثم راجع النسخة الحية قبل الطباعة."}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end" aria-label="إحصاءات ملف الإنجاز">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-black text-white shadow-sm backdrop-blur-sm">
+            <FileText className="h-4 w-4 text-sky-100" aria-hidden="true" />
+            التقارير: {data.totals.reports}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-black text-white shadow-sm backdrop-blur-sm">
+            <Award className="h-4 w-4 text-sky-100" aria-hidden="true" />
+            الشواهد: {data.totals.evidences}
+          </span>
+        </div>
       </div>
     </section>
     <PortfolioWizardStepper steps={steps} activeStepId={activeStepId} completedStepIds={completedStepIds} onStepChange={goToStep} />
@@ -155,10 +167,10 @@ export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfo
     {activeStepId === "content" ? <PortfolioContentPanel key={`${data.portfolio.id}-${data.portfolio.introText}-${JSON.stringify(data.educationIdentity)}`} data={data} busy={busy} onSave={savePortfolio} /> : null}
     {activeStepId === "qualifications" ? <PortfolioQualificationsPanel items={data.qualificationItems} busy={busy} onUpload={uploadQualificationImage} onCreate={createItem} onUpdate={updateItem} onMove={moveItem} onDelete={confirmDelete} /> : null}
     {activeStepId === "reports" ? <PortfolioReportsEvidencePanel data={data} busy={busy} onSync={syncReports} onReportVisibility={reportVisibility} onReportMove={reportMove} onEvidenceUpdate={evidenceUpdate} onEvidenceMove={evidenceMove} onCustomCreate={customCreate} onCustomUpdate={customUpdate} onCustomMove={customMove} onCustomDelete={confirmCustomDelete} /> : null}
-    {activeStepId === "order" ? <PortfolioSectionsPanel sections={data.sections} busy={busy} onToggle={toggleSection} onMove={moveSection} /> : null}
+    {activeStepId === "order" ? <PortfolioSectionsPanel sections={data.sections} showWeights={data.showWeights} busy={busy} onToggle={toggleSection} onMove={moveSection} /> : null}
     {activeStepId === "preview" ? <div className="space-y-5"><div><h2 className="text-xl font-black text-slate-950">اختيار التصميم</h2><p className="mt-1 text-sm font-bold text-slate-500">اختر الشكل النهائي واضبط خيارات العرض قبل اعتماد النسخة.</p></div><PortfolioDesignPanel data={data} busy={busy} onSave={savePortfolio} /></div> : null}
     {activeStepId === "approve" ? <PortfolioApproveVersion busy={busy} approved={snapshotApproved} onApprove={requestSnapshotApproval} onOpenSavedCopies={() => goToStep("saved")} /> : null}
-    {activeStepId === "saved" ? <PortfolioSavedCopies portfolioId={data.portfolio.id} refreshKey={snapshotRefreshKey} /> : null}
+    {activeStepId === "saved" ? <PortfolioSavedCopies portfolioId={data.portfolio.id} snapshotBasePath={data.routes.snapshots} refreshKey={snapshotRefreshKey} /> : null}
     <nav aria-label="التنقل بين خطوات ملف الإنجاز" className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <button type="button" disabled={activeStepIndex === 0} onClick={() => goToStep(steps[activeStepIndex - 1]?.id || activeStepId)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><ArrowRight className="h-4 w-4" />السابق</button>
       <p className="hidden text-xs font-black text-slate-400 sm:block">الخطوة {activeStepIndex + 1} من {steps.length}</p>
@@ -168,7 +180,6 @@ export function PortfolioWorkspace({ initialData }: { initialData: TeacherPortfo
   </main>;
 }
 
-function Overview({ data }: { data: TeacherPortfolioWorkspace }) {
-  const cards = [[UserRound, "صاحب الملف", data.owner.name], [BookOpenCheck, "الفصل", data.portfolio.term], [FileText, "التقارير", String(data.totals.reports)], [Award, "الشواهد", String(data.totals.evidences)]] as const;
-  return <div className="space-y-5"><section className="grid gap-4 md:grid-cols-4">{cards.map(([Icon, label, value]) => <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon className="h-6 w-6 text-teal-700" /><p className="mt-3 text-xs font-black text-slate-400">{label}</p><strong className="mt-1 block text-lg font-black text-slate-900">{value}</strong></div>)}</section><section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">عناصر الأداء</h2><div className="mt-5 grid gap-3 md:grid-cols-2">{data.performanceSections.map((section) => <div key={section.key} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><div><h3 className="text-sm font-black text-slate-900">{section.title}</h3><p className="mt-1 text-xs font-bold text-slate-400">الوزن {section.weight}% · {section.isEnabled ? "ظاهر" : "مخفي"}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{section.reports.length}</span></div></div>)}</div></section></div>;
+function Overview({ data }: { data: PortfolioWorkspaceData }) {
+  return <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">{data.showWeights ? "عناصر الأداء" : "أقسام الخدمات"}</h2>{data.performanceSections.length ? <div className="mt-5 grid gap-3 md:grid-cols-2">{data.performanceSections.map((section) => <div key={section.key} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><div><h3 className="text-sm font-black text-slate-900">{section.title}</h3><p className="mt-1 text-xs font-bold text-slate-400">{data.showWeights ? `الوزن ${section.weight}% · ` : ""}{section.isEnabled ? "ظاهر" : "مخفي"}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{section.reports.length}</span></div></div>)}</div> : <p className="mt-4 text-sm font-bold text-slate-500">لا توجد أقسام خدمات مضافة لهذا الدور حاليًا.</p>}</section>;
 }

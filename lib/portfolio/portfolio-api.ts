@@ -3,13 +3,13 @@ import { ZodError } from "zod";
 
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import {
-  assertTeacherActor,
+  assertPortfolioActor,
   PortfolioServiceError,
 } from "@/lib/portfolio/portfolio-authorization";
 
 export async function requirePortfolioApiUser() {
   const current = await requireDashboardUser();
-  assertTeacherActor(current.user);
+  assertPortfolioActor(current.user);
   return current.user;
 }
 

@@ -11,6 +11,13 @@ type PrincipalDashboardProps = {
 
 const principalModules: WorkspaceModule[] = [
   {
+    title: "ملف إنجازي",
+    description: "تنظيم الأعمال المهنية والشواهد واعتماد النسخ المحفوظة.",
+    href: "/dashboard/principal/portfolio",
+    icon: "portfolio",
+    status: "available",
+  },
+  {
     title: "منسوبو المدرسة",
     description: "عرض المعلمين والموجهين الطلابيين ورواد النشاط المرتبطين بالمدرسة.",
     href: "/dashboard/principal/teachers",

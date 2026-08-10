@@ -1381,10 +1381,10 @@ export function GeometricHorizonPortfolioPrint({
               {section.intro ? <p>{section.intro}</p> : null}
 
               <div className="hzn-divider-stats">
-                <div>
+                {data.showWeights !== false ? <div>
                   <strong>{section.weight}%</strong>
                   <span>الوزن</span>
-                </div>
+                </div> : null}
                 <div>
                   <strong>{section.reports.length}</strong>
                   <span>التقارير</span>

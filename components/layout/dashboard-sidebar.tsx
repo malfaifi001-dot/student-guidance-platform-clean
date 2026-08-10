@@ -58,6 +58,7 @@ const SIDEBAR_SCROLL_AREA_CLASS =
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "ملف إنجازي", href: "/dashboard/portfolio", icon: FolderKanban },
   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
@@ -149,6 +150,7 @@ const counselorAccountLinks: SidebarLinkItem[] = [
 
 const activityLeaderImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  { label: "ملف إنجازي", href: "/dashboard/activity-leader/portfolio", icon: FolderKanban },
   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
   { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
   { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
@@ -219,6 +221,7 @@ const teacherAccountLinks: SidebarLinkItem[] = [
 ];
 const principalLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard/principal", icon: Home },
+  { label: "ملف إنجازي", href: "/dashboard/principal/portfolio", icon: FolderKanban },
   { label: "منسوبو المدرسة", href: "/dashboard/principal/teachers", icon: Users },
   { label: "الجدول الدراسي", href: "/dashboard/principal/timetable", icon: CalendarDays },
   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },

@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireOwnedPortfolio, PortfolioServiceError, type PortfolioActor } from "@/lib/portfolio/portfolio-authorization";
-import { TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS, TEACHER_PORTFOLIO_SERVICE_SLUGS } from "@/lib/portfolio/portfolio-performance-elements";
+import { getPortfolioPerformanceElements } from "@/lib/portfolio/portfolio-performance-elements";
 import { normalizePortfolioReportPayload, type PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioManagedEvidence, PortfolioManagedReport, PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
 
@@ -41,29 +41,31 @@ function withEvidence(content: PortfolioReportContent | null, fallback: Paramete
 
 export async function discoverEligiblePortfolioReports(user: PortfolioActor, portfolioId: string): Promise<EligibleReport[]> {
   await requireOwnedPortfolio(user, portfolioId);
+  const serviceDefinitions = getPortfolioPerformanceElements(user.role);
+  const serviceSlugs = serviceDefinitions.map((item) => item.serviceSlug);
   const cases = await prisma.caseEntry.findMany({
-    where: { schoolAccountId: user.schoolAccountId!, createdById: user.id, service: { slug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS } } },
+    where: { schoolAccountId: user.schoolAccountId!, createdById: user.id, service: { slug: { in: serviceSlugs } } },
     select: { id: true },
   });
   const caseIds = cases.map((item) => item.id);
   const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId, kind: "PERFORMANCE_ELEMENT" } });
   const sectionBySlug = new Map<string, { id: string; key: string }>();
   for (const section of sections) {
-    const definition = TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS.find((item) => item.key === section.sectionKey);
+    const definition = serviceDefinitions.find((item) => item.key === section.sectionKey);
     if (definition) sectionBySlug.set(definition.serviceSlug, { id: section.id, key: section.sectionKey });
   }
   const [guidance, active, snapshots] = await Promise.all([
     prisma.guidanceReport.findMany({
-      where: { serviceSlug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS }, caseEntry: { schoolAccountId: user.schoolAccountId!, createdById: user.id } },
+      where: { serviceSlug: { in: serviceSlugs }, caseEntry: { schoolAccountId: user.schoolAccountId!, createdById: user.id } },
       include: { caseEntry: { include: { service: true } }, evidenceItems: { where: { visible: true }, orderBy: { sortOrder: "asc" } } },
       orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }], take: 200,
     }),
     prisma.reportTwoActive.findMany({
-      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS }, status: "APPROVED" },
+      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: serviceSlugs }, status: "APPROVED" },
       orderBy: { updatedAt: "desc" }, take: 200,
     }),
     prisma.reportSnapshot.findMany({
-      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS } },
+      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: serviceSlugs } },
       orderBy: { approvedAt: "desc" }, take: 200,
     }),
   ]);

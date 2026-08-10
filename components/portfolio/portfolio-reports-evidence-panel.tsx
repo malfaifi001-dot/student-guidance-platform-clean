@@ -19,14 +19,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
 import type {
   PortfolioCustomEvidence,
   PortfolioManagedEvidence,
 } from "@/lib/portfolio/portfolio-types";
 
 type Props = {
-  data: TeacherPortfolioWorkspace;
+  data: PortfolioWorkspaceData;
   busy: boolean;
   onSync: () => Promise<void>;
   onReportVisibility: (itemId: string, isVisible: boolean) => Promise<void>;
@@ -105,7 +105,7 @@ export function PortfolioReportsEvidencePanel(props: Props) {
             <div>
               <h3 className="font-black text-slate-950">{group.title}</h3>
               <p className="mt-1 text-xs font-bold text-slate-500">
-                الوزن {group.weight}% · {group.isEnabled ? "القسم ظاهر" : "القسم معطّل"}
+                {props.data.showWeights ? `الوزن ${group.weight}% · ` : ""}{group.isEnabled ? "القسم ظاهر" : "القسم معطّل"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-black">

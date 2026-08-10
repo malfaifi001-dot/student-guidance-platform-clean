@@ -9,9 +9,11 @@ import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapsh
 
 export function PortfolioSavedCopies({
   portfolioId,
+  snapshotBasePath,
   refreshKey,
 }: {
   portfolioId: string;
+  snapshotBasePath: string;
   refreshKey: number;
 }) {
   const [snapshots, setSnapshots] = useState<PortfolioSnapshotListItem[]>([]);
@@ -79,13 +81,13 @@ export function PortfolioSavedCopies({
                 {snapshot.notes ? <p className="relative mt-4 text-sm font-bold leading-6 text-slate-600">{snapshot.notes}</p> : null}
                 <div className="relative mt-5 flex flex-wrap gap-2">
                   <Link
-                    href={`/dashboard/teacher/portfolio/snapshots/${snapshot.id}`}
+                    href={`${snapshotBasePath}/${snapshot.id}`}
                     className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
                   >
                     <ExternalLink className="h-4 w-4" /> عرض النسخة
                   </Link>
                   <Link
-                    href={`/dashboard/teacher/portfolio/snapshots/${snapshot.id}?print=1`}
+                    href={`${snapshotBasePath}/${snapshot.id}?print=1`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"

@@ -2,12 +2,12 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
-  assertTeacherActor,
+  assertPortfolioActor,
   PortfolioServiceError,
   requireOwnedPortfolio,
   type PortfolioActor,
 } from "@/lib/portfolio/portfolio-authorization";
-import { TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS } from "@/lib/portfolio/portfolio-performance-elements";
+import { getPortfolioDefaultSectionOrderForRole } from "@/lib/portfolio/portfolio-performance-elements";
 import { DEFAULT_PORTFOLIO_THEME_ID } from "@/lib/portfolio/portfolio-theme-registry";
 import type {
   PortfolioBiography,
@@ -68,30 +68,25 @@ function defaultAcademicYear() {
 const defaultTerm = "الفصل الدراسي الأول";
 
 function ownerName(user: PortfolioActor & { name?: string | null; officialName?: string | null }) {
-  return user.officialName || user.name || "المعلم";
+  const fallback = user.role === "TEACHER" ? "المعلم" : user.role === "COUNSELOR" ? "الموجه الطلابي" : user.role === "ACTIVITY_LEADER" ? "رائد النشاط" : user.role === "PRINCIPAL" ? "مدير المدرسة" : "مستخدم المنصة";
+  return user.officialName || user.name || fallback;
 }
 
-function defaultSections() {
-  return [
-    { kind: "STATIC", sectionKey: "introduction", title: "المقدمة", introText: "مدخل موجز لملف الإنجاز.", sortOrder: 10 },
-    { kind: "STATIC", sectionKey: "profile", title: "السيرة المهنية", introText: "نبذة مختصرة عن المعلم وخبراته.", sortOrder: 20 },
-    { kind: "STATIC", sectionKey: "qualifications", title: "المؤهلات والدورات", introText: "المؤهلات العلمية والدورات والشهادات.", sortOrder: 30 },
-    ...TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS.map((element, index) => ({
-      kind: "PERFORMANCE_ELEMENT",
-      sectionKey: element.key,
-      title: element.title,
-      introText: element.intro,
-      sortOrder: 100 + index * 10,
-      metadataJson: asJson({ serviceSlug: element.serviceSlug, weight: element.weight }),
-    })),
-    { kind: "STATIC", sectionKey: "closing", title: "الخاتمة", introText: "خاتمة مختصرة لملف الإنجاز.", sortOrder: 1000 },
-  ];
+function defaultSections(role?: string | null) {
+  return getPortfolioDefaultSectionOrderForRole(role).map((section) => ({
+    kind: section.kind,
+    sectionKey: section.key,
+    title: section.title,
+    introText: section.intro,
+    sortOrder: section.defaultSortOrder,
+    ...(section.service ? { metadataJson: asJson({ serviceSlug: section.service.serviceSlug, weight: section.service.weight }) } : {}),
+  }));
 }
 
 export async function ensureDefaultPortfolio(
   user: PortfolioActor & { name?: string | null; officialName?: string | null },
 ) {
-  assertTeacherActor(user);
+  assertPortfolioActor(user);
   const academicYear = defaultAcademicYear();
   const existing = await prisma.achievementPortfolio.findUnique({
     where: {
@@ -103,14 +98,17 @@ export async function ensureDefaultPortfolio(
       },
     },
   });
-  if (existing) return existing;
+  if (existing) {
+    await ensurePortfolioRoleSections(existing.id, user.role);
+    return existing;
+  }
 
   return prisma.achievementPortfolio.create({
     data: {
       schoolAccountId: user.schoolAccountId!,
       ownerUserId: user.id,
-      title: `ملف إنجاز ${ownerName(user)}`,
-      roleKey: "TEACHER",
+      title: user.role === "COUNSELOR" ? "ملف الإنجاز" : `ملف إنجاز ${ownerName(user)}`,
+      roleKey: user.role,
       academicYear,
       term: defaultTerm,
       themeId: DEFAULT_PORTFOLIO_THEME_ID,
@@ -118,8 +116,30 @@ export async function ensureDefaultPortfolio(
       conclusionText: "ختامًا، يمثل هذا الملف توثيقًا مختصرًا لأبرز الإنجازات وفرص التطوير القادمة.",
       bioText: "",
       settingsJson: asJson({ preferences: DEFAULT_PORTFOLIO_PREFERENCES, description: "" }),
-      sections: { create: defaultSections() },
+      sections: { create: defaultSections(user.role) },
     },
+  });
+}
+
+async function ensurePortfolioRoleSections(portfolioId: string, role?: string | null) {
+  const definitions = getPortfolioDefaultSectionOrderForRole(role);
+  const existing = await prisma.achievementPortfolioSection.findMany({
+    where: { portfolioId, sectionKey: { in: definitions.map((item) => item.key) } },
+    select: { sectionKey: true },
+  });
+  const existingKeys = new Set(existing.map((item) => item.sectionKey));
+  const missing = definitions.filter((item) => !existingKeys.has(item.key));
+  if (!missing.length) return;
+  await prisma.achievementPortfolioSection.createMany({
+    data: missing.map((section) => ({
+      portfolioId,
+      kind: section.kind,
+      sectionKey: section.key,
+      title: section.title,
+      introText: section.intro,
+      sortOrder: section.defaultSortOrder,
+      ...(section.service ? { metadataJson: asJson({ serviceSlug: section.service.serviceSlug, weight: section.service.weight }) } : {}),
+    })),
   });
 }
 
@@ -127,7 +147,9 @@ export async function loadPortfolioForUser(
   user: PortfolioActor & { name?: string | null; officialName?: string | null },
   portfolioId?: string | null,
 ) {
-  return portfolioId ? requireOwnedPortfolio(user, portfolioId) : ensureDefaultPortfolio(user);
+  const portfolio = portfolioId ? await requireOwnedPortfolio(user, portfolioId) : await ensureDefaultPortfolio(user);
+  await ensurePortfolioRoleSections(portfolio.id, user.role);
+  return portfolio;
 }
 
 export function readPortfolioSettings(value: unknown) {
@@ -152,7 +174,7 @@ export function readBiography(value: unknown): PortfolioBiography {
   ) as PortfolioBiography;
 }
 
-export function readEducationIdentity(value: unknown): PortfolioEducationIdentity {
+export function readEducationIdentity(value: unknown, role?: string | null): PortfolioEducationIdentity {
   const metadata = jsonObject(value);
   const stored = jsonObject(metadata.educationIdentity);
   const has = (key: keyof PortfolioEducationIdentity) => Object.prototype.hasOwnProperty.call(stored, key);
@@ -161,7 +183,12 @@ export function readEducationIdentity(value: unknown): PortfolioEducationIdentit
     return typeof stored[key] === "string" ? stored[key] : "";
   };
   const list = (key: "pillars" | "values" | "strategicObjectives") => {
-    if (!has(key)) return [...DEFAULT_PORTFOLIO_EDUCATION_IDENTITY[key]];
+    if (!has(key)) {
+      const defaults = [...DEFAULT_PORTFOLIO_EDUCATION_IDENTITY[key]];
+      return role === "COUNSELOR"
+        ? defaults.map((item) => item.replace("الطالب والمعلم والأسر", "الطالب والأسرة والمجتمع المدرسي"))
+        : defaults;
+    }
     if (!Array.isArray(stored[key])) return [];
     return stored[key].filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
   };
@@ -294,14 +321,16 @@ export async function movePortfolioItem(user: PortfolioActor, portfolioId: strin
 
 export async function updatePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, isEnabled: boolean) {
   await requireOwnedPortfolio(user, portfolioId);
-  const section = await prisma.achievementPortfolioSection.findFirst({ where: { id: sectionId, portfolioId } });
+  const allowedKeys = getPortfolioDefaultSectionOrderForRole(user.role).map((section) => section.key);
+  const section = await prisma.achievementPortfolioSection.findFirst({ where: { id: sectionId, portfolioId, sectionKey: { in: allowedKeys } } });
   if (!section) throw new PortfolioServiceError(404, "القسم غير موجود.");
   return prisma.achievementPortfolioSection.update({ where: { id: section.id }, data: { isEnabled } });
 }
 
 export async function movePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, direction: "up" | "down") {
   await requireOwnedPortfolio(user, portfolioId);
-  const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true } });
+  const allowedKeys = getPortfolioDefaultSectionOrderForRole(user.role).map((section) => section.key);
+  const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId, sectionKey: { in: allowedKeys } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true } });
   const index = sections.findIndex((section) => section.id === sectionId);
   if (index < 0) throw new PortfolioServiceError(404, "القسم غير موجود.");
   await moveOrdered(sections.map((section) => section.id), index, direction, (id, sortOrder) => prisma.achievementPortfolioSection.update({ where: { id }, data: { sortOrder } }));

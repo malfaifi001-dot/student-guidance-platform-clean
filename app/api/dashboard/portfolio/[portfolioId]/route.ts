@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
-import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 import { updatePortfolioContent, updatePortfolioSettings } from "@/lib/portfolio/portfolio-service";
 import { portfolioPatchSchema } from "@/lib/portfolio/portfolio-types";
 
@@ -11,7 +11,7 @@ export async function GET(_request: Request, context: Context) {
   try {
     const user = await requirePortfolioApiUser();
     const { portfolioId } = await context.params;
-    const workspace = await getTeacherPortfolioWorkspace(user, portfolioId);
+    const workspace = await getPortfolioWorkspace(user, portfolioId);
     return NextResponse.json(workspace);
   } catch (error) {
     return portfolioApiError(error);

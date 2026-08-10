@@ -3,12 +3,12 @@
 import { ArrowDown, ArrowUp, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
-import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
 import { portfolioEducationIdentitySchema, type PortfolioEducationIdentity } from "@/lib/portfolio/portfolio-types";
 
 type ListKey = "pillars" | "values" | "strategicObjectives";
 
-const biographyLabels: Array<[keyof TeacherPortfolioWorkspace["biography"], string]> = [
+const biographyLabels: Array<[keyof PortfolioWorkspaceData["biography"], string]> = [
   ["professionalSummary", "الملخص المهني"],
   ["specialization", "التخصص"],
   ["academicQualification", "المؤهل العلمي"],
@@ -56,7 +56,7 @@ function RepeatableList({
   </fieldset>;
 }
 
-export function PortfolioContentPanel({ data, busy, onSave }: { data: TeacherPortfolioWorkspace; busy: boolean; onSave: (body: unknown) => Promise<void> }) {
+export function PortfolioContentPanel({ data, busy, onSave }: { data: PortfolioWorkspaceData; busy: boolean; onSave: (body: unknown) => Promise<void> }) {
   const [introText, setIntroText] = useState(data.portfolio.introText);
   const [conclusionText, setConclusionText] = useState(data.portfolio.conclusionText);
   const [biography, setBiography] = useState(data.biography);

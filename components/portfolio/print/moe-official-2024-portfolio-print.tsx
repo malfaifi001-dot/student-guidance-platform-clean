@@ -600,16 +600,18 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
 function CustomEvidencePage({
   item,
   label,
+  style,
 }: {
   item: PortfolioPrintData["customEvidence"][number];
   label: string;
+  style?: CSSProperties;
 }) {
   const isImage =
     item.mimeType.startsWith("image/") ||
     /\.(png|jpe?g|webp|gif|svg)$/i.test(item.fileUrl);
 
   return (
-    <MoePage sectionLabel={label} className="moe24-custom-evidence-page">
+    <MoePage sectionLabel={label} className="moe24-custom-evidence-page" style={style}>
       <SectionHeading title={item.title} />
 
       {item.description ? (
@@ -2085,10 +2087,10 @@ export function MoeOfficial2024PortfolioPrint({
                 {section.intro ? <p>{section.intro}</p> : null}
 
                 <div className="moe24-divider-stats">
-                  <div className="moe24-divider-stat">
+                  {data.showWeights !== false ? <div className="moe24-divider-stat">
                     <strong>{section.weight}%</strong>
                     <span>الوزن النسبي</span>
-                  </div>
+                  </div> : null}
                   <div className="moe24-divider-stat">
                     <strong>{section.reports.length}</strong>
                     <span>التقارير</span>
@@ -2131,7 +2133,7 @@ export function MoeOfficial2024PortfolioPrint({
         </div>
       ))}
 
-      {data.customEvidence
+      {sectionEnabled("reports-evidence") ? data.customEvidence
         .filter((item) => !item.sectionId && item.isVisible && item.fileUrl)
         .sort((first, second) => first.sortOrder - second.sortOrder)
         .map((item) => (
@@ -2139,8 +2141,9 @@ export function MoeOfficial2024PortfolioPrint({
             key={item.id}
             item={item}
             label="شاهد مستقل"
+            style={{ order: sectionOrder("reports-evidence") }}
           />
-        ))}
+        )) : null}
 
       {sectionEnabled("closing") ? (
         <MoePage

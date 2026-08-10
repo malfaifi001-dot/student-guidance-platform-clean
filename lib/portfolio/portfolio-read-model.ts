@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
-import { TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS } from "@/lib/portfolio/portfolio-performance-elements";
+import { getPortfolioDefaultSectionOrderForRole, shouldShowPortfolioWeights } from "@/lib/portfolio/portfolio-performance-elements";
 import { loadCustomEvidence, loadManagedPortfolioReports } from "@/lib/portfolio/portfolio-report-service";
 import { loadPortfolioForUser, readBiography, readEducationIdentity, readPortfolioSettings } from "@/lib/portfolio/portfolio-service";
+import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
 import type { PortfolioItemType, PortfolioReportGroup } from "@/lib/portfolio/portfolio-types";
 
 type PortfolioCurrentUser = {
@@ -15,7 +16,8 @@ type PortfolioCurrentUser = {
 };
 
 function ownerName(user: PortfolioCurrentUser) {
-  return user.officialName || user.name || "المعلم";
+  const fallback = user.role === "TEACHER" ? "المعلم" : user.role === "COUNSELOR" ? "الموجه الطلابي" : user.role === "ACTIVITY_LEADER" ? "رائد النشاط" : user.role === "PRINCIPAL" ? "مدير المدرسة" : "مستخدم المنصة";
+  return user.officialName || user.name || fallback;
 }
 
 function metadata(value: unknown): Record<string, unknown> {
@@ -24,7 +26,7 @@ function metadata(value: unknown): Record<string, unknown> {
     : {};
 }
 
-export async function getTeacherPortfolioWorkspace(
+export async function getPortfolioWorkspace(
   user: PortfolioCurrentUser,
   portfolioId?: string | null,
 ) {
@@ -51,10 +53,31 @@ export async function getTeacherPortfolioWorkspace(
     loadCustomEvidence(user, portfolio.id),
   ]);
 
-  const performanceSections = TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS.map((definition) => {
-    const stored = sections.find((section) => section.sectionKey === definition.key);
+  const sectionDefinitions = getPortfolioDefaultSectionOrderForRole(user.role);
+  const definitionByKey = new Map(sectionDefinitions.map((definition) => [definition.key, definition]));
+  const storedByKey = new Map(sections.map((section) => [section.sectionKey, section]));
+  const unifiedSections = sectionDefinitions
+    .map((definition) => {
+      const stored = storedByKey.get(definition.key);
+      if (!stored) return null;
+      return {
+        id: stored.id,
+        key: definition.key,
+        kind: definition.kind,
+        title: definition.title,
+        introText: user.role !== "TEACHER" && definition.key === "profile" && stored.introText?.includes("المعلم") ? definition.intro : stored.introText || definition.intro,
+        sortOrder: stored.sortOrder,
+        isEnabled: stored.isEnabled,
+      };
+    })
+    .filter((section): section is NonNullable<typeof section> => Boolean(section))
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+
+  const performanceSections = unifiedSections.flatMap((section) => {
+    const definition = definitionByKey.get(section.key);
+    if (!definition?.service) return [];
     const reports = managedReports
-      .filter((report) => report.sectionKey === definition.key && report.isVisible && report.isAvailable)
+      .filter((report) => report.sectionKey === section.key && report.isVisible && report.isAvailable)
       .sort((first, second) => first.sortOrder - second.sortOrder)
       .map((report) => ({
         id: report.sourceId,
@@ -71,11 +94,11 @@ export async function getTeacherPortfolioWorkspace(
         content: report.content,
       }));
     return {
-      ...definition,
-      id: stored?.id || definition.key,
-      sortOrder: stored?.sortOrder ?? 0,
-      isEnabled: stored?.isEnabled ?? true,
-      intro: stored?.introText || definition.intro,
+      ...definition.service,
+      id: section.id,
+      sortOrder: section.sortOrder,
+      isEnabled: section.isEnabled,
+      intro: section.introText,
       reports,
     };
   });
@@ -114,7 +137,7 @@ export async function getTeacherPortfolioWorkspace(
     ok: true as const,
     portfolio: {
       id: portfolio.id,
-      title: portfolio.title,
+      title: user.role === "COUNSELOR" ? "ملف الإنجاز" : portfolio.title,
       academicYear: portfolio.academicYear,
       term: portfolio.term,
       themeId: getPortfolioTheme(portfolio.themeId).id,
@@ -125,7 +148,9 @@ export async function getTeacherPortfolioWorkspace(
       description: settings.description,
       preferences: settings.preferences,
     },
-    owner: { name: ownerName(user), jobTitle: user.jobTitle || "معلم" },
+    owner: { name: ownerName(user), jobTitle: user.jobTitle || (user.role === "TEACHER" ? "معلم" : user.role === "COUNSELOR" ? "موجه طلابي" : user.role === "ACTIVITY_LEADER" ? "رائد النشاط" : user.role === "PRINCIPAL" ? "مدير المدرسة" : "مستخدم المنصة") },
+    showWeights: shouldShowPortfolioWeights(user.role),
+    routes: getPortfolioRoutes(user.role),
     school: {
       name: school?.profile?.schoolName || school?.name || "المدرسة",
       logoUrl: school?.profile?.logoUrl || null,
@@ -133,17 +158,9 @@ export async function getTeacherPortfolioWorkspace(
       academicYear: school?.profile?.academicYear || null,
       currentSemester: school?.profile?.currentSemester || null,
     },
-    sections: sections.map((section) => ({
-      id: section.id,
-      key: section.sectionKey,
-      kind: section.kind,
-      title: section.title,
-      introText: section.introText || "",
-      sortOrder: section.sortOrder,
-      isEnabled: section.isEnabled,
-    })),
+    sections: unifiedSections,
     biography: readBiography(profileSection?.metadataJson),
-    educationIdentity: readEducationIdentity(introductionSection?.metadataJson),
+    educationIdentity: readEducationIdentity(introductionSection?.metadataJson, user.role),
     qualificationItems: qualificationItems.map((item) => {
       const meta = metadata(item.metadataJson);
       return {
@@ -164,11 +181,11 @@ export async function getTeacherPortfolioWorkspace(
     reportGroups,
     customEvidence,
     performanceSections,
-    totals: { reports: totalReports, evidences: totalEvidences, sections: sections.length },
+    totals: { reports: totalReports, evidences: totalEvidences, sections: unifiedSections.length },
   };
 }
 
-export type TeacherPortfolioWorkspace = Extract<
-  Awaited<ReturnType<typeof getTeacherPortfolioWorkspace>>,
+export type PortfolioWorkspaceData = Extract<
+  Awaited<ReturnType<typeof getPortfolioWorkspace>>,
   { ok: true }
 >;

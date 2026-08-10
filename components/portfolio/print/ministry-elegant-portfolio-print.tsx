@@ -2122,10 +2122,10 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
                 <p>{section.intro}</p>
 
                 <div className="portfolio-stat-grid">
-                  <div className="portfolio-stat">
+                  {data.showWeights !== false ? <div className="portfolio-stat">
                     <strong>{section.weight}%</strong>
                     <span>الوزن النسبي</span>
-                  </div>
+                  </div> : null}
                   <div className="portfolio-stat">
                     <strong>{section.reports.length}</strong>
                     <span>تقرير</span>
@@ -2185,11 +2185,11 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
         </div>
       ))}
 
-      {data.customEvidence
+      {sectionEnabled("reports-evidence") ? data.customEvidence
         .filter((item) => !item.sectionId && item.isVisible && item.fileUrl)
         .sort((first, second) => first.sortOrder - second.sortOrder)
         .map((item) => (
-          <PageShell key={item.id} pageLabel="شاهد مستقل" style={{ order: 900 }}>
+          <PageShell key={item.id} pageLabel="شاهد مستقل" style={{ order: sectionOrder("reports-evidence") }}>
             <span className="portfolio-section-kicker">شاهد مستقل</span>
             <h2 className="portfolio-section-title">{item.title}</h2>
             {item.description ? <p className="portfolio-section-text">{item.description}</p> : null}
@@ -2197,7 +2197,7 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
               <img src={item.fileUrl} alt={item.title} style={{ display: "block", width: "100%", maxHeight: "175mm", objectFit: "contain", marginTop: "8mm" }} />
             ) : <div className="portfolio-empty">ملف مرفق: {item.fileUrl}</div>}
           </PageShell>
-        ))}
+        )) : null}
 
       {sectionEnabled("closing") ? (
       <PageShell pageLabel="الخاتمة" className="portfolio-conclusion-page" style={{ order: sectionOrder("closing") }}>

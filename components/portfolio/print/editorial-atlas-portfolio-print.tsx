@@ -1030,10 +1030,10 @@ export function EditorialAtlasPortfolioPrint({
               {section.intro ? <p>{section.intro}</p> : null}
 
               <div className="atlas-divider-stats">
-                <div>
+                {data.showWeights !== false ? <div>
                   <strong>{section.weight}%</strong>
                   <span>الوزن</span>
-                </div>
+                </div> : null}
                 <div>
                   <strong>{section.reports.length}</strong>
                   <span>التقارير</span>

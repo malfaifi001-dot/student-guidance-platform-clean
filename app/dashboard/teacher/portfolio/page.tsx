@@ -1,30 +1,3 @@
-import { redirect } from "next/navigation";
-import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
-import { requireDashboardUser } from "@/lib/auth/require-auth";
-import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { PortfolioDashboardRoute } from "@/components/portfolio/portfolio-route-views";
 
-type TeacherPortfolioPageProps = {
-  searchParams: Promise<{ portfolioId?: string | string[] }>;
-};
-
-export default async function TeacherPortfolioPage({ searchParams }: TeacherPortfolioPageProps) {
-  const current = await requireDashboardUser();
-
-  if (current.user.role === "ADMIN") {
-    redirect("/dashboard/admin");
-  }
-
-  if (current.user.role !== "TEACHER") {
-    redirect("/dashboard");
-  }
-
-  const query = await searchParams;
-  const portfolioId = Array.isArray(query.portfolioId) ? query.portfolioId[0] : query.portfolioId;
-  const workspace = await getTeacherPortfolioWorkspace(current.user, portfolioId);
-
-  if (!workspace.ok) {
-    redirect("/dashboard/onboarding?required=true");
-  }
-
-  return <PortfolioDashboard data={workspace} />;
-}
+export default PortfolioDashboardRoute;

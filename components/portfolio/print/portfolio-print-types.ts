@@ -1,6 +1,7 @@
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 
 export type PortfolioPrintData = {
+  showWeights?: boolean;
   portfolio: {
     id: string;
     title: string;
@@ -101,6 +102,10 @@ export type PortfolioPrintData = {
   }>;
   totals: { reports: number; evidences: number; sections: number };
 };
+
+export function portfolioShowsWeights(data: PortfolioPrintData) {
+  return data.showWeights !== false;
+}
 
 export type PortfolioReportSectionModel =
   | { kind: "details"; fields: PortfolioReportContent["normalizedFields"] }

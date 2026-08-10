@@ -2,12 +2,12 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
-  assertTeacherActor,
+  assertPortfolioActor,
   PortfolioServiceError,
   requireOwnedPortfolio,
   type PortfolioActor,
 } from "@/lib/portfolio/portfolio-authorization";
-import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 import {
   parsePortfolioSnapshotDocument,
   PORTFOLIO_SNAPSHOT_VERSION,
@@ -35,7 +35,7 @@ function defaultSnapshotName(createdAt: Date) {
 }
 
 function toSnapshotDocument(
-  workspace: Awaited<ReturnType<typeof getTeacherPortfolioWorkspace>> & { ok: true },
+  workspace: Awaited<ReturnType<typeof getPortfolioWorkspace>> & { ok: true },
   user: SnapshotUser,
   capturedAt: Date,
 ): PortfolioSnapshotDocumentV1 {
@@ -44,6 +44,7 @@ function toSnapshotDocument(
     capturedAt: capturedAt.toISOString(),
     ownerUserId: user.id,
     schoolAccountId: user.schoolAccountId!,
+    showWeights: workspace.showWeights,
     portfolio: workspace.portfolio,
     owner: workspace.owner,
     school: workspace.school,
@@ -75,7 +76,8 @@ export async function createPortfolioSnapshot(
   input: { name?: string; notes?: string },
 ) {
   await requireOwnedPortfolio(user, portfolioId);
-  const workspace = await getTeacherPortfolioWorkspace(user, portfolioId);
+  assertPortfolioActor(user);
+  const workspace = await getPortfolioWorkspace(user, portfolioId);
   if (!workspace.ok) {
     throw new PortfolioServiceError(400, "تعذر تجهيز ملف الإنجاز للاعتماد.");
   }
@@ -91,7 +93,7 @@ export async function createPortfolioSnapshot(
       schoolAccountId: user.schoolAccountId!,
       name: input.name?.trim() || defaultSnapshotName(capturedAt),
       notes: input.notes?.trim() || null,
-      roleAtCreation: "TEACHER",
+      roleAtCreation: user.role,
       snapshotVersion: PORTFOLIO_SNAPSHOT_VERSION,
       summaryJson: asJson(summary),
       snapshotJson: asJson(document),
@@ -110,12 +112,13 @@ export async function createPortfolioSnapshot(
 
 export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: string) {
   await requireOwnedPortfolio(user, portfolioId);
+  assertPortfolioActor(user);
   const snapshots = await prisma.portfolioSnapshot.findMany({
     where: {
       portfolioId,
       ownerUserId: user.id,
       schoolAccountId: user.schoolAccountId!,
-      roleAtCreation: "TEACHER",
+      roleAtCreation: user.role,
     },
     orderBy: { createdAt: "desc" },
     select: {
@@ -141,13 +144,13 @@ export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: 
 }
 
 export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: string) {
-  assertTeacherActor(user);
+  assertPortfolioActor(user);
   const snapshot = await prisma.portfolioSnapshot.findFirst({
     where: {
       id: snapshotId,
       ownerUserId: user.id,
       schoolAccountId: user.schoolAccountId!,
-      roleAtCreation: "TEACHER",
+      roleAtCreation: user.role,
     },
   });
   if (!snapshot) {
@@ -155,8 +158,12 @@ export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: str
   }
 
   await requireOwnedPortfolio(user, snapshot.portfolioId);
+  const document = parsePortfolioSnapshotDocument(snapshot.snapshotJson);
   return {
     ...snapshot,
-    document: parsePortfolioSnapshotDocument(snapshot.snapshotJson),
+    document: {
+      ...document,
+      showWeights: document.showWeights ?? snapshot.roleAtCreation === "TEACHER",
+    },
   };
 }

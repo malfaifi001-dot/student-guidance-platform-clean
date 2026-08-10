@@ -2,11 +2,11 @@
 
 import { Loader2, Save } from "lucide-react";
 import { useState } from "react";
-import type { TeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 
 export function PortfolioSettingsPanel({ data, busy, onSave }: {
-  data: TeacherPortfolioWorkspace;
+  data: PortfolioWorkspaceData;
   busy: boolean;
   onSave: (body: unknown) => Promise<void>;
 }) {
