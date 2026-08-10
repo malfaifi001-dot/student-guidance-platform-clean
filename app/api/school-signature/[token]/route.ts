@@ -1,7 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  getSchoolSignaturePublicUrl,
+  writeSchoolSignatureFile,
+} from "@/lib/settings/school-signature-file-storage";
 
 export const runtime = "nodejs";
 
@@ -29,22 +31,18 @@ async function savePrincipalSignature(input: {
     return "";
   }
 
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "school-signatures",
+  const fileName = `principal-signature-${Date.now()}.png`;
+
+  await writeSchoolSignatureFile(
     input.schoolAccountId,
+    fileName,
+    new Uint8Array(buffer),
   );
 
-  await mkdir(uploadDir, { recursive: true });
-
-  const fileName = `principal-signature-${Date.now()}.png`;
-  const fullPath = path.join(uploadDir, fileName);
-
-  await writeFile(fullPath, buffer);
-
-  return `/uploads/school-signatures/${input.schoolAccountId}/${fileName}`;
+  return getSchoolSignaturePublicUrl(
+    input.schoolAccountId,
+    fileName,
+  );
 }
 
 export async function GET(_request: Request, context: RouteContext) {

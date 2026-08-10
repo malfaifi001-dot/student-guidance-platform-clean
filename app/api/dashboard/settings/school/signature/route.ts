@@ -6,6 +6,10 @@ import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { schoolSignaturePostSchema } from "@/lib/settings/school-settings-api-schema";
+import {
+  getSchoolSignaturePublicUrl,
+  writeSchoolSignatureFile,
+} from "@/lib/settings/school-signature-file-storage";
 
 export const runtime = "nodejs";
 
@@ -31,25 +35,35 @@ async function saveSignatureImage(input: {
     return "";
   }
 
-  const relativeDirectory =
-    input.kind === "teacher"
-      ? path.join("user-signatures", input.userId)
-      : path.join("school-signatures", input.schoolAccountId);
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    relativeDirectory,
+  const fileName = `${input.kind}-signature-${Date.now()}-${randomUUID()}.png`;
+
+  if (input.kind === "teacher") {
+    const relativeDirectory = path.join("user-signatures", input.userId);
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      relativeDirectory,
+    );
+
+    await mkdir(uploadDir, { recursive: true });
+
+    const fullPath = path.join(uploadDir, fileName);
+    await writeFile(fullPath, buffer);
+
+    return `/uploads/${relativeDirectory.replaceAll(path.sep, "/")}/${fileName}`;
+  }
+
+  await writeSchoolSignatureFile(
+    input.schoolAccountId,
+    fileName,
+    new Uint8Array(buffer),
   );
 
-  await mkdir(uploadDir, { recursive: true });
-
-  const fileName = `${input.kind}-signature-${Date.now()}-${randomUUID()}.png`;
-  const fullPath = path.join(uploadDir, fileName);
-
-  await writeFile(fullPath, buffer);
-
-  return `/uploads/${relativeDirectory.replaceAll(path.sep, "/")}/${fileName}`;
+  return getSchoolSignaturePublicUrl(
+    input.schoolAccountId,
+    fileName,
+  );
 }
 
 export async function POST(request: Request) {
