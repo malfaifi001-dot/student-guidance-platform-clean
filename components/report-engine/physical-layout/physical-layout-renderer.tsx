@@ -185,8 +185,8 @@ export function PhysicalLayoutRenderer({
       }
       className={
         renderMode === "stack"
-          ? "space-y-5 print:space-y-0"
-          : ""
+          ? "w-full space-y-5 print:space-y-0"
+          : "w-full"
       }
     >
       {visiblePages.map(
@@ -199,6 +199,7 @@ export function PhysicalLayoutRenderer({
           return (
             <div
               key={page.id}
+              className="w-full"
               data-physical-page-id={
                 page.id
               }
