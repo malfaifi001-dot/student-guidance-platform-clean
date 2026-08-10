@@ -1,25 +1,50 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
+
+import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 
 type TeacherPortfolioPreviewPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ portfolioId?: string | string[] }>;
 };
 
 export default async function TeacherPortfolioPreviewPage({
   searchParams,
 }: TeacherPortfolioPreviewPageProps) {
-  const query = await searchParams;
-  const targetParams = new URLSearchParams();
+  const current = await requireDashboardUser();
 
-  for (const [key, value] of Object.entries(query)) {
-    if (key === "print") continue;
-
-    if (Array.isArray(value)) {
-      value.forEach((item) => targetParams.append(key, item));
-    } else if (value !== undefined) {
-      targetParams.append(key, value);
-    }
+  if (current.user.role === "ADMIN") {
+    redirect("/dashboard/admin");
   }
 
-  const queryString = targetParams.toString();
-  redirect(`/teacher/portfolio/print${queryString ? `?${queryString}` : ""}`);
+  if (current.user.role !== "TEACHER") {
+    redirect("/dashboard");
+  }
+
+  const query = await searchParams;
+  const portfolioId = Array.isArray(query.portfolioId)
+    ? query.portfolioId[0]
+    : query.portfolioId;
+
+  const workspace = await getTeacherPortfolioWorkspace(
+    current.user,
+    portfolioId,
+  );
+
+  if (!workspace.ok) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const previewWorkspace = {
+    ...workspace,
+    customEvidence: workspace.customEvidence.filter(
+      (item) => item.isVisible && Boolean(item.fileUrl),
+    ),
+  };
+
+  return (
+    <main dir="rtl">
+      <PortfolioPrintDocument data={previewWorkspace} />
+    </main>
+  );
 }

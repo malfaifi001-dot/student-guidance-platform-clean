@@ -2,6 +2,7 @@
 
 import { ArrowRight, Printer } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 function waitForImages() {
   return Promise.all(
@@ -25,10 +26,27 @@ async function waitForPrintAssets() {
   await waitForImages();
 }
 
+async function triggerPortfolioPrint() {
+  await waitForPrintAssets();
+  window.setTimeout(() => window.print(), 500);
+}
+
+export function PortfolioAutoPrint({ enabled }: { enabled: boolean }) {
+  const triggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (enabled && !triggeredRef.current) {
+      triggeredRef.current = true;
+      void triggerPortfolioPrint();
+    }
+  }, [enabled]);
+
+  return null;
+}
+
 export function PortfolioPrintActions() {
   async function print() {
-    await waitForPrintAssets();
-    window.setTimeout(() => window.print(), 500);
+    await triggerPortfolioPrint();
   }
 
   return (

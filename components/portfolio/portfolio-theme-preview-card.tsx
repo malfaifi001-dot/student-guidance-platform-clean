@@ -20,7 +20,7 @@ export function PortfolioThemePreviewCard({ theme, selected, disabled, onSelect 
   >
     <ThemeMiniature theme={theme} />
     <span className="mt-3 flex items-start justify-between gap-3">
-      <span><strong className="block text-sm font-black text-slate-950">{theme.name}</strong><span className="mt-1 block text-xs font-bold leading-5 text-slate-500">{theme.shortDescription}</span></span>
+      <strong className="block text-sm font-black text-slate-950">{theme.name}</strong>
       {selected ? <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-teal-600 bg-teal-600 text-white" title="التصميم الحالي"><Check className="h-3.5 w-3.5" /></span> : <span className="mt-0.5 shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-black text-slate-500">اختيار</span>}
     </span>
   </button>;

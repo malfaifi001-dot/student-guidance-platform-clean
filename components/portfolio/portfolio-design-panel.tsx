@@ -45,7 +45,7 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
     <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-700"><Palette className="h-6 w-6" /></span><div><p className="text-xs font-black text-slate-400">ملف الإنجاز</p><h2 className="text-xl font-black text-slate-950">التصميم الحالي</h2><p className="mt-1 text-sm font-bold text-slate-500">التصميم الرسمي المعتمد لعرض الملف وطباعته.</p></div></div>
-        <Link href={`/teacher/portfolio/print?portfolioId=${data.portfolio.id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
+        <Link href={`/dashboard/teacher/portfolio/preview?portfolioId=${data.portfolio.id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{PORTFOLIO_THEMES.map((theme) => <PortfolioThemePreviewCard key={theme.id} theme={theme} selected={theme.id === selectedThemeId} disabled={busy} onSelect={() => void selectTheme(theme.id)} />)}</div>
     </div>

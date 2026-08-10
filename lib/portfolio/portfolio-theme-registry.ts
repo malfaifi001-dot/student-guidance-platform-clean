@@ -27,7 +27,7 @@ export type PortfolioThemeDefinition = {
 export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   {
     id: "ministry-elegant",
-    name: "الوزاري الأنيق",
+    name: "تصميم 1",
     shortDescription: "هوية تعليمية رسمية بإطار متوازن وزوايا هندسية هادئة.",
     previewClass: "preview-ministry",
     palette: {
@@ -39,7 +39,7 @@ export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   },
   {
     id: "moe-official-2024",
-    name: "الهوية الرسمية 2024",
+    name: "تصميم 2",
     shortDescription: "تصميم مستقل مستوحى من دليل الهوية البصرية لوزارة التعليم 2024.",
     previewClass: "preview-moe-official-2024",
     palette: {
@@ -51,7 +51,7 @@ export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   },
   {
     id: "editorial-atlas",
-    name: "الأطلس التحريري",
+    name: "تصميم 3",
     shortDescription:
       "تصميم تحريري مبتكر بشريط جانبي داكن ومدارات لونية وتكوينات مرنة.",
     previewClass: "preview-editorial-atlas",
@@ -64,7 +64,7 @@ export const PORTFOLIO_THEMES: PortfolioThemeDefinition[] = [
   },
   {
     id: "geometric-horizon",
-    name: "الأفق الهندسي",
+    name: "تصميم 4",
     shortDescription:
       "تصميم هندسي عصري بأشرطة لونية جريئة وتكوينات منظمة متعددة الإيقاع.",
     previewClass: "preview-geometric-horizon",

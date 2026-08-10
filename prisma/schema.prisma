@@ -212,6 +212,7 @@ model SchoolAccount {
   createdAt                  DateTime                   @default(now())
   updatedAt                  DateTime                   @updatedAt
   achievementPortfolios      AchievementPortfolio[]
+  portfolioSnapshots         PortfolioSnapshot[]
   referenceLibraryItems      ReferenceLibraryItem[]     @relation("ReferenceLibrarySchool")
   timetableProjects          TimetableProject[]
   timetableDailyAbsences     TimetableDailyAbsence[]
@@ -257,6 +258,7 @@ model User {
   caseEvidences                 CaseEvidence[]
   createdReportTemplates        ReportTemplate[]
   achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
+  portfolioSnapshots            PortfolioSnapshot[]        @relation("PortfolioSnapshotOwner")
   createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
   referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
   createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
@@ -1956,6 +1958,7 @@ model AchievementPortfolio {
 
   sections AchievementPortfolioSection[]
   items    AchievementPortfolioItem[]
+  snapshots PortfolioSnapshot[]
 
   @@unique([schoolAccountId, ownerUserId, academicYear, term])
   @@index([schoolAccountId])
@@ -1963,6 +1966,34 @@ model AchievementPortfolio {
   @@index([roleKey])
   @@index([status])
   @@index([themeId])
+}
+
+model PortfolioSnapshot {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  ownerUserId String
+  owner       User   @relation("PortfolioSnapshotOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name            String   @db.VarChar(180)
+  notes           String?  @db.Text
+  roleAtCreation  UserRole
+  snapshotVersion Int      @default(1)
+  summaryJson     Json?
+  snapshotJson    Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioId])
+  @@index([ownerUserId])
+  @@index([schoolAccountId])
+  @@index([createdAt])
 }
 
 model AchievementPortfolioSection {
