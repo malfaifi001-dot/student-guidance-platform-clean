@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   ReportDesignRenderer,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import type {
   ReportOneEditableBlock,
@@ -465,7 +467,7 @@ function getAdminStudioTemplate(
     designTemplateId:
       cleanText(source.designTemplateId) ||
       cleanText(templateJson.designTemplateId) ||
-      "ministry-form",
+      DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
     pages: injectReportOneBlocksIntoPages(
       sourcePages,
       blocks,
@@ -629,9 +631,9 @@ function getReportOneEvidencePerPage(settings: ReportOneEvidenceSettings) {
 function normalizeDesignId(value: unknown): ReportDesignId {
   const designId = cleanText(value);
 
-  if (designId === "formal-memo") return "formal-memo";
+  if (isReportDesignId(designId)) return designId;
 
-  return "ministry-form";
+  return DEFAULT_SELECTABLE_REPORT_DESIGN_ID;
 }
 
 export function ReportOneTemplatePreview({

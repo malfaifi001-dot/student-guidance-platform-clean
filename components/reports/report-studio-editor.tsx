@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
-import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
+  FinalReportDesignRenderer,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type StudioReportStatus =
   | "DRAFT"
@@ -1571,7 +1574,7 @@ function normalizeTemplateSnapshot(report: StudioReport) {
   return {
     id: "missing-template-pages",
     name: report.title,
-    designTemplateId: "ministry-form",
+    designTemplateId: DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
     pages: [
       {
         id: "missing-template-pages",

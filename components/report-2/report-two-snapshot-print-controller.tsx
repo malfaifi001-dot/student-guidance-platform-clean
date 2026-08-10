@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const ASSET_READY_TIMEOUT_MS = 5000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -9,9 +11,12 @@ function sleep(ms: number) {
 async function waitForWindowLoad() {
   if (document.readyState === "complete") return;
 
-  await new Promise<void>((resolve) => {
-    window.addEventListener("load", () => resolve(), { once: true });
-  });
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      window.addEventListener("load", () => resolve(), { once: true });
+    }),
+    sleep(ASSET_READY_TIMEOUT_MS),
+  ]);
 }
 
 async function waitForFonts() {
@@ -19,34 +24,37 @@ async function waitForFonts() {
     const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts;
 
     if (fonts?.ready) {
-      await fonts.ready;
+      await Promise.race([fonts.ready, sleep(ASSET_READY_TIMEOUT_MS)]);
     }
   } catch {
     // تجاهل فشل جاهزية الخطوط
   }
 }
 
-async function waitForFinalizedPhysicalPages(timeoutMs = 30000) {
-  if (!document.querySelector(".report-two-print-document")) {
-    return true;
-  }
-
+async function waitForCommittedVisiblePages(timeoutMs = 5000) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const composers = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        "[data-report-smart-physical-pages]",
-      ),
+    const renderer = document.querySelector<HTMLElement>(
+      ".report-two-print-document [data-physical-layout-renderer='true'][data-physical-layout-frozen='true']",
+    );
+    const physicalPages = renderer?.querySelectorAll<HTMLElement>(
+      "[data-physical-page-id]",
+    );
+    const a4Pages = renderer?.querySelectorAll<HTMLElement>(
+      ".pdf-report-page",
     );
 
     if (
-      composers.length > 0 &&
-      composers.every((composer) => {
-        const phase = composer.dataset.reportPhysicalPlanningPhase;
-        return phase === "READY" || phase === "FROZEN";
-      })
+      renderer &&
+      physicalPages?.length &&
+      a4Pages?.length === physicalPages.length
     ) {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      });
       return true;
     }
 
@@ -57,7 +65,8 @@ async function waitForFinalizedPhysicalPages(timeoutMs = 30000) {
 }
 
 async function waitForImages(timeoutMs = 10000) {
-  const images = Array.from(document.querySelectorAll<HTMLImageElement>("img"));
+  const images = Array.from(document.querySelectorAll<HTMLImageElement>("img"))
+    .filter((image) => !image.closest("[data-report-measurement-only='true']"));
   const pending = images.filter((image) => !image.complete);
 
   if (!pending.length) return;
@@ -138,7 +147,7 @@ async function waitForFrameFonts() {
         )?.fonts;
 
         if (fonts?.ready) {
-          await fonts.ready;
+          await Promise.race([fonts.ready, sleep(ASSET_READY_TIMEOUT_MS)]);
         }
       } catch {
         // تجاهل فشل جاهزية خطوط الإطار
@@ -148,25 +157,54 @@ async function waitForFrameFonts() {
 }
 
 export function ReportTwoSnapshotPrintController() {
+  const printTriggeredRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
     async function triggerPrint() {
-      await waitForWindowLoad();
-      await waitForFonts();
-      const physicalPagesReady = await waitForFinalizedPhysicalPages();
+      console.info("PRINT_ROUTE_LOADED");
+      console.info("PRINT_REQUESTED");
 
-      if (!physicalPagesReady || cancelled) {
+      if (printTriggeredRef.current) {
+        console.info("PRINT_ALREADY_TRIGGERED");
         return;
       }
+
+      await waitForWindowLoad();
+      await waitForFonts();
+      console.info("FONTS_READY");
+
+      const physicalPagesReady = await waitForCommittedVisiblePages();
+
+      if (!physicalPagesReady || cancelled) {
+        console.info("PRINT_ABORTED", {
+          reason: cancelled ? "effect-cancelled" : "committed-visible-pages-timeout",
+        });
+        return;
+      }
+
+      console.info("PHYSICAL_LAYOUT_COMMITTED");
+      console.info("VISIBLE_A4_READY");
+
       await waitForImages();
+      console.info("IMAGES_READY");
       await waitForLinkedFrames();
       await waitForFrameFonts();
-      await sleep(500);
 
-      if (!cancelled) {
-        window.print();
+      if (cancelled) {
+        console.info("PRINT_ABORTED", { reason: "effect-cancelled" });
+        return;
       }
+
+      if (printTriggeredRef.current) {
+        console.info("PRINT_ALREADY_TRIGGERED");
+        return;
+      }
+
+      printTriggeredRef.current = true;
+      console.info("PRINT_TRIGGERED");
+      window.print();
     }
 
     void triggerPrint();

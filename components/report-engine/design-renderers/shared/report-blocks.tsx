@@ -12,6 +12,7 @@ import { EvidenceBlock } from "./report-evidence";
 import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
 import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
 import { DesignValueGrid } from "./report-values";
+import styles from "./a4-design-page.module.css";
 
 export function A4DesignPage({
   designId,
@@ -30,22 +31,24 @@ export function A4DesignPage({
   const PageComponent = implementation.Page;
 
   return (
-    <PageComponent
-      page={page}
-      context={context}
-      previewCase={previewCase}
-      pageLabel={pageLabel}
-      PageBlocks={PageBlocks}
-      MetaCard={MetaCard}
-      SideMeta={SideMeta}
-      MiniStat={MiniStat}
-      DesignFooter={DesignFooter}
-      getDesignLogoSrc={getDesignLogoSrc}
-      getDesignHeaderAlign={getDesignHeaderAlign}
-      getDesignHeaderText={getDesignHeaderText}
-      collectFinalValues={collectFinalValues}
-      getValidPreviewEvidences={getValidPreviewEvidences}
-    />
+    <div className={styles.presentation} data-a4-sheet-presentation="true">
+      <PageComponent
+        page={page}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={pageLabel}
+        PageBlocks={PageBlocks}
+        MetaCard={MetaCard}
+        SideMeta={SideMeta}
+        MiniStat={MiniStat}
+        DesignFooter={DesignFooter}
+        getDesignLogoSrc={getDesignLogoSrc}
+        getDesignHeaderAlign={getDesignHeaderAlign}
+        getDesignHeaderText={getDesignHeaderText}
+        collectFinalValues={collectFinalValues}
+        getValidPreviewEvidences={getValidPreviewEvidences}
+      />
+    </div>
   );
 }
 

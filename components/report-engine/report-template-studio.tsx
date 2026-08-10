@@ -6,6 +6,7 @@ import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evide
 import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   DEFAULT_REPORT_HEADER_SETTINGS,
   ReportDesignRenderer,
   normalizeReportHeaderSettings,
@@ -414,7 +415,7 @@ function createInitialTemplate(): StudioTemplate {
     description:
       "قالب رسمي متعدد الصفحات بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
     status: "DRAFT",
-    designTemplateId: "ministry-form",
+    designTemplateId: DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
     scope: "GLOBAL",
     previewCaseId: "",
     documentType: "REPORT",
@@ -634,7 +635,7 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
     designTemplateId:
       templateJson.designTemplateId ||
       smartStudio.designTemplateId ||
-      "ministry-form",
+      DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
     name: item?.name || templateJson.name || fallback.name,
     description:
       item?.description || templateJson.description || fallback.description,
@@ -1058,7 +1059,8 @@ export function ReportTemplateStudio() {
       locationKey: template.locationKey || undefined,
       status,
       documentType: template.documentType,
-      designTemplateId: template.designTemplateId || "ministry-form",
+      designTemplateId:
+        template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
       designPreset: "official-smart-multi-page",
       designConfig: template.designConfig,
       previewCaseId: template.previewCaseId,
@@ -1120,7 +1122,8 @@ export function ReportTemplateStudio() {
       smartStudio: {
         version: 2,
         mode: "multi-page-workflow-aware",
-        designTemplateId: template.designTemplateId || "ministry-form",
+        designTemplateId:
+          template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
         designConfig: template.designConfig,
         pages: template.pages,
       },
@@ -1617,7 +1620,8 @@ export function ReportTemplateStudio() {
                   {reportDesignTemplates.find(
                     (design) =>
                       design.id ===
-                      (template.designTemplateId || "ministry-form"),
+                      (template.designTemplateId ||
+                        DEFAULT_SELECTABLE_REPORT_DESIGN_ID),
                   )?.name || "نموذج الوزارة الرسمي"}
                 </p>
               </div>
@@ -1634,7 +1638,9 @@ export function ReportTemplateStudio() {
               </p>
 
               <select
-                value={template.designTemplateId || "ministry-form"}
+                value={
+                  template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID
+                }
                 onChange={(event) =>
                   updateTemplate({
                     designTemplateId: event.target.value as ReportDesignId,
@@ -1652,7 +1658,9 @@ export function ReportTemplateStudio() {
 
             <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {selectableReportDesignTemplates.map((design) => {
-                const active = (template.designTemplateId || "ministry-form") === design.id;
+                const active =
+                  (template.designTemplateId ||
+                    DEFAULT_SELECTABLE_REPORT_DESIGN_ID) === design.id;
 
                 return (
                   <button
@@ -2654,7 +2662,9 @@ function OfficialPagePreview({
 }) {
   return (
     <ReportDesignRenderer
-      designId={template.designTemplateId || "ministry-form"}
+      designId={
+        template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID
+      }
       template={template}
       activePage={activePage}
       activePageId={activePageId}

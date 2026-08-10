@@ -15,10 +15,6 @@ export function MoeClassicFrameReportDesign({
     String(context["identity.educationDepartment"] || "").trim() ||
     "الإدارة العامة للتعليم";
 
-  const office =
-    String(context["identity.educationOffice"] || "").trim() ||
-    "مكتب التعليم";
-
   const schoolName =
     String(context["identity.schoolName"] || "").trim() ||
     "اسم المدرسة";
@@ -57,11 +53,11 @@ export function MoeClassicFrameReportDesign({
 
             {/* بيانات الإدارة يسار */}
             <div className="w-[52mm] text-right text-[9.5px] font-bold leading-[1.55] text-white">
+              <p className="whitespace-nowrap text-[#18a69a]">
+                المملكة العربية السعودية
+              </p>
               <p className="whitespace-nowrap">
                 {department}
-              </p>
-              <p className="whitespace-nowrap text-[#18a69a]">
-                {office}
               </p>
               <p className="whitespace-nowrap">
                 {schoolName}

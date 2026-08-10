@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   isReportDesignId,
   selectableReportDesignTemplates,
 } from "../report-design-registry";
@@ -45,7 +46,7 @@ export function ReportDesignRenderer({
   suppressAutoEvidencePages = false,
 }: ReportDesignRendererProps) {
   const selectedDesign = normalizeDesignId(
-    designId || template?.designTemplateId || "ministry-form",
+    designId || template?.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   );
   const implementation = getReportDesignImplementation(selectedDesign);
 
@@ -407,7 +408,9 @@ export function FinalReportDesignRenderer({
   identity?: Record<string, any>;
 }) {
   const selectedDesign = normalizeDesignId(
-    template?.designTemplateId || template?.designTheme || "ministry-form",
+    template?.designTemplateId ||
+      template?.designTheme ||
+      DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   );
 
   const normalizedTemplate = normalizeFinalReportTemplate(
@@ -477,6 +480,6 @@ import { getReportDesignLogoStyleText } from "./report-logo";
 
 
 export function normalizeDesignId(value: string): ReportDesignId {
-  return isReportDesignId(value) ? value : "ministry-form";
+  return isReportDesignId(value) ? value : DEFAULT_SELECTABLE_REPORT_DESIGN_ID;
 }
 

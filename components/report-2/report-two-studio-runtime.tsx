@@ -1370,6 +1370,14 @@ function withReportTwoSignatureBlock(
   };
 }
 
+function getTemplateOptionDesignId(template: TemplateOption) {
+  const raw = asRecord(template.templateJson);
+  const smartStudio = asRecord(raw.smartStudio);
+  const source = asArray(smartStudio.pages).length ? smartStudio : raw;
+
+  return normalizeDesignId(source.designTemplateId || raw.designTemplateId);
+}
+
 function getStructuredTableBlock(
   table: SmartReportTable,
   sourceBlock?: StudioBlock,
@@ -2610,10 +2618,34 @@ export function ReportTwoStudioRuntime({
     setPreparedPayload(payload);
   }, [caseId, payload, selectedVariantId]);
 
+  const explicitlySelectedTemplateOption = selectedTemplateId
+    ? templates.find((template) => template.id === selectedTemplateId) || null
+    : null;
+
   const initialTemplateOption =
-    templates.find((template) => template.id === selectedTemplateId) ||
+    explicitlySelectedTemplateOption ||
+    (!selectedTemplateId
+      ? templates.find(
+          (template) =>
+            getTemplateOptionDesignId(template) ===
+            DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
+        )
+      : null) ||
     templates[0] ||
     null;
+
+  const initialHydratedTemplate = useMemo(() => {
+    const hydrated = hydrateTemplate(initialTemplateOption);
+
+    if (!selectedTemplateId && !explicitlySelectedTemplateOption) {
+      return {
+        ...hydrated,
+        designTemplateId: DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
+      };
+    }
+
+    return hydrated;
+  }, [explicitlySelectedTemplateOption, initialTemplateOption, selectedTemplateId]);
 
   const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
     initialTemplateOption?.id || "",
@@ -2645,7 +2677,7 @@ export function ReportTwoStudioRuntime({
   const [template, setTemplate] = useState<StudioTemplate>(() =>
     normalizeReportTwoLogicalTemplate(
       applyReportTwoPreparedExecutionSummary(
-        hydrateTemplate(initialTemplateOption),
+        initialHydratedTemplate,
         payload,
       ),
       payload,
@@ -2663,7 +2695,7 @@ export function ReportTwoStudioRuntime({
     );
   }, [preparedPayload]);
   const [protectedPageIds, setProtectedPageIds] = useState<string[]>(() =>
-    hydrateTemplate(initialTemplateOption).pages.map((page) => page.id),
+    initialHydratedTemplate.pages.map((page) => page.id),
   );
 
   const [activePageId, setActivePageId] = useState(
