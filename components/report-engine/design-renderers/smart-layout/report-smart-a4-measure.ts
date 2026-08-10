@@ -31,6 +31,10 @@ export type ReportSmartA4Measurement = {
 
   overflowPx: number;
 
+  blockOverflowPx: number;
+  scrollOverflowPx: number;
+  boundingOverflowPx: number;
+
   signatureHeightPx: number;
   signatureReservedPx: number;
 
@@ -205,15 +209,29 @@ export function measureReportSmartA4Layout(
     0,
   );
 
+  /**
+   * ارتفاع التوقيع يبقى Metric مفيدًا للتشخيص والسياسات،
+   * لكنه لا يخصم مرة ثانية من مساحة A4.
+   *
+   * التوقيع موجود فعليًا داخل DOM أثناء القياس، ولذلك:
+   *
+   * scrollOverflowPx
+   * boundingOverflowPx
+   * blockOverflowPx
+   *
+   * تكفي لاكتشاف التجاوز الحقيقي.
+   *
+   * الخصم القديم كان يجعل بعض التصاميم تعتبر الصفحة ممتلئة
+   * رغم وجود مساحة فعلية، ثم ينقل Planner الشواهد والتوقيع
+   * إلى صفحة جديدة بلا حاجة.
+   */
   const signatureReservedPx =
     priorityMode === "signature" && signatureBlocks.length
       ? signatureHeightPx + profile.signatureSafetyGapPx
       : 0;
 
-  const mainContentBudgetPx = Math.max(
-    0,
-    usableViewportHeightPx - signatureReservedPx,
-  );
+  const mainContentBudgetPx =
+    usableViewportHeightPx;
 
   const mainContentBottomPx = nonSignatureBlocks.reduce(
     (largest, block) =>
@@ -221,13 +239,15 @@ export function measureReportSmartA4Layout(
     0,
   );
 
+  /**
+   * Overflow هنا يقيس حدود A4 الحقيقية فقط.
+   * لا توجد مساحة افتراضية محجوزة للتوقيع.
+   */
   const mainContentOverflowPx =
-    priorityMode === "signature"
-      ? Math.max(
-          0,
-          mainContentBottomPx - mainContentBudgetPx,
-        )
-      : 0;
+    Math.max(
+      0,
+      mainContentBottomPx - mainContentBudgetPx,
+    );
 
   const blockOverflowPx = blocks.reduce(
     (largest, block) =>
@@ -286,6 +306,10 @@ export function measureReportSmartA4Layout(
     contentHeightPx: round(content.scrollHeight),
 
     overflowPx: round(overflowPx),
+
+    blockOverflowPx: round(blockOverflowPx),
+    scrollOverflowPx: round(scrollOverflowPx),
+    boundingOverflowPx: round(boundingOverflowPx),
 
     signatureHeightPx: round(signatureHeightPx),
     signatureReservedPx: round(signatureReservedPx),

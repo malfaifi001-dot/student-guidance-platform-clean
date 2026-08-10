@@ -75,15 +75,7 @@ export function PageBlocks({
   return (
     <main className={`relative flex flex-col ${className}`}>
       <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
-        {flowBlocks.flatMap((block: any) => [
-          isSignatureGridDesignBlock(block) ? (
-            <div
-              key={`${block.id}-bottom-reservation`}
-              aria-hidden="true"
-              className="min-h-0 flex-1"
-              data-report-signature-bottom-reservation
-            />
-          ) : null,
+        {flowBlocks.map((block: any) => (
           <div
             key={block.id}
             data-report-smart-block={block.kind || "content"}
@@ -96,7 +88,7 @@ export function PageBlocks({
             }
             className={
               isSignatureGridDesignBlock(block)
-                ? "break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
+                ? "mt-auto break-inside-avoid pt-[var(--report-signature-top-gap,1.5rem)]"
                 : ""
             }
             style={
@@ -106,8 +98,8 @@ export function PageBlocks({
             }
           >
             <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
-          </div>,
-        ])}
+          </div>
+        ))}
       </div>
 
       <div className="pointer-events-none absolute inset-0">

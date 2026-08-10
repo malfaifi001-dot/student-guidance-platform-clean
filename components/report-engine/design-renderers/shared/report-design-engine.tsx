@@ -22,7 +22,7 @@ import { getReportHeaderSettingsStyle } from "./report-header";
 import type { PreviewCaseData, ReportDesignRendererProps } from "./report-types";
 
 import { getReportDesignSignatureStyleText } from "./report-signatures";
-import { SmartPhysicalReportComposer } from "../smart-layout/report-smart-physical-pages";
+import { PhysicalLayoutRuntime } from "@/components/report-engine/physical-layout/physical-layout-runtime";
 import type { ReportTwoPhysicalNavigationItem } from "../smart-layout/report-smart-physical-types";
 
 
@@ -66,102 +66,72 @@ export function ReportDesignRenderer({
     ReportTwoPhysicalNavigationItem[]
   >([]);
   const [activePhysicalPageId, setActivePhysicalPageId] = useState("");
-  const previousPhysicalNavigationItemsRef = useRef<
-    ReportTwoPhysicalNavigationItem[]
-  >([]);
-  const autoSurfacedPhysicalPageIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    previousPhysicalNavigationItemsRef.current = [];
-    autoSurfacedPhysicalPageIdsRef.current.clear();
     setPhysicalNavigationItems([]);
     setActivePhysicalPageId("");
   }, [pages, selectedDesign]);
 
   const handlePhysicalPagesChange = useCallback(
     (items: ReportTwoPhysicalNavigationItem[]) => {
-      const previousItems = previousPhysicalNavigationItemsRef.current;
-      previousPhysicalNavigationItemsRef.current = items;
-      const previousActiveItems = previousItems.filter((item) =>
-        item.sourcePageIds.includes(activePageId),
-      );
-      const nextActiveItems = items.filter((item) =>
-        item.sourcePageIds.includes(activePageId),
-      );
-      const previousIds = new Set(
-        previousActiveItems.map((item) => item.physicalPageId),
-      );
-      const currentItem = items.find(
-        (item) => item.physicalPageId === activePhysicalPageId,
-      );
-      const currentPhysicalIndex =
-        currentItem?.sourcePageIds.includes(activePageId)
-          ? currentItem.physicalIndexWithinLogicalPage
-          : 0;
-      const nextAutomaticPage = nextActiveItems
-        .filter(
-          (item) =>
-            !previousIds.has(item.physicalPageId) &&
-            !autoSurfacedPhysicalPageIdsRef.current.has(
-              item.physicalPageId,
-            ) &&
-            item.physicalIndexWithinLogicalPage > currentPhysicalIndex &&
-            (item.role !== "primary" ||
-              item.physicalIndexWithinLogicalPage > 1),
-        )
-        .sort((left, right) => {
-          const rolePriority = {
-            primary: 0,
-            evidence: 1,
-            signature: 2,
-          } as const;
-
-          return (
-            rolePriority[right.role] - rolePriority[left.role] ||
-            right.physicalIndexWithinLogicalPage -
-              left.physicalIndexWithinLogicalPage
-          );
-        })[0];
-
       setPhysicalNavigationItems((current) => {
         const currentKey = current
           .map((item) => `${item.physicalPageId}:${item.label}`)
           .join("|");
+
         const nextKey = items
           .map((item) => `${item.physicalPageId}:${item.label}`)
           .join("|");
 
-        return currentKey === nextKey ? current : items;
+        return currentKey === nextKey
+          ? current
+          : items;
       });
-
-      if (
-        nextActiveItems.length > previousActiveItems.length &&
-        nextAutomaticPage
-      ) {
-        autoSurfacedPhysicalPageIdsRef.current.add(
-          nextAutomaticPage.physicalPageId,
-        );
-        setActivePhysicalPageId(nextAutomaticPage.physicalPageId);
-        return;
-      }
 
       setActivePhysicalPageId((current) => {
         const currentItem = items.find(
-          (item) => item.physicalPageId === current,
+          (item) =>
+            item.physicalPageId === current,
         );
 
-        if (currentItem?.sourcePageIds.includes(activePageId)) {
+        /**
+         * إذا المستخدم اختار صفحة فيزيائية بنفسه،
+         * حافظ عليها ما دامت تخص Logical Page الحالية.
+         */
+        if (
+          currentItem?.sourcePageIds.includes(
+            activePageId,
+          )
+        ) {
           return current;
         }
 
+        /**
+         * دائمًا ابدأ من Physical Page الأولى
+         * للـ Logical Page الحالية.
+         *
+         * لا Auto-surface للشواهد أو التوقيع.
+         */
         return (
-          items.find((item) =>
-            item.sourcePageIds.includes(activePageId),
-          )?.physicalPageId || items[0]?.physicalPageId || ""
+          items.find(
+            (item) =>
+              item.sourcePageIds.includes(
+                activePageId,
+              ) &&
+              item.physicalIndexWithinLogicalPage === 1,
+          )?.physicalPageId ||
+          items.find(
+            (item) =>
+              item.sourcePageIds.includes(
+                activePageId,
+              ),
+          )?.physicalPageId ||
+          items[0]?.physicalPageId ||
+          ""
         );
       });
     },
-    [activePageId, activePhysicalPageId],
+    [activePageId],
   );
 
   useEffect(() => {
@@ -369,7 +339,7 @@ export function ReportDesignRenderer({
 
   const preview = (
     <div className="report-design-logo-control-style">
-      <SmartPhysicalReportComposer
+      <PhysicalLayoutRuntime
         designId={selectedDesign}
         pages={pages}
         activePageId={activePageId}
@@ -378,7 +348,6 @@ export function ReportDesignRenderer({
         previewCase={previewCase}
         fallbackPageLabel={activePage?.title || "التقرير"}
         renderMode={renderMode}
-        suppressAutoEvidencePages={suppressAutoEvidencePages}
         onPhysicalPagesChange={handlePhysicalPagesChange}
       />
     </div>
@@ -489,7 +458,7 @@ export function FinalReportDesignRenderer({
     <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
       {headerStyleText ? <style>{headerStyleText}</style> : null}
       <style>{signatureStyleText}</style>
-      <SmartPhysicalReportComposer
+      <PhysicalLayoutRuntime
         designId={selectedDesign}
         pages={pages}
         context={context}

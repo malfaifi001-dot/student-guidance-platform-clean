@@ -5,7 +5,7 @@ import {
   type ReportSmartA4LayoutResult,
 } from "./report-smart-a4-layout";
 import {
-  REPORT_SMART_A4_DEFAULT_FOOTER_SAFE_AREA_MM,
+
   type ReportSmartA4PriorityMode,
 } from "./report-smart-a4-config";
 
@@ -22,7 +22,7 @@ export type ReportDesignSmartContentProps = {
 
 export function ReportDesignSmartContent({
   availableHeightMm,
-  footerSafeAreaMm = REPORT_SMART_A4_DEFAULT_FOOTER_SAFE_AREA_MM,
+  footerSafeAreaMm = 0,
   children,
   className,
   contentClassName,

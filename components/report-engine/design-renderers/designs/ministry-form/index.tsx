@@ -37,7 +37,7 @@ export function MinistryFormReportDesign({
         </header>
 
         <ReportDesignSmartContent
-          availableHeightMm={205}
+          availableHeightMm={229}
           className="relative z-10"
           priorityMode="signature"
         >

@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  usePhysicalLayoutFrozenSettings,
+} from "@/components/report-engine/physical-layout/physical-layout-frozen-context";
+
+import {
   type CSSProperties,
   type ReactNode,
   useCallback,
@@ -54,6 +58,11 @@ export type ReportSmartA4LayoutResult = {
 
   overflowPx: number;
 
+  blockOverflowPx: number;
+  scrollOverflowPx: number;
+  boundingOverflowPx: number;
+  mainContentOverflowPx: number;
+
   signatureHeightPx: number;
   signatureReservedPx: number;
   boundaryBottomPx: number;
@@ -94,6 +103,11 @@ const INITIAL_RESULT: ReportSmartA4LayoutResult = {
   needsOverflowPage: false,
 
   overflowPx: 0,
+
+  blockOverflowPx: 0,
+  scrollOverflowPx: 0,
+  boundingOverflowPx: 0,
+  mainContentOverflowPx: 0,
 
   signatureHeightPx: 0,
   signatureReservedPx: 0,
@@ -865,6 +879,35 @@ export function ReportSmartA4ContentRegion({
       priorityMode,
     });
 
+  /**
+   * إذا كانت الصفحة داخل Final Physical Renderer:
+   *
+   * لا نعيد Measurement.
+   * لا نجرب Candidates.
+   * لا نسمح لـ ResizeObserver بإعادة التخطيط.
+   *
+   * القرار اتخذه Physical Layout Engine مسبقًا.
+   */
+  const forcedPhysicalLayout =
+    usePhysicalLayoutFrozenSettings();
+
+  const forcedCandidate =
+    forcedPhysicalLayout
+      ? REPORT_SMART_A4_CANDIDATES.find(
+          (candidate) =>
+            candidate.id ===
+            forcedPhysicalLayout.candidate,
+        ) ||
+        REPORT_SMART_A4_CANDIDATES.find(
+          (candidate) =>
+            candidate.mode ===
+              forcedPhysicalLayout.density &&
+            candidate.fieldLayout ===
+              forcedPhysicalLayout.fieldLayout,
+        ) ||
+        REPORT_SMART_A4_CANDIDATES[0]
+      : null;
+
   const viewportRef =
     useRef<HTMLDivElement | null>(
       null,
@@ -938,7 +981,8 @@ export function ReportSmartA4ContentRegion({
         !content ||
         measuringRef.current ||
         frozenRef.current ||
-        !fontsSettledRef.current
+        !fontsSettledRef.current ||
+        forcedPhysicalLayout
       ) {
         return;
       }
@@ -1099,6 +1143,22 @@ export function ReportSmartA4ContentRegion({
             finalMeasurement
               .overflowPx,
 
+          blockOverflowPx:
+            finalMeasurement
+              .blockOverflowPx,
+
+          scrollOverflowPx:
+            finalMeasurement
+              .scrollOverflowPx,
+
+          boundingOverflowPx:
+            finalMeasurement
+              .boundingOverflowPx,
+
+          mainContentOverflowPx:
+            finalMeasurement
+              .mainContentOverflowPx,
+
           signatureHeightPx:
             finalMeasurement
               .signatureHeightPx,
@@ -1258,11 +1318,12 @@ export function ReportSmartA4ContentRegion({
         measuringRef.current =
           false;
       }
-    }, [priorityMode]);
+    }, [priorityMode, forcedPhysicalLayout]);
 
   const scheduleMeasurement =
     useCallback(() => {
       if (
+        forcedPhysicalLayout ||
         frozenRef.current ||
         measuringRef.current ||
         scheduledFrameRef.current !==
@@ -1288,7 +1349,7 @@ export function ReportSmartA4ContentRegion({
             });
           },
         );
-    }, [runMeasurement]);
+    }, [runMeasurement, forcedPhysicalLayout]);
 
   useLayoutEffect(() => {
     scheduleMeasurementRef.current = scheduleMeasurement;
@@ -1300,32 +1361,155 @@ export function ReportSmartA4ContentRegion({
 
   useLayoutEffect(() => {
     runIdRef.current += 1;
-    frozenRef.current = false;
-    rerunRequestedRef.current = false;
-    resizeFingerprintRef.current = "";
+
+    if (
+      scheduledFrameRef.current !==
+      null
+    ) {
+      window.cancelAnimationFrame(
+        scheduledFrameRef.current,
+      );
+
+      scheduledFrameRef.current =
+        null;
+    }
+
+    /**
+     * ========================================================
+     * FINAL FROZEN MODE
+     * ========================================================
+     *
+     * Physical Pagination Engine سبق أن:
+     *
+     * - قاس الصفحة.
+     * - اختار candidate.
+     * - ثبت density.
+     * - ثبت field layout.
+     *
+     * لذلك هذه الصفحة Render-only.
+     */
+    if (
+      forcedPhysicalLayout &&
+      forcedCandidate
+    ) {
+      frozenRef.current =
+        true;
+
+      measuringRef.current =
+        false;
+
+      rerunRequestedRef.current =
+        false;
+
+      resizeFingerprintRef.current =
+        "";
+
+      const forcedResult:
+        ReportSmartA4LayoutResult = {
+        ...INITIAL_RESULT,
+
+        mode:
+          forcedCandidate.mode,
+
+        fieldLayout:
+          forcedCandidate.fieldLayout,
+
+        fits:
+          true,
+
+        needsOverflowPage:
+          false,
+
+        overflowPx:
+          0,
+
+        candidateId:
+          forcedCandidate.id,
+
+        severity:
+          "none",
+
+        preferEvidenceMove:
+          false,
+      };
+
+      resultRef.current =
+        forcedResult;
+
+      setResult(
+        forcedResult,
+      );
+
+      setLayoutPhase(
+        "FROZEN",
+      );
+
+      onLayoutResultRef.current?.(
+        forcedResult,
+      );
+
+      return () => {
+        runIdRef.current += 1;
+      };
+    }
+
+    /**
+     * ========================================================
+     * MEASUREMENT MODE
+     * ========================================================
+     *
+     * هذا المسار يستخدمه Hidden Measurement Runtime فقط.
+     */
+    frozenRef.current =
+      false;
+
+    rerunRequestedRef.current =
+      false;
+
+    resizeFingerprintRef.current =
+      "";
+
     settledAssetSourcesRef.current.clear();
+
     stabilizationRef.current = {
       fingerprint: "",
       stablePasses: 0,
       attempts: 0,
     };
-    resultRef.current = INITIAL_RESULT;
-    setResult(INITIAL_RESULT);
-    setLayoutPhase("MEASURING");
+
+    resultRef.current =
+      INITIAL_RESULT;
+
+    setResult(
+      INITIAL_RESULT,
+    );
+
+    setLayoutPhase(
+      "MEASURING",
+    );
 
     scheduleMeasurement();
 
     return () => {
       runIdRef.current += 1;
 
-      if (scheduledFrameRef.current !== null) {
-        window.cancelAnimationFrame(scheduledFrameRef.current);
-        scheduledFrameRef.current = null;
+      if (
+        scheduledFrameRef.current !==
+        null
+      ) {
+        window.cancelAnimationFrame(
+          scheduledFrameRef.current,
+        );
+
+        scheduledFrameRef.current =
+          null;
       }
     };
   }, [
     semanticInputFingerprint,
     scheduleMeasurement,
+    forcedPhysicalLayout,
+    forcedCandidate,
   ]);
 
   useEffect(() => {
@@ -1601,6 +1785,18 @@ export function ReportSmartA4ContentRegion({
       data-smart-a4-overflow-px={
         result.overflowPx
       }
+      data-smart-a4-block-overflow-px={
+        result.blockOverflowPx
+      }
+      data-smart-a4-scroll-overflow-px={
+        result.scrollOverflowPx
+      }
+      data-smart-a4-bounding-overflow-px={
+        result.boundingOverflowPx
+      }
+      data-smart-a4-main-content-overflow-px={
+        result.mainContentOverflowPx
+      }
       data-smart-a4-dominant-role={
         result.dominantRole
       }
@@ -1641,6 +1837,33 @@ export function ReportSmartA4ContentRegion({
           .filter(Boolean)
           .join(" ")}
         data-report-smart-content
+        data-report-smart-visual-ready={
+          layoutPhase === "FROZEN"
+            ? "true"
+            : "false"
+        }
+        style={{
+          /*
+           * Smart A4 يجرب عدة Candidates على نفس DOM.
+           *
+           * القياس يبقى فعالًا بالكامل، لكن لا نعرض للمستخدم
+           * الحالات الوسيطة حتى تصل النتيجة إلى FROZEN.
+           *
+           * opacity لا يغير أبعاد DOM، لذلك القياس الحقيقي
+           * يبقى مطابقًا تمامًا.
+           */
+          opacity:
+            forcedPhysicalLayout ||
+            layoutPhase === "FROZEN"
+              ? 1
+              : 0,
+
+          /*
+           * لا Transition هنا عمدًا.
+           * نريد Commit واحد مباشر وليس Fade أثناء الطباعة/المعاينة.
+           */
+          transition: "none",
+        }}
       >
         {children}
       </div>
