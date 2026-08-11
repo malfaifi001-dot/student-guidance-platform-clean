@@ -268,7 +268,7 @@ export default function HomePage() {
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
-                <article className="min-h-[240px] rounded-[28px] border border-slate-200 bg-white p-8">
+                <article className="min-h-[240px] rounded-[28px] border border-sky-100 bg-sky-50/55 p-8 transition duration-300 hover:-translate-y-1 hover:bg-sky-50">
                   <LayoutDashboard className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -281,7 +281,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-slate-200 bg-white p-8">
+                <article className="min-h-[240px] rounded-[28px] border border-cyan-100 bg-cyan-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50/70">
                   <FolderCheck className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -294,7 +294,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-slate-200 bg-white p-8">
+                <article className="min-h-[240px] rounded-[28px] border border-blue-100 bg-blue-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-blue-50/70">
                   <FileText className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -307,7 +307,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-slate-200 bg-white p-8">
+                <article className="min-h-[240px] rounded-[28px] border border-indigo-100 bg-indigo-50/35 p-8 transition duration-300 hover:-translate-y-1 hover:bg-indigo-50/60">
                   <ShieldCheck className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -328,9 +328,14 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="reviews"
-          className="scroll-mt-24 overflow-hidden bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
+          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
         >
-          <div className="mx-auto max-w-7xl">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-52 top-20 h-[420px] w-[420px] rounded-full bg-sky-100/65 blur-3xl" />
+            <div className="absolute -left-56 bottom-0 h-[380px] w-[380px] rounded-full bg-blue-100/40 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto max-w-7xl">
             <div className="mx-auto max-w-3xl text-center">
               <p className="text-sm font-black text-sky-600">
                 تجارب المستخدمين
@@ -391,11 +396,12 @@ export default function HomePage() {
         {/* =====================================================
             CTA
         ====================================================== */}
-        <section className="bg-white px-5 pb-20 pt-4 sm:px-8 sm:pb-24 lg:px-10 lg:pb-32">
+        <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
           <div className="mx-auto max-w-7xl">
-            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
+            <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-sky-600 via-blue-600 to-blue-700 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
               <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full border border-white/10" />
+              <div className="pointer-events-none absolute left-1/2 top-0 h-52 w-[70%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
 
               <div className="relative">
                 <Sparkles className="mx-auto h-7 w-7 text-sky-200" />

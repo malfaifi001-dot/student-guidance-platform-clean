@@ -24,7 +24,7 @@ function MobileStoryCard({
   visual,
 }: Pick<StoryItemProps, "eyebrow" | "title" | "visual">) {
   return (
-    <article className="w-[88vw] shrink-0 snap-center overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50/60 p-4 shadow-sm min-[430px]:p-5">
+    <article className="w-[88vw] shrink-0 snap-center overflow-hidden rounded-[26px] border border-white/90 bg-white/90 p-4 shadow-[0_22px_60px_-40px_rgba(15,23,42,0.28)] backdrop-blur-sm min-[430px]:p-5">
       <div className="min-w-0">
         <p className="text-xs font-black text-sky-600">
           {eyebrow}
@@ -93,7 +93,7 @@ function StoryItem({
   return (
     <article
       ref={ref}
-      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:py-24 lg:min-h-[680px] lg:grid-cols-2 lg:gap-20 lg:py-28 xl:py-32"
+      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:py-24 lg:min-h-[680px] lg:grid-cols-2 lg:gap-24 xl:gap-28 lg:py-28 xl:py-32"
     >
       <div
         className={[
@@ -781,9 +781,21 @@ export function RoleStorySection() {
   return (
     <section
       id="users"
-      className="scroll-mt-24 overflow-hidden border-t border-slate-100 bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32"
+      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46%] bg-[#f4f9ff] md:block" />
+
+      <div
+        className="pointer-events-none absolute inset-x-0 top-[46%] hidden h-40 bg-white md:block"
+        style={{
+          clipPath: "polygon(0 48%, 100% 0, 100% 100%, 0 100%)",
+        }}
+      />
+
+      <div className="pointer-events-none absolute -right-56 top-24 hidden h-[520px] w-[520px] rounded-full bg-sky-100/70 blur-3xl md:block" />
+      <div className="pointer-events-none absolute -left-52 top-[30%] hidden h-[440px] w-[440px] rounded-full bg-blue-100/35 blur-3xl md:block" />
+
+      <div className="relative mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-black text-sky-600">
             لمن المنصة؟
