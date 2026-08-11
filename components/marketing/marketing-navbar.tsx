@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
@@ -8,12 +9,21 @@ import { siteConfig } from "@/lib/marketing/site";
 
 export function MarketingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const isAuthPage = pathname === "/login" || pathname === "/register";
 
   const closeMenu = () => setIsOpen(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+      <div
+        className={[
+          "mx-auto min-h-[72px] max-w-7xl items-center gap-4 px-5 sm:px-8 lg:px-10",
+          isAuthPage
+            ? "flex justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]"
+            : "flex justify-between",
+        ].join(" ")}
+      >
         <Link
           href="/"
           onClick={closeMenu}
@@ -28,7 +38,7 @@ export function MarketingNavbar() {
           </p>
         </Link>
 
-        <nav className="hidden items-center gap-9 lg:flex">
+        <nav className="hidden items-center gap-9 whitespace-nowrap lg:flex">
           {siteConfig.navigation.map((item) => (
             <Link
               key={item.href}
@@ -40,21 +50,25 @@ export function MarketingNavbar() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
-          <Link
-            href="/login"
-            className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
-          >
-            تسجيل الدخول
-          </Link>
+        {isAuthPage ? (
+          <div className="hidden lg:block" aria-hidden="true" />
+        ) : (
+          <div className="hidden items-center gap-3 lg:flex">
+            <Link
+              href="/login"
+              className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
+            >
+              تسجيل الدخول
+            </Link>
 
-          <Link
-            href="/register"
-            className="rounded-xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700"
-          >
-            ابدأ الآن
-          </Link>
-        </div>
+            <Link
+              href="/register"
+              className="rounded-xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+            >
+              ابدأ الآن
+            </Link>
+          </div>
+        )}
 
         <button
           type="button"
@@ -87,23 +101,25 @@ export function MarketingNavbar() {
               ))}
             </nav>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5">
-              <Link
-                href="/login"
-                onClick={closeMenu}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600"
-              >
-                تسجيل الدخول
-              </Link>
+            {!isAuthPage ? (
+              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5">
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600"
+                >
+                  تسجيل الدخول
+                </Link>
 
-              <Link
-                href="/register"
-                onClick={closeMenu}
-                className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
-              >
-                ابدأ الآن
-              </Link>
-            </div>
+                <Link
+                  href="/register"
+                  onClick={closeMenu}
+                  className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                >
+                  ابدأ الآن
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

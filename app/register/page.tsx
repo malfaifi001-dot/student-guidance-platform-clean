@@ -14,6 +14,8 @@ import {
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 
+import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
 
@@ -161,26 +163,17 @@ export default function RegisterPage() {
 
   return (
     <>
+      <MarketingNavbar />
       <main
         dir="rtl"
-        className="min-h-screen overflow-hidden bg-white text-slate-950"
+        className="min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950"
       >
-        <div className="mx-auto grid min-h-screen max-w-[1500px] lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] lg:grid-cols-[0.92fr_1.08fr]">
           {/* FORM */}
-          <section className="flex min-h-screen items-center px-5 py-12 sm:px-8 lg:px-14 xl:px-20">
+          <section className="flex min-h-[calc(100svh-72px)] items-center px-5 py-12 sm:px-8 lg:px-14 xl:px-20">
             <div className="mx-auto w-full max-w-[430px]">
-              <Link href="/" className="inline-flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-600 text-base font-black text-white">
-                  T
-                </div>
-
-                <span className="text-xl font-black tracking-tight text-slate-950">
-                  Teachix
-                </span>
-              </Link>
-
-              <div className="mt-12">
-                <h1 className="text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
+              <div>
+                <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
                   ابدأ مع Teachix
                 </h1>
               </div>
@@ -277,12 +270,12 @@ export default function RegisterPage() {
           </section>
 
           {/* REGISTER VISUAL */}
-          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] lg:flex lg:min-h-screen lg:items-center lg:justify-center lg:px-12 xl:px-20">
+          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-12 xl:px-20">
             <div className="absolute -right-36 top-8 h-[420px] w-[420px] rounded-full bg-sky-100/60 blur-3xl" />
             <div className="absolute -left-40 bottom-8 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
 
             <div className="relative w-full max-w-[610px]">
-              <h2 className="max-w-xl text-4xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-5xl">
+              <h2 className="max-w-xl text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-4xl">
                 كل دور له مساحة عمل تناسبه.
               </h2>
 
