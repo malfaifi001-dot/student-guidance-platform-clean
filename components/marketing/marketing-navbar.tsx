@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { useState } from "react";
 
 import { siteConfig } from "@/lib/marketing/site";
 
@@ -23,14 +23,12 @@ export function MarketingNavbar() {
             T
           </div>
 
-          <div className="min-w-0">
-            <p className="text-lg font-black tracking-tight text-slate-950">
-              {siteConfig.shortName}
-            </p>
-          </div>
+          <p className="text-lg font-black tracking-tight text-slate-950">
+            {siteConfig.shortName}
+          </p>
         </Link>
 
-        <nav className="hidden items-center gap-8 lg:flex">
+        <nav className="hidden items-center gap-9 lg:flex">
           {siteConfig.navigation.map((item) => (
             <Link
               key={item.href}
@@ -45,16 +43,16 @@ export function MarketingNavbar() {
         <div className="hidden items-center gap-3 lg:flex">
           <Link
             href="/login"
-            className="px-4 py-2.5 text-sm font-black text-slate-600 transition hover:text-sky-600"
+            className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
           >
             تسجيل الدخول
           </Link>
 
           <Link
             href="/register"
-            className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+            className="rounded-xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700"
           >
-            إنشاء حساب
+            ابدأ الآن
           </Link>
         </div>
 
@@ -103,7 +101,7 @@ export function MarketingNavbar() {
                 onClick={closeMenu}
                 className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
               >
-                إنشاء حساب
+                ابدأ الآن
               </Link>
             </div>
           </div>

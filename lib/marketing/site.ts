@@ -11,12 +11,8 @@ export const siteConfig = {
       href: "/#users",
     },
     {
-      title: "المميزات",
+      title: "لماذا Teachix؟",
       href: "/#features",
-    },
-    {
-      title: "الخدمات",
-      href: "/#services",
     },
     {
       title: "التقييمات",

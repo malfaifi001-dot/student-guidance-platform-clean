@@ -33,15 +33,15 @@ export function MarketingFooter() {
               </Link>
 
               <Link href="/#features" className="block hover:text-sky-600">
-                المميزات
+                لماذا Teachix؟
               </Link>
 
-              <Link href="/#services" className="block hover:text-sky-600">
-                الخدمات
+              <Link href="/#reviews" className="block hover:text-sky-600">
+                تجربة الاستخدام
               </Link>
 
               <Link href="/register" className="block hover:text-sky-600">
-                إنشاء حساب
+                ابدأ الآن
               </Link>
             </div>
           </div>
@@ -72,13 +72,8 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-14 flex flex-col gap-3 border-t border-slate-100 pt-7 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © 2026 Teachix — جميع الحقوق محفوظة
-          </p>
-
-          <p>
-            منصة مدرسية عربية
-          </p>
+          <p>© 2026 Teachix — جميع الحقوق محفوظة</p>
+          <p>منصة مدرسية عربية</p>
         </div>
       </div>
     </footer>
