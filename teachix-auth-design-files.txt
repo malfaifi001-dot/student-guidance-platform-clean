@@ -1,0 +1,1566 @@
+Teachix Auth Design Files
+Project: D:\student-guidance-platform-clean
+Generated: 08/12/2026 00:27:39
+
+
+============================================================
+FILE: app\login\page.tsx
+============================================================
+
+"use client";
+
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  FileText,
+  Layers3,
+  ShieldCheck,
+  Sparkles,
+  Timer,
+} from "lucide-react";
+import { useState } from "react";
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({}));
+}
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+
+      const data = await readJson(response);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تسجيل الدخول.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main
+      dir="rtl"
+      style={{ background: "#eef7fb" }}
+      className="min-h-screen px-4 py-8 sm:px-6 lg:px-10"
+    >
+      <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1180px] items-center justify-center">
+        <div
+          dir="ltr"
+          className="flex w-full overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_34px_100px_-70px_rgba(15,23,42,0.75)] lg:min-h-[560px] lg:flex-row"
+        >
+          <aside
+            dir="rtl"
+            className="relative flex min-h-[520px] flex-1 overflow-hidden bg-[linear-gradient(135deg,#0f766e_0%,#059669_48%,#064e3b_100%)] p-8 text-white"
+          >
+            <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+            <div className="absolute -bottom-32 left-6 h-80 w-80 rounded-full bg-emerald-200/18 blur-3xl" />
+
+            <div className="relative flex w-full flex-col justify-between">
+              <div className="text-right">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/14 px-4 py-2 text-xs font-black text-emerald-50 ring-1 ring-white/15">
+                  <Timer className="h-4 w-4" />
+                  دخول سريع للوحة العمل
+                </p>
+
+                <h1 className="mt-7 text-[2.75rem] font-black leading-[1.18] tracking-tight text-white xl:text-[3.35rem]">
+                  تقارير مخصصة
+                  <br />
+                  لعملك اليومي
+                </h1>
+              </div>
+
+              <div className="mt-9 grid gap-3 opacity-90 lg:grid-cols-[1fr_0.74fr]">
+                <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 shadow-[0_20px_60px_-44px_rgba(15,23,42,0.45)]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black text-emerald-700">مساحة العمل</p>
+                      <p className="mt-1 text-base font-black text-slate-950">
+                        لوحة تقارير جاهزة
+                      </p>
+                    </div>
+
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2.5">
+                    <PreviewLine width="w-11/12" />
+                    <PreviewLine width="w-8/12" />
+                    <PreviewLine width="w-10/12" />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <PreviewBox />
+                    <PreviewBox />
+                    <PreviewBox />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <MetricCard
+                    icon={<Layers3 className="h-4 w-4" />}
+                    title="اللوحات"
+                    value="منظمة"
+                  />
+                  <MetricCard
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    title="الجلسة"
+                    value="آمنة"
+                  />
+                  <MetricCard
+                    icon={<Sparkles className="h-4 w-4" />}
+                    title="التجربة"
+                    value="سريعة"
+                  />
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <form
+            dir="rtl"
+            onSubmit={submit}
+            className="flex min-h-[520px] flex-1 items-center justify-center bg-white px-7 py-10"
+          >
+            <div className="w-full max-w-[330px]">
+
+              <h2 className="text-right text-[1.8rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[2.05rem]">
+                مرحبًا بعودتك
+              </h2>
+
+              {error ? (
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="mt-7 space-y-3.5">
+                <AuthInput
+                  label="البريد الإلكتروني"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="name@gmail.com"
+                />
+
+                <AuthInput
+                  label="كلمة المرور"
+                  type={passwordVisible ? "text" : "password"}
+                  value={password}
+                  onChange={setPassword}
+                  trailingAction={{
+                    label: passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور",
+                    icon: passwordVisible ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    ),
+                    onClick: () => setPasswordVisible((current) => !current),
+                  }}
+                />
+
+                <button
+                  disabled={loading}
+                  className="group mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_38px_-28px_rgba(5,150,105,0.78)] transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "جاري الدخول..." : "دخول"}
+                  <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-1" />
+                </button>
+
+                <a
+                  href="/register"
+                  className="block text-center text-sm font-bold text-slate-500 transition hover:text-emerald-700"
+                >
+                  إنشاء حساب جديد
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MetricCard({
+  icon,
+  title,
+  value,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[1.15rem] bg-white/12 p-2.5 ring-1 ring-white/15 backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white">
+          {icon}
+        </div>
+
+        <div className="text-right">
+          <p className="text-[0.68rem] font-bold text-emerald-50/65">{title}</p>
+          <p className="mt-0.5 text-sm font-black text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewLine({ width }: { width: string }) {
+  return <div className={["h-2 rounded-full bg-slate-100", width].join(" ")} />;
+}
+
+function PreviewBox() {
+  return (
+    <div className="aspect-square rounded-2xl bg-[linear-gradient(135deg,#d1fae5_0%,#bbf7d0_100%)] ring-1 ring-emerald-100" />
+  );
+}
+
+function AuthInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  trailingAction,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  trailingAction?: {
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+  };
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-black text-slate-700">{label}</span>
+
+      <div className="relative mt-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={[
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 outline-none transition placeholder:text-sm placeholder:font-bold placeholder:text-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100",
+            trailingAction ? "pl-12" : "",
+          ].join(" ")}
+          required
+        />
+
+        {trailingAction ? (
+          <button
+            type="button"
+            onClick={trailingAction.onClick}
+            aria-label={trailingAction.label}
+            aria-pressed={type === "text"}
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-emerald-700"
+          >
+            {trailingAction.icon}
+          </button>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
+============================================================
+FILE: app\register\page.tsx
+============================================================
+
+"use client";
+
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  FileCheck2,
+  Images,
+  Mail,
+  ShieldCheck,
+  Timer,
+} from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
+import { useMemo, useState } from "react";
+import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
+import type { AccountType } from "@/components/auth/register-preferences-pop-card";
+
+type Gender = "MALE" | "FEMALE";
+
+const KNOWN_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "proton.me",
+  "protonmail.com",
+]);
+
+function isValidEmailFormat(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function hasKnownEmailDomain(value: string) {
+  const domain = value.split("@")[1]?.toLowerCase() || "";
+  return KNOWN_EMAIL_DOMAINS.has(domain);
+}
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({}));
+}
+
+export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+
+  function validateForm() {
+    const trimmedName = name.trim();
+
+    if (trimmedName.length < 3) {
+      return "الاسم يجب ألا يقل عن 3 أحرف.";
+    }
+
+    if (!isValidEmailFormat(normalizedEmail)) {
+      return "أدخل بريدًا إلكترونيًا صحيحًا.";
+    }
+
+    if (!hasKnownEmailDomain(normalizedEmail)) {
+      return "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud.";
+    }
+
+    if (password.length < 8) {
+      return "كلمة المرور يجب أن تكون 8 أحرف على الأقل.";
+    }
+
+    if (password !== confirmPassword) {
+      return "كلمة المرور وتأكيدها غير متطابقين.";
+    }
+
+    return "";
+  }
+
+  function openPreferences(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const validationError = validateForm();
+    setError(validationError);
+
+    if (validationError) {
+      return;
+    }
+
+    setPreferencesOpen(true);
+  }
+
+  async function submitRegistration() {
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      setPreferencesOpen(false);
+      return;
+    }
+
+    if (!gender) {
+      setError("اختر الصياغة المناسبة أولًا.");
+      return;
+    }
+
+    if (!accountType) {
+      setError("اختر دورك قبل إنشاء الحساب.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: normalizedEmail,
+          password,
+          confirmPassword,
+          gender,
+          accountType,
+        }),
+      });
+
+      const data = await readJson(response);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إنشاء الحساب.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <main
+        dir="rtl"
+        style={{ background: "#eef7fb" }}
+        className="min-h-screen px-4 py-8 sm:px-6 lg:px-10"
+      >
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1180px] items-center justify-center">
+          <div
+            dir="ltr"
+            className="flex w-full overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_34px_100px_-70px_rgba(15,23,42,0.75)] lg:min-h-[610px] lg:flex-row"
+          >
+            <aside
+              dir="rtl"
+              className="relative flex min-h-[610px] flex-1 overflow-hidden bg-[linear-gradient(135deg,#0284c7_0%,#2563eb_52%,#1e3a8a_100%)] p-9 text-white"
+            >
+              <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+              <div className="absolute -bottom-32 left-6 h-80 w-80 rounded-full bg-cyan-200/18 blur-3xl" />
+
+              <div className="relative flex w-full flex-col justify-between">
+                <div className="text-right">
+                  <p className="inline-flex items-center gap-2 rounded-full bg-white/14 px-4 py-2 text-xs font-black text-sky-50 ring-1 ring-white/15">
+                    <Timer className="h-4 w-4" />
+                    جاهز للعمل اليومي
+                  </p>
+
+                  <h2 className="mt-8 text-[2.7rem] font-black leading-[1.18] tracking-tight text-white xl:text-[3.35rem]">
+                    تقريرك والشواهد
+                    <br />
+                    في 60 ثانية!
+                  </h2>
+                </div>
+
+                <div className="mt-12 grid gap-3 opacity-90 lg:grid-cols-[1fr_0.74fr]">
+                  <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 shadow-[0_20px_60px_-44px_rgba(15,23,42,0.45)]">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-black text-sky-700">معاينة تقرير</p>
+                        <p className="mt-1 text-base font-black text-slate-950">بطاقة تنفيذ جاهزة</p>
+                      </div>
+
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+                        <FileCheck2 className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2.5">
+                      <PreviewLine width="w-11/12" />
+                      <PreviewLine width="w-8/12" />
+                      <PreviewLine width="w-10/12" />
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <PreviewBox />
+                      <PreviewBox />
+                      <PreviewBox />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <MetricCard
+                      icon={<Images className="h-4 w-4" />}
+                      title="الشواهد"
+                      value="4 صور"
+                    />
+                    <MetricCard
+                      icon={<ShieldCheck className="h-4 w-4" />}
+                      title="التوثيق"
+                      value="جاهز"
+                    />
+                    <MetricCard
+                      icon={<Mail className="h-4 w-4" />}
+                      title="المشاركة"
+                      value="فورية"
+                    />
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <form
+              dir="rtl"
+              onSubmit={openPreferences}
+              className="flex min-h-[610px] flex-1 items-center justify-center bg-white px-7 py-10"
+            >
+              <div className="w-full max-w-[330px]">
+                <h1 className="text-right text-[1.55rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[1.8rem]">
+                  أنشئ حسابك الآن
+                </h1>
+
+                {error ? (
+                  <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                <div className="mt-7 space-y-3.5">
+                  <AuthInput label="الاسم الكامل" value={name} onChange={setName} />
+
+                  <AuthInput
+                    label="البريد الإلكتروني"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="name@gmail.com"
+                  />
+
+                  <AuthInput
+                    label="كلمة المرور"
+                    type={passwordVisible ? "text" : "password"}
+                    value={password}
+                    onChange={setPassword}
+                    trailingAction={{
+                      label: passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور",
+                      icon: passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />,
+                      onClick: () => setPasswordVisible((current) => !current),
+                    }}
+                  />
+
+                  <p className="-mt-2 px-1 text-[0.68rem] font-bold text-slate-300">
+                    8 أحرف على الأقل
+                  </p>
+
+                  <AuthInput
+                    label="تأكيد كلمة المرور"
+                    type={confirmPasswordVisible ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    trailingAction={{
+                      label: confirmPasswordVisible
+                        ? "إخفاء تأكيد كلمة المرور"
+                        : "إظهار تأكيد كلمة المرور",
+                      icon: confirmPasswordVisible ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      ),
+                      onClick: () => setConfirmPasswordVisible((current) => !current),
+                    }}
+                  />
+
+                  <button className="group mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_38px_-28px_rgba(2,132,199,0.8)] transition hover:bg-sky-700">
+                    إنشاء الحساب
+                    <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-1" />
+                  </button>
+
+                  <a
+                    href="/login"
+                    className="block text-center text-sm font-bold text-slate-500 transition hover:text-sky-700"
+                  >
+                    لدي حساب بالفعل
+                  </a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      <RegisterPreferencesPopCard
+        open={preferencesOpen}
+        selectedGender={gender}
+        selectedRole={accountType}
+        loading={loading}
+        errorMessage={error}
+        onClose={() => {
+          if (loading) {
+            return;
+          }
+
+          setPreferencesOpen(false);
+        }}
+        onSelectGender={(value) => {
+          setGender(value);
+          setAccountType(null);
+          setError("");
+        }}
+        onSelectRole={(value) => {
+          setAccountType(value);
+          setError("");
+        }}
+        onConfirm={submitRegistration}
+      />
+    </>
+  );
+}
+
+function MetricCard({
+  icon,
+  title,
+  value,
+}: {
+  icon: ReactNode;
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[1.15rem] bg-white/12 p-2.5 ring-1 ring-white/15 backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white">
+          {icon}
+        </div>
+
+        <div className="text-right">
+          <p className="text-[0.68rem] font-bold text-sky-50/65">{title}</p>
+          <p className="mt-0.5 text-sm font-black text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewLine({ width }: { width: string }) {
+  return <div className={["h-2 rounded-full bg-slate-100", width].join(" ")} />;
+}
+
+function PreviewBox() {
+  return (
+    <div className="aspect-square rounded-2xl bg-[linear-gradient(135deg,#e0f2fe_0%,#bfdbfe_100%)] ring-1 ring-sky-100" />
+  );
+}
+
+function AuthInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  trailingAction,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  trailingAction?: {
+    label: string;
+    icon: ReactNode;
+    onClick: () => void;
+  };
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-black text-slate-700">{label}</span>
+
+      <div className="relative mt-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={[
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 outline-none transition placeholder:text-sm placeholder:font-bold placeholder:text-slate-300 focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            trailingAction ? "pl-12" : "",
+          ].join(" ")}
+          required
+        />
+
+        {trailingAction ? (
+          <button
+            type="button"
+            onClick={trailingAction.onClick}
+            aria-label={trailingAction.label}
+            aria-pressed={type === "text"}
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-700"
+          >
+            {trailingAction.icon}
+          </button>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
+
+============================================================
+FILE: components\auth\auth-card.tsx
+============================================================
+
+import type { ReactNode } from "react";
+
+type AuthCardProps = {
+  title: string;
+  description: string;
+  children: ReactNode;
+};
+
+export function AuthCard({
+  title,
+  description,
+  children,
+}: AuthCardProps) {
+  return (
+    <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 card-shadow">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-black text-slate-900">
+          {title}
+        </h1>
+
+        <p className="mt-3 text-sm leading-7 text-slate-500">
+          {description}
+        </p>
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+============================================================
+FILE: components\auth\dashboard-onboarding-reminder.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+
+export function DashboardOnboardingReminder({
+  onboardingCompleted,
+  onboardingSkippedAt,
+}: {
+  onboardingCompleted: boolean;
+  onboardingSkippedAt?: Date | string | null;
+}) {
+  const pathname = usePathname();
+
+  if (onboardingCompleted || onboardingSkippedAt || pathname === "/dashboard/onboarding") {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-amber-100 bg-[#fff9ed]/85 px-5 py-3 backdrop-blur">
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+
+          <div>
+            <p className="text-sm font-black text-amber-950">
+              بيانات المدرسة لم تكتمل بعد
+            </p>
+            <p className="mt-1 text-xs font-bold leading-6 text-amber-700">
+              أكمل الهوية الرسمية والشعار حتى تظهر التقارير بصيغة احترافية.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/settings/school"
+          className="inline-flex items-center gap-2 rounded-2xl bg-amber-900 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-amber-800"
+        >
+          إكمال البيانات
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\auth\official-feature-required-page.tsx
+============================================================
+
+import Link from "next/link";
+
+type MissingItem = {
+  label: string;
+  required?: boolean;
+};
+
+export function OfficialFeatureRequiredPage({
+  title = "إكمال الهوية الرسمية مطلوب",
+  description = "هذه الميزة تعتمد على بيانات المدرسة والموجه/الموجهة حتى يظهر الناتج بشكل رسمي وجاهز للطباعة.",
+  missingItems = [],
+}: {
+  title?: string;
+  description?: string;
+  missingItems?: MissingItem[];
+}) {
+  return (
+    <main dir="rtl" className="min-h-[70vh] bg-slate-50 px-4 py-10">
+      <section className="mx-auto max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="bg-slate-950 px-8 py-8 text-white">
+          <p className="text-sm font-black text-amber-200">حماية جودة التقارير الرسمية</p>
+
+          <h1 className="mt-3 text-3xl font-black leading-[1.6]">
+            {title}
+          </h1>
+
+          <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-300">
+            {description}
+          </p>
+        </div>
+
+        <div className="grid gap-6 p-8 lg:grid-cols-[1fr_300px]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+              <p className="text-sm font-black text-amber-900">
+                لماذا نطلب هذه البيانات؟
+              </p>
+
+              <p className="mt-2 text-sm font-bold leading-8 text-amber-800">
+                لأن التقارير الرسمي سيظهر فيه اسم المدرسة، إدارة التعليم، العام الدراسي،
+                واسم الموجه/الموجهة. إكمالها الآن يمنع خروج تقارير ناقصة أو غير مهنية.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-black text-slate-950">
+                البيانات المطلوبة قبل المتابعة
+              </p>
+
+              {missingItems.length ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {missingItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className={[
+                        "rounded-2xl px-4 py-3 text-sm font-bold",
+                        item.required
+                          ? "bg-red-50 text-red-700"
+                          : "bg-amber-50 text-amber-700",
+                      ].join(" ")}
+                    >
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                  يبدو أن البيانات الأساسية مكتملة. حدّث الصفحة أو ارجع وحاول مرة أخرى.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950 text-2xl text-white">
+              ✓
+            </div>
+
+            <h2 className="mt-5 text-xl font-black leading-8 text-slate-950">
+              خطوة واحدة وتصبح التقارير جاهزة رسميًا
+            </h2>
+
+            <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+              بعد إكمال الهوية، لن تحتاج لإدخال هذه البيانات في كل تقرير.
+            </p>
+
+            <Link
+              href="/dashboard/settings/school"
+              className="mt-6 block rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              إكمال هوية المدرسة
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="mt-3 block rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              العودة للرئيسية
+            </Link>
+          </aside>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\auth\register-preferences-pop-card.tsx
+============================================================
+
+"use client";
+
+import type { LucideIcon } from "lucide-react";
+import {
+  GraduationCap,
+  HeartHandshake,
+  School,
+  Mars,
+  Sparkles,
+  Trophy,
+  Venus,
+  X,
+} from "lucide-react";
+
+type Gender = "MALE" | "FEMALE";
+export type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER" | "PRINCIPAL";
+
+type RegisterPreferencesPopCardProps = {
+  open: boolean;
+  selectedGender: Gender | null;
+  selectedRole: AccountType | null;
+  loading: boolean;
+  errorMessage: string;
+  onClose: () => void;
+  onSelectGender: (gender: Gender) => void;
+  onSelectRole: (role: AccountType) => void;
+  onConfirm: () => void;
+};
+
+type RoleOption = {
+  value: AccountType;
+  title: string;
+  icon: LucideIcon;
+};
+
+const roleOptionsByGender: Record<Gender, RoleOption[]> = {
+  MALE: [
+    {
+      value: "TEACHER",
+      title: "معلم",
+      icon: GraduationCap,
+    },
+    {
+      value: "COUNSELOR",
+      title: "موجه طلابي",
+      icon: HeartHandshake,
+    },
+    {
+      value: "ACTIVITY_LEADER",
+      title: "رائد نشاط",
+      icon: Trophy,
+    },
+    { value: "PRINCIPAL", title: "مدير مدرسة", icon: School },
+  ],
+  FEMALE: [
+    {
+      value: "TEACHER",
+      title: "معلمة",
+      icon: GraduationCap,
+    },
+    {
+      value: "COUNSELOR",
+      title: "موجهة طلابية",
+      icon: HeartHandshake,
+    },
+    {
+      value: "ACTIVITY_LEADER",
+      title: "رائدة نشاط",
+      icon: Sparkles,
+    },
+    { value: "PRINCIPAL", title: "مديرة مدرسة", icon: School },
+  ],
+};
+
+export function RegisterPreferencesPopCard({
+  open,
+  selectedGender,
+  selectedRole,
+  loading,
+  errorMessage,
+  onClose,
+  onSelectGender,
+  onSelectRole,
+  onConfirm,
+}: RegisterPreferencesPopCardProps) {
+  if (!open) {
+    return null;
+  }
+
+  const roleOptions = selectedGender ? roleOptionsByGender[selectedGender] : [];
+  const canConfirm = Boolean(selectedGender && selectedRole && !loading);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <button
+        type="button"
+        aria-label="إغلاق"
+        onClick={loading ? undefined : onClose}
+        className="absolute inset-0 bg-slate-950/30 backdrop-blur-sm"
+      />
+
+      <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-5 shadow-[0_34px_100px_-52px_rgba(15,23,42,0.38)] backdrop-blur sm:p-6">
+        <div className="relative text-center">
+          <div className="px-8">
+            <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+              <Sparkles className="h-3.5 w-3.5" />
+              خطوة أخيرة قبل الدخول
+            </span>
+
+            <h2 className="mt-3 text-[1.55rem] font-black text-slate-950">
+              اختر الصياغة المناسبة
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              اختر الصياغة أولًا، ثم سيظهر لك قسم الدور المناسب داخل البطاقة نفسها.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loading ? undefined : onClose}
+            className="absolute left-0 top-0 inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="إغلاق"
+            disabled={loading}
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+        </div>
+
+        {errorMessage ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <PreferenceCard
+            active={selectedGender === "MALE"}
+            title="ذكر"
+            icon={Mars}
+            onClick={() => onSelectGender("MALE")}
+          />
+
+          <PreferenceCard
+            active={selectedGender === "FEMALE"}
+            title="أنثى"
+            icon={Venus}
+            onClick={() => onSelectGender("FEMALE")}
+          />
+        </div>
+
+        <div
+          className={[
+            "overflow-hidden transition-all duration-300 ease-out",
+            selectedGender ? "mt-4 max-h-[360px] opacity-100" : "max-h-0 opacity-0",
+          ].join(" ")}
+        >
+          <div className="rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,_#f8fcff_0%,_#eff8ff_100%)] px-4 py-4 shadow-[0_18px_60px_-48px_rgba(14,165,233,0.55)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-black text-slate-900">اختر دورك داخل المنصة</p>
+
+              <div className="rounded-2xl bg-white/80 px-3 py-2 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                {selectedGender === "FEMALE" ? "أنثى" : "ذكر"}
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {roleOptions.map((option) => (
+                <PreferenceCard
+                  key={option.value}
+                  active={selectedRole === option.value}
+                  compact
+                  title={option.title}
+                  icon={option.icon}
+                  onClick={() => onSelectRole(option.value)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-bold leading-6 text-slate-400">
+            لن يتم إنشاء الحساب حتى تحدد الصياغة والدور المناسبين.
+          </p>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className={[
+              "inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-black transition sm:w-auto sm:min-w-[180px]",
+              canConfirm
+                ? "bg-sky-600 text-white shadow-[0_18px_40px_-24px_rgba(2,132,199,0.75)] hover:bg-sky-700"
+                : "cursor-not-allowed bg-slate-200 text-slate-500",
+            ].join(" ")}
+          >
+            {loading
+              ? "جاري إنشاء الحساب..."
+              : selectedRole === "PRINCIPAL"
+                ? `إنشاء حساب ${selectedGender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة"}`
+                : "تأكيد وإنشاء الحساب"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreferenceCard({
+  active,
+  title,
+  icon: Icon,
+  onClick,
+  compact = false,
+}: {
+  active: boolean;
+  title: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-3xl border text-center transition",
+        compact ? "min-h-[88px] px-4 py-4" : "min-h-[92px] px-4 py-4",
+        active
+          ? "border-sky-400 bg-sky-50 text-sky-900 ring-4 ring-sky-100 shadow-[0_20px_60px_-48px_rgba(14,165,233,0.75)]"
+          : "border-slate-200 bg-white text-slate-800 hover:border-sky-200 hover:bg-sky-50/60",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "mx-auto flex items-center justify-center rounded-2xl",
+          compact ? "h-10 w-10" : "h-10 w-10",
+          active ? "bg-sky-600 text-white" : "bg-sky-50 text-sky-700",
+        ].join(" ")}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <span className={["block font-black", compact ? "mt-2.5 text-sm" : "mt-2.5 text-base"].join(" ")}>
+        {title}
+      </span>
+    </button>
+  );
+}
+
+
+============================================================
+FILE: components\calendar\calendar-login-popup.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  AlertCircle,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  ExternalLink,
+  X,
+} from "lucide-react";
+
+type DueReminder = {
+  id: string;
+  title: string;
+  note?: string | null;
+  priority: "NORMAL" | "IMPORTANT" | "URGENT";
+  linkType: "GENERAL" | "SERVICE" | "CASE" | "STUDENT";
+  scheduledAt: string;
+  showAt: string;
+  isLate: boolean;
+  service?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  caseEntry?: {
+    id: string;
+    title?: string | null;
+    status: string;
+    service?: {
+      name: string;
+      slug: string;
+    } | null;
+  } | null;
+  student?: {
+    id: string;
+    fullName: string;
+    grade?: string | null;
+    classroom?: string | null;
+  } | null;
+};
+
+const SESSION_DISMISSED_KEY = "calendar-login-popup-dismissed";
+const SNOOZE_UNTIL_KEY = "calendar-login-popup-snooze-until";
+
+function formatDateTime(value: string) {
+  try {
+    return new Date(value).toLocaleString("ar-SA", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
+}
+
+function getPriorityLabel(priority: DueReminder["priority"]) {
+  if (priority === "URGENT") return "عاجل";
+  if (priority === "IMPORTANT") return "مهم";
+  return "عادي";
+}
+
+function getPriorityClass(priority: DueReminder["priority"]) {
+  if (priority === "URGENT") {
+    return "bg-rose-50 text-rose-700 ring-1 ring-rose-100";
+  }
+
+  if (priority === "IMPORTANT") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+  }
+
+  return "bg-sky-50 text-sky-700 ring-1 ring-sky-100";
+}
+
+function getLinkLabel(reminder: DueReminder) {
+  if (reminder.linkType === "SERVICE" && reminder.service) {
+    return `خدمة: ${reminder.service.name}`;
+  }
+
+  if (reminder.linkType === "CASE" && reminder.caseEntry) {
+    return `حالة: ${reminder.caseEntry.title || "بدون عنوان"}`;
+  }
+
+  if (reminder.linkType === "STUDENT" && reminder.student) {
+    return `طالب: ${reminder.student.fullName}`;
+  }
+
+  return "تنبيه عام";
+}
+
+function getLinkHref(reminder: DueReminder) {
+  if (reminder.linkType === "SERVICE" && reminder.service?.slug) {
+    return `/dashboard/${reminder.service.slug}`;
+  }
+
+  if (reminder.linkType === "CASE" && reminder.caseEntry?.id) {
+    return `/dashboard/cases/${reminder.caseEntry.id}`;
+  }
+
+  return "";
+}
+
+function canShowPopupNow() {
+  if (typeof window === "undefined") return false;
+
+  if (window.sessionStorage.getItem(SESSION_DISMISSED_KEY) === "true") {
+    return false;
+  }
+
+  const snoozeUntil = Number(
+    window.localStorage.getItem(SNOOZE_UNTIL_KEY) || "0",
+  );
+
+  if (Number.isFinite(snoozeUntil) && snoozeUntil > Date.now()) {
+    return false;
+  }
+
+  return true;
+}
+
+export function CalendarLoginPopup() {
+  const pathname = usePathname();
+  const calendarHref = pathname?.startsWith("/dashboard/teacher")
+    ? "/dashboard/teacher/calendar"
+    : "/dashboard/calendar";
+  const [open, setOpen] = useState(false);
+  const [reminders, setReminders] = useState<DueReminder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+
+  const lateCount = useMemo(
+    () => reminders.filter((item) => item.isLate).length,
+    [reminders],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadDueReminders() {
+      try {
+        if (!canShowPopupNow()) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch("/api/dashboard/calendar/due", {
+          cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!mounted) return;
+
+        const dueReminders = Array.isArray(data?.reminders)
+          ? data.reminders
+          : [];
+
+        setReminders(dueReminders);
+        setOpen(dueReminders.length > 0);
+      } catch {
+        if (mounted) {
+          setReminders([]);
+          setOpen(false);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDueReminders();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  function closeForSession() {
+    window.sessionStorage.setItem(SESSION_DISMISSED_KEY, "true");
+    setOpen(false);
+  }
+
+  function snoozeThirtyMinutes() {
+    const thirtyMinutes = 1000 * 60 * 30;
+
+    window.localStorage.setItem(
+      SNOOZE_UNTIL_KEY,
+      String(Date.now() + thirtyMinutes),
+    );
+
+    setOpen(false);
+  }
+
+  async function completeReminder(reminderId: string) {
+    const response = await fetch(`/api/dashboard/calendar/${reminderId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: "COMPLETED",
+      }),
+    });
+
+    if (!response.ok) return;
+
+    startTransition(() => {
+      setReminders((items) => items.filter((item) => item.id !== reminderId));
+    });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    if (reminders.length === 0 && !loading) {
+      setOpen(false);
+    }
+  }, [open, reminders.length, loading]);
+
+  if (!open || reminders.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-slate-950/45 px-3 py-6 backdrop-blur-sm">
+      <div className="mx-auto flex min-h-full max-w-3xl items-center justify-center">
+        <section className="w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+          <div className="bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-6 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black text-sky-50 ring-1 ring-white/10">
+                  <Bell className="h-4 w-4" />
+                  تنبيهات تحتاج انتباهك
+                </div>
+
+                <h2 className="mt-4 text-3xl font-black">
+                  قبل ما تبدأ اليوم
+                </h2>
+
+                <p className="mt-2 text-sm font-bold leading-7 text-sky-50">
+                  عندك {reminders.length} تنبيه ظاهر الآن
+                  {lateCount > 0 ? `، منها ${lateCount} متأخر` : ""}.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeForSession}
+                className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+                aria-label="إغلاق"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-[62vh] space-y-3 overflow-y-auto p-5">
+            {reminders.map((reminder) => {
+              const href = getLinkHref(reminder);
+
+              return (
+                <article
+                  key={reminder.id}
+                  className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={[
+                        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black",
+                        reminder.isLate
+                          ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                          : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+                      ].join(" ")}
+                    >
+                      {reminder.isLate ? (
+                        <AlertCircle className="h-4 w-4" />
+                      ) : (
+                        <Clock3 className="h-4 w-4" />
+                      )}
+                      {reminder.isLate ? "متأخر" : "حان وقته"}
+                    </span>
+
+                    <span
+                      className={[
+                        "rounded-full px-3 py-1 text-xs font-black",
+                        getPriorityClass(reminder.priority),
+                      ].join(" ")}
+                    >
+                      {getPriorityLabel(reminder.priority)}
+                    </span>
+
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                      {getLinkLabel(reminder)}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-3 text-lg font-black leading-7 text-slate-950">
+                    {reminder.title}
+                  </h3>
+
+                  {reminder.note ? (
+                    <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                      {reminder.note}
+                    </p>
+                  ) : null}
+
+                  <p className="mt-2 text-xs font-bold text-slate-400">
+                    الموعد: {formatDateTime(reminder.scheduledAt)}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {href ? (
+                        <Link
+                          href={href}
+                          onClick={closeForSession}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-sky-50"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          فتح الرابط
+                        </Link>
+                      ) : null}
+
+                      <Link
+                        href={calendarHref}
+                        onClick={closeForSession}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-800"
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        التقويم
+                      </Link>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => completeReminder(reminder.id)}
+                      disabled={isPending}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      تم
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-white p-5">
+            <button
+              type="button"
+              onClick={snoozeThirtyMinutes}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              ذكرني بعد 30 دقيقة
+            </button>
+
+            <button
+              type="button"
+              onClick={closeForSession}
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              فهمت
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
