@@ -1,30 +1,26 @@
 export const siteConfig = {
-  name: "منصة التوجيه الطلابي",
-  shortName: "توجيه",
+  name: "Teachix",
+  shortName: "Teachix",
   description:
-    "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات الإرشادية والحالات والتقارير.",
+    "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها من مكان واحد.",
   url: "http://localhost:3000",
 
   navigation: [
     {
+      title: "لمن المنصة؟",
+      href: "/#users",
+    },
+    {
       title: "المميزات",
-      href: "/features",
+      href: "/#features",
     },
     {
       title: "الخدمات",
-      href: "/services",
+      href: "/#services",
     },
     {
-      title: "الأسعار",
-      href: "/pricing",
-    },
-    {
-      title: "عن المنصة",
-      href: "/about",
-    },
-    {
-      title: "تواصل معنا",
-      href: "/contact",
+      title: "التقييمات",
+      href: "/#reviews",
     },
   ],
 };

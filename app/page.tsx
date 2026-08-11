@@ -1,235 +1,477 @@
 import Link from "next/link";
 import {
-  ArrowUpLeft,
+  ArrowLeft,
   BarChart3,
-  BrainCircuit,
-  CalendarDays,
-  Database,
-  FileSpreadsheet,
+  BookOpenCheck,
+  CheckCircle2,
+  ClipboardCheck,
+  FileText,
+  FolderCheck,
+  GraduationCap,
+  LayoutDashboard,
+  MessageSquareText,
+  School,
   ShieldCheck,
   Sparkles,
+  Trophy,
+  UserRoundCheck,
   UsersRound,
-  WalletCards,
-  Workflow,
 } from "lucide-react";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 
+const audiences = [
+  {
+    title: "مدير المدرسة",
+    description: "متابعة العمل المدرسي والتقارير والأداء من مكان واحد.",
+    icon: School,
+  },
+  {
+    title: "المعلم",
+    description: "إنجاز المهام والخدمات والتقارير بطريقة واضحة ومنظمة.",
+    icon: GraduationCap,
+  },
+  {
+    title: "رائد النشاط",
+    description: "تنظيم الأنشطة والبرامج والتكليفات وتوثيق الإنجاز.",
+    icon: Trophy,
+  },
+  {
+    title: "الموجه الطلابي",
+    description: "إدارة الخدمات الطلابية والحالات والتقارير والشواهد.",
+    icon: UserRoundCheck,
+  },
+];
+
 const features = [
   {
-    title: "إدارة الحالات الطلابية",
-    desc: "تنظيم الحالات ومتابعتها بخطوات واضحة وسجلات قابلة للرجوع.",
-    icon: UsersRound,
+    title: "كل العمل في مكان واحد",
+    description:
+      "بدل التنقل بين الملفات والنماذج، تجمع Teachix أعمال المدرسة داخل تجربة موحدة.",
+    icon: LayoutDashboard,
   },
   {
-    title: "الخدمات الإرشادية",
-    desc: "إدارة الخدمات والبرامج والأنشطة الإرشادية من مكان واحد.",
-    icon: Workflow,
+    title: "توثيق منظم",
+    description:
+      "احفظ الأعمال والشواهد والمرفقات بطريقة تساعدك على الرجوع إليها متى احتجتها.",
+    icon: FolderCheck,
   },
   {
-    title: "التقارير الذكية",
-    desc: "مؤشرات وتقارير تساعد الموجه على اتخاذ قرارات أسرع.",
+    title: "تقارير جاهزة",
+    description:
+      "حوّل الأعمال المنجزة إلى تقارير واضحة دون إعادة إدخال البيانات في كل مرة.",
+    icon: FileText,
+  },
+  {
+    title: "كل دور يرى ما يخصه",
+    description:
+      "تجربة وصلاحيات منفصلة تناسب دور المستخدم والخدمات المرتبطة به.",
+    icon: ShieldCheck,
+  },
+];
+
+const services = [
+  {
+    title: "التقارير",
+    description: "إنشاء ومراجعة وإخراج التقارير من بيانات العمل الفعلية.",
+    icon: FileText,
+  },
+  {
+    title: "الاستبيانات",
+    description: "إنشاء الاستبيانات واستقبال الردود وتحليل النتائج.",
+    icon: MessageSquareText,
+  },
+  {
+    title: "تحليل النتائج",
+    description: "قراءة النتائج وتحويل البيانات إلى مؤشرات قابلة للاستفادة.",
     icon: BarChart3,
   },
   {
-    title: "رفع بيانات الطلاب",
-    desc: "استيراد بيانات الطلاب ومراجعتها قبل اعتمادها داخل المنصة.",
-    icon: Database,
+    title: "الأنشطة",
+    description: "تنظيم البرامج والأنشطة والتكليفات والشواهد المرتبطة بها.",
+    icon: Trophy,
   },
   {
-    title: "التقويم والتنبيهات",
-    desc: "تنظيم المواعيد والمهام والتنبيهات المرتبطة بالعمل الإرشادي.",
-    icon: CalendarDays,
+    title: "الخدمات الطلابية",
+    description: "إدارة الأعمال والخدمات المرتبطة بالطلاب ضمن خطوات واضحة.",
+    icon: UsersRound,
   },
   {
-    title: "الاشتراكات والباقات",
-    desc: "جاهزية كاملة كنظام SaaS قابل للتوسع للمدارس والمستخدمين.",
-    icon: WalletCards,
+    title: "الشواهد والملفات",
+    description: "توثيق الإنجاز وحفظ الملفات والمرفقات في مكان منظم.",
+    icon: ClipboardCheck,
   },
 ];
 
-const steps = [
-  "أضف بيانات المدرسة",
-  "ارفع بيانات الطلاب",
-  "ابدأ إدارة العمل الإرشادي",
+const reviews = [
+  {
+    quote:
+      "التصميم الواضح واختصار الخطوات يجعل الوصول للعمل المطلوب أسرع وأسهل.",
+    role: "نموذج تقييم — مستخدم مدرسي",
+  },
+  {
+    quote:
+      "وجود الخدمات والتقارير والشواهد في مكان واحد يقلل التشتت أثناء العمل اليومي.",
+    role: "نموذج تقييم — مستخدم تجريبي",
+  },
+  {
+    quote:
+      "أهم ما يميز التجربة أن كل مستخدم يصل مباشرة إلى الأدوات التي يحتاجها.",
+    role: "نموذج تقييم — تجربة استخدام",
+  },
 ];
-
-const plans = ["أساسية", "احترافية", "متقدمة"];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-950 text-white">
+    <div className="min-h-screen bg-white text-slate-950">
       <MarketingNavbar />
 
       <main>
-        <section className="relative">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.28),transparent_35%),radial-gradient(circle_at_left,rgba(56,189,248,0.18),transparent_35%)]" />
-          <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
-            <div className="flex flex-col justify-center">
-              <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-teal-100 backdrop-blur">
+        {/* HERO */}
+        <section className="relative overflow-hidden border-b border-slate-100">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-40 top-16 h-96 w-96 rounded-full bg-sky-50 blur-3xl" />
+            <div className="absolute -left-40 bottom-0 h-80 w-80 rounded-full bg-blue-50 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto grid min-h-[760px] max-w-7xl items-center gap-16 px-5 py-24 sm:px-8 lg:grid-cols-[1.03fr_0.97fr] lg:px-10 lg:py-32">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50/70 px-4 py-2 text-sm font-bold text-sky-700">
                 <Sparkles className="h-4 w-4" />
-                منصة SaaS عربية لإدارة التوجيه الطلابي
+                منصة مدرسية واحدة لفريق المدرسة
               </div>
 
-              <h1 className="max-w-4xl text-4xl font-black leading-[1.25] tracking-tight sm:text-5xl lg:text-7xl">
-                منصة التوجيه الطلابي
-                <span className="block bg-gradient-to-l from-teal-200 via-sky-200 to-white bg-clip-text text-transparent">
-                  إدارة إرشادية أذكى من مكان واحد
+              <h1 className="mt-8 text-5xl font-black leading-[1.2] tracking-[-0.035em] text-slate-950 sm:text-6xl lg:text-7xl">
+                كل أعمال مدرستك،
+                <span className="mt-2 block text-sky-600">
+                  في مكان واحد.
                 </span>
               </h1>
 
-              <p className="mt-7 max-w-2xl text-lg leading-9 text-slate-300">
-                نظام ذكي يساعد الموجه والموجهة الطلابية على تنظيم الحالات،
-                الخدمات، البرامج، التقارير، بيانات الطلاب، والتواصل المدرسي
-                ضمن تجربة عربية واضحة واحترافية.
+              <p className="mt-8 max-w-2xl text-lg leading-9 text-slate-500 sm:text-xl">
+                Teachix تساعد فريق المدرسة على إنجاز الأعمال، توثيقها،
+                متابعتها، وإصدار تقاريرها ضمن تجربة عربية واضحة وسهلة.
               </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center gap-2 rounded-3xl bg-teal-400 px-7 py-4 text-sm font-black text-slate-950 shadow-2xl shadow-teal-500/20 transition hover:bg-teal-300"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-7 py-4 text-sm font-black text-white shadow-lg shadow-sky-600/15 transition hover:bg-sky-700"
                 >
-                  ابدأ الآن
-                  <ArrowUpLeft className="h-4 w-4" />
+                  إنشاء حساب
+                  <ArrowLeft className="h-4 w-4" />
                 </Link>
 
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center rounded-3xl border border-white/15 bg-white/10 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 py-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                 >
                   تسجيل الدخول
                 </Link>
               </div>
 
-              <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
-                {["تجربة عربية بالكامل", "مناسب للمدارس", "جاهز للتوسع"].map((item) => (
-                  <div key={item} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold text-slate-200">
-                    {item}
-                  </div>
-                ))}
+              <div className="mt-12 flex flex-wrap gap-x-7 gap-y-4 text-sm font-bold text-slate-500">
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-sky-600" />
+                  تجربة عربية
+                </span>
+
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-sky-600" />
+                  متعددة الأدوار
+                </span>
+
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-sky-600" />
+                  مصممة للعمل المدرسي
+                </span>
               </div>
             </div>
 
-            <div className="relative">
-              <div className="rounded-[2rem] border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
-                <div className="rounded-[1.5rem] bg-slate-100 p-5 text-slate-900">
-                  <div className="mb-5 flex items-center justify-between">
+            <div className="relative hidden lg:block">
+              <div className="relative mx-auto max-w-[520px]">
+                <div className="absolute -inset-10 rounded-[3rem] bg-sky-50/70 blur-2xl" />
+
+                <div className="relative rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.28)]">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                     <div>
-                      <p className="text-xs font-bold text-slate-400">لوحة التحكم</p>
-                      <h2 className="text-xl font-black">ملخص العمل الإرشادي</h2>
+                      <p className="text-xs font-bold text-slate-400">
+                        Teachix
+                      </p>
+                      <p className="mt-1 text-lg font-black text-slate-950">
+                        مساحة العمل المدرسية
+                      </p>
                     </div>
-                    <ShieldCheck className="h-8 w-8 text-teal-600" />
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                      <BookOpenCheck className="h-5 w-5" />
+                    </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      ["الحالات", "24"],
-                      ["الخدمات", "13"],
-                      ["التقارير", "8"],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-3xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-bold text-slate-400">{label}</p>
-                        <p className="mt-2 text-3xl font-black text-slate-900">{value}</p>
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">
+                          تقرير جاهز للمراجعة
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          تم جمع البيانات من العمل المنجز
+                        </p>
                       </div>
-                    ))}
+                      <FileText className="h-5 w-5 text-sky-600" />
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">
+                          نشاط موثق
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          الشواهد محفوظة داخل السجل
+                        </p>
+                      </div>
+                      <ClipboardCheck className="h-5 w-5 text-sky-600" />
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">
+                          تحليل نتائج
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          المؤشرات جاهزة للمتابعة
+                        </p>
+                      </div>
+                      <BarChart3 className="h-5 w-5 text-sky-600" />
+                    </div>
                   </div>
 
-                  <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="font-black">آخر المهام</h3>
-                      <FileSpreadsheet className="h-5 w-5 text-teal-600" />
+                  <div className="mt-6 border-t border-slate-100 pt-5">
+                    <div className="flex items-center gap-3 text-sm font-bold text-slate-500">
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      أعمالك منظمة وجاهزة للرجوع إليها
                     </div>
-                    {["مراجعة حالة طالب", "اعتماد خدمة إرشادية", "تحديث بيانات الطلاب"].map((item) => (
-                      <div key={item} className="mb-2 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold">
-                        <span>{item}</span>
-                        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs text-teal-700">نشط</span>
-                      </div>
-                    ))}
                   </div>
+                </div>
+
+                <div className="absolute -bottom-8 -right-10 rounded-2xl border border-sky-100 bg-white px-5 py-4 shadow-xl shadow-slate-200/50">
+                  <p className="text-xs font-bold text-slate-400">
+                    حالة العمل
+                  </p>
+                  <p className="mt-1 text-sm font-black text-sky-700">
+                    كل شيء في مكانه
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="features" className="bg-slate-50 px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
+        {/* USERS */}
+        <section
+          id="users"
+          className="scroll-mt-28 bg-white px-5 py-28 sm:px-8 lg:px-10 lg:py-36"
+        >
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-black text-teal-600">المزايا</p>
-              <h2 className="mt-3 text-3xl font-black sm:text-5xl">كل ما يحتاجه الموجه الطلابي</h2>
-            </div>
+              <p className="text-sm font-black text-sky-600">
+                لمن المنصة؟
+              </p>
 
-            <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {features.map((item) => (
-                <div key={item.title} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-                  <item.icon className="h-9 w-9 text-teal-600" />
-                  <h3 className="mt-5 text-xl font-black">{item.title}</h3>
-                  <p className="mt-3 leading-8 text-slate-600">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                مناسبة لكل أدوار المدرسة
+              </h2>
 
-        <section className="bg-white px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-2">
-            <div>
-              <p className="text-sm font-black text-teal-600">طريقة العمل</p>
-              <h2 className="mt-3 text-3xl font-black sm:text-5xl">ابدأ خلال دقائق</h2>
-              <p className="mt-5 max-w-xl leading-8 text-slate-600">
-                خطوات واضحة تساعد المدرسة على تجهيز البيئة ثم بدء العمل الإرشادي بشكل منظم.
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500">
+                كل مستخدم يدخل إلى مساحة عمل تناسب دوره والخدمات المسموحة له،
+                بدون قوائم أو إجراءات لا تخصه.
               </p>
             </div>
 
-            <div className="grid gap-4">
-              {steps.map((step, index) => (
-                <div key={step} className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-black text-white">
-                    {index + 1}
+            <div className="mt-16 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-4">
+              {audiences.map((item) => (
+                <article key={item.title}>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                    <item.icon className="h-5 w-5" />
                   </div>
-                  <p className="text-lg font-black">{step}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        <section id="pricing" className="bg-slate-50 px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center">
-              <p className="text-sm font-black text-teal-600">الباقات</p>
-              <h2 className="mt-3 text-3xl font-black sm:text-5xl">باقات مرنة للمدارس</h2>
-            </div>
+                  <h3 className="mt-6 text-xl font-black text-slate-950">
+                    {item.title}
+                  </h3>
 
-            <div className="mt-12 grid gap-5 md:grid-cols-3">
-              {plans.map((plan) => (
-                <div key={plan} className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-                  <h3 className="text-2xl font-black">{plan}</h3>
-                  <p className="mt-3 leading-8 text-slate-600">
-                    مناسبة لتنظيم العمل الإرشادي وإدارة الخدمات والتقارير.
+                  <p className="mt-3 text-sm leading-7 text-slate-500">
+                    {item.description}
                   </p>
-                  <Link href="/register" className="mt-7 inline-flex w-full justify-center rounded-3xl bg-slate-900 px-6 py-4 text-sm font-black text-white transition hover:bg-teal-600">
-                    اشترك الآن
-                  </Link>
-                </div>
+                </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="bg-slate-950 px-4 py-20 text-white sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-white/10 p-8 text-center backdrop-blur sm:p-12">
-            <BrainCircuit className="mx-auto h-12 w-12 text-teal-300" />
-            <h2 className="mt-6 text-3xl font-black sm:text-5xl">
-              ابدأ تنظيم عملك الإرشادي اليوم
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl leading-8 text-slate-300">
-              منصة عربية حديثة تساعدك على إدارة العمل الإرشادي بثقة ووضوح.
-            </p>
-            <Link href="/register" className="mt-8 inline-flex rounded-3xl bg-teal-400 px-8 py-4 text-sm font-black text-slate-950 transition hover:bg-teal-300">
-              الدخول للمنصة
-            </Link>
+        {/* FEATURES */}
+        <section
+          id="features"
+          className="scroll-mt-28 border-y border-slate-100 bg-slate-50/60 px-5 py-28 sm:px-8 lg:px-10 lg:py-36"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div className="lg:sticky lg:top-32">
+                <p className="text-sm font-black text-sky-600">
+                  لماذا Teachix؟
+                </p>
+
+                <h2 className="mt-4 max-w-lg text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+                  أقل تشتت.
+                  <span className="block text-slate-400">
+                    عمل أوضح.
+                  </span>
+                </h2>
+
+                <p className="mt-6 max-w-lg text-base leading-8 text-slate-500">
+                  صممنا التجربة حول العمل الذي تريد إنجازه، وليس حول كثرة
+                  الصفحات والخيارات.
+                </p>
+              </div>
+
+              <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2">
+                {features.map((item) => (
+                  <article
+                    key={item.title}
+                    className="border-t border-slate-200 pt-7"
+                  >
+                    <item.icon className="h-6 w-6 text-sky-600" />
+
+                    <h3 className="mt-5 text-xl font-black text-slate-950">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-3 text-sm leading-7 text-slate-500">
+                      {item.description}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SERVICES */}
+        <section
+          id="services"
+          className="scroll-mt-28 bg-white px-5 py-28 sm:px-8 lg:px-10 lg:py-36"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="text-sm font-black text-sky-600">
+                الخدمات
+              </p>
+
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                خدمات تساعدك على إنجاز العمل
+              </h2>
+
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500">
+                مجموعة من الأدوات المدرسية المترابطة، تعمل ضمن تجربة واحدة
+                وتحافظ على البيانات والسجلات في مكان منظم.
+              </p>
+            </div>
+
+            <div className="mt-16 grid gap-x-8 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((item) => (
+                <article
+                  key={item.title}
+                  className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-sky-200 hover:shadow-[0_20px_60px_-40px_rgba(15,23,42,0.35)]"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition group-hover:bg-sky-600 group-hover:text-white">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-black text-slate-950">
+                        {item.title}
+                      </h3>
+
+                      <p className="mt-2 text-sm leading-7 text-slate-500">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* REVIEWS */}
+        <section
+          id="reviews"
+          className="scroll-mt-28 border-y border-slate-100 bg-slate-50/60 px-5 py-28 sm:px-8 lg:px-10 lg:py-36"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-black text-sky-600">
+                تجربة الاستخدام
+              </p>
+
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                البساطة تظهر في التفاصيل
+              </h2>
+
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500">
+                النصوص التالية نماذج تقييمات تجريبية داخل التصميم، ويمكن
+                استبدالها لاحقًا بتقييمات مستخدمين فعلية.
+              </p>
+            </div>
+
+            <div className="mt-16 grid gap-6 lg:grid-cols-3">
+              {reviews.map((review) => (
+                <article
+                  key={review.quote}
+                  className="rounded-2xl border border-slate-200 bg-white p-7"
+                >
+                  <div className="text-4xl font-black leading-none text-sky-200">
+                    “
+                  </div>
+
+                  <p className="mt-4 text-base font-bold leading-8 text-slate-700">
+                    {review.quote}
+                  </p>
+
+                  <p className="mt-7 border-t border-slate-100 pt-5 text-xs font-bold text-slate-400">
+                    {review.role}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-white px-5 py-28 sm:px-8 lg:px-10 lg:py-36">
+          <div className="mx-auto max-w-7xl">
+            <div className="overflow-hidden rounded-[2rem] bg-sky-600 px-6 py-16 text-center text-white sm:px-10 lg:py-20">
+              <p className="text-sm font-black text-sky-100">
+                ابدأ مع Teachix
+              </p>
+
+              <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black leading-tight sm:text-5xl">
+                نظّم أعمال مدرستك من مكان واحد
+              </h2>
+
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-sky-100">
+                أنشئ حسابك وابدأ تجربة مدرسية أكثر وضوحًا وتنظيمًا.
+              </p>
+
+              <Link
+                href="/register"
+                className="mt-9 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-sky-700 transition hover:bg-sky-50"
+              >
+                إنشاء حساب
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </section>
       </main>
