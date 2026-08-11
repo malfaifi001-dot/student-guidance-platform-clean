@@ -398,7 +398,7 @@ export default function HomePage() {
         ====================================================== */}
         <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
           <div className="mx-auto max-w-7xl">
-            <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-sky-600 via-blue-600 to-blue-700 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
+            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
               <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute left-1/2 top-0 h-52 w-[70%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />

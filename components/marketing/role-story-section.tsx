@@ -795,6 +795,40 @@ export function RoleStorySection() {
       <div className="pointer-events-none absolute -right-56 top-24 hidden h-[520px] w-[520px] rounded-full bg-sky-100/70 blur-3xl md:block" />
       <div className="pointer-events-none absolute -left-52 top-[30%] hidden h-[440px] w-[440px] rounded-full bg-blue-100/35 blur-3xl md:block" />
 
+      <div className="pointer-events-none absolute inset-0 hidden md:block">
+        {/* Large soft ring */}
+        <div className="absolute -right-28 top-[22%] h-64 w-64 rounded-full border border-sky-200/45" />
+        <div className="absolute -right-16 top-[24%] h-40 w-40 rounded-full border border-sky-100/70" />
+
+        {/* Top dotted grid */}
+        <div className="absolute right-[8%] top-[8%] grid grid-cols-5 gap-3 opacity-35">
+          {Array.from({ length: 20 }).map((_, index) => (
+            <span
+              key={`role-top-dot-${index}`}
+              className="h-1.5 w-1.5 rounded-full bg-sky-300"
+            />
+          ))}
+        </div>
+
+        {/* Small dotted grid */}
+        <div className="absolute left-[7%] top-[43%] grid grid-cols-5 gap-3 opacity-40">
+          {Array.from({ length: 20 }).map((_, index) => (
+            <span
+              key={`role-dot-${index}`}
+              className="h-1.5 w-1.5 rounded-full bg-sky-300"
+            />
+          ))}
+        </div>
+
+        {/* Floating outlined shapes */}
+        <div className="absolute right-[9%] top-[61%] h-16 w-16 rotate-12 rounded-[20px] border border-blue-200/50" />
+        <div className="absolute left-[10%] top-[72%] h-24 w-24 -rotate-12 rounded-full border border-slate-200/70" />
+
+        {/* Tiny accent blocks */}
+        <div className="absolute right-[18%] top-[78%] h-3 w-12 rotate-[-8deg] rounded-full bg-sky-100/80" />
+        <div className="absolute left-[18%] top-[56%] h-2.5 w-8 rotate-12 rounded-full bg-blue-100/70" />
+      </div>
+
       <div className="relative mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-black text-sky-600">
