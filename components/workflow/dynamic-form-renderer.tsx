@@ -31,6 +31,7 @@ import {
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
 import { OPTIONAL_STUDENT_PICKER_LABEL } from "@/lib/workflows/workflow-runtime-copy";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 
 export type EvidenceItem = {
   id: string;
@@ -1245,6 +1246,7 @@ export function DynamicFormRenderer({
 
   return (
     <main className={embedded ? "space-y-5" : "space-y-8"}>
+      {!embedded ? <GuidanceScope context="workflow-runtime" /> : null}
       <SmartFeedbackModal
         open={feedback.open}
         type={feedback.type}
@@ -1275,7 +1277,7 @@ export function DynamicFormRenderer({
       />
 
       {embedded ? (
-        <section className="border-b border-slate-100 pb-4">
+        <section data-guidance="workflow-step" className="border-b border-slate-100 pb-4">
           <p className="text-xs font-black text-sky-700">
             الخطوة {currentStepIndex + 1} من {steps.length}
           </p>
@@ -1284,7 +1286,7 @@ export function DynamicFormRenderer({
           </h2>
         </section>
       ) : (
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
+      <section data-guidance="workflow-step" className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
         <h1 className="text-4xl font-black">{title || workflow.name}</h1>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -1329,6 +1331,7 @@ export function DynamicFormRenderer({
       ) : null}
 
       {displayCurrentStep ? (
+        <div data-guidance="workflow-main-fields">
         <WorkflowStepCard
           step={displayCurrentStep}
           values={values}
@@ -1338,6 +1341,7 @@ export function DynamicFormRenderer({
           onUpdateFieldLabel={handleFieldLabelUpdate}
           embedded={embedded}
         />
+        </div>
       ) : null}
 
       {showEvidenceCard ? (
@@ -1366,7 +1370,7 @@ export function DynamicFormRenderer({
 
       {!embedded || isLastStep ? beforeSubmit : null}
 
-      <section className={[
+      <section data-guidance="workflow-actions" className={[
         "flex flex-wrap items-center justify-between gap-4",
         embedded
           ? "border-t border-slate-100 pt-5"

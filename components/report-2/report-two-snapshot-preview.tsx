@@ -4,6 +4,7 @@ import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-d
 import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import { Trash2 } from "lucide-react";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 
 type SnapshotForDownload = {
   caseEntryId: string;
@@ -85,6 +86,7 @@ export function ReportTwoSnapshotPreview({
       dir="rtl"
     >
       {printMode ? <ReportTwoSnapshotPrintController /> : null}
+      {!printMode ? <GuidanceScope context="report-preview" /> : null}
       <style>{`
         @page {
           size: A4;
@@ -105,6 +107,7 @@ export function ReportTwoSnapshotPreview({
       {!printMode ? (
         <section
           data-report-two-snapshot-toolbar
+          data-guidance="report-preview-actions"
           className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -168,7 +171,7 @@ export function ReportTwoSnapshotPreview({
         </section>
       ) : null}
 
-      <section className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
+      <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
         {canRenderStructured ? (
           <ReportTwoActivePreviewRenderer
             template={snapshot.snapshotTemplateJson}

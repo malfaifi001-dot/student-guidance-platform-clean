@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ReportDocumentEditor } from "@/components/report-engine/document-editor/report-document-editor";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { buildReportDocumentDraftFromPayload } from "@/lib/report-engine/document-draft/report-document-builder";
 import type { ReportDocumentDraft } from "@/lib/report-engine/document-draft/report-document-types";
 import { saveReportDocumentDraft } from "@/lib/report-engine/document-draft/report-draft-storage";
@@ -434,6 +435,7 @@ export function ReportPrepareFlow({
 
   return (
     <>
+      <GuidanceScope context="report-prepare" />
       <main
         className="min-h-screen bg-slate-50 px-4 py-5 transition-colors dark:bg-slate-950 sm:px-6"
         dir="rtl"
@@ -478,6 +480,7 @@ export function ReportPrepareFlow({
                 <button
                   type="button"
                   onClick={continueToStudio}
+                  data-guidance="report-prepare-continue"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
                 >
                   معاينة التقرير
@@ -493,7 +496,7 @@ export function ReportPrepareFlow({
           ) : null}
 
           <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
-            <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <div data-guidance="report-prepare-fields" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
               <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="text-lg font-black text-slate-950 dark:text-white">
@@ -598,7 +601,7 @@ export function ReportPrepareFlow({
             </div>
 
             <aside className="space-y-4">
-              <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <section data-guidance="report-prepare-description" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-black text-slate-950 dark:text-white">

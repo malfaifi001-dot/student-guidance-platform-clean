@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { readApiResponse } from "@/lib/http/read-api-response";
-import { FeatureTour } from "@/components/onboarding/feature-tour";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 
 type NoorCycle = {
   id: string;
@@ -177,29 +177,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <FeatureTour
-          tourKey="student-data-import-v1"
-          steps={[
-            {
-              targetId: "student-import-start",
-              title: "ابدأ من هنا",
-              description:
-                "اضغط هذا الزر لاختيار السنة والفصل، ثم انتقل لرفع ملف الطلاب.",
-            },
-            {
-              targetId: "student-import-steps",
-              title: "ثلاث خطوات فقط",
-              description:
-                "اختر السنة والفصل، ارفع ملف Excel، ثم راجع البيانات واعتمدها.",
-            },
-            {
-              targetId: "student-import-current-data",
-              title: "بيانات الطلاب الحالية",
-              description:
-                "هنا تظهر بطاقات البيانات. افتح البطاقة لرفع ملف أو مراجعة آخر تحديث.",
-            },
-          ]}
-        />
+        <GuidanceScope context="student-data-import" />
 
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
@@ -215,7 +193,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
-                data-tour-id="student-import-start"
+                data-guidance="student-import-start"
                 className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
               >
                 إضافة بيانات طالب
@@ -240,7 +218,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
         ) : null}
 
         <section
-          data-tour-id="student-import-steps"
+          data-guidance="student-import-steps"
           className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
         >
           <h2 className="text-lg font-black">الخطوات</h2>
@@ -262,7 +240,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
         </section>
 
         <section
-          data-tour-id="student-import-current-data"
+          data-guidance="student-import-current-data"
           className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
         >
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">

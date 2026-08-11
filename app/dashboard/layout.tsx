@@ -6,6 +6,7 @@ import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboard
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
 import { DashboardNavigationRefresh } from "@/components/layout/dashboard-navigation-refresh";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export const viewport: Viewport = {
@@ -22,6 +23,7 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider>
+      <GuidanceProvider userId={current.user.id} role={current.user.role}>
       <div
         dir="rtl"
         className="h-screen overflow-x-auto overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
@@ -48,6 +50,7 @@ export default async function DashboardLayout({
           </main>
         </div>
       </div>
+      </GuidanceProvider>
     </ThemeProvider>
   );
 }

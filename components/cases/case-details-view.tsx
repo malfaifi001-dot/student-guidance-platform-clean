@@ -19,6 +19,7 @@ import {
 import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
   formatWorkflowDisplayValue,
   getWorkflowFieldLabel,
@@ -948,7 +949,8 @@ export function CaseDetailsView({
 
     return (
       <div className="space-y-5" dir="rtl">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <GuidanceScope context="case-details" capabilities={["case-edit", "case-report"]} />
+        <section data-guidance="case-summary" className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -987,6 +989,7 @@ export function CaseDetailsView({
 
               <Link
                 href={`/dashboard/cases/${caseEntry.id}/edit`}
+                data-guidance="case-edit"
                 aria-label="تعديل الحالة"
                 title="تعديل الحالة"
                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
@@ -997,6 +1000,7 @@ export function CaseDetailsView({
 
               <Link
                 href={primaryReportHref}
+                data-guidance="case-report"
                 className={[
                   "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
                   reportTwoSnapshotHref
@@ -1198,7 +1202,8 @@ export function CaseDetailsView({
 
   return (
     <div className="space-y-5" dir="rtl">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <GuidanceScope context="case-details" capabilities={["case-edit", "case-report"]} />
+      <section data-guidance="case-summary" className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -1237,6 +1242,7 @@ export function CaseDetailsView({
 
             <Link
               href={`/dashboard/cases/${caseEntry.id}/edit`}
+              data-guidance="case-edit"
               aria-label="تعديل الحالة"
               title="تعديل الحالة"
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
@@ -1247,6 +1253,7 @@ export function CaseDetailsView({
 
             <Link
               href={primaryReportHref}
+              data-guidance="case-report"
               className={[
                 "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
                 reportTwoSnapshotHref

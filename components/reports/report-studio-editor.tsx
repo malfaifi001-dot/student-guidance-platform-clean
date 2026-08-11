@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
   DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   FinalReportDesignRenderer,
@@ -600,7 +601,8 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
   return (
     <main className="space-y-6">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <GuidanceScope context="report-studio" />
+      <section data-guidance="studio-template-identity" className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-slate-50 px-6 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -651,7 +653,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         </div>
 
         <div className="grid items-start gap-5 p-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
-          <aside className="space-y-3 self-start">
+          <aside data-guidance="studio-content-blocks" className="space-y-3 self-start">
 {feedback ? <FeedbackCard feedback={feedback} /> : null}
 
             {isApproved ? (
@@ -833,6 +835,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               <button
                 type="button"
                 onClick={saveReport}
+                data-guidance="studio-save-now"
                 disabled={editorLocked || saving || (!hasChanges && !evidenceChanged)}
                 className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
@@ -847,6 +850,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                 <button
                   type="button"
                   onClick={approveReport}
+                  data-guidance="studio-finalize"
                   disabled={approving}
                   className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 >
@@ -919,7 +923,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               </details>
             ) : null}
 
-            <section className="order-first rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section data-guidance="studio-report-canvas" className="order-first rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">
@@ -1321,7 +1325,8 @@ export function ReportStudioSavedPreview({ report }: ReportStudioEditorProps) {
 
   return (
     <main className="min-h-screen bg-[#eef3ef] px-6 py-6" dir="rtl">
-      <section className="mx-auto mb-5 flex max-w-7xl flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm print:hidden">
+      <GuidanceScope context="report-preview" />
+      <section data-guidance="report-preview-actions" className="mx-auto mb-5 flex max-w-7xl flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm print:hidden">
         <div>
           <p className="text-sm font-black text-emerald-700">معاينة التقرير</p>
           <h1 className="mt-1 text-2xl font-black text-slate-950">{report.title}</h1>
@@ -1338,7 +1343,7 @@ export function ReportStudioSavedPreview({ report }: ReportStudioEditorProps) {
           فتح المحرر
         </Link>
       </section>
-      <section className="mx-auto max-w-7xl">
+      <section data-guidance="report-preview-document" className="mx-auto max-w-7xl">
         <FinalReportDesignRenderer
           template={previewTemplate}
           previewCaseData={buildPreviewCaseDataForRenderer(report) as any}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
   CheckCircle2,
   Clock3,
@@ -309,8 +310,9 @@ export function CalendarCenterClient({
 
   return (
     <div className="space-y-4" dir="rtl">
+      <GuidanceScope context="calendar" />
       <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
-        <aside className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <aside data-guidance="calendar-create" className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
           <div className="space-y-3">
             <Field label="عنوان التنبيه">
               <input
@@ -441,7 +443,7 @@ export function CalendarCenterClient({
         </aside>
 
         <section className="space-y-4">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+          <div data-guidance="calendar-filters" className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex gap-2 overflow-x-auto pb-1">
               {tabs.map((tab) => {
                 const active = activeTab === tab.id;
@@ -478,7 +480,7 @@ export function CalendarCenterClient({
             </div>
           </div>
 
-          <div className="grid gap-3">
+          <div data-guidance="calendar-list" className="grid gap-3">
             {activeReminders.map((reminder) => {
               const href = getLinkHref(reminder);
 

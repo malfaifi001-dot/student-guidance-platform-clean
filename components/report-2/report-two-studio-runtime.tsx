@@ -14,6 +14,7 @@ import { isReportDesignId } from "@/components/report-engine/design-renderers/re
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -47,10 +48,21 @@ function ReportTwoCollapsibleCard({
   children,
 }: ReportTwoCollapsibleCardProps) {
   const [open, setOpen] = useState(false);
+  const guidanceTarget =
+    id === "design"
+      ? "studio-design-controls"
+      : id === "page-settings"
+        ? "studio-page-settings"
+        : id === "logo" || id === "header"
+          ? "studio-report-header"
+          : id === "add-block" || id === "page-blocks" || id === "edit-block"
+            ? "studio-content-blocks"
+            : undefined;
 
   return (
     <section
       data-report-two-panel-id={id}
+      data-guidance={guidanceTarget}
       className="rounded-[2rem] border border-emerald-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"
     >
       <button
@@ -4302,6 +4314,7 @@ export function ReportTwoStudioRuntime({
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-5 transition-colors dark:bg-slate-950" dir="rtl">
+      <GuidanceScope context="report-studio" />
       {runtimeMode === "preview" ? (
         <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
           <div>
@@ -4429,7 +4442,7 @@ export function ReportTwoStudioRuntime({
       
       <div className={reportTwoLayoutGridClass}>
         {runtimeMode !== "preview" && !rightSidebarCollapsed ? (
-        <aside className="space-y-4">
+        <aside data-guidance="studio-template-identity" className="space-y-4">
           <ReportTwoCollapsibleCard id="control" title="تحكم القالب">
 
             <p className="text-sm font-black text-emerald-700">
@@ -4616,7 +4629,7 @@ export function ReportTwoStudioRuntime({
           ) : null}
 
           {runtimeMode !== "preview" ? (
-<section className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+<section data-guidance="studio-autosave" className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -4646,6 +4659,7 @@ export function ReportTwoStudioRuntime({
             <button
               type="button"
               onClick={() => void persistReportTwoDraft()}
+              data-guidance="studio-save-now"
               disabled={reportTwoSaveSubmitting}
               className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800"
             >
@@ -4655,6 +4669,7 @@ export function ReportTwoStudioRuntime({
             <button
               type="button"
               onClick={openReportTwoFinalWizard}
+              data-guidance="studio-finalize"
               className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
             >
               فحص نهائي قبل الاعتماد
@@ -4766,7 +4781,7 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />
@@ -4903,7 +4918,7 @@ export function ReportTwoStudioRuntime({
         </section>
 
         {runtimeMode !== "preview" && !leftSidebarCollapsed ? (
-        <aside className="space-y-4">
+        <aside data-guidance="studio-report-header" className="space-y-4">
           <ReportTwoCollapsibleCard id="logo" title="شعار التقرير">
 
             <div className="flex items-start justify-between gap-3">

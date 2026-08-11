@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Printer } from "lucide-react";
 
 import { SmartReportDocumentRenderer } from "@/components/report-engine/smart-report-document-renderer";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import type { ReportVariantId } from "@/lib/report-engine/report-variant-registry";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 
@@ -25,7 +26,8 @@ export function SavedSmartReportPreviewPage({
   return (
     <main className="min-h-screen bg-[#eef3ef] px-6 py-6" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between print:hidden">
+        <GuidanceScope context="report-preview" />
+        <section data-guidance="report-preview-actions" className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between print:hidden">
           <div>
             <p className="text-sm font-black text-emerald-700">
               تقرير محفوظ
@@ -60,7 +62,7 @@ export function SavedSmartReportPreviewPage({
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-slate-100 p-4 print:bg-white print:p-0">
+        <section data-guidance="report-preview-document" className="rounded-[2rem] bg-slate-100 p-4 print:bg-white print:p-0">
           <SmartReportDocumentRenderer
             payload={payload}
             variantId={variantId}

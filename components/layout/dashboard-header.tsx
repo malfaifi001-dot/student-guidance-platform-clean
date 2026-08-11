@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
+import { GuidanceLauncher } from "@/components/guidance/guidance-launcher";
 import {
   Bell,
   ChevronDown,
@@ -137,6 +138,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           ) : null}
 
           <ThemeToggleButton />
+
+          <GuidanceLauncher />
 
           <button
             type="button"

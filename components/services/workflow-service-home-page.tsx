@@ -13,6 +13,7 @@ import {
 
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
 
 type WorkflowServiceHomePageProps = {
   serviceSlug: string;
@@ -265,6 +266,10 @@ export async function WorkflowServiceHomePage({
 
   return (
     <main className="space-y-7" dir="rtl">
+      <GuidanceScope
+        context="service-overview"
+        capabilities={heroSecondaryAction ? ["send-to-teacher"] : []}
+      />
       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
@@ -278,13 +283,18 @@ export async function WorkflowServiceHomePage({
           <div className="flex flex-col gap-2">
             <Link
               href={`${basePath}/new`}
+              data-guidance="service-create"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
             >
               <Plus className="h-4 w-4" />
               {newButtonLabel}
             </Link>
 
-            {heroSecondaryAction}
+            {heroSecondaryAction ? (
+              <div data-guidance="service-secondary-action">
+                {heroSecondaryAction}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -336,7 +346,7 @@ export async function WorkflowServiceHomePage({
         </section>
       ) : null}
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section data-guidance="service-records" className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black text-sky-700">السجلات السابقة</p>

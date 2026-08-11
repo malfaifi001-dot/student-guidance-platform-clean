@@ -610,6 +610,9 @@ export function DashboardSidebar({
 
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
+  const isStudioContext = pathname.includes("/studio");
+  const normalCollapsedRef = useRef(false);
+  const wasStudioRef = useRef(isStudioContext);
 
   const isAdmin =
     user?.role === "ADMIN" ||
@@ -676,18 +679,34 @@ export function DashboardSidebar({
     const savedValue =
       window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
 
-    setCollapsed(savedValue === "true");
+    normalCollapsedRef.current = savedValue === "true";
+    setCollapsed(isStudioContext ? true : normalCollapsedRef.current);
     setReady(true);
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || wasStudioRef.current === isStudioContext) return;
+
+    if (isStudioContext) {
+      normalCollapsedRef.current = collapsed;
+      setCollapsed(true);
+    } else {
+      setCollapsed(normalCollapsedRef.current);
+    }
+
+    wasStudioRef.current = isStudioContext;
+  }, [collapsed, isStudioContext, ready]);
+
+  useEffect(() => {
+    if (!ready || isStudioContext) return;
+
+    normalCollapsedRef.current = collapsed;
 
     window.localStorage.setItem(
       COLLAPSED_STORAGE_KEY,
       String(collapsed),
     );
-  }, [collapsed, ready]);
+  }, [collapsed, isStudioContext, ready]);
 
   return (
     <aside
