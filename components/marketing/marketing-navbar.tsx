@@ -20,7 +20,7 @@ export function MarketingNavbar() {
         className={[
           "mx-auto min-h-[72px] max-w-7xl items-center gap-4 px-5 sm:px-8 lg:px-10",
           isAuthPage
-            ? "flex justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]"
+            ? "flex justify-between xl:grid xl:grid-cols-[1fr_auto_1fr]"
             : "flex justify-between",
         ].join(" ")}
       >
@@ -38,7 +38,7 @@ export function MarketingNavbar() {
           </p>
         </Link>
 
-        <nav className="hidden items-center gap-9 whitespace-nowrap lg:flex">
+        <nav className="hidden items-center gap-9 whitespace-nowrap xl:flex">
           {siteConfig.navigation.map((item) => (
             <Link
               key={item.href}
@@ -51,9 +51,9 @@ export function MarketingNavbar() {
         </nav>
 
         {isAuthPage ? (
-          <div className="hidden lg:block" aria-hidden="true" />
+          <div className="hidden xl:block" aria-hidden="true" />
         ) : (
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden items-center gap-3 xl:flex">
             <Link
               href="/login"
               className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
@@ -73,7 +73,7 @@ export function MarketingNavbar() {
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 lg:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 xl:hidden"
           aria-label={isOpen ? "إغلاق القائمة" : "فتح القائمة"}
           aria-expanded={isOpen}
         >
@@ -86,7 +86,7 @@ export function MarketingNavbar() {
       </div>
 
       {isOpen ? (
-        <div className="border-t border-slate-100 bg-white lg:hidden">
+        <div className="border-t border-slate-100 bg-white xl:hidden">
           <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
             <nav className="flex flex-col gap-1">
               {siteConfig.navigation.map((item) => (

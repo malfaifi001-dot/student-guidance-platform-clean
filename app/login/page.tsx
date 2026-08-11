@@ -67,16 +67,16 @@ export default function LoginPage() {
         dir="rtl"
         className="min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950"
       >
-        <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] xl:grid-cols-[0.92fr_1.08fr]">
+        <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] lg:grid-cols-[0.95fr_1.05fr] xl:grid-cols-[0.92fr_1.08fr]">
           {/* FORM */}
-          <section className="flex min-h-[calc(100svh-72px)] items-center px-5 py-12 sm:px-8 lg:px-14 xl:px-20">
-          <div className="mx-auto w-full max-w-[430px]">
+          <section className="flex min-h-[calc(100svh-72px)] items-center px-5 py-10 sm:px-8 md:px-10 lg:px-8 lg:py-8 xl:px-14 xl:py-12 2xl:px-20">
+          <div className="mx-auto w-full max-w-[390px] xl:max-w-[430px]">
             <div>
               <p className="text-sm font-black text-sky-600">
                 تسجيل الدخول
               </p>
 
-              <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-[2rem] xl:mt-4 xl:text-4xl">
                 مرحبًا بعودتك
               </h1>
             </div>
@@ -145,19 +145,19 @@ export default function LoginPage() {
           </section>
 
           {/* LOGIN VISUAL */}
-          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#f8fbfe] xl:flex xl:min-h-[calc(100svh-72px)] xl:items-center xl:justify-center xl:px-16 2xl:px-20">
+          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#f8fbfe] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
           <div className="absolute -right-40 top-8 h-[440px] w-[440px] rounded-full bg-sky-100/60 blur-3xl" />
           <div className="absolute -left-40 bottom-6 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
 
           <div className="relative w-full max-w-[610px]">
-            <h2 className="max-w-xl text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-4xl">
+            <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-4xl">
               أعمالك جاهزة عندما تعود.
             </h2>
 
-            <div className="relative mx-auto mt-12 max-w-[520px]">
+            <div className="relative mx-auto mt-8 max-w-[420px] xl:mt-12 xl:max-w-[520px]">
               <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl" />
 
-              <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white p-7 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)]">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] xl:rounded-[34px] xl:p-7">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                   <div>
                     <p className="text-xs font-black text-sky-600">

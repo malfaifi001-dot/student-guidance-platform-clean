@@ -124,9 +124,9 @@ export default function HomePage() {
             <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl" />
           </div>
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:min-h-[760px] lg:grid-cols-[1fr_1fr] lg:gap-14 lg:px-10 lg:py-24 xl:gap-16 xl:py-28">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-16 md:gap-12 md:py-20 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-10 lg:py-20 xl:min-h-[800px] xl:gap-16 xl:py-32">
             <div className="max-w-3xl">
-              <h1 className="text-[2.35rem] font-black leading-[1.18] tracking-[-0.045em] text-slate-950 min-[430px]:text-[2.7rem] sm:text-6xl lg:text-[4rem] xl:text-[4.8rem]">
+              <h1 className="text-[2.25rem] font-black leading-[1.18] tracking-[-0.045em] text-slate-950 min-[430px]:text-[2.5rem] sm:text-5xl md:text-[3.25rem] lg:text-[3.5rem] xl:text-[4.8rem]">
                 كل أعمال مدرستك،
                 <span className="mt-2 block text-sky-600">
                   في مكان واحد.
@@ -158,11 +158,11 @@ export default function HomePage() {
 
             </div>
 
-            <div className="relative mx-auto hidden w-full max-w-[650px] md:block lg:max-w-[700px]">
+            <div className="relative mx-auto hidden w-full md:block md:max-w-[560px] lg:max-w-[520px] xl:max-w-[700px]">
               <div className="absolute inset-8 rounded-[3.5rem] bg-sky-100/70 blur-3xl" />
 
-              <div className="relative lg:scale-[1.04] xl:scale-[1.08]">
-                <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] sm:min-h-[520px] sm:rounded-[32px] sm:p-7 lg:min-h-[580px]">
+              <div className="relative lg:scale-[0.94] xl:scale-[1.08]">
+                <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] md:min-h-[460px] md:rounded-[30px] md:p-6 xl:min-h-[580px] xl:rounded-[32px] xl:p-7">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                     <div>
                       <p className="text-xs font-bold text-sky-600">
@@ -236,7 +236,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="features"
-          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
+          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
         >
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-24">
@@ -245,7 +245,7 @@ export default function HomePage() {
                   لماذا Teachix؟
                 </p>
 
-                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-5xl lg:text-6xl xl:text-7xl">
+                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-7xl">
                   أقل تشتت.
                   <span className="block text-slate-400">
                     عمل أوضح.
@@ -328,7 +328,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="reviews"
-          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
+          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -right-52 top-20 h-[420px] w-[420px] rounded-full bg-sky-100/65 blur-3xl" />
@@ -341,7 +341,7 @@ export default function HomePage() {
                 تجارب المستخدمين
               </p>
 
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl lg:text-6xl">
+              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
                 العمل أسهل عندما تكون الأدوات واضحة.
               </h2>
 
@@ -398,7 +398,7 @@ export default function HomePage() {
         ====================================================== */}
         <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
           <div className="mx-auto max-w-7xl">
-            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
+            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[30px] sm:px-8 sm:py-16 md:px-10 lg:py-20 xl:rounded-[32px] xl:py-24">
               <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute left-1/2 top-0 h-52 w-[70%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
@@ -406,7 +406,7 @@ export default function HomePage() {
               <div className="relative">
                 <Sparkles className="mx-auto h-7 w-7 text-sky-200" />
 
-                <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-5xl">
+                <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl xl:text-[3.25rem]">
                   ابدأ تنظيم أعمال مدرستك مع Teachix
                 </h2>
 

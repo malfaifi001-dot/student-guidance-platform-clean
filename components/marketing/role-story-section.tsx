@@ -43,8 +43,8 @@ function MobileStoryCard({
         </Link>
       </div>
 
-      <div className="mt-3 h-[390px] overflow-hidden rounded-[20px] bg-white min-[430px]:h-[420px]">
-        <div className="w-[145%] origin-top-right scale-[0.69]">
+      <div className="mt-3 h-[350px] overflow-hidden rounded-[20px] bg-white min-[430px]:h-[370px]">
+        <div className="w-[161%] origin-top-right scale-[0.62]">
           {visual}
         </div>
       </div>
@@ -93,7 +93,7 @@ function StoryItem({
   return (
     <article
       ref={ref}
-      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:py-24 lg:min-h-[680px] lg:grid-cols-2 lg:gap-24 xl:gap-28 lg:py-28 xl:py-32"
+      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:gap-12 md:py-20 lg:min-h-[620px] lg:grid-cols-2 lg:gap-16 lg:py-24 xl:min-h-[680px] xl:gap-28 xl:py-32"
     >
       <div
         className={[
@@ -116,7 +116,7 @@ function StoryItem({
           {eyebrow}
         </p>
 
-        <h3 className="mt-3 text-3xl font-black leading-tight tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl">
+        <h3 className="mt-3 text-3xl font-black leading-tight tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl md:text-[2.5rem] lg:text-[2.75rem] xl:text-5xl">
           {title}
         </h3>
 
@@ -135,7 +135,7 @@ function StoryItem({
 
       <div
         className={[
-          "relative transition-all delay-100 duration-700 ease-out",
+          "relative transition-all delay-100 duration-700 ease-out md:mx-auto md:w-full md:max-w-[560px] lg:max-w-none",
           reverse ? "lg:order-1" : "lg:order-2",
           visible
             ? "translate-x-0 opacity-100"
@@ -156,7 +156,7 @@ function TeacherVisual() {
       <div className="absolute inset-6 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
       <div className="relative mx-auto max-w-[520px] lg:rotate-[2deg]">
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:min-h-[560px] sm:rounded-[32px] sm:p-8">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] md:min-h-[480px] md:rounded-[28px] md:p-6 xl:min-h-[560px] xl:rounded-[32px] xl:p-8">
           <div className="flex items-start justify-between border-b border-slate-100 pb-7">
             <div>
               <p className="text-xs font-black text-sky-600">
@@ -268,7 +268,7 @@ function CounselorVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:-rotate-[2deg]">
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:min-h-[550px] sm:rounded-[32px] sm:p-8">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] md:min-h-[470px] md:rounded-[28px] md:p-6 xl:min-h-[550px] xl:rounded-[32px] xl:p-8">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-6">
@@ -414,7 +414,7 @@ function PrincipalVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:rotate-[1.5deg]">
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:rounded-[34px] sm:p-7">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] md:rounded-[28px] md:p-6 xl:rounded-[34px] xl:p-7">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
@@ -565,7 +565,7 @@ function ActivityVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:-rotate-[1.5deg]">
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:rounded-[34px] sm:p-7">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] md:rounded-[28px] md:p-6 xl:rounded-[34px] xl:p-7">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
@@ -781,7 +781,7 @@ export function RoleStorySection() {
   return (
     <section
       id="users"
-      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32"
+      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-32"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46%] bg-[#f4f9ff] md:block" />
 
@@ -835,7 +835,7 @@ export function RoleStorySection() {
             لمن المنصة؟
           </p>
 
-          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl lg:text-6xl">
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
             مساحة عمل تناسب كل دور
           </h2>
 
