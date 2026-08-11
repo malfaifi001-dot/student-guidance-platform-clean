@@ -150,20 +150,12 @@ const counselorAccountLinks: SidebarLinkItem[] = [
 
 const activityLeaderImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
-  { label: "ملف إنجازي", href: "/dashboard/activity-leader/portfolio", icon: FolderKanban },
-  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
-  { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
-  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  { label: "الأنشطة المصدرة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 
 const activityProgramDomainLinks: SidebarLinkItem[] = [
-  {
-    label: "كل برامج النشاط",
-    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
-    icon: ClipboardList,
-    shortLabel: "البرامج",
-  },
   ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
     label: domain.title,
     href: `/dashboard/activity-leader/programs/${domain.slug}`,
@@ -172,14 +164,12 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
   })),
 ];
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  { label: "ملف إنجازي", href: "/dashboard/activity-leader/portfolio", icon: FolderKanban },
+  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
   { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
-  { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
-  { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
-  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
-  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [
