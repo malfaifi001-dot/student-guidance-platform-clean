@@ -382,7 +382,7 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
       ) : null}
 
       <style jsx>{`
-        .input { width: 100%; border-radius: 1rem; border: 1px solid rgb(226 232 240); background: white; padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 700; outline: none; transition: 150ms; }
+        .input { width: 100%; border-radius: 1rem; border: 1px solid rgb(226 232 240); background: white; color: rgb(51 65 85); padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 700; outline: none; transition: 150ms; }
         .input:focus { border-color: rgb(125 211 252); box-shadow: 0 0 0 4px rgb(240 249 255); }
         .action-primary, .action-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 1rem; padding: 0.625rem 1rem; font-size: 0.75rem; font-weight: 900; transition: 150ms; }
         .action-primary { background: rgb(5 150 105); color: white; }
