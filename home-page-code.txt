@@ -1,0 +1,2859 @@
+
+============================================================
+FILE: app\page.tsx
+============================================================
+
+import Link from "next/link";
+import {
+  ArrowUpLeft,
+  BarChart3,
+  BrainCircuit,
+  CalendarDays,
+  Database,
+  FileSpreadsheet,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+  WalletCards,
+  Workflow,
+} from "lucide-react";
+
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+
+const features = [
+  {
+    title: "إدارة الحالات الطلابية",
+    desc: "تنظيم الحالات ومتابعتها بخطوات واضحة وسجلات قابلة للرجوع.",
+    icon: UsersRound,
+  },
+  {
+    title: "الخدمات الإرشادية",
+    desc: "إدارة الخدمات والبرامج والأنشطة الإرشادية من مكان واحد.",
+    icon: Workflow,
+  },
+  {
+    title: "التقارير الذكية",
+    desc: "مؤشرات وتقارير تساعد الموجه على اتخاذ قرارات أسرع.",
+    icon: BarChart3,
+  },
+  {
+    title: "رفع بيانات الطلاب",
+    desc: "استيراد بيانات الطلاب ومراجعتها قبل اعتمادها داخل المنصة.",
+    icon: Database,
+  },
+  {
+    title: "التقويم والتنبيهات",
+    desc: "تنظيم المواعيد والمهام والتنبيهات المرتبطة بالعمل الإرشادي.",
+    icon: CalendarDays,
+  },
+  {
+    title: "الاشتراكات والباقات",
+    desc: "جاهزية كاملة كنظام SaaS قابل للتوسع للمدارس والمستخدمين.",
+    icon: WalletCards,
+  },
+];
+
+const steps = [
+  "أضف بيانات المدرسة",
+  "ارفع بيانات الطلاب",
+  "ابدأ إدارة العمل الإرشادي",
+];
+
+const plans = ["أساسية", "احترافية", "متقدمة"];
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen overflow-hidden bg-slate-950 text-white">
+      <MarketingNavbar />
+
+      <main>
+        <section className="relative">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.28),transparent_35%),radial-gradient(circle_at_left,rgba(56,189,248,0.18),transparent_35%)]" />
+          <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
+            <div className="flex flex-col justify-center">
+              <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-teal-100 backdrop-blur">
+                <Sparkles className="h-4 w-4" />
+                منصة SaaS عربية لإدارة التوجيه الطلابي
+              </div>
+
+              <h1 className="max-w-4xl text-4xl font-black leading-[1.25] tracking-tight sm:text-5xl lg:text-7xl">
+                منصة التوجيه الطلابي
+                <span className="block bg-gradient-to-l from-teal-200 via-sky-200 to-white bg-clip-text text-transparent">
+                  إدارة إرشادية أذكى من مكان واحد
+                </span>
+              </h1>
+
+              <p className="mt-7 max-w-2xl text-lg leading-9 text-slate-300">
+                نظام ذكي يساعد الموجه والموجهة الطلابية على تنظيم الحالات،
+                الخدمات، البرامج، التقارير، بيانات الطلاب، والتواصل المدرسي
+                ضمن تجربة عربية واضحة واحترافية.
+              </p>
+
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 rounded-3xl bg-teal-400 px-7 py-4 text-sm font-black text-slate-950 shadow-2xl shadow-teal-500/20 transition hover:bg-teal-300"
+                >
+                  ابدأ الآن
+                  <ArrowUpLeft className="h-4 w-4" />
+                </Link>
+
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-3xl border border-white/15 bg-white/10 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+                >
+                  تسجيل الدخول
+                </Link>
+              </div>
+
+              <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
+                {["تجربة عربية بالكامل", "مناسب للمدارس", "جاهز للتوسع"].map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold text-slate-200">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="rounded-[2rem] border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
+                <div className="rounded-[1.5rem] bg-slate-100 p-5 text-slate-900">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-400">لوحة التحكم</p>
+                      <h2 className="text-xl font-black">ملخص العمل الإرشادي</h2>
+                    </div>
+                    <ShieldCheck className="h-8 w-8 text-teal-600" />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {[
+                      ["الحالات", "24"],
+                      ["الخدمات", "13"],
+                      ["التقارير", "8"],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-3xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold text-slate-400">{label}</p>
+                        <p className="mt-2 text-3xl font-black text-slate-900">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="font-black">آخر المهام</h3>
+                      <FileSpreadsheet className="h-5 w-5 text-teal-600" />
+                    </div>
+                    {["مراجعة حالة طالب", "اعتماد خدمة إرشادية", "تحديث بيانات الطلاب"].map((item) => (
+                      <div key={item} className="mb-2 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold">
+                        <span>{item}</span>
+                        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs text-teal-700">نشط</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="bg-slate-50 px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-black text-teal-600">المزايا</p>
+              <h2 className="mt-3 text-3xl font-black sm:text-5xl">كل ما يحتاجه الموجه الطلابي</h2>
+            </div>
+
+            <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {features.map((item) => (
+                <div key={item.title} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                  <item.icon className="h-9 w-9 text-teal-600" />
+                  <h3 className="mt-5 text-xl font-black">{item.title}</h3>
+                  <p className="mt-3 leading-8 text-slate-600">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-2">
+            <div>
+              <p className="text-sm font-black text-teal-600">طريقة العمل</p>
+              <h2 className="mt-3 text-3xl font-black sm:text-5xl">ابدأ خلال دقائق</h2>
+              <p className="mt-5 max-w-xl leading-8 text-slate-600">
+                خطوات واضحة تساعد المدرسة على تجهيز البيئة ثم بدء العمل الإرشادي بشكل منظم.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              {steps.map((step, index) => (
+                <div key={step} className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-black text-white">
+                    {index + 1}
+                  </div>
+                  <p className="text-lg font-black">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="bg-slate-50 px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center">
+              <p className="text-sm font-black text-teal-600">الباقات</p>
+              <h2 className="mt-3 text-3xl font-black sm:text-5xl">باقات مرنة للمدارس</h2>
+            </div>
+
+            <div className="mt-12 grid gap-5 md:grid-cols-3">
+              {plans.map((plan) => (
+                <div key={plan} className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+                  <h3 className="text-2xl font-black">{plan}</h3>
+                  <p className="mt-3 leading-8 text-slate-600">
+                    مناسبة لتنظيم العمل الإرشادي وإدارة الخدمات والتقارير.
+                  </p>
+                  <Link href="/register" className="mt-7 inline-flex w-full justify-center rounded-3xl bg-slate-900 px-6 py-4 text-sm font-black text-white transition hover:bg-teal-600">
+                    اشترك الآن
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-slate-950 px-4 py-20 text-white sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-white/10 p-8 text-center backdrop-blur sm:p-12">
+            <BrainCircuit className="mx-auto h-12 w-12 text-teal-300" />
+            <h2 className="mt-6 text-3xl font-black sm:text-5xl">
+              ابدأ تنظيم عملك الإرشادي اليوم
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl leading-8 text-slate-300">
+              منصة عربية حديثة تساعدك على إدارة العمل الإرشادي بثقة ووضوح.
+            </p>
+            <Link href="/register" className="mt-8 inline-flex rounded-3xl bg-teal-400 px-8 py-4 text-sm font-black text-slate-950 transition hover:bg-teal-300">
+              الدخول للمنصة
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <MarketingFooter />
+    </div>
+  );
+}
+
+============================================================
+FILE: app\layout.tsx
+============================================================
+
+import type {  Metadata, Viewport } from "next";
+import { Cairo } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import "./globals.css";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+export const metadata: Metadata = {
+  title: "منصة التوجيه الطلابي",
+  description:
+    "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات والحالات والتقارير المدرسية.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
+  );
+}
+
+
+============================================================
+FILE: components\ai-report\ai-report-service-home.tsx
+============================================================
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+import {
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  PencilLine,
+  Plus,
+  Search,
+  Sparkles,
+} from "lucide-react";
+
+import { prisma } from "@/lib/prisma";
+import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+
+const CUSTOM_REPORT_SERVICE_SLUG = "custom-report";
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("ar-SA").format(value);
+}
+
+function getCaseStatusLabel(status: string) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "SUBMITTED") return "مرسلة";
+  if (status === "ARCHIVED") return "مؤرشفة";
+
+  return status || "غير محدد";
+}
+
+function getCaseStatusClass(status: string) {
+  if (status === "DRAFT") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+  }
+
+  if (status === "SUBMITTED") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  }
+
+  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+}
+
+function getCaseTitle(caseItem: {
+  title?: string | null;
+  createdAt?: Date | string | null;
+}) {
+  const title = String(caseItem.title || "").trim();
+
+  if (title && title !== "بدون عنوان") {
+    return title;
+  }
+
+  return `تقرير مخصص - ${formatDate(caseItem.createdAt)}`;
+}
+
+export async function AiReportServiceHome({
+  userName,
+  userId,
+  schoolAccountId,
+}: {
+  userName: string;
+  userId: string;
+  schoolAccountId?: string | null;
+}) {
+  await ensureDefaultPlatformServices();
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: CUSTOM_REPORT_SERVICE_SLUG,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const cases = service
+    ? await prisma.caseEntry.findMany({
+        where: {
+          serviceId: service.id,
+          createdById: userId,
+          ...(schoolAccountId ? { schoolAccountId } : {}),
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 12,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              values: true,
+              evidences: true,
+              guidanceReports: true,
+            },
+          },
+          guidanceReports: {
+            orderBy: {
+              updatedAt: "desc",
+            },
+            take: 1,
+            select: {
+              id: true,
+              status: true,
+              templateId: true,
+              updatedAt: true,
+            },
+          },
+        },
+      })
+    : [];
+
+  const draftsCount = cases.filter((item) => item.status === "DRAFT").length;
+  const submittedCount = cases.filter((item) => item.status === "SUBMITTED").length;
+  const readyForReportCount = cases.filter(
+    (item) => item.status === "SUBMITTED" && item._count.guidanceReports === 0,
+  ).length;
+
+  return (
+    <main className="space-y-7" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+          <div>
+            <p className="text-sm font-black text-sky-100">AI Report Runtime</p>
+
+            <h1 className="mt-3 text-4xl font-black">تقرير مخصص</h1>
+
+            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
+              أهلًا {userName || "بك"}، أنشئ تقريرًا مخصصًا من وصف بسيط. النظام
+              يبحث داخل بنك قيم المنصة ثم يستخدم DeepSeek لترتيب التقرير وتحسينه
+              ضمن السياق الرسمي.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dashboard/ai-report/new"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            >
+              <Plus className="h-4 w-4" />
+              إنشاء تقرير مخصص
+            </Link>
+
+            <Link
+              href="/dashboard/custom-report"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              <ClipboardList className="h-4 w-4" />
+              القوالب المحفوظة
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SimpleMetricCard
+          icon={<Sparkles className="h-5 w-5" />}
+          label="تقارير مخصصة"
+          value={formatCount(cases.length)}
+        />
+
+        <SimpleMetricCard
+          icon={<PencilLine className="h-5 w-5" />}
+          label="مسودات"
+          value={formatCount(draftsCount)}
+        />
+
+        <SimpleMetricCard
+          icon={<FileText className="h-5 w-5" />}
+          label="مرسلة"
+          value={formatCount(submittedCount)}
+        />
+
+        <SimpleMetricCard
+          icon={<CalendarDays className="h-5 w-5" />}
+          label="جاهزة للتقرير"
+          value={formatCount(readyForReportCount)}
+        />
+      </section>
+
+      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-sky-700">السجلات السابقة</p>
+
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              آخر التقارير المخصصة
+            </h2>
+
+            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+              اختر التقرير المطلوب أو ابدأ تقريرًا جديدًا من نفس الواجهة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/custom-report"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <ClipboardList className="h-4 w-4" />
+              القوالب المحفوظة
+            </Link>
+
+            <Link
+              href="/dashboard/ai-report/new"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              إنشاء تقرير مخصص
+            </Link>
+          </div>
+        </div>
+
+        {cases.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {cases.map((caseItem) => {
+              const latestReport = caseItem.guidanceReports[0] || null;
+              const reportHref = latestReport
+                ? `/dashboard/report/${latestReport.id}/preview${
+                    latestReport.templateId
+                      ? `?template=${encodeURIComponent(latestReport.templateId)}`
+                      : ""
+                  }`
+                : `/dashboard/report/new?caseId=${caseItem.id}`;
+
+              return (
+                <article
+                  key={caseItem.id}
+                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={[
+                          "rounded-full px-3 py-1 text-xs font-black",
+                          getCaseStatusClass(caseItem.status),
+                        ].join(" ")}
+                      >
+                        {getCaseStatusLabel(caseItem.status)}
+                      </span>
+
+                      {caseItem._count.guidanceReports > 0 ? (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                          له تقرير
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                      {getCaseTitle(caseItem)}
+                    </h3>
+
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      آخر تحديث: {formatDate(caseItem.updatedAt)}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                    عدد القيم: {formatCount(caseItem._count.values)}
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                    <Link
+                      href={`/dashboard/cases/${caseItem.id}`}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      عرض
+                    </Link>
+
+                    <div className="flex flex-wrap gap-2">
+                      {caseItem.status === "DRAFT" ? (
+                        <Link
+                          href={`/dashboard/cases/${caseItem.id}/edit`}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-slate-800"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          استكمال
+                        </Link>
+                      ) : (
+                        <Link
+                          href={reportHref}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
+                        >
+                          <FileText className="h-4 w-4" />
+                          {caseItem._count.guidanceReports > 0
+                            ? "فتح التقرير"
+                            : "إصدار تقرير"}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
+              <Search className="h-7 w-7" />
+            </div>
+
+            <h3 className="mt-4 text-xl font-black text-slate-800">
+              لا توجد تقارير مخصصة بعد
+            </h3>
+
+            <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
+              ابدأ بإنشاء تقرير مخصص من وصف بسيط. بعد الحفظ سيظهر هنا كسجل قابل
+              للمتابعة.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/dashboard/ai-report/new"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                <Plus className="h-4 w-4" />
+                إنشاء تقرير مخصص
+              </Link>
+
+              <Link
+                href="/dashboard/custom-report"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <ClipboardList className="h-4 w-4" />
+                القوالب المحفوظة
+              </Link>
+            </div>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function SimpleMetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-xs font-black text-slate-400">{label}</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+
+============================================================
+FILE: components\ai-report2\ai-report2-service-home.tsx
+============================================================
+
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BrainCircuit,
+  CheckCircle2,
+  FileText,
+  GitCompareArrows,
+  Sparkles,
+} from "lucide-react";
+
+export function AiReport2ServiceHome({
+  userName,
+}: {
+  userName: string;
+}) {
+  return (
+    <main className="space-y-7" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+          <div>
+            <p className="text-sm font-black text-sky-100">
+              AI REPORT 2 · تجربة تقييم أداء المعلم
+            </p>
+
+            <h1 className="mt-3 text-4xl font-black">
+              التقرير الذكي التجريبي
+            </h1>
+
+            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
+              أهلًا {userName || "بك"}، هذه نسخة تجريبية تجعل DeepSeek يفهم وصف
+              التقرير أولًا، ثم يبحث داخل بنك قيم تقييم أداء المعلم، ويقترح نموذجًا
+              مختصرًا لا يتجاوز 10 حقول في صلب الموضوع.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dashboard/teacher/ai-report2/new"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-900 transition hover:bg-sky-50"
+            >
+              <Sparkles className="h-4 w-4" />
+              تجربة إنشاء تقرير
+            </Link>
+
+            <Link
+              href="/dashboard/ai-report"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              <GitCompareArrows className="h-4 w-4" />
+              مقارنة مع النسخة الأولى
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <FeatureCard
+          icon={<BrainCircuit className="h-6 w-6" />}
+          title="DeepSeek يقود الفهم"
+          description="النظام لا يفرض التصنيف من البداية؛ بل يمرر بنكًا معرفيًا منظمًا ويترك للنموذج اختيار الأقرب."
+        />
+
+        <FeatureCard
+          icon={<CheckCircle2 className="h-6 w-6" />}
+          title="حقول مقننة"
+          description="أي تقرير لا يزيد عن 10 حقول، وكل الحقول غير إلزامية حتى لا يضغط على المعلم."
+        />
+
+        <FeatureCard
+          icon={<FileText className="h-6 w-6" />}
+          title="اختيار متعدد للنصوص"
+          description="أي حقل فيه عدة قيم أو نصوص من البنك يتحول تلقائيًا إلى اختيار متعدد."
+        />
+      </section>
+
+      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black text-sky-700">طريقة العمل</p>
+
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              اكتب فكرة التقرير فقط
+            </h2>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-8 text-slate-500">
+              مثال: تقرير عن تنوع استراتيجيات التدريس في درس تطبيقي، أو تقرير عن
+              تحليل نتائج المتعلمين في نهاية وحدة. سيقارن DeepSeek الوصف ببنك
+              التقارير والحقول، ثم يبني نموذجًا مختصرًا قابلًا للحفظ.
+            </p>
+          </div>
+
+          <Link
+            href="/dashboard/teacher/ai-report2/new"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            ابدأ الآن
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+        {icon}
+      </div>
+
+      <h3 className="mt-5 text-xl font-black text-slate-950">{title}</h3>
+
+      <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+        {description}
+      </p>
+    </article>
+  );
+}
+
+============================================================
+FILE: components\custom-report\custom-report-service-home.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import type { CustomReportSchema } from "@/lib/custom-report/custom-report-types";
+
+type SavedTemplate = {
+  id: string;
+  title: string;
+  description: string | null;
+  schemaJson: CustomReportSchema;
+  updatedAt: string;
+};
+
+type SavedEntry = {
+  id: string;
+  title: string | null;
+  status: "DRAFT" | "SUBMITTED" | "ARCHIVED" | string;
+  updatedAt: string;
+  createdAt: string;
+};
+
+export function CustomReportServiceHome({
+  userName,
+  userRole,
+}: {
+  userName: string;
+  userRole: string;
+}) {
+  const [tab, setTab] = useState<"entries" | "templates">("entries");
+  const [templates, setTemplates] = useState<SavedTemplate[]>([]);
+  const [entries, setEntries] = useState<SavedEntry[]>([]);
+
+  const draftsCount = useMemo(
+    () => entries.filter((entry) => entry.status === "DRAFT").length,
+    [entries],
+  );
+
+  useEffect(() => {
+    async function loadData() {
+      const [templatesResponse, entriesResponse] = await Promise.all([
+        fetch("/api/dashboard/custom-report/templates", { cache: "no-store" }),
+        fetch("/api/dashboard/custom-report/entries", { cache: "no-store" }),
+      ]);
+
+      if (templatesResponse.ok) {
+        const data = await templatesResponse.json();
+        setTemplates(data.templates || []);
+      }
+
+      if (entriesResponse.ok) {
+        const data = await entriesResponse.json();
+        setEntries(data.entries || []);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="mt-3 text-4xl font-black">تقرير خاص</h1>
+          </div>
+
+          <Link
+            href="/dashboard/custom-report/new"
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-black text-sky-900 shadow-sm transition hover:bg-sky-50"
+          >
+            + إنشاء تقرير خاص
+          </Link>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-black text-slate-500">القوالب المحفوظة</p>
+          <p className="mt-3 text-3xl font-black">{templates.length}</p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-black text-slate-500">آخر التقارير</p>
+          <p className="mt-3 text-3xl font-black">{entries.length}</p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-black text-slate-500">المسودات</p>
+          <p className="mt-3 text-3xl font-black">{draftsCount}</p>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="mt-1 text-2xl font-black">
+              {tab === "entries" ? "آخر التقارير" : "القوالب المحفوظة"}
+            </h2>
+          </div>
+
+          <div className="flex rounded-full bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setTab("entries")}
+              className={`rounded-full px-5 py-2 text-sm font-black transition ${
+                tab === "entries" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"
+              }`}
+            >
+              آخر التقارير
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTab("templates")}
+              className={`rounded-full px-5 py-2 text-sm font-black transition ${
+                tab === "templates" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"
+              }`}
+            >
+              القوالب المحفوظة
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {tab === "entries" ? (
+            entries.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500 md:col-span-2">
+                لا توجد تقارير محفوظة بعد.
+              </div>
+            ) : (
+              entries.map((entry) => (
+                <article key={entry.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xl font-black">{entry.title || "تقرير خاص"}</h3>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        entry.status === "SUBMITTED"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {entry.status === "SUBMITTED" ? "مرسل" : "مسودة"}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-xs font-bold text-slate-500">
+                    آخر تحديث: {new Date(entry.updatedAt).toLocaleDateString("ar-SA")}
+                  </p>
+
+                  <Link
+                    href={`/dashboard/cases/${entry.id}`}
+                    className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white"
+                  >
+                    عرض الحالة
+                  </Link>
+                </article>
+              ))
+            )
+          ) : templates.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500 md:col-span-2">
+              لا توجد قوالب محفوظة بعد.
+            </div>
+          ) : (
+            templates.map((template) => (
+              <article key={template.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="text-xl font-black">{template.title}</h3>
+                <p className="mt-2 line-clamp-2 text-sm font-bold leading-7 text-slate-500">
+                  {template.description || "قالب تقرير خاص محفوظ."}
+                </p>
+
+                <Link
+                  href={`/dashboard/custom-report/new?templateId=${template.id}`}
+                  className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white"
+                >
+                  استخدام القالب
+                </Link>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\marketing\marketing-footer.tsx
+============================================================
+
+import Link from "next/link";
+
+export function MarketingFooter() {
+  return (
+    <footer className="border-t border-slate-200 bg-white">
+      <div className="container-app py-14">
+        <div className="grid gap-10 md:grid-cols-3">
+          <div>
+            <h3 className="text-xl font-black text-slate-900">
+              منصة التوجيه الطلابي
+            </h3>
+
+            <p className="mt-4 text-sm leading-7 text-slate-500">
+              منصة مدرسية حديثة لإدارة الخدمات الإرشادية المقدمة للطلاب،
+              الحالات، الاجتماعات، الشواهد، والتقارير.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-bold text-slate-900">
+              الصفحات
+            </h4>
+
+            <div className="space-y-3 text-sm text-slate-500">
+              <Link href="/features" className="block hover:text-sky-700">
+                المميزات
+              </Link>
+
+              <Link href="/services" className="block hover:text-sky-700">
+                الخدمات
+              </Link>
+
+              <Link href="/pricing" className="block hover:text-sky-700">
+                الأسعار
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-bold text-slate-900">
+              النظام
+            </h4>
+
+            <div className="space-y-3 text-sm text-slate-500">
+              <Link href="/privacy" className="block hover:text-sky-700">
+                سياسة الخصوصية
+              </Link>
+
+              <Link href="/terms" className="block hover:text-sky-700">
+                الشروط والأحكام
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 border-t border-slate-200 pt-6 text-center text-sm text-slate-400">
+          © 2026 منصة التوجيه الطلابي — جميع الحقوق محفوظة
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+============================================================
+FILE: components\marketing\marketing-navbar.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { siteConfig } from "@/lib/marketing/site";
+
+export function MarketingNavbar() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const closeMenu = () => setIsOpen(false);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
+      <div className="container-app flex min-h-16 items-center justify-between gap-3 py-3 lg:h-20 lg:py-0">
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3" onClick={closeMenu}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-base font-bold text-white sm:h-11 sm:w-11 sm:text-lg">
+            ت
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-base font-black text-slate-900 sm:text-lg">
+              {siteConfig.shortName}
+            </p>
+            <p className="hidden text-xs text-slate-500 sm:block">
+              منصة التوجيه الطلابي
+            </p>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-8 lg:flex">
+          {siteConfig.navigation.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm font-semibold text-slate-600 transition hover:text-sky-700"
+            >
+              {item.title}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link
+            href="/login"
+            className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            تسجيل الدخول
+          </Link>
+
+          <Link
+            href="/register"
+            className="rounded-2xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
+          >
+            إنشاء حساب
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsOpen((current) => !current)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50 lg:hidden"
+          aria-label={isOpen ? "إغلاق القائمة" : "فتح القائمة"}
+          aria-expanded={isOpen}
+        >
+          <span className="sr-only">{isOpen ? "إغلاق القائمة" : "فتح القائمة"}</span>
+          {isOpen ? (
+            <span className="text-2xl leading-none">×</span>
+          ) : (
+            <span className="flex flex-col gap-1.5">
+              <span className="block h-0.5 w-5 rounded-full bg-slate-800" />
+              <span className="block h-0.5 w-5 rounded-full bg-slate-800" />
+              <span className="block h-0.5 w-5 rounded-full bg-slate-800" />
+            </span>
+          )}
+        </button>
+      </div>
+
+      {isOpen ? (
+        <div className="border-t border-slate-200 bg-white px-4 py-4 shadow-xl lg:hidden">
+          <nav className="mx-auto flex max-w-7xl flex-col gap-2">
+            {siteConfig.navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMenu}
+                className="rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-sky-700"
+              >
+                {item.title}
+              </Link>
+            ))}
+
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+              <Link
+                href="/login"
+                onClick={closeMenu}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                تسجيل الدخول
+              </Link>
+
+              <Link
+                href="/register"
+                onClick={closeMenu}
+                className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700"
+              >
+                إنشاء حساب
+              </Link>
+            </div>
+          </nav>
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
+
+============================================================
+FILE: components\report-1\report-one-home.tsx
+============================================================
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export function ReportOneHome() {
+  const router = useRouter();
+  const [caseId, setCaseId] = useState("");
+
+  function openCaseReport() {
+    const cleanCaseId = caseId.trim();
+
+    if (!cleanCaseId) {
+      window.alert("أدخل Case ID أولًا.");
+      return;
+    }
+
+    router.push(`/dashboard/report-2/cases/${encodeURIComponent(cleanCaseId)}/prepare`);
+  }
+
+  return (
+    <main className="min-h-screen bg-[#eef3ef] px-6 py-8" dir="rtl">
+      <section className="mx-auto max-w-4xl rounded-[2rem] border border-emerald-100 bg-white p-7 shadow-sm">
+        <p className="text-sm font-black text-emerald-700">
+          نظام التقارير الجديد
+        </p>
+
+        <h1 className="mt-2 text-3xl font-black text-slate-950">
+          report-1
+        </h1>
+
+        <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+          ابدأ من حالة موجودة، ثم اختر قالب التقرير وحقول Workflow قبل فتح محرر التقرير.
+        </p>
+
+        <div className="mt-7 grid gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 md:grid-cols-[1fr_auto]">
+          <input
+            value={caseId}
+            onChange={(event) => setCaseId(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                openCaseReport();
+              }
+            }}
+            placeholder="أدخل Case ID"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+          />
+
+          <button
+            type="button"
+            onClick={openCaseReport}
+            className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+          >
+            تجهيز التقرير
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-home.tsx
+============================================================
+
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
+import { ReportTwoArchiveClient } from "@/components/report-2/report-two-archive-client";
+
+export async function ReportTwoHome() {
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
+  const snapshots = await listReportTwoSnapshots(context);
+
+  return (
+    <main className="space-y-5" dir="rtl">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
+        <h1 className="text-4xl font-black">التقارير</h1>
+      </section>
+
+      <ReportTwoArchiveClient snapshots={snapshots} readOnly={context.user.role === "PRINCIPAL"} />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\services\workflow-service-home-page.tsx
+============================================================
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  ImageIcon,
+  PencilLine,
+  Plus,
+  Search,
+} from "lucide-react";
+
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
+
+type WorkflowServiceHomePageProps = {
+  serviceSlug: string;
+  title: string;
+  description: string;
+  newButtonLabel: string;
+  caseSingularName: string;
+  casePluralName: string;
+  basePath?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  heroSecondaryAction?: ReactNode;
+};
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("ar-SA").format(value);
+}
+
+function getCaseStatusLabel(status: string) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "SUBMITTED") return "مرسلة";
+  if (status === "ARCHIVED") return "مؤرشفة";
+
+  return status || "غير محدد";
+}
+
+function isActivityProgramServiceSlug(serviceSlug: string) {
+  return serviceSlug.startsWith("activity-programs-");
+}
+
+function getCaseStatusClass(status: string) {
+  if (status === "DRAFT") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+  }
+
+  if (status === "SUBMITTED") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  }
+
+  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+}
+
+function isGenericTitle(title: string) {
+  const normalized = title
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد")
+  );
+}
+
+function getCaseTitle(
+  caseItem: {
+    title?: string | null;
+    createdAt?: Date | string | null;
+  },
+  caseSingularName: string,
+) {
+  const title = String(caseItem.title || "").trim();
+
+  if (title && !isGenericTitle(title)) {
+    return title;
+  }
+
+  return `${caseSingularName} - ${formatDate(caseItem.createdAt)}`;
+}
+
+function getAssignedTeacherName(caseItem: {
+  values?: {
+    fieldKey: string;
+    value: string | null;
+  }[];
+}) {
+  return (
+    caseItem.values?.find((item) => item.fieldKey === "assigned_teacher_name")
+      ?.value || ""
+  ).trim();
+}
+
+function getNextActionText(caseItem: {
+  status: string;
+  _count: {
+    guidanceReports: number;
+  };
+}) {
+  if (caseItem.status === "DRAFT") {
+    return "استكمال المسودة";
+  }
+
+  if (caseItem._count.guidanceReports > 0) {
+    return "فتح التقارير";
+  }
+
+  if (caseItem.status === "SUBMITTED") {
+    return "إصدار تقرير";
+  }
+
+  return "عرض الحالة";
+}
+
+export async function WorkflowServiceHomePage({
+  serviceSlug,
+  title,
+  description,
+  newButtonLabel,
+  caseSingularName,
+  casePluralName,
+  basePath = `/dashboard/${serviceSlug}`,
+  emptyTitle = "لا توجد حالات بعد",
+  emptyDescription = "ابدأ بإنشاء أول حالة. بعد الحفظ ستظهر هنا كبطاقات سهلة.",
+  heroSecondaryAction,
+}: WorkflowServiceHomePageProps) {
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          isActive: true,
+        },
+        orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
+        take: 1,
+        select: {
+          id: true,
+          name: true,
+          updatedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!service) {
+    return (
+      <main className="space-y-6" dir="rtl">
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
+          <p className="text-sm font-black text-amber-700">{title}</p>
+
+          <h1 className="mt-2 text-3xl font-black text-amber-950">
+            الخدمة غير مهيأة
+          </h1>
+
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-amber-800">
+            لم يتم العثور على الخدمة. افتح مركز Workflows وارفع ملف الخدمة.
+          </p>
+
+          {context.isAdmin ? (
+            <Link
+              href={`/dashboard/admin/workflows/${serviceSlug}`}
+              className="mt-6 inline-flex rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+            >
+              فتح مركز الرفع
+            </Link>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
+
+  const activeWorkflow = service.workflows[0] || null;
+
+  const cases = await prisma.caseEntry.findMany({
+    where: context.isAdmin
+      ? {
+          serviceId: service.id,
+        }
+      : {
+          serviceId: service.id,
+          schoolAccountId: context.schoolAccountId as string,
+        },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: 18,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      submittedAt: true,
+      _count: {
+        select: {
+          values: true,
+          evidences: true,
+          guidanceReports: true,
+        },
+      },
+      values: {
+        where: {
+          fieldKey: "assigned_teacher_name",
+        },
+        take: 1,
+        select: {
+          fieldKey: true,
+          value: true,
+        },
+      },
+      guidanceReports: {
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          templateId: true,
+          updatedAt: true,
+        },
+      },
+    },
+  });
+
+  const draftsCount = cases.filter((item) => item.status === "DRAFT").length;
+  const submittedCount = cases.filter((item) => item.status === "SUBMITTED").length;
+  const readyForReportCount = cases.filter(
+    (item) => item.status === "SUBMITTED" && item._count.guidanceReports === 0,
+  ).length;
+
+  return (
+    <main className="space-y-7" dir="rtl">
+      <GuidanceScope
+        context="service-overview"
+        capabilities={heroSecondaryAction ? ["send-to-teacher"] : []}
+      />
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+          <div>
+            <h1 className="text-4xl font-black">{title}</h1>
+
+            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
+              {description}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Link
+              href={`${basePath}/new`}
+              data-guidance="service-create"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            >
+              <Plus className="h-4 w-4" />
+              {newButtonLabel}
+            </Link>
+
+            {heroSecondaryAction ? (
+              <div data-guidance="service-secondary-action">
+                {heroSecondaryAction}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SimpleMetricCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label={casePluralName}
+          value={formatCount(cases.length)}
+        />
+
+        <SimpleMetricCard
+          icon={<PencilLine className="h-5 w-5" />}
+          label="مسودات"
+          value={formatCount(draftsCount)}
+        />
+
+        <SimpleMetricCard
+          icon={<FileText className="h-5 w-5" />}
+          label="مرسلة"
+          value={formatCount(submittedCount)}
+        />
+
+        <SimpleMetricCard
+          icon={<CalendarDays className="h-5 w-5" />}
+          label="جاهزة للتقرير"
+          value={formatCount(readyForReportCount)}
+        />
+      </section>
+
+      {!activeWorkflow ? (
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6">
+          <h2 className="text-xl font-black text-amber-950">
+            لا يوجد نموذج منشور
+          </h2>
+
+          <p className="mt-2 text-sm font-bold leading-7 text-amber-800">
+            ارفع Workflow من لوحة الأدمن ثم انشره حتى تظهر نماذج الإنشاء.
+          </p>
+
+          {context.isAdmin ? (
+            <Link
+              href={`/dashboard/admin/workflows/${serviceSlug}`}
+              className="mt-5 inline-flex rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+            >
+              فتح رفع Workflow
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
+
+      <section data-guidance="service-records" className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-sky-700">السجلات السابقة</p>
+
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              آخر {casePluralName}
+            </h2>
+
+            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+              اختر السجل المطلوب. التفاصيل تظهر فقط عند الحاجة.
+            </p>
+          </div>
+
+          <Link
+            href={`${basePath}/new`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            <Plus className="h-4 w-4" />
+            {newButtonLabel}
+          </Link>
+        </div>
+
+        {cases.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {cases.map((caseItem) => {
+              const latestReport = caseItem.guidanceReports[0] || null;
+              const reportHref = latestReport
+                ? `/dashboard/report/${latestReport.id}/preview${
+                    latestReport.templateId
+                      ? `?template=${encodeURIComponent(latestReport.templateId)}`
+                      : ""
+                  }`
+                : `/dashboard/report/new?caseId=${caseItem.id}`;
+
+              return (
+                <article
+                  key={caseItem.id}
+                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={[
+                          "rounded-full px-3 py-1 text-xs font-black",
+                          getCaseStatusClass(caseItem.status),
+                        ].join(" ")}
+                      >
+                        {getCaseStatusLabel(caseItem.status)}
+                      </span>
+
+                      {caseItem._count.evidences > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                          <ImageIcon className="h-3.5 w-3.5" />
+                          {formatCount(caseItem._count.evidences)} شواهد
+                        </span>
+                      ) : null}
+
+                      {caseItem._count.guidanceReports > 0 ? (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                          له تقرير
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                      {getCaseTitle(caseItem, caseSingularName)}
+                    </h3>
+
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      آخر تحديث: {formatDate(caseItem.updatedAt)}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                    الإجراء التالي: {getNextActionText(caseItem)}
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                    <Link
+                      href={`/dashboard/cases/${caseItem.id}`}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      عرض
+                    </Link>
+
+                    <div className="flex flex-wrap gap-2">
+                      {caseItem.status === "DRAFT" ? (
+                        <Link
+                          href={`/dashboard/cases/${caseItem.id}/edit`}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-slate-800"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          استكمال
+                        </Link>
+                      ) : (
+                        <Link
+                          href={reportHref}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
+                        >
+                          <FileText className="h-4 w-4" />
+                          {caseItem._count.guidanceReports > 0
+                            ? "فتح التقارير"
+                            : "إصدار تقرير"}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
+              <Search className="h-7 w-7" />
+            </div>
+
+            <h3 className="mt-4 text-xl font-black text-slate-800">
+              {emptyTitle}
+            </h3>
+
+            <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
+              {emptyDescription}
+            </p>
+
+            <Link
+              href={`${basePath}/new`}
+              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              {newButtonLabel}
+            </Link>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function SimpleMetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-xs font-black text-slate-400">{label}</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+
+============================================================
+FILE: components\statistics\statistics-landing-shell.tsx
+============================================================
+
+"use client";
+
+import {
+  useState,
+} from "react";
+
+import { useRouter } from "next/navigation";
+
+import type {
+  StatisticsDatePreset,
+  StatisticsServiceOption,
+} from "@/lib/statistics/statistics-types";
+
+import {
+  StatisticsCreatePopCard,
+} from "./statistics-create-pop-card";
+
+import {
+  StatisticsPreviousReports,
+} from "./statistics-previous-reports";
+
+type ServicesResponse = {
+  success?: boolean;
+  error?: string;
+
+  services?: StatisticsServiceOption[];
+
+  totals?: {
+    eligibleCaseCount: number;
+    issuedReportCount: number;
+  };
+};
+
+export function StatisticsLandingShell() {
+  const router = useRouter();
+
+  const [open, setOpen] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [loaded, setLoaded] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [services, setServices] =
+    useState<
+      StatisticsServiceOption[]
+    >([]);
+
+  async function loadServices() {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        "/api/dashboard/statistics/services",
+        {
+          cache: "no-store",
+        },
+      );
+
+      const payload =
+        (await response.json()) as
+          ServicesResponse;
+
+      if (
+        !response.ok ||
+        !payload.success
+      ) {
+        throw new Error(
+          payload.error ||
+            "تعذر تحميل الخدمات.",
+        );
+      }
+
+      setServices(
+        Array.isArray(payload.services)
+          ? payload.services
+          : [],
+      );
+
+      setLoaded(true);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر تحميل الخدمات.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openCreateCard() {
+    setOpen(true);
+
+    if (!loaded) {
+      void loadServices();
+    }
+  }
+
+  function startPreparation(input: {
+    serviceSlugs: string[];
+    preset: StatisticsDatePreset;
+    from?: string;
+    to?: string;
+  }) {
+    const params =
+      new URLSearchParams();
+
+    input.serviceSlugs.forEach((serviceSlug) => params.append("serviceSlug", serviceSlug));
+
+    params.set(
+      "preset",
+      input.preset,
+    );
+
+    if (input.from) {
+      params.set("from", input.from);
+    }
+
+    if (input.to) {
+      params.set("to", input.to);
+    }
+
+    router.push(
+      `/dashboard/statistics/prepare?${params.toString()}`,
+    );
+  }
+
+  return (
+    <main
+      className="space-y-6"
+      dir="rtl"
+    >
+      <section className="overflow-hidden rounded-[30px] border border-cyan-100 bg-gradient-to-l from-cyan-50 via-white to-sky-50 p-6 shadow-sm md:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <span className="inline-flex rounded-full border border-cyan-200 bg-white px-4 py-2 text-xs font-black text-cyan-800">
+              التقارير الرقمية
+            </span>
+
+            <h1 className="mt-4 text-3xl font-black text-slate-950 md:text-4xl">
+              الإحصائيات
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+              أنشئ تقريرًا إحصائيًا من
+              الحالات التي لديها تقارير
+              صادرة، ثم اختر الحقول والقيم
+              التي تريد عرض أعدادها.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={openCreateCard}
+            className="rounded-2xl bg-cyan-700 px-6 py-4 text-sm font-black text-white shadow-xl shadow-cyan-700/20 transition hover:-translate-y-0.5 hover:bg-cyan-800"
+          >
+            إنشاء تقرير إحصائي
+          </button>
+        </div>
+      </section>
+
+      <StatisticsPreviousReports />
+
+      <StatisticsCreatePopCard
+        open={open}
+        loading={loading}
+        error={error}
+        services={services}
+        onClose={() => setOpen(false)}
+        onStart={startPreparation}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\timetable-v2\project-home\project-hero.tsx
+============================================================
+
+import Link from "next/link";
+
+import {
+  BookOpenText,
+  CalendarDays,
+  Gauge,
+  School,
+  Users,
+} from "lucide-react";
+
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+import {
+  PROJECT_STATUS_LABELS,
+} from "./labels";
+
+type HeroAction = {
+  label: string;
+  title: string;
+  description: string;
+  cta: string;
+  href: string;
+  progress?: {
+    value: number;
+    max: number;
+  };
+};
+
+function getHeroAction(
+  data: ProjectDashboardData,
+): HeroAction {
+  const counts =
+    data.counts;
+
+  const base =
+    `/dashboard/timetable-v2/${data.project.id}`;
+
+  const target =
+    data.setup.teacherTarget;
+
+  const teachersIncomplete =
+    counts.teachersCount ===
+      0 ||
+    (
+      target !==
+        null &&
+      counts.teachersCount <
+        target
+    );
+
+  if (teachersIncomplete) {
+    return {
+      label:
+        "الخطوة التالية",
+      title:
+        "أكمل بيانات المعلمين",
+      description:
+        "أضف المعلمين وتخصصاتهم والنصاب الأسبوعي قبل الانتقال إلى إسناد الحصص.",
+      cta:
+        "فتح إدارة المعلمين",
+      href:
+        `${base}/teachers`,
+    };
+  }
+
+  const assignmentsIncomplete =
+    counts.assignmentsCount ===
+      0 ||
+    counts.underAssignedRows >
+      0 ||
+    counts.overAssignedRows >
+      0;
+
+  if (assignmentsIncomplete) {
+    const remaining =
+      Math.max(
+        0,
+        counts.totalWeeklyLessons -
+          counts.assignedLessons,
+      );
+
+    return {
+      label:
+        "الخطوة التالية",
+      title:
+        "أكمل إسناد الحصص",
+      description:
+        counts.overAssignedRows >
+        0
+          ? "توجد إسنادات زائدة عن الخطة وتحتاج إلى مراجعة."
+          : `المتبقي ${remaining} حصة من أصل ${counts.totalWeeklyLessons} حصة أسبوعية.`,
+      cta:
+        "فتح الإسنادات",
+      href:
+        `${base}/assignments`,
+      progress: {
+        value:
+          counts.assignedLessons,
+        max:
+          counts.totalWeeklyLessons,
+      },
+    };
+  }
+
+  if (
+    !data.readiness.canGenerate
+  ) {
+    return {
+      label:
+        "الخطوة التالية",
+      title:
+        "راجع فحص الجاهزية",
+      description:
+        data.readiness.errorCount >
+        0
+          ? `${data.readiness.errorCount} خطأ يمنع إنشاء الجدول حاليًا.`
+          : "راجع الملاحظات والتحذيرات قبل تشغيل محرك الجدول.",
+      cta:
+        "فتح فحص الجاهزية",
+      href:
+        `${base}/readiness`,
+    };
+  }
+
+  if (
+    !data.schedule.exists
+  ) {
+    return {
+      label:
+        "المشروع جاهز",
+      title:
+        "أنشئ النسخة الأولى من الجدول",
+      description:
+        "اكتملت البيانات الأساسية وأصبح المشروع جاهزًا لتشغيل محرك الجدول.",
+      cta:
+        "إنشاء الجدول",
+      href:
+        `${base}/generate`,
+    };
+  }
+
+  if (
+    data.schedule.isStale
+  ) {
+    return {
+      label:
+        "النسخة الحالية",
+      title:
+        "أنشئ نسخة حديثة",
+      description:
+        "تغيرت بيانات المشروع بعد إنشاء النسخة الحالية، لذلك تحتاج إلى إعادة التوليد.",
+      cta:
+        "إنشاء نسخة جديدة",
+      href:
+        `${base}/generate`,
+    };
+  }
+
+  const status =
+    data.schedule.current
+      ?.status ??
+    "";
+
+  if (
+    status ===
+    "GENERATED"
+  ) {
+    return {
+      label:
+        "الخطوة التالية",
+      title:
+        "راجع الجدول قبل الاعتماد",
+      description:
+        `النسخة #${data.schedule.current?.version} جاهزة للمراجعة والتحقق النهائي.`,
+      cta:
+        "فتح المراجعة",
+      href:
+        `${base}/review`,
+    };
+  }
+
+  if (
+    status ===
+    "APPROVED"
+  ) {
+    return {
+      label:
+        "الخطوة التالية",
+      title:
+        "انشر الجدول المعتمد",
+      description:
+        "النسخة معتمدة ويمكن نشرها لتصبح الجدول الرسمي للمدرسة.",
+      cta:
+        "فتح الاعتماد والنشر",
+      href:
+        `${base}/approval`,
+    };
+  }
+
+  if (
+    status ===
+    "PUBLISHED"
+  ) {
+    return {
+      label:
+        "الجدول الرسمي",
+      title:
+        "الجدول منشور وجاهز للتشغيل",
+      description:
+        "يمكن الآن إدارة الغياب والبدلاء والمناوبات على النسخة المنشورة.",
+      cta:
+        "فتح التشغيل اليومي",
+      href:
+        `${base}/daily-operations`,
+    };
+  }
+
+  return {
+    label:
+      "الخطوة التالية",
+    title:
+      "راجع حالة المشروع",
+    description:
+      "افتح فحص الجاهزية لمعرفة العناصر التي تحتاج إلى إكمال.",
+    cta:
+      "فتح الفحص",
+    href:
+      `${base}/readiness`,
+  };
+}
+
+function MiniMetric({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div className="flex min-w-[108px] items-center gap-3 rounded-[1.4rem] bg-white/15 px-4 py-3 text-white ring-1 ring-inset ring-white/15 backdrop-blur-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
+        {icon}
+      </div>
+
+      <div>
+        <div className="text-lg font-black leading-none">
+          {value}
+        </div>
+
+        <div className="mt-1 text-[11px] font-black text-sky-50/90">
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ProjectHero({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  const action =
+    getHeroAction(
+      data,
+    );
+
+  const percent =
+    action.progress &&
+    action.progress.max >
+      0
+      ? Math.min(
+          100,
+          Math.round(
+            (
+              action.progress.value /
+              action.progress.max
+            ) *
+              100,
+          ),
+        )
+      : 0;
+
+  const statusLabel =
+    PROJECT_STATUS_LABELS[
+      data.project.status
+    ] ??
+    data.project.status;
+
+  return (
+    <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 text-white shadow-xl">
+      <div className="grid gap-8 p-7 lg:p-8 xl:grid-cols-[1fr_380px] xl:items-stretch">
+        <div className="flex min-w-0 flex-col">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-black ring-1 ring-inset ring-white/20">
+              مركز إدارة جدول الحصص
+            </span>
+
+            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-sky-800">
+              {statusLabel}
+            </span>
+          </div>
+
+          <h1 className="mt-5 text-4xl font-black tracking-tight lg:text-5xl">
+            {data.project.name}
+          </h1>
+
+          <p className="mt-3 text-sm font-bold leading-8 text-sky-50">
+            {data.project.academicYear}
+            {" • "}
+            {data.project.semester}
+
+            {data.setup.stageLabels.length >
+            0 ? (
+              <>
+                {" • "}
+                {data.setup.stageLabels.join(
+                  "، ",
+                )}
+              </>
+            ) : null}
+          </p>
+
+          <div className="mt-7 max-w-3xl">
+            <div className="text-xs font-black text-cyan-100">
+              {action.label}
+            </div>
+
+            <h2 className="mt-1 text-2xl font-black lg:text-3xl">
+              {action.title}
+            </h2>
+
+            <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-sky-50/90">
+              {action.description}
+            </p>
+
+            {action.progress ? (
+              <div className="mt-4 max-w-xl">
+                <div className="flex items-center justify-between text-xs font-black text-white">
+                  <span>
+                    {
+                      action.progress
+                        .value
+                    }{" "}
+                    /{" "}
+                    {
+                      action.progress
+                        .max
+                    }{" "}
+                    حصة
+                  </span>
+
+                  <span>
+                    {percent}%
+                  </span>
+                </div>
+
+                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white transition-all"
+                    style={{
+                      width:
+                        `${percent}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <Link
+              href={action.href}
+              className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-white px-6 text-sm font-black text-sky-800 shadow-sm transition hover:bg-sky-50"
+            >
+              {action.cta}
+            </Link>
+          </div>
+        </div>
+
+        <aside className="flex flex-col justify-end rounded-[2rem] bg-slate-950/15 p-4 ring-1 ring-inset ring-white/10 backdrop-blur-sm">
+          <div className="mb-3 text-xs font-black text-sky-100">
+            ملخص المشروع
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <MiniMetric
+              icon={
+                <Gauge className="h-4 w-4" />
+              }
+              value={`${data.readiness.score}%`}
+              label="الجاهزية"
+            />
+
+            <MiniMetric
+              icon={
+                <Users className="h-4 w-4" />
+              }
+              value={
+                data.setup.teacherTarget !==
+                null
+                  ? `${data.counts.teachersCount}/${data.setup.teacherTarget}`
+                  : data.counts.teachersCount
+              }
+              label="المعلمون"
+            />
+
+            <MiniMetric
+              icon={
+                <School className="h-4 w-4" />
+              }
+              value={data.counts.classesCount}
+              label="الفصول"
+            />
+
+            <MiniMetric
+              icon={
+                <BookOpenText className="h-4 w-4" />
+              }
+              value={data.counts.subjectsCount}
+              label="المواد"
+            />
+
+            <MiniMetric
+              icon={
+                <CalendarDays className="h-4 w-4" />
+              }
+              value={data.time.daysCount}
+              label="أيام الدراسة"
+            />
+
+            <MiniMetric
+              icon={
+                <BookOpenText className="h-4 w-4" />
+              }
+              value={data.time.weeklySlotCount}
+              label="الخانات الأسبوعية"
+            />
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+============================================================
+FILE: components\timetable-v2\project-home.tsx
+============================================================
+
+import type {
+  ProjectDashboardData,
+} from "@/lib/timetable-v2/project-dashboard-types";
+
+import { ProjectHero } from "./project-home/project-hero";
+import { ProjectHealthStrip } from "./project-home/project-health-strip";
+import { ProjectNextAction } from "./project-home/project-next-action";
+import { ProjectWorkflow } from "./project-home/project-workflow";
+import { ProjectDataSummary } from "./project-home/project-data-summary";
+import { CurrentScheduleCard } from "./project-home/current-schedule-card";
+import { ProjectQuickActions } from "./project-home/project-quick-actions";
+
+export function TimetableV2ProjectHome({
+  data,
+}: {
+  data: ProjectDashboardData;
+}) {
+  return (
+    <div
+      dir="rtl"
+      className="mx-auto max-w-7xl space-y-6 pb-16"
+    >
+      <ProjectHero data={data} />
+      <ProjectHealthStrip data={data} />
+      <ProjectNextAction data={data} />
+      <ProjectWorkflow data={data} />
+      <ProjectDataSummary data={data} />
+      <CurrentScheduleCard data={data} />
+      <ProjectQuickActions data={data} />
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\workspace\workspace-home.tsx
+============================================================
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  BarChart3,
+  Bell,
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  FolderKanban,
+  GraduationCap,
+  Medal,
+  Plus,
+  School,
+  Sparkles,
+  TrendingUp,
+  UploadCloud,
+  UserCheck,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+import type {
+  WorkspaceModule,
+  WorkspaceModuleIcon,
+} from "@/lib/workspace/workspace-modules";
+
+type WorkspaceStatIcon =
+  | "progress"
+  | "students"
+  | "reports"
+  | "alerts"
+  | "cases"
+  | "evidence";
+
+type WorkspaceActionIcon =
+  | "plus"
+  | "cases"
+  | "reports"
+  | "portfolio"
+  | "calendar"
+  | "programs";
+
+type WorkspaceStat = {
+  label: string;
+  value: string;
+  helper: string;
+  icon: WorkspaceStatIcon;
+  href?: string;
+};
+
+type WorkspaceAction = {
+  label: string;
+  href: string;
+  icon: WorkspaceActionIcon;
+  primary?: boolean;
+};
+
+type WorkspaceNotice = {
+  title: string;
+  helper: string;
+};
+
+type WorkspaceHomeProps = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  userName?: string | null;
+  modules: WorkspaceModule[];
+  stats?: WorkspaceStat[];
+  actions?: WorkspaceAction[];
+  sideTitle: string;
+  sideDescription: string;
+  sideProgressLabel?: string;
+  sideProgressValue?: string;
+  sideProgressPercent?: number;
+  sideHref?: string;
+  sideHrefLabel?: string;
+  notices?: WorkspaceNotice[];
+  welcomeText?: string;
+  showModuleDescription?: boolean;
+};
+
+const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
+  workflow: ClipboardList,
+  assignments: ClipboardList,
+  evidence: UploadCloud,
+  surveys: UserCheck,
+  reports: FileText,
+  students: GraduationCap,
+  assessment: BarChart3,
+  certificates: Medal,
+  portfolio: FolderKanban,
+  subscription: WalletCards,
+  account: UserCheck,
+  schoolSettings: School,
+  calendar: CalendarDays,
+};
+
+const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {
+  progress: TrendingUp,
+  students: Users,
+  reports: FileText,
+  alerts: Bell,
+  cases: FolderKanban,
+  evidence: UploadCloud,
+};
+
+const actionIconByName: Record<WorkspaceActionIcon, typeof Plus> = {
+  plus: Plus,
+  cases: FolderKanban,
+  reports: FileText,
+  portfolio: FolderKanban,
+  calendar: CalendarDays,
+  programs: ClipboardList,
+};
+
+function getDisplayName(userName?: string | null) {
+  return userName || "المستخدم";
+}
+
+function normalizePercent(value?: number) {
+  if (typeof value !== "number") return 0;
+  return Math.max(0, Math.min(value, 100));
+}
+
+export function WorkspaceHome({
+  eyebrow,
+  title,
+  description,
+  userName,
+  modules,
+  stats = [],
+  actions = [],
+  sideTitle,
+  sideDescription,
+  sideProgressLabel,
+  sideProgressValue,
+  sideProgressPercent,
+  sideHref,
+  sideHrefLabel,
+  notices = [],
+  welcomeText = "أهلًا بك",
+  showModuleDescription = true,
+}: WorkspaceHomeProps) {
+  const progress = normalizePercent(sideProgressPercent);
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <section className="space-y-5">
+          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                    {eyebrow}
+                  </span>
+
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                    مساحة عمل موحدة
+                  </span>
+                </div>
+
+                <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+                  {welcomeText} {getDisplayName(userName)}
+                </h1>
+
+                <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+                  {description}
+                </p>
+              </div>
+
+              {actions.length > 0 ? (
+                <div className="flex flex-wrap gap-2 xl:justify-end">
+                  {actions.map((action) => {
+                    const Icon = actionIconByName[action.icon];
+
+                    return (
+                      <HeroButton
+                        key={`${action.href}-${action.label}`}
+                        href={action.href}
+                        icon={<Icon className="h-4 w-4" />}
+                        label={action.label}
+                        primary={action.primary}
+                      />
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          {stats.length > 0 ? (
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {stats.map((stat) => (
+                <StatCard key={stat.label} stat={stat} />
+              ))}
+            </section>
+          ) : null}
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-xs font-black text-sky-700">{title}</p>
+              <h2 className="mt-1 text-2xl font-black text-slate-950">
+                اختر الخدمة المطلوبة
+              </h2>
+              {showModuleDescription ? (
+                <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                  نفس هوية المنصة، مع محتوى وروابط مناسبة للدور الحالي.
+                </p>
+              ) : null}
+            </div>
+
+            <div className={`${showModuleDescription ? "mt-5" : "mt-4"} grid gap-4 md:grid-cols-2 xl:grid-cols-4`}>
+              {modules.map((module) => {
+                const Icon = iconByName[module.icon];
+                const isSoon = module.status === "soon";
+
+                const card = (
+                  <article
+                    className={[
+                      "h-full rounded-[1.5rem] border p-5 shadow-sm transition",
+                      isSoon
+                        ? "border-slate-100 bg-slate-50 opacity-90"
+                        : "border-slate-100 bg-slate-50 hover:border-sky-200 hover:bg-white hover:shadow-sm",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
+                        <Icon className="h-6 w-6" />
+                      </div>
+
+                      {isSoon ? (
+                        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500 ring-1 ring-slate-200">
+                          قريبًا
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <h3 className="mt-4 text-lg font-black leading-8 text-slate-950">
+                      {module.title}
+                    </h3>
+
+                    <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                      {module.description}
+                    </p>
+                  </article>
+                );
+
+                if (isSoon) {
+                  return <div key={module.title}>{card}</div>;
+                }
+
+                return (
+                  <Link key={module.title} href={module.href}>
+                    {card}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </section>
+
+        <aside className="space-y-5">
+          <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-6 text-white shadow-lg">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white">
+              <Sparkles className="h-6 w-6" />
+            </div>
+
+            <h2 className="mt-5 text-2xl font-black">{sideTitle}</h2>
+
+            <p className="mt-3 text-sm font-bold leading-7 text-sky-50">
+              {sideDescription}
+            </p>
+
+            {sideProgressLabel ? (
+              <div className="mt-5 rounded-2xl bg-white/15 p-4">
+                <div className="flex items-center justify-between text-xs font-black text-white">
+                  <span>{sideProgressLabel}</span>
+                  <span>{sideProgressValue || `${progress}%`}</span>
+                </div>
+
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {sideHref && sideHrefLabel ? (
+              <Link
+                href={sideHref}
+                className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+              >
+                {sideHrefLabel}
+              </Link>
+            ) : null}
+          </section>
+
+          {notices.length > 0 ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-black text-sky-700">تنبيهات قريبة</p>
+
+              <div className="mt-4 space-y-3">
+                {notices.map((notice) => (
+                  <MiniNotice
+                    key={notice.title}
+                    title={notice.title}
+                    helper={notice.helper}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </aside>
+      </section>
+    </main>
+  );
+}
+
+function HeroButton({
+  href,
+  icon,
+  label,
+  primary,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  primary?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition",
+        primary
+          ? "bg-sky-700 text-white hover:bg-sky-800"
+          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+}
+
+function StatCard({ stat }: { stat: WorkspaceStat }) {
+  const Icon = statIconByName[stat.icon];
+
+  const content = (
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-slate-400">{stat.label}</p>
+          <p className="mt-2 text-3xl font-black text-slate-950">
+            {stat.value}
+          </p>
+          <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
+            {stat.helper}
+          </p>
+        </div>
+
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </article>
+  );
+
+  if (!stat.href) return content;
+
+  return <Link href={stat.href}>{content}</Link>;
+}
+
+function MiniNotice({ title, helper }: { title: string; helper: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+      <p className="text-sm font-black text-slate-800">{title}</p>
+      <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+        {helper}
+      </p>
+    </div>
+  );
+}
