@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   FileText,
 } from "lucide-react";
@@ -16,6 +17,40 @@ type StoryItemProps = {
   icon: React.ReactNode;
   visual: React.ReactNode;
 };
+
+function MobileStoryCard({
+  eyebrow,
+  title,
+  visual,
+}: Pick<StoryItemProps, "eyebrow" | "title" | "visual">) {
+  return (
+    <article className="w-[88vw] shrink-0 snap-center overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50/60 p-4 shadow-sm min-[430px]:p-5">
+      <div className="min-w-0">
+        <p className="text-xs font-black text-sky-600">
+          {eyebrow}
+        </p>
+
+        <h3 className="mt-2 text-2xl font-black leading-tight tracking-[-0.03em] text-slate-950">
+          {title}
+        </h3>
+
+        <Link
+          href="/register"
+          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-700"
+        >
+          ابدأ الآن
+          <ArrowLeft className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div className="mt-3 h-[390px] overflow-hidden rounded-[20px] bg-white min-[430px]:h-[420px]">
+        <div className="w-[145%] origin-top-right scale-[0.69]">
+          {visual}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 function StoryItem({
   eyebrow,
@@ -58,7 +93,7 @@ function StoryItem({
   return (
     <article
       ref={ref}
-      className="grid min-h-[680px] items-center gap-14 border-t border-slate-100 py-20 first:border-t-0 first:pt-8 md:py-24 lg:grid-cols-2 lg:gap-20 lg:py-32"
+      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:py-24 lg:min-h-[680px] lg:grid-cols-2 lg:gap-20 lg:py-28 xl:py-32"
     >
       <div
         className={[
@@ -81,7 +116,7 @@ function StoryItem({
           {eyebrow}
         </p>
 
-        <h3 className="mt-3 text-4xl font-black leading-tight tracking-[-0.03em] text-slate-950 sm:text-5xl">
+        <h3 className="mt-3 text-3xl font-black leading-tight tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl">
           {title}
         </h3>
 
@@ -121,7 +156,7 @@ function TeacherVisual() {
       <div className="absolute inset-6 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
       <div className="relative mx-auto max-w-[520px] lg:rotate-[2deg]">
-        <div className="min-h-[560px] overflow-hidden rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:p-8">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:min-h-[560px] sm:rounded-[32px] sm:p-8">
           <div className="flex items-start justify-between border-b border-slate-100 pb-7">
             <div>
               <p className="text-xs font-black text-sky-600">
@@ -233,7 +268,7 @@ function CounselorVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:-rotate-[2deg]">
-        <div className="min-h-[550px] overflow-hidden rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:p-8">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] sm:min-h-[550px] sm:rounded-[32px] sm:p-8">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-6">
@@ -379,7 +414,7 @@ function PrincipalVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:rotate-[1.5deg]">
-        <div className="overflow-hidden rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:p-7">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:rounded-[34px] sm:p-7">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
@@ -530,7 +565,7 @@ function ActivityVisual() {
       <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
 
       <div className="relative mx-auto max-w-[570px] lg:-rotate-[1.5deg]">
-        <div className="overflow-hidden rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:p-7">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] sm:rounded-[34px] sm:p-7">
 
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
@@ -708,10 +743,45 @@ function ActivityVisual() {
 }
 
 export function RoleStorySection() {
+  const stories: StoryItemProps[] = [
+    {
+      eyebrow: "للمعلم",
+      title: "أنجز عملك، ووثّقه بسهولة.",
+      description: "أنشئ تقاريرك، وثّق أداءك، وأنجز مهامك ضمن مساحة عمل واضحة تحول العمل اليومي إلى سجل منظم وجاهز للرجوع إليه.",
+      direction: "normal",
+      icon: null,
+      visual: <TeacherVisual />,
+    },
+    {
+      eyebrow: "للموجه الطلابي",
+      title: "كل متابعة، لها مسار واضح.",
+      description: "أدر الخدمات الإرشادية، تابع حالات الطلاب، وثّق التواصل والإجراءات، وحوّل العمل المنجز إلى تقارير وشواهد مرتبة دون تشتت.",
+      direction: "reverse",
+      icon: null,
+      visual: <CounselorVisual />,
+    },
+    {
+      eyebrow: "لمدير المدرسة",
+      title: "نظّم يوم المدرسة من مكان واحد.",
+      description: "أنشئ الجدول الدراسي، تابع توزيع الحصص، وأدر حصص الانتظار بسرعة ضمن مساحة واضحة تساعدك على متابعة اليوم الدراسي واتخاذ الإجراء المناسب.",
+      direction: "normal",
+      icon: null,
+      visual: <PrincipalVisual />,
+    },
+    {
+      eyebrow: "لرائد النشاط",
+      title: "من الفكرة إلى التقرير.",
+      description: "فعّل برامج النشاط، أسند التنفيذ للمعلمين، تابع حالة التكليفات، واحفظ الشواهد وملف النشاط حتى يصبح العمل جاهزًا للتوثيق وإصدار التقرير.",
+      direction: "reverse",
+      icon: null,
+      visual: <ActivityVisual />,
+    },
+  ];
+
   return (
     <section
       id="users"
-      className="scroll-mt-24 border-t border-slate-100 bg-white px-5 py-24 sm:px-8 lg:px-10 lg:py-32"
+      className="scroll-mt-24 overflow-hidden border-t border-slate-100 bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32"
     >
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
@@ -719,7 +789,7 @@ export function RoleStorySection() {
             لمن المنصة؟
           </p>
 
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] text-slate-950 sm:text-5xl lg:text-6xl">
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl lg:text-6xl">
             مساحة عمل تناسب كل دور
           </h2>
 
@@ -729,42 +799,40 @@ export function RoleStorySection() {
           </p>
         </div>
 
-        <div className="mt-20 lg:mt-28">
-          <StoryItem
-            eyebrow="للمعلم"
-            title="أنجز عملك، ووثّقه بسهولة."
-            description="أنشئ تقاريرك، وثّق أداءك، وأنجز مهامك ضمن مساحة عمل واضحة تحول العمل اليومي إلى سجل منظم وجاهز للرجوع إليه."
-            direction="normal"
-            icon={null}
-            visual={<TeacherVisual />}
-          />
+        <div className="relative mt-10 md:hidden">
+          <div
+            dir="rtl"
+            className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-3 [scrollbar-width:none] min-[430px]:gap-5 sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden"
+          >
+            {stories.map((story) => (
+              <MobileStoryCard
+                key={story.eyebrow}
+                eyebrow={story.eyebrow}
+                title={story.title}
+                visual={story.visual}
+              />
+            ))}
+          </div>
 
-          <StoryItem
-            eyebrow="للموجه الطلابي"
-            title="كل متابعة، لها مسار واضح."
-            description="أدر الخدمات الإرشادية، تابع حالات الطلاب، وثّق التواصل والإجراءات، وحوّل العمل المنجز إلى تقارير وشواهد مرتبة دون تشتت."
-            direction="reverse"
-            icon={null}
-            visual={<CounselorVisual />}
-          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-[60%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </span>
 
-          <StoryItem
-            eyebrow="لمدير المدرسة"
-            title="نظّم يوم المدرسة من مكان واحد."
-            description="أنشئ الجدول الدراسي، تابع توزيع الحصص، وأدر حصص الانتظار بسرعة ضمن مساحة واضحة تساعدك على متابعة اليوم الدراسي واتخاذ الإجراء المناسب."
-            direction="normal"
-            icon={null}
-            visual={<PrincipalVisual />}
-          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-[60%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </span>
+        </div>
 
-          <StoryItem
-            eyebrow="لرائد النشاط"
-            title="من الفكرة إلى التقرير."
-            description="فعّل برامج النشاط، أسند التنفيذ للمعلمين، تابع حالة التكليفات، واحفظ الشواهد وملف النشاط حتى يصبح العمل جاهزًا للتوثيق وإصدار التقرير."
-            direction="reverse"
-            icon={null}
-            visual={<ActivityVisual />}
-          />
+        <div className="mt-20 hidden md:block lg:mt-24 xl:mt-28">
+          {stories.map((story) => (
+            <StoryItem key={story.eyebrow} {...story} />
+          ))}
         </div>
       </div>
     </section>

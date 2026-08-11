@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   ClipboardCheck,
   FileText,
@@ -46,9 +47,71 @@ const reviews = [
   },
 ];
 
+function ReviewCard({
+  review,
+  index,
+  mobile = false,
+}: {
+  review: (typeof reviews)[number];
+  index: number;
+  mobile?: boolean;
+}) {
+  return (
+    <article
+      className={[
+        "group flex flex-col border border-slate-200 bg-white transition duration-300",
+        "hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_80px_-50px_rgba(15,23,42,0.35)]",
+        mobile
+          ? "min-h-[300px] w-[88vw] shrink-0 snap-center rounded-[26px] p-5"
+          : "min-h-[330px] rounded-[28px] p-7",
+        !mobile && index === 1
+          ? "xl:translate-y-8"
+          : !mobile && index === 3
+            ? "xl:translate-y-5"
+            : "",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className={mobile ? "flex min-w-0 items-center gap-3" : "flex items-center gap-3"}>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-50 text-base font-black text-sky-700 ring-1 ring-sky-100">
+            {review.initials}
+          </div>
+
+          <div className={mobile ? "min-w-0" : undefined}>
+            <h3 className="text-sm font-black text-slate-950">
+              {review.name}
+            </h3>
+
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              {review.role}
+            </p>
+          </div>
+        </div>
+
+        <div className={mobile ? "flex shrink-0 items-center gap-0.5" : "flex items-center gap-0.5"}>
+          {Array.from({ length: 5 }).map((_, starIndex) => (
+            <Star
+              key={starIndex}
+              className="h-3.5 w-3.5 fill-sky-500 text-sky-500"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 text-5xl font-black leading-none text-sky-100">
+        “
+      </div>
+
+      <p className="mt-3 flex-1 text-sm font-bold leading-8 text-slate-600 sm:text-[15px]">
+        {review.quote}
+      </p>
+    </article>
+  );
+}
+
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <div className="min-h-screen overflow-x-clip bg-white text-slate-950">
       <MarketingNavbar />
 
       <main>
@@ -61,21 +124,21 @@ export default function HomePage() {
             <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl" />
           </div>
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-5 py-24 sm:px-8 sm:py-28 lg:min-h-[800px] lg:grid-cols-[1fr_1fr] lg:px-10 lg:py-32">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:min-h-[760px] lg:grid-cols-[1fr_1fr] lg:gap-14 lg:px-10 lg:py-24 xl:gap-16 xl:py-28">
             <div className="max-w-3xl">
-              <h1 className="text-[2.8rem] font-black leading-[1.18] tracking-[-0.045em] text-slate-950 sm:text-6xl lg:text-[4.8rem]">
+              <h1 className="text-[2.35rem] font-black leading-[1.18] tracking-[-0.045em] text-slate-950 min-[430px]:text-[2.7rem] sm:text-6xl lg:text-[4rem] xl:text-[4.8rem]">
                 كل أعمال مدرستك،
                 <span className="mt-2 block text-sky-600">
                   في مكان واحد.
                 </span>
               </h1>
 
-              <p className="mt-8 max-w-2xl text-lg leading-9 text-slate-500 sm:text-xl">
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:mt-8 sm:text-xl sm:leading-9">
                 Teachix تجمع أعمال فريق المدرسة وتساعد على إنجازها، توثيقها،
                 متابعتها، وإصدار تقاريرها ضمن تجربة عربية بسيطة وواضحة.
               </p>
 
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row">
                 <Link
                   href="/register"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-sm font-black text-white shadow-lg shadow-sky-600/15 transition hover:-translate-y-0.5 hover:bg-sky-700"
@@ -95,11 +158,11 @@ export default function HomePage() {
 
             </div>
 
-            <div className="relative mx-auto w-full max-w-[650px] lg:max-w-[700px]">
+            <div className="relative mx-auto hidden w-full max-w-[650px] md:block lg:max-w-[700px]">
               <div className="absolute inset-8 rounded-[3.5rem] bg-sky-100/70 blur-3xl" />
 
               <div className="relative lg:scale-[1.04] xl:scale-[1.08]">
-                <div className="min-h-[520px] overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-6 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] sm:p-7 lg:min-h-[580px]">
+                <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] sm:min-h-[520px] sm:rounded-[32px] sm:p-7 lg:min-h-[580px]">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                     <div>
                       <p className="text-xs font-bold text-sky-600">
@@ -173,7 +236,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="features"
-          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-28 sm:px-8 lg:px-10 lg:py-44"
+          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
         >
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-24">
@@ -182,7 +245,7 @@ export default function HomePage() {
                   لماذا Teachix؟
                 </p>
 
-                <h2 className="mt-5 text-5xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-6xl lg:text-7xl">
+                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-5xl lg:text-6xl xl:text-7xl">
                   أقل تشتت.
                   <span className="block text-slate-400">
                     عمل أوضح.
@@ -265,7 +328,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="reviews"
-          className="scroll-mt-24 overflow-hidden bg-white px-5 py-28 sm:px-8 lg:px-10 lg:py-40"
+          className="scroll-mt-24 overflow-hidden bg-white px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32 xl:py-40"
         >
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto max-w-3xl text-center">
@@ -273,7 +336,7 @@ export default function HomePage() {
                 تجارب المستخدمين
               </p>
 
-              <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-5xl lg:text-6xl">
                 العمل أسهل عندما تكون الأدوات واضحة.
               </h2>
 
@@ -283,57 +346,43 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="relative mt-12 md:hidden">
+              <div
+                dir="rtl"
+                className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-3 [scrollbar-width:none] min-[430px]:gap-5 sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden"
+              >
+                {reviews.map((review, index) => (
+                  <ReviewCard
+                    key={review.name}
+                    review={review}
+                    index={index}
+                    mobile
+                  />
+                ))}
+              </div>
+
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </span>
+
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </span>
+            </div>
+
+            <div className="mt-16 hidden gap-5 md:grid md:grid-cols-2 xl:grid-cols-4">
               {reviews.map((review, index) => (
-                <article
+                <ReviewCard
                   key={review.name}
-                  className={[
-                    "group flex min-h-[330px] flex-col rounded-[28px] border border-slate-200 bg-white p-7 transition duration-300",
-                    "hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_80px_-50px_rgba(15,23,42,0.35)]",
-                    index === 1
-                      ? "xl:translate-y-8"
-                      : index === 3
-                        ? "xl:translate-y-5"
-                        : "",
-                  ].join(" ")}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-50 text-base font-black text-sky-700 ring-1 ring-sky-100">
-                        {review.initials}
-                      </div>
-
-                      <div>
-                        <h3 className="text-sm font-black text-slate-950">
-                          {review.name}
-                        </h3>
-
-                        <p className="mt-1 text-xs font-bold text-slate-400">
-                          {review.role}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, starIndex) => (
-                        <Star
-                          key={starIndex}
-                          className="h-3.5 w-3.5 fill-sky-500 text-sky-500"
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-8 text-5xl font-black leading-none text-sky-100">
-                    “
-                  </div>
-
-                  <p className="mt-3 flex-1 text-sm font-bold leading-8 text-slate-600 sm:text-[15px]">
-                    {review.quote}
-                  </p>
-
-
-                </article>
+                  review={review}
+                  index={index}
+                />
               ))}
             </div>
           </div>
@@ -342,16 +391,16 @@ export default function HomePage() {
         {/* =====================================================
             CTA
         ====================================================== */}
-        <section className="bg-white px-5 pb-28 pt-8 sm:px-8 lg:px-10 lg:pb-36">
+        <section className="bg-white px-5 pb-20 pt-4 sm:px-8 sm:pb-24 lg:px-10 lg:pb-32">
           <div className="mx-auto max-w-7xl">
-            <div className="relative overflow-hidden rounded-[32px] bg-sky-600 px-6 py-16 text-center text-white sm:px-10 sm:py-20 lg:py-24">
+            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white sm:rounded-[32px] sm:px-10 sm:py-20 lg:py-24">
               <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />
               <div className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full border border-white/10" />
 
               <div className="relative">
                 <Sparkles className="mx-auto h-7 w-7 text-sky-200" />
 
-                <h2 className="mx-auto mt-6 max-w-3xl text-4xl font-black leading-tight sm:text-5xl">
+                <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-5xl">
                   ابدأ تنظيم أعمال مدرستك مع Teachix
                 </h2>
 

@@ -168,7 +168,7 @@ export default function RegisterPage() {
         dir="rtl"
         className="min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950"
       >
-        <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] xl:grid-cols-[0.92fr_1.08fr]">
           {/* FORM */}
           <section className="flex min-h-[calc(100svh-72px)] items-center px-5 py-12 sm:px-8 lg:px-14 xl:px-20">
             <div className="mx-auto w-full max-w-[430px]">
@@ -270,7 +270,7 @@ export default function RegisterPage() {
           </section>
 
           {/* REGISTER VISUAL */}
-          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-12 xl:px-20">
+          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] xl:flex xl:min-h-[calc(100svh-72px)] xl:items-center xl:justify-center xl:px-16 2xl:px-20">
             <div className="absolute -right-36 top-8 h-[420px] w-[420px] rounded-full bg-sky-100/60 blur-3xl" />
             <div className="absolute -left-40 bottom-8 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
 
