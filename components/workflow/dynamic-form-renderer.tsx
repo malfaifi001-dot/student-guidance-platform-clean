@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
@@ -99,12 +99,17 @@ type Props = {
   onSave?: DynamicFormRendererSaveHandler;
   onValuesChange?: (values: RuntimeValues) => void;
   onEvidenceItemsChange?: (items: EvidenceItem[]) => void;
+  onEvidenceUpload?: (files: FileList) => Promise<EvidenceItem[]>;
   onFieldLabelPersisted?: (field: {
     id: string;
     key: string;
     label: string;
   }) => void;
   reportSyncStatus?: "DRAFT" | "APPROVED" | null;
+  allowDraftSave?: boolean;
+  submitLabel?: string;
+  embedded?: boolean;
+  beforeSubmit?: ReactNode;
 };
 
 /**
@@ -636,8 +641,13 @@ export function DynamicFormRenderer({
   onSave,
   onValuesChange,
   onEvidenceItemsChange,
+  onEvidenceUpload,
   onFieldLabelPersisted,
   reportSyncStatus = null,
+  allowDraftSave = true,
+  submitLabel,
+  embedded = false,
+  beforeSubmit,
 }: Props) {
   const router = useRouter();
 
@@ -1197,6 +1207,21 @@ export function DynamicFormRenderer({
     );
   }
 
+  async function handleEvidenceFilesSelected(files: FileList) {
+    if (!onEvidenceUpload) return;
+
+    try {
+      const items = await onEvidenceUpload(files);
+      handleEvidenceUploaded(items);
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر رفع الشواهد",
+        error instanceof Error ? error.message : "تعذر رفع الملفات.",
+      );
+    }
+  }
+
   function handleDeleteEvidence(id: string) {
     setEvidenceItems((current) => current.filter((item) => item.id !== id));
 
@@ -1219,7 +1244,7 @@ export function DynamicFormRenderer({
   }
 
   return (
-    <main className="space-y-8">
+    <main className={embedded ? "space-y-5" : "space-y-8"}>
       <SmartFeedbackModal
         open={feedback.open}
         type={feedback.type}
@@ -1249,6 +1274,16 @@ export function DynamicFormRenderer({
         onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
       />
 
+      {embedded ? (
+        <section className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-black text-sky-700">
+            الخطوة {currentStepIndex + 1} من {steps.length}
+          </p>
+          <h2 className="mt-1.5 text-lg font-black text-slate-900">
+            {currentStep.title}
+          </h2>
+        </section>
+      ) : (
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
         <h1 className="text-4xl font-black">{title || workflow.name}</h1>
 
@@ -1270,6 +1305,7 @@ export function DynamicFormRenderer({
           ) : null}
         </div>
       </section>
+      )}
 
       {showStudentPickerCard ? (
         <SmartStudentPickerCard
@@ -1288,7 +1324,9 @@ export function DynamicFormRenderer({
         />
       ) : null}
 
-      <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+      {!embedded ? (
+        <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+      ) : null}
 
       {displayCurrentStep ? (
         <WorkflowStepCard
@@ -1298,18 +1336,24 @@ export function DynamicFormRenderer({
           onChange={updateValue}
           canEditFieldLabel={isFieldLabelEditable}
           onUpdateFieldLabel={handleFieldLabelUpdate}
+          embedded={embedded}
         />
       ) : null}
 
       {showEvidenceCard ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-3xl font-black text-slate-900">
+        <section className={embedded ? "border-t border-slate-100 pt-5" : "rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"}>
+          <div className={embedded ? "mb-4" : "mb-6"}>
+            <h2 className={embedded ? "text-base font-black text-slate-900" : "text-3xl font-black text-slate-900"}>
               الشواهد والمرفقات
             </h2>
           </div>
 
-          <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+          <EvidenceUploadCard
+            onUploaded={handleEvidenceUploaded}
+            onFilesSelected={
+              onEvidenceUpload ? handleEvidenceFilesSelected : undefined
+            }
+          />
 
           <div className="mt-6">
             <EvidencePreviewGrid
@@ -1320,7 +1364,15 @@ export function DynamicFormRenderer({
         </section>
       ) : null}
 
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      {!embedded || isLastStep ? beforeSubmit : null}
+
+      <section className={[
+        "flex flex-wrap items-center justify-between gap-4",
+        embedded
+          ? "border-t border-slate-100 pt-5"
+          : "rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm",
+      ].join(" ")}>
+        {!embedded || !isFirstStep || !isLastStep ? (
         <div className="flex gap-3">
           <button
             type="button"
@@ -1342,25 +1394,30 @@ export function DynamicFormRenderer({
             </button>
           ) : null}
         </div>
+        ) : null}
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => handleSave("draft")}
-            disabled={loading}
-            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {previewMode ? "معاينة فقط" : "حفظ مسودة"}
-          </button>
+          {allowDraftSave ? (
+            <button
+              type="button"
+              onClick={() => handleSave("draft")}
+              disabled={loading}
+              className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {previewMode ? "معاينة فقط" : "حفظ مسودة"}
+            </button>
+          ) : null}
 
+          {!embedded || isLastStep ? (
           <button
             type="button"
             onClick={() => handleSave("submit")}
             disabled={loading}
             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : submitLabel || (caseId ? "تحديث الحالة" : "إرسال")}
           </button>
+          ) : null}
         </div>
       </section>
     </main>

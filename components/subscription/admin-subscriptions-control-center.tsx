@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { PlanAudience } from "@/lib/subscription/plan-audience";
+import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
 import {
   filterServicesByPlanAudience,
   getDefaultVisibleRolesForAudience,
@@ -67,9 +68,11 @@ function getPlanFeatureValue(plan: PlanItem, key: string, fallback = "0") {
 }
 
 function getPlanServices(plan: PlanItem) {
-  return plan.features
-    .filter((feature) => feature.key.startsWith("service:") && feature.value === "enabled")
-    .map((feature) => feature.key.replace("service:", ""));
+  return getActivityProgramsBillingServiceSlugs(
+    plan.features
+      .filter((feature) => feature.key.startsWith("service:") && feature.value === "enabled")
+      .map((feature) => feature.key.replace("service:", "")),
+  );
 }
 
 function getRoleVisibilityLabel(role: PlanVisibleRole) {

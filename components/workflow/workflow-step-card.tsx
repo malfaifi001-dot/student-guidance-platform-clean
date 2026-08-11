@@ -23,6 +23,7 @@ type WorkflowStepCardProps = {
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  embedded?: boolean;
 };
 
 function normalizeText(value: string) {
@@ -98,6 +99,7 @@ export function WorkflowStepCard({
   onChange,
   canEditFieldLabel,
   onUpdateFieldLabel,
+  embedded = false,
 }: WorkflowStepCardProps) {
   const visibleFields = step.fields.filter((field) =>
     shouldShowField(field, values),
@@ -116,7 +118,14 @@ export function WorkflowStepCard({
   );
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section
+      className={
+        embedded
+          ? "py-1"
+          : "rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      }
+    >
+      {!embedded ? (
       <div className="mb-6 border-b border-slate-100 pb-5">
         <p className="text-sm font-bold text-sky-700">الخطوة {step.order}</p>
 
@@ -130,6 +139,7 @@ export function WorkflowStepCard({
           </p>
         ) : null}
       </div>
+      ) : null}
 
       <div className="grid gap-5 md:grid-cols-2">
         {normalFields.map((field) => (

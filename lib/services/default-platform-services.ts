@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { ACTIVITY_PROGRAM_PARENT_SERVICE } from "@/lib/activity-programs/activity-program-catalog";
 
 export const DEFAULT_PLATFORM_SERVICES = [
+  {
+    slug: ACTIVITY_PROGRAM_PARENT_SERVICE.slug,
+    name: ACTIVITY_PROGRAM_PARENT_SERVICE.title,
+    description: ACTIVITY_PROGRAM_PARENT_SERVICE.description,
+  },
   {
     slug: "counselor-reference-library",
     name: "مكتبة الموجه الطلابي",

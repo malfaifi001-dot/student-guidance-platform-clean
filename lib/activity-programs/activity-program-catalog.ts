@@ -95,3 +95,14 @@ export function getActivityProgramsBillingServiceSlug(serviceSlug: string) {
     ? ACTIVITY_PROGRAM_SERVICE_SLUG
     : serviceSlug;
 }
+
+export function getActivityProgramsBillingServiceSlugs(serviceSlugs: string[]) {
+  return Array.from(
+    new Set(
+      serviceSlugs
+        .map((serviceSlug) => String(serviceSlug || "").trim())
+        .filter(Boolean)
+        .map(getActivityProgramsBillingServiceSlug),
+    ),
+  );
+}

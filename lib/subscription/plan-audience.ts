@@ -120,6 +120,12 @@ export function filterServicesByPlanAudience<T extends { slug: string }>(
   services: T[],
   audience: PlanAudience,
 ): T[] {
-  if (audience === "ALL") return services;
-  return services.filter((s) => classifyServiceSlug(s.slug) === audience.toLowerCase());
+  const billableServices = services.filter(
+    (service) => !isActivityProgramDomainServiceSlug(service.slug),
+  );
+
+  if (audience === "ALL") return billableServices;
+  return billableServices.filter(
+    (service) => classifyServiceSlug(service.slug) === audience.toLowerCase(),
+  );
 }

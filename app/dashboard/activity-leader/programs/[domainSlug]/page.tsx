@@ -19,22 +19,21 @@ export default async function ActivityProgramDomainPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <SendActivityAssignmentCard
-        domainSlug={domain.slug}
-        domainTitle={domain.title}
-      />
-
-      <WorkflowServiceHomePage
-        serviceSlug={domain.serviceSlug}
-        title={domain.title}
-        description={`${domain.description} يمكنك إنشاء نشاط مباشرة، أو إرسال النموذج لمعلم عبر رابط واتساب.`}
-        newButtonLabel="إنشاء نشاط"
-        caseSingularName="نشاط"
-        casePluralName="الأنشطة"
-        emptyTitle="لا توجد أنشطة في هذا المجال"
-        emptyDescription="ابدأ بإنشاء نشاط لهذا المجال، أو أرسل النموذج لمعلم دون إنشاء حالة مباشرة."
-      />
-    </div>
+    <WorkflowServiceHomePage
+      serviceSlug={domain.serviceSlug}
+      title={domain.title}
+      description={`${domain.description} يمكنك إنشاء نشاط مباشرة، أو إرسال النموذج لمعلم عبر رابط واتساب.`}
+      newButtonLabel="إنشاء نشاط"
+      caseSingularName="نشاط"
+      casePluralName="الأنشطة"
+      emptyTitle="لا توجد أنشطة في هذا المجال"
+      emptyDescription="ابدأ بإنشاء نشاط لهذا المجال، أو أرسل النموذج لمعلم دون إنشاء حالة مباشرة."
+      heroSecondaryAction={
+        <SendActivityAssignmentCard
+          domainSlug={domain.slug}
+          domainTitle={domain.title}
+        />
+      }
+    />
   );
 }

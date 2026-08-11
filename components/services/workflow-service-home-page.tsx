@@ -24,6 +24,7 @@ type WorkflowServiceHomePageProps = {
   basePath?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  heroSecondaryAction?: ReactNode;
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -147,6 +148,7 @@ export async function WorkflowServiceHomePage({
   basePath = `/dashboard/${serviceSlug}`,
   emptyTitle = "لا توجد حالات بعد",
   emptyDescription = "ابدأ بإنشاء أول حالة. بعد الحفظ ستظهر هنا كبطاقات سهلة.",
+  heroSecondaryAction,
 }: WorkflowServiceHomePageProps) {
   const context = await requireDashboardPageContext();
 
@@ -273,13 +275,17 @@ export async function WorkflowServiceHomePage({
             </p>
           </div>
 
-          <Link
-            href={`${basePath}/new`}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
-          >
-            <Plus className="h-4 w-4" />
-            {newButtonLabel}
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link
+              href={`${basePath}/new`}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            >
+              <Plus className="h-4 w-4" />
+              {newButtonLabel}
+            </Link>
+
+            {heroSecondaryAction}
+          </div>
         </div>
       </section>
 

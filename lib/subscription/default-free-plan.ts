@@ -7,6 +7,7 @@ import {
   getRemainingDays,
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
+import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
 
 export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
@@ -129,7 +130,9 @@ async function getActiveServiceSlugs() {
     },
   });
 
-  return services.map((service) => service.slug);
+  return getActivityProgramsBillingServiceSlugs(
+    services.map((service) => service.slug),
+  );
 }
 
 async function resolveEnabledServiceSlugs(input: {
@@ -144,12 +147,8 @@ async function resolveEnabledServiceSlugs(input: {
 
   const activeServiceSet = new Set(activeServiceSlugs);
 
-  return Array.from(
-    new Set(
-      input.enabledServiceSlugs
-        .map((slug) => String(slug || "").trim())
-        .filter((slug) => activeServiceSet.has(slug)),
-    ),
+  return getActivityProgramsBillingServiceSlugs(input.enabledServiceSlugs).filter(
+    (slug) => activeServiceSet.has(slug),
   );
 }
 

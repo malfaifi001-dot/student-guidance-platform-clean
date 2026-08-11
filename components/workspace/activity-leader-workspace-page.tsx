@@ -43,6 +43,7 @@ export function ActivityLeaderWorkspacePage({
       description={`ابدأ من برامج النشاط في ${schoolName}، ثم تابع الحالات والشواهد وأصدر التقارير من المسارات الرسمية.`}
       userName={user?.officialName || user?.name}
       modules={activityLeaderWorkspaceModules}
+      showModuleDescription={false}
       stats={[
         {
           label: "الطلاب",

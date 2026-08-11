@@ -77,6 +77,7 @@ type WorkspaceHomeProps = {
   sideHrefLabel?: string;
   notices?: WorkspaceNotice[];
   welcomeText?: string;
+  showModuleDescription?: boolean;
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
@@ -139,6 +140,7 @@ export function WorkspaceHome({
   sideHrefLabel,
   notices = [],
   welcomeText = "أهلًا بك",
+  showModuleDescription = true,
 }: WorkspaceHomeProps) {
   const progress = normalizePercent(sideProgressPercent);
 
@@ -202,12 +204,14 @@ export function WorkspaceHome({
               <h2 className="mt-1 text-2xl font-black text-slate-950">
                 اختر الخدمة المطلوبة
               </h2>
-              <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                نفس هوية المنصة، مع محتوى وروابط مناسبة للدور الحالي.
-              </p>
+              {showModuleDescription ? (
+                <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                  نفس هوية المنصة، مع محتوى وروابط مناسبة للدور الحالي.
+                </p>
+              ) : null}
             </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className={`${showModuleDescription ? "mt-5" : "mt-4"} grid gap-4 md:grid-cols-2 xl:grid-cols-4`}>
               {modules.map((module) => {
                 const Icon = iconByName[module.icon];
                 const isSoon = module.status === "soon";

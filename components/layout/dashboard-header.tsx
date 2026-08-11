@@ -87,7 +87,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const headerBadgeText = isAdmin
     ? "Admin Center"
     : isActivityLeader
-      ? "رياضة النشاط"
+      ? ""
       : isTeacher
         ? "مساحة المعلم"
         : isPrincipal
@@ -149,13 +149,31 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </span>
           </button>
 
-          <div className="relative">
+          <div
+            className="relative"
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
+            onFocus={() => setMenuOpen(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setMenuOpen(false);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setMenuOpen(false);
+                event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
+              }
+            }}
+          >
             <button
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
               className="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
             >
-              <div className="h-8 w-8 overflow-hidden rounded-xl bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
+              <div className="h-8 w-8 overflow-hidden rounded-full bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
                 {avatar ? (
                   <img
                     src={avatar}
@@ -185,14 +203,22 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </button>
 
             {menuOpen ? (
-              <div className="absolute left-0 top-14 z-50 w-72 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/95 p-2 text-right shadow-2xl shadow-slate-300/60 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40">
+              <div className="absolute left-0 top-full z-50 w-72 pt-2" role="menu">
+              <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/95 p-2 text-right shadow-2xl shadow-slate-300/60 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40">
                 <div className="border-b border-slate-100 px-3 py-3 dark:border-slate-800">
-                  <p className="truncate text-sm font-black text-slate-950 dark:text-white">
-                    {displayName}
-                  </p>
-                  <p className="mt-1 truncate text-xs font-bold text-slate-400 dark:text-slate-500">
-                    {roleText}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-sky-50 ring-2 ring-sky-100 dark:bg-sky-500/10 dark:ring-sky-400/20">
+                      <img src={avatar} alt={displayName} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-950 dark:text-white">
+                        {displayName}
+                      </p>
+                      <p className="mt-1 truncate text-xs font-bold text-slate-400 dark:text-slate-500">
+                        {roleText}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="py-2">
@@ -221,6 +247,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     تسجيل الخروج
                   </button>
                 </div>
+              </div>
               </div>
             ) : null}
           </div>

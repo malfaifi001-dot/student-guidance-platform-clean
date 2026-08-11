@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { SubscriptionStatus } from "@prisma/client";
 import type { PlanAudience } from "./plan-audience";
+import {
+  getActivityProgramsBillingServiceSlug,
+  getActivityProgramsBillingServiceSlugs,
+} from "@/lib/activity-programs/activity-program-catalog";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
@@ -48,14 +52,11 @@ export function getPlanFeatureValue(
 }
 
 export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
-  return Array.from(
-    new Set(
-      features
-        .filter((feature) => feature.key.startsWith("service:"))
-        .filter((feature) => feature.value === "enabled")
-        .map((feature) => feature.key.replace("service:", "").trim())
-        .filter(Boolean)
-    )
+  return getActivityProgramsBillingServiceSlugs(
+    features
+      .filter((feature) => feature.key.startsWith("service:"))
+      .filter((feature) => feature.value === "enabled")
+      .map((feature) => feature.key.replace("service:", "").trim()),
   );
 }
 
@@ -311,6 +312,9 @@ export async function isServiceAllowedForSchool(input: {
   schoolAccountId: string;
   serviceSlug: string;
 }) {
+  const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+    input.serviceSlug,
+  );
   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
 
   if (!overview.usable) {
@@ -323,10 +327,10 @@ export async function isServiceAllowedForSchool(input: {
   const planFeatures = overview.subscription?.plan?.features || [];
   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
 
-  if (planServiceSlugs.includes(input.serviceSlug)) {
+  if (planServiceSlugs.includes(billingServiceSlug)) {
     const service = await prisma.service.findFirst({
       where: {
-        slug: input.serviceSlug,
+        slug: billingServiceSlug,
       },
       select: {
         id: true,
@@ -389,7 +393,7 @@ export async function isServiceAllowedForSchool(input: {
     where: {
       schoolAccountId: input.schoolAccountId,
       service: {
-        slug: input.serviceSlug,
+        slug: billingServiceSlug,
       },
     },
   });

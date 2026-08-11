@@ -13,7 +13,7 @@ type EvidenceItem = {
 
 type EvidenceUploadCardProps = {
   onUploaded?: (items: EvidenceItem[]) => void;
-  onFilesSelected?: (files: FileList) => void;
+  onFilesSelected?: (files: FileList) => void | Promise<void>;
 };
 
 export function EvidenceUploadCard({
@@ -24,7 +24,14 @@ export function EvidenceUploadCard({
 
   async function uploadFiles(files: FileList) {
     if (onFilesSelected) {
-      onFilesSelected(files);
+      setIsUploading(true);
+
+      try {
+        await onFilesSelected(files);
+      } finally {
+        setIsUploading(false);
+      }
+
       return;
     }
 

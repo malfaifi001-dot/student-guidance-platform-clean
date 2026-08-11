@@ -16,6 +16,7 @@ import {
   normalizePlanVisibleRoles,
   type PlanAudience,
 } from "@/lib/subscription/plan-audience";
+import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
 
 function slugify(input: string) {
   return input
@@ -157,9 +158,11 @@ export async function POST(request: Request) {
       String(payload?.accessMode || "ALL_SERVICES").trim() === "CUSTOM_SERVICES"
         ? "CUSTOM_SERVICES"
         : "ALL_SERVICES";
-    const enabledServiceSlugs = Array.isArray(payload?.enabledServiceSlugs)
-      ? payload.enabledServiceSlugs.map(String)
-      : [];
+    const enabledServiceSlugs = getActivityProgramsBillingServiceSlugs(
+      Array.isArray(payload?.enabledServiceSlugs)
+        ? payload.enabledServiceSlugs.map(String)
+        : [],
+    );
 
     if (durationDays <= 0) {
       return NextResponse.json(
@@ -192,9 +195,11 @@ export async function POST(request: Request) {
     const maxStudents = Number(payload?.maxStudents || 0);
     const maxUsers = Number(payload?.maxUsers || 0);
     const maxReports = Number(payload?.maxReports || 0);
-    const enabledServiceSlugs = Array.isArray(payload?.enabledServiceSlugs)
-      ? payload.enabledServiceSlugs.map(String)
-      : [];
+    const enabledServiceSlugs = getActivityProgramsBillingServiceSlugs(
+      Array.isArray(payload?.enabledServiceSlugs)
+        ? payload.enabledServiceSlugs.map(String)
+        : [],
+    );
 
     const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
     const targetAudience: PlanAudience =

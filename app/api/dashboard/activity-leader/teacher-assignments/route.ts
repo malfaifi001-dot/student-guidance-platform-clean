@@ -11,6 +11,7 @@ import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
 
 function getOrigin(request: Request) {
   return (
@@ -130,10 +131,22 @@ export async function GET(request: Request) {
   if (guard) return guard;
 
   const origin = getOrigin(request);
+  const requestedDomainSlug = new URL(request.url).searchParams.get("domainSlug")?.trim() || "";
+  const requestedDomain = requestedDomainSlug
+    ? getActivityProgramDomainBySlug(requestedDomainSlug)
+    : null;
+
+  if (requestedDomainSlug && !requestedDomain) {
+    return NextResponse.json(
+      { success: false, error: "مجال النشاط غير صحيح." },
+      { status: 400 },
+    );
+  }
 
   const assignments = await prisma.activityAssignment.findMany({
     where: {
       schoolAccountId: authResult.schoolAccountId,
+      ...(requestedDomain ? { domainSlug: requestedDomain.slug } : {}),
     },
     orderBy: {
       createdAt: "desc",
@@ -268,24 +281,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const service = await prisma.service.findUnique({
-    where: {
-      slug: domain.serviceSlug,
-    },
-    include: {
-      workflows: {
-        where: {
-          isActive: true,
-        },
-        orderBy: {
-          version: "desc",
-        },
-        take: 1,
-      },
-    },
-  });
+  const publishedWorkflow = await getRuntimeWorkflowByServiceSlug(
+    domain.serviceSlug,
+  );
 
-  if (!service || service.workflows.length === 0) {
+  if (!publishedWorkflow) {
     return NextResponse.json(
       { success: false, error: "لا يوجد Workflow منشور لهذا المجال." },
       { status: 404 },
@@ -299,8 +299,8 @@ export async function POST(request: Request) {
     data: {
       schoolAccountId: authResult.schoolAccountId,
       createdById: authResult.user.id,
-      serviceId: service.id,
-      workflowId: service.workflows[0].id,
+      serviceId: publishedWorkflow.service.id,
+      workflowId: publishedWorkflow.workflow.id,
       domainSlug: domain.slug,
       domainTitle: domain.title,
       teacherName,

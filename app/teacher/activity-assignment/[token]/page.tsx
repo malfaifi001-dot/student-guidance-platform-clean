@@ -91,6 +91,9 @@ export default async function TeacherActivityAssignmentPage({ params }: PageProp
     id: assignment.workflow.id,
     name: assignment.workflow.name,
     serviceSlug: assignment.workflow.service.slug,
+    workflowType: assignment.workflow.workflowType,
+    studentPickerMode: assignment.workflow.studentPickerMode,
+    evidenceMode: assignment.workflow.evidenceMode,
     steps: assignment.workflow.steps.map((step) => ({
       id: step.id,
       title: step.title,
@@ -105,11 +108,19 @@ export default async function TeacherActivityAssignmentPage({ params }: PageProp
         helpText: field.helpText,
         isRequired: field.isRequired,
         order: field.order,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        allowOther: field.allowOther,
+        isRepeater: field.isRepeater,
+        defaultValue: field.defaultValue,
+        defaultJson: field.defaultJson,
+        autoSelectWhenLinked: field.autoSelectWhenLinked,
         options: field.options.map((option) => ({
           id: option.id,
           label: option.label,
           value: option.value,
           order: option.order,
+          linkedToValue: option.linkedToValue,
         })),
       })),
     })),
@@ -121,23 +132,22 @@ export default async function TeacherActivityAssignmentPage({ params }: PageProp
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-4 sm:px-6 sm:py-8" dir="rtl">
-      <section className="mx-auto max-w-3xl space-y-5">
-        <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
-          <p className="text-xs font-black text-sky-200">منصة التوجيه الطلابي</p>
-          <h1 className="mt-3 text-3xl font-black leading-10">
+      <section className="mx-auto max-w-3xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
+        <header className="border-b border-slate-100 bg-slate-950 px-5 py-5 text-white sm:px-7">
+          <h1 className="text-2xl font-black leading-9">
             تنفيذ نشاط مدرسي
           </h1>
-          <p className="mt-3 text-sm font-bold leading-7 text-slate-200">
-            المدرسة: {schoolName}
-          </p>
-          <p className="mt-1 text-sm font-bold leading-7 text-slate-200">
-            المجال: {assignment.domainTitle}
-          </p>
-        </section>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-bold leading-6 text-slate-200">
+            <span>المجال: {assignment.domainTitle}</span>
+            <span>المدرسة: {schoolName}</span>
+            <span>المعلم/ة: {assignment.teacherName}</span>
+          </div>
+        </header>
 
         <PublicTeacherAssignmentForm
           token={assignment.token}
           workflow={workflow}
+          serviceId={assignment.serviceId}
           teacherName={assignment.teacherName}
           domainTitle={assignment.domainTitle}
         />
