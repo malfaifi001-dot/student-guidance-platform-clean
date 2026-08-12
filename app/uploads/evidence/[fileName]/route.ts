@@ -1,4 +1,3 @@
-import { readFile } from "fs/promises";
 import { NextResponse } from "next/server";
 
 import {
@@ -6,6 +5,7 @@ import {
   isSafeEvidenceStoredFileName,
   resolveExistingEvidenceFile,
 } from "@/lib/evidence/evidence-file-storage";
+import { readStorageFile } from "@/lib/storage/storage-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function GET(_request: Request, context: Context) {
   if (!contentType || !filePath) return notFound();
 
   try {
-    const file = await readFile(filePath);
+    const file = await readStorageFile(["evidence", fileName]);
     return new NextResponse(new Uint8Array(file), {
       status: 200,
       headers: {

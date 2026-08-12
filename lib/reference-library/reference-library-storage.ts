@@ -1,43 +1,7 @@
 import { randomUUID } from "node:crypto";
-import {
-  mkdir,
-  readFile,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
-import path from "node:path";
-
-const configuredStorageRoot =
-  process.env.REFERENCE_LIBRARY_STORAGE_ROOT?.trim();
-
-const STORAGE_ROOT = configuredStorageRoot
-  ? path.resolve(configuredStorageRoot)
-  : path.resolve(process.cwd(), ".storage", "reference-library");
-
-function resolveStoragePath(storageKey: string) {
-  const normalizedKey = storageKey.replace(/\\/g, "/").replace(/^\/+/, "");
-
-  if (
-    !normalizedKey ||
-    normalizedKey.includes("../") ||
-    normalizedKey.includes("..\\")
-  ) {
-    throw new Error("INVALID_STORAGE_KEY");
-  }
-
-  const absolutePath = path.resolve(STORAGE_ROOT, normalizedKey);
-  const relativePath = path.relative(STORAGE_ROOT, absolutePath);
-
-  if (
-    relativePath.startsWith("..") ||
-    path.isAbsolute(relativePath)
-  ) {
-    throw new Error("INVALID_STORAGE_KEY");
-  }
-
-  return absolutePath;
-}
+import { deleteStorageFile, readStorageFile, storageFileExists, writeStorageFile } from "@/lib/storage/storage-provider";
+import { storageKeySegments } from "@/lib/storage/storage-paths";
+const segments = (storageKey: string) => ["reference-library", ...storageKeySegments(storageKey)];
 
 export function createReferenceLibraryStorageKey(extension: string) {
   const date = new Date();
@@ -56,13 +20,7 @@ export async function saveReferenceLibraryFile(input: {
   storageKey: string;
   buffer: Uint8Array;
 }) {
-  const absolutePath = resolveStoragePath(input.storageKey);
-
-  await mkdir(path.dirname(absolutePath), {
-    recursive: true,
-  });
-
-  await writeFile(absolutePath, input.buffer);
+  await writeStorageFile(segments(input.storageKey), input.buffer);
 
   return {
     storageKey: input.storageKey,
@@ -71,18 +29,11 @@ export async function saveReferenceLibraryFile(input: {
 }
 
 export async function readReferenceLibraryFile(storageKey: string) {
-  const absolutePath = resolveStoragePath(storageKey);
-  return readFile(absolutePath);
+  return new Uint8Array(await readStorageFile(segments(storageKey)));
 }
 
 export async function referenceLibraryFileExists(storageKey: string) {
-  try {
-    const absolutePath = resolveStoragePath(storageKey);
-    const fileStat = await stat(absolutePath);
-    return fileStat.isFile();
-  } catch {
-    return false;
-  }
+  return storageFileExists(segments(storageKey));
 }
 
 export async function deleteReferenceLibraryFile(
@@ -92,9 +43,5 @@ export async function deleteReferenceLibraryFile(
     return;
   }
 
-  const absolutePath = resolveStoragePath(storageKey);
-
-  await rm(absolutePath, {
-    force: true,
-  });
+  await deleteStorageFile(segments(storageKey));
 }

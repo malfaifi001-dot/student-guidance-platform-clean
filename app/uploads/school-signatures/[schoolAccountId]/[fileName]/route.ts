@@ -1,4 +1,3 @@
-import { readFile } from "fs/promises";
 import { NextResponse } from "next/server";
 
 import {
@@ -6,6 +5,7 @@ import {
   isSafeSchoolSignatureOwnerId,
   resolveExistingSchoolSignatureFile,
 } from "@/lib/settings/school-signature-file-storage";
+import { readStorageFile } from "@/lib/storage/storage-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function GET(_request: Request, context: Context) {
   }
 
   try {
-    const file = await readFile(filePath);
+    const file = await readStorageFile(["school-signatures", schoolAccountId, fileName]);
 
     return new NextResponse(new Uint8Array(file), {
       status: 200,

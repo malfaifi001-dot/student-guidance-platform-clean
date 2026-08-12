@@ -1,9 +1,8 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 
@@ -58,22 +57,8 @@ async function saveTeacherSignature(input: {
     return "";
   }
 
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "activity-assignments",
-    input.assignmentId,
-  );
-
-  await mkdir(uploadDir, { recursive: true });
-
   const fileName = `teacher-signature-${Date.now()}.png`;
-  const fullPath = path.join(uploadDir, fileName);
-
-  await writeFile(fullPath, buffer);
-
-  return `/uploads/activity-assignments/${input.assignmentId}/${fileName}`;
+  return writeDurableUpload("activity-assignments", input.assignmentId, fileName, new Uint8Array(buffer));
 }
 
 export async function POST(request: Request, context: RouteContext) {

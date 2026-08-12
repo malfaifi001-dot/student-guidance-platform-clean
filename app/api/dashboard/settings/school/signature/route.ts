@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
@@ -10,6 +8,7 @@ import {
   getSchoolSignaturePublicUrl,
   writeSchoolSignatureFile,
 } from "@/lib/settings/school-signature-file-storage";
+import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 
@@ -38,20 +37,7 @@ async function saveSignatureImage(input: {
   const fileName = `${input.kind}-signature-${Date.now()}-${randomUUID()}.png`;
 
   if (input.kind === "teacher") {
-    const relativeDirectory = path.join("user-signatures", input.userId);
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      relativeDirectory,
-    );
-
-    await mkdir(uploadDir, { recursive: true });
-
-    const fullPath = path.join(uploadDir, fileName);
-    await writeFile(fullPath, buffer);
-
-    return `/uploads/${relativeDirectory.replaceAll(path.sep, "/")}/${fileName}`;
+    return writeDurableUpload("user-signatures", input.userId, fileName, new Uint8Array(buffer));
   }
 
   await writeSchoolSignatureFile(

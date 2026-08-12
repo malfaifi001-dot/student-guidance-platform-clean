@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 
@@ -84,17 +84,10 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const extension = path.extname(file.name) || "";
+  const rawExtension = path.extname(file.name).slice(1).toLowerCase();
+  const extension = /^[a-z0-9]{1,10}$/.test(rawExtension) ? `.${rawExtension}` : "";
   const storedName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "activity-assignments", assignment.id);
-
-  await mkdir(uploadDir, { recursive: true });
-
-  const fullPath = path.join(uploadDir, storedName);
-
-  await writeFile(fullPath, bytes);
-
-  const fileUrl = `/uploads/activity-assignments/${assignment.id}/${storedName}`;
+  const fileUrl = await writeDurableUpload("activity-assignments", assignment.id, storedName, new Uint8Array(bytes));
 
   return NextResponse.json({
     success: true,

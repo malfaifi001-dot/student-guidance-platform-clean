@@ -1,9 +1,8 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 
@@ -108,20 +107,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "school-logos"
-    );
-    await mkdir(uploadDir, { recursive: true });
-
     const fileName = `${authResult.schoolAccountId}-${crypto.randomUUID()}.${extension}`;
-    const diskPath = path.join(uploadDir, fileName);
-    const publicUrl = `/uploads/school-logos/${fileName}`;
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(diskPath, buffer);
+    const publicUrl = await writeDurableUpload("school-logos", authResult.schoolAccountId, fileName, new Uint8Array(buffer));
 
     await prisma.schoolProfile.upsert({
       where: {

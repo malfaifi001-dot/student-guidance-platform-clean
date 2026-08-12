@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 
@@ -11,6 +9,7 @@ import {
   validatePortfolioImageFile,
   type PortfolioImageMimeType,
 } from "@/lib/portfolio/portfolio-image-upload";
+import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ portfolioId: string }> };
@@ -47,12 +46,6 @@ export async function POST(request: Request, context: Context) {
       return NextResponse.json({ ok: false, error: "محتوى الصورة لا يطابق صيغتها المعلنة." }, { status: 400 });
     }
 
-    const root = path.resolve(process.cwd(), "public", "uploads", "portfolio");
-    const portfolioDirectory = path.resolve(root, portfolio.id);
-    if (!portfolioDirectory.startsWith(`${root}${path.sep}`)) {
-      return NextResponse.json({ ok: false, error: "مسار رفع الصورة غير صالح." }, { status: 400 });
-    }
-    await mkdir(portfolioDirectory, { recursive: true });
     let safeImage: Buffer;
     try {
       safeImage = await sharp(buffer, { limitInputPixels: 40_000_000 })
@@ -63,15 +56,11 @@ export async function POST(request: Request, context: Context) {
       return NextResponse.json({ ok: false, error: "تعذر قراءة الصورة أو أن محتواها غير صالح." }, { status: 400 });
     }
     const fileName = `${randomUUID()}.webp`;
-    const diskPath = path.resolve(portfolioDirectory, fileName);
-    if (!diskPath.startsWith(`${portfolioDirectory}${path.sep}`)) {
-      return NextResponse.json({ ok: false, error: "مسار حفظ الصورة غير صالح." }, { status: 400 });
-    }
-    await writeFile(diskPath, safeImage, { flag: "wx" });
+    const attachmentUrl = await writeDurableUpload("portfolio", portfolio.id, fileName, new Uint8Array(safeImage));
 
     return NextResponse.json({
       ok: true,
-      attachmentUrl: `/uploads/portfolio/${portfolio.id}/${fileName}`,
+      attachmentUrl,
       attachmentMimeType: "image/webp" as const,
       attachmentKind: "IMAGE" as const,
     });
