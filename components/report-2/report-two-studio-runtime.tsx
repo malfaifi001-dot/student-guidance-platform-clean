@@ -2756,6 +2756,7 @@ export function ReportTwoStudioRuntime({
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+  const reportTwoPreviewViewportRef = useRef<HTMLDivElement | null>(null);
   const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -4298,7 +4299,8 @@ export function ReportTwoStudioRuntime({
 
   useEffect(() => {
     const host = reportTwoPreviewExportRef.current;
-    if (!host || typeof ResizeObserver === "undefined") return;
+    const viewport = reportTwoPreviewViewportRef.current;
+    if (!host || !viewport || typeof ResizeObserver === "undefined") return;
 
     let frameId = 0;
 
@@ -4314,13 +4316,13 @@ export function ReportTwoStudioRuntime({
         );
         if (!output || !page || !stage) return;
 
-        const hostStyle = window.getComputedStyle(host);
-        const horizontalPadding =
-          Number.parseFloat(hostStyle.paddingLeft) +
-          Number.parseFloat(hostStyle.paddingRight);
-        const logicalPageWidth = page.offsetWidth;
+        const logicalStageWidth = Math.max(
+          page.offsetWidth,
+          output.scrollWidth,
+          stage.scrollWidth,
+        );
 
-        if (!Number.isFinite(logicalPageWidth) || logicalPageWidth <= 0) return;
+        if (!Number.isFinite(logicalStageWidth) || logicalStageWidth <= 0) return;
 
         const compactDesktopScale = window.innerWidth <= 1500;
         const preferredScale = reportTwoPreviewModeClass.includes("focus")
@@ -4334,11 +4336,17 @@ export function ReportTwoStudioRuntime({
             : compactDesktopScale
               ? 0.66
               : 0.72;
-        const availableWidth = Math.max(
+        const viewportWidth = viewport.clientWidth;
+        const safeHorizontalGap = viewportWidth < 640
+          ? 24
+          : viewportWidth < 1180
+            ? 32
+            : 40;
+        const availableWidth = Math.max(0, viewportWidth - safeHorizontalGap);
+        const fitScale = Math.max(
           0,
-          host.clientWidth - horizontalPadding - 56,
+          (availableWidth / logicalStageWidth) * 0.98,
         );
-        const fitScale = Math.max(0, availableWidth / logicalPageWidth);
         const previewScale = Math.min(1, preferredScale, fitScale);
         const naturalStageHeight = Math.max(
           output.scrollHeight,
@@ -4359,13 +4367,21 @@ export function ReportTwoStudioRuntime({
         );
         host.style.setProperty(
           "--report-two-preview-page-width",
-          `${logicalPageWidth}px`,
+          `${page.offsetWidth}px`,
+        );
+        host.style.setProperty(
+          "--report-two-preview-stage-width",
+          `${logicalStageWidth}px`,
+        );
+        host.style.setProperty(
+          "--report-two-preview-scaled-width",
+          `${logicalStageWidth * previewScale}px`,
         );
       });
     };
 
     const observer = new ResizeObserver(updatePreviewScale);
-    observer.observe(host);
+    observer.observe(viewport);
     const output = host.querySelector<HTMLElement>(
       '[data-report-physical-output-planning="false"]',
     );
@@ -4378,12 +4394,14 @@ export function ReportTwoStudioRuntime({
       attributeFilter: ["data-report-physical-output-planning"],
     });
     window.addEventListener("resize", updatePreviewScale);
+    window.addEventListener("orientationchange", updatePreviewScale);
     updatePreviewScale();
 
     return () => {
       observer.disconnect();
       mutationObserver.disconnect();
       window.removeEventListener("resize", updatePreviewScale);
+      window.removeEventListener("orientationchange", updatePreviewScale);
       window.cancelAnimationFrame(frameId);
     };
   }, [
@@ -4887,6 +4905,8 @@ export function ReportTwoStudioRuntime({
                 --report-two-preview-stage-height: 1123px;
                 --report-two-preview-scaled-height: 741px;
                 --report-two-preview-page-width: 794px;
+                --report-two-preview-stage-width: 794px;
+                --report-two-preview-scaled-width: 524px;
                 max-width: 100%;
                 overflow-x: hidden;
                 overscroll-behavior-x: contain;
@@ -4900,30 +4920,46 @@ export function ReportTwoStudioRuntime({
 
               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
                 position: relative;
-                min-width: 0;
-                height: calc(var(--report-two-preview-scaled-height) + 40px);
+                width: var(--report-two-preview-scaled-width);
+                min-width: var(--report-two-preview-scaled-width);
+                max-width: var(--report-two-preview-scaled-width);
+                height: var(--report-two-preview-scaled-height);
+                margin-inline: auto;
+                padding: 0 !important;
                 overflow: visible;
+                border: 0;
+                background: transparent;
+                box-shadow: none;
               }
 
               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
                 position: absolute;
-                top: 20px;
-                width: var(--report-two-preview-page-width);
+                top: 0;
+                left: 0;
+                width: var(--report-two-preview-stage-width);
                 height: var(--report-two-preview-stage-height);
                 max-width: none;
               }
 
               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
-                left: 50%;
-                transform: translateX(-50%) scale(var(--report-two-preview-scale));
-                transform-origin: top center;
+                transform: scale(var(--report-two-preview-scale));
+                transform-origin: top left;
               }
 
               .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child {
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
                 height: auto !important;
                 padding: 0 !important;
                 border: 0 !important;
                 overflow: visible !important;
+              }
+
+              .report-two-snapshot-approved-root .report-two-preview-viewport {
+                padding: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
               }
 
               .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
@@ -4975,10 +5011,19 @@ export function ReportTwoStudioRuntime({
                 }
 
                 .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
+                  width: auto !important;
+                  min-width: 0 !important;
+                  max-width: none !important;
                   height: auto !important;
                   padding: 0 !important;
                   border: 0 !important;
                   overflow: visible !important;
+                }
+
+                .report-two-a4-host .report-two-preview-viewport {
+                  padding: 0 !important;
+                  overflow: visible !important;
+                  background: transparent !important;
                 }
 
                 .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
@@ -5003,6 +5048,10 @@ export function ReportTwoStudioRuntime({
               }
             `}</style>
 
+            <div
+              ref={reportTwoPreviewViewportRef}
+              className="report-two-preview-viewport box-border w-full min-w-0 overflow-hidden rounded-2xl bg-slate-50 p-3 md:p-4 min-[1180px]:p-5 dark:bg-slate-900/70"
+            >
             <div className="report-two-preview-renderer">
             <ReportDesignRenderer
               chromeLayout="split"
@@ -5042,6 +5091,7 @@ export function ReportTwoStudioRuntime({
                 runtimeMode === "preview" ? () => false : canDeleteReportTwoPage
               }
             />
+            </div>
             </div>
           </section>
 
