@@ -294,8 +294,14 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (!isLocalRequestOrigin(origin)) {
     try {
+      const pdfRenderUrl = `${previewUrl}?pdf=1`;
+
+      console.log("REPORT_TWO_PDF_RENDER_URL", {
+        url: pdfRenderUrl,
+      });
+
       const pdfBytes = await generatePdfFromUrlWithCloudflare({
-        url: `${previewUrl}?pdf=1`,
+        url: pdfRenderUrl,
       });
       const pdfBody = new ArrayBuffer(pdfBytes.byteLength);
       new Uint8Array(pdfBody).set(pdfBytes);
