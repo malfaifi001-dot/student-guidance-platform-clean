@@ -1,0 +1,619 @@
+============================================================
+FILE: lib\evidence\evidence-file-storage.ts
+============================================================
+import "server-only";
+
+import { mkdir, stat, unlink, writeFile } from "fs/promises";
+import path from "path";
+
+export const EVIDENCE_PUBLIC_PREFIX = "/uploads/evidence/";
+
+const EVIDENCE_MIME_TYPES = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  pdf: "application/pdf",
+} as const;
+
+export type EvidenceFileExtension = keyof typeof EVIDENCE_MIME_TYPES;
+
+export function getEvidencePersistentStorageRoot() {
+  return path.resolve(process.cwd(), ".storage", "evidence");
+}
+
+export function getEvidenceLegacyStorageRoot() {
+  return path.resolve(process.cwd(), "public", "uploads", "evidence");
+}
+
+export function isSafeEvidenceStoredFileName(fileName: string): boolean {
+  if (!fileName || fileName === "." || fileName === ".." || fileName.includes("\0")) {
+    return false;
+  }
+
+  if (
+    path.basename(fileName) !== fileName ||
+    path.posix.basename(fileName) !== fileName ||
+    path.win32.basename(fileName) !== fileName
+  ) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:jpe?g|png|webp|pdf)$/i.test(fileName);
+}
+
+function resolveEvidenceFilePath(root: string, fileName: string) {
+  if (!isSafeEvidenceStoredFileName(fileName)) return null;
+
+  const resolved = path.resolve(root, fileName);
+  const relative = path.relative(root, resolved);
+
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return null;
+  }
+
+  return resolved;
+}
+
+async function isRegularFile(filePath: string) {
+  try {
+    return (await stat(filePath)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export async function resolveExistingEvidenceFile(fileName: string) {
+  if (!isSafeEvidenceStoredFileName(fileName)) return null;
+
+  for (const root of [getEvidencePersistentStorageRoot(), getEvidenceLegacyStorageRoot()]) {
+    const filePath = resolveEvidenceFilePath(root, fileName);
+    if (filePath && await isRegularFile(filePath)) return filePath;
+  }
+
+  return null;
+}
+
+export async function writeEvidenceFile(fileName: string, data: Uint8Array) {
+  const root = getEvidencePersistentStorageRoot();
+  const filePath = resolveEvidenceFilePath(root, fileName);
+  if (!filePath) throw new Error("Invalid evidence file name.");
+
+  await mkdir(root, { recursive: true });
+  await writeFile(filePath, data, { flag: "wx" });
+  return filePath;
+}
+
+export async function deleteEvidenceFile(fileName: string) {
+  if (!isSafeEvidenceStoredFileName(fileName)) return 0;
+
+  let failures = 0;
+  for (const root of [getEvidencePersistentStorageRoot(), getEvidenceLegacyStorageRoot()]) {
+    const filePath = resolveEvidenceFilePath(root, fileName);
+    if (!filePath) continue;
+
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") failures += 1;
+    }
+  }
+
+  return failures;
+}
+
+export function getEvidenceStoredFileNameFromUrl(fileUrl: string) {
+  if (!fileUrl.startsWith(EVIDENCE_PUBLIC_PREFIX)) return null;
+  const fileName = fileUrl.slice(EVIDENCE_PUBLIC_PREFIX.length);
+  return isSafeEvidenceStoredFileName(fileName) ? fileName : null;
+}
+
+export function getEvidenceMimeType(fileName: string) {
+  if (!isSafeEvidenceStoredFileName(fileName)) return null;
+  const extension = path.extname(fileName).slice(1).toLowerCase() as EvidenceFileExtension;
+  return EVIDENCE_MIME_TYPES[extension] || null;
+}
+
+
+============================================================
+FILE: lib\settings\school-signature-file-storage.ts
+============================================================
+import "server-only";
+
+import { mkdir, stat, writeFile } from "fs/promises";
+import path from "path";
+
+export const SCHOOL_SIGNATURE_PUBLIC_PREFIX = "/uploads/school-signatures/";
+
+export function getSchoolSignaturePersistentStorageRoot() {
+  return path.resolve(process.cwd(), ".storage", "school-signatures");
+}
+
+export function getSchoolSignatureLegacyStorageRoot() {
+  return path.resolve(process.cwd(), "public", "uploads", "school-signatures");
+}
+
+export function isSafeSchoolSignatureOwnerId(value: string): boolean {
+  if (!value || value === "." || value === ".." || value.includes("\0")) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+export function isSafeSchoolSignatureFileName(fileName: string): boolean {
+  if (
+    !fileName ||
+    fileName === "." ||
+    fileName === ".." ||
+    fileName.includes("\0")
+  ) {
+    return false;
+  }
+
+  if (
+    path.basename(fileName) !== fileName ||
+    path.posix.basename(fileName) !== fileName ||
+    path.win32.basename(fileName) !== fileName
+  ) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*\.png$/i.test(fileName);
+}
+
+function resolveOwnerDirectory(root: string, schoolAccountId: string) {
+  if (!isSafeSchoolSignatureOwnerId(schoolAccountId)) {
+    return null;
+  }
+
+  const resolved = path.resolve(root, schoolAccountId);
+  const relative = path.relative(root, resolved);
+
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return null;
+  }
+
+  return resolved;
+}
+
+function resolveSignatureFilePath(
+  root: string,
+  schoolAccountId: string,
+  fileName: string,
+) {
+  const ownerDirectory = resolveOwnerDirectory(root, schoolAccountId);
+
+  if (!ownerDirectory || !isSafeSchoolSignatureFileName(fileName)) {
+    return null;
+  }
+
+  const resolved = path.resolve(ownerDirectory, fileName);
+  const relative = path.relative(ownerDirectory, resolved);
+
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return null;
+  }
+
+  return resolved;
+}
+
+async function isRegularFile(filePath: string) {
+  try {
+    return (await stat(filePath)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export async function writeSchoolSignatureFile(
+  schoolAccountId: string,
+  fileName: string,
+  data: Uint8Array,
+) {
+  const root = getSchoolSignaturePersistentStorageRoot();
+  const ownerDirectory = resolveOwnerDirectory(root, schoolAccountId);
+
+  if (!ownerDirectory) {
+    throw new Error("Invalid school account id.");
+  }
+
+  const filePath = resolveSignatureFilePath(
+    root,
+    schoolAccountId,
+    fileName,
+  );
+
+  if (!filePath) {
+    throw new Error("Invalid school signature file name.");
+  }
+
+  await mkdir(ownerDirectory, { recursive: true });
+  await writeFile(filePath, data, { flag: "wx" });
+
+  return filePath;
+}
+
+export async function resolveExistingSchoolSignatureFile(
+  schoolAccountId: string,
+  fileName: string,
+) {
+  if (
+    !isSafeSchoolSignatureOwnerId(schoolAccountId) ||
+    !isSafeSchoolSignatureFileName(fileName)
+  ) {
+    return null;
+  }
+
+  const roots = [
+    getSchoolSignaturePersistentStorageRoot(),
+    getSchoolSignatureLegacyStorageRoot(),
+  ];
+
+  for (const root of roots) {
+    const filePath = resolveSignatureFilePath(
+      root,
+      schoolAccountId,
+      fileName,
+    );
+
+    if (filePath && (await isRegularFile(filePath))) {
+      return filePath;
+    }
+  }
+
+  return null;
+}
+
+export function getSchoolSignaturePublicUrl(
+  schoolAccountId: string,
+  fileName: string,
+) {
+  if (
+    !isSafeSchoolSignatureOwnerId(schoolAccountId) ||
+    !isSafeSchoolSignatureFileName(fileName)
+  ) {
+    return "";
+  }
+
+  return `${SCHOOL_SIGNATURE_PUBLIC_PREFIX}${schoolAccountId}/${fileName}`;
+}
+
+============================================================
+FILE: app\api\dashboard\settings\school\signature\route.ts
+============================================================
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { NextResponse } from "next/server";
+import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+import { schoolSignaturePostSchema } from "@/lib/settings/school-settings-api-schema";
+import {
+  getSchoolSignaturePublicUrl,
+  writeSchoolSignatureFile,
+} from "@/lib/settings/school-signature-file-storage";
+
+export const runtime = "nodejs";
+
+type SignatureKind = "activityLeader" | "counselor" | "teacher";
+
+async function saveSignatureImage(input: {
+  schoolAccountId: string;
+  userId: string;
+  kind: SignatureKind;
+  dataUrl: string;
+}) {
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(
+    String(input.dataUrl || "").trim(),
+  );
+
+  if (!match) {
+    return "";
+  }
+
+  const buffer = Buffer.from(match[1], "base64");
+
+  if (buffer.length < 200 || buffer.length > 2_000_000) {
+    return "";
+  }
+
+  const fileName = `${input.kind}-signature-${Date.now()}-${randomUUID()}.png`;
+
+  if (input.kind === "teacher") {
+    const relativeDirectory = path.join("user-signatures", input.userId);
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      relativeDirectory,
+    );
+
+    await mkdir(uploadDir, { recursive: true });
+
+    const fullPath = path.join(uploadDir, fileName);
+    await writeFile(fullPath, buffer);
+
+    return `/uploads/${relativeDirectory.replaceAll(path.sep, "/")}/${fileName}`;
+  }
+
+  await writeSchoolSignatureFile(
+    input.schoolAccountId,
+    fileName,
+    new Uint8Array(buffer),
+  );
+
+  return getSchoolSignaturePublicUrl(
+    input.schoolAccountId,
+    fileName,
+  );
+}
+
+export async function POST(request: Request) {
+  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionGuard instanceof Response) {
+    return subscriptionGuard;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user.schoolAccountId) {
+    return NextResponse.json(
+      { success: false, error: "يلزم تسجيل الدخول." },
+      { status: 401 },
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const payloadResult = schoolSignaturePostSchema.safeParse(body);
+
+  if (!payloadResult.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          payloadResult.error.issues[0]?.message || "بيانات التوقيع غير صالحة.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const { kind, dataUrl } = payloadResult.data;
+  const expectedKind: SignatureKind | null =
+    current.user.role === "COUNSELOR"
+      ? "counselor"
+      : current.user.role === "ACTIVITY_LEADER"
+        ? "activityLeader"
+        : current.user.role === "TEACHER"
+          ? "teacher"
+        : null;
+
+  if (!expectedKind || kind !== expectedKind) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لا يتوفر حقل توقيع مخصص لهذا الدور حاليًا.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const signatureUrl = await saveSignatureImage({
+    schoolAccountId: current.user.schoolAccountId,
+    userId: current.user.id,
+    kind,
+    dataUrl,
+  });
+
+  if (!signatureUrl) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "تعذر حفظ التوقيع. أعد التوقيع ثم حاول مرة أخرى.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const signedAt = new Date();
+
+  if (kind === "teacher") {
+    await prisma.user.update({
+      where: {
+        id: current.user.id,
+        schoolAccountId: current.user.schoolAccountId,
+      },
+      data: {
+        signatureUrl,
+        signatureSignedAt: signedAt,
+      },
+    });
+  } else {
+    await prisma.schoolProfile.upsert({
+      where: {
+        schoolAccountId: current.user.schoolAccountId,
+      },
+      update:
+        kind === "activityLeader"
+          ? {
+              activityLeaderSignatureUrl: signatureUrl,
+              activityLeaderSignedAt: signedAt,
+            }
+          : {
+              counselorSignatureUrl: signatureUrl,
+              counselorSignedAt: signedAt,
+            },
+      create: {
+        schoolAccountId: current.user.schoolAccountId,
+        schoolName:
+          current.user.schoolAccount?.profile?.schoolName ||
+          current.user.schoolAccount?.name ||
+          "اسم المدرسة",
+        ...(kind === "activityLeader"
+          ? {
+              activityLeaderSignatureUrl: signatureUrl,
+              activityLeaderSignedAt: signedAt,
+            }
+          : {
+              counselorSignatureUrl: signatureUrl,
+              counselorSignedAt: signedAt,
+            }),
+      },
+    });
+  }
+
+  return NextResponse.json({
+    success: true,
+    signatureUrl,
+    signedAt: signedAt.toISOString(),
+  });
+}
+
+
+============================================================
+FILE: app\api\school-signature\[token]\route.ts
+============================================================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import {
+  getSchoolSignaturePublicUrl,
+  writeSchoolSignatureFile,
+} from "@/lib/settings/school-signature-file-storage";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    token: string;
+  }>;
+};
+
+async function savePrincipalSignature(input: {
+  schoolAccountId: string;
+  dataUrl: string;
+}) {
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(
+    String(input.dataUrl || "").trim(),
+  );
+
+  if (!match) {
+    return "";
+  }
+
+  const buffer = Buffer.from(match[1], "base64");
+
+  if (buffer.length < 200 || buffer.length > 2_000_000) {
+    return "";
+  }
+
+  const fileName = `principal-signature-${Date.now()}.png`;
+
+  await writeSchoolSignatureFile(
+    input.schoolAccountId,
+    fileName,
+    new Uint8Array(buffer),
+  );
+
+  return getSchoolSignaturePublicUrl(
+    input.schoolAccountId,
+    fileName,
+  );
+}
+
+export async function GET(_request: Request, context: RouteContext) {
+  const { token } = await context.params;
+
+  const profile = await prisma.schoolProfile.findUnique({
+    where: {
+      principalSignatureToken: token,
+    },
+    select: {
+      schoolName: true,
+      principalName: true,
+      principalSignatureUrl: true,
+      principalSignatureSignedAt: true,
+    },
+  });
+
+  if (!profile) {
+    return NextResponse.json(
+      { success: false, error: "رابط التوقيع غير صالح." },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      schoolName: profile.schoolName,
+      principalName: profile.principalName || "",
+      signed: Boolean(profile.principalSignatureUrl),
+      signedAt: profile.principalSignatureSignedAt?.toISOString() || "",
+    },
+  });
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const { token } = await context.params;
+
+  const profile = await prisma.schoolProfile.findUnique({
+    where: {
+      principalSignatureToken: token,
+    },
+  });
+
+  if (!profile) {
+    return NextResponse.json(
+      { success: false, error: "رابط التوقيع غير صالح." },
+      { status: 404 },
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const dataUrl = String(body?.dataUrl || "");
+
+  const signatureUrl = await savePrincipalSignature({
+    schoolAccountId: profile.schoolAccountId,
+    dataUrl,
+  });
+
+  if (!signatureUrl) {
+    return NextResponse.json(
+      { success: false, error: "تعذر حفظ التوقيع. أعد التوقيع ثم حاول مرة أخرى." },
+      { status: 400 },
+    );
+  }
+
+  const signedAt = new Date();
+
+  await prisma.schoolProfile.update({
+    where: {
+      id: profile.id,
+    },
+    data: {
+      principalSignatureUrl: signatureUrl,
+      principalSignatureSignedAt: signedAt,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    signatureUrl,
+    signedAt: signedAt.toISOString(),
+  });
+}
+
+MATCH:
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:41
+    const relativeDirectory = path.join("user-signatures", input.userId);
+
+MATCH:
+D:\student-guidance-platform-clean\app\uploads\evidence\[fileName]\route.ts:7
+  resolveExistingEvidenceFile,
+
+MATCH:
+D:\student-guidance-platform-clean\app\uploads\evidence\[fileName]\route.ts:31
+  const filePath = await resolveExistingEvidenceFile(fileName);
+
