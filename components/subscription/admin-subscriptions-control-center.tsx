@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { PlanAudience } from "@/lib/subscription/plan-audience";
+import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
 import {
   filterServicesByPlanAudience,
@@ -108,7 +109,7 @@ export function AdminSubscriptionsControlCenter() {
   } | null>(null);
 
   const [planAudience, setPlanAudience] = useState<PlanAudience>("ALL");
-  const [planName, setPlanName] = useState("باقة الموجه الشهرية");
+  const [planName, setPlanName] = useState("باقة الموجه لفصل دراسي");
   const [planSlug, setPlanSlug] = useState("counselor-monthly");
   const [priceMonthly, setPriceMonthly] = useState("99");
   const [priceYearly, setPriceYearly] = useState("799");
@@ -375,11 +376,11 @@ export function AdminSubscriptionsControlCenter() {
               <input value={planSlug} onChange={(event) => setPlanSlug(event.target.value)} className="input" />
             </Field>
 
-            <Field label="السعر الشهري">
+            <Field label={`سعر ${getSubscriptionPeriodLabel("MONTHLY")}`}>
               <input value={priceMonthly} onChange={(event) => setPriceMonthly(event.target.value)} className="input" />
             </Field>
 
-            <Field label="السعر السنوي">
+            <Field label={`سعر ${getSubscriptionPeriodLabel("YEARLY")}`}>
               <input value={priceYearly} onChange={(event) => setPriceYearly(event.target.value)} className="input" />
             </Field>
 
@@ -577,8 +578,14 @@ export function AdminSubscriptionsControlCenter() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] font-bold text-slate-600">
-                    <PlanMini label="شهري" value={`${plan.priceMonthly} ريال`} />
-                    <PlanMini label="سنوي" value={`${plan.priceYearly} ريال`} />
+                    <PlanMini
+                      label={getSubscriptionPeriodLabel("MONTHLY")}
+                      value={`${plan.priceMonthly} ريال`}
+                    />
+                    <PlanMini
+                      label={getSubscriptionPeriodLabel("YEARLY")}
+                      value={`${plan.priceYearly} ريال`}
+                    />
                     <PlanMini label="المدة" value={`${getPlanFeatureValue(plan, "durationDays")} يوم`} />
                     <PlanMini label="الطلاب" value={getPlanFeatureValue(plan, "maxStudents", "مفتوح")} />
                   </div>

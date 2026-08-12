@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -860,7 +861,7 @@ export function AdminSubscribersCenter() {
                   }
                   className="rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
                 >
-                  تمديد 30 يوم
+                  تمديد {getSubscriptionPeriodLabel("MONTHLY")}
                 </button>
 
                 <button
@@ -874,7 +875,7 @@ export function AdminSubscribersCenter() {
                   }
                   className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
                 >
-                  تمديد سنة
+                  تمديد {getSubscriptionPeriodLabel("YEARLY")}
                 </button>
 
                 <button

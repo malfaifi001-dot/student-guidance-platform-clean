@@ -12,6 +12,7 @@ import {
   getRemainingDays,
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
+import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -107,8 +108,10 @@ export async function GET() {
     subscription: subscription
         ? {
             status: subscription.status,
+            planId: subscription.planId,
             planName: subscription.plan.name,
             planSlug: subscription.plan.slug,
+            startsAt: subscription.startsAt,
             endsAt: subscription.endsAt,
             remainingDays: getRemainingDays(subscription.endsAt),
             usable: isSubscriptionUsable(subscription.status, subscription.endsAt),
@@ -249,7 +252,7 @@ export async function POST(request: Request) {
       billingCycle,
       adminNote: [
         `طلب باقة: ${plan.name}`,
-        `نوع الاشتراك: ${billingCycle === "yearly" ? "سنوي" : "شهري"}`,
+        `نوع الاشتراك: ${getSubscriptionPeriodLabel(billingCycle)}`,
         phone ? `جوال: ${phone}` : "",
         note ? `ملاحظة: ${note}` : "",
       ]

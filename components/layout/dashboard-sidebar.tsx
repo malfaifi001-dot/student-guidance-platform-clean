@@ -605,10 +605,15 @@ function getRoleLabel(role?: string | null) {
 
 export function DashboardSidebar({
   user,
+  subscription,
   mode = "permanent",
   onClose,
 }: {
   user?: SidebarUser | null;
+  subscription?: {
+    planName: string;
+    statusText: string;
+  };
   mode?: "permanent" | "drawer";
   onClose?: () => void;
 }) {
@@ -802,9 +807,18 @@ export function DashboardSidebar({
 
         <SidebarProfile
           collapsed={effectiveCollapsed}
-          displayName={displayName}
-          roleLabel={roleLabel}
+          displayName={
+            isAdmin
+              ? displayName
+              : subscription?.planName || "لا توجد باقة مفعلة"
+          }
+          roleLabel={
+            isAdmin
+              ? roleLabel
+              : subscription?.statusText || "اختر باقة للمتابعة"
+          }
           avatar={avatar}
+          avatarAlt={displayName}
         />
       </div>
     </aside>
@@ -907,11 +921,13 @@ function SidebarProfile({
   displayName,
   roleLabel,
   avatar,
+  avatarAlt,
 }: {
   collapsed: boolean;
   displayName: string;
   roleLabel: string;
   avatar: string;
+  avatarAlt: string;
 }) {
   return (
     <div
@@ -934,7 +950,7 @@ function SidebarProfile({
         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-sky-50 ring-2 ring-sky-100 dark:bg-sky-500/10 dark:ring-sky-400/20">
           <img
             src={avatar}
-            alt={displayName}
+            alt={avatarAlt}
             className="h-full w-full object-cover"
           />
 

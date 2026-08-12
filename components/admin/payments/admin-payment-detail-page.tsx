@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 
 type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "CANCELED";
 type PaymentMethod = "CARD" | "BANK_TRANSFER" | "MANUAL";
@@ -422,7 +423,10 @@ export function AdminPaymentDetailPage({ transactionId }: { transactionId: strin
                 />
                 <DetailItem label="حالة الطلب" value={getStatusLabel(data.linkedBankTransfer.status)} />
                 <DetailItem label="مدة التفعيل" value={data.linkedBankTransfer.durationDays ? `${data.linkedBankTransfer.durationDays} يوم` : "—"} />
-                <DetailItem label="دورة الفوترة" value={data.linkedBankTransfer.billingCycle || "—"} />
+                <DetailItem
+                  label="دورة الفوترة"
+                  value={getSubscriptionPeriodLabel(data.linkedBankTransfer.billingCycle)}
+                />
                 <DetailItem label="تاريخ الطلب" value={formatDate(data.linkedBankTransfer.createdAt)} />
                 <DetailItem label="آخر تحديث" value={formatDate(data.linkedBankTransfer.updatedAt)} />
                 <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/60">

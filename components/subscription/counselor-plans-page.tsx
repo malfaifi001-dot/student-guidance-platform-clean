@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, CheckCircle2, Loader2, ShieldCheck, X } from "lucide-react";
 import { PlanPaymentModal } from "@/components/payments/plan-payment-modal";
+import {
+  formatSubscriptionPeriod,
+  getBillingCycleLabel,
+} from "@/lib/subscription/subscription-presentation";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
@@ -28,8 +33,10 @@ type PlansPayload = {
   plans: CounselorPlan[];
   subscription: {
     status: string;
+    planId: string;
     planName: string;
     planSlug?: string;
+    startsAt: string;
     endsAt: string | null;
     remainingDays: number | null;
     usable: boolean;
@@ -73,7 +80,7 @@ function getPlanPrice(plan: CounselorPlan, billingCycle: BillingCycle) {
 }
 
 function getBillingLabel(billingCycle: BillingCycle) {
-  return billingCycle === "yearly" ? "سنوي" : "شهري";
+  return getBillingCycleLabel(billingCycle);
 }
 
 function formatPrice(value: number) {
@@ -121,6 +128,7 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
 }
 
 export function CounselorPlansPage() {
+  const router = useRouter();
   const [data, setData] = useState<PlansPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<CounselorPlan | null>(null);
@@ -220,6 +228,7 @@ export function CounselorPlansPage() {
       }
 
       await loadPlans();
+      router.refresh();
       setSelectedPlan(null);
       setMessage({ type: "success", text: result.message || "تم تفعيل الباقة بنجاح." });
     } catch (error) {
@@ -390,28 +399,44 @@ export function CounselorPlansPage() {
           </p>
         </div>
 
-        <div className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1" aria-label="دورة الفوترة">
-          {(["monthly", "yearly"] as const).map((cycle) => (
-            <button
-              key={cycle}
-              type="button"
-              onClick={() => changeBillingCycle(cycle)}
-              className={[
-                "rounded-xl px-5 py-2 text-sm font-black transition",
-                billingCycle === cycle
-                  ? "bg-white text-slate-950 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800",
-              ].join(" ")}
-            >
-              {cycle === "monthly" ? "شهري" : "سنوي"}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {data?.subscription?.usable ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2">
+              <p className="text-xs font-black text-emerald-700">
+                الباقة المفعلة · {data.subscription.planName}
+              </p>
+              <p className="mt-0.5 text-xs font-bold text-emerald-600">
+                {formatSubscriptionPeriod(data.subscription)}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1" aria-label="دورة الفوترة">
+            {(["monthly", "yearly"] as const).map((cycle) => (
+              <button
+                key={cycle}
+                type="button"
+                onClick={() => changeBillingCycle(cycle)}
+                className={[
+                  "rounded-xl px-5 py-2 text-sm font-black transition",
+                  billingCycle === cycle
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800",
+                ].join(" ")}
+              >
+                {getBillingLabel(cycle)}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       <section id="plans-list" className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visiblePlans.map((plan) => {
-          const active = selectedPlan?.id === plan.id;
+          const selected = selectedPlan?.id === plan.id;
+          const active = Boolean(
+            data?.subscription?.usable && data.subscription.planId === plan.id,
+          );
           const price = getPlanPrice(plan, billingCycle);
           const benefits = plan.services.slice(0, 4);
 
@@ -422,12 +447,20 @@ export function CounselorPlansPage() {
                 "flex min-h-[350px] flex-col rounded-[1.75rem] border bg-white p-5 transition",
                 active
                   ? "border-emerald-400 bg-emerald-50/30 shadow-sm"
+                  : selected
+                    ? "border-sky-300 bg-sky-50/30 shadow-sm"
                   : "border-slate-200 hover:border-slate-300",
               ].join(" ")}
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-xl font-black text-slate-950">{plan.name}</h2>
-                {active ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : null}
+                {active ? (
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
+                    الباقة المفعلة
+                  </span>
+                ) : selected ? (
+                  <CheckCircle2 className="h-5 w-5 text-sky-600" />
+                ) : null}
               </div>
 
               <div className="mt-5 flex items-end gap-2">
@@ -459,14 +492,17 @@ export function CounselorPlansPage() {
               <button
                 type="button"
                 onClick={() => selectPlan(plan)}
+                disabled={active}
                 className={[
                   "mt-4 h-11 rounded-2xl text-sm font-black transition",
                   active
-                    ? "bg-emerald-700 text-white"
+                    ? "cursor-default bg-emerald-100 text-emerald-700"
+                    : selected
+                      ? "bg-sky-700 text-white"
                     : "bg-slate-950 text-white hover:bg-slate-800",
                 ].join(" ")}
               >
-                اختيار الباقة
+                {active ? "الباقة الحالية" : "اختيار الباقة"}
               </button>
             </article>
           );

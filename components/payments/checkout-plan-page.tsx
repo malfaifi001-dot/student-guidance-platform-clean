@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 
 type Plan = {
   id: string;
@@ -119,7 +120,9 @@ export function CheckoutPlanPage({
                   : "rounded-3xl border border-slate-200 bg-white p-5 text-right dark:border-slate-800 dark:bg-slate-950"
               }
             >
-              <p className="font-black text-slate-950 dark:text-white">شهري</p>
+              <p className="font-black text-slate-950 dark:text-white">
+                {getSubscriptionPeriodLabel("MONTHLY")}
+              </p>
               <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
                 {formatAmount(plan.priceMonthly)}
               </p>
@@ -134,7 +137,9 @@ export function CheckoutPlanPage({
                   : "rounded-3xl border border-slate-200 bg-white p-5 text-right dark:border-slate-800 dark:bg-slate-950"
               }
             >
-              <p className="font-black text-slate-950 dark:text-white">سنوي</p>
+              <p className="font-black text-slate-950 dark:text-white">
+                {getSubscriptionPeriodLabel("YEARLY")}
+              </p>
               <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
                 {formatAmount(plan.priceYearly)}
               </p>
@@ -177,7 +182,7 @@ export function CheckoutPlanPage({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
               <span className="text-slate-500 dark:text-slate-400">الفوترة</span>
               <strong className="text-slate-950 dark:text-white">
-                {billingCycle === "YEARLY" ? "سنوي" : "شهري"}
+                {getSubscriptionPeriodLabel(billingCycle)}
               </strong>
             </div>
 

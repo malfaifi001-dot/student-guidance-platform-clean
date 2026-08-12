@@ -8,6 +8,8 @@ import { DashboardNavigationRefresh } from "@/components/layout/dashboard-naviga
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,6 +22,29 @@ export default async function DashboardLayout({
   children: ReactNode;
 }) {
   const current = await requireDashboardUser();
+  const subscriptionOverview =
+    current.user.role !== "ADMIN" && current.user.schoolAccountId
+      ? await getSchoolSubscriptionOverview(current.user.schoolAccountId)
+      : null;
+  const subscriptionPresentation =
+    current.user.role === "ADMIN"
+      ? undefined
+      : getSubscriptionSidebarPresentation(
+          subscriptionOverview?.usable && subscriptionOverview.subscription
+            ? {
+                planName: subscriptionOverview.subscription.plan.name,
+                planSlug: subscriptionOverview.subscription.plan.slug,
+                durationDays: Number(
+                  subscriptionOverview.subscription.plan.features.find(
+                    (feature) => feature.key === "durationDays",
+                  )?.value || 0,
+                ),
+                status: subscriptionOverview.subscription.status,
+                startsAt: subscriptionOverview.subscription.startsAt,
+                endsAt: subscriptionOverview.subscription.endsAt,
+              }
+            : null,
+        );
 
   return (
     <ThemeProvider>
@@ -29,10 +54,16 @@ export default async function DashboardLayout({
         className="h-screen overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
       >
         <div className="flex h-screen min-w-0">
-          <DashboardSidebar user={current.user} />
+          <DashboardSidebar
+            user={current.user}
+            subscription={subscriptionPresentation}
+          />
 
           <main className="h-screen w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
-            <DashboardHeader user={current.user} />
+            <DashboardHeader
+              user={current.user}
+              subscription={subscriptionPresentation}
+            />
 
             {current.user.role !== "PRINCIPAL" ? (
               <>

@@ -34,9 +34,13 @@ type DashboardHeaderProps = {
       } | null;
     } | null;
   } | null;
+  subscription?: {
+    planName: string;
+    statusText: string;
+  };
 };
 
-export function DashboardHeader({ user }: DashboardHeaderProps) {
+export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -309,6 +313,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           >
             <DashboardSidebar
               user={user}
+              subscription={subscription}
               mode="drawer"
               onClose={() => setSidebarOpen(false)}
             />
