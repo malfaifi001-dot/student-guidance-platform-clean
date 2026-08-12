@@ -1,0 +1,28 @@
+﻿"use client";
+
+import type { ReportDesignId } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+
+type ReportTwoPdfExportSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  designTemplateId?: ReportDesignId;
+  variantId?: string | null;
+};
+
+export function ReportTwoPdfExportPreview({
+  snapshot,
+  printMode = false,
+}: {
+  snapshot: ReportTwoPdfExportSnapshot;
+  printMode?: boolean;
+}) {
+  return (
+    <ReportTwoPrintDocument
+      snapshot={snapshot}
+      autoPrint={printMode}
+    />
+  );
+}
+

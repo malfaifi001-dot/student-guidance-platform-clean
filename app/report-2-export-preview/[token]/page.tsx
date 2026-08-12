@@ -11,6 +11,7 @@ type PageProps = {
   }>;
   searchParams: Promise<{
     print?: string;
+    pdf?: string;
   }>;
 };
 

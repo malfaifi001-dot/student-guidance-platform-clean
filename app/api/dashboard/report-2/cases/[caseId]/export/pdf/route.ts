@@ -14,6 +14,7 @@ import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
+import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,25 @@ function getRequestOrigin(request: Request) {
     "http";
 
   return `${proto}://${host}`;
+}
+
+function isLocalRequestOrigin(origin: string) {
+  const hostname = new URL(origin).hostname.toLowerCase();
+
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function getPdfContentDisposition(fileName: string) {
+  const asciiFallback = fileName
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]+/g, "-")
+    .replace(/["\\]/g, "-")
+    .replace(/-+/g, "-") || "report.pdf";
+  const encodedFileName = encodeURIComponent(fileName).replace(/['()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
 }
 
 function isPrivateReportFieldObject(value: Record<string, unknown>) {
@@ -271,6 +291,29 @@ export async function POST(request: Request, context: RouteContext) {
   await fs.writeFile(snapshotPath, JSON.stringify(exportSnapshot), "utf8");
 
   cleanupStaleSnapshots().catch(() => null);
+
+  if (!isLocalRequestOrigin(origin)) {
+    try {
+      const pdfBytes = await generatePdfFromUrlWithCloudflare({
+        url: `${previewUrl}?pdf=1`,
+      });
+      const pdfBody = new ArrayBuffer(pdfBytes.byteLength);
+      new Uint8Array(pdfBody).set(pdfBytes);
+
+      return new Response(pdfBody, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": getPdfContentDisposition(fileName),
+          "Cache-Control": "private, no-store",
+        },
+      });
+    } catch (error) {
+      console.error("Report 2 Cloudflare PDF generation failed; using print preview fallback.", {
+        message: error instanceof Error ? error.message : "Unknown Cloudflare PDF error",
+      });
+    }
+  }
 
   return NextResponse.json(
     {
