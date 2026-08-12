@@ -1,3 +1,1537 @@
+============================================================
+FILE: app\dashboard\report-2\snapshots\[snapshotId]\preview\page.tsx
+============================================================
+
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+
+import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
+import { ReportTwoLinkedAssessmentAppendix } from "@/components/report-2/report-two-linked-assessment-appendix";
+import { ReportTwoLinkedSurveyAppendix } from "@/components/report-2/report-two-linked-survey-appendix";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { buildAssessmentPdfHtml } from "@/lib/assessment-center/assessment-pdf-report";
+import { getLinkedSurveyHtmlItems } from "@/lib/report-2/report-linked-survey-attachments";
+import { prisma } from "@/lib/prisma";
+import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+import { getAuthorizedReportTwoById } from "@/lib/report-2/report-two-access";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+
+type PageProps = {
+  params: Promise<{
+    snapshotId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function safeString(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asRows(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+}
+
+function getBaseUrlFromHeaders(requestHeaders: Headers) {
+  const proto =
+    requestHeaders.get("x-forwarded-proto") ||
+    (process.env.NODE_ENV === "development" ? "http" : "https");
+
+  const host =
+    requestHeaders.get("x-forwarded-host") ||
+    requestHeaders.get("host") ||
+    "localhost:3000";
+
+  return `${proto}://${host}`;
+}
+
+function normalizeAssessmentHtmlForPreview(html: string) {
+  const forceFrameStyle = `
+<style>
+  html,
+  body{
+    width:297mm !important;
+    height:210mm !important;
+    min-width:297mm !important;
+    min-height:210mm !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    background:#ffffff !important;
+    display:block !important;
+  }
+
+  .print-frame{
+    width:297mm !important;
+    height:210mm !important;
+    margin:0 !important;
+    border:0 !important;
+    box-shadow:none !important;
+    overflow:hidden !important;
+  }
+
+  .sheet{
+    margin:0 !important;
+    box-shadow:none !important;
+  }
+</style>`;
+
+  return html.includes("</head>")
+    ? html.replace("</head>", `${forceFrameStyle}\n</head>`)
+    : `${forceFrameStyle}${html}`;
+}
+
+async function getLinkedAssessmentAnalyses({
+  context,
+  snapshot,
+}: {
+  context: any;
+  snapshot: any;
+}) {
+  const caseEntryId = safeString(snapshot?.caseEntryId);
+  const snapshotSchoolAccountId = safeString(snapshot?.schoolAccountId);
+  const schoolAccountId = context?.isAdmin
+    ? snapshotSchoolAccountId || safeString(context?.schoolAccountId)
+    : safeString(context?.schoolAccountId);
+
+  if (!caseEntryId || !schoolAccountId) {
+    return [];
+  }
+
+  const links = await prisma.dashboardResourceLink.findMany({
+    where: {
+      schoolAccountId,
+      sourceType: "CASE_REPORT",
+      sourceId: caseEntryId,
+      targetType: "ASSESSMENT_ANALYSIS",
+    },
+    orderBy: [
+      { sortOrder: "asc" },
+      { createdAt: "asc" },
+    ],
+    select: {
+      targetId: true,
+    },
+  });
+
+  const targetIds = links
+    .map((link) => link.targetId)
+    .filter(Boolean);
+
+  if (!targetIds.length) {
+    return [];
+  }
+
+  const analyses = await prisma.assessmentAnalysis.findMany({
+    where: {
+      id: {
+        in: targetIds,
+      },
+      schoolAccountId,
+    },
+    select: {
+      id: true,
+      title: true,
+      sourceFile: true,
+      status: true,
+      uploadMode: true,
+      totalStudents: true,
+      totalRows: true,
+      totalSubjects: true,
+      averagePercentage: true,
+      summaryJson: true,
+      rowsJson: true,
+      createdAt: true,
+      updatedAt: true,
+      schoolAccountId: true,
+    },
+  });
+
+  const byId = new Map(analyses.map((analysis) => [analysis.id, analysis]));
+
+  return targetIds
+    .map((targetId) => byId.get(targetId))
+    .filter(Boolean);
+}
+
+export default async function ReportTwoSnapshotPreviewPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
+  const { snapshotId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const printMode = firstParam(resolvedSearchParams.print) === "1";
+  const authorized = await getAuthorizedReportTwoById(
+    context,
+    snapshotId,
+    "REPORT_VIEW",
+  );
+  if (!authorized) notFound();
+  await requireServiceAccessForCurrentUser(
+    getActivityProgramsBillingServiceSlug(authorized.caseEntry.service.slug),
+  );
+  const snapshot = await getReportTwoSnapshotById(context, snapshotId);
+
+  if (!snapshot) {
+    notFound();
+  }
+
+  const requestHeaders = await headers();
+  const baseUrl = getBaseUrlFromHeaders(requestHeaders);
+  const cookie = requestHeaders.get("cookie") || "";
+  const caseEntryId = safeString((snapshot as any)?.caseEntryId);
+
+  const linkedAssessmentAnalyses = await getLinkedAssessmentAnalyses({
+    context,
+    snapshot,
+  });
+
+  const linkedSurveyHtmlItems = caseEntryId
+    ? await getLinkedSurveyHtmlItems(caseEntryId, {
+        baseUrl,
+        cookie,
+      })
+    : [];
+
+  const schoolAccountId =
+    safeString((snapshot as any)?.schoolAccountId) ||
+    safeString((context as any)?.schoolAccountId);
+
+  const schoolProfile = schoolAccountId
+    ? await prisma.schoolProfile
+        .findFirst({
+          where: {
+            schoolAccountId,
+          },
+        })
+        .catch(() => null)
+    : null;
+
+  const linkedAssessmentHtmlItems = linkedAssessmentAnalyses.map((analysis) => {
+    const html = buildAssessmentPdfHtml({
+      analysis: analysis as unknown as Record<string, unknown>,
+      summary: asRecord((analysis as any).summaryJson),
+      rows: asRows((analysis as any).rowsJson),
+      schoolProfile: schoolProfile as unknown as Record<string, unknown> | null,
+    });
+
+    return normalizeAssessmentHtmlForPreview(html);
+  });
+
+  return (
+    <>
+      <ReportTwoSnapshotPreview
+        snapshot={snapshot}
+        caseTitle={authorized.caseEntry.title}
+        printMode={printMode}
+      />
+
+      <ReportTwoLinkedAssessmentAppendix htmlItems={linkedAssessmentHtmlItems} />
+      <ReportTwoLinkedSurveyAppendix htmlItems={linkedSurveyHtmlItems} />
+    </>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-active-preview-renderer.tsx
+============================================================
+
+"use client";
+
+import { useMemo } from "react";
+import { ReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
+
+export function ReportTwoActivePreviewRenderer({ template, context, previewCase, sourcePayload, variantId }: {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  sourcePayload?: unknown;
+  variantId?: string | null;
+}) {
+  const displayTemplate = useMemo(
+    () => applyStructuredTableDisplayMetadataToTemplate(template, sourcePayload),
+    [template, sourcePayload],
+  ) as any;
+  const pages = Array.isArray(displayTemplate?.pages) ? displayTemplate.pages : [];
+  const activePage = pages[0] || null;
+  const designId = isReportDesignId(displayTemplate?.designTemplateId)
+    ? displayTemplate.designTemplateId
+    : null;
+
+  if (!designId) {
+    return (
+      <section className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ.
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "report-two-a4-host report-two-persisted-active-root",
+        variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+    >
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
+      <ReportDesignRenderer
+        renderMode="stack"
+        chromeLayout="split"
+        designId={designId}
+        template={displayTemplate}
+        activePage={activePage}
+        activePageId={activePage?.id || ""}
+        context={context || {}}
+        previewCase={previewCase || null}
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </section>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-linked-assessment-appendix.tsx
+============================================================
+
+type Props = {
+  htmlItems: string[];
+};
+
+export function ReportTwoLinkedAssessmentAppendix({ htmlItems }: Props) {
+  if (!htmlItems.length) return null;
+
+  return (
+    <section className="linked-assessment-official-shell" dir="rtl">
+      <style>{`
+        .linked-assessment-official-shell{
+          width:100%;
+          margin:0;
+          padding:0 0 28px;
+          background:transparent;
+        }
+
+        .linked-assessment-preview-card{
+          width:min(100%, 1120px);
+          margin:24px auto 0;
+          overflow:hidden;
+          border-radius:2rem;
+          border:1px solid #dbe3ea;
+          background:#ffffff;
+          box-shadow:0 2px 6px rgba(15,23,42,.06);
+          padding:24px;
+          page-break-before:always;
+          break-before:page;
+        }
+
+        .linked-assessment-card-head{
+          margin-bottom:18px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:16px;
+        }
+
+        .linked-assessment-card-title{
+          margin:0;
+          color:#081f47;
+          font-size:20px;
+          line-height:1.5;
+          font-weight:900;
+        }
+
+        .linked-assessment-card-subtitle{
+          margin:4px 0 0;
+          color:#64748b;
+          font-size:13px;
+          line-height:1.8;
+          font-weight:800;
+        }
+
+        .linked-assessment-card-badge{
+          flex-shrink:0;
+          border-radius:999px;
+          background:#ecfeff;
+          border:1px solid #cffafe;
+          color:#0e7490;
+          padding:10px 16px;
+          font-size:12px;
+          font-weight:900;
+        }
+
+        .linked-assessment-official-page{
+          width:297mm;
+          height:210mm;
+          max-width:100%;
+          margin:0 auto;
+          overflow:hidden;
+          background:#ffffff;
+          border:1px solid rgba(148,163,184,.35);
+          box-shadow:0 18px 48px rgba(15,23,42,.12);
+        }
+
+        .linked-assessment-official-frame{
+          display:block;
+          width:297mm;
+          height:210mm;
+          max-width:100%;
+          border:0;
+          background:#ffffff;
+          transform-origin:top center;
+        }
+
+        @media screen and (max-width: 1200px){
+          .linked-assessment-preview-card{
+            width:calc(100% - 32px);
+            padding:18px;
+          }
+
+          .linked-assessment-official-page{
+            width:100%;
+            aspect-ratio:297 / 210;
+            height:auto;
+          }
+
+          .linked-assessment-official-frame{
+            width:100%;
+            height:100%;
+          }
+        }
+
+        @media print{
+          .linked-assessment-official-shell{
+            background:#ffffff !important;
+            margin:0 !important;
+            padding:0 !important;
+          }
+
+          .linked-assessment-preview-card{
+            width:297mm !important;
+            height:210mm !important;
+            margin:0 !important;
+            padding:0 !important;
+            border:0 !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+            background:#ffffff !important;
+            overflow:hidden !important;
+            page-break-before:always !important;
+            break-before:page !important;
+            page-break-after:always !important;
+            break-after:page !important;
+          }
+
+          .linked-assessment-card-head{
+            display:none !important;
+          }
+
+          .linked-assessment-official-page{
+            width:297mm !important;
+            height:210mm !important;
+            max-width:297mm !important;
+            margin:0 !important;
+            border:0 !important;
+            box-shadow:none !important;
+            overflow:hidden !important;
+          }
+
+          .linked-assessment-official-frame{
+            width:297mm !important;
+            height:210mm !important;
+            max-width:297mm !important;
+            border:0 !important;
+          }
+        }
+      `}</style>
+
+      {htmlItems.map((html, index) => (
+        <article
+          key={index}
+          className="linked-assessment-preview-card"
+          aria-label={`ملحق تحليل نتائج ${index + 1}`}
+        >
+          <header className="linked-assessment-card-head">
+            <div>
+              <h2 className="linked-assessment-card-title">
+                ملحق تحليل النتائج المرتبط بالتقرير
+              </h2>
+              <p className="linked-assessment-card-subtitle">
+                يظهر هذا الملحق كصفحة مستقلة بعد التقرير، بدون تعديل تصميم التقرير الأساسي.
+              </p>
+            </div>
+
+            <span className="linked-assessment-card-badge">
+              تحليل {index + 1} من {htmlItems.length}
+            </span>
+          </header>
+
+          <div className="linked-assessment-official-page">
+            <iframe
+              title={`ملحق تحليل نتائج ${index + 1}`}
+              className="linked-assessment-official-frame"
+              srcDoc={html}
+            />
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+============================================================
+FILE: components\report-2\report-two-linked-survey-appendix.tsx
+============================================================
+
+type Props = {
+  htmlItems: string[];
+};
+
+export function ReportTwoLinkedSurveyAppendix({ htmlItems }: Props) {
+  if (!htmlItems.length) return null;
+
+  return (
+    <section className="linked-survey-official-shell" dir="rtl">
+      <style>{`
+        .linked-survey-official-shell{
+          width:100%;
+          margin:0;
+          padding:0 0 28px;
+          background:transparent;
+        }
+
+        .linked-survey-preview-card{
+          width:min(100%, 1120px);
+          margin:24px auto 0;
+          overflow:hidden;
+          border-radius:2rem;
+          border:1px solid #dbe3ea;
+          background:#ffffff;
+          box-shadow:0 2px 6px rgba(15,23,42,.06);
+          padding:24px;
+          page-break-before:always;
+          break-before:page;
+        }
+
+        .linked-survey-card-head{
+          margin-bottom:18px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:16px;
+        }
+
+        .linked-survey-card-title{
+          margin:0;
+          color:#081f47;
+          font-size:20px;
+          line-height:1.5;
+          font-weight:900;
+        }
+
+        .linked-survey-card-subtitle{
+          margin:4px 0 0;
+          color:#64748b;
+          font-size:13px;
+          line-height:1.8;
+          font-weight:800;
+        }
+
+        .linked-survey-card-badge{
+          flex-shrink:0;
+          border-radius:999px;
+          background:#ecfeff;
+          border:1px solid #cffafe;
+          color:#0e7490;
+          padding:10px 16px;
+          font-size:12px;
+          font-weight:900;
+        }
+
+        .linked-survey-official-page{
+          width:297mm;
+          height:210mm;
+          max-width:100%;
+          margin:0 auto;
+          overflow:hidden;
+          background:#ffffff;
+          border:1px solid rgba(148,163,184,.35);
+          box-shadow:0 18px 48px rgba(15,23,42,.12);
+        }
+
+        .linked-survey-official-frame{
+          display:block;
+          width:297mm;
+          height:210mm;
+          max-width:100%;
+          border:0;
+          background:#ffffff;
+          transform-origin:top center;
+        }
+
+        @media screen and (max-width: 1200px){
+          .linked-survey-preview-card{
+            width:calc(100% - 32px);
+            padding:18px;
+          }
+
+          .linked-survey-official-page{
+            width:100%;
+            aspect-ratio:297 / 210;
+            height:auto;
+          }
+
+          .linked-survey-official-frame{
+            width:100%;
+            height:100%;
+          }
+        }
+
+        @media print{
+          .linked-survey-official-shell{
+            background:#ffffff !important;
+            margin:0 !important;
+            padding:0 !important;
+          }
+
+          .linked-survey-preview-card{
+            width:297mm !important;
+            height:210mm !important;
+            margin:0 !important;
+            padding:0 !important;
+            border:0 !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+            background:#ffffff !important;
+            overflow:hidden !important;
+            page-break-before:always !important;
+            break-before:page !important;
+            page-break-after:always !important;
+            break-after:page !important;
+          }
+
+          .linked-survey-card-head{
+            display:none !important;
+          }
+
+          .linked-survey-official-page{
+            width:297mm !important;
+            height:210mm !important;
+            max-width:297mm !important;
+            margin:0 !important;
+            border:0 !important;
+            box-shadow:none !important;
+            overflow:hidden !important;
+          }
+
+          .linked-survey-official-frame{
+            width:297mm !important;
+            height:210mm !important;
+            max-width:297mm !important;
+            border:0 !important;
+          }
+        }
+      `}</style>
+
+      {htmlItems.map((html, index) => (
+        <article
+          key={index}
+          className="linked-survey-preview-card"
+          aria-label={`ملحق تقرير استبيان ${index + 1}`}
+        >
+          <header className="linked-survey-card-head">
+            <div>
+              <h2 className="linked-survey-card-title">
+                ملحق الاستبيان المرتبط بالتقرير
+              </h2>
+              <p className="linked-survey-card-subtitle">
+                يظهر هذا الملحق كصفحة مستقلة بعد التقرير، بدون تعديل تصميم التقرير الأساسي.
+              </p>
+            </div>
+
+            <span className="linked-survey-card-badge">
+              استبيان {index + 1} من {htmlItems.length}
+            </span>
+          </header>
+
+          <div className="linked-survey-official-page">
+            <iframe
+              title={`ملحق تقرير استبيان ${index + 1}`}
+              className="linked-survey-official-frame"
+              srcDoc={html}
+            />
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+============================================================
+FILE: components\report-2\report-two-pdf-download-button.tsx
+============================================================
+
+"use client";
+
+import { type ReactNode, useCallback, useState } from "react";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+
+type SnapshotInfo = {
+  caseEntryId: string;
+  reportTitle: string;
+  snapshotTemplateJson?: unknown;
+  snapshotPagesJson?: unknown;
+  renderContext?: unknown;
+  previewCase?: unknown;
+  snapshotPayload?: unknown;
+  variantId?: string | null;
+};
+
+type PdfDownloadButtonProps = {
+  snapshot: SnapshotInfo;
+  className?: string;
+  label?: string;
+  children?: ReactNode;
+};
+
+function formatFileName(value: string) {
+  return (
+    value
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 150) || "report"
+  );
+}
+
+function getPrintableTemplate(
+  templateJson: unknown,
+  pagesJson: unknown,
+): Record<string, unknown> | null {
+  if (templateJson && typeof templateJson === "object") {
+    const obj = templateJson as Record<string, unknown>;
+    const pages =
+      Array.isArray(obj.pages) && obj.pages.length > 0
+        ? obj.pages
+        : Array.isArray(pagesJson) && pagesJson.length > 0
+          ? pagesJson
+          : null;
+
+    if (
+      isReportDesignId(obj.designTemplateId) &&
+      pages
+    ) {
+      return {
+        ...obj,
+        pages,
+      };
+    }
+  }
+
+  return null;
+}
+
+export function ReportTwoPdfDownloadButton({
+  snapshot,
+  className = "",
+  label,
+  children,
+}: PdfDownloadButtonProps) {
+  const [loading, setLoading] = useState(false);
+  const [fallbackState, setFallbackState] = useState<{
+    message: string;
+    previewUrl?: string;
+  } | null>(null);
+
+  const openPreviewWindow = useCallback((previewUrl: string) => {
+    const popup = window.open(previewUrl, "_blank", "noopener,noreferrer");
+
+    if (popup) {
+      setFallbackState(null);
+    } else {
+      setFallbackState({
+        message:
+          "تم حظر فتح معاينة الطباعة تلقائياً. استخدم الزر أدناه لفتح المعاينة في نافذة جديدة.",
+        previewUrl,
+      });
+    }
+
+    return popup;
+  }, []);
+
+  const handleDownload = useCallback(async () => {
+    if (loading) return;
+
+    setLoading(true);
+    setFallbackState(null);
+
+    try {
+      const printableTemplate = getPrintableTemplate(
+        snapshot.snapshotTemplateJson,
+        snapshot.snapshotPagesJson,
+      );
+
+      if (!printableTemplate) {
+        setFallbackState({
+          message: "تعذر إنشاء معاينة الطباعة لهذا التقرير. حاول مرة أخرى.",
+        });
+        return;
+      }
+
+      const exportSnapshot: Record<string, unknown> = {
+        template: printableTemplate,
+        context: snapshot.renderContext || {},
+        previewCase: snapshot.previewCase || null,
+        sourcePayload: snapshot.snapshotPayload,
+        designTemplateId: printableTemplate.designTemplateId,
+        variantId: snapshot.variantId || null,
+      };
+
+      const response = await fetch(
+        `/api/dashboard/report-2/cases/${encodeURIComponent(snapshot.caseEntryId)}/export/pdf`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: formatFileName(snapshot.reportTitle),
+            snapshot: exportSnapshot,
+          }),
+        },
+      );
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/pdf")) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = `${formatFileName(snapshot.reportTitle)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        setFallbackState({
+          message: "تعذر فتح معاينة الطباعة تلقائياً. حاول مرة أخرى.",
+        });
+        return;
+      }
+
+      if (
+        data.fallback === "PRINT_PREVIEW" &&
+        typeof data.previewUrl === "string"
+      ) {
+        openPreviewWindow(data.previewUrl);
+        return;
+      }
+
+      setFallbackState({
+        message: "تعذر فتح معاينة الطباعة لهذا التقرير. حاول مرة أخرى.",
+      });
+    } catch {
+      setFallbackState({
+        message: "تعذر تنزيل PDF أو فتح معاينة الطباعة. حاول مرة أخرى.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, openPreviewWindow, snapshot]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={loading}
+        className={className}
+      >
+        {children ? (loading ? "..." : children) : loading ? "... جارٍ التحميل" : label || "تحميل PDF"}
+      </button>
+
+      {fallbackState ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="border-b border-slate-100 px-6 py-5">
+              <h2 className="text-xl font-black text-slate-950">
+                معاينة الطباعة
+              </h2>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                {fallbackState.message}
+              </p>
+              {fallbackState.previewUrl ? (
+                <button
+                  type="button"
+                  onClick={() => openPreviewWindow(fallbackState.previewUrl!)}
+                  className="mt-4 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  فتح معاينة الطباعة
+                </button>
+              ) : null}
+            </header>
+
+            <footer className="flex justify-end px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setFallbackState(null)}
+                className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                حسنًا
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-pdf-export-preview.tsx
+============================================================
+
+"use client";
+
+import type { ReportDesignId } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+
+type ReportTwoPdfExportSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  designTemplateId?: ReportDesignId;
+  variantId?: string | null;
+};
+
+export function ReportTwoPdfExportPreview({
+  snapshot,
+  printMode = false,
+}: {
+  snapshot: ReportTwoPdfExportSnapshot;
+  printMode?: boolean;
+}) {
+  return (
+    <ReportTwoPrintDocument
+      snapshot={snapshot}
+      autoPrint={printMode}
+    />
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-print-document.tsx
+============================================================
+
+"use client";
+
+import {
+  getDesignLogoSrc,
+  ReportDesignRenderer,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
+
+type PrintDocumentSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  sourcePayload?: unknown;
+  designTemplateId?: ReportDesignId;
+  variantId?: string | null;
+};
+
+export function ReportTwoPrintDocument({
+  snapshot,
+  autoPrint = false,
+}: {
+  snapshot: PrintDocumentSnapshot;
+  autoPrint?: boolean;
+}) {
+  const template = applyStructuredTableDisplayMetadataToTemplate(
+    snapshot.template || { pages: [] },
+    snapshot.sourcePayload,
+  ) as any;
+  const pages = Array.isArray(template.pages) ? template.pages : [];
+  const context = snapshot.context || {};
+  const previewCase = snapshot.previewCase || null;
+  const requestedDesignId =
+    snapshot.designTemplateId || template.designTemplateId;
+  const designId = isReportDesignId(requestedDesignId)
+    ? requestedDesignId
+    : null;
+
+  const logoSrc = getDesignLogoSrc(context);
+
+  if (!designId) {
+    return (
+      <main className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ للطباعة.
+      </main>
+    );
+  }
+
+  return (
+    <main
+      className={[
+        "report-two-print-document",
+        snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+      dir="rtl"
+    >
+      {autoPrint ? <ReportTwoSnapshotPrintController /> : null}
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+        }
+
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          direction: rtl;
+        }
+
+        body {
+          overflow: visible !important;
+        }
+
+        .report-two-print-document {
+          background: #ffffff;
+        }
+
+        .report-two-print-document .pdf-report-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+        }
+
+        .report-two-print-document .pdf-report-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+        .report-two-print-document img {
+          max-width: 100%;
+        }
+      `}</style>
+      {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
+
+      <ReportDesignRenderer
+        designId={designId}
+        template={template}
+        activePage={pages[0] || null}
+        activePageId={pages[0]?.id || ""}
+        context={context}
+        previewCase={previewCase}
+        renderMode="stack"
+        chromeLayout="none"
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-snapshot-preview.tsx
+============================================================
+
+import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { Trash2 } from "lucide-react";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
+
+type SnapshotForDownload = {
+  caseEntryId: string;
+  reportTitle: string;
+  snapshotTemplateJson?: unknown;
+  snapshotPagesJson?: unknown;
+  snapshotPayload?: unknown;
+  renderContext?: unknown;
+  previewCase?: unknown;
+  variantId?: string | null;
+};
+
+type ReportTwoSnapshotPreviewProps = {
+  snapshot: {
+    id: string;
+    caseEntryId: string;
+    reportTitle: string;
+    serviceName?: string | null;
+    serviceSlug?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    status?: "DRAFT" | "APPROVED";
+    active?: boolean;
+    renderContext?: unknown;
+    previewCase?: unknown;
+    snapshotPayload?: unknown;
+    snapshotTemplateJson?: unknown;
+    snapshotPagesJson?: unknown;
+    snapshotHtml: string;
+    pdfUrl?: string | null;
+    variantId?: string | null;
+  };
+  caseTitle?: string | null;
+  printMode?: boolean;
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function ReportTwoSnapshotPreview({
+  snapshot,
+  caseTitle,
+  printMode = false,
+}: ReportTwoSnapshotPreviewProps) {
+  const isApproved = !snapshot.status || snapshot.status === "APPROVED";
+  const canRenderStructured = Boolean(
+    snapshot.snapshotTemplateJson &&
+      typeof snapshot.snapshotTemplateJson === "object",
+  );
+
+  if (printMode && canRenderStructured) {
+    return (
+      <ReportTwoPrintDocument
+        snapshot={{
+          template: snapshot.snapshotTemplateJson,
+          context: (snapshot.renderContext || {}) as Record<string, string>,
+          previewCase: snapshot.previewCase || null,
+          sourcePayload: snapshot.snapshotPayload,
+          variantId: snapshot.variantId,
+        }}
+        autoPrint
+      />
+    );
+  }
+
+  return (
+    <main
+      className={printMode ? "bg-white" : "px-6 py-8"}
+      dir="rtl"
+    >
+      {printMode ? <ReportTwoSnapshotPrintController /> : null}
+      {!printMode ? <GuidanceScope context="report-preview" /> : null}
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+          }
+
+          [data-report-two-snapshot-toolbar] {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {!printMode ? (
+        <section
+          data-report-two-snapshot-toolbar
+          data-guidance="report-preview-actions"
+          className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className={[
+                "text-xs font-black",
+                isApproved
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-sky-700 dark:text-sky-400",
+              ].join(" ")}>
+                {isApproved ? "التقارير المعتمدة" : "التقارير المحفوظة"}
+              </p>
+
+              <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+                {snapshot.reportTitle}
+              </h1>
+
+              <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
+                {" · "}
+                {isApproved
+                  ? `تم اعتماد التقرير ${formatDate(snapshot.approvedAt)}`
+                  : "مسودة"}
+                {snapshot.approvedByName ? ` · ${snapshot.approvedByName}` : ""}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {isApproved ? (
+                <ReportTwoPdfDownloadButton
+                  snapshot={snapshot as SnapshotForDownload}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                />
+              ) : (
+                <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                  مسودة غير رسمية
+                </span>
+              )}
+              <ReportDeleteAction
+                reportId={snapshot.id}
+                reportTitle={snapshot.reportTitle}
+                caseTitle={caseTitle || undefined}
+                reportStatus={snapshot.status || "APPROVED"}
+                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}`}
+                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(snapshot.caseEntryId)}`}
+                reportTwoDraftStorage={
+                  snapshot.active
+                    ? {
+                        caseId: snapshot.caseEntryId,
+                        serviceSlug: snapshot.serviceSlug || "general",
+                      }
+                    : undefined
+                }
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+              </ReportDeleteAction>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
+        {canRenderStructured ? (
+          <ReportTwoActivePreviewRenderer
+            template={snapshot.snapshotTemplateJson}
+            context={(snapshot.renderContext || {}) as Record<string, string>}
+            previewCase={snapshot.previewCase || null}
+            sourcePayload={snapshot.snapshotPayload}
+            variantId={snapshot.variantId}
+          />
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />
+        )}
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-snapshot-print-controller.tsx
+============================================================
+
+"use client";
+
+import { useEffect, useRef } from "react";
+
+const ASSET_READY_TIMEOUT_MS = 5000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForWindowLoad() {
+  if (document.readyState === "complete") return;
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      window.addEventListener("load", () => resolve(), { once: true });
+    }),
+    sleep(ASSET_READY_TIMEOUT_MS),
+  ]);
+}
+
+async function waitForFonts() {
+  try {
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts;
+
+    if (fonts?.ready) {
+      await Promise.race([fonts.ready, sleep(ASSET_READY_TIMEOUT_MS)]);
+    }
+  } catch {
+    // تجاهل فشل جاهزية الخطوط
+  }
+}
+
+async function waitForCommittedVisiblePages(timeoutMs = 5000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const renderer = document.querySelector<HTMLElement>(
+      ".report-two-print-document [data-physical-layout-renderer='true'][data-physical-layout-frozen='true']",
+    );
+    const physicalPages = renderer?.querySelectorAll<HTMLElement>(
+      "[data-physical-page-id]",
+    );
+    const a4Pages = renderer?.querySelectorAll<HTMLElement>(
+      ".pdf-report-page",
+    );
+
+    if (
+      renderer &&
+      physicalPages?.length &&
+      a4Pages?.length === physicalPages.length
+    ) {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      });
+      return true;
+    }
+
+    await sleep(50);
+  }
+
+  return false;
+}
+
+async function waitForImages(timeoutMs = 10000) {
+  const images = Array.from(document.querySelectorAll<HTMLImageElement>("img"))
+    .filter((image) => !image.closest("[data-report-measurement-only='true']"));
+  const pending = images.filter((image) => !image.complete);
+
+  if (!pending.length) return;
+
+  await Promise.race([
+    Promise.all(
+      pending.map(
+        (image) =>
+          new Promise<void>((resolve) => {
+            const settle = () => resolve();
+            image.addEventListener("load", settle, { once: true });
+            image.addEventListener("error", settle, { once: true });
+          }),
+      ),
+    ),
+    sleep(timeoutMs),
+  ]);
+}
+
+function areLinkedFramesReady() {
+  const frames = Array.from(
+    document.querySelectorAll<HTMLIFrameElement>(
+      [
+        "iframe[data-report-linked-assessment-frame='1']",
+        "iframe[data-report-linked-survey-frame='1']",
+        ".linked-assessment-official-frame",
+        ".linked-survey-official-frame",
+        ".report-linked-assessment-frame",
+        ".report-linked-survey-frame",
+      ].join(","),
+    ),
+  );
+
+  if (!frames.length) return true;
+
+  return frames.every((frame) => {
+    try {
+      const doc = frame.contentDocument;
+
+      return !doc || doc.readyState === "complete";
+    } catch {
+      return true;
+    }
+  });
+}
+
+async function waitForLinkedFrames(timeoutMs = 9000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (areLinkedFramesReady()) return;
+
+    await sleep(150);
+  }
+}
+
+async function waitForFrameFonts() {
+  const frames = Array.from(
+    document.querySelectorAll<HTMLIFrameElement>(
+      [
+        "iframe[data-report-linked-assessment-frame='1']",
+        "iframe[data-report-linked-survey-frame='1']",
+        ".linked-assessment-official-frame",
+        ".linked-survey-official-frame",
+        ".report-linked-assessment-frame",
+        ".report-linked-survey-frame",
+      ].join(","),
+    ),
+  );
+
+  await Promise.all(
+    frames.map(async (frame) => {
+      try {
+        const fonts = (
+          frame.contentDocument as unknown as {
+            fonts?: { ready?: Promise<unknown> };
+          }
+        )?.fonts;
+
+        if (fonts?.ready) {
+          await Promise.race([fonts.ready, sleep(ASSET_READY_TIMEOUT_MS)]);
+        }
+      } catch {
+        // تجاهل فشل جاهزية خطوط الإطار
+      }
+    }),
+  );
+}
+
+export function ReportTwoSnapshotPrintController() {
+  const printTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function triggerPrint() {
+      console.info("PRINT_ROUTE_LOADED");
+      console.info("PRINT_REQUESTED");
+
+      if (printTriggeredRef.current) {
+        console.info("PRINT_ALREADY_TRIGGERED");
+        return;
+      }
+
+      await waitForWindowLoad();
+      await waitForFonts();
+      console.info("FONTS_READY");
+
+      const physicalPagesReady = await waitForCommittedVisiblePages();
+
+      if (!physicalPagesReady || cancelled) {
+        console.info("PRINT_ABORTED", {
+          reason: cancelled ? "effect-cancelled" : "committed-visible-pages-timeout",
+        });
+        return;
+      }
+
+      console.info("PHYSICAL_LAYOUT_COMMITTED");
+      console.info("VISIBLE_A4_READY");
+
+      await waitForImages();
+      console.info("IMAGES_READY");
+      await waitForLinkedFrames();
+      await waitForFrameFonts();
+
+      if (cancelled) {
+        console.info("PRINT_ABORTED", { reason: "effect-cancelled" });
+        return;
+      }
+
+      if (printTriggeredRef.current) {
+        console.info("PRINT_ALREADY_TRIGGERED");
+        return;
+      }
+
+      printTriggeredRef.current = true;
+      console.info("PRINT_TRIGGERED");
+      window.print();
+    }
+
+    void triggerPrint();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return null;
+}
+
+
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
+
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -4296,68 +5830,6 @@ export function ReportTwoStudioRuntime({
         ? "report-two-preview-wide"
         : "report-two-preview-normal";
 
-  useEffect(() => {
-    const host = reportTwoPreviewExportRef.current;
-    if (!host || typeof ResizeObserver === "undefined") return;
-
-    let frameId = 0;
-
-    const updatePreviewScale = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const page = host.querySelector<HTMLElement>(".pdf-report-page");
-        if (!page) return;
-
-        const hostStyle = window.getComputedStyle(host);
-        const pageStyle = window.getComputedStyle(page);
-        const horizontalPadding =
-          Number.parseFloat(hostStyle.paddingLeft) +
-          Number.parseFloat(hostStyle.paddingRight);
-        const logicalPageWidth = Number.parseFloat(pageStyle.width);
-
-        if (!Number.isFinite(logicalPageWidth) || logicalPageWidth <= 0) return;
-
-        const compactDesktopScale = window.innerWidth <= 1500;
-        const preferredScale = reportTwoPreviewModeClass.includes("focus")
-          ? compactDesktopScale
-            ? 0.9
-            : 0.98
-          : reportTwoPreviewModeClass.includes("wide")
-            ? compactDesktopScale
-              ? 0.78
-              : 0.86
-            : compactDesktopScale
-              ? 0.66
-              : 0.72;
-        const availableWidth = Math.max(
-          0,
-          host.clientWidth - horizontalPadding - 16,
-        );
-        const fitScale = availableWidth / logicalPageWidth;
-        const previewScale = Math.max(
-          0.1,
-          Math.min(preferredScale, fitScale),
-        );
-
-        host.style.setProperty(
-          "--report-two-preview-scale",
-          previewScale.toFixed(4),
-        );
-      });
-    };
-
-    const observer = new ResizeObserver(updatePreviewScale);
-    observer.observe(host);
-    window.addEventListener("resize", updatePreviewScale);
-    updatePreviewScale();
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updatePreviewScale);
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [reportTwoPreviewModeClass, template.designTemplateId, template.pages.length]);
-
   if (!templates.length) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-10 dark:bg-slate-950" dir="rtl">
@@ -4375,7 +5847,7 @@ export function ReportTwoStudioRuntime({
   }
 
   return (
-    <main className="min-h-screen min-w-0 bg-slate-50 px-2 py-3 transition-colors sm:px-3 sm:py-4 md:px-4 lg:px-5 lg:py-5 dark:bg-slate-950" dir="rtl">
+    <main className="min-h-screen bg-slate-50 px-5 py-5 transition-colors dark:bg-slate-950" dir="rtl">
       <GuidanceScope context="report-studio" />
       {runtimeMode === "preview" ? (
         <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
@@ -4623,7 +6095,7 @@ export function ReportTwoStudioRuntime({
             <select
               value={selectedTemplateOptionId}
               onChange={(event) => selectTemplate(event.target.value)}
-              className="mt-3 block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
             >
               {templates.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -4640,7 +6112,7 @@ export function ReportTwoStudioRuntime({
               التصميم
             </h2>
 
-            <div className="mt-3 grid min-w-0 snap-x snap-mandatory grid-flow-col auto-cols-[82vw] gap-2 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] md:grid-flow-row md:grid-cols-2 md:auto-cols-auto md:overflow-visible md:pb-0 xl:grid-cols-1 [&::-webkit-scrollbar]:hidden">
+            <div className="mt-3 grid gap-2">
               {selectableReportDesignTemplates.map((design) => {
                 const active = template.designTemplateId === design.id;
 
@@ -4654,7 +6126,7 @@ export function ReportTwoStudioRuntime({
                       })
                     }
                     className={[
-                      "min-w-0 snap-start rounded-2xl border px-3 py-3 text-right transition",
+                      "rounded-2xl border px-3 py-3 text-right transition",
                       active
                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
@@ -4849,10 +6321,7 @@ export function ReportTwoStudioRuntime({
             />
             <style>{`
               .report-two-a4-host {
-                --report-two-preview-scale: 0.66;
-                max-width: 100%;
-                overflow-x: auto;
-                overscroll-behavior-x: contain;
+                overflow-x: hidden;
               }
 
               .report-two-a4-host .report-design-logo-control-style {
@@ -4861,9 +6330,34 @@ export function ReportTwoStudioRuntime({
                 align-items: center;
               }
 
+              .report-two-a4-host.report-two-preview-normal [data-report-physical-output-planning="false"] .pdf-report-page {
+                zoom: 0.72;
+              }
+
+              .report-two-a4-host.report-two-preview-wide [data-report-physical-output-planning="false"] .pdf-report-page {
+                zoom: 0.86;
+              }
+
+              .report-two-a4-host.report-two-preview-focus [data-report-physical-output-planning="false"] .pdf-report-page {
+                zoom: 0.98;
+              }
+
+              @media (max-width: 1500px) {
+                .report-two-a4-host.report-two-preview-normal [data-report-physical-output-planning="false"] .pdf-report-page {
+                  zoom: 0.66;
+                }
+
+                .report-two-a4-host.report-two-preview-wide [data-report-physical-output-planning="false"] .pdf-report-page {
+                  zoom: 0.78;
+                }
+
+                .report-two-a4-host.report-two-preview-focus [data-report-physical-output-planning="false"] .pdf-report-page {
+                  zoom: 0.9;
+                }
+              }
+
               .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page {
                 position: relative !important;
-                zoom: var(--report-two-preview-scale);
                 width: 210mm !important;
                 min-width: 210mm !important;
                 max-width: 210mm !important;
@@ -4894,12 +6388,10 @@ export function ReportTwoStudioRuntime({
                 }
 
                 .report-two-a4-host {
-                  --report-two-preview-scale: 1;
                   padding: 0 !important;
                   background: #ffffff !important;
                   border: 0 !important;
                   box-shadow: none !important;
-                  overflow: visible !important;
                 }
 
                 .report-two-a4-host .pdf-report-page {
@@ -6612,3 +8104,5 @@ export function ReportTwoStudioRuntime({
     </main>
   );
 }
+
+
