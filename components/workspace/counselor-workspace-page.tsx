@@ -89,13 +89,6 @@ export function CounselorWorkspacePage({
             icon: "reports",
           },
         ]}
-        sideTitle="رشد معك اليوم"
-        sideDescription="راجع التنبيهات القريبة، ثم ابدأ بالحالات التي تحتاج إجراء."
-        sideProgressLabel="اقتراحات قريبة"
-        sideProgressValue={formatCount(remindersCount)}
-        sideProgressPercent={Math.min(remindersCount * 34, 100)}
-        sideHref="/dashboard/calendar"
-        sideHrefLabel="فتح التقويم"
         notices={[
           {
             title: "مسودات تحتاج إكمال",

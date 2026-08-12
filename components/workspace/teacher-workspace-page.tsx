@@ -110,10 +110,6 @@ export async function TeacherWorkspacePage({
           icon: "reports",
         },
       ]}
-      sideTitle="لوحة المعلم"
-      sideDescription="مساحة مختصرة تجمع التكليفات والشواهد والتقارير وملف الإنجاز في تجربة واحدة، مع إبقاء الميزات التفصيلية قيد التصميم حتى اعتماد المتطلبات."
-      sideHref="/dashboard/teacher/portfolio"
-      sideHrefLabel="فتح ملف الإنجاز"
       notices={notices}
     />
   );

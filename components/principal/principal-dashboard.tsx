@@ -86,11 +86,6 @@ export function PrincipalDashboard({
       userName={principalName}
       welcomeText={isFemale ? "أهلًا بكِ" : "أهلًا بك"}
       modules={principalModules}
-      sideTitle={roleLabel}
-      sideDescription={
-        schoolName ||
-        "استخدم الروابط المتاحة للوصول إلى المعلمين والحالات والتقارير والحساب وإعدادات المدرسة."
-      }
     />
   );
 }

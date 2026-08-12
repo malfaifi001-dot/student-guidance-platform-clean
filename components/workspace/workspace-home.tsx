@@ -11,7 +11,6 @@ import {
   Medal,
   Plus,
   School,
-  Sparkles,
   TrendingUp,
   UploadCloud,
   UserCheck,
@@ -23,6 +22,7 @@ import type {
   WorkspaceModule,
   WorkspaceModuleIcon,
 } from "@/lib/workspace/workspace-modules";
+import { AcademicCalendarDashboardCard } from "@/components/academic-calendar/academic-calendar-dashboard-card";
 
 type WorkspaceStatIcon =
   | "progress"
@@ -68,13 +68,6 @@ type WorkspaceHomeProps = {
   modules: WorkspaceModule[];
   stats?: WorkspaceStat[];
   actions?: WorkspaceAction[];
-  sideTitle: string;
-  sideDescription: string;
-  sideProgressLabel?: string;
-  sideProgressValue?: string;
-  sideProgressPercent?: number;
-  sideHref?: string;
-  sideHrefLabel?: string;
   notices?: WorkspaceNotice[];
   welcomeText?: string;
   showModuleDescription?: boolean;
@@ -118,11 +111,6 @@ function getDisplayName(userName?: string | null) {
   return userName || "المستخدم";
 }
 
-function normalizePercent(value?: number) {
-  if (typeof value !== "number") return 0;
-  return Math.max(0, Math.min(value, 100));
-}
-
 export function WorkspaceHome({
   eyebrow,
   title,
@@ -131,19 +119,10 @@ export function WorkspaceHome({
   modules,
   stats = [],
   actions = [],
-  sideTitle,
-  sideDescription,
-  sideProgressLabel,
-  sideProgressValue,
-  sideProgressPercent,
-  sideHref,
-  sideHrefLabel,
   notices = [],
   welcomeText = "أهلًا بك",
   showModuleDescription = true,
 }: WorkspaceHomeProps) {
-  const progress = normalizePercent(sideProgressPercent);
-
   return (
     <main className="space-y-6" dir="rtl">
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
@@ -262,42 +241,7 @@ export function WorkspaceHome({
         </section>
 
         <aside className="space-y-5">
-          <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-6 text-white shadow-lg">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white">
-              <Sparkles className="h-6 w-6" />
-            </div>
-
-            <h2 className="mt-5 text-2xl font-black">{sideTitle}</h2>
-
-            <p className="mt-3 text-sm font-bold leading-7 text-sky-50">
-              {sideDescription}
-            </p>
-
-            {sideProgressLabel ? (
-              <div className="mt-5 rounded-2xl bg-white/15 p-4">
-                <div className="flex items-center justify-between text-xs font-black text-white">
-                  <span>{sideProgressLabel}</span>
-                  <span>{sideProgressValue || `${progress}%`}</span>
-                </div>
-
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="h-full rounded-full bg-white"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {sideHref && sideHrefLabel ? (
-              <Link
-                href={sideHref}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
-              >
-                {sideHrefLabel}
-              </Link>
-            ) : null}
-          </section>
+          <AcademicCalendarDashboardCard />
 
           {notices.length > 0 ? (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

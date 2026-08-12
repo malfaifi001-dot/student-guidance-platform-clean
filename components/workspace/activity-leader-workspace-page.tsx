@@ -92,13 +92,6 @@ export function ActivityLeaderWorkspacePage({
           icon: "reports",
         },
       ]}
-      sideTitle="نشاطك اليوم"
-      sideDescription="ابدأ بتجهيز البرنامج، ثم تابع الحالة والشواهد، وبعد اكتمال التنفيذ أصدر التقرير."
-      sideProgressLabel="الشواهد المسجلة"
-      sideProgressValue={formatCount(stats.evidenceItems)}
-      sideProgressPercent={Math.min(stats.evidenceItems * 20, 100)}
-      sideHref={OFFICIAL_WORKSPACE_ROUTES.cases}
-      sideHrefLabel="فتح مركز الأنشطة"
       notices={[
         {
           title: "برامج النشاط",
