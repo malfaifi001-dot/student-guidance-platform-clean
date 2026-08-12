@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
 
@@ -171,9 +172,7 @@ export default function HomePage() {
                 {/* Header */}
                 <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5">
                   <div>
-                    <p className="text-xs font-black text-sky-600">
-                      Teachix
-                    </p>
+                    <TeachixLogo size="sm" />
 
                     <h2 className="mt-1.5 text-xl font-black text-slate-950 xl:text-2xl">
                       مساحة فريق المدرسة

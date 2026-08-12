@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export const metadata: Metadata = {
   title: "الشروط والأحكام | Teachix",
@@ -237,9 +238,7 @@ export default function TermsPage() {
       <main>
         <section className="border-b border-slate-100 px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
           <div className="mx-auto max-w-5xl">
-            <p className="text-sm font-black text-sky-600">
-              Teachix
-            </p>
+            <TeachixLogo size="sm" />
 
             <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl">
               الشروط والأحكام

@@ -15,6 +15,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
@@ -290,9 +291,7 @@ export default function RegisterPage() {
                 <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] xl:rounded-[34px] xl:p-7">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                     <div>
-                      <p className="text-xs font-black text-sky-600">
-                        Teachix
-                      </p>
+                      <TeachixLogo size="sm" />
 
                       <h3 className="mt-1 text-xl font-black text-slate-950">
                         اختر مساحتك

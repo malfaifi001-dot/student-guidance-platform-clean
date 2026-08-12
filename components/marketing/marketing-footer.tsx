@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export function MarketingFooter() {
   return (
@@ -6,15 +7,7 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
           <div className="max-w-md">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-600 font-black text-white">
-                T
-              </div>
-
-              <p className="text-xl font-black text-slate-950">
-                Teachix
-              </p>
-            </div>
+            <TeachixLogo />
 
             <p className="mt-5 text-sm leading-7 text-slate-500">
               منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال،

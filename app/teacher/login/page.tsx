@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 import {
   classifyLoginIdentifier,
   LOGIN_IDENTIFIER_ERROR,
@@ -58,7 +59,7 @@ export default function TeacherLoginPage() {
         onSubmit={submit}
         className="mx-auto max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
       >
-        <p className="text-sm font-black text-blue-700">منصة التوجيه الطلابي</p>
+        <TeachixLogo />
         <h1 className="mt-3 text-3xl font-black text-slate-950">دخول المعلم</h1>
         <p className="mt-2 text-sm leading-7 text-slate-500">
           هذا المسار مخصص لحسابات المعلمين فقط. سيتم فتح مساحة المعلم بعد التحقق من الحساب.

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 import {
   Activity,
@@ -765,7 +766,6 @@ export function DashboardSidebar({
           dashboardHomeHref={dashboardHomeHref}
           dashboardTitle={dashboardTitle}
           dashboardSubtitle={dashboardSubtitle}
-          admin={isAdmin}
           onToggle={() => setCollapsed((value) => !value)}
           drawer={mode === "drawer"}
           onClose={onClose}
@@ -820,7 +820,6 @@ function SidebarHeader({
   dashboardHomeHref,
   dashboardTitle,
   dashboardSubtitle,
-  admin,
   onToggle,
   drawer = false,
   onClose,
@@ -829,7 +828,6 @@ function SidebarHeader({
   dashboardHomeHref: string;
   dashboardTitle: string;
   dashboardSubtitle: string;
-  admin: boolean;
   onToggle: () => void;
   drawer?: boolean;
   onClose?: () => void;
@@ -846,18 +844,9 @@ function SidebarHeader({
           <Link
             href={dashboardHomeHref}
             title={dashboardTitle}
-            className={[
-              "grid h-11 w-11 place-items-center rounded-[15px] ring-1 transition",
-              admin
-                ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-white"
-                : "bg-sky-50 text-sky-600 ring-sky-100 hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20",
-            ].join(" ")}
+            className="grid h-11 w-11 place-items-center transition opacity-95 hover:opacity-100"
           >
-            {admin ? (
-              <ShieldCheck className="h-5 w-5" />
-            ) : (
-              <Sparkles className="h-5 w-5" />
-            )}
+            <TeachixLogo iconOnly className="w-8" />
           </Link>
 
           <button
@@ -877,20 +866,7 @@ function SidebarHeader({
             title={dashboardTitle}
             className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-1 py-1 transition hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
           >
-            <div
-              className={[
-                "grid h-11 w-11 shrink-0 place-items-center rounded-[15px] ring-1",
-                admin
-                  ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-white"
-                  : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20",
-              ].join(" ")}
-            >
-              {admin ? (
-                <ShieldCheck className="h-5 w-5" />
-              ) : (
-                <Sparkles className="h-5 w-5" />
-              )}
-            </div>
+            <TeachixLogo iconOnly className="w-9" />
 
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-[15px] font-black text-slate-950 dark:text-white">

@@ -8,6 +8,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 type StoryItemProps = {
   eyebrow: string;
@@ -159,9 +160,7 @@ function TeacherVisual() {
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] md:min-h-[480px] md:rounded-[28px] md:p-6 xl:min-h-[560px] xl:rounded-[32px] xl:p-8">
           <div className="flex items-start justify-between border-b border-slate-100 pb-7">
             <div>
-              <p className="text-xs font-black text-sky-600">
-                Teachix
-              </p>
+              <TeachixLogo size="sm" />
 
               <h4 className="mt-2 text-2xl font-black text-slate-950">
                 تقرير أداء الواجبات الوظيفية
@@ -273,9 +272,7 @@ function CounselorVisual() {
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-6">
             <div>
-              <p className="text-xs font-black text-sky-600">
-                Teachix
-              </p>
+              <TeachixLogo size="sm" />
 
               <h4 className="mt-2 text-2xl font-black text-slate-950">
                 الخدمات الإرشادية
@@ -419,9 +416,7 @@ function PrincipalVisual() {
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
             <div>
-              <p className="text-xs font-black text-sky-600">
-                Teachix
-              </p>
+              <TeachixLogo size="sm" />
 
               <h4 className="mt-2 text-2xl font-black text-slate-950">
                 إدارة الجدول الدراسي
@@ -570,9 +565,7 @@ function ActivityVisual() {
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-100 pb-5">
             <div>
-              <p className="text-xs font-black text-sky-600">
-                Teachix
-              </p>
+              <TeachixLogo size="sm" />
 
               <h4 className="mt-2 text-2xl font-black text-slate-950">
                 إدارة برامج النشاط

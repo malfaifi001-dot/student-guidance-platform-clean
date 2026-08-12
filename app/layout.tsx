@@ -18,9 +18,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 export const metadata: Metadata = {
-  title: "منصة التوجيه الطلابي",
+  title: "تيتشكس | الأسرع والأشمل",
   description:
     "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات والحالات والتقارير المدرسية.",
+  icons: {
+    icon: "/brand/teachix-icon.svg",
+    shortcut: "/brand/teachix-icon.svg",
+    apple: "/brand/teachix-icon.svg",
+  },
 };
 
 export default function RootLayout({

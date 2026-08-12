@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
+import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { siteConfig } from "@/lib/marketing/site";
 
 export function MarketingNavbar() {
@@ -27,15 +28,10 @@ export function MarketingNavbar() {
         <Link
           href="/"
           onClick={closeMenu}
-          className="flex min-w-0 items-center gap-3"
+          className="flex min-w-0 items-center"
+          aria-label={siteConfig.name}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-base font-black text-white">
-            T
-          </div>
-
-          <p className="text-lg font-black tracking-tight text-slate-950">
-            {siteConfig.shortName}
-          </p>
+          <TeachixLogo />
         </Link>
 
         <nav className="hidden items-center gap-9 whitespace-nowrap xl:flex">
