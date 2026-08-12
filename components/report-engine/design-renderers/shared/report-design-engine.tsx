@@ -44,7 +44,12 @@ export function ReportDesignRenderer({
   renderMode = "single",
   chromeLayout = "joined",
   suppressAutoEvidencePages = false,
-}: ReportDesignRendererProps) {
+  showAddPageControl = true,
+  useMobileDesignSelect = false,
+}: ReportDesignRendererProps & {
+  showAddPageControl?: boolean;
+  useMobileDesignSelect?: boolean;
+}) {
   const selectedDesign = normalizeDesignId(
     designId || template?.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
   );
@@ -301,17 +306,44 @@ export function ReportDesignRenderer({
           );
           })}
 
-          <button
-            type="button"
-            onClick={onAddPage}
-            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
-          >
-            + صفحة محتوى
-          </button>
+          {showAddPageControl ? (
+            <button
+              type="button"
+              onClick={onAddPage}
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+            >
+              + صفحة محتوى
+            </button>
+          ) : null}
         </div>
 
         {onDesignChange ? (
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="min-w-0 lg:text-left">
+            {useMobileDesignSelect ? (
+              <label className="block min-w-0 sm:hidden">
+                <span className="mb-1.5 block text-[11px] font-black text-slate-500">
+                  اختيار التصميم
+                </span>
+                <select
+                  value={selectedDesign}
+                  onChange={(event) =>
+                    onDesignChange(event.target.value as ReportDesignId)
+                  }
+                  className="block w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                >
+                  {selectableReportDesignTemplates.map((design) => (
+                    <option key={design.id} value={design.id}>
+                      {design.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+          <div className={[
+            "flex flex-wrap items-center gap-2 lg:justify-end",
+            useMobileDesignSelect ? "hidden sm:flex" : "",
+          ].join(" ")}>
             {selectableReportDesignTemplates.map((design) => {
               const active = design.id === selectedDesign;
 
@@ -332,6 +364,7 @@ export function ReportDesignRenderer({
                 </button>
               );
             })}
+          </div>
           </div>
         ) : null}
       </div>
