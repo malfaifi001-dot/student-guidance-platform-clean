@@ -379,6 +379,8 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
           counter-increment: portfolio-page;
           position: relative;
           width: 210mm;
+          min-width: 210mm;
+          max-width: 210mm;
           height: 297mm;
           min-height: 297mm;
           max-height: 297mm;
@@ -1174,29 +1176,6 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
           text-decoration: none;
         }
 
-        @media screen and (max-width: 900px) {
-          .portfolio-page,
-          .portfolio-report-page {
-            width: 100%;
-            height: auto;
-            min-height: 297mm;
-          }
-
-          .portfolio-qualification-section {
-            width: 100%;
-          }
-
-          .portfolio-introduction-section {
-            width: 100%;
-          }
-
-          .portfolio-cover-card,
-          .portfolio-stat-grid,
-          .portfolio-report-detail-grid,
-          .portfolio-report-evidence-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
         .portfolio-page .portfolio-page-footer {
           bottom: 5.5mm;
           z-index: 5;

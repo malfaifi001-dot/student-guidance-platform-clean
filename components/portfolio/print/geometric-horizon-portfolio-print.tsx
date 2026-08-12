@@ -349,6 +349,8 @@ export function GeometricHorizonPortfolioPrint({
           counter-increment: hzn-page;
           position: relative;
           width: 210mm;
+          min-width: 210mm;
+          max-width: 210mm;
           height: 297mm;
           min-height: 297mm;
           max-height: 297mm;
@@ -1115,11 +1117,6 @@ export function GeometricHorizonPortfolioPrint({
             );
         }
 
-        @media screen and (max-width: 900px) {
-          .hzn-page {
-            width: 100%;
-          }
-        }
       `}</style>
 
       <HorizonPage

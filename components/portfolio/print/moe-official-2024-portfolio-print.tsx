@@ -749,6 +749,8 @@ export function MoeOfficial2024PortfolioPrint({
           counter-increment: moe24-page;
           position: relative;
           width: 210mm;
+          min-width: 210mm;
+          max-width: 210mm;
           height: 297mm;
           min-height: 297mm;
           max-height: 297mm;
@@ -1853,11 +1855,6 @@ export function MoeOfficial2024PortfolioPrint({
           color: #ffffff;
         }
 
-        @media screen and (max-width: 900px) {
-          .moe24-page {
-            width: 100%;
-          }
-        }
       `}</style>
 
       <MoePage sectionLabel="الغلاف" className="moe24-cover" style={{ order: -10000 }}>

@@ -41,9 +41,11 @@ export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { sea
   const { workspace } = await portfolioPageContext(searchParams, sharedRoute);
   return (
     <main dir="rtl" className="w-full min-w-0 max-w-full overflow-hidden">
-      <PortfolioPreviewFit>
-        <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
-      </PortfolioPreviewFit>
+      <div className="mx-auto w-full min-w-0 max-w-[900px]">
+        <PortfolioPreviewFit>
+          <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
+        </PortfolioPreviewFit>
+      </div>
     </main>
   );
 }
