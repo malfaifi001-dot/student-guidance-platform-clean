@@ -505,6 +505,11 @@ const adminMainLinks: SidebarLinkItem[] = [
     icon: Crown,
   },
   {
+    label: "العروض والكوبونات",
+    href: "/dashboard/admin/promotions",
+    icon: PartyPopper,
+  },
+  {
     label: "المشتركين",
     href: "/dashboard/admin/subscribers",
     icon: Users,

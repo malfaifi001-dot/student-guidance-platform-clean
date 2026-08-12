@@ -11,6 +11,7 @@ import {
   assignPlanToSchool,
   getPlanFeatureValue,
 } from "@/lib/subscription/subscription-service";
+import { getCouponQuote, redeemCoupon } from "@/lib/promotions/coupon-service";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -158,7 +159,24 @@ export async function POST(
           : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
     step = "ASSIGN_PLAN_TO_SCHOOL";
-    await assignPlanToSchool({
+    if (transferRequest.couponCode) {
+      step = "REVALIDATE_COUPON";
+      const quote = await getCouponQuote({
+        code: transferRequest.couponCode,
+        planId: plan.id,
+        billingCycle: transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        schoolAccountId: transferRequest.schoolAccountId,
+      });
+      if (quote.finalAmount !== transferRequest.amount) {
+        return NextResponse.json(
+          { error: "تغيرت صلاحية أو قيمة الكوبون. أعد إنشاء طلب الاشتراك." },
+          { status: 409 },
+        );
+      }
+    }
+
+    step = "ASSIGN_PLAN_TO_SCHOOL";
+    const subscription = await assignPlanToSchool({
       schoolAccountId: transferRequest.schoolAccountId,
       planId: plan.id,
       days: durationDays,
@@ -166,6 +184,17 @@ export async function POST(
       activatedById: current.user.id,
       reason: `قبول تحويل بنكي وتفعيل باقة ${plan.name} لمدة ${durationDays} يوم`,
     });
+
+    if (transferRequest.couponCode) {
+      step = "REDEEM_COUPON";
+      await redeemCoupon({
+        code: transferRequest.couponCode,
+        planId: plan.id,
+        billingCycle: transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        schoolAccountId: transferRequest.schoolAccountId,
+        subscriptionId: subscription.id,
+      });
+    }
 
     step = "MARK_BANK_TRANSFER_AS_PAID";
     await prisma.bankTransferRequest.update({

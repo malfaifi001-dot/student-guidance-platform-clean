@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
           ? "YEARLY"
           : "MONTHLY",
       providerSlug: String(body?.providerSlug || ""),
+      couponCode: String(body?.couponCode || "").trim() || undefined,
     });
 
     const provider = result.transaction.provider;

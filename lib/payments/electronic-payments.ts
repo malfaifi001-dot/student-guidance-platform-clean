@@ -8,6 +8,11 @@ import { logAdminActivity } from "@/lib/admin/activity-log";
 import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
 import { prisma } from "@/lib/prisma";
 import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+import {
+  getCouponQuote,
+  redeemCoupon,
+  redeemCouponWithClient,
+} from "@/lib/promotions/coupon-service";
 
 export class ElectronicPaymentError extends Error {
   status: number;
@@ -27,6 +32,7 @@ type CheckoutInput = {
   planId: string;
   billingCycle: BillingCycle;
   providerSlug: string;
+  couponCode?: string;
 };
 
 type WebhookApplyInput = {
@@ -142,7 +148,16 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
     throw new ElectronicPaymentError("لا يمكن إنشاء عملية الدفع لهذا الحساب.", 403);
   }
 
-  const amount = getCheckoutAmount(plan, billingCycle);
+  const originalAmount = getCheckoutAmount(plan, billingCycle);
+  const couponQuote = input.couponCode
+    ? await getCouponQuote({
+        code: input.couponCode,
+        planId: plan.id,
+        billingCycle,
+        schoolAccountId: input.schoolAccountId,
+      })
+    : null;
+  const amount = couponQuote?.finalAmount ?? originalAmount;
 
   if (!amount || amount <= 0) {
     throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
@@ -167,6 +182,10 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         requesterEmail: requesterUser.email,
         requesterJobTitle: requesterUser.jobTitle,
         providerSlug: provider.slug,
+        couponCode: couponQuote?.couponCode || null,
+        originalAmount,
+        discountAmount: couponQuote?.discountAmount || 0,
+        finalAmount: amount,
         createdAt: new Date().toISOString(),
       }),
     },
@@ -239,6 +258,24 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
   }
 
   if (transaction.status === PaymentStatus.PAID) {
+    const paidMetadata = getObject(transaction.metadataJson);
+    const paidCouponCode =
+      typeof paidMetadata.couponCode === "string" ? paidMetadata.couponCode : null;
+    const paidPlanId = typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+    const paidSchoolAccountId =
+      typeof paidMetadata.schoolAccountId === "string"
+        ? paidMetadata.schoolAccountId
+        : null;
+    if (paidCouponCode && paidPlanId && paidSchoolAccountId && transaction.subscriptionId) {
+      await redeemCoupon({
+        code: paidCouponCode,
+        planId: paidPlanId,
+        billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+        schoolAccountId: paidSchoolAccountId,
+        subscriptionId: transaction.subscriptionId,
+        paymentTransactionId: transaction.id,
+      });
+    }
     return {
       transaction,
       wasActivated: false,
@@ -256,6 +293,20 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
 
   if (!planId || !schoolAccountId) {
     throw new ElectronicPaymentError("بيانات عملية الدفع غير مكتملة للتفعيل.", 409);
+  }
+
+  const couponCodeForPayment =
+    typeof metadata.couponCode === "string" ? metadata.couponCode : null;
+  if (couponCodeForPayment) {
+    const quote = await getCouponQuote({
+      code: couponCodeForPayment,
+      planId,
+      billingCycle,
+      schoolAccountId,
+    });
+    if (quote.finalAmount !== transaction.amount) {
+      throw new ElectronicPaymentError("تغيرت صلاحية أو قيمة الكوبون.", 409);
+    }
   }
 
   const startsAt = new Date();
@@ -280,6 +331,17 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
         endsAt,
       },
     });
+
+    if (couponCodeForPayment) {
+      await redeemCouponWithClient(tx, {
+        code: couponCodeForPayment,
+        planId,
+        billingCycle,
+        schoolAccountId,
+        subscriptionId: subscription.id,
+        paymentTransactionId: transaction.id,
+      });
+    }
 
     return tx.paymentTransaction.update({
       where: {
@@ -314,6 +376,18 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
     paidTransaction.id,
     requesterUserId || null
   );
+
+  if (couponCodeForPayment) {
+    await logAdminActivity({
+      actorUserId: requesterUserId || null,
+      schoolAccountId,
+      category: "SUBSCRIPTION",
+      action: "COUPON_REDEEMED",
+      severity: "SUCCESS",
+      title: "استخدام كوبون خصم بعد نجاح الدفع",
+      details: { couponCode: couponCodeForPayment, planId, transactionId: paidTransaction.id },
+    });
+  }
 
   await logAdminActivity({
     actorUserId: requesterUserId || null,

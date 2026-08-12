@@ -13,6 +13,11 @@ import {
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
 import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
+import {
+  CouponValidationError,
+  getCouponQuote,
+  redeemCoupon,
+} from "@/lib/promotions/coupon-service";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -149,6 +154,7 @@ export async function POST(request: Request) {
   const phone = String(payload?.phone || "").trim();
   const receiptUrl = String(payload?.receiptUrl || "").trim();
   const note = String(payload?.note || "").trim();
+  const couponCode = String(payload?.couponCode || "").trim();
 
   if (!planId) {
     return NextResponse.json(
@@ -208,11 +214,30 @@ export async function POST(request: Request) {
       ? 365
       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
-  const amount =
+  const originalAmount =
     billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+  let amount = originalAmount;
+  let couponQuote: Awaited<ReturnType<typeof getCouponQuote>> | null = null;
+
+  if (couponCode) {
+    try {
+      couponQuote = await getCouponQuote({
+        code: couponCode,
+        planId: plan.id,
+        billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        schoolAccountId: current.user.schoolAccountId,
+      });
+      amount = couponQuote.finalAmount;
+    } catch (error) {
+      if (error instanceof CouponValidationError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
+    }
+  }
 
   if (amount <= 0) {
-    await assignPlanToSchool({
+    const subscription = await assignPlanToSchool({
       schoolAccountId: current.user.schoolAccountId,
       planId: plan.id,
       days: durationDays,
@@ -220,6 +245,16 @@ export async function POST(request: Request) {
       activatedById: current.user.id,
       reason: `تفعيل باقة مجانية: ${plan.name}`,
     });
+
+    if (couponQuote) {
+      await redeemCoupon({
+        code: couponQuote.couponCode,
+        planId: plan.id,
+        billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        schoolAccountId: current.user.schoolAccountId,
+        subscriptionId: subscription.id,
+      });
+    }
 
     return NextResponse.json({
       message: "تم تفعيل الباقة مباشرة.",
@@ -250,6 +285,9 @@ export async function POST(request: Request) {
       durationDays,
       requesterUserId: current.user.id,
       billingCycle,
+      couponCode: couponQuote?.couponCode || null,
+      originalAmount,
+      discountAmount: couponQuote?.discountAmount || 0,
       adminNote: [
         `طلب باقة: ${plan.name}`,
         `نوع الاشتراك: ${getSubscriptionPeriodLabel(billingCycle)}`,

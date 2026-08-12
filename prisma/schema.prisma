@@ -163,6 +163,11 @@ enum PaymentMethod {
   MANUAL
 }
 
+enum PromotionDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 enum IntegrationStatus {
   ACTIVE
   INACTIVE
@@ -220,6 +225,7 @@ model SchoolAccount {
   timetableSupervisionDuties TimetableSupervisionDuty[]
   timetableSubjectBank       TimetableSubjectBankEntry[]
   timetableCurriculumTemplates TimetableCurriculumTemplate[]
+  couponRedemptions            CouponRedemption[]
 }
 
 model User {
@@ -797,8 +803,10 @@ model Plan {
   isArchived   Boolean @default(false)
   visibleRoles Json?
 
-  features      PlanFeature[]
-  subscriptions Subscription[]
+  features          PlanFeature[]
+  subscriptions     Subscription[]
+  promotions        PromotionPlan[]
+  couponRedemptions CouponRedemption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -832,10 +840,83 @@ model Subscription {
   startsAt DateTime           @default(now())
   endsAt   DateTime?
 
-  transactions PaymentTransaction[]
+  transactions      PaymentTransaction[]
+  couponRedemptions CouponRedemption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Promotion {
+  id              String                @id @default(cuid())
+  name            String
+  description     String?               @db.Text
+  discountType    PromotionDiscountType
+  discountValue   Int
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean               @default(true)
+  totalUsageLimit Int?
+  perAccountLimit Int?
+  createdById     String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  coupons     Coupon[]
+  plans       PromotionPlan[]
+  redemptions CouponRedemption[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model PromotionPlan {
+  id          String    @id @default(cuid())
+  promotionId String
+  planId      String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  plan        Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, planId])
+  @@index([planId])
+}
+
+model Coupon {
+  id          String             @id @default(cuid())
+  promotionId String
+  code        String             @unique
+  isActive    Boolean            @default(true)
+  usageLimit  Int?
+  expiresAt   DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  promotion   Promotion          @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  redemptions CouponRedemption[]
+
+  @@index([promotionId, isActive])
+}
+
+model CouponRedemption {
+  id                   String              @id @default(cuid())
+  couponId             String
+  promotionId          String
+  schoolAccountId      String
+  planId               String
+  subscriptionId       String?
+  paymentTransactionId String?             @unique
+  originalAmount       Int
+  discountAmount       Int
+  finalAmount          Int
+  redeemedAt           DateTime            @default(now())
+  coupon               Coupon              @relation(fields: [couponId], references: [id])
+  promotion            Promotion           @relation(fields: [promotionId], references: [id])
+  schoolAccount        SchoolAccount       @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  plan                 Plan                @relation(fields: [planId], references: [id])
+  subscription         Subscription?       @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  paymentTransaction   PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([couponId, schoolAccountId])
+  @@index([promotionId])
+  @@index([schoolAccountId, redeemedAt])
 }
 
 model ServiceAccess {
@@ -917,7 +998,8 @@ model PaymentTransaction {
   externalRef  String?
   metadataJson Json?
 
-  invoice Invoice?
+  invoice          Invoice?
+  couponRedemption CouponRedemption?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -941,6 +1023,9 @@ model BankTransferRequest {
   durationDays    Int?
   requesterUserId String?
   billingCycle    String?
+  couponCode      String?
+  originalAmount  Int?
+  discountAmount  Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
