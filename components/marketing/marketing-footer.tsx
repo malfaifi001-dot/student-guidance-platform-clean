@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export function MarketingFooter() {
@@ -68,7 +69,21 @@ export function MarketingFooter() {
           <p>© 2026 Teachix — جميع الحقوق محفوظة</p>
 
         </div>
+
+        <div className="mt-4 flex justify-end">
+          <div
+            className="sbc-verify-seal"
+            data-token="OUc0cGtjV0hXSjl3SlhKVGNJT21Kdz09"
+            data-position="bottom-left"
+          />
+        </div>
       </div>
+
+      <Script
+        id="saudi-business-center-verification-seal"
+        src="https://eauthenticate.saudibusiness.gov.sa/EAuthSealApi/seal.js"
+        strategy="afterInteractive"
+      />
     </footer>
   );
 }
