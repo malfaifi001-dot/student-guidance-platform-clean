@@ -37,7 +37,7 @@ export async function generatePdfFromUrlWithCloudflare({
             timeout: 45_000,
           },
           waitForSelector: {
-            selector: '[data-report-two-pdf-ready="1"]',
+            selector: ".pdf-report-page",
             timeout: 45_000,
             visible: true,
           },
