@@ -95,6 +95,11 @@
   }
 }
 
+/* Keep the vendor seal stable while its iframe reports interactive dimensions. */
+.sbc-seal-frame {
+  transition: none !important;
+}
+
 /* ============================================================
    Dashboard Sidebar Scrollbar
    ============================================================ */
