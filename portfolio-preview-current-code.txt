@@ -1,0 +1,321 @@
+============================================================
+FILE: components\portfolio\portfolio-route-views.tsx
+============================================================
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
+import { PortfolioAutoPrint, PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
+import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
+import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
+
+type PortfolioSearchParams = Promise<{ portfolioId?: string | string[] }>;
+const SHARED_PORTFOLIO_ROLES = new Set(["COUNSELOR", "SCHOOL_OWNER", "STAFF"]);
+
+function enforceSharedRouteRole(role: string | null | undefined, sharedRoute?: boolean) {
+  if (sharedRoute && !SHARED_PORTFOLIO_ROLES.has(role || "")) {
+    redirect(getPortfolioRoutes(role).base);
+  }
+}
+
+async function portfolioPageContext(searchParams: PortfolioSearchParams, sharedRoute?: boolean) {
+  const current = await requireDashboardUser();
+  if (current.user.role === "ADMIN") redirect("/dashboard/admin");
+  enforceSharedRouteRole(current.user.role, sharedRoute);
+
+  const query = await searchParams;
+  const portfolioId = Array.isArray(query.portfolioId) ? query.portfolioId[0] : query.portfolioId;
+  const workspace = await getPortfolioWorkspace(current.user, portfolioId);
+  if (!workspace.ok) redirect("/dashboard/onboarding?required=true");
+  return { current, workspace };
+}
+
+export async function PortfolioDashboardRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {
+  const { workspace } = await portfolioPageContext(searchParams, sharedRoute);
+  return <PortfolioDashboard data={workspace} />;
+}
+
+export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {
+  const { workspace } = await portfolioPageContext(searchParams, sharedRoute);
+  return <main dir="rtl"><PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} /></main>;
+}
+
+export async function PortfolioPrintRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {
+  const { current, workspace } = await portfolioPageContext(searchParams, sharedRoute);
+  return (
+    <main dir="rtl">
+      <PortfolioPrintActions backHref={getPortfolioRoutes(current.user.role).base} />
+      <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
+    </main>
+  );
+}
+
+export async function PortfolioSnapshotRoute({
+  params,
+  searchParams,
+  sharedRoute,
+}: {
+  params: Promise<{ snapshotId: string }>;
+  searchParams: Promise<{ print?: string | string[] }>;
+  sharedRoute?: boolean;
+}) {
+  const current = await requireDashboardUser();
+  if (current.user.role === "ADMIN") redirect("/dashboard/admin");
+  enforceSharedRouteRole(current.user.role, sharedRoute);
+  const { snapshotId } = await params;
+  const query = await searchParams;
+  const printValue = Array.isArray(query.print) ? query.print[0] : query.print;
+  const snapshot = await getPortfolioSnapshot(current.user, snapshotId);
+  const routes = getPortfolioRoutes(current.user.role);
+
+  return (
+    <main dir="rtl">
+      <PortfolioAutoPrint enabled={printValue === "1"} />
+      <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur print:hidden">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+          <Link href={`${routes.base}?portfolioId=${encodeURIComponent(snapshot.portfolioId)}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+            <ArrowRight className="h-4 w-4" />
+            العودة إلى ملف الإنجاز
+          </Link>
+          <div className="text-left">
+            <p className="text-sm font-black text-slate-950">{snapshot.name}</p>
+            <p className="text-xs font-bold text-slate-500">نسخة محفوظة للقراءة فقط</p>
+          </div>
+        </div>
+      </div>
+      <PortfolioPrintDocument data={snapshot.document} />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\portfolio\portfolio-design-panel.tsx
+============================================================
+"use client";
+
+import { ExternalLink, Loader2, Palette, Save } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { PortfolioThemePreviewCard } from "@/components/portfolio/portfolio-theme-preview-card";
+import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
+import { getPortfolioTheme, PORTFOLIO_THEMES, type PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
+
+export function PortfolioDesignPanel({ data, busy, onSave }: {
+  data: PortfolioWorkspaceData;
+  busy: boolean;
+  onSave: (body: unknown) => Promise<void>;
+}) {
+  const resolvedTheme = getPortfolioTheme(data.portfolio.themeId);
+  const [selectedThemeId, setSelectedThemeId] = useState<PortfolioThemeId>(resolvedTheme.id);
+  const [preferences, setPreferences] = useState(data.portfolio.preferences);
+  const payload = (themeId = selectedThemeId, nextPreferences = preferences) => ({
+    operation: "settings",
+    title: data.portfolio.title,
+    academicYear: data.portfolio.academicYear,
+    term: data.portfolio.term,
+    description: data.portfolio.description,
+    themeId,
+    preferences: nextPreferences,
+  });
+  async function selectTheme(themeId: PortfolioThemeId) {
+    if (busy || themeId === selectedThemeId) return;
+    try {
+      await onSave(payload(themeId));
+      setSelectedThemeId(themeId);
+    } catch {
+      // PortfolioWorkspace displays the centralized error feedback.
+    }
+  }
+  const preferenceOptions = [
+    ["showTableOfContents", "إظهار فهرس المحتويات"],
+    ["showPerformanceDividers", "إظهار صفحات فواصل الأداء"],
+    ["showCoverStatistics", "إظهار إحصاءات الغلاف"],
+    ["showSchoolName", "إظهار اسم المدرسة"],
+    ["showPrincipalName", "إظهار اسم مدير المدرسة"],
+  ] as const;
+
+  return <section className="space-y-6">
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-700"><Palette className="h-6 w-6" /></span><div><p className="text-xs font-black text-slate-400">ملف الإنجاز</p><h2 className="text-xl font-black text-slate-950">التصميم الحالي</h2><p className="mt-1 text-sm font-bold text-slate-500">التصميم الرسمي المعتمد لعرض الملف وطباعته.</p></div></div>
+        <Link href={`${data.routes.preview}?portfolioId=${encodeURIComponent(data.portfolio.id)}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
+      </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{PORTFOLIO_THEMES.map((theme) => <PortfolioThemePreviewCard key={theme.id} theme={theme} selected={theme.id === selectedThemeId} disabled={busy} onSelect={() => void selectTheme(theme.id)} />)}</div>
+    </div>
+
+    <form onSubmit={(event) => { event.preventDefault(); void onSave(payload(selectedThemeId)); }} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-black text-slate-950">خيارات العرض</h3><p className="mt-1 text-sm font-bold text-slate-500">تُطبّق هذه الخيارات على التصميم المحدد والمعاينة والطباعة.</p>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">{preferenceOptions.map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700"><span>{label}</span><input type="checkbox" checked={preferences[key]} onChange={() => setPreferences((old) => ({ ...old, [key]: !old[key] }))} className="h-5 w-5 accent-teal-600" /></label>)}</div>
+      <button disabled={busy} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ خيارات العرض</button>
+    </form>
+  </section>;
+}
+
+
+============================================================
+FILE: components\portfolio\portfolio-theme-preview-card.tsx
+============================================================
+"use client";
+
+import { Check } from "lucide-react";
+import type { CSSProperties } from "react";
+import type { PortfolioThemeDefinition } from "@/lib/portfolio/portfolio-theme-registry";
+import styles from "./portfolio-theme-preview-card.module.css";
+
+export function PortfolioThemePreviewCard({ theme, selected, disabled, onSelect }: {
+  theme: PortfolioThemeDefinition;
+  selected: boolean;
+  disabled?: boolean;
+  onSelect: () => void;
+}) {
+  return <button
+    type="button"
+    aria-pressed={selected}
+    disabled={disabled}
+    onClick={onSelect}
+    className={`w-full rounded-[1.5rem] border p-3 text-right transition disabled:cursor-not-allowed disabled:opacity-60 ${selected ? "border-teal-600 bg-teal-50/60 ring-2 ring-teal-100" : "border-slate-200 bg-white hover:border-teal-300 hover:bg-slate-50"}`}
+  >
+    <ThemeMiniature theme={theme} />
+    <span className="mt-3 flex items-start justify-between gap-3">
+      <strong className="block text-sm font-black text-slate-950">{theme.name}</strong>
+      {selected ? <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-teal-600 bg-teal-600 text-white" title="التصميم الحالي"><Check className="h-3.5 w-3.5" /></span> : <span className="mt-0.5 shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-black text-slate-500">اختيار</span>}
+    </span>
+  </button>;
+}
+
+function ThemeMiniature({ theme }: { theme: PortfolioThemeDefinition }) {
+  return <span
+    aria-hidden="true"
+    className={`${styles.miniature} ${styles[theme.previewClass]}`}
+    style={{ "--mini-primary": theme.palette.primary, "--mini-secondary": theme.palette.secondary, "--mini-accent": theme.palette.accent, "--mini-muted": theme.palette.muted } as CSSProperties}
+  >
+    <i className={styles.ornament} /><i className={styles.title} /><i className={styles.subtitle} />
+    <i className={`${styles.panel} ${styles.panelA}`} /><i className={`${styles.panel} ${styles.panelB}`} /><i className={`${styles.panel} ${styles.panelC}`} />
+    <i className={styles.line} /><i className={styles.page} />
+  </span>;
+}
+
+
+============================================================
+FILE: components\portfolio\print\portfolio-print-document.tsx
+============================================================
+import { MinistryElegantPortfolioPrint } from "@/components/portfolio/print/ministry-elegant-portfolio-print";
+import { EditorialAtlasPortfolioPrint } from "@/components/portfolio/print/editorial-atlas-portfolio-print";
+import { GeometricHorizonPortfolioPrint } from "@/components/portfolio/print/geometric-horizon-portfolio-print";
+import { MoeOfficial2024PortfolioPrint } from "@/components/portfolio/print/moe-official-2024-portfolio-print";
+import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+import { DEFAULT_PORTFOLIO_THEME_ID, isPortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
+
+export function PortfolioPrintDocument({ data }: { data: PortfolioPrintData }) {
+  const themeId = isPortfolioThemeId(data.portfolio.themeId)
+    ? data.portfolio.themeId
+    : DEFAULT_PORTFOLIO_THEME_ID;
+
+  if (themeId === "geometric-horizon") {
+    return <GeometricHorizonPortfolioPrint data={data} />;
+  }
+
+  if (themeId === "editorial-atlas") {
+    return <EditorialAtlasPortfolioPrint data={data} />;
+  }
+
+  if (themeId === "moe-official-2024") {
+    return <MoeOfficial2024PortfolioPrint data={data} />;
+  }
+
+  return <MinistryElegantPortfolioPrint data={data} />;
+}
+
+
+============================================================
+FILE: components\portfolio\print\portfolio-print-actions.tsx
+============================================================
+"use client";
+
+import { ArrowRight, Printer } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+
+function waitForImages() {
+  return Promise.all(
+    Array.from(document.images).map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener("error", () => resolve(), { once: true });
+        }),
+    ),
+  );
+}
+
+async function waitForPrintAssets() {
+  await document.fonts.ready;
+  await waitForImages();
+}
+
+async function triggerPortfolioPrint() {
+  await waitForPrintAssets();
+  window.setTimeout(() => window.print(), 500);
+}
+
+export function PortfolioAutoPrint({ enabled }: { enabled: boolean }) {
+  const triggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (enabled && !triggeredRef.current) {
+      triggeredRef.current = true;
+      void triggerPortfolioPrint();
+    }
+  }, [enabled]);
+
+  return null;
+}
+
+export function PortfolioPrintActions({ backHref = "/dashboard/teacher/portfolio" }: { backHref?: string }) {
+  async function print() {
+    await triggerPortfolioPrint();
+  }
+
+  return (
+    <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur print:hidden">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+        >
+          <ArrowRight className="h-4 w-4" />
+          رجوع
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => void print()}
+          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+        >
+          <Printer className="h-4 w-4" />
+          طباعة أو حفظ PDF
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\teacher\portfolio\preview\page.tsx
+============================================================
+import { PortfolioPreviewRoute } from "@/components/portfolio/portfolio-route-views";
+
+export default PortfolioPreviewRoute;
+
+

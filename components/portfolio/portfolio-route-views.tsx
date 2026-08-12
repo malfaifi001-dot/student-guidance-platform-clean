@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
+import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
 import { PortfolioAutoPrint, PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
 import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
@@ -38,7 +39,13 @@ export async function PortfolioDashboardRoute({ searchParams, sharedRoute }: { s
 
 export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {
   const { workspace } = await portfolioPageContext(searchParams, sharedRoute);
-  return <main dir="rtl"><PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} /></main>;
+  return (
+    <main dir="rtl" className="w-full min-w-0 max-w-full overflow-hidden">
+      <PortfolioPreviewFit>
+        <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
+      </PortfolioPreviewFit>
+    </main>
+  );
 }
 
 export async function PortfolioPrintRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {

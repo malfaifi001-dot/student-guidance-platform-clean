@@ -863,7 +863,7 @@ export function CaseDetailsView({
       ? reportTwoStatus === "APPROVED"
         ? "معاينة التقرير المعتمد"
         : "معاينة مسودة التقرير"
-      : "إصدار تقرير جديد";
+      : "إصدار التقرير";
   const reportIsApproved = reportTwoStatus === "APPROVED";
   const reportDeleteAction = reportTwoSnapshotId ? (
     <ReportDeleteAction
@@ -969,9 +969,20 @@ export function CaseDetailsView({
                 ) : null}
               </div>
 
-              <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
-                {displayTitle || "محضر لجنة/اجتماع"}
-              </h1>
+              <div className="mt-4 flex min-w-0 items-start gap-2">
+                <Link
+                  href="/dashboard/cases"
+                  aria-label="العودة إلى الحالات"
+                  title="العودة إلى الحالات"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <h1 className="min-w-0 break-words text-3xl font-black leading-10 text-slate-950">
+                  {displayTitle || "محضر لجنة/اجتماع"}
+                </h1>
+              </div>
 
               <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
                 هذه خلاصة المحضر. راجع الجدول، ثم أصدر التقارير عند الاكتمال.
@@ -979,13 +990,7 @@ export function CaseDetailsView({
             </div>
 
             <div className="flex flex-wrap gap-2 xl:justify-end">
-              <Link
-                href="/dashboard/cases"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-              >
-                <ArrowRight className="h-4 w-4" />
-                الحالات
-              </Link>
+              {reportDeleteAction}
 
               <Link
                 href={`/dashboard/cases/${caseEntry.id}/edit`}
@@ -1007,13 +1012,14 @@ export function CaseDetailsView({
                     ? reportIsApproved
                       ? "bg-emerald-600 hover:bg-emerald-700"
                       : "bg-sky-600 hover:bg-sky-700"
-                    : "bg-emerald-700 hover:bg-emerald-800",
+                    : isGuardianSummons
+                      ? "bg-emerald-700 hover:bg-emerald-800"
+                      : "bg-rose-600 hover:bg-rose-700",
                 ].join(" ")}
               >
                 <FileText className="h-4 w-4" />
                 {primaryReportLabel}
               </Link>
-              {reportDeleteAction}
             </div>
           </div>
         </section>
@@ -1222,9 +1228,20 @@ export function CaseDetailsView({
               ) : null}
             </div>
 
-            <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
-              {displayTitle}
-            </h1>
+            <div className="mt-4 flex min-w-0 items-start gap-2">
+              <Link
+                href="/dashboard/cases"
+                aria-label="العودة إلى الحالات"
+                title="العودة إلى الحالات"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <h1 className="min-w-0 break-words text-3xl font-black leading-10 text-slate-950">
+                {displayTitle}
+              </h1>
+            </div>
 
             <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
               راجع الحالة، ثم استكملها أو أصدر التقارير.
@@ -1232,13 +1249,7 @@ export function CaseDetailsView({
           </div>
 
           <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Link
-              href="/dashboard/cases"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-            >
-              <ArrowRight className="h-4 w-4" />
-              الحالات
-            </Link>
+            {reportDeleteAction}
 
             <Link
               href={`/dashboard/cases/${caseEntry.id}/edit`}
@@ -1260,13 +1271,14 @@ export function CaseDetailsView({
                   ? reportIsApproved
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-sky-600 hover:bg-sky-700"
-                  : "bg-emerald-700 hover:bg-emerald-800",
+                  : isGuardianSummons
+                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    : "bg-rose-600 hover:bg-rose-700",
               ].join(" ")}
             >
               <FileText className="h-4 w-4" />
               {primaryReportLabel}
             </Link>
-            {reportDeleteAction}
           </div>
         </div>
       </section>
