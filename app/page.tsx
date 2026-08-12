@@ -13,7 +13,6 @@ import {
   FileCheck2,
   LayoutDashboard,
   ShieldCheck,
-  Sparkles,
   Star,
 } from "lucide-react";
 
@@ -499,7 +498,7 @@ export default function HomePage() {
               <div className="pointer-events-none absolute left-1/2 top-0 h-52 w-[70%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
 
               <div className="relative">
-                <Sparkles className="mx-auto h-7 w-7 text-sky-200" />
+                <TeachixLogo iconOnly inverted className="mx-auto w-[4.5rem]" />
 
                 <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl xl:text-[3.25rem]">
                   ابدأ تنظيم أعمالك اليومية مع Teachix
