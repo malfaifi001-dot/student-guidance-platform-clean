@@ -7,7 +7,9 @@ FULL FILE: prisma\schema.prisma
 ============================================================
 generator client {
   provider = "prisma-client-js"
-}
+}شسيب شسي 
+
+
 
 datasource db {
   provider = "mysql"
