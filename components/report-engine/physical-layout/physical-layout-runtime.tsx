@@ -84,6 +84,9 @@ type PhysicalLayoutRuntimeProps = {
   onPhysicalPagesChange?: (
     items: ReportTwoPhysicalNavigationItem[],
   ) => void;
+  loadingLabel?: string;
+  showLoadingWhilePreparing?: boolean;
+  onPhysicalLayoutReady?: (designId: ReportDesignId) => void;
 };
 
 type PendingMeasurement = {
@@ -168,6 +171,9 @@ export function PhysicalLayoutRuntime({
   fallbackPageLabel = "التقرير",
   renderMode = "stack",
   onPhysicalPagesChange,
+  loadingLabel = "جارٍ تجهيز التقرير...",
+  showLoadingWhilePreparing = false,
+  onPhysicalLayoutReady,
 }: PhysicalLayoutRuntimeProps) {
   /**
    * ==========================================================
@@ -726,6 +732,11 @@ export function PhysicalLayoutRuntime({
     onPhysicalPagesChange,
   ]);
 
+  useEffect(() => {
+    if (!committedLayout || committedLayout.designId !== designId) return;
+    onPhysicalLayoutReady?.(committedLayout.designId);
+  }, [committedLayout, designId, onPhysicalLayoutReady]);
+
   /**
    * ==========================================================
    * RENDER
@@ -853,7 +864,8 @@ export function PhysicalLayoutRuntime({
         </div>
       ) : null}
 
-      {committedLayout ? (
+      {committedLayout &&
+      (!showLoadingWhilePreparing || committedLayout.designId === designId) ? (
         <PhysicalLayoutRenderer
           /**
            * مهم جدًا:
@@ -907,11 +919,7 @@ export function PhysicalLayoutRuntime({
           />
 
           <span className="text-base sm:text-lg">
-            جارٍ تجهيز التقرير...
-          </span>
-
-          <span className="text-sm font-medium text-slate-400">
-            يتم إنشاء صفحات A4 النهائية
+            {loadingLabel}
           </span>
         </div>
       )}

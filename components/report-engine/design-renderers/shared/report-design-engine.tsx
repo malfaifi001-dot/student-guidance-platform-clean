@@ -46,9 +46,15 @@ export function ReportDesignRenderer({
   suppressAutoEvidencePages = false,
   showAddPageControl = true,
   useMobileDesignSelect = false,
+  physicalLayoutLoadingLabel,
+  showPhysicalLayoutLoadingWhilePreparing = false,
+  onPhysicalLayoutReady,
 }: ReportDesignRendererProps & {
   showAddPageControl?: boolean;
   useMobileDesignSelect?: boolean;
+  physicalLayoutLoadingLabel?: string;
+  showPhysicalLayoutLoadingWhilePreparing?: boolean;
+  onPhysicalLayoutReady?: (designId: ReportDesignId) => void;
 }) {
   const selectedDesign = normalizeDesignId(
     designId || template?.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
@@ -383,6 +389,9 @@ export function ReportDesignRenderer({
         fallbackPageLabel={activePage?.title || "التقرير"}
         renderMode={renderMode}
         onPhysicalPagesChange={handlePhysicalPagesChange}
+        loadingLabel={physicalLayoutLoadingLabel}
+        showLoadingWhilePreparing={showPhysicalLayoutLoadingWhilePreparing}
+        onPhysicalLayoutReady={onPhysicalLayoutReady}
       />
     </div>
   );
