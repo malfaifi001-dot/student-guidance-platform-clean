@@ -2,8 +2,11 @@ import crypto from "crypto";
 import path from "path";
 
 import { writeEvidenceFile } from "@/lib/evidence/evidence-file-storage";
+import {
+  MAX_EVIDENCE_FILES,
+  MAX_EVIDENCE_FILES_MESSAGE,
+} from "@/lib/evidence/evidence-limits";
 
-export const MAX_EVIDENCE_FILES = 6;
 export const MAX_EVIDENCE_FILE_SIZE = 5 * 1024 * 1024;
 export const MAX_EVIDENCE_TOTAL_SIZE = 20 * 1024 * 1024;
 
@@ -72,7 +75,7 @@ export function validateEvidenceFiles(files: File[]) {
   }
 
   if (files.length > MAX_EVIDENCE_FILES) {
-    return `يمكن رفع ${MAX_EVIDENCE_FILES} شواهد كحد أقصى في كل مرة.`;
+    return MAX_EVIDENCE_FILES_MESSAGE;
   }
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);

@@ -7,6 +7,10 @@ import {
   saveEvidenceFiles,
   validateEvidenceFiles,
 } from "@/lib/evidence/save-evidence-files";
+import {
+  MAX_EVIDENCE_FILES,
+  MAX_EVIDENCE_FILES_MESSAGE,
+} from "@/lib/evidence/evidence-limits";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -22,6 +26,11 @@ async function assertCaseAccess(caseEntryId: string, schoolAccountId: string) {
       service: {
         select: {
           slug: true,
+        },
+      },
+      _count: {
+        select: {
+          caseEvidences: true,
         },
       },
     },
@@ -72,6 +81,9 @@ export async function POST(request: Request) {
           service: {
             slug: string;
           };
+          _count: {
+            caseEvidences: number;
+          };
         }
       | null = null;
 
@@ -80,6 +92,16 @@ export async function POST(request: Request) {
         caseEntryId,
         authResult.schoolAccountId,
       );
+
+      if (
+        verifiedCase._count.caseEvidences + files.length >
+        MAX_EVIDENCE_FILES
+      ) {
+        return NextResponse.json(
+          { success: false, error: MAX_EVIDENCE_FILES_MESSAGE },
+          { status: 400 },
+        );
+      }
     }
 
     const savedFiles = await saveEvidenceFiles({

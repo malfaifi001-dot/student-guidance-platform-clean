@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
 
 type SnapshotInfo = {
   caseEntryId: string;
@@ -65,6 +66,7 @@ export function ReportTwoPdfDownloadButton({
   children,
 }: PdfDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
+  const downloadActiveRef = useRef(false);
   const [fallbackState, setFallbackState] = useState<{
     message: string;
     previewUrl?: string;
@@ -87,8 +89,9 @@ export function ReportTwoPdfDownloadButton({
   }, []);
 
   const handleDownload = useCallback(async () => {
-    if (loading) return;
+    if (downloadActiveRef.current) return;
 
+    downloadActiveRef.current = true;
     setLoading(true);
     setFallbackState(null);
 
@@ -99,6 +102,8 @@ export function ReportTwoPdfDownloadButton({
       );
 
       if (!printableTemplate) {
+        downloadActiveRef.current = false;
+        setLoading(false);
         setFallbackState({
           message: "تعذر إنشاء معاينة الطباعة لهذا التقرير. حاول مرة أخرى.",
         });
@@ -139,6 +144,8 @@ export function ReportTwoPdfDownloadButton({
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+        downloadActiveRef.current = false;
+        setLoading(false);
         return;
       }
 
@@ -147,6 +154,8 @@ export function ReportTwoPdfDownloadButton({
       try {
         data = await response.json();
       } catch {
+        downloadActiveRef.current = false;
+        setLoading(false);
         setFallbackState({
           message: "تعذر فتح معاينة الطباعة تلقائياً. حاول مرة أخرى.",
         });
@@ -157,6 +166,8 @@ export function ReportTwoPdfDownloadButton({
         data.fallback === "PRINT_PREVIEW" &&
         typeof data.previewUrl === "string"
       ) {
+        downloadActiveRef.current = false;
+        setLoading(false);
         openPreviewWindow(data.previewUrl);
         return;
       }
@@ -165,13 +176,16 @@ export function ReportTwoPdfDownloadButton({
         message: "تعذر فتح معاينة الطباعة لهذا التقرير. حاول مرة أخرى.",
       });
     } catch {
+      downloadActiveRef.current = false;
+      setLoading(false);
       setFallbackState({
         message: "تعذر تنزيل PDF أو فتح معاينة الطباعة. حاول مرة أخرى.",
       });
     } finally {
+      downloadActiveRef.current = false;
       setLoading(false);
     }
-  }, [loading, openPreviewWindow, snapshot]);
+  }, [openPreviewWindow, snapshot]);
 
   return (
     <>
@@ -183,6 +197,12 @@ export function ReportTwoPdfDownloadButton({
       >
         {children ? (loading ? "..." : children) : loading ? "... جارٍ التحميل" : label || "تحميل PDF"}
       </button>
+
+      <OperationProgressPopCard
+        open={loading}
+        title="جاري تجهيز الملف"
+        message="يتم الآن تجهيز التحميل، الرجاء الانتظار..."
+      />
 
       {fallbackState ? (
         <div

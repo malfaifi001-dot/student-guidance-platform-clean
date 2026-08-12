@@ -1353,7 +1353,11 @@ export function DynamicFormRenderer({
           </div>
 
           <EvidenceUploadCard
+            existingEvidenceCount={evidenceItems.length}
             onUploaded={handleEvidenceUploaded}
+            onUploadError={(message) =>
+              showFeedback("error", "تعذر رفع الشواهد", message)
+            }
             onFilesSelected={
               onEvidenceUpload ? handleEvidenceFilesSelected : undefined
             }
