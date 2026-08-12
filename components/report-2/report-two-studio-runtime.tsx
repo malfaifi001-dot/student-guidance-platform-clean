@@ -2756,6 +2756,9 @@ export function ReportTwoStudioRuntime({
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+  const [reportTwoPreviewSize, setReportTwoPreviewSize] = useState<
+    "fit" | "original"
+  >("fit");
   const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -4305,15 +4308,20 @@ export function ReportTwoStudioRuntime({
     const updatePreviewScale = () => {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        const page = host.querySelector<HTMLElement>(".pdf-report-page");
-        if (!page) return;
+        const output = host.querySelector<HTMLElement>(
+          '[data-report-physical-output-planning="false"]',
+        );
+        const page = output?.querySelector<HTMLElement>(".pdf-report-page");
+        const stage = output?.closest<HTMLElement>(
+          ".report-design-logo-control-style",
+        );
+        if (!output || !page || !stage) return;
 
         const hostStyle = window.getComputedStyle(host);
-        const pageStyle = window.getComputedStyle(page);
         const horizontalPadding =
           Number.parseFloat(hostStyle.paddingLeft) +
           Number.parseFloat(hostStyle.paddingRight);
-        const logicalPageWidth = Number.parseFloat(pageStyle.width);
+        const logicalPageWidth = page.offsetWidth;
 
         if (!Number.isFinite(logicalPageWidth) || logicalPageWidth <= 0) return;
 
@@ -4331,32 +4339,64 @@ export function ReportTwoStudioRuntime({
               : 0.72;
         const availableWidth = Math.max(
           0,
-          host.clientWidth - horizontalPadding - 16,
+          host.clientWidth - horizontalPadding - 56,
         );
-        const fitScale = availableWidth / logicalPageWidth;
-        const previewScale = Math.max(
-          0.1,
-          Math.min(preferredScale, fitScale),
+        const fitScale = Math.max(0, availableWidth / logicalPageWidth);
+        const previewScale = reportTwoPreviewSize === "original"
+          ? 1
+          : Math.min(1, preferredScale, fitScale);
+        const naturalStageHeight = Math.max(
+          output.scrollHeight,
+          page.offsetHeight,
         );
 
         host.style.setProperty(
           "--report-two-preview-scale",
           previewScale.toFixed(4),
         );
+        host.style.setProperty(
+          "--report-two-preview-stage-height",
+          `${naturalStageHeight}px`,
+        );
+        host.style.setProperty(
+          "--report-two-preview-scaled-height",
+          `${naturalStageHeight * previewScale}px`,
+        );
+        host.style.setProperty(
+          "--report-two-preview-page-width",
+          `${logicalPageWidth}px`,
+        );
       });
     };
 
     const observer = new ResizeObserver(updatePreviewScale);
     observer.observe(host);
+    const output = host.querySelector<HTMLElement>(
+      '[data-report-physical-output-planning="false"]',
+    );
+    if (output) observer.observe(output);
+    const mutationObserver = new MutationObserver(updatePreviewScale);
+    mutationObserver.observe(host, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-report-physical-output-planning"],
+    });
     window.addEventListener("resize", updatePreviewScale);
     updatePreviewScale();
 
     return () => {
       observer.disconnect();
+      mutationObserver.disconnect();
       window.removeEventListener("resize", updatePreviewScale);
       window.cancelAnimationFrame(frameId);
     };
-  }, [reportTwoPreviewModeClass, template.designTemplateId, template.pages.length]);
+  }, [
+    reportTwoPreviewModeClass,
+    reportTwoPreviewSize,
+    template.designTemplateId,
+    template.pages.length,
+  ]);
 
   if (!templates.length) {
     return (
@@ -4843,16 +4883,47 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+            <div className="report-two-preview-size-controls flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white/85 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900/85">
+              {([
+                ["fit", "ملاءمة الشاشة"],
+                ["original", "الحجم الأصلي"],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setReportTwoPreviewSize(value)}
+                  aria-pressed={reportTwoPreviewSize === value}
+                  className={[
+                    "rounded-xl px-3 py-2 text-[11px] font-black transition",
+                    reportTwoPreviewSize === value
+                      ? "bg-emerald-700 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, reportTwoPreviewSize === "original" ? "report-two-preview-original-size" : "report-two-preview-fit-size", selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />
             <style>{`
               .report-two-a4-host {
                 --report-two-preview-scale: 0.66;
+                --report-two-preview-stage-height: 1123px;
+                --report-two-preview-scaled-height: 741px;
+                --report-two-preview-page-width: 794px;
                 max-width: 100%;
-                overflow-x: auto;
                 overscroll-behavior-x: contain;
+              }
+
+              .report-two-a4-host.report-two-preview-fit-size {
+                overflow-x: hidden;
+              }
+
+              .report-two-a4-host.report-two-preview-original-size {
+                overflow-x: auto;
               }
 
               .report-two-a4-host .report-design-logo-control-style {
@@ -4861,9 +4932,50 @@ export function ReportTwoStudioRuntime({
                 align-items: center;
               }
 
+              .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
+                position: relative;
+                min-width: 0;
+                height: calc(var(--report-two-preview-scaled-height) + 40px);
+                overflow: visible;
+              }
+
+              .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+                position: absolute;
+                top: 20px;
+                width: var(--report-two-preview-page-width);
+                height: var(--report-two-preview-stage-height);
+                max-width: none;
+              }
+
+              .report-two-a4-host.report-two-preview-fit-size .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+                left: 50%;
+                transform: translateX(-50%) scale(var(--report-two-preview-scale));
+                transform-origin: top center;
+              }
+
+              .report-two-a4-host.report-two-preview-original-size .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+                right: 20px;
+                transform: none;
+                transform-origin: top right;
+              }
+
+              .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child {
+                height: auto !important;
+                padding: 0 !important;
+                border: 0 !important;
+                overflow: visible !important;
+              }
+
+              .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+                position: static !important;
+                width: auto !important;
+                height: auto !important;
+                transform: none !important;
+              }
+
               .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page {
                 position: relative !important;
-                zoom: var(--report-two-preview-scale);
+                zoom: 1 !important;
                 width: 210mm !important;
                 min-width: 210mm !important;
                 max-width: 210mm !important;
@@ -4902,6 +5014,24 @@ export function ReportTwoStudioRuntime({
                   overflow: visible !important;
                 }
 
+                .report-two-preview-size-controls {
+                  display: none !important;
+                }
+
+                .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
+                  height: auto !important;
+                  padding: 0 !important;
+                  border: 0 !important;
+                  overflow: visible !important;
+                }
+
+                .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+                  position: static !important;
+                  width: auto !important;
+                  height: auto !important;
+                  transform: none !important;
+                }
+
                 .report-two-a4-host .pdf-report-page {
                   zoom: 1 !important;
                   margin: 0 !important;
@@ -4917,6 +5047,7 @@ export function ReportTwoStudioRuntime({
               }
             `}</style>
 
+            <div className="report-two-preview-renderer">
             <ReportDesignRenderer
               chromeLayout="split"
               designId={
@@ -4955,6 +5086,7 @@ export function ReportTwoStudioRuntime({
                 runtimeMode === "preview" ? () => false : canDeleteReportTwoPage
               }
             />
+            </div>
           </section>
 
         </section>
