@@ -1,3 +1,7 @@
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
+
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -4276,7 +4280,7 @@ export function ReportTwoStudioRuntime({
     finalCheckConfirmedAt,
   ]);
   const reportTwoLayoutGridClass = [
-    "mx-auto grid w-full min-w-0 max-w-[1760px] gap-4 overflow-hidden transition-all",
+    "mx-auto grid max-w-[1760px] gap-4 transition-all",
     runtimeMode === "preview"
       ? "xl:grid-cols-[minmax(0,1fr)]"
       : rightSidebarCollapsed && leftSidebarCollapsed
@@ -4307,23 +4311,19 @@ export function ReportTwoStudioRuntime({
     const updatePreviewScale = () => {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        const sheet = host.querySelector<HTMLElement>(
-          '[data-a4-sheet-presentation="true"]',
+        const output = host.querySelector<HTMLElement>(
+          '[data-report-physical-output-planning="false"]',
         );
-        const page =
-          sheet?.querySelector<HTMLElement>(".pdf-report-page") ||
-          host.querySelector<HTMLElement>(".pdf-report-page");
-        const stage = sheet?.closest<HTMLElement>(
+        const page = output?.querySelector<HTMLElement>(".pdf-report-page");
+        const stage = output?.closest<HTMLElement>(
           ".report-design-logo-control-style",
         );
-        if (!sheet || !page || !stage) return;
-
-        observer.observe(sheet);
+        if (!output || !page || !stage) return;
 
         const logicalStageWidth = Math.max(
           page.offsetWidth,
-          sheet.offsetWidth,
-          sheet.scrollWidth,
+          output.scrollWidth,
+          stage.scrollWidth,
         );
 
         if (!Number.isFinite(logicalStageWidth) || logicalStageWidth <= 0) return;
@@ -4340,15 +4340,11 @@ export function ReportTwoStudioRuntime({
             : compactDesktopScale
               ? 0.66
               : 0.72;
-        const screenWidth =
-          window.visualViewport?.width ||
-          document.documentElement.clientWidth ||
-          window.innerWidth;
-        const viewportWidth = Math.min(viewport.clientWidth, screenWidth);
+        const viewportWidth = viewport.clientWidth;
         const safeHorizontalGap = viewportWidth < 640
-          ? 32
+          ? 24
           : viewportWidth < 1180
-            ? 40
+            ? 32
             : 40;
         const availableWidth = Math.max(0, viewportWidth - safeHorizontalGap);
         const fitScale = (availableWidth / logicalStageWidth) * 0.98;
@@ -4373,11 +4369,8 @@ export function ReportTwoStudioRuntime({
           responsiveFitScale,
         );
         const naturalStageHeight = Math.max(
-          sheet.scrollHeight,
-          sheet.offsetHeight,
-          page.scrollHeight,
+          output.scrollHeight,
           page.offsetHeight,
-          stage.scrollHeight,
         );
 
         host.style.setProperty(
@@ -4409,16 +4402,16 @@ export function ReportTwoStudioRuntime({
 
     const observer = new ResizeObserver(updatePreviewScale);
     observer.observe(viewport);
-    const sheet = host.querySelector<HTMLElement>(
-      '[data-a4-sheet-presentation="true"]',
+    const output = host.querySelector<HTMLElement>(
+      '[data-report-physical-output-planning="false"]',
     );
-    if (sheet) observer.observe(sheet);
+    if (output) observer.observe(output);
     const mutationObserver = new MutationObserver(updatePreviewScale);
     mutationObserver.observe(host, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["data-a4-sheet-presentation"],
+      attributeFilter: ["data-report-physical-output-planning"],
     });
     window.addEventListener("resize", updatePreviewScale);
     window.addEventListener("orientationchange", updatePreviewScale);
@@ -4752,7 +4745,7 @@ export function ReportTwoStudioRuntime({
         </aside>
         ) : null}
 
-        <section className="w-full min-w-0 max-w-full space-y-3 overflow-hidden">
+        <section className="space-y-3">
 
                     
           {semanticPlacementNotice ? (
@@ -4922,7 +4915,7 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />
@@ -6777,3 +6770,35 @@ export function ReportTwoStudioRuntime({
     </main>
   );
 }
+
+
+============================================================
+FILE: components\report-engine\design-renderers\report-design-renderer.tsx
+============================================================
+
+"use client";
+
+export * from "./shared/report-design-engine";
+export {
+  DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
+  SELECTABLE_REPORT_DESIGN_IDS,
+  isSelectableReportDesignId,
+  selectableReportDesignTemplates,
+} from "./shared/report-design-engine";
+export {
+  DEFAULT_REPORT_HEADER_SETTINGS,
+  getReportHeaderSettingsStyle,
+  normalizeReportHeaderSettings,
+  type ReportHeaderSettings,
+} from "./shared/report-header";
+export {
+  getDesignLogoFilter,
+  getDesignLogoFit,
+  getDesignLogoNumber,
+  getDesignLogoSrc,
+  getReportDesignLogoStyleText,
+} from "./shared/report-logo";
+export { collectFinalValues } from "./shared/final-report";
+export { A4DesignPage } from "./shared/report-blocks";
+
+
