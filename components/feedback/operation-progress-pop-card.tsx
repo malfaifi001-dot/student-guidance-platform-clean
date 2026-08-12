@@ -1,6 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export function OperationProgressPopCard({
   open,
@@ -11,11 +12,11 @@ export function OperationProgressPopCard({
   title: string;
   message: string;
 }) {
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
       dir="rtl"
       role="dialog"
       aria-modal="true"
@@ -31,6 +32,7 @@ export function OperationProgressPopCard({
           {message}
         </p>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -13,6 +13,7 @@ import {
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
@@ -6152,6 +6153,12 @@ export function ReportTwoStudioRuntime({
         modal={printExportModal}
         onClose={closePrintExportModal}
         onOpenFallback={openFallbackPrintUrl}
+      />
+
+      <OperationProgressPopCard
+        open={reportTwoPdfExporting}
+        title="جاري تجهيز الملف"
+        message="يتم الآن تجهيز التحميل، الرجاء الانتظار..."
       />
 
       {popup ? (

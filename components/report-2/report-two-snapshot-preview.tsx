@@ -1,5 +1,4 @@
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
-import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
 import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
 import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
@@ -173,12 +172,14 @@ export function ReportTwoSnapshotPreview({
 
       <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
         {canRenderStructured ? (
-          <ReportTwoActivePreviewRenderer
-            template={snapshot.snapshotTemplateJson}
-            context={(snapshot.renderContext || {}) as Record<string, string>}
-            previewCase={snapshot.previewCase || null}
-            sourcePayload={snapshot.snapshotPayload}
-            variantId={snapshot.variantId}
+          <ReportTwoPrintDocument
+            snapshot={{
+              template: snapshot.snapshotTemplateJson,
+              context: (snapshot.renderContext || {}) as Record<string, string>,
+              previewCase: snapshot.previewCase || null,
+              sourcePayload: snapshot.snapshotPayload,
+              variantId: snapshot.variantId,
+            }}
           />
         ) : (
           <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />
