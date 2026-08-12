@@ -73,7 +73,7 @@ export function MarketingFooter() {
 
         <div className="mt-14 flex flex-col gap-3 border-t border-slate-100 pt-7 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Teachix — جميع الحقوق محفوظة</p>
-          <p>منصة مدرسية عربية</p>
+
         </div>
       </div>
     </footer>

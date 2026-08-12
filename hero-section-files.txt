@@ -1,0 +1,1902 @@
+============================================================
+FILE: app\page.tsx
+============================================================
+import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  ClipboardCheck,
+  FileText,
+  FolderCheck,
+  LayoutDashboard,
+  ShieldCheck,
+  Sparkles,
+  Star,
+} from "lucide-react";
+
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { RoleStorySection } from "@/components/marketing/role-story-section";
+
+const reviews = [
+  {
+    name: "Ù†ÙˆØ±Ø© Ø§Ù„Ø¹ØªÙŠØ¨ÙŠ",
+    role: "Ù…Ø¹Ù„Ù…Ø©",
+    initials: "Ù†",
+    quote:
+      "Ø£ÙƒØ«Ø± Ø´ÙŠØ¡ ÙØ±Ù‚ Ù…Ø¹ÙŠ Ø£Ù† Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± ÙˆØ§Ù„ØªÙˆØ«ÙŠÙ‚ Ø£ØµØ¨Ø­Øª ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯. ØµØ±Øª Ø£Ø±Ø¬Ø¹ Ù„Ø¹Ù…Ù„ÙŠ Ø¨Ø³Ù‡ÙˆÙ„Ø© Ø¨Ø¯Ù„ Ø§Ù„Ø¨Ø­Ø« Ø¨ÙŠÙ† Ù…Ù„ÙØ§Øª ÙƒØ«ÙŠØ±Ø©.",
+  },
+  {
+    name: "Ø®Ø§Ù„Ø¯ Ø§Ù„Ø´Ù‡Ø±ÙŠ",
+    role: "Ø±Ø§Ø¦Ø¯ Ù†Ø´Ø§Ø·",
+    initials: "Ø®",
+    quote:
+      "Ø¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ù†Ø´Ø§Ø· ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø§Ù„ØªÙ†ÙÙŠØ° ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ù…Ù† Ù†ÙØ³ Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø§Ø®ØªØµØ± Ø¹Ù„ÙŠ Ø®Ø·ÙˆØ§Øª ÙƒØ«ÙŠØ±Ø©ØŒ Ø®ØµÙˆØµÙ‹Ø§ ÙˆÙ‚Øª ØªØ¬Ù‡ÙŠØ² ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬.",
+  },
+  {
+    name: "Ø³Ø§Ø±Ø© Ø§Ù„Ù‚Ø­Ø·Ø§Ù†ÙŠ",
+    role: "Ù…ÙˆØ¬Ù‡Ø© Ø·Ù„Ø§Ø¨ÙŠØ©",
+    initials: "Ø³",
+    quote:
+      "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ© Ø£ØµØ¨Ø­Øª Ø£ÙˆØ¶Ø­. ÙƒÙ„ Ø¥Ø¬Ø±Ø§Ø¡ Ù…Ø±ØªØ¨Ø· Ø¨Ø§Ù„Ø³Ø¬Ù„ Ù†ÙØ³Ù‡ØŒ ÙˆÙ‡Ø°Ø§ ÙŠØ³Ù‡Ù„ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© ÙˆØ¥ØµØ¯Ø§Ø± Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+  },
+  {
+    name: "Ù…Ø­Ù…Ø¯ Ø§Ù„ØºØ§Ù…Ø¯ÙŠ",
+    role: "Ù…Ø¯ÙŠØ± Ù…Ø¯Ø±Ø³Ø©",
+    initials: "Ù…",
+    quote:
+      "ÙŠØ¹Ø¬Ø¨Ù†ÙŠ Ø£Ù† ÙƒÙ„ Ø¯ÙˆØ± Ù„Ø¯ÙŠÙ‡ Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„ ÙˆØ§Ø¶Ø­Ø©. Ø£Ø³ØªØ·ÙŠØ¹ Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…Ø¯Ø±Ø³ÙŠ Ø¨Ø¯ÙˆÙ† Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙÙŠ ØªÙØ§ØµÙŠÙ„ Ù„Ø§ ØªØ®ØµÙ†ÙŠ.",
+  },
+];
+
+function ReviewCard({
+  review,
+  index,
+  mobile = false,
+}: {
+  review: (typeof reviews)[number];
+  index: number;
+  mobile?: boolean;
+}) {
+  return (
+    <article
+      className={[
+        "group flex flex-col border border-slate-200 bg-white transition duration-300",
+        "hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_80px_-50px_rgba(15,23,42,0.35)]",
+        mobile
+          ? "min-h-[300px] w-[88vw] shrink-0 snap-center rounded-[26px] p-5"
+          : "min-h-[330px] rounded-[28px] p-7",
+        !mobile && index === 1
+          ? "xl:translate-y-8"
+          : !mobile && index === 3
+            ? "xl:translate-y-5"
+            : "",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className={mobile ? "flex min-w-0 items-center gap-3" : "flex items-center gap-3"}>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-50 text-base font-black text-sky-700 ring-1 ring-sky-100">
+            {review.initials}
+          </div>
+
+          <div className={mobile ? "min-w-0" : undefined}>
+            <h3 className="text-sm font-black text-slate-950">
+              {review.name}
+            </h3>
+
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              {review.role}
+            </p>
+          </div>
+        </div>
+
+        <div className={mobile ? "flex shrink-0 items-center gap-0.5" : "flex items-center gap-0.5"}>
+          {Array.from({ length: 5 }).map((_, starIndex) => (
+            <Star
+              key={starIndex}
+              className="h-3.5 w-3.5 fill-sky-500 text-sky-500"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 text-5xl font-black leading-none text-sky-100">
+        â€œ
+      </div>
+
+      <p className="mt-3 flex-1 text-sm font-bold leading-8 text-slate-600 sm:text-[15px]">
+        {review.quote}
+      </p>
+    </article>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen overflow-x-clip bg-white text-slate-950">
+      <MarketingNavbar />
+
+      <main>
+        {/* =====================================================
+            HERO
+        ====================================================== */}
+        <section className="relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-72 top-10 h-[620px] w-[620px] rounded-full bg-sky-50/80 blur-3xl" />
+            <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-16 md:gap-12 md:py-20 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-10 lg:py-20 xl:min-h-[800px] xl:gap-16 xl:py-32">
+            <div className="max-w-3xl">
+              <h1 className="text-[2rem] font-black leading-[1.18] tracking-[-0.04em] text-slate-950 min-[430px]:text-[2.2rem] sm:text-[2.65rem] md:text-[2.9rem] lg:text-[3.15rem] xl:text-[3.8rem]">
+                Ø£Ø¹Ù…Ø§Ù„Ùƒ Ø§Ù„ÙŠÙˆÙ…ÙŠØ©ØŒ
+                <span className="mt-2 block text-sky-600">
+                  Ø£ÙˆØ¶Ø­ ÙˆØ£Ø³Ù‡Ù„ Ù…Ù† Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯.
+                </span>
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:mt-8 sm:text-xl sm:leading-9">
+                Teachix ØªØ¬Ù…Ø¹ Ù…Ù‡Ø§Ù… ÙØ±ÙŠÙ‚ Ø§Ù„Ù…Ø¯Ø±Ø³Ø©ØŒ ÙˆØªØ³Ø§Ø¹Ø¯ Ø¹Ù„Ù‰ Ø¥Ù†Ø¬Ø§Ø²Ù‡Ø§ØŒ ØªÙˆØ«ÙŠÙ‚Ù‡Ø§ØŒ
+                Ù…ØªØ§Ø¨Ø¹ØªÙ‡Ø§ØŒ ÙˆØ¥ØµØ¯Ø§Ø± ØªÙ‚Ø§Ø±ÙŠØ±Ù‡Ø§ Ø¶Ù…Ù† ØªØ¬Ø±Ø¨Ø© Ø¹Ø±Ø¨ÙŠØ© Ø¨Ø³ÙŠØ·Ø© ÙˆÙˆØ§Ø¶Ø­Ø©.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-sm font-black text-white shadow-lg shadow-sky-600/15 transition hover:-translate-y-0.5 hover:bg-sky-700"
+                >
+                  Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„
+                </Link>
+              </div>
+
+
+            </div>
+
+            <div className="relative mx-auto hidden w-full md:block md:max-w-[560px] lg:max-w-[520px] xl:max-w-[700px]">
+              <div className="absolute inset-8 rounded-[3.5rem] bg-sky-100/70 blur-3xl" />
+
+              <div className="relative lg:scale-[0.94] xl:scale-[1.08]">
+                <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] md:min-h-[460px] md:rounded-[30px] md:p-6 xl:min-h-[580px] xl:rounded-[32px] xl:p-7">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                    <div>
+                      <p className="text-xs font-bold text-sky-600">
+                        Teachix
+                      </p>
+
+                      <p className="mt-1 text-xl font-black text-slate-950">
+                        Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ø¹Ù…Ù„
+                      </p>
+                    </div>
+
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                      <LayoutDashboard className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
+                      <FileText className="h-6 w-6 text-sky-600" />
+
+                      <p className="mt-7 text-base font-black">
+                        Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±
+                      </p>
+
+                      <div className="mt-4 h-2.5 w-24 rounded-full bg-slate-200" />
+                    </div>
+
+                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
+                      <BarChart3 className="h-6 w-6 text-sky-600" />
+
+                      <p className="mt-7 text-base font-black">
+                        ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬
+                      </p>
+
+                      <div className="mt-4 h-2.5 w-20 rounded-full bg-slate-200" />
+                    </div>
+
+                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
+                      <ClipboardCheck className="h-6 w-6 text-sky-600" />
+
+                      <p className="mt-7 text-base font-black">
+                        Ø§Ù„ØªÙˆØ«ÙŠÙ‚
+                      </p>
+
+                      <div className="mt-4 h-2.5 w-28 rounded-full bg-slate-200" />
+                    </div>
+
+                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
+                      <FolderCheck className="h-6 w-6 text-sky-600" />
+
+                      <p className="mt-7 text-base font-black">
+                        Ø§Ù„Ù…Ù„ÙØ§Øª
+                      </p>
+
+                      <div className="mt-4 h-2.5 w-20 rounded-full bg-slate-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            USERS STORY
+        ====================================================== */}
+        <RoleStorySection />
+
+        {/* =====================================================
+            LESS CLUTTER
+        ====================================================== */}
+        <section
+          id="features"
+          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-24">
+              <div>
+                <p className="text-sm font-black text-sky-600">
+                  Ù„Ù…Ø§Ø°Ø§ TeachixØŸ
+                </p>
+
+                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-7xl">
+                  Ø£Ù‚Ù„ ØªØ´ØªØª.
+                  <span className="block text-slate-400">
+                    Ø¹Ù…Ù„ Ø£ÙˆØ¶Ø­.
+                  </span>
+                </h2>
+
+                <p className="mt-8 max-w-xl text-lg leading-9 text-slate-500">
+                  Ø¨Ø¯Ù„ Ø£Ù† ØªØªÙˆØ²Ø¹ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ Ø¨ÙŠÙ† Ø§Ù„Ù…Ù„ÙØ§Øª ÙˆØ§Ù„Ù†Ù…Ø§Ø°Ø¬ ÙˆØ§Ù„Ø±Ø³Ø§Ø¦Ù„ØŒ ØªØ¬Ù…Ø¹
+                  Teachix Ø¯ÙˆØ±Ø© Ø§Ù„Ø¹Ù…Ù„ Ø¯Ø§Ø®Ù„ ØªØ¬Ø±Ø¨Ø© ÙˆØ§Ø­Ø¯Ø© ÙˆØ§Ø¶Ø­Ø© Ù…Ù† Ø§Ù„Ø¨Ø¯Ø§ÙŠØ© Ø­ØªÙ‰
+                  Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ.
+                </p>
+
+                <Link
+                  href="/register"
+                  className="mt-9 inline-flex items-center gap-2 text-sm font-black text-sky-600 transition hover:text-sky-700"
+                >
+                  Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <article className="min-h-[240px] rounded-[28px] border border-sky-100 bg-sky-50/55 p-8 transition duration-300 hover:-translate-y-1 hover:bg-sky-50">
+                  <LayoutDashboard className="h-7 w-7 text-sky-600" />
+
+                  <h3 className="mt-9 text-2xl font-black">
+                    ÙƒÙ„ Ø§Ù„Ø¹Ù…Ù„ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                    Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ù…Ø¯Ø±Ø³Ø© Ù…Ø­ÙÙˆØ¸Ø© Ø¯Ø§Ø®Ù„ Ù…Ø³Ø§Ø­Ø© ÙˆØ§Ø¶Ø­Ø© Ø¨Ø¯Ù„ Ø§Ù„ØªÙ†Ù‚Ù„ Ø¨ÙŠÙ† Ø£Ø¯ÙˆØ§Øª
+                    Ù…Ù†ÙØµÙ„Ø©.
+                  </p>
+                </article>
+
+                <article className="min-h-[240px] rounded-[28px] border border-cyan-100 bg-cyan-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50/70">
+                  <FolderCheck className="h-7 w-7 text-sky-600" />
+
+                  <h3 className="mt-9 text-2xl font-black">
+                    ØªÙˆØ«ÙŠÙ‚ Ù…Ù†Ø¸Ù…
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                    Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ù…Ø±ØªØ¨Ø·Ø© Ù…Ø¨Ø§Ø´Ø±Ø© Ø¨Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ø°ÙŠ ØªÙ…
+                    Ø¥Ù†Ø¬Ø§Ø²Ù‡.
+                  </p>
+                </article>
+
+                <article className="min-h-[240px] rounded-[28px] border border-blue-100 bg-blue-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-blue-50/70">
+                  <FileText className="h-7 w-7 text-sky-600" />
+
+                  <h3 className="mt-9 text-2xl font-black">
+                    ØªÙ‚Ø§Ø±ÙŠØ± Ø¬Ø§Ù‡Ø²Ø©
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                    Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù…ØªØ¯Ø§Ø¯ Ù„Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…Ù†Ø¬Ø²ØŒ Ø¯ÙˆÙ† Ø§Ù„Ø­Ø§Ø¬Ø© Ù„Ø¥Ø¹Ø§Ø¯Ø© ÙƒØªØ§Ø¨Ø© Ù†ÙØ³
+                    Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.
+                  </p>
+                </article>
+
+                <article className="min-h-[240px] rounded-[28px] border border-indigo-100 bg-indigo-50/35 p-8 transition duration-300 hover:-translate-y-1 hover:bg-indigo-50/60">
+                  <ShieldCheck className="h-7 w-7 text-sky-600" />
+
+                  <h3 className="mt-9 text-2xl font-black">
+                    ØªØ¬Ø±Ø¨Ø© Ù„ÙƒÙ„ Ø¯ÙˆØ±
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                    ÙƒÙ„ Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ±Ù‰ Ø§Ù„Ø®Ø¯Ù…Ø§Øª ÙˆØ§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨ØµÙ„Ø§Ø­ÙŠØ§ØªÙ‡ ÙÙ‚Ø·.
+                  </p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            REVIEWS
+        ====================================================== */}
+        <section
+          id="reviews"
+          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
+        >
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-52 top-20 h-[420px] w-[420px] rounded-full bg-sky-100/65 blur-3xl" />
+            <div className="absolute -left-56 bottom-0 h-[380px] w-[380px] rounded-full bg-blue-100/40 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-black text-sky-600">
+                ØªØ¬Ø§Ø±Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†
+              </p>
+
+              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
+                Ø§Ù„Ø¹Ù…Ù„ Ø£Ø³Ù‡Ù„ Ø¹Ù†Ø¯Ù…Ø§ ØªÙƒÙˆÙ† Ø§Ù„Ø£Ø¯ÙˆØ§Øª ÙˆØ§Ø¶Ø­Ø©.
+              </h2>
+
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:text-lg">
+                Ù†Ù…Ø§Ø°Ø¬ ØªÙ‚ÙŠÙŠÙ…Ø§Øª ØªØ¬Ø±ÙŠØ¨ÙŠØ© ØªÙˆØ¶Ø­ ÙƒÙŠÙ ØªØ®Ø¯Ù… Teachix Ø£Ø¯ÙˆØ§Ø± Ø§Ù„Ù…Ø¯Ø±Ø³Ø©
+                Ø§Ù„Ù…Ø®ØªÙ„ÙØ©. Ø³ÙŠØªÙ… Ø§Ø³ØªØ¨Ø¯Ø§Ù„Ù‡Ø§ Ù„Ø§Ø­Ù‚Ù‹Ø§ Ø¨ØªØ¬Ø§Ø±Ø¨ Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙØ¹Ù„ÙŠØ©.
+              </p>
+            </div>
+
+            <div className="relative mt-12 md:hidden">
+              <div
+                dir="rtl"
+                className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-3 [scrollbar-width:none] min-[430px]:gap-5 sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden"
+              >
+                {reviews.map((review, index) => (
+                  <ReviewCard
+                    key={review.name}
+                    review={review}
+                    index={index}
+                    mobile
+                  />
+                ))}
+              </div>
+
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </span>
+
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </span>
+            </div>
+
+            <div className="mt-16 hidden gap-5 md:grid md:grid-cols-2 xl:grid-cols-4">
+              {reviews.map((review, index) => (
+                <ReviewCard
+                  key={review.name}
+                  review={review}
+                  index={index}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            CTA
+        ====================================================== */}
+        <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[30px] sm:px-8 sm:py-16 md:px-10 lg:py-20 xl:rounded-[32px] xl:py-24">
+              <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />
+              <div className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full border border-white/10" />
+              <div className="pointer-events-none absolute left-1/2 top-0 h-52 w-[70%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+
+              <div className="relative">
+                <Sparkles className="mx-auto h-7 w-7 text-sky-200" />
+
+                <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl xl:text-[3.25rem]">
+                  Ø§Ø¨Ø¯Ø£ ØªÙ†Ø¸ÙŠÙ… Ø£Ø¹Ù…Ø§Ù„ Ù…Ø¯Ø±Ø³ØªÙƒ Ù…Ø¹ Teachix
+                </h2>
+
+                <p className="mx-auto mt-6 max-w-xl text-base leading-8 text-sky-100">
+                  Ø£Ù†Ø´Ø¦ Ø­Ø³Ø§Ø¨Ùƒ ÙˆØ§Ø¨Ø¯Ø£ Ø§Ù„Ø¹Ù…Ù„ Ø¶Ù…Ù† ØªØ¬Ø±Ø¨Ø© Ù…Ø¯Ø±Ø³ÙŠØ© Ø£ÙˆØ¶Ø­ ÙˆØ£ÙƒØ«Ø± ØªÙ†Ø¸ÙŠÙ…Ù‹Ø§.
+                </p>
+
+                <Link
+                  href="/register"
+                  className="mt-9 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 text-sm font-black text-sky-700 transition hover:bg-sky-50"
+                >
+                  Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <MarketingFooter />
+    </div>
+  );
+}
+
+
+
+============================================================
+FILE: components\marketing\contact-form.tsx
+============================================================
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  Mail,
+  MessageCircle,
+  Send,
+} from "lucide-react";
+
+const SUPPORT_EMAIL = "support@teachix.sa";
+const WHATSAPP_NUMBER = "966500000000";
+
+type ContactState = {
+  name: string;
+  email: string;
+  phone: string;
+  requestType: string;
+  subject: string;
+  message: string;
+};
+
+const initialState: ContactState = {
+  name: "",
+  email: "",
+  phone: "",
+  requestType: "Ø§Ø³ØªÙØ³Ø§Ø± Ø¹Ø§Ù…",
+  subject: "",
+  message: "",
+};
+
+export function ContactForm() {
+  const [form, setForm] = useState<ContactState>(initialState);
+  const [feedback, setFeedback] = useState("");
+
+  const whatsappText = useMemo(() => {
+    return [
+      "Ù…Ø±Ø­Ø¨Ù‹Ø§ TeachixØŒ",
+      "",
+      `Ø§Ù„Ø§Ø³Ù…: ${form.name || "-"}`,
+      `Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ: ${form.email || "-"}`,
+      `Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„: ${form.phone || "-"}`,
+      `Ù†ÙˆØ¹ Ø§Ù„Ø·Ù„Ø¨: ${form.requestType || "-"}`,
+      `Ø§Ù„Ù…ÙˆØ¶ÙˆØ¹: ${form.subject || "-"}`,
+      "",
+      "Ø§Ù„Ø±Ø³Ø§Ù„Ø©:",
+      form.message || "-",
+    ].join("\n");
+  }, [form]);
+
+  function updateField<K extends keyof ContactState>(
+    key: K,
+    value: ContactState[K],
+  ) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+
+    if (feedback) {
+      setFeedback("");
+    }
+  }
+
+  function validate() {
+    if (!form.name.trim()) {
+      setFeedback("Ø§ÙƒØªØ¨ Ø§Ù„Ø§Ø³Ù… Ø£ÙˆÙ„Ù‹Ø§.");
+      return false;
+    }
+
+    if (!form.email.trim()) {
+      setFeedback("Ø§ÙƒØªØ¨ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.");
+      return false;
+    }
+
+    if (!form.subject.trim()) {
+      setFeedback("Ø§ÙƒØªØ¨ Ù…ÙˆØ¶ÙˆØ¹ Ø§Ù„Ø±Ø³Ø§Ù„Ø©.");
+      return false;
+    }
+
+    if (!form.message.trim()) {
+      setFeedback("Ø§ÙƒØªØ¨ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function sendByEmail() {
+    if (!validate()) {
+      return;
+    }
+
+    const body = [
+      `Ø§Ù„Ø§Ø³Ù…: ${form.name}`,
+      `Ø§Ù„Ø¨Ø±ÙŠØ¯: ${form.email}`,
+      `Ø§Ù„Ø¬ÙˆØ§Ù„: ${form.phone || "-"}`,
+      `Ù†ÙˆØ¹ Ø§Ù„Ø·Ù„Ø¨: ${form.requestType}`,
+      "",
+      form.message,
+    ].join("\n");
+
+    const href =
+      `mailto:${SUPPORT_EMAIL}` +
+      `?subject=${encodeURIComponent(`[Teachix] ${form.subject}`)}` +
+      `&body=${encodeURIComponent(body)}`;
+
+    window.location.href = href;
+  }
+
+  function sendByWhatsApp() {
+    if (!validate()) {
+      return;
+    }
+
+    const href =
+      `https://wa.me/${WHATSAPP_NUMBER}` +
+      `?text=${encodeURIComponent(whatsappText)}`;
+
+    const opened = window.open(
+      href,
+      "_blank",
+      "noopener,noreferrer",
+    );
+
+    if (!opened) {
+      setFeedback(
+        "ØªØ¹Ø°Ø± ÙØªØ­ ÙˆØ§ØªØ³Ø§Ø¨. ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø§Ù„Ù†ÙˆØ§ÙØ° Ø§Ù„Ù…Ù†Ø¨Ø«Ù‚Ø© Ø«Ù… Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+      );
+    }
+  }
+
+  return (
+    <div className="grid gap-10 lg:grid-cols-[1fr_0.72fr] lg:gap-16">
+      <div className="rounded-[30px] border border-slate-200 bg-white p-6 sm:p-8 lg:p-10">
+        <div>
+          <p className="text-sm font-black text-sky-600">
+            Ø£Ø±Ø³Ù„ Ù„Ù†Ø§ Ø±Ø³Ø§Ù„Ø©
+          </p>
+
+          <h2 className="mt-3 text-3xl font-black text-slate-950">
+            ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†Ø§ Ù…Ø³Ø§Ø¹Ø¯ØªÙƒØŸ
+          </h2>
+
+          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-500">
+            Ø§ÙƒØªØ¨ ØªÙØ§ØµÙŠÙ„ Ø·Ù„Ø¨Ùƒ ÙˆØ³Ù†ÙˆØ¬Ù‘Ù‡Ùƒ Ø¥Ù„Ù‰ ÙˆØ³ÙŠÙ„Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨Ø©.
+          </p>
+        </div>
+
+        <div className="mt-9 grid gap-5 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">
+              Ø§Ù„Ø§Ø³Ù…
+            </span>
+
+            <input
+              value={form.name}
+              onChange={(event) =>
+                updateField("name", event.target.value)
+              }
+              placeholder="Ø§Ù„Ø§Ø³Ù… Ø§Ù„ÙƒØ§Ù…Ù„"
+              className="mt-2.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">
+              Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ
+            </span>
+
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) =>
+                updateField("email", event.target.value)
+              }
+              placeholder="name@example.com"
+              dir="ltr"
+              className="mt-2.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">
+              Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„
+            </span>
+
+            <input
+              value={form.phone}
+              onChange={(event) =>
+                updateField("phone", event.target.value)
+              }
+              placeholder="05xxxxxxxx"
+              dir="ltr"
+              className="mt-2.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">
+              Ù†ÙˆØ¹ Ø§Ù„Ø·Ù„Ø¨
+            </span>
+
+            <select
+              value={form.requestType}
+              onChange={(event) =>
+                updateField("requestType", event.target.value)
+              }
+              className="mt-2.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+            >
+              <option>Ø§Ø³ØªÙØ³Ø§Ø± Ø¹Ø§Ù…</option>
+              <option>Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ</option>
+              <option>Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø§Ø´ØªØ±Ø§Ùƒ</option>
+              <option>Ø§Ù‚ØªØ±Ø§Ø­ Ø£Ùˆ Ù…Ù„Ø§Ø­Ø¸Ø©</option>
+              <option>Ø·Ù„Ø¨ Ù…ØªØ¹Ù„Ù‚ Ø¨Ø§Ù„Ø®ØµÙˆØµÙŠØ©</option>
+              <option>Ø¨Ù„Ø§Øº Ø£Ùˆ Ø´ÙƒÙˆÙ‰</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="mt-5 block">
+          <span className="text-sm font-black text-slate-700">
+            Ø§Ù„Ù…ÙˆØ¶ÙˆØ¹
+          </span>
+
+          <input
+            value={form.subject}
+            onChange={(event) =>
+              updateField("subject", event.target.value)
+            }
+            placeholder="Ø§ÙƒØªØ¨ Ù…ÙˆØ¶ÙˆØ¹ Ø§Ù„Ø±Ø³Ø§Ù„Ø©"
+            className="mt-2.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+          />
+        </label>
+
+        <label className="mt-5 block">
+          <span className="text-sm font-black text-slate-700">
+            Ø§Ù„Ø±Ø³Ø§Ù„Ø©
+          </span>
+
+          <textarea
+            value={form.message}
+            onChange={(event) =>
+              updateField("message", event.target.value)
+            }
+            placeholder="Ø§ÙƒØªØ¨ ØªÙØ§ØµÙŠÙ„ Ø·Ù„Ø¨Ùƒ..."
+            rows={7}
+            className="mt-2.5 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-bold leading-7 text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50"
+          />
+        </label>
+
+        {feedback ? (
+          <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            {feedback}
+          </div>
+        ) : null}
+
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={sendByWhatsApp}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-6 py-4 text-sm font-black text-white transition hover:bg-sky-700"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Ø¥Ø±Ø³Ø§Ù„ Ø¹Ø¨Ø± ÙˆØ§ØªØ³Ø§Ø¨
+          </button>
+
+          <button
+            type="button"
+            onClick={sendByEmail}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <Send className="h-4 w-4" />
+            Ø¥Ø±Ø³Ø§Ù„ Ø¹Ø¨Ø± Ø§Ù„Ø¨Ø±ÙŠØ¯
+          </button>
+        </div>
+      </div>
+
+      <aside className="lg:pt-10">
+        <p className="text-sm font-black text-sky-600">
+          ØªÙˆØ§ØµÙ„ Ù…Ø¨Ø§Ø´Ø±
+        </p>
+
+        <h2 className="mt-4 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
+          Ù†Ø­Ù† Ù‡Ù†Ø§ Ù„Ù…Ø³Ø§Ø¹Ø¯ØªÙƒ.
+        </h2>
+
+        <p className="mt-5 text-base leading-8 text-slate-500">
+          Ù„Ù„Ø§Ø³ØªÙØ³Ø§Ø±Ø§Øª Ø§Ù„Ù…ØªØ¹Ù„Ù‚Ø© Ø¨Ø§Ù„Ù…Ù†ØµØ© Ø£Ùˆ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø£Ùˆ Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠØŒ
+          Ø§Ø³ØªØ®Ø¯Ù… Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ Ø£Ùˆ ØªÙˆØ§ØµÙ„ Ù…Ø¹Ù†Ø§ Ù…Ø¨Ø§Ø´Ø±Ø©.
+        </p>
+
+        <div className="mt-10 space-y-4">
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-sky-200"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-slate-950">
+                ÙˆØ§ØªØ³Ø§Ø¨
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">
+                +966 50 000 0000
+              </p>
+            </div>
+          </a>
+
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-sky-200"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+              <Mail className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-slate-950">
+                Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">
+                support@teachix.sa
+              </p>
+            </div>
+          </a>
+        </div>
+
+        <div className="mt-8 rounded-[26px] bg-slate-50 p-6">
+          <p className="text-sm font-black text-slate-950">
+            Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø®ØµÙˆØµÙŠØ©
+          </p>
+
+          <p className="mt-3 text-sm leading-7 text-slate-500">
+            ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù†ÙØ³ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§ØªÙƒ
+            Ø£Ùˆ ØªØµØ­ÙŠØ­Ù‡Ø§ Ø£Ùˆ Ø­Ø°ÙÙ‡Ø§ Ø£Ùˆ Ø£ÙŠ Ø·Ù„Ø¨ Ø¢Ø®Ø± Ù…ØªØ¹Ù„Ù‚ Ø¨Ø§Ù„Ø®ØµÙˆØµÙŠØ©.
+          </p>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\marketing\marketing-footer.tsx
+============================================================
+import Link from "next/link";
+
+export function MarketingFooter() {
+  return (
+    <footer className="border-t border-slate-100 bg-white">
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10">
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
+          <div className="max-w-md">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-600 font-black text-white">
+                T
+              </div>
+
+              <p className="text-xl font-black text-slate-950">
+                Teachix
+              </p>
+            </div>
+
+            <p className="mt-5 text-sm leading-7 text-slate-500">
+              Ù…Ù†ØµØ© Ù…Ø¯Ø±Ø³ÙŠØ© Ø±Ù‚Ù…ÙŠØ© ØªØ³Ø§Ø¹Ø¯ ÙØ±ÙŠÙ‚ Ø§Ù„Ù…Ø¯Ø±Ø³Ø© Ø¹Ù„Ù‰ Ø¥Ù†Ø¬Ø§Ø² Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ØŒ
+              ØªÙˆØ«ÙŠÙ‚Ù‡Ø§ØŒ Ù…ØªØ§Ø¨Ø¹ØªÙ‡Ø§ØŒ ÙˆØ¥ØµØ¯Ø§Ø± ØªÙ‚Ø§Ø±ÙŠØ±Ù‡Ø§ Ù…Ù† Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black text-slate-950">
+              Ø§Ù„Ù…Ù†ØµØ©
+            </h3>
+
+            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500">
+              <Link href="/#users" className="block hover:text-sky-600">
+                Ù„Ù…Ù† Ø§Ù„Ù…Ù†ØµØ©ØŸ
+              </Link>
+
+              <Link href="/#features" className="block hover:text-sky-600">
+                Ù„Ù…Ø§Ø°Ø§ TeachixØŸ
+              </Link>
+
+              <Link href="/#reviews" className="block hover:text-sky-600">
+                ØªØ¬Ø±Ø¨Ø© Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù…
+              </Link>
+
+              <Link href="/register" className="block hover:text-sky-600">
+                Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black text-slate-950">
+              Ù…Ø¹Ù„ÙˆÙ…Ø§Øª
+            </h3>
+
+            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500">
+              <Link href="/about" className="block hover:text-sky-600">
+                Ø¹Ù† Ø§Ù„Ù…Ù†ØµØ©
+              </Link>
+
+              <Link href="/contact" className="block hover:text-sky-600">
+                ØªÙˆØ§ØµÙ„ Ù…Ø¹Ù†Ø§
+              </Link>
+
+              <Link href="/privacy" className="block hover:text-sky-600">
+                Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø®ØµÙˆØµÙŠØ©
+              </Link>
+
+              <Link href="/terms" className="block hover:text-sky-600">
+                Ø§Ù„Ø´Ø±ÙˆØ· ÙˆØ§Ù„Ø£Ø­ÙƒØ§Ù…
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-14 flex flex-col gap-3 border-t border-slate-100 pt-7 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>Â© 2026 Teachix â€” Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©</p>
+          <p>Ù…Ù†ØµØ© Ù…Ø¯Ø±Ø³ÙŠØ© Ø¹Ø±Ø¨ÙŠØ©</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+
+============================================================
+FILE: components\marketing\marketing-navbar.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import { useState } from "react";
+
+import { siteConfig } from "@/lib/marketing/site";
+
+export function MarketingNavbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+
+  const closeMenu = () => setIsOpen(false);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
+      <div
+        className={[
+          "mx-auto min-h-[72px] max-w-7xl items-center gap-4 px-5 sm:px-8 lg:px-10",
+          isAuthPage
+            ? "flex justify-between xl:grid xl:grid-cols-[1fr_auto_1fr]"
+            : "flex justify-between",
+        ].join(" ")}
+      >
+        <Link
+          href="/"
+          onClick={closeMenu}
+          className="flex min-w-0 items-center gap-3"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-base font-black text-white">
+            T
+          </div>
+
+          <p className="text-lg font-black tracking-tight text-slate-950">
+            {siteConfig.shortName}
+          </p>
+        </Link>
+
+        <nav className="hidden items-center gap-9 whitespace-nowrap xl:flex">
+          {siteConfig.navigation.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm font-bold text-slate-500 transition hover:text-sky-600"
+            >
+              {item.title}
+            </Link>
+          ))}
+        </nav>
+
+        {isAuthPage ? (
+          <div className="hidden xl:block" aria-hidden="true" />
+        ) : (
+          <div className="hidden items-center gap-3 xl:flex">
+            <Link
+              href="/login"
+              className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
+            >
+              ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„
+            </Link>
+
+            <Link
+              href="/register"
+              className="rounded-xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+            >
+              Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+            </Link>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setIsOpen((current) => !current)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 xl:hidden"
+          aria-label={isOpen ? "Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©" : "ÙØªØ­ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©"}
+          aria-expanded={isOpen}
+        >
+          {isOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </button>
+      </div>
+
+      {isOpen ? (
+        <div className="border-t border-slate-100 bg-white xl:hidden">
+          <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
+            <nav className="flex flex-col gap-1">
+              {siteConfig.navigation.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                  className="rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-sky-600"
+                >
+                  {item.title}
+                </Link>
+              ))}
+            </nav>
+
+            {!isAuthPage ? (
+              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5">
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600"
+                >
+                  ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„
+                </Link>
+
+                <Link
+                  href="/register"
+                  onClick={closeMenu}
+                  className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                >
+                  Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
+
+
+============================================================
+FILE: components\marketing\role-story-section.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  FileText,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+type StoryItemProps = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  direction: "normal" | "reverse";
+  icon: React.ReactNode;
+  visual: React.ReactNode;
+};
+
+function MobileStoryCard({
+  eyebrow,
+  title,
+  visual,
+}: Pick<StoryItemProps, "eyebrow" | "title" | "visual">) {
+  return (
+    <article className="w-[88vw] shrink-0 snap-center overflow-hidden rounded-[26px] border border-white/90 bg-white/90 p-4 shadow-[0_22px_60px_-40px_rgba(15,23,42,0.28)] backdrop-blur-sm min-[430px]:p-5">
+      <div className="min-w-0">
+        <p className="text-xs font-black text-sky-600">
+          {eyebrow}
+        </p>
+
+        <h3 className="mt-2 text-2xl font-black leading-tight tracking-[-0.03em] text-slate-950">
+          {title}
+        </h3>
+
+        <Link
+          href="/register"
+          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-700"
+        >
+          Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+          <ArrowLeft className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div className="mt-3 h-[350px] overflow-hidden rounded-[20px] bg-white min-[430px]:h-[370px]">
+        <div className="w-[161%] origin-top-right scale-[0.62]">
+          {visual}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function StoryItem({
+  eyebrow,
+  title,
+  description,
+  direction,
+  icon,
+  visual,
+}: StoryItemProps) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+
+    if (!element) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: 0.18,
+        rootMargin: "0px 0px -8% 0px",
+      },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const reverse = direction === "reverse";
+
+  return (
+    <article
+      ref={ref}
+      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:gap-12 md:py-20 lg:min-h-[620px] lg:grid-cols-2 lg:gap-16 lg:py-24 xl:min-h-[680px] xl:gap-28 xl:py-32"
+    >
+      <div
+        className={[
+          "max-w-xl transition-all duration-700 ease-out",
+          reverse ? "lg:order-2" : "lg:order-1",
+          visible
+            ? "translate-x-0 opacity-100"
+            : reverse
+              ? "translate-x-8 opacity-0"
+              : "-translate-x-8 opacity-0",
+        ].join(" ")}
+      >
+        {icon ? (
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+            {icon}
+          </div>
+        ) : null}
+
+        <p className={icon ? "mt-7 text-sm font-black text-sky-600" : "text-base font-black text-sky-600"}>
+          {eyebrow}
+        </p>
+
+        <h3 className="mt-3 text-3xl font-black leading-tight tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl md:text-[2.5rem] lg:text-[2.75rem] xl:text-5xl">
+          {title}
+        </h3>
+
+        <p className="mt-6 max-w-lg text-base leading-8 text-slate-500 sm:text-lg sm:leading-9">
+          {description}
+        </p>
+
+        <Link
+          href="/register"
+          className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3.5 text-sm font-black text-white transition hover:bg-sky-700"
+        >
+          Ø§Ø¨Ø¯Ø£ Ø§Ù„Ø¢Ù†
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div
+        className={[
+          "relative transition-all delay-100 duration-700 ease-out md:mx-auto md:w-full md:max-w-[560px] lg:max-w-none",
+          reverse ? "lg:order-1" : "lg:order-2",
+          visible
+            ? "translate-x-0 opacity-100"
+            : reverse
+              ? "-translate-x-12 opacity-0"
+              : "translate-x-12 opacity-0",
+        ].join(" ")}
+      >
+        {visual}
+      </div>
+    </article>
+  );
+}
+
+function TeacherVisual() {
+  return (
+    <div className="relative mx-auto w-full max-w-[610px]">
+      <div className="absolute inset-6 rounded-[4rem] bg-sky-100/70 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[520px] lg:rotate-[2deg]">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] md:min-h-[480px] md:rounded-[28px] md:p-6 xl:min-h-[560px] xl:rounded-[32px] xl:p-8">
+          <div className="flex items-start justify-between border-b border-slate-100 pb-7">
+            <div>
+              <p className="text-xs font-black text-sky-600">
+                Teachix
+              </p>
+
+              <h4 className="mt-2 text-2xl font-black text-slate-950">
+                ØªÙ‚Ø±ÙŠØ± Ø£Ø¯Ø§Ø¡ Ø§Ù„ÙˆØ§Ø¬Ø¨Ø§Øª Ø§Ù„ÙˆØ¸ÙŠÙÙŠØ©
+              </h4>
+
+
+            </div>
+
+            <div className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              Ù…ÙƒØªÙ…Ù„
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-xs font-bold text-slate-400">
+                Ø§Ø³Ù… Ø§Ù„Ù…Ø¹Ù„Ù…
+              </p>
+
+              <div className="mt-3 h-3 w-28 rounded-full bg-slate-200" />
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-xs font-bold text-slate-400">
+                Ø§Ù„ÙØªØ±Ø©
+              </p>
+
+              <p className="mt-2 text-sm font-black text-slate-800">
+                Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-100 bg-white p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-slate-900">
+                  Ø§ÙƒØªÙ…Ø§Ù„ Ù…Ù„Ù Ø§Ù„Ø¥Ù†Ø¬Ø§Ø²
+                </p>
+              </div>
+
+              <p className="text-3xl font-black text-sky-600">
+                92%
+              </p>
+            </div>
+
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-[92%] rounded-full bg-sky-500" />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-sky-50/70 p-5">
+              <p className="text-xs font-bold text-slate-400">
+                Ø§Ù„Ø§Ù„ØªØ²Ø§Ù…
+              </p>
+
+              <p className="mt-2 text-lg font-black text-slate-900">
+                Ù…Ø±ØªÙØ¹
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-xs font-bold text-slate-400">
+                Ø§Ù„Ø¥Ù†Ø¬Ø§Ø²
+              </p>
+
+              <p className="mt-2 text-lg font-black text-slate-900">
+                Ù…Ù…ØªØ§Ø²
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-xs font-bold text-slate-400">
+                Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø©
+              </p>
+
+              <p className="mt-2 text-lg font-black text-slate-900">
+                Ù…Ù†ØªØ¸Ù…Ø©
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6">
+            <p className="text-xs font-bold text-slate-400">
+              Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div className="h-2.5 rounded-full bg-slate-200" />
+              <div className="h-2.5 w-[88%] rounded-full bg-slate-200" />
+              <div className="h-2.5 w-[72%] rounded-full bg-slate-200" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CounselorVisual() {
+  return (
+    <div className="relative mx-auto w-full max-w-[620px]">
+      <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[570px] lg:-rotate-[2deg]">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.34)] md:min-h-[470px] md:rounded-[28px] md:p-6 xl:min-h-[550px] xl:rounded-[32px] xl:p-8">
+
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-100 pb-6">
+            <div>
+              <p className="text-xs font-black text-sky-600">
+                Teachix
+              </p>
+
+              <h4 className="mt-2 text-2xl font-black text-slate-950">
+                Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©
+              </h4>
+            </div>
+
+            <div className="rounded-full bg-sky-50 px-4 py-2 text-xs font-black text-sky-700">
+              Ø§Ù„Ù…ÙˆØ¬Ù‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ
+            </div>
+          </div>
+
+          {/* Services */}
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm">
+                  <div className="h-3 w-3 rounded-full border-2 border-sky-500" />
+                </div>
+
+                <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-sky-700">
+                  Ù†Ø´Ø·
+                </span>
+              </div>
+
+              <p className="mt-5 text-sm font-black text-slate-950">
+                Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨
+              </p>
+
+              <p className="mt-2 text-xs font-bold leading-6 text-slate-400">
+                Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm">
+                <div className="flex gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-sky-300" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm font-black text-slate-950">
+                Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©
+              </p>
+
+              <p className="mt-2 text-xs font-bold leading-6 text-slate-400">
+                ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙˆØ§ØµÙ„ ÙˆÙ†ØªØ§Ø¦Ø¬ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø©
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm">
+                <div className="h-4 w-4 rounded-md border-2 border-sky-400" />
+              </div>
+
+              <p className="mt-5 text-sm font-black text-slate-950">
+                Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©
+              </p>
+
+              <p className="mt-2 text-xs font-bold leading-6 text-slate-400">
+                ØªÙ†ÙÙŠØ° Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ ÙˆØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm">
+                <div className="space-y-1">
+                  <div className="h-1.5 w-4 rounded-full bg-sky-400" />
+                  <div className="h-1.5 w-3 rounded-full bg-sky-200" />
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm font-black text-slate-950">
+                Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯
+              </p>
+
+              <p className="mt-2 text-xs font-bold leading-6 text-slate-400">
+                ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…Ù†Ø¬Ø² Ø¥Ù„Ù‰ Ø³Ø¬Ù„ Ù…ÙˆØ«Ù‚
+              </p>
+            </div>
+          </div>
+
+          {/* Current student follow-up */}
+          <div className="mt-5 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-sky-600">
+                  Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„ÙŠØ©
+                </p>
+
+                <p className="mt-2 text-base font-black text-slate-950">
+                  Ø­Ø§Ù„Ø© Ø·Ø§Ù„Ø¨ Ù‚ÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø©
+                </p>
+              </div>
+
+              <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[10px] font-black text-amber-700">
+                Ù‚ÙŠØ¯ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡
+              </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-[auto_1fr] items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50">
+                <div className="h-5 w-5 rounded-full bg-sky-200" />
+              </div>
+
+              <div>
+                <div className="h-2.5 w-28 rounded-full bg-slate-200" />
+                <div className="mt-2 h-2 w-20 rounded-full bg-slate-100" />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[10px] font-black text-slate-400">
+                <span>Ø¨Ø¯Ø¡ Ø§Ù„Ø­Ø§Ù„Ø©</span>
+                <span>Ù…ØªØ§Ø¨Ø¹Ø©</span>
+                <span>ØªÙ‚Ø±ÙŠØ±</span>
+              </div>
+
+              <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-[66%] rounded-full bg-sky-500" />
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrincipalVisual() {
+  const timetableCells = Array.from({ length: 30 });
+
+  return (
+    <div className="relative mx-auto w-full max-w-[680px]">
+      <div className="absolute inset-7 rounded-[4rem] bg-sky-100/70 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[570px] lg:rotate-[1.5deg]">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] md:rounded-[28px] md:p-6 xl:rounded-[34px] xl:p-7">
+
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-100 pb-5">
+            <div>
+              <p className="text-xs font-black text-sky-600">
+                Teachix
+              </p>
+
+              <h4 className="mt-2 text-2xl font-black text-slate-950">
+                Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ
+              </h4>
+            </div>
+
+            <div className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              Ø¬Ø§Ù‡Ø²
+            </div>
+          </div>
+
+          {/* Main actions */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+              <p className="text-xs font-black text-sky-600">
+                Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ
+              </p>
+
+              <h5 className="mt-2 text-base font-black text-slate-950">
+                Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ
+              </h5>
+
+              <p className="mt-1.5 text-xs font-bold leading-5 text-slate-400">
+                ØªÙ†Ø¸ÙŠÙ… Ø§Ù„Ø­ØµØµ ÙˆØªÙˆØ²ÙŠØ¹Ù‡Ø§ Ø¹Ù„Ù‰ Ø£ÙŠØ§Ù… Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-black text-sky-600">
+                Ø§Ù„ØªØºØ·ÙŠØ© Ø§Ù„ÙŠÙˆÙ…ÙŠØ©
+              </p>
+
+              <h5 className="mt-2 text-base font-black text-slate-950">
+                Ø­ØµØµ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±
+              </h5>
+
+              <p className="mt-1.5 text-xs font-bold leading-5 text-slate-400">
+                Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø­ØµØµ Ø§Ù„Ø´Ø§ØºØ±Ø© ÙˆØªØºØ·ÙŠØªÙ‡Ø§ Ø¨Ø³Ø±Ø¹Ø©
+              </p>
+            </div>
+          </div>
+
+          {/* Timetable */}
+          <div className="mt-4 rounded-[22px] border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-sky-600">
+                  Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„Ø­Ø§Ù„ÙŠ
+                </p>
+
+                <h5 className="mt-1.5 text-base font-black text-slate-950">
+                  ØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø­ØµØµ
+                </h5>
+              </div>
+
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black text-sky-700">
+                Ù…Ø­Ø¯Ø«
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-6 gap-1.5">
+              {timetableCells.map((_, index) => (
+                <div
+                  key={index}
+                  className={[
+                    "h-8 rounded-lg border",
+                    index === 7 ||
+                    index === 14 ||
+                    index === 20 ||
+                    index === 26
+                      ? "border-sky-100 bg-sky-50"
+                      : index === 10 || index === 23
+                        ? "border-amber-100 bg-amber-50"
+                        : "border-slate-100 bg-slate-50",
+                  ].join(" ")}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Waiting periods */}
+          <div className="mt-4 rounded-[22px] border border-slate-100 bg-slate-50/70 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-slate-950">
+                  Ø­ØµØµ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„ÙŠÙˆÙ…
+                </p>
+
+                <p className="mt-1 text-xs font-bold text-slate-400">
+                  Ø§Ù„Ø­ØµØµ Ø§Ù„ØªÙŠ ØªØ­ØªØ§Ø¬ Ø¥Ù„Ù‰ ØªØºØ·ÙŠØ©
+                </p>
+              </div>
+
+              <p className="text-2xl font-black text-sky-600">
+                3
+              </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-white px-2 py-2.5 text-center">
+                <p className="text-[9px] font-bold text-slate-400">
+                  Ø§Ù„Ø­ØµØ©
+                </p>
+
+                <p className="mt-1 text-xs font-black text-slate-900">
+                  Ø§Ù„Ø«Ø§Ù†ÙŠØ©
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white px-2 py-2.5 text-center">
+                <p className="text-[9px] font-bold text-slate-400">
+                  Ø§Ù„Ø­ØµØ©
+                </p>
+
+                <p className="mt-1 text-xs font-black text-slate-900">
+                  Ø§Ù„Ø±Ø§Ø¨Ø¹Ø©
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white px-2 py-2.5 text-center">
+                <p className="text-[9px] font-bold text-slate-400">
+                  Ø§Ù„Ø­ØµØ©
+                </p>
+
+                <p className="mt-1 text-xs font-black text-slate-900">
+                  Ø§Ù„Ø³Ø§Ø¯Ø³Ø©
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityVisual() {
+  return (
+    <div className="relative mx-auto w-full max-w-[680px]">
+      <div className="absolute inset-7 rounded-[4rem] bg-blue-50 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[570px] lg:-rotate-[1.5deg]">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_50px_130px_-55px_rgba(15,23,42,0.36)] md:rounded-[28px] md:p-6 xl:rounded-[34px] xl:p-7">
+
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-100 pb-5">
+            <div>
+              <p className="text-xs font-black text-sky-600">
+                Teachix
+              </p>
+
+              <h4 className="mt-2 text-2xl font-black text-slate-950">
+                Ø¥Ø¯Ø§Ø±Ø© Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ù†Ø´Ø§Ø·
+              </h4>
+            </div>
+
+            <div className="rounded-full bg-sky-50 px-4 py-2 text-xs font-black text-sky-700">
+              Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+              <p className="text-xs font-black text-sky-600">
+                Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬
+              </p>
+
+              <h5 className="mt-2 text-sm font-black text-slate-950">
+                ØªÙØ¹ÙŠÙ„ Ø¨Ø±Ù†Ø§Ù…Ø¬
+              </h5>
+
+              <p className="mt-1.5 text-[11px] font-bold leading-5 text-slate-400">
+                Ø¨Ø¯Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ° ÙˆØªÙˆØ«ÙŠÙ‚ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-black text-sky-600">
+                Ø§Ù„ØªÙƒÙ„ÙŠÙ
+              </p>
+
+              <h5 className="mt-2 text-sm font-black text-slate-950">
+                Ø¥Ø³Ù†Ø§Ø¯ Ù†Ø´Ø§Ø· Ù„Ù…Ø¹Ù„Ù…
+              </h5>
+
+              <p className="mt-1.5 text-[11px] font-bold leading-5 text-slate-400">
+                Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„ØªÙƒÙ„ÙŠÙ ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø© Ø§Ù„ØªÙ†ÙÙŠØ°
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-black text-sky-600">
+                Ø§Ù„ØªÙˆØ«ÙŠÙ‚
+              </p>
+
+              <h5 className="mt-2 text-sm font-black text-slate-950">
+                Ù…Ù„Ù Ø§Ù„Ù†Ø´Ø§Ø·
+              </h5>
+
+              <p className="mt-1.5 text-[11px] font-bold leading-5 text-slate-400">
+                Ø­ÙØ¸ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„ØªÙ‚Ø§Ø±ÙŠØ± ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª
+              </p>
+            </div>
+          </div>
+
+          {/* Active program */}
+          <div className="mt-4 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-sky-600">
+                  Ø¨Ø±Ù†Ø§Ù…Ø¬ Ù†Ø´Ø·
+                </p>
+
+                <h5 className="mt-1.5 text-base font-black text-slate-950">
+                  Ø¨Ø±Ù†Ø§Ù…Ø¬ Ù…Ù‡Ø§Ø±Ø§Øª Ø§Ù„Ø­ÙŠØ§Ø©
+                </h5>
+              </div>
+
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700">
+                Ù‚ÙŠØ¯ Ø§Ù„ØªÙ†ÙÙŠØ°
+              </span>
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[10px] font-black text-slate-400">
+                <span>Ø§Ù„Ø¨Ø¯Ø§ÙŠØ©</span>
+                <span>Ø§Ù„ØªÙ†ÙÙŠØ°</span>
+                <span>Ø§Ù„ØªÙˆØ«ÙŠÙ‚</span>
+              </div>
+
+              <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-[72%] rounded-full bg-sky-500" />
+              </div>
+            </div>
+          </div>
+
+          {/* Assignment */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[22px] border border-slate-100 bg-slate-50/70 p-5">
+              <p className="text-xs font-black text-sky-600">
+                Ø¢Ø®Ø± Ø¥Ø³Ù†Ø§Ø¯
+              </p>
+
+              <h5 className="mt-2 text-sm font-black text-slate-950">
+                ØªÙ†ÙÙŠØ° ÙØ¹Ø§Ù„ÙŠØ© Ù…Ø¯Ø±Ø³ÙŠØ©
+              </h5>
+
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-white" />
+
+                <div>
+                  <div className="h-2.5 w-24 rounded-full bg-slate-200" />
+                  <div className="mt-2 h-2 w-16 rounded-full bg-slate-100" />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black text-amber-700">
+                  Ø¨Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„ØªÙ†ÙÙŠØ°
+                </span>
+
+                <span className="text-[10px] font-black text-slate-400">
+                  Ø§Ø³ØªØ­Ù‚Ø§Ù‚ Ù‚Ø±ÙŠØ¨
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-slate-100 bg-slate-50/70 p-5">
+              <p className="text-xs font-black text-sky-600">
+                Ù…Ù„Ù Ø§Ù„Ù†Ø´Ø§Ø·
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="aspect-square rounded-xl border border-dashed border-slate-200 bg-white" />
+                <div className="aspect-square rounded-xl border border-dashed border-slate-200 bg-white" />
+              </div>
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400">
+                    Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯
+                  </p>
+
+                  <p className="mt-1 text-2xl font-black text-slate-950">
+                    8
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black text-sky-700">
+                  Ù…Ø­ÙÙˆØ¸Ø©
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Report */}
+          <div className="mt-4 rounded-[22px] border border-slate-100 bg-white p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-sky-600">
+                  ØªÙ‚Ø±ÙŠØ± Ø§Ù„ØªÙ†ÙÙŠØ°
+                </p>
+
+                <p className="mt-1.5 text-sm font-black text-slate-950">
+                  Ø¬Ø§Ù‡Ø² Ù„Ù„Ø¥ØµØ¯Ø§Ø± Ø¨Ø¹Ø¯ Ø§ÙƒØªÙ…Ø§Ù„ Ø§Ù„ØªÙˆØ«ÙŠÙ‚
+                </p>
+              </div>
+
+              <div className="h-10 w-24 rounded-xl bg-sky-50" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function RoleStorySection() {
+  const stories: StoryItemProps[] = [
+    {
+      eyebrow: "Ù„Ù„Ù…Ø¹Ù„Ù…",
+      title: "Ø£Ù†Ø¬Ø² Ø¹Ù…Ù„ÙƒØŒ ÙˆÙˆØ«Ù‘Ù‚Ù‡ Ø¨Ø³Ù‡ÙˆÙ„Ø©.",
+      description: "Ø£Ù†Ø´Ø¦ ØªÙ‚Ø§Ø±ÙŠØ±ÙƒØŒ ÙˆØ«Ù‘Ù‚ Ø£Ø¯Ø§Ø¡ÙƒØŒ ÙˆØ£Ù†Ø¬Ø² Ù…Ù‡Ø§Ù…Ùƒ Ø¶Ù…Ù† Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„ ÙˆØ§Ø¶Ø­Ø© ØªØ­ÙˆÙ„ Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ø¥Ù„Ù‰ Ø³Ø¬Ù„ Ù…Ù†Ø¸Ù… ÙˆØ¬Ø§Ù‡Ø² Ù„Ù„Ø±Ø¬ÙˆØ¹ Ø¥Ù„ÙŠÙ‡.",
+      direction: "normal",
+      icon: null,
+      visual: <TeacherVisual />,
+    },
+    {
+      eyebrow: "Ù„Ù„Ù…ÙˆØ¬Ù‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ",
+      title: "ÙƒÙ„ Ù…ØªØ§Ø¨Ø¹Ø©ØŒ Ù„Ù‡Ø§ Ù…Ø³Ø§Ø± ÙˆØ§Ø¶Ø­.",
+      description: "Ø£Ø¯Ø± Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©ØŒ ØªØ§Ø¨Ø¹ Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨ØŒ ÙˆØ«Ù‘Ù‚ Ø§Ù„ØªÙˆØ§ØµÙ„ ÙˆØ§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§ØªØŒ ÙˆØ­ÙˆÙ‘Ù„ Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…Ù†Ø¬Ø² Ø¥Ù„Ù‰ ØªÙ‚Ø§Ø±ÙŠØ± ÙˆØ´ÙˆØ§Ù‡Ø¯ Ù…Ø±ØªØ¨Ø© Ø¯ÙˆÙ† ØªØ´ØªØª.",
+      direction: "reverse",
+      icon: null,
+      visual: <CounselorVisual />,
+    },
+    {
+      eyebrow: "Ù„Ù…Ø¯ÙŠØ± Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+      title: "Ù†Ø¸Ù‘Ù… ÙŠÙˆÙ… Ø§Ù„Ù…Ø¯Ø±Ø³Ø© Ù…Ù† Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯.",
+      description: "Ø£Ù†Ø´Ø¦ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØŒ ØªØ§Ø¨Ø¹ ØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø­ØµØµØŒ ÙˆØ£Ø¯Ø± Ø­ØµØµ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø³Ø±Ø¹Ø© Ø¶Ù…Ù† Ù…Ø³Ø§Ø­Ø© ÙˆØ§Ø¶Ø­Ø© ØªØ³Ø§Ø¹Ø¯Ùƒ Ø¹Ù„Ù‰ Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„ÙŠÙˆÙ… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ ÙˆØ§ØªØ®Ø§Ø° Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨.",
+      direction: "normal",
+      icon: null,
+      visual: <PrincipalVisual />,
+    },
+    {
+      eyebrow: "Ù„Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·",
+      title: "Ù…Ù† Ø§Ù„ÙÙƒØ±Ø© Ø¥Ù„Ù‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      description: "ÙØ¹Ù‘Ù„ Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ù†Ø´Ø§Ø·ØŒ Ø£Ø³Ù†Ø¯ Ø§Ù„ØªÙ†ÙÙŠØ° Ù„Ù„Ù…Ø¹Ù„Ù…ÙŠÙ†ØŒ ØªØ§Ø¨Ø¹ Ø­Ø§Ù„Ø© Ø§Ù„ØªÙƒÙ„ÙŠÙØ§ØªØŒ ÙˆØ§Ø­ÙØ¸ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆÙ…Ù„Ù Ø§Ù„Ù†Ø´Ø§Ø· Ø­ØªÙ‰ ÙŠØµØ¨Ø­ Ø§Ù„Ø¹Ù…Ù„ Ø¬Ø§Ù‡Ø²Ù‹Ø§ Ù„Ù„ØªÙˆØ«ÙŠÙ‚ ÙˆØ¥ØµØ¯Ø§Ø± Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      direction: "reverse",
+      icon: null,
+      visual: <ActivityVisual />,
+    },
+  ];
+
+  return (
+    <section
+      id="users"
+      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-32"
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46%] bg-[#f4f9ff] md:block" />
+
+      <div
+        className="pointer-events-none absolute inset-x-0 top-[46%] hidden h-40 bg-white md:block"
+        style={{
+          clipPath: "polygon(0 48%, 100% 0, 100% 100%, 0 100%)",
+        }}
+      />
+
+      <div className="pointer-events-none absolute -right-56 top-24 hidden h-[520px] w-[520px] rounded-full bg-sky-100/70 blur-3xl md:block" />
+      <div className="pointer-events-none absolute -left-52 top-[30%] hidden h-[440px] w-[440px] rounded-full bg-blue-100/35 blur-3xl md:block" />
+
+      <div className="pointer-events-none absolute inset-0 hidden md:block">
+        {/* Large soft ring */}
+        <div className="absolute -right-28 top-[22%] h-64 w-64 rounded-full border border-sky-200/45" />
+        <div className="absolute -right-16 top-[24%] h-40 w-40 rounded-full border border-sky-100/70" />
+
+        {/* Top dotted grid */}
+        <div className="absolute right-[8%] top-[8%] grid grid-cols-5 gap-3 opacity-35">
+          {Array.from({ length: 20 }).map((_, index) => (
+            <span
+              key={`role-top-dot-${index}`}
+              className="h-1.5 w-1.5 rounded-full bg-sky-300"
+            />
+          ))}
+        </div>
+
+        {/* Small dotted grid */}
+        <div className="absolute left-[7%] top-[43%] grid grid-cols-5 gap-3 opacity-40">
+          {Array.from({ length: 20 }).map((_, index) => (
+            <span
+              key={`role-dot-${index}`}
+              className="h-1.5 w-1.5 rounded-full bg-sky-300"
+            />
+          ))}
+        </div>
+
+        {/* Floating outlined shapes */}
+        <div className="absolute right-[9%] top-[61%] h-16 w-16 rotate-12 rounded-[20px] border border-blue-200/50" />
+        <div className="absolute left-[10%] top-[72%] h-24 w-24 -rotate-12 rounded-full border border-slate-200/70" />
+
+        {/* Tiny accent blocks */}
+        <div className="absolute right-[18%] top-[78%] h-3 w-12 rotate-[-8deg] rounded-full bg-sky-100/80" />
+        <div className="absolute left-[18%] top-[56%] h-2.5 w-8 rotate-12 rounded-full bg-blue-100/70" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-black text-sky-600">
+            Ù„Ù…Ù† Ø§Ù„Ù…Ù†ØµØ©ØŸ
+          </p>
+
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
+            Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„ ØªÙ†Ø§Ø³Ø¨ ÙƒÙ„ Ø¯ÙˆØ±
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:text-lg">
+            ÙƒÙ„ Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ¹Ù…Ù„ Ø¶Ù…Ù† ØªØ¬Ø±Ø¨Ø© Ù…Ø³ØªÙ‚Ù„Ø© ÙˆØ®Ø¯Ù…Ø§Øª ÙˆØ£Ø¯ÙˆØ§Øª ØªÙ†Ø§Ø³Ø¨ Ù…Ù‡Ø§Ù…Ù‡ Ø¯Ø§Ø®Ù„
+            Ø§Ù„Ù…Ø¯Ø±Ø³Ø©.
+          </p>
+        </div>
+
+        <div className="relative mt-10 md:hidden">
+          <div
+            dir="rtl"
+            className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-3 [scrollbar-width:none] min-[430px]:gap-5 sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden"
+          >
+            {stories.map((story) => (
+              <MobileStoryCard
+                key={story.eyebrow}
+                eyebrow={story.eyebrow}
+                title={story.title}
+                visual={story.visual}
+              />
+            ))}
+          </div>
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-[60%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </span>
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-[60%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </span>
+        </div>
+
+        <div className="mt-20 hidden md:block lg:mt-24 xl:mt-28">
+          {stories.map((story) => (
+            <StoryItem key={story.eyebrow} {...story} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+

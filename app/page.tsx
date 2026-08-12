@@ -6,6 +6,11 @@ import {
   ClipboardCheck,
   FileText,
   FolderCheck,
+  GraduationCap,
+  School,
+  Trophy,
+  UsersRound,
+  FileCheck2,
   LayoutDashboard,
   ShieldCheck,
   Sparkles,
@@ -124,17 +129,18 @@ export default function HomePage() {
             <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl" />
           </div>
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-16 md:gap-12 md:py-20 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-10 lg:py-20 xl:min-h-[800px] xl:gap-16 xl:py-32">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-14 pt-8 sm:px-8 sm:pb-16 sm:pt-10 md:gap-12 md:pb-20 md:pt-12 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-10 lg:pb-20 lg:pt-12 xl:min-h-[800px] xl:gap-16 xl:pb-28 xl:pt-16">
             <div className="max-w-3xl">
-              <h1 className="text-[2.25rem] font-black leading-[1.18] tracking-[-0.045em] text-slate-950 min-[430px]:text-[2.5rem] sm:text-5xl md:text-[3.25rem] lg:text-[3.5rem] xl:text-[4.8rem]">
-                كل أعمال مدرستك،
+              <h1 className="text-[2rem] font-black leading-[1.18] tracking-[-0.04em] text-slate-950 min-[430px]:text-[2.2rem] sm:text-[2.65rem] md:text-[2.9rem] lg:text-[3.15rem] xl:text-[3.8rem]">
+                أعمالك اليومية،
                 <span className="mt-2 block text-sky-600">
-                  في مكان واحد.
+                  أسرع وأسهل من مكان واحد.
                 </span>
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:mt-8 sm:text-xl sm:leading-9">
-                Teachix تجمع أعمال فريق المدرسة وتساعد على إنجازها، توثيقها،
+                <span className="font-bold text-slate-950">Teachix</span>{" "}
+                تجمع مهام فريق المدرسة، وتساعد على إنجازها، توثيقها،
                 متابعتها، وإصدار تقاريرها ضمن تجربة عربية بسيطة وواضحة.
               </p>
 
@@ -158,68 +164,161 @@ export default function HomePage() {
 
             </div>
 
-            <div className="relative mx-auto hidden w-full md:block md:max-w-[560px] lg:max-w-[520px] xl:max-w-[700px]">
-              <div className="absolute inset-8 rounded-[3.5rem] bg-sky-100/70 blur-3xl" />
+            <div className="relative mx-auto hidden w-full md:block md:max-w-[570px] lg:max-w-[540px] xl:max-w-[680px]">
+              <div className="absolute inset-10 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
-              <div className="relative lg:scale-[0.94] xl:scale-[1.08]">
-                <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_40px_120px_-55px_rgba(15,23,42,0.38)] md:min-h-[460px] md:rounded-[30px] md:p-6 xl:min-h-[580px] xl:rounded-[32px] xl:p-7">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+              <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_42px_120px_-55px_rgba(15,23,42,0.38)] md:p-5 lg:p-6 xl:rounded-[34px] xl:p-7">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5">
+                  <div>
+                    <p className="text-xs font-black text-sky-600">
+                      Teachix
+                    </p>
+
+                    <h2 className="mt-1.5 text-xl font-black text-slate-950 xl:text-2xl">
+                      مساحة فريق المدرسة
+                    </h2>
+                  </div>
+
+                  <div className="rounded-full bg-sky-50 px-4 py-2 text-[11px] font-black text-sky-700">
+                    أربع تجارب، مساحة واحدة
+                  </div>
+                </div>
+
+                {/* Teacher + Counselor */}
+                <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/55 p-4 xl:p-5">
+                  <div>
+                    <p className="text-[11px] font-black text-sky-600">
+                      التعليم والإرشاد
+                    </p>
+
+                    <p className="mt-1 text-sm font-black text-slate-950">
+                      إنجاز العمل ومتابعة الطالب
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
+                          المعلم
+                        </span>
+
+                        <GraduationCap className="h-4 w-4 text-sky-500" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-black text-slate-950">
+                        ملف الإنجاز
+                      </p>
+
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full w-[86%] rounded-full bg-sky-500" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700">
+                          الموجه الطلابي
+                        </span>
+
+                        <UsersRound className="h-4 w-4 text-sky-500" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-black text-slate-950">
+                        متابعة حالة
+                      </p>
+
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                        <div className="h-2 flex-1 rounded-full bg-slate-100" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Principal + Activity leader */}
+                <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-4 xl:p-5">
+                  <div>
+                    <p className="text-[11px] font-black text-sky-600">
+                      الإدارة والنشاط
+                    </p>
+
+                    <p className="mt-1 text-sm font-black text-slate-950">
+                      تنظيم اليوم وتنفيذ البرامج
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-black text-slate-700">
+                          مدير المدرسة
+                        </span>
+
+                        <School className="h-4 w-4 text-sky-500" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-black text-slate-950">
+                        الجدول الدراسي
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-5 gap-1">
+                        {Array.from({ length: 10 }).map((_, index) => (
+                          <span
+                            key={`hero-schedule-${index}`}
+                            className={[
+                              "h-3 rounded",
+                              index === 3 || index === 7
+                                ? "bg-sky-200"
+                                : "bg-slate-100",
+                            ].join(" ")}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
+                          رائد النشاط
+                        </span>
+
+                        <Trophy className="h-4 w-4 text-sky-500" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-black text-slate-950">
+                        برنامج نشاط
+                      </p>
+
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full w-[72%] rounded-full bg-sky-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Shared result */}
+                <div className="mt-4 flex items-center justify-between gap-4 rounded-[22px] border border-sky-100 bg-white px-4 py-4 shadow-sm xl:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                      <FileCheck2 className="h-4.5 w-4.5" />
+                    </div>
+
                     <div>
-                      <p className="text-xs font-bold text-sky-600">
-                        Teachix
+                      <p className="text-sm font-black text-slate-950">
+                        العمل يتحول إلى سجل واضح
                       </p>
 
-                      <p className="mt-1 text-xl font-black text-slate-950">
-                        مساحة العمل
+                      <p className="mt-1 text-[11px] font-bold text-slate-400">
+                        متابعة · توثيق · تقارير
                       </p>
-                    </div>
-
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
-                      <LayoutDashboard className="h-5 w-5" />
                     </div>
                   </div>
 
-                  <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
-                      <FileText className="h-6 w-6 text-sky-600" />
-
-                      <p className="mt-7 text-base font-black">
-                        التقارير
-                      </p>
-
-                      <div className="mt-4 h-2.5 w-24 rounded-full bg-slate-200" />
-                    </div>
-
-                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
-                      <BarChart3 className="h-6 w-6 text-sky-600" />
-
-                      <p className="mt-7 text-base font-black">
-                        تحليل النتائج
-                      </p>
-
-                      <div className="mt-4 h-2.5 w-20 rounded-full bg-slate-200" />
-                    </div>
-
-                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
-                      <ClipboardCheck className="h-6 w-6 text-sky-600" />
-
-                      <p className="mt-7 text-base font-black">
-                        التوثيق
-                      </p>
-
-                      <div className="mt-4 h-2.5 w-28 rounded-full bg-slate-200" />
-                    </div>
-
-                    <div className="min-h-[165px] rounded-[26px] bg-slate-50 p-6">
-                      <FolderCheck className="h-6 w-6 text-sky-600" />
-
-                      <p className="mt-7 text-base font-black">
-                        الملفات
-                      </p>
-
-                      <div className="mt-4 h-2.5 w-20 rounded-full bg-slate-200" />
-                    </div>
-                  </div>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700">
+                    جاهز
+                  </span>
                 </div>
               </div>
             </div>
@@ -345,10 +444,7 @@ export default function HomePage() {
                 العمل أسهل عندما تكون الأدوات واضحة.
               </h2>
 
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:text-lg">
-                نماذج تقييمات تجريبية توضح كيف تخدم Teachix أدوار المدرسة
-                المختلفة. سيتم استبدالها لاحقًا بتجارب مستخدمين فعلية.
-              </p>
+
             </div>
 
             <div className="relative mt-12 md:hidden">
@@ -407,12 +503,10 @@ export default function HomePage() {
                 <Sparkles className="mx-auto h-7 w-7 text-sky-200" />
 
                 <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black leading-tight min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl xl:text-[3.25rem]">
-                  ابدأ تنظيم أعمال مدرستك مع Teachix
+                  ابدأ تنظيم أعمالك اليومية مع Teachix
                 </h2>
 
-                <p className="mx-auto mt-6 max-w-xl text-base leading-8 text-sky-100">
-                  أنشئ حسابك وابدأ العمل ضمن تجربة مدرسية أوضح وأكثر تنظيمًا.
-                </p>
+
 
                 <Link
                   href="/register"

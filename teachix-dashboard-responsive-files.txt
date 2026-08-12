@@ -1,0 +1,240 @@
+============================================================
+FILE: app\dashboard\layout.tsx
+============================================================
+
+import type { ReactNode } from "react";
+import type { Viewport } from "next";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
+import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
+import { DashboardNavigationRefresh } from "@/components/layout/dashboard-navigation-refresh";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { GuidanceProvider } from "@/components/guidance/guidance-provider";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export const viewport: Viewport = {
+  width: 1280,
+  initialScale: 1,
+};
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const current = await requireDashboardUser();
+
+  return (
+    <ThemeProvider>
+      <GuidanceProvider userId={current.user.id} role={current.user.role}>
+      <div
+        dir="rtl"
+        className="h-screen overflow-x-auto overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+      >
+        <div className="flex h-screen min-w-[1180px]">
+          <DashboardSidebar user={current.user} />
+
+          <main className="h-screen min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+            <DashboardHeader user={current.user} />
+
+            {current.user.role !== "PRINCIPAL" ? (
+              <>
+                <DashboardOnboardingReminder
+                  onboardingCompleted={current.user.onboardingCompleted}
+                  onboardingSkippedAt={current.user.onboardingSkippedAt}
+                />
+                <CalendarLoginPopup />
+              </>
+            ) : null}
+
+            <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+      </GuidanceProvider>
+    </ThemeProvider>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\page.tsx
+============================================================
+
+import { redirect } from "next/navigation";
+import { CounselorWorkspacePage } from "@/components/workspace/counselor-workspace-page";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
+import { prisma } from "@/lib/prisma";
+
+function getAttentionWindow() {
+  const now = new Date();
+  const nextSevenDays = new Date(now);
+
+  nextSevenDays.setDate(now.getDate() + 7);
+
+  return {
+    nextSevenDays,
+  };
+}
+
+export default async function DashboardPage() {
+  const current = await requireDashboardUser();
+
+  if (
+    current.user.role === "ADMIN" ||
+    current.user.role === "ACTIVITY_LEADER" ||
+    current.user.role === "TEACHER" ||
+    current.user.role === "PRINCIPAL"
+  ) {
+    redirect(getDashboardHomePath(current.user.role));
+  }
+
+  const schoolAccountId = current.user.schoolAccountId;
+  const { nextSevenDays } = getAttentionWindow();
+
+  const [
+    students,
+    cases,
+    reports,
+    evidences,
+    draftCases,
+    readyForReport,
+    reminders,
+  ] = await Promise.all([
+    schoolAccountId
+      ? prisma.student.count({
+          where: {
+            schoolAccountId,
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.guidanceReport.count({
+          where: {
+            caseEntry: {
+              schoolAccountId,
+            },
+          },
+        })
+      : prisma.guidanceReport.count(),
+
+    schoolAccountId
+      ? prisma.reportEvidence.count({
+          where: {
+            report: {
+              caseEntry: {
+                schoolAccountId,
+              },
+            },
+          },
+        })
+      : prisma.reportEvidence.count(),
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+            status: "DRAFT",
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+            status: "SUBMITTED",
+            guidanceReports: {
+              none: {},
+            },
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.calendarReminder.findMany({
+          where: {
+            schoolAccountId,
+            status: "PENDING",
+            scheduledAt: {
+              lte: nextSevenDays,
+            },
+          },
+          orderBy: {
+            scheduledAt: "asc",
+          },
+          take: 3,
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            caseEntry: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+                service: {
+                  select: {
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                grade: true,
+                classroom: true,
+              },
+            },
+          },
+        })
+      : [],
+  ]);
+
+  return (
+    <CounselorWorkspacePage
+      user={current.user}
+      stats={{
+        students,
+        cases,
+        reports,
+        evidences,
+        draftCases,
+        readyForReport,
+      }}
+      remindersCount={reminders.length}
+    />
+  );
+}
+
+
+============================================================
+FILE: app\mobile\page.tsx
+============================================================
+
+import { redirect } from "next/navigation";
+
+export default function MobilePage() {
+  redirect("/mobile/counselor");
+}
+

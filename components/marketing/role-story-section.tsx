@@ -93,7 +93,7 @@ function StoryItem({
   return (
     <article
       ref={ref}
-      className="grid items-center gap-10 border-t border-slate-100 py-16 first:border-t-0 first:pt-4 sm:gap-14 sm:py-20 md:gap-12 md:py-20 lg:min-h-[620px] lg:grid-cols-2 lg:gap-16 lg:py-24 xl:min-h-[680px] xl:gap-28 xl:py-32"
+      className="grid items-center gap-10 border-t border-slate-100 py-12 first:border-t-0 first:pt-4 last:pb-3 sm:gap-14 sm:py-16 sm:last:pb-4 md:gap-12 md:py-16 md:last:pb-5 lg:min-h-[560px] lg:grid-cols-2 lg:gap-16 lg:py-20 lg:last:min-h-0 lg:last:pb-6 xl:min-h-[620px] xl:gap-28 xl:py-24 xl:last:min-h-0 xl:last:pb-8"
     >
       <div
         className={[
@@ -781,7 +781,7 @@ export function RoleStorySection() {
   return (
     <section
       id="users"
-      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-32"
+      className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-white px-5 pb-4 pt-16 sm:px-8 sm:pb-6 sm:pt-20 md:pb-8 md:pt-24 lg:px-10 lg:pb-10 lg:pt-28 xl:pb-12 xl:pt-32"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46%] bg-[#f4f9ff] md:block" />
 
@@ -839,10 +839,7 @@ export function RoleStorySection() {
             مساحة عمل تناسب كل دور
           </h2>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:text-lg">
-            كل مستخدم يعمل ضمن تجربة مستقلة وخدمات وأدوات تناسب مهامه داخل
-            المدرسة.
-          </p>
+
         </div>
 
         <div className="relative mt-10 md:hidden">
