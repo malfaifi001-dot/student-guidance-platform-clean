@@ -10,7 +10,7 @@ import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export const viewport: Viewport = {
-  width: 1280,
+  width: "device-width",
   initialScale: 1,
 };
 
@@ -26,12 +26,12 @@ export default async function DashboardLayout({
       <GuidanceProvider userId={current.user.id} role={current.user.role}>
       <div
         dir="rtl"
-        className="h-screen overflow-x-auto overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+        className="h-screen overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
       >
-        <div className="flex h-screen min-w-[1180px]">
+        <div className="flex h-screen min-w-0">
           <DashboardSidebar user={current.user} />
 
-          <main className="h-screen min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+          <main className="h-screen w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
             <DashboardHeader user={current.user} />
 
             {current.user.role !== "PRINCIPAL" ? (
@@ -44,7 +44,7 @@ export default async function DashboardLayout({
               </>
             ) : null}
 
-            <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
+            <div className="mx-auto w-full min-w-0 max-w-[1680px] px-2.5 py-3 sm:px-3 sm:py-4 md:px-4 md:py-4 xl:px-5">
               {children}
             </div>
           </main>

@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { GuidanceLauncher } from "@/components/guidance/guidance-launcher";
 import {
   Bell,
   ChevronDown,
   LogOut,
+  Menu,
   Search,
   ShieldCheck,
   Sparkles,
@@ -36,6 +39,28 @@ type DashboardHeaderProps = {
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
 
   const isAdmin =
     user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
@@ -104,8 +129,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-[#070b18]/88">
-      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-2 py-2.5 backdrop-blur-xl sm:px-3 md:px-4 dark:border-slate-800 dark:bg-[#070b18]/88">
+      <div className="mx-auto flex min-w-0 max-w-[1680px] items-center justify-between gap-2 md:gap-4">
         <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
           <div className="relative">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
@@ -118,7 +143,17 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center gap-2 lg:flex-none">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 lg:flex-none">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-sky-600 md:hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+            aria-label="فتح قائمة لوحة التحكم"
+            aria-expanded={sidebarOpen}
+            aria-controls="dashboard-mobile-sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           {headerBadgeText ? (
             <div
               className={[
@@ -199,7 +234,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
               <ChevronDown
                 className={[
-                  "h-4 w-4 text-slate-400 transition dark:text-slate-500",
+                  "hidden h-4 w-4 text-slate-400 transition sm:block dark:text-slate-500",
                   menuOpen ? "rotate-180" : "",
                 ].join(" ")}
               />
@@ -256,6 +291,31 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </div>
         </div>
       </div>
+
+      {sidebarOpen ? createPortal(
+        <div className="fixed inset-0 z-[70] md:hidden" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="إغلاق قائمة لوحة التحكم"
+          />
+          <div
+            id="dashboard-mobile-sidebar"
+            role="dialog"
+            aria-modal="true"
+            aria-label="قائمة لوحة التحكم"
+            className="absolute inset-y-0 right-0 w-[min(88vw,340px)] max-w-full bg-[#f5f8fc] shadow-2xl dark:bg-[#050816]"
+          >
+            <DashboardSidebar
+              user={user}
+              mode="drawer"
+              onClose={() => setSidebarOpen(false)}
+            />
+          </div>
+        </div>,
+        document.body,
+      ) : null}
     </header>
   );
 }

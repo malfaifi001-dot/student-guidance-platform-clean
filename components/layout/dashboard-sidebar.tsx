@@ -50,6 +50,7 @@ import {
   UserRound,
   Users,
   WalletCards,
+  X,
 } from "lucide-react";
 
 type SidebarUser = {
@@ -603,8 +604,12 @@ function getRoleLabel(role?: string | null) {
 
 export function DashboardSidebar({
   user,
+  mode = "permanent",
+  onClose,
 }: {
   user?: SidebarUser | null;
+  mode?: "permanent" | "drawer";
+  onClose?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -680,9 +685,32 @@ export function DashboardSidebar({
       window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
 
     normalCollapsedRef.current = savedValue === "true";
-    setCollapsed(isStudioContext ? true : normalCollapsedRef.current);
+    const tabletQuery = window.matchMedia(
+      "(min-width: 768px) and (max-width: 1179px)",
+    );
+    const tablet = tabletQuery.matches;
+    setCollapsed(
+      mode === "drawer"
+        ? false
+        : isStudioContext || tablet
+          ? true
+          : normalCollapsedRef.current,
+    );
     setReady(true);
-  }, []);
+
+    if (mode === "drawer") return;
+
+    const handleTabletChange = (event: MediaQueryListEvent) => {
+      setCollapsed(
+        isStudioContext || event.matches
+          ? true
+          : normalCollapsedRef.current,
+      );
+    };
+
+    tabletQuery.addEventListener("change", handleTabletChange);
+    return () => tabletQuery.removeEventListener("change", handleTabletChange);
+  }, [isStudioContext, mode]);
 
   useEffect(() => {
     if (!ready || wasStudioRef.current === isStudioContext) return;
@@ -691,14 +719,22 @@ export function DashboardSidebar({
       normalCollapsedRef.current = collapsed;
       setCollapsed(true);
     } else {
-      setCollapsed(normalCollapsedRef.current);
+      const tablet = window.matchMedia(
+        "(min-width: 768px) and (max-width: 1179px)",
+      ).matches;
+      setCollapsed(tablet ? true : normalCollapsedRef.current);
     }
 
     wasStudioRef.current = isStudioContext;
   }, [collapsed, isStudioContext, ready]);
 
   useEffect(() => {
-    if (!ready || isStudioContext) return;
+    if (
+      !ready ||
+      isStudioContext ||
+      mode === "drawer" ||
+      window.innerWidth < 1180
+    ) return;
 
     normalCollapsedRef.current = collapsed;
 
@@ -706,59 +742,66 @@ export function DashboardSidebar({
       COLLAPSED_STORAGE_KEY,
       String(collapsed),
     );
-  }, [collapsed, isStudioContext, ready]);
+  }, [collapsed, isStudioContext, mode, ready]);
+
+  const effectiveCollapsed = mode === "drawer" ? false : collapsed;
 
   return (
     <aside
       className={[
-        "sticky top-0 hidden h-screen shrink-0 bg-transparent transition-[width] duration-300 md:block",
-        collapsed
-          ? "w-[84px] px-2 py-3 xl:w-[88px]"
-          : "w-[252px] px-2.5 py-3 lg:w-[278px] xl:w-[294px] xl:px-3",
+        "h-screen shrink-0 bg-transparent transition-[width] duration-300",
+        mode === "drawer" ? "block w-full p-2" : "sticky top-0 hidden md:block",
+        effectiveCollapsed
+          ? "w-[84px] px-2 py-3 min-[1180px]:w-[88px]"
+          : mode === "drawer"
+            ? ""
+            : "w-[252px] px-2.5 py-3 min-[1180px]:w-[294px] min-[1180px]:px-3",
       ].join(" ")}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.07)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-[#0c1422]/96 dark:shadow-[0_20px_60px_rgba(0,0,0,0.32)]">
 
         <SidebarHeader
-          collapsed={collapsed}
+          collapsed={effectiveCollapsed}
           dashboardHomeHref={dashboardHomeHref}
           dashboardTitle={dashboardTitle}
           dashboardSubtitle={dashboardSubtitle}
           admin={isAdmin}
           onToggle={() => setCollapsed((value) => !value)}
+          drawer={mode === "drawer"}
+          onClose={onClose}
         />
 
         <div className="min-h-0 flex-1 px-2 pb-2 pt-2">
           {isAdmin ? (
             <AdminSidebar
               pathname={pathname}
-              collapsed={collapsed}
+              collapsed={effectiveCollapsed}
             />
           ) : isActivityLeader ? (
             <ActivityLeaderSidebar
               pathname={pathname}
-              collapsed={collapsed}
+              collapsed={effectiveCollapsed}
             />
           ) : isTeacher ? (
             <TeacherSidebar
               pathname={pathname}
-              collapsed={collapsed}
+              collapsed={effectiveCollapsed}
             />
           ) : isPrincipal ? (
             <PrincipalSidebar
               pathname={pathname}
-              collapsed={collapsed}
+              collapsed={effectiveCollapsed}
             />
           ) : (
             <CounselorSidebar
               pathname={pathname}
-              collapsed={collapsed}
+              collapsed={effectiveCollapsed}
             />
           )}
         </div>
 
         <SidebarProfile
-          collapsed={collapsed}
+          collapsed={effectiveCollapsed}
           displayName={displayName}
           roleLabel={roleLabel}
           avatar={avatar}
@@ -779,6 +822,8 @@ function SidebarHeader({
   dashboardSubtitle,
   admin,
   onToggle,
+  drawer = false,
+  onClose,
 }: {
   collapsed: boolean;
   dashboardHomeHref: string;
@@ -786,6 +831,8 @@ function SidebarHeader({
   dashboardSubtitle: string;
   admin: boolean;
   onToggle: () => void;
+  drawer?: boolean;
+  onClose?: () => void;
 }) {
   return (
     <div
@@ -815,7 +862,7 @@ function SidebarHeader({
 
           <button
             type="button"
-            onClick={onToggle}
+            onClick={drawer ? onClose : onToggle}
             className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-white/[0.04] dark:text-slate-500 dark:hover:bg-white/[0.08] dark:hover:text-white"
             aria-label="توسيع القائمة"
             title="توسيع القائمة"
@@ -858,12 +905,16 @@ function SidebarHeader({
 
           <button
             type="button"
-            onClick={onToggle}
+            onClick={drawer ? onClose : onToggle}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-white/[0.04] dark:text-slate-500 dark:hover:bg-white/[0.08] dark:hover:text-white"
-            aria-label="تصغير القائمة"
-            title="تصغير القائمة"
+            aria-label={drawer ? "إغلاق القائمة" : "تصغير القائمة"}
+            title={drawer ? "إغلاق القائمة" : "تصغير القائمة"}
           >
-            <ChevronRight className="h-4 w-4" />
+            {drawer ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </button>
         </div>
       )}
