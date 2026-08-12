@@ -15,18 +15,27 @@ import {
   getSessionExpiryDate,
   SESSION_COOKIE_NAME,
 } from "@/lib/auth/session";
+import {
+  classifyLoginIdentifier,
+  normalizeLoginIdentifier,
+} from "@/lib/auth/login-identifier";
+
+const INVALID_CREDENTIALS_MESSAGE =
+  "البريد الإلكتروني أو رقم الجوال أو كلمة المرور غير صحيحة.";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const email = String(body?.email || "").trim().toLowerCase();
+    const rawIdentifier = body?.identifier ?? body?.email;
+    const normalizedIdentifier = normalizeLoginIdentifier(rawIdentifier);
+    const identifier = classifyLoginIdentifier(normalizedIdentifier);
     const password = String(body?.password || "");
     const loginPath = String(body?.loginPath || "").trim();
 
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-login",
-      identity: email,
+      identity: normalizedIdentifier,
       limit: 8,
       windowMs: 10 * 60 * 1000,
     });
@@ -35,23 +44,42 @@ export async function POST(request: Request) {
       return rateLimitResponse;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
+    if (!identifier) {
+      return NextResponse.json(
+        { success: false, error: INVALID_CREDENTIALS_MESSAGE },
+        { status: 401 },
+      );
+    }
+
+    const userSelect = {
         id: true,
         email: true,
+        phone: true,
         passwordHash: true,
         role: true,
         schoolAccountId: true,
         isActive: true,
         onboardingCompleted: true,
         onboardingSkippedAt: true,
-      },
-    });
+      } as const;
+
+    const user = identifier.kind === "email"
+      ? await prisma.user.findUnique({
+          where: { email: identifier.value },
+          select: userSelect,
+        })
+      : await (async () => {
+          const matches = await prisma.user.findMany({
+            where: { phone: identifier.value },
+            select: userSelect,
+            take: 2,
+          });
+          return matches.length === 1 ? matches[0] : null;
+        })();
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
       return NextResponse.json(
-        { success: false, error: "بيانات الدخول غير صحيحة." },
+        { success: false, error: INVALID_CREDENTIALS_MESSAGE },
         { status: 401 }
       );
     }

@@ -12,13 +12,18 @@ import {
 import { useState } from "react";
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import {
+  classifyLoginIdentifier,
+  LOGIN_IDENTIFIER_ERROR,
+  normalizeLoginIdentifier,
+} from "@/lib/auth/login-identifier";
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +32,12 @@ export default function LoginPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+    if (!classifyLoginIdentifier(normalizedIdentifier)) {
+      setError(LOGIN_IDENTIFIER_ERROR);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -37,7 +48,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          identifier: normalizedIdentifier,
           password,
         }),
       });
@@ -89,11 +100,12 @@ export default function LoginPage() {
 
             <form onSubmit={submit} className="mt-9 space-y-5">
               <AuthInput
-                label="البريد الإلكتروني"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="name@example.com"
+                label="البريد الإلكتروني أو رقم الجوال"
+                type="text"
+                value={identifier}
+                onChange={setIdentifier}
+                placeholder="example@email.com أو 05XXXXXXXX"
+                autoComplete="username"
               />
 
               <AuthInput
@@ -261,6 +273,7 @@ function AuthInput({
   onChange,
   type = "text",
   placeholder,
+  autoComplete,
   trailingAction,
 }: {
   label: string;
@@ -268,6 +281,7 @@ function AuthInput({
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  autoComplete?: string;
   trailingAction?: {
     label: string;
     icon: React.ReactNode;
@@ -286,6 +300,7 @@ function AuthInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          autoComplete={autoComplete}
           className={[
             "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50",
             trailingAction ? "pl-12" : "",

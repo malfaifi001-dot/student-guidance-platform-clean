@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import {
+  classifyLoginIdentifier,
+  LOGIN_IDENTIFIER_ERROR,
+  normalizeLoginIdentifier,
+} from "@/lib/auth/login-identifier";
 
 export default function TeacherLoginPage() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -11,6 +16,12 @@ export default function TeacherLoginPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+    if (!classifyLoginIdentifier(normalizedIdentifier)) {
+      setError(LOGIN_IDENTIFIER_ERROR);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -21,7 +32,7 @@ export default function TeacherLoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
+          identifier: normalizedIdentifier,
           password,
           loginPath: "teacher",
         }),
@@ -61,11 +72,13 @@ export default function TeacherLoginPage() {
 
         <div className="mt-5 space-y-4">
           <label className="block">
-            <span className="text-sm font-black text-slate-700">البريد الإلكتروني</span>
+            <span className="text-sm font-black text-slate-700">البريد الإلكتروني أو رقم الجوال</span>
             <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              type="text"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="example@email.com أو 05XXXXXXXX"
+              autoComplete="username"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               required
             />

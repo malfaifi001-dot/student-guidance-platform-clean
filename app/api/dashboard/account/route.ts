@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logAdminActivity } from "@/lib/admin/activity-log";
+import { isTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
 
 function normalizeOptionalString(value: unknown, maxLength: number) {
   const text = String(value || "").trim();
@@ -75,7 +76,7 @@ function toSafeUser(user: {
     id: user.id,
     name: user.name,
     officialName: user.officialName,
-    email: user.email,
+    email: isTransitionalPhoneEmail(user.email) ? "" : user.email,
     phone: user.phone,
     role: user.role,
     gender: user.gender,

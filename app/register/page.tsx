@@ -12,37 +12,19 @@ import {
   UsersRound,
 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
+import {
+  isValidSaudiMobile,
+  normalizeSaudiMobile,
+  SAUDI_MOBILE_ERROR,
+} from "@/lib/auth/login-identifier";
 
 type Gender = "MALE" | "FEMALE";
-
-const KNOWN_EMAIL_DOMAINS = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
-  "msn.com",
-  "yahoo.com",
-  "icloud.com",
-  "me.com",
-  "proton.me",
-  "protonmail.com",
-]);
-
-function isValidEmailFormat(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function hasKnownEmailDomain(value: string) {
-  const domain = value.split("@")[1]?.toLowerCase() || "";
-  return KNOWN_EMAIL_DOMAINS.has(domain);
-}
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
@@ -50,7 +32,7 @@ async function readJson(response: Response) {
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
@@ -60,11 +42,7 @@ export default function RegisterPage() {
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const normalizedEmail = useMemo(
-    () => email.trim().toLowerCase(),
-    [email],
-  );
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function validateForm() {
     const trimmedName = name.trim();
@@ -73,12 +51,8 @@ export default function RegisterPage() {
       return "الاسم يجب ألا يقل عن 3 أحرف.";
     }
 
-    if (!isValidEmailFormat(normalizedEmail)) {
-      return "أدخل بريدًا إلكترونيًا صحيحًا.";
-    }
-
-    if (!hasKnownEmailDomain(normalizedEmail)) {
-      return "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud.";
+    if (!isValidSaudiMobile(phone)) {
+      return SAUDI_MOBILE_ERROR;
     }
 
     if (password.length < 8) {
@@ -87,6 +61,10 @@ export default function RegisterPage() {
 
     if (password !== confirmPassword) {
       return "كلمة المرور وتأكيدها غير متطابقين.";
+    }
+
+    if (!acceptedTerms) {
+      return "يجب الموافقة على الشروط والأحكام وسياسة الاستخدام للمتابعة.";
     }
 
     return "";
@@ -135,11 +113,12 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           name: name.trim(),
-          email: normalizedEmail,
+          phone: normalizeSaudiMobile(phone),
           password,
           confirmPassword,
           gender,
           accountType,
+          acceptedTerms,
         }),
       });
 
@@ -195,11 +174,15 @@ export default function RegisterPage() {
                 />
 
                 <AuthInput
-                  label="البريد الإلكتروني"
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  placeholder="name@example.com"
+                  label="رقم الجوال"
+                  type="tel"
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="05XXXXXXXX"
+                  inputMode="numeric"
+                  maxLength={10}
+                  autoComplete="tel"
+                  dir="ltr"
                 />
 
                 <AuthInput
@@ -243,6 +226,28 @@ export default function RegisterPage() {
                       setConfirmPasswordVisible((current) => !current),
                   }}
                 />
+
+                <label className="flex items-start gap-2 px-1 text-xs font-bold leading-6 text-slate-500">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(event) => {
+                      setAcceptedTerms(event.target.checked);
+                      setError("");
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span>
+                    أوافق على{" "}
+                    <Link href="/terms" className="text-sky-700 underline-offset-2 hover:underline">
+                      الشروط والأحكام
+                    </Link>{" "}
+                    و
+                    <Link href="/privacy" className="text-sky-700 underline-offset-2 hover:underline">
+                      سياسة الاستخدام
+                    </Link>
+                  </span>
+                </label>
 
                 <button
                   type="submit"
@@ -401,6 +406,10 @@ function AuthInput({
   onChange,
   type = "text",
   placeholder,
+  inputMode,
+  maxLength,
+  autoComplete,
+  dir,
   trailingAction,
 }: {
   label: string;
@@ -408,6 +417,10 @@ function AuthInput({
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  inputMode?: "numeric" | "text" | "tel";
+  maxLength?: number;
+  autoComplete?: string;
+  dir?: "ltr" | "rtl";
   trailingAction?: {
     label: string;
     icon: ReactNode;
@@ -426,6 +439,10 @@ function AuthInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          autoComplete={autoComplete}
+          dir={dir}
           className={[
             "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50",
             trailingAction ? "pl-12" : "",

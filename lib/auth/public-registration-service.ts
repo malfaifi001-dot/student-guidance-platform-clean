@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { hashPassword } from "@/lib/auth/password";
+import { buildTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
 import type { PublicRegistrationInput } from "@/lib/auth/public-registration-schema";
 import { prisma } from "@/lib/prisma";
 
@@ -21,8 +22,12 @@ type SessionInput = { tokenId: string; expiresAt: Date; userAgent: string | null
 
 export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
   return prisma.$transaction(async (tx) => {
-    const existingUser = await tx.user.findUnique({ where: { email: input.email }, select: { id: true } });
-    if (existingUser) throw new Error("DUPLICATE_EMAIL");
+    const internalEmail = buildTransitionalPhoneEmail(input.phone);
+    const existingUser = await tx.user.findFirst({
+      where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+      select: { id: true },
+    });
+    if (existingUser) throw new Error("DUPLICATE_PHONE");
 
     const schoolAccount = await tx.schoolAccount.create({
       data: {
@@ -37,8 +42,9 @@ export async function registerPublicAccount(input: PublicRegistrationInput, sess
         schoolAccountId: schoolAccount.id,
         name: input.name,
         officialName: input.name,
-        email: input.email,
-        phone: input.phone || null,
+        // Transitional compatibility value while User.email remains required.
+        email: internalEmail,
+        phone: input.phone,
         passwordHash: hashPassword(input.password),
         role: input.accountType,
         gender: input.gender,

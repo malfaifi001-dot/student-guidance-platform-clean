@@ -16,22 +16,13 @@ import {
 } from "@/lib/auth/session";
 import { assignDefaultFreePlanIfEligible } from "@/lib/subscription/default-free-plan";
 
-const KNOWN_EMAIL_DOMAINS = new Set([
-  "gmail.com", "googlemail.com", "hotmail.com", "outlook.com", "live.com", "msn.com",
-  "yahoo.com", "icloud.com", "me.com", "proton.me", "protonmail.com",
-]);
-
-function hasKnownEmailDomain(value: string) {
-  return KNOWN_EMAIL_DOMAINS.has(value.split("@")[1]?.toLowerCase() || "");
-}
-
 export async function POST(request: Request) {
   try {
     const rawBody = await request.json().catch(() => null);
-    const emailIdentity = String(rawBody?.email || "").trim().toLowerCase();
+    const phoneIdentity = String(rawBody?.phone || "").trim();
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-register",
-      identity: emailIdentity || String(rawBody?.phone || "").trim() || "register",
+      identity: phoneIdentity || "register",
       limit: 5,
       windowMs: 30 * 60 * 1000,
     });
@@ -44,13 +35,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (!hasKnownEmailDomain(parsed.data.email)) {
-      return NextResponse.json(
-        { success: false, error: "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud." },
-        { status: 400 },
-      );
-    }
-
     const deviceInfo = await getRequestDeviceInfo();
     const tokenId = createTokenId();
     const result = await registerPublicAccount(parsed.data, {
@@ -78,7 +62,7 @@ export async function POST(request: Request) {
         category: "AUTH",
         action: "principal-public-registration-completed",
         severity: "SUCCESS",
-        title: `اكتمل تسجيل مدير المدرسة ${result.user.email} من صفحة التسجيل العامة`,
+        title: `اكتمل تسجيل مدير المدرسة ${result.user.phone} من صفحة التسجيل العامة`,
       });
     }
 
@@ -104,10 +88,10 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     if (
-      (error instanceof Error && error.message === "DUPLICATE_EMAIL") ||
+      (error instanceof Error && error.message === "DUPLICATE_PHONE") ||
       (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
     ) {
-      return NextResponse.json({ success: false, error: "هذا البريد مسجل مسبقًا." }, { status: 409 });
+      return NextResponse.json({ success: false, error: "رقم الجوال مسجل مسبقًا." }, { status: 409 });
     }
     console.error("REGISTER_ERROR", error);
     return NextResponse.json({ success: false, error: "حدث خطأ أثناء إنشاء الحساب." }, { status: 500 });

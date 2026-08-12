@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { isTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
 
 function extractUser(sessionResult: unknown) {
   const value = sessionResult as any;
@@ -44,6 +45,8 @@ export default async function AdminUsersManagePage() {
           const account = user.schoolAccount as unknown as Record<string, unknown> | null;
           const schoolName = String(account?.schoolName || account?.name || "بدون مدرسة");
 
+          const displayEmail = isTransitionalPhoneEmail(user.email) ? null : user.email;
+
           return (
             <div
               key={user.id}
@@ -52,9 +55,11 @@ export default async function AdminUsersManagePage() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">
-                    {user.name || user.email}
+                    {user.name || user.phone || displayEmail}
                   </h2>
-                  <p className="text-sm text-slate-500">{user.email}</p>
+                  <p className="text-sm text-slate-500">
+                    {displayEmail || user.phone || "—"}
+                  </p>
 
                   <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
                     <span className="rounded-full bg-slate-100 px-3 py-1">
