@@ -2756,9 +2756,6 @@ export function ReportTwoStudioRuntime({
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
-  const [reportTwoPreviewSize, setReportTwoPreviewSize] = useState<
-    "fit" | "original"
-  >("fit");
   const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -4342,9 +4339,7 @@ export function ReportTwoStudioRuntime({
           host.clientWidth - horizontalPadding - 56,
         );
         const fitScale = Math.max(0, availableWidth / logicalPageWidth);
-        const previewScale = reportTwoPreviewSize === "original"
-          ? 1
-          : Math.min(1, preferredScale, fitScale);
+        const previewScale = Math.min(1, preferredScale, fitScale);
         const naturalStageHeight = Math.max(
           output.scrollHeight,
           page.offsetHeight,
@@ -4393,7 +4388,6 @@ export function ReportTwoStudioRuntime({
     };
   }, [
     reportTwoPreviewModeClass,
-    reportTwoPreviewSize,
     template.designTemplateId,
     template.pages.length,
   ]);
@@ -4883,28 +4877,7 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-            <div className="report-two-preview-size-controls flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white/85 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900/85">
-              {([
-                ["fit", "ملاءمة الشاشة"],
-                ["original", "الحجم الأصلي"],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setReportTwoPreviewSize(value)}
-                  aria-pressed={reportTwoPreviewSize === value}
-                  className={[
-                    "rounded-xl px-3 py-2 text-[11px] font-black transition",
-                    reportTwoPreviewSize === value
-                      ? "bg-emerald-700 text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-                  ].join(" ")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, reportTwoPreviewSize === "original" ? "report-two-preview-original-size" : "report-two-preview-fit-size", selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />
@@ -4915,15 +4888,8 @@ export function ReportTwoStudioRuntime({
                 --report-two-preview-scaled-height: 741px;
                 --report-two-preview-page-width: 794px;
                 max-width: 100%;
-                overscroll-behavior-x: contain;
-              }
-
-              .report-two-a4-host.report-two-preview-fit-size {
                 overflow-x: hidden;
-              }
-
-              .report-two-a4-host.report-two-preview-original-size {
-                overflow-x: auto;
+                overscroll-behavior-x: contain;
               }
 
               .report-two-a4-host .report-design-logo-control-style {
@@ -4947,16 +4913,10 @@ export function ReportTwoStudioRuntime({
                 max-width: none;
               }
 
-              .report-two-a4-host.report-two-preview-fit-size .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+              .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
                 left: 50%;
                 transform: translateX(-50%) scale(var(--report-two-preview-scale));
                 transform-origin: top center;
-              }
-
-              .report-two-a4-host.report-two-preview-original-size .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
-                right: 20px;
-                transform: none;
-                transform-origin: top right;
               }
 
               .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child {
@@ -5012,10 +4972,6 @@ export function ReportTwoStudioRuntime({
                   border: 0 !important;
                   box-shadow: none !important;
                   overflow: visible !important;
-                }
-
-                .report-two-preview-size-controls {
-                  display: none !important;
                 }
 
                 .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
