@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import {
   getDesignLogoSrc,
   ReportDesignRenderer,
@@ -22,6 +24,20 @@ type PrintDocumentSnapshot = {
   variantId?: string | null;
 };
 
+type PrintPreviewDimensions = {
+  logicalWidth: number;
+  scaledWidth: number;
+  scaledHeight: number;
+  scale: number;
+};
+
+const INITIAL_PRINT_PREVIEW_DIMENSIONS: PrintPreviewDimensions = {
+  logicalWidth: 0,
+  scaledWidth: 0,
+  scaledHeight: 0,
+  scale: 1,
+};
+
 export function ReportTwoPrintDocument({
   snapshot,
   autoPrint = false,
@@ -29,6 +45,10 @@ export function ReportTwoPrintDocument({
   snapshot: PrintDocumentSnapshot;
   autoPrint?: boolean;
 }) {
+  const previewViewportRef = useRef<HTMLDivElement>(null);
+  const previewStageRef = useRef<HTMLDivElement>(null);
+  const [previewDimensions, setPreviewDimensions] =
+    useState<PrintPreviewDimensions>(INITIAL_PRINT_PREVIEW_DIMENSIONS);
   const template = applyStructuredTableDisplayMetadataToTemplate(
     snapshot.template || { pages: [] },
     snapshot.sourcePayload,
@@ -43,6 +63,84 @@ export function ReportTwoPrintDocument({
     : null;
 
   const logoSrc = getDesignLogoSrc(context);
+
+  useEffect(() => {
+    const viewport = previewViewportRef.current;
+    const stage = previewStageRef.current;
+
+    if (!viewport || !stage || !designId) return;
+
+    let frameId = 0;
+
+    const updatePreviewScale = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const page = stage.querySelector<HTMLElement>(".pdf-report-page");
+
+        if (!page) return;
+
+        const screenWidth =
+          window.visualViewport?.width ||
+          document.documentElement.clientWidth ||
+          window.innerWidth;
+        const viewportWidth = Math.min(viewport.clientWidth, screenWidth);
+        const safeHorizontalGap =
+          viewportWidth < 640 ? 24 : viewportWidth < 1180 ? 32 : 40;
+        const availableWidth = Math.max(
+          0,
+          viewportWidth - safeHorizontalGap,
+        );
+        const logicalWidth = page.offsetWidth;
+        const naturalStageHeight = Math.max(
+          stage.scrollHeight,
+          stage.offsetHeight,
+        );
+
+        if (!logicalWidth || !naturalStageHeight || !availableWidth) return;
+
+        const fitScale = Math.min(1, availableWidth / logicalWidth);
+        const nextDimensions = {
+          logicalWidth,
+          scaledWidth: logicalWidth * fitScale,
+          scaledHeight: naturalStageHeight * fitScale,
+          scale: fitScale,
+        };
+
+        setPreviewDimensions((current) => {
+          const isUnchanged =
+            current.logicalWidth === nextDimensions.logicalWidth &&
+            Math.abs(current.scaledWidth - nextDimensions.scaledWidth) < 0.5 &&
+            Math.abs(current.scaledHeight - nextDimensions.scaledHeight) < 0.5 &&
+            Math.abs(current.scale - nextDimensions.scale) < 0.001;
+
+          return isUnchanged ? current : nextDimensions;
+        });
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(updatePreviewScale);
+    resizeObserver.observe(viewport);
+    resizeObserver.observe(stage);
+
+    const mutationObserver = new MutationObserver(updatePreviewScale);
+    mutationObserver.observe(stage, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    window.addEventListener("resize", updatePreviewScale);
+    window.addEventListener("orientationchange", updatePreviewScale);
+    updatePreviewScale();
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      window.removeEventListener("resize", updatePreviewScale);
+      window.removeEventListener("orientationchange", updatePreviewScale);
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [designId, pages.length]);
 
   if (!designId) {
     return (
@@ -101,6 +199,26 @@ export function ReportTwoPrintDocument({
           background: #ffffff;
         }
 
+        .report-two-print-preview-viewport {
+          width: 100%;
+          min-width: 0;
+          overflow: hidden;
+          padding: 12px;
+          background: #f1f5f9;
+        }
+
+        .report-two-print-preview-scaled {
+          position: relative;
+          margin-inline: auto;
+        }
+
+        .report-two-print-preview-stage {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform-origin: top left;
+        }
+
         .report-two-print-document .pdf-report-page {
           width: 210mm !important;
           min-width: 210mm !important;
@@ -122,25 +240,70 @@ export function ReportTwoPrintDocument({
         .report-two-print-document img {
           max-width: 100%;
         }
+
+        @media print {
+          .report-two-print-preview-viewport {
+            width: auto !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+
+          .report-two-print-preview-scaled {
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+          }
+
+          .report-two-print-preview-stage {
+            position: static !important;
+            width: auto !important;
+            height: auto !important;
+            transform: none !important;
+          }
+        }
       `}</style>
       {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
 
-      <ReportDesignRenderer
-        designId={designId}
-        template={template}
-        activePage={pages[0] || null}
-        activePageId={pages[0]?.id || ""}
-        context={context}
-        previewCase={previewCase}
-        renderMode="stack"
-        chromeLayout="none"
-        onActivePageChange={() => undefined}
-        onAddPage={() => undefined}
-        onMovePage={() => undefined}
-        onDeletePage={() => undefined}
-        canMovePage={() => false}
-        canDeletePage={() => false}
-      />
+      <div
+        ref={previewViewportRef}
+        className="report-two-print-preview-viewport"
+      >
+        <div
+          className="report-two-print-preview-scaled"
+          style={{
+            width: previewDimensions.scaledWidth,
+            height: previewDimensions.scaledHeight,
+          }}
+        >
+          <div
+            ref={previewStageRef}
+            className="report-two-print-preview-stage"
+            style={{
+              width: previewDimensions.logicalWidth || undefined,
+              transform: `scale(${previewDimensions.scale})`,
+            }}
+          >
+            <ReportDesignRenderer
+              designId={designId}
+              template={template}
+              activePage={pages[0] || null}
+              activePageId={pages[0]?.id || ""}
+              context={context}
+              previewCase={previewCase}
+              renderMode="stack"
+              chromeLayout="none"
+              onActivePageChange={() => undefined}
+              onAddPage={() => undefined}
+              onMovePage={() => undefined}
+              onDeletePage={() => undefined}
+              canMovePage={() => false}
+              canDeletePage={() => false}
+            />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

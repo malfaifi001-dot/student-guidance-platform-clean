@@ -1,0 +1,706 @@
+============================================================
+FILE: components\report-2\report-two-print-document.tsx
+============================================================
+"use client";
+
+import {
+  getDesignLogoSrc,
+  ReportDesignRenderer,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
+
+type PrintDocumentSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  sourcePayload?: unknown;
+  designTemplateId?: ReportDesignId;
+  variantId?: string | null;
+};
+
+export function ReportTwoPrintDocument({
+  snapshot,
+  autoPrint = false,
+}: {
+  snapshot: PrintDocumentSnapshot;
+  autoPrint?: boolean;
+}) {
+  const template = applyStructuredTableDisplayMetadataToTemplate(
+    snapshot.template || { pages: [] },
+    snapshot.sourcePayload,
+  ) as any;
+  const pages = Array.isArray(template.pages) ? template.pages : [];
+  const context = snapshot.context || {};
+  const previewCase = snapshot.previewCase || null;
+  const requestedDesignId =
+    snapshot.designTemplateId || template.designTemplateId;
+  const designId = isReportDesignId(requestedDesignId)
+    ? requestedDesignId
+    : null;
+
+  const logoSrc = getDesignLogoSrc(context);
+
+  if (!designId) {
+    return (
+      <main className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ للطباعة.
+      </main>
+    );
+  }
+
+  return (
+    <main
+      className={[
+        "report-two-print-document",
+        snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+      dir="rtl"
+    >
+      {autoPrint ? <ReportTwoSnapshotPrintController /> : null}
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={snapshot.variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+        }
+
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          direction: rtl;
+        }
+
+        body {
+          overflow: visible !important;
+        }
+
+        .report-two-print-document {
+          background: #ffffff;
+        }
+
+        .report-two-print-document .pdf-report-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+        }
+
+        .report-two-print-document .pdf-report-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+        .report-two-print-document img {
+          max-width: 100%;
+        }
+      `}</style>
+      {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
+
+      <ReportDesignRenderer
+        designId={designId}
+        template={template}
+        activePage={pages[0] || null}
+        activePageId={pages[0]?.id || ""}
+        context={context}
+        previewCase={previewCase}
+        renderMode="stack"
+        chromeLayout="none"
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-snapshot-preview.tsx
+============================================================
+import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { Trash2 } from "lucide-react";
+import { GuidanceScope } from "@/components/guidance/guidance-scope";
+
+type SnapshotForDownload = {
+  caseEntryId: string;
+  reportTitle: string;
+  snapshotTemplateJson?: unknown;
+  snapshotPagesJson?: unknown;
+  snapshotPayload?: unknown;
+  renderContext?: unknown;
+  previewCase?: unknown;
+  variantId?: string | null;
+};
+
+type ReportTwoSnapshotPreviewProps = {
+  snapshot: {
+    id: string;
+    caseEntryId: string;
+    reportTitle: string;
+    serviceName?: string | null;
+    serviceSlug?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    status?: "DRAFT" | "APPROVED";
+    active?: boolean;
+    renderContext?: unknown;
+    previewCase?: unknown;
+    snapshotPayload?: unknown;
+    snapshotTemplateJson?: unknown;
+    snapshotPagesJson?: unknown;
+    snapshotHtml: string;
+    pdfUrl?: string | null;
+    variantId?: string | null;
+  };
+  caseTitle?: string | null;
+  printMode?: boolean;
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function ReportTwoSnapshotPreview({
+  snapshot,
+  caseTitle,
+  printMode = false,
+}: ReportTwoSnapshotPreviewProps) {
+  const isApproved = !snapshot.status || snapshot.status === "APPROVED";
+  const canRenderStructured = Boolean(
+    snapshot.snapshotTemplateJson &&
+      typeof snapshot.snapshotTemplateJson === "object",
+  );
+
+  if (printMode && canRenderStructured) {
+    return (
+      <ReportTwoPrintDocument
+        snapshot={{
+          template: snapshot.snapshotTemplateJson,
+          context: (snapshot.renderContext || {}) as Record<string, string>,
+          previewCase: snapshot.previewCase || null,
+          sourcePayload: snapshot.snapshotPayload,
+          variantId: snapshot.variantId,
+        }}
+        autoPrint
+      />
+    );
+  }
+
+  return (
+    <main
+      className={printMode ? "bg-white" : "px-6 py-8"}
+      dir="rtl"
+    >
+      {printMode ? <ReportTwoSnapshotPrintController /> : null}
+      {!printMode ? <GuidanceScope context="report-preview" /> : null}
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+          }
+
+          [data-report-two-snapshot-toolbar] {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {!printMode ? (
+        <section
+          data-report-two-snapshot-toolbar
+          data-guidance="report-preview-actions"
+          className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className={[
+                "text-xs font-black",
+                isApproved
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-sky-700 dark:text-sky-400",
+              ].join(" ")}>
+                {isApproved ? "التقارير المعتمدة" : "التقارير المحفوظة"}
+              </p>
+
+              <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+                {snapshot.reportTitle}
+              </h1>
+
+              <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
+                {" · "}
+                {isApproved
+                  ? `تم اعتماد التقرير ${formatDate(snapshot.approvedAt)}`
+                  : "مسودة"}
+                {snapshot.approvedByName ? ` · ${snapshot.approvedByName}` : ""}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {isApproved ? (
+                <ReportTwoPdfDownloadButton
+                  snapshot={snapshot as SnapshotForDownload}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                />
+              ) : (
+                <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                  مسودة غير رسمية
+                </span>
+              )}
+              <ReportDeleteAction
+                reportId={snapshot.id}
+                reportTitle={snapshot.reportTitle}
+                caseTitle={caseTitle || undefined}
+                reportStatus={snapshot.status || "APPROVED"}
+                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}`}
+                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(snapshot.caseEntryId)}`}
+                reportTwoDraftStorage={
+                  snapshot.active
+                    ? {
+                        caseId: snapshot.caseEntryId,
+                        serviceSlug: snapshot.serviceSlug || "general",
+                      }
+                    : undefined
+                }
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+              </ReportDeleteAction>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
+        {canRenderStructured ? (
+          <ReportTwoActivePreviewRenderer
+            template={snapshot.snapshotTemplateJson}
+            context={(snapshot.renderContext || {}) as Record<string, string>}
+            previewCase={snapshot.previewCase || null}
+            sourcePayload={snapshot.snapshotPayload}
+            variantId={snapshot.variantId}
+          />
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />
+        )}
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-active-preview-renderer.tsx
+============================================================
+"use client";
+
+import { useMemo } from "react";
+import { ReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import {
+  OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+  ReportTwoOfficialActivitySignatureStyle,
+} from "@/components/report-2/report-two-official-activity-signature-style";
+
+export function ReportTwoActivePreviewRenderer({ template, context, previewCase, sourcePayload, variantId }: {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  sourcePayload?: unknown;
+  variantId?: string | null;
+}) {
+  const displayTemplate = useMemo(
+    () => applyStructuredTableDisplayMetadataToTemplate(template, sourcePayload),
+    [template, sourcePayload],
+  ) as any;
+  const pages = Array.isArray(displayTemplate?.pages) ? displayTemplate.pages : [];
+  const activePage = pages[0] || null;
+  const designId = isReportDesignId(displayTemplate?.designTemplateId)
+    ? displayTemplate.designTemplateId
+    : null;
+
+  if (!designId) {
+    return (
+      <section className="p-8 text-center font-bold text-red-700" dir="rtl">
+        تعذر تحديد تصميم التقرير المحفوظ.
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "report-two-a4-host report-two-persisted-active-root",
+        variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID
+          ? "report-two-official-activity-card"
+          : "",
+      ].join(" ")}
+    >
+      <ReportTwoOfficialActivitySignatureStyle
+        enabled={variantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+      />
+      <ReportDesignRenderer
+        renderMode="stack"
+        chromeLayout="split"
+        designId={designId}
+        template={displayTemplate}
+        activePage={activePage}
+        activePageId={activePage?.id || ""}
+        context={context || {}}
+        previewCase={previewCase || null}
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </section>
+  );
+}
+
+
+============================================================
+FILE: app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+============================================================
+import crypto from "crypto";
+import fs from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
+  renderLinkedCertificatesAttachmentHtml,
+} from "@/lib/certificates/report-certificate-attachments";
+import { renderLinkedAssessmentAttachmentsHtml } from "@/lib/report-2/report-linked-assessment-attachments";
+import { renderLinkedSurveyAttachmentsHtml } from "@/lib/report-2/report-linked-survey-attachments";
+import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+type ExportPdfBody = {
+  fileName?: string;
+  snapshot?: unknown;
+};
+
+function getReportTwoExportSnapshotDir() {
+  return path.join(process.cwd(), ".tmp", "report-2-export");
+}
+
+function safeDownloadFileName(value: unknown) {
+  const name = String(value || "report.pdf")
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 150);
+
+  return name.endsWith(".pdf") ? name : `${name || "report"}.pdf`;
+}
+
+function getRequestOrigin(request: Request) {
+  const url = new URL(request.url);
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    url.host;
+  const proto =
+    request.headers.get("x-forwarded-proto") ||
+    url.protocol.replace(":", "") ||
+    "http";
+
+  return `${proto}://${host}`;
+}
+
+function isPrivateReportFieldObject(value: Record<string, unknown>) {
+  const directKeys = [
+    "fieldKey",
+    "key",
+    "name",
+    "id",
+    "code",
+    "slug",
+    "fieldName",
+    "technicalName",
+  ];
+
+  for (const key of directKeys) {
+    if (String(value[key] || "").trim() === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return true;
+    }
+  }
+
+  const textKeys = ["label", "title", "text", "content"];
+
+  for (const key of textKeys) {
+    const text = String(value[key] || "").trim();
+
+    if (text === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function sanitizeReportTwoSnapshot(value: unknown, depth = 0): unknown {
+  if (depth > 80) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeReportTwoSnapshot(item, depth + 1))
+      .filter((item) => item !== null && item !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (isPrivateReportFieldObject(record)) {
+      return null;
+    }
+
+    const output: Record<string, unknown> = {};
+
+    for (const [key, item] of Object.entries(record)) {
+      if (key === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+        continue;
+      }
+
+      const cleaned = sanitizeReportTwoSnapshot(item, depth + 1);
+
+      if (cleaned !== null && cleaned !== undefined) {
+        output[key] = cleaned;
+      }
+    }
+
+    return output;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (trimmed === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return "";
+    }
+  }
+
+  return value;
+}
+
+async function cleanupStaleSnapshots(ttlMs = 60 * 60 * 1000) {
+  const dir = getReportTwoExportSnapshotDir();
+
+  try {
+    const files = await fs.readdir(dir);
+    const now = Date.now();
+
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+
+      const filePath = path.join(dir, file);
+
+      try {
+        const stat = await fs.stat(filePath);
+
+        if (now - stat.mtimeMs > ttlMs) {
+          await fs.unlink(filePath);
+        }
+      } catch {
+        /* race condition with concurrent delete; skip */
+      }
+    }
+  } catch {
+    /* dir doesn't exist yet; nothing to clean */
+  }
+}
+
+async function readBody(request: Request): Promise<ExportPdfBody> {
+  try {
+    return (await request.json()) as ExportPdfBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const current = await requireDashboardUser();
+  const { caseId } = await context.params;
+
+  if (!roleHasReportTwoCapability(current.user.role, "REPORT_EXPORT")) {
+    return NextResponse.json({ error: "لا تملك صلاحية تصدير التقرير." }, { status: 403 });
+  }
+
+  const access = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!access.ok) {
+    return NextResponse.json(
+      {
+        error:
+          "لا تملك صلاحية تصدير هذا التقرير أو أن الحالة غير موجودة.",
+      },
+      {
+        status: access.status || 404,
+      },
+    );
+  }
+
+  const officialReport = await prisma.reportTwoActive.findFirst({
+    where: {
+      caseEntryId: caseId,
+      status: "APPROVED",
+      ...(current.user.role === "ADMIN"
+        ? {}
+        : { schoolAccountId: current.user.schoolAccountId || "__missing__" }),
+    },
+    select: { id: true },
+  });
+  if (!officialReport) {
+    return NextResponse.json(
+      { error: "يجب اعتماد التقرير قبل الطباعة أو التصدير." },
+      { status: 409 },
+    );
+  }
+
+  const serviceGuard = await requireServiceAccessApi(
+    getActivityProgramsBillingServiceSlug(access.serviceSlug),
+  );
+  if (serviceGuard) return serviceGuard;
+
+  const body = await readBody(request);
+  const snapshot = sanitizeReportTwoSnapshot(body.snapshot) as any;
+
+  if (!snapshot?.template?.pages?.length) {
+    return NextResponse.json(
+      {
+        error: "بيانات التقرير غير جاهزة للتصدير.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const token = crypto.randomUUID();
+  const snapshotDir = getReportTwoExportSnapshotDir();
+  const snapshotPath = path.join(snapshotDir, `${token}.json`);
+  const origin = getRequestOrigin(request);
+  const previewUrl = `${origin}/report-2-export-preview/${token}`;
+  const fileName = safeDownloadFileName(body.fileName || "report.pdf");
+  const linkedCertificatesHtml = await renderLinkedCertificatesAttachmentHtml(
+    caseId,
+    {
+      baseUrl: origin,
+      role: current.user.role,
+      fallbackIssuerName:
+        current.user.officialName || current.user.name || "المستخدم",
+    },
+  );
+  const linkedAssessmentsHtml = await renderLinkedAssessmentAttachmentsHtml(
+    caseId,
+    {
+      baseUrl: origin,
+    },
+  );
+  const linkedSurveysHtml = await renderLinkedSurveyAttachmentsHtml(
+    caseId,
+    {
+      baseUrl: origin,
+      cookie: request.headers.get("cookie") || "",
+    },
+  );
+  const linkedAttachmentsHtml = `${linkedCertificatesHtml}${linkedAssessmentsHtml}${linkedSurveysHtml}`;
+
+  await fs.mkdir(snapshotDir, {
+    recursive: true,
+  });
+
+  const exportSnapshot = {
+    ...snapshot,
+    __linkedAttachmentsHtml: linkedAttachmentsHtml,
+  };
+
+  await fs.writeFile(snapshotPath, JSON.stringify(exportSnapshot), "utf8");
+
+  cleanupStaleSnapshots().catch(() => null);
+
+  return NextResponse.json(
+    {
+      fallback: "PRINT_PREVIEW",
+      previewUrl: `${previewUrl}?print=1`,
+      fileName,
+      message: "Opening the finalized report in browser print preview.",
+    },
+    { status: 200 },
+  );
+}
+
+
