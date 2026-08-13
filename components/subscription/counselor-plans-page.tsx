@@ -184,6 +184,8 @@ export function CounselorPlansPage() {
   }
 
   useEffect(() => {
+    // Hydrate URL-only notice state after the client mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEntryNotice(getEntryNoticeFromUrl());
     void loadPlans();
   }, []);
@@ -241,7 +243,11 @@ export function CounselorPlansPage() {
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || "الكوبون غير صالح.");
       setCouponQuote(result.quote as CouponQuote);
-      setCouponCode(String(result.quote?.couponCode || couponCode).toUpperCase());
+      const appliedCouponCode = String(result.quote?.couponCode || couponCode).toUpperCase();
+      setCouponCode(appliedCouponCode);
+      if (paymentModalOpen && Number(result.quote?.finalAmount) > 0) {
+        await openOnlineCheckout(appliedCouponCode);
+      }
     } catch (error) {
       setCouponQuote(null);
       setCouponError(error instanceof Error ? error.message : "الكوبون غير صالح.");
@@ -290,7 +296,7 @@ export function CounselorPlansPage() {
     }
   }
 
-  async function openOnlineCheckout() {
+  async function openOnlineCheckout(couponCodeOverride?: string) {
     if (!selectedPlan || selectedPlanIsFree) return;
 
     setPaymentModalOpen(true);
@@ -298,6 +304,7 @@ export function CounselorPlansPage() {
     setCheckoutError("");
 
     if (
+      couponCodeOverride === undefined &&
       checkoutTransaction?.planId === selectedPlan.id &&
       checkoutTransaction.billingCycle === billingCycle
     ) {
@@ -314,7 +321,7 @@ export function CounselorPlansPage() {
           planId: selectedPlan.id,
           billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
           providerSlug: "moyasar",
-          couponCode: couponQuote?.couponCode || "",
+          couponCode: couponCodeOverride ?? couponQuote?.couponCode ?? "",
         }),
       });
       const result = await readApiResponse(response);
@@ -489,7 +496,6 @@ export function CounselorPlansPage() {
             data?.subscription?.usable && data.subscription.planId === plan.id,
           );
           const price = getPlanPrice(plan, billingCycle);
-          const benefits = plan.services.slice(0, 4);
 
           return (
             <article
@@ -519,26 +525,10 @@ export function CounselorPlansPage() {
                 <span className="pb-1 text-sm font-bold text-slate-500">ريال / {getBillingLabel(billingCycle)}</span>
               </div>
 
-              <div className="mt-6 flex-1 space-y-3 text-sm font-bold text-slate-600">
-                {benefits.map((service) => (
-                  <div key={service.id} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                    <span>{service.name}</span>
-                  </div>
-                ))}
-                {benefits.length === 0 ? (
-                  <div className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                    <span>الخدمات الأساسية للمنصة</span>
-                  </div>
-                ) : null}
+              <div className="mt-6 flex flex-1 items-start gap-2 text-sm font-bold text-slate-600">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                <span>شاملة جميع الخدمات</span>
               </div>
-
-              {plan.services.length > 0 ? (
-                <p className="mt-5 text-xs font-bold text-slate-400">
-                  {plan.services.length} خدمات مشمولة
-                </p>
-              ) : null}
 
               <button
                 type="button"
@@ -608,54 +598,15 @@ export function CounselorPlansPage() {
         </section>
       ) : null}
 
-      {selectedPlan ? (
-        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-black text-slate-800">هل لديك كوبون خصم؟</p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={couponCode}
-              onChange={(event) => {
-                setCouponCode(event.target.value.toUpperCase());
-                setCouponError("");
-              }}
-              disabled={couponLoading || Boolean(couponQuote)}
-              placeholder="أدخل الكود"
-              dir="ltr"
-              className="h-11 min-w-0 flex-1 rounded-2xl border border-slate-200 px-4 text-sm font-black uppercase outline-none focus:border-sky-400 disabled:bg-slate-50"
-            />
-            {couponQuote ? (
-              <button type="button" onClick={() => { setCouponQuote(null); setCouponCode(""); setCouponError(""); setCheckoutTransaction(null); }} className="h-11 rounded-2xl border border-slate-200 px-5 text-sm font-black text-slate-600">
-                إزالة الكوبون
-              </button>
-            ) : (
-              <button type="button" onClick={() => void applyCoupon()} disabled={couponLoading} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-sky-700 px-5 text-sm font-black text-white disabled:opacity-60">
-                {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} تطبيق
-              </button>
-            )}
-          </div>
-          {couponError ? <p className="mt-2 text-sm font-bold text-rose-600">{couponError}</p> : null}
-          {couponQuote ? (
-            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-sm font-black text-emerald-800">تم تطبيق الكوبون · {couponQuote.promotionName}</p>
-              <p className="mt-1 text-xs font-bold text-emerald-700">
-                خصم {couponQuote.discountType === "PERCENTAGE" ? `${couponQuote.discountValue}%` : `${formatPrice(couponQuote.discountValue)} ريال`}
-              </p>
-              <div className="mt-3 grid gap-1 text-sm font-bold text-slate-600 sm:grid-cols-3">
-                <span>السعر قبل الخصم: {formatPrice(couponQuote.originalAmount)} ريال</span>
-                <span>الخصم: {formatPrice(couponQuote.discountAmount)} ريال</span>
-                <strong className="text-slate-950">الإجمالي: {formatPrice(couponQuote.finalAmount)} ريال</strong>
-              </div>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
       {paymentModalOpen && selectedPlan && !selectedPlanIsFree ? (
         <PlanPaymentModal
           planName={selectedPlan.name}
           billingLabel={getBillingLabel(billingCycle)}
-          services={selectedPlan.services.map((service) => service.name)}
           total={selectedFinalPrice}
+          couponCode={couponCode}
+          coupon={couponQuote}
+          couponLoading={couponLoading}
+          couponError={couponError}
           transaction={checkoutTransaction}
           mode={paymentMode}
           isCreatingTransaction={checkoutLoading}
@@ -666,8 +617,23 @@ export function CounselorPlansPage() {
           onSwitchMode={(mode) => {
             setPaymentMode(mode);
             setCheckoutError("");
+            if (mode === "online" && !checkoutTransaction) {
+              void openOnlineCheckout();
+            }
           }}
           onSubmitBankTransfer={() => void submitBankTransfer()}
+          onCouponCodeChange={(value) => {
+            setCouponCode(value);
+            setCouponError("");
+          }}
+          onApplyCoupon={() => void applyCoupon()}
+          onRemoveCoupon={() => {
+            setCouponQuote(null);
+            setCouponCode("");
+            setCouponError("");
+            setCheckoutTransaction(null);
+            if (paymentMode === "online") void openOnlineCheckout("");
+          }}
           onClose={() => setPaymentModalOpen(false)}
         />
       ) : null}

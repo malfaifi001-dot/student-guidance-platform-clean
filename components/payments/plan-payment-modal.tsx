@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Landmark, Loader2, X } from "lucide-react";
+import { Check, CreditCard, Landmark, Loader2, X } from "lucide-react";
 import { MoyasarCheckoutForm } from "./moyasar-checkout-form";
 
 type PaymentTransactionSummary = {
@@ -17,11 +17,22 @@ type BankTransferFields = {
   note: string;
 };
 
+type CouponSummary = {
+  promotionName: string;
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: number;
+  originalAmount: number;
+  discountAmount: number;
+};
+
 export function PlanPaymentModal({
   planName,
   billingLabel,
-  services,
   total,
+  couponCode,
+  coupon,
+  couponLoading,
+  couponError,
   transaction,
   mode,
   isCreatingTransaction,
@@ -31,12 +42,18 @@ export function PlanPaymentModal({
   onBankTransferChange,
   onSwitchMode,
   onSubmitBankTransfer,
+  onCouponCodeChange,
+  onApplyCoupon,
+  onRemoveCoupon,
   onClose,
 }: {
   planName: string;
   billingLabel: string;
-  services: string[];
   total: number;
+  couponCode: string;
+  coupon: CouponSummary | null;
+  couponLoading: boolean;
+  couponError: string;
   transaction: PaymentTransactionSummary | null;
   mode: "online" | "bank";
   isCreatingTransaction: boolean;
@@ -46,8 +63,15 @@ export function PlanPaymentModal({
   onBankTransferChange: (patch: Partial<BankTransferFields>) => void;
   onSwitchMode: (mode: "online" | "bank") => void;
   onSubmitBankTransfer: () => void;
+  onCouponCodeChange: (value: string) => void;
+  onApplyCoupon: () => void;
+  onRemoveCoupon: () => void;
   onClose: () => void;
 }) {
+  const hasDiscount = Boolean(
+    coupon && coupon.discountAmount > 0 && coupon.originalAmount !== total,
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-6"
@@ -56,7 +80,7 @@ export function PlanPaymentModal({
       aria-labelledby="payment-modal-title"
       dir="rtl"
     >
-      <section className="relative grid max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-white/70 bg-white shadow-2xl lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="relative grid max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-sky-950/20 lg:grid-cols-[0.95fr_1.05fr]">
         <button
           type="button"
           onClick={onClose}
@@ -66,39 +90,78 @@ export function PlanPaymentModal({
           <X className="h-5 w-5" />
         </button>
 
-        <aside className="order-2 flex flex-col justify-center bg-slate-950 p-6 text-white sm:p-7 lg:order-1">
-          <p className="text-xs font-black text-emerald-300">ملخص الاشتراك</p>
+        <aside className="order-2 flex flex-col justify-center border-t border-sky-100 bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-600 p-6 text-white sm:p-7 lg:order-1 lg:border-l lg:border-t-0">
+          <p className="text-xs font-black text-sky-100">ملخص الاشتراك</p>
           <h2 className="mt-3 text-2xl font-black">{planName}</h2>
-          <p className="mt-2 text-sm font-bold text-slate-300">{billingLabel}</p>
+          <p className="mt-2 text-sm font-bold text-sky-100">{billingLabel}</p>
 
-          <div className="mt-6 space-y-2.5 border-y border-white/10 py-4">
-            {services.slice(0, 4).map((service, index) => (
-              <div
-                key={`${service}-${index}`}
-                className="flex items-center gap-2 text-sm font-bold text-slate-200"
-              >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                <span>{service}</span>
+          <div className="mt-6 flex items-center gap-2 border-y border-white/20 py-4 text-sm font-bold text-sky-50">
+            <Check className="h-4 w-4 shrink-0 text-cyan-200" />
+            <span>شاملة جميع الخدمات</span>
+          </div>
+
+          <div className="mt-5 rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+            <p className="text-sm font-black text-white">هل لديك كوبون خصم؟</p>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(event) => onCouponCodeChange(event.target.value.toUpperCase())}
+                disabled={couponLoading || Boolean(coupon)}
+                placeholder="أدخل الكود"
+                dir="ltr"
+                aria-label="رمز كوبون الخصم"
+                className="h-11 min-w-0 flex-1 rounded-2xl border border-white/30 bg-white px-3 text-sm font-black uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-200 focus:ring-2 focus:ring-cyan-200/40 disabled:bg-sky-50"
+              />
+              {coupon ? (
+                <button type="button" onClick={onRemoveCoupon} className="h-11 shrink-0 rounded-2xl border border-white/30 bg-white/15 px-4 text-xs font-black text-white transition hover:bg-white/25">
+                  إزالة
+                </button>
+              ) : (
+                <button type="button" onClick={onApplyCoupon} disabled={couponLoading || !couponCode.trim()} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-sky-700 shadow-sm transition hover:bg-sky-50 disabled:opacity-60">
+                  {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  تطبيق
+                </button>
+              )}
+            </div>
+            {couponError ? <p className="mt-2 text-xs font-bold text-rose-100">{couponError}</p> : null}
+            {coupon ? (
+              <div className="mt-3 rounded-2xl bg-white/15 p-3 text-xs font-bold text-sky-50">
+                <p className="font-black text-white">تم تطبيق الكوبون · {coupon.promotionName}</p>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span>السعر قبل الخصم</span>
+                  <span>{coupon.originalAmount.toLocaleString("ar-SA")} ريال</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span>الخصم</span>
+                  <span>-{coupon.discountAmount.toLocaleString("ar-SA")} ريال</span>
+                </div>
               </div>
-            ))}
-            {services.length === 0 ? (
-              <p className="text-sm font-bold text-slate-300">
-                تشمل خدمات الباقة المحددة.
-              </p>
             ) : null}
           </div>
 
-          <div className="mt-5">
-            <p className="text-xs font-bold text-slate-400">الإجمالي</p>
-            <p className="mt-1 text-3xl font-black">
-              {total.toLocaleString("ar-SA")} ريال
-            </p>
+          <div className="mt-5 border-t border-white/20 pt-5">
+            <p className="text-xs font-bold text-sky-100">الإجمالي</p>
+            {hasDiscount && coupon ? (
+              <div className="mt-2 flex flex-wrap items-center gap-3" aria-live="polite">
+                <span className="relative text-lg font-black text-sky-100/80">
+                  {coupon.originalAmount.toLocaleString("ar-SA")} ريال
+                  <span className="absolute inset-x-[-0.2rem] top-1/2 h-0.5 -rotate-6 animate-in fade-in slide-in-from-right-full bg-rose-300 duration-300 motion-reduce:animate-none" aria-hidden="true" />
+                </span>
+                <span className="animate-in fade-in slide-in-from-bottom-1 zoom-in-95 text-3xl font-black text-white duration-300 motion-reduce:animate-none">
+                  {total.toLocaleString("ar-SA")} ريال
+                </span>
+              </div>
+            ) : (
+              <p className="mt-1 text-3xl font-black">
+                {total.toLocaleString("ar-SA")} ريال
+              </p>
+            )}
           </div>
         </aside>
 
         <div className="order-1 p-6 pt-16 sm:p-7 sm:pt-16 lg:order-2">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700">
               {mode === "online" ? (
                 <CreditCard className="h-5 w-5" />
               ) : (
@@ -106,7 +169,7 @@ export function PlanPaymentModal({
               )}
             </div>
             <div>
-              <p className="text-xs font-black text-emerald-700">إتمام الاشتراك</p>
+              <p className="text-xs font-black text-sky-700">إتمام الاشتراك</p>
               <h2
                 id="payment-modal-title"
                 className="mt-1 text-xl font-black text-slate-950"
@@ -127,7 +190,7 @@ export function PlanPaymentModal({
               {isCreatingTransaction ? (
                 <div className="mt-6 grid min-h-48 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-center">
                   <div>
-                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-emerald-600" />
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-sky-600" />
                     <p className="mt-3 text-sm font-black text-slate-600">
                       جارٍ تجهيز عملية الدفع...
                     </p>
@@ -162,7 +225,7 @@ export function PlanPaymentModal({
                     onBankTransferChange({ senderName: event.target.value })
                   }
                   placeholder="اسم المحوّل"
-                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-emerald-400"
+                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-sky-400"
                 />
                 <input
                   value={bankTransfer.phone}
@@ -170,7 +233,7 @@ export function PlanPaymentModal({
                     onBankTransferChange({ phone: event.target.value })
                   }
                   placeholder="رقم الجوال"
-                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-emerald-400"
+                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-sky-400"
                 />
                 <input
                   value={bankTransfer.receiptUrl}
@@ -178,7 +241,7 @@ export function PlanPaymentModal({
                     onBankTransferChange({ receiptUrl: event.target.value })
                   }
                   placeholder="رقم المرجع أو رابط الإيصال"
-                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-emerald-400 sm:col-span-2"
+                  className="h-12 rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-sky-400 sm:col-span-2"
                 />
                 <textarea
                   value={bankTransfer.note}
@@ -186,7 +249,7 @@ export function PlanPaymentModal({
                     onBankTransferChange({ note: event.target.value })
                   }
                   placeholder="ملاحظة اختيارية"
-                  className="min-h-24 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-emerald-400 sm:col-span-2"
+                  className="min-h-24 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-400 sm:col-span-2"
                 />
               </div>
 
@@ -194,7 +257,7 @@ export function PlanPaymentModal({
                 type="button"
                 onClick={onSubmitBankTransfer}
                 disabled={isSubmittingBankTransfer}
-                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-sky-700 text-sm font-black text-white transition hover:bg-sky-800 disabled:opacity-60"
               >
                 {isSubmittingBankTransfer ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -209,7 +272,7 @@ export function PlanPaymentModal({
               <button
                 type="button"
                 onClick={() => onSwitchMode("online")}
-                className="mx-auto mt-4 block text-sm font-black text-emerald-700 underline decoration-emerald-200 underline-offset-4"
+                className="mx-auto mt-4 block text-sm font-black text-sky-700 underline decoration-sky-200 underline-offset-4"
               >
                 العودة للدفع الإلكتروني
               </button>
