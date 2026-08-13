@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 
+import { BrandLoader } from "@/components/common/brand-loader";
+
 import type { ReportDesignId } from "../report-design-types";
 import { A4DesignPage } from "../shared/report-blocks";
 import type { PreviewCaseData } from "../shared/report-types";
@@ -1814,13 +1816,12 @@ export function SmartPhysicalReportComposer({
           data-report-physical-planning-phase={planningPhase}
           {...developmentDiagnostics}
         >
-          <span
-            className="h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600"
-            aria-hidden="true"
+          <BrandLoader
+            variant="inline"
+            size="lg"
+            label="جارٍ تنظيم صفحات التقرير..."
+            className="flex-col gap-4 [&>span:last-child]:text-base [&>span:last-child]:text-slate-500 [&>span:last-child]:sm:text-lg [&>span:last-child]:dark:text-slate-300"
           />
-          <span className="text-base sm:text-lg">
-            جارٍ تنظيم صفحات التقرير...
-          </span>
           <span className="text-sm font-medium text-slate-400">
             يتم ضبط توزيع المحتوى تلقائيًا
           </span>

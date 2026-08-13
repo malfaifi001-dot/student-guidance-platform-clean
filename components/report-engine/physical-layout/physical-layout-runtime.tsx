@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { A4DesignPage } from "@/components/report-engine/design-renderers/shared/report-blocks";
+import { BrandLoader } from "@/components/common/brand-loader";
 
 import type { ReportDesignId } from "@/components/report-engine/design-renderers/report-design-types";
 
@@ -910,17 +911,15 @@ export function PhysicalLayoutRuntime({
          * أثناء تبديل التصميم أو إعادة القياس.
          */
         <div
-          className="flex min-h-[320px] flex-col items-center justify-center gap-4 text-center font-bold text-slate-500 print:hidden"
+          className="flex min-h-[320px] items-center justify-center text-center print:hidden"
           data-physical-layout-initializing
         >
-          <span
-            className="h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600"
-            aria-hidden="true"
+          <BrandLoader
+            variant="inline"
+            size="lg"
+            label={loadingLabel}
+            className="flex-col gap-4 [&>span:last-child]:text-base [&>span:last-child]:text-slate-500 [&>span:last-child]:sm:text-lg [&>span:last-child]:dark:text-slate-300"
           />
-
-          <span className="text-base sm:text-lg">
-            {loadingLabel}
-          </span>
         </div>
       )}
     </>
