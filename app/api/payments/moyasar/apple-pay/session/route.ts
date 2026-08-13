@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 const MOYASAR_APPLE_PAY_SESSION_URL =
   "https://api.moyasar.com/v1/applepay/initiate";
-const APPLE_PAY_SESSION_PATH = "/paymentservices/paymentSession";
+const APPLE_PAY_SERVICES_PATH_PREFIX = "/paymentservices/";
 const DISPLAY_NAME = "Teachix";
 const DOMAIN_NAME = "teachix.sa";
 const DIAGNOSTIC_HEADER = "X-Teachix-ApplePay-Diagnostic-Id";
@@ -80,21 +80,49 @@ function parseAppleValidationUrl(value: unknown) {
   }
 }
 
-function isAllowedAppleValidationUrl(url: URL | null) {
-  if (!url) return false;
+type AppleValidationRejectionReason =
+  | "MISSING_OR_INVALID_URL"
+  | "INVALID_PROTOCOL"
+  | "CREDENTIALS_NOT_ALLOWED"
+  | "CUSTOM_PORT_NOT_ALLOWED"
+  | "INVALID_HOSTNAME"
+  | "SUSPICIOUS_PATH_ENCODING"
+  | "INVALID_PAYMENT_SERVICES_PATH";
+
+function getAppleValidationRejectionReason(
+  originalValue: unknown,
+  url: URL | null,
+): AppleValidationRejectionReason | null {
+  if (!url || typeof originalValue !== "string") return "MISSING_OR_INVALID_URL";
+  if (url.protocol !== "https:") return "INVALID_PROTOCOL";
+  if (url.username || url.password) return "CREDENTIALS_NOT_ALLOWED";
+  if (url.port) return "CUSTOM_PORT_NOT_ALLOWED";
+
   const hostname = url.hostname.toLowerCase();
   const isApplePayGateway =
     hostname === "apple-pay-gateway.apple.com" ||
-    (hostname.startsWith("apple-pay-gateway-") && hostname.endsWith(".apple.com"));
+    /^apple-pay-gateway-[a-z0-9-]+\.apple\.com$/.test(hostname);
+  if (!isApplePayGateway) return "INVALID_HOSTNAME";
 
-  return (
-    url.protocol === "https:" &&
-    !url.username &&
-    !url.password &&
-    !url.port &&
-    isApplePayGateway &&
-    url.pathname === APPLE_PAY_SESSION_PATH
-  );
+  const rawUrlWithoutQueryOrHash = originalValue.split(/[?#]/, 1)[0];
+  const hasSuspiciousPath =
+    rawUrlWithoutQueryOrHash.includes("\\") ||
+    /%(?:2e|2f|5c)/i.test(rawUrlWithoutQueryOrHash) ||
+    /\/(?:\.{1,2})(?:\/|$)/.test(rawUrlWithoutQueryOrHash);
+  if (hasSuspiciousPath) return "SUSPICIOUS_PATH_ENCODING";
+
+  if (
+    !url.pathname.startsWith(APPLE_PAY_SERVICES_PATH_PREFIX) ||
+    url.pathname.length <= APPLE_PAY_SERVICES_PATH_PREFIX.length
+  ) {
+    return "INVALID_PAYMENT_SERVICES_PATH";
+  }
+
+  return null;
+}
+
+function isAllowedAppleValidationUrl(originalValue: unknown, url: URL | null) {
+  return getAppleValidationRejectionReason(originalValue, url) === null;
 }
 
 function requestMoyasarApplePaySession(payload: {
@@ -179,7 +207,11 @@ export async function POST(request: Request) {
       ? (body as Record<string, unknown>).validation_url
       : null;
   const validationUrl = parseAppleValidationUrl(validationUrlValue);
-  const isAllowed = isAllowedAppleValidationUrl(validationUrl);
+  const rejectionReason = getAppleValidationRejectionReason(
+    validationUrlValue,
+    validationUrl,
+  );
+  const isAllowed = isAllowedAppleValidationUrl(validationUrlValue, validationUrl);
 
   console.info("APPLE_PAY_DIAG_VALIDATION_URL", {
     diagnosticId,
@@ -191,7 +223,13 @@ export async function POST(request: Request) {
   });
 
   if (!validationUrl || !isAllowed || typeof validationUrlValue !== "string") {
-    console.warn("APPLE_PAY_DIAG_VALIDATION_REJECTED", { diagnosticId });
+    console.warn("APPLE_PAY_DIAG_VALIDATION_REJECTED", {
+      diagnosticId,
+      protocol: validationUrl?.protocol || null,
+      hostname: validationUrl?.hostname || null,
+      pathname: validationUrl?.pathname || null,
+      rejectionReason: rejectionReason || "MISSING_OR_INVALID_URL",
+    });
     return diagnosticResponse(
       diagnosticId,
       { error: "رابط التحقق من Apple Pay غير صالح." },
