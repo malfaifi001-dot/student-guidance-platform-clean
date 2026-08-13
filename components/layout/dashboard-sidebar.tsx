@@ -14,7 +14,6 @@ import {
   Award,
   BarChart3,
   BookOpen,
-  BrainCircuit,
   BriefcaseBusiness,
   CalendarDays,
   ChevronDown,
@@ -25,6 +24,7 @@ import {
   Database,
   Dumbbell,
   FilePlus2,
+  FileCheck2,
   FileText,
   FlaskConical,
   FolderKanban,
@@ -36,6 +36,8 @@ import {
   ListChecks,
   Medal,
   MessageCircle,
+  MonitorCog,
+  NotebookPen,
   Palette,
   PenTool,
   PartyPopper,
@@ -43,6 +45,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  Shuffle,
   Sparkles,
   HandHeart,
   Compass,
@@ -50,6 +53,8 @@ import {
   UploadCloud,
   UserRound,
   Users,
+  UsersRound,
+  TrendingUp,
   WalletCards,
   X,
 } from "lucide-react";
@@ -95,19 +100,14 @@ const counselorImportantLinks: SidebarLinkItem[] = [
     icon: Home,
   },
   {
-    label: "ملف إنجازي",
-    href: "/dashboard/portfolio",
-    icon: FolderKanban,
-  },
-  {
-    label: "مركز الأنشطة",
+    label: "الحالات",
     href: OFFICIAL_WORKSPACE_ROUTES.cases,
     icon: FolderKanban,
   },
   {
-    label: "التقارير",
+    label: "التقارير المعتمدة",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
-    icon: FileText,
+    icon: FileCheck2,
   },
   {
     label: "التقويم والتنبيهات",
@@ -138,24 +138,9 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: FileText,
   },
   {
-    label: "إشعار ولي الأمر",
-    href: "/dashboard/guardian-summons",
-    icon: UserRound,
-  },
-  {
-    label: "تحليل النتائج",
-    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
-    icon: BarChart3,
-  },
-  {
     label: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
     href: "/dashboard/family-school-communication",
     icon: MessageCircle,
-  },
-  {
-    label: "مكتبة الموجه الطلابي",
-    href: "/dashboard/counselor-reference-library",
-    icon: BookOpen,
   },
   {
     label: "مؤشرات التوجيه الطلابي للتقويم المدرسي والتقويم الخارجي",
@@ -163,9 +148,24 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: Gauge,
   },
   {
+    label: "المكتبة الشاملة",
+    href: "/dashboard/counselor-reference-library",
+    icon: BookOpen,
+  },
+  {
+    label: "إشعار ولي الأمر",
+    href: "/dashboard/guardian-summons",
+    icon: Send,
+  },
+  {
     label: "الإحصائيات",
     href: "/dashboard/statistics",
-    icon: BarChart3,
+    icon: Activity,
+  },
+  {
+    label: "ملف الإنجاز",
+    href: "/dashboard/portfolio",
+    icon: BriefcaseBusiness,
   },
 ];
 
@@ -180,6 +180,10 @@ const assessmentCenterLinks: SidebarLinkItem[] = [
     href: "/dashboard/assessment-center/linking",
     icon: GitBranch,
   },
+];
+
+const counselorAssessmentCenterLinks: SidebarLinkItem[] = [
+  ...assessmentCenterLinks,
   {
     label: "الموجه الذكي",
     href: "/dashboard/assessment-center/smart-counselor",
@@ -196,7 +200,7 @@ const counselorToolsLinks: SidebarLinkItem[] = [
   {
     label: "الاستبيانات",
     href: OFFICIAL_WORKSPACE_ROUTES.surveys,
-    icon: ClipboardList,
+    icon: ListChecks,
   },
   {
     label: "الشهادات",
@@ -234,14 +238,14 @@ const activityLeaderImportantLinks: SidebarLinkItem[] = [
     icon: Home,
   },
   {
-    label: "الأنشطة المصدرة",
+    label: "الحالات",
     href: OFFICIAL_WORKSPACE_ROUTES.cases,
     icon: FolderKanban,
   },
   {
-    label: "التقارير",
+    label: "التقارير المعتمدة",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
-    icon: FileText,
+    icon: FileCheck2,
   },
   {
     label: "التقويم والتنبيهات",
@@ -250,8 +254,8 @@ const activityLeaderImportantLinks: SidebarLinkItem[] = [
   },
 ];
 
-const activityProgramDomainLinks: SidebarLinkItem[] =
-  ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+const activityProgramDomainLinks: SidebarLinkItem[] = [
+  ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
     label: domain.title,
     href: `/dashboard/activity-leader/programs/${domain.slug}`,
     icon: {
@@ -264,14 +268,15 @@ const activityProgramDomainLinks: SidebarLinkItem[] =
       "non-class-periods": Clock3,
     }[domain.slug],
     shortLabel: domain.shortLabel,
-  }));
-
-const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  })),
   {
-    label: "ملف إنجازي",
+    label: "ملف الإنجاز",
     href: "/dashboard/activity-leader/portfolio",
     icon: BriefcaseBusiness,
   },
+];
+
+const activityLeaderServiceLinks: SidebarLinkItem[] = [
   {
     label: "متابعة أنشطة المعلمين",
     href: "/dashboard/activity-leader/teacher-assignments",
@@ -328,14 +333,9 @@ const teacherServiceLinks: SidebarLinkItem[] = [
     icon: FolderKanban,
   },
   {
-    label: "التقارير",
+    label: "التقارير المعتمدة",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
-    icon: FileText,
-  },
-  {
-    label: "الإحصائيات",
-    href: "/dashboard/statistics",
-    icon: BarChart3,
+    icon: FileCheck2,
   },
   {
     label: "التقويم والتنبيهات",
@@ -344,31 +344,43 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   },
 ];
 
+const teacherPerformanceIcons: Record<
+  string,
+  SidebarLinkItem["icon"]
+> = {
+  job_duties_performance: ListChecks,
+  professional_community_interaction: Users,
+  parents_interaction: MessageCircle,
+  teaching_strategies_diversity: Shuffle,
+  learner_results_improvement: TrendingUp,
+  learning_plan_preparation: NotebookPen,
+  learning_technology_tools: MonitorCog,
+  learning_environment: School,
+  classroom_management: UsersRound,
+  learner_results_analysis: BarChart3,
+  assessment_methods_diversity: ShieldCheck,
+};
+
 const teacherPerformanceLinks: SidebarLinkItem[] = [
   ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
     label: service.title,
     href: service.href,
-    icon: ClipboardList,
+    icon: teacherPerformanceIcons[service.slug] ?? ClipboardList,
     shortLabel: service.shortTitle,
   })),
   {
-    label: "تقرير مخصص",
-    href: "/dashboard/ai-report",
-    icon: Sparkles,
-  },
-  {
-    label: "التقرير الذكي التجريبي",
-    href: "/dashboard/teacher/ai-report2",
-    icon: BrainCircuit,
-  },
-  {
-    label: "ملف إنجازي",
+    label: "ملف الإنجاز",
     href: "/dashboard/teacher/portfolio",
     icon: FolderKanban,
   },
 ];
 
 const teacherAdditionalLinks: SidebarLinkItem[] = [
+  {
+    label: "الإحصائيات",
+    href: "/dashboard/statistics",
+    icon: BarChart3,
+  },
   {
     label: "رفع الطلاب",
     href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
@@ -996,7 +1008,7 @@ function ActivityLeaderSidebar({
   return (
     <SidebarNav ariaLabel="قائمة رائد النشاط">
       <SidebarSection
-        title="الأهم"
+        title="مساحة رائد النشاط"
         collapsed={collapsed}
       >
         {activityLeaderImportantLinks.map((item) => (
@@ -1010,7 +1022,7 @@ function ActivityLeaderSidebar({
       </SidebarSection>
 
       <SidebarDropdown
-        title="برامج النشاط"
+        title="الأنشطة"
         defaultOpen={pathname.startsWith(
           "/dashboard/activity-leader/programs",
         )}
@@ -1028,7 +1040,7 @@ function ActivityLeaderSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الأدوات الإضافية"
+        title="الخدمات الإضافية"
         defaultOpen={hasActive(pathname, activityLeaderServiceLinks)}
         collapsed={collapsed}
       >
@@ -1076,7 +1088,7 @@ function CounselorSidebar({
   return (
     <SidebarNav ariaLabel="قائمة الموجه الطلابي">
       <SidebarSection
-        title="الأهم"
+        title="مساحة الموجه الطلابي"
         collapsed={collapsed}
       >
         {counselorImportantLinks.map((item) => (
@@ -1089,28 +1101,12 @@ function CounselorSidebar({
         ))}
       </SidebarSection>
 
-      <SidebarSection
+      <SidebarDropdown
         title="الخدمات"
+        defaultOpen={hasActive(pathname, counselorServiceLinks)}
         collapsed={collapsed}
       >
         {counselorServiceLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarSection>
-
-      <SidebarDropdown
-        title="مركز التحليل والاختبارات"
-        defaultOpen={pathname.startsWith(
-          "/dashboard/assessment-center",
-        )}
-        collapsed={collapsed}
-      >
-        {assessmentCenterLinks.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}
@@ -1122,7 +1118,25 @@ function CounselorSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="أدوات إضافية"
+        title="مركز تحليل النتائج"
+        defaultOpen={pathname.startsWith(
+          "/dashboard/assessment-center",
+        )}
+        collapsed={collapsed}
+      >
+        {counselorAssessmentCenterLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+          />
+        ))}
+      </SidebarDropdown>
+
+      <SidebarDropdown
+        title="الخدمات الإضافية"
         defaultOpen={hasActive(pathname, counselorToolsLinks)}
         collapsed={collapsed}
       >
@@ -1200,7 +1214,7 @@ function TeacherSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="مركز التحليل والاختبارات"
+        title="مركز تحليل النتائج"
         defaultOpen={pathname.startsWith(
           "/dashboard/assessment-center",
         )}
@@ -1218,7 +1232,7 @@ function TeacherSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="خدمات إضافية"
+        title="الخدمات الإضافية"
         defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
         collapsed={collapsed}
       >

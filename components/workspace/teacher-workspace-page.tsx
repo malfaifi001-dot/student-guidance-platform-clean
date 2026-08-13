@@ -32,7 +32,7 @@ export async function TeacherWorkspacePage({
   user,
   schoolAccountId,
 }: TeacherWorkspacePageProps) {
-  let notices: { title: string; helper: string }[] = [];
+  const notices: { title: string; helper: string }[] = [];
 
   if (schoolAccountId) {
     const now = new Date();
@@ -93,12 +93,6 @@ export async function TeacherWorkspacePage({
       userName={user?.officialName || user?.name}
       modules={teacherWorkspaceModules}
       actions={[
-        {
-          label: "تكليفاتي",
-          href: "/dashboard/teacher/assignments",
-          icon: "cases",
-          primary: true,
-        },
         {
           label: "ملف إنجازي",
           href: "/dashboard/teacher/portfolio",

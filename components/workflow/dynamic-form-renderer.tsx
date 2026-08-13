@@ -1173,7 +1173,14 @@ export function DynamicFormRenderer({
           throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
         }
 
-        redirectTo = `${caseDetailsBasePath}/${data.caseId}`;
+        const isNewSubmittedDashboardCase =
+          !caseId &&
+          type === "submit" &&
+          caseDetailsBasePath === "/dashboard/cases";
+
+        redirectTo = isNewSubmittedDashboardCase
+          ? `/dashboard/report-2/cases/${encodeURIComponent(data.caseId)}/prepare`
+          : `${caseDetailsBasePath}/${data.caseId}`;
         feedbackTitle = "تم حفظ بيانات الحالة";
         feedbackMessage = data.message || data.reportSync?.message || feedbackMessage;
       }
