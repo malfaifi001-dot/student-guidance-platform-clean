@@ -7,6 +7,9 @@ declare global {
     Moyasar?: {
       init: (config: MoyasarFormConfig) => void;
     };
+    ApplePaySession?: {
+      canMakePayments?: () => boolean;
+    };
   }
 }
 
@@ -47,6 +50,51 @@ export function MoyasarCheckoutForm({
   useEffect(() => {
     let cancelled = false;
 
+    const sanitizeDiagnosticMessage = (value: string) =>
+      value
+        .slice(0, 300)
+        .replace(/https?:\/\/\S+/gi, "[URL_REDACTED]")
+        .replace(/(?:pk|sk)_(?:live|test)_[A-Za-z0-9_-]+/g, "[KEY_REDACTED]")
+        .replace(
+          /(paymentData|encryptedData|ephemeralPublicKey|transactionId)\s*[:=]\s*["']?[^,\s}"']+/gi,
+          "$1=[REDACTED]",
+        );
+
+    const isApplePayRelated = (message: string) =>
+      /(moyasar|apple\s?pay|applepaysession|payment|merchant\s?session)/i.test(message);
+
+    const handleWindowError = (event: ErrorEvent) => {
+      const message = String(event.message || event.error?.message || "");
+      if (!isApplePayRelated(message)) return;
+      console.error("TEACHIX_APPLE_PAY_CLIENT_ERROR", {
+        message: sanitizeDiagnosticMessage(message),
+        errorName: String(event.error?.name || "Error").slice(0, 80),
+        sourceFilename: event.filename ? event.filename.split("?")[0] : undefined,
+        line: event.lineno || undefined,
+        column: event.colno || undefined,
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message =
+        reason instanceof Error ? reason.message : typeof reason === "string" ? reason : "";
+      if (!isApplePayRelated(message)) return;
+      console.error("TEACHIX_APPLE_PAY_CLIENT_ERROR", {
+        errorName: reason instanceof Error ? reason.name.slice(0, 80) : "UnhandledRejection",
+        message: sanitizeDiagnosticMessage(message),
+      });
+    };
+
+    window.addEventListener("error", handleWindowError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    const cleanupDiagnostics = () => {
+      cancelled = true;
+      window.removeEventListener("error", handleWindowError);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+
     const stylesheetId = "moyasar-payment-form-css";
     const scriptId = "moyasar-payment-form-js";
 
@@ -80,29 +128,70 @@ export function MoyasarCheckoutForm({
           transactionId
         )}`;
 
-      window.Moyasar.init({
-        element: ".mysr-form",
-        amount: Math.round(amount * 100),
-        currency,
-        description,
-        publishable_api_key: publicKey,
-        callback_url: callbackUrl,
-        supported_networks: [
-          "mada",
-          "visa",
-          "mastercard",
-        ],
-        methods: ["creditcard", "applepay"],
-        apple_pay: {
-          country: "SA",
-          label: "Teachix",
-          validate_merchant_url:
-            `${window.location.origin}/api/payments/moyasar/apple-pay/session`,
-        },
-        metadata: {
-          transactionId,
-        },
+      const validateMerchantUrl =
+        `${window.location.origin}/api/payments/moyasar/apple-pay/session`;
+      const methods = ["creditcard", "applepay"];
+      const applePaySession = window.ApplePaySession;
+      let canMakePayments: boolean | null = null;
+      let capabilityErrorMessage: string | undefined;
+
+      try {
+        canMakePayments = applePaySession?.canMakePayments?.() ?? null;
+      } catch (error) {
+        capabilityErrorMessage =
+          error instanceof Error
+            ? sanitizeDiagnosticMessage(error.message).slice(0, 200)
+            : "UNKNOWN_ERROR";
+      }
+
+      console.info("TEACHIX_APPLE_PAY_CAPABILITY", {
+        applePaySessionType: typeof applePaySession,
+        canMakePayments,
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+        ...(capabilityErrorMessage ? { errorMessage: capabilityErrorMessage } : {}),
       });
+
+      console.info("TEACHIX_APPLE_PAY_INIT", {
+        methods,
+        hasApplePayConfig: true,
+        applePayCountry: "SA",
+        applePayLabel: "Teachix",
+        validateMerchantPath: "/api/payments/moyasar/apple-pay/session",
+        currentHostname: window.location.hostname,
+        protocol: window.location.protocol,
+        isSecureContext: window.isSecureContext,
+        userAgentSummary: navigator.userAgent.slice(0, 160),
+        hasApplePaySessionGlobal: typeof applePaySession !== "undefined",
+      });
+
+      try {
+        window.Moyasar.init({
+          element: ".mysr-form",
+          amount: Math.round(amount * 100),
+          currency,
+          description,
+          publishable_api_key: publicKey,
+          callback_url: callbackUrl,
+          supported_networks: ["mada", "visa", "mastercard"],
+          methods,
+          apple_pay: {
+            country: "SA",
+            label: "Teachix",
+            validate_merchant_url: validateMerchantUrl,
+          },
+          metadata: { transactionId },
+        });
+      } catch (error) {
+        console.error("TEACHIX_APPLE_PAY_CLIENT_ERROR", {
+          errorName: error instanceof Error ? error.name.slice(0, 80) : "Error",
+          message:
+            error instanceof Error
+              ? sanitizeDiagnosticMessage(error.message)
+              : "Moyasar initialization failed",
+        });
+        throw error;
+      }
     }
 
     const existingScript = document.getElementById(
@@ -121,7 +210,7 @@ export function MoyasarCheckoutForm({
       }
 
       return () => {
-        cancelled = true;
+        cleanupDiagnostics();
       };
     }
 
@@ -137,11 +226,21 @@ export function MoyasarCheckoutForm({
       initializeMoyasar,
       { once: true }
     );
+    script.addEventListener(
+      "error",
+      () => {
+        console.error("TEACHIX_APPLE_PAY_CLIENT_ERROR", {
+          errorName: "ScriptLoadError",
+          message: "Moyasar payment form script failed to load",
+        });
+      },
+      { once: true },
+    );
 
     document.body.appendChild(script);
 
     return () => {
-      cancelled = true;
+      cleanupDiagnostics();
     };
   }, [
     amount,

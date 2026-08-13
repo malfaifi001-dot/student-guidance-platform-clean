@@ -1,0 +1,11 @@
+
+  app\api\payments\moyasar\apple-pay\session\route.ts:176:    });
+  app\api\payments\moyasar\apple-pay\session\route.ts:177:
+  app\api\payments\moyasar\apple-pay\session\route.ts:178:    return NextResponse.json(
+> app\api\payments\moyasar\apple-pay\session\route.ts:179:      { error: "تعذر الاتصال بخدمة Apple Pay. حاول مرة أخرى." },
+  app\api\payments\moyasar\apple-pay\session\route.ts:180:      { status: 502 }
+  app\api\payments\moyasar\apple-pay\session\route.ts:181:    );
+  app\api\payments\moyasar\apple-pay\session\route.ts:182:  }
+  app\api\payments\moyasar\apple-pay\session\route.ts:183:}
+
+
