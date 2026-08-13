@@ -5,9 +5,20 @@ import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 
 export const metadata: Metadata = {
-  title: "تواصل معنا | Teachix",
+  title: "تواصل معنا",
   description:
     "تواصل مع فريق Teachix للاستفسارات والدعم الفني والحسابات وطلبات الخصوصية.",
+  alternates: {
+    canonical: "https://teachix.sa/contact",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: "https://teachix.sa/contact",
+    title: "تواصل مع فريق Teachix",
+    description:
+      "تواصل مع فريق Teachix للاستفسارات والدعم الفني والحسابات وطلبات الخصوصية.",
+  },
 };
 
 export default function ContactPage() {

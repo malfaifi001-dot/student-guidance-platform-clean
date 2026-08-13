@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
+
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function PricingPage() {
   const plans = [

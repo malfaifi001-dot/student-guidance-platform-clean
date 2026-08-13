@@ -1,4 +1,4 @@
-import type {  Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
@@ -18,9 +18,29 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 export const metadata: Metadata = {
-  title: "تيتشكس | الأسرع والأشمل",
+  metadataBase: new URL("https://teachix.sa"),
+  title: {
+    default: "Teachix | منصة مدرسية رقمية متكاملة",
+    template: "%s | Teachix",
+  },
   description:
-    "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات والحالات والتقارير المدرسية.",
+    "Teachix منصة مدرسية رقمية تساعد مدير المدرسة والمعلم والموجه الطلابي ورائد النشاط على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
+  applicationName: "Teachix",
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: "https://teachix.sa/",
+    siteName: "Teachix",
+    title: "Teachix | منصة مدرسية رقمية متكاملة",
+    description:
+      "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Teachix | منصة مدرسية رقمية متكاملة",
+    description:
+      "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
+  },
   icons: {
     icon: "/brand/teachix-icon.svg",
     shortcut: "/brand/teachix-icon.svg",

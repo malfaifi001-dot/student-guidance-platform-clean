@@ -1,15 +1,21 @@
 import type { ReactNode } from "react";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
-import { DashboardNavigationRefresh } from "@/components/layout/dashboard-navigation-refresh";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
 import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export const viewport: Viewport = {
   width: "device-width",

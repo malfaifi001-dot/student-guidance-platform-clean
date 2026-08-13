@@ -6,9 +6,20 @@ import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export const metadata: Metadata = {
-  title: "سياسة الخصوصية | Teachix",
+  title: "سياسة الخصوصية",
   description:
     "سياسة الخصوصية الخاصة بمنصة Teachix ومعالجة وحماية البيانات الشخصية.",
+  alternates: {
+    canonical: "https://teachix.sa/privacy",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: "https://teachix.sa/privacy",
+    title: "سياسة الخصوصية في Teachix",
+    description:
+      "سياسة الخصوصية الخاصة بمنصة Teachix ومعالجة وحماية البيانات الشخصية.",
+  },
 };
 
 const sections = [

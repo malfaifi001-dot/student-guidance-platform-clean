@@ -1,9 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  BarChart3,
-  ClipboardCheck,
   FileText,
   FolderCheck,
   GraduationCap,
@@ -20,6 +19,25 @@ import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
+
+const homeDescription =
+  "Teachix منصة مدرسية رقمية متكاملة لمدير المدرسة والمعلم والموجه الطلابي ورائد النشاط، لتنظيم الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.";
+
+export const metadata: Metadata = {
+  title: { absolute: "Teachix | منصة مدرسية رقمية متكاملة" },
+  description: homeDescription,
+  alternates: {
+    canonical: "https://teachix.sa/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: "https://teachix.sa/",
+    siteName: "Teachix",
+    title: "Teachix | منصة مدرسية رقمية متكاملة",
+    description: homeDescription,
+  },
+};
 
 const reviews = [
   {

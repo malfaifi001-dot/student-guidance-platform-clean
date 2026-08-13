@@ -6,9 +6,20 @@ import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export const metadata: Metadata = {
-  title: "الشروط والأحكام | Teachix",
+  title: "الشروط والأحكام",
   description:
     "الشروط والأحكام المنظمة لاستخدام منصة Teachix وخدماتها.",
+  alternates: {
+    canonical: "https://teachix.sa/terms",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: "https://teachix.sa/terms",
+    title: "الشروط والأحكام في Teachix",
+    description:
+      "الشروط والأحكام المنظمة لاستخدام منصة Teachix وخدماتها.",
+  },
 };
 
 const sections = [
