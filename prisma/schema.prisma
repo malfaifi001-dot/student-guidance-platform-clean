@@ -565,6 +565,7 @@ model DynamicField {
 
   defaultValue         String? @db.Text
   defaultJson          Json?
+  behaviorConfig       Json?
   autoSelectWhenLinked Boolean @default(false)
 
   options DynamicFieldOption[]

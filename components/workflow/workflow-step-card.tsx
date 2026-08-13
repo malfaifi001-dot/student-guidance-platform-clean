@@ -5,11 +5,12 @@ import {
   isCommitteeRowsValid,
 } from "@/components/committees/committee-chain-repeater";
 import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
+import { GripVertical } from "lucide-react";
 import {
   shouldShowField,
   type RuntimeValues,
 } from "@/engine/runtime/field-dependency-engine";
-import type { RuntimeField, RuntimeStep } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeField, RuntimeStep, RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 import { getVisibleWorkflowStepDescription } from "@/lib/workflows/workflow-runtime-copy";
 
 type WorkflowStepCardProps = {
@@ -24,6 +25,11 @@ type WorkflowStepCardProps = {
     label: string
   ) => Promise<void> | void;
   embedded?: boolean;
+  workflow: RuntimeWorkflow;
+  editingMode?: boolean;
+  selectedFieldId?: string | null;
+  onSelectField?: (field: RuntimeField) => void;
+  onReorderFields?: (stepId: string, fieldIds: string[]) => Promise<void> | void;
 };
 
 function normalizeText(value: string) {
@@ -100,6 +106,11 @@ export function WorkflowStepCard({
   canEditFieldLabel,
   onUpdateFieldLabel,
   embedded = false,
+  workflow,
+  editingMode = false,
+  selectedFieldId,
+  onSelectField,
+  onReorderFields,
 }: WorkflowStepCardProps) {
   const visibleFields = step.fields.filter((field) =>
     shouldShowField(field, values),
@@ -145,10 +156,46 @@ export function WorkflowStepCard({
         {normalFields.map((field) => (
           <div
             key={field.id}
-            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+            draggable={editingMode}
+            onDragStart={(event) => event.dataTransfer.setData("text/workflow-field-id", field.id)}
+            onDragOver={(event) => {
+              if (editingMode) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              if (!editingMode || !onReorderFields) return;
+              event.preventDefault();
+              const sourceId = event.dataTransfer.getData("text/workflow-field-id");
+              if (!sourceId || sourceId === field.id) return;
+              const ids = normalFields.map((item) => item.id);
+              const sourceIndex = ids.indexOf(sourceId);
+              const targetIndex = ids.indexOf(field.id);
+              if (sourceIndex < 0 || targetIndex < 0) return;
+              ids.splice(sourceIndex, 1);
+              ids.splice(targetIndex, 0, sourceId);
+              const visibleIdSet = new Set(ids);
+              let visibleIndex = 0;
+              const completeOrder = step.fields.map((item) =>
+                visibleIdSet.has(item.id) ? ids[visibleIndex++] : item.id,
+              );
+              void onReorderFields(step.id, completeOrder);
+            }}
+            onClickCapture={() => {
+              if (editingMode) onSelectField?.(field);
+            }}
+            className={[
+              "relative animate-in fade-in slide-in-from-bottom-2 duration-300",
+              editingMode ? "cursor-pointer rounded-2xl ring-2 ring-transparent transition hover:ring-sky-300" : "",
+              selectedFieldId === field.id ? "ring-2 ring-sky-500" : "",
+            ].join(" ")}
           >
+            {editingMode ? (
+              <span className="absolute left-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-white shadow-lg" title="اسحب لإعادة الترتيب">
+                <GripVertical className="h-4 w-4" />
+              </span>
+            ) : null}
             <DynamicFieldRenderer
               field={field}
+              workflow={workflow}
               value={values[field.key]}
               values={values}
               onChange={(key, value) => onChange(key, value)}

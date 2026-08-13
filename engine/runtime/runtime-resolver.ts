@@ -26,6 +26,7 @@ export type RuntimeField = {
   defaultValue?: string | null;
   defaultJson?: unknown | null;
   autoSelectWhenLinked?: boolean;
+  behaviorConfig?: unknown | null;
   options: RuntimeOption[];
 };
 
@@ -120,6 +121,7 @@ export async function getRuntimeWorkflowByServiceSlug(
           defaultValue: field.defaultValue,
           defaultJson: field.defaultJson,
           autoSelectWhenLinked: field.autoSelectWhenLinked,
+          behaviorConfig: field.behaviorConfig,
           options: field.options.map((option) => ({
             id: option.id,
             label: option.label,

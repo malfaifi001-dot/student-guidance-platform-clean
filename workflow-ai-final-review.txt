@@ -1,0 +1,365 @@
+﻿diff --git a/app/dashboard/activity-leader/programs/new/page.tsx b/app/dashboard/activity-leader/programs/new/page.tsx
+index 38b7b0d..2980457 100644
+--- a/app/dashboard/activity-leader/programs/new/page.tsx
++++ b/app/dashboard/activity-leader/programs/new/page.tsx
+@@ -100,6 +100,7 @@ export default async function NewActivityProgramPage({
+           order: field.order,
+           dependsOnFieldKey: field.dependsOnFieldKey,
+           linkedToValue: field.linkedToValue,
++          behaviorConfig: field.behaviorConfig,
+           allowOther: field.allowOther,
+           isRepeater: field.isRepeater,
+           options: field.options.map((option) => ({
+diff --git a/app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx b/app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx
+index 33d2152..07805e5 100644
+--- a/app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx
++++ b/app/dashboard/admin/workflows/[serviceSlug]/preview/page.tsx
+@@ -1,6 +1,6 @@
+ import { notFound } from "next/navigation";
+ 
+-import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
++import { WorkflowPreviewEditor } from "@/components/admin/workflow-preview-editor";
+ import { normalizeConditionalWorkflow } from "@/engine/runtime/workflow-conditional-logic";
+ import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+ import { dashboardServices } from "@/lib/constants/services";
+@@ -143,6 +143,7 @@ export default async function WorkflowPreviewPage({
+         isRepeater: field.isRepeater,
+         dependsOnFieldKey: field.dependsOnFieldKey,
+         linkedToValue: field.linkedToValue,
++        behaviorConfig: field.behaviorConfig,
+         options: field.options.map((option) => ({
+           id: option.id,
+           label: option.label,
+@@ -191,11 +192,10 @@ export default async function WorkflowPreviewPage({
+         </div>
+       </section>
+ 
+-      <DynamicFormRenderer
++      <WorkflowPreviewEditor
+         workflow={runtimeWorkflow}
+         serviceId={workflow.service.id}
+         title={`┘à╪╣╪º┘è┘å╪⌐ - ${workflow.name}`}
+-        previewMode
+       />
+     </main>
+   );
+diff --git a/app/dashboard/cases/[caseId]/edit/page.tsx b/app/dashboard/cases/[caseId]/edit/page.tsx
+index 481ef97..bff7d05 100644
+--- a/app/dashboard/cases/[caseId]/edit/page.tsx
++++ b/app/dashboard/cases/[caseId]/edit/page.tsx
+@@ -121,6 +121,7 @@ function buildWorkflowFromSnapshot(caseEntry: any): RuntimeWorkflow | null {
+                 order: safeNumber(field.order, fieldIndex + 1),
+                 dependsOnFieldKey: field.dependsOnFieldKey ?? null,
+                 linkedToValue: field.linkedToValue ?? null,
++                behaviorConfig: field.behaviorConfig ?? null,
+                 allowOther: safeBoolean(field.allowOther),
+                 isRepeater: safeBoolean(field.isRepeater),
+                 options: Array.isArray(field.options)
+@@ -176,6 +177,7 @@ function buildWorkflowFromDatabase(caseEntry: any): RuntimeWorkflow | null {
+         order: field.order,
+         dependsOnFieldKey: field.dependsOnFieldKey,
+         linkedToValue: field.linkedToValue,
++        behaviorConfig: field.behaviorConfig,
+         allowOther: field.allowOther,
+         isRepeater: Boolean(field.isRepeater),
+         options: field.options.map((option: any) => ({
+diff --git a/app/dashboard/committees-meetings/new/page.tsx b/app/dashboard/committees-meetings/new/page.tsx
+index f29edad..21cb162 100644
+--- a/app/dashboard/committees-meetings/new/page.tsx
++++ b/app/dashboard/committees-meetings/new/page.tsx
+@@ -41,6 +41,7 @@ function buildRuntimeWorkflow(
+         order: field.order,
+         dependsOnFieldKey: field.dependsOnFieldKey,
+         linkedToValue: field.linkedToValue,
++        behaviorConfig: field.behaviorConfig,
+         allowOther: field.allowOther,
+         isRepeater: Boolean(field.isRepeater),
+         options: field.options.map((option: any) => ({
+diff --git a/app/dashboard/family-school-communication/new/page.tsx b/app/dashboard/family-school-communication/new/page.tsx
+index cefd025..9df639b 100644
+--- a/app/dashboard/family-school-communication/new/page.tsx
++++ b/app/dashboard/family-school-communication/new/page.tsx
+@@ -164,6 +164,7 @@ export default async function NewFamilySchoolCommunicationPage() {
+             order: field.order,
+             dependsOnFieldKey: field.dependsOnFieldKey,
+             linkedToValue: field.linkedToValue,
++            behaviorConfig: field.behaviorConfig,
+             allowOther: field.allowOther,
+             isRepeater: field.isRepeater,
+             options: field.options
+diff --git a/app/dashboard/guidance-programs/new/page.tsx b/app/dashboard/guidance-programs/new/page.tsx
+index 3576cac..c9ade62 100644
+--- a/app/dashboard/guidance-programs/new/page.tsx
++++ b/app/dashboard/guidance-programs/new/page.tsx
+@@ -77,6 +77,7 @@ const runtimeWorkflow = {
+       order: field.order,
+       dependsOnFieldKey: field.dependsOnFieldKey,
+       linkedToValue: field.linkedToValue,
++      behaviorConfig: field.behaviorConfig,
+       allowOther: field.allowOther,
+       isRepeater: field.isRepeater,
+       options: field.options.map((option) => ({
+diff --git a/app/dashboard/student-follow-up/new/page.tsx b/app/dashboard/student-follow-up/new/page.tsx
+index 1e5e1d3..d846312 100644
+--- a/app/dashboard/student-follow-up/new/page.tsx
++++ b/app/dashboard/student-follow-up/new/page.tsx
+@@ -184,6 +184,7 @@ export default async function NewStudentFollowUpPage() {
+             order: field.order,
+             dependsOnFieldKey: field.dependsOnFieldKey,
+             linkedToValue: field.linkedToValue,
++            behaviorConfig: field.behaviorConfig,
+             allowOther: field.allowOther,
+             isRepeater: field.isRepeater,
+             options: field.options
+diff --git a/app/dashboard/student-guidance-evaluation-indicators/new/page.tsx b/app/dashboard/student-guidance-evaluation-indicators/new/page.tsx
+index 31ce0d0..229925f 100644
+--- a/app/dashboard/student-guidance-evaluation-indicators/new/page.tsx
++++ b/app/dashboard/student-guidance-evaluation-indicators/new/page.tsx
+@@ -75,6 +75,7 @@ export default async function NewStudentGuidanceEvaluationIndicatorPage() {
+           order: field.order,
+           dependsOnFieldKey: field.dependsOnFieldKey,
+           linkedToValue: field.linkedToValue,
++          behaviorConfig: field.behaviorConfig,
+           allowOther: field.allowOther,
+           isRepeater: field.isRepeater,
+           options: field.options.map((option) => ({
+diff --git a/components/workflow/dynamic-field-renderer.tsx b/components/workflow/dynamic-field-renderer.tsx
+index 298f04c..92006dd 100644
+--- a/components/workflow/dynamic-field-renderer.tsx
++++ b/components/workflow/dynamic-field-renderer.tsx
+@@ -13,10 +13,12 @@ import {
+ } from "lucide-react";
+ 
+ import { SpecialReportFieldAi } from "@/components/special-report/special-report-field-ai";
++import { WorkflowFieldAiActions } from "@/components/workflow/workflow-field-ai-actions";
+ import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+ import type {
+   RuntimeField,
+   RuntimeOption,
++  RuntimeWorkflow,
+ } from "@/engine/runtime/runtime-resolver";
+ import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+ import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
+@@ -32,6 +34,7 @@ type DynamicFieldRendererProps = {
+     fieldKey: string,
+     label: string
+   ) => Promise<void> | void;
++  workflow: RuntimeWorkflow;
+ };
+ 
+ const baseInputClass =
+@@ -525,10 +528,11 @@ export function DynamicFieldRenderer({
+   onChange,
+   canEditFieldLabel = false,
+   onUpdateFieldLabel,
++  workflow,
+ }: DynamicFieldRendererProps) {
+   const filteredOptions = getFilteredOptions(field, values);
+   const shouldShowAi =
+-    (field.type === "TEXT" || field.type === "TEXTAREA") && !field.isRepeater;
++    (field.type === "TEXT" || field.type === "TEXTAREA" || field.type === "RICH_TEXT") && !field.isRepeater;
+ 
+   if (field.isRepeater) {
+     return (
+@@ -572,7 +576,10 @@ export function DynamicFieldRenderer({
+         <HelpText text={field.helpText} />
+ 
+         {shouldShowAi ? (
+-          <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
++          <>
++            <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
++            <WorkflowFieldAiActions field={field} workflow={workflow} values={values} value={value} onChange={onChange} />
++          </>
+         ) : null}
+       </div>
+     );
+@@ -598,7 +605,10 @@ export function DynamicFieldRenderer({
+         <HelpText text={field.helpText} />
+ 
+         {shouldShowAi ? (
+-          <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
++          <>
++            <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
++            <WorkflowFieldAiActions field={field} workflow={workflow} values={values} value={value} onChange={onChange} />
++          </>
+         ) : null}
+       </div>
+     );
+diff --git a/components/workflow/dynamic-form-renderer.tsx b/components/workflow/dynamic-form-renderer.tsx
+index 3e85638..54f881e 100644
+--- a/components/workflow/dynamic-form-renderer.tsx
++++ b/components/workflow/dynamic-form-renderer.tsx
+@@ -111,6 +111,10 @@ type Props = {
+   submitLabel?: string;
+   embedded?: boolean;
+   beforeSubmit?: ReactNode;
++  editingMode?: boolean;
++  selectedFieldId?: string | null;
++  onSelectField?: (field: RuntimeField) => void;
++  onReorderFields?: (stepId: string, fieldIds: string[]) => Promise<void> | void;
+ };
+ 
+ /**
+@@ -649,6 +653,10 @@ export function DynamicFormRenderer({
+   submitLabel,
+   embedded = false,
+   beforeSubmit,
++  editingMode = false,
++  selectedFieldId,
++  onSelectField,
++  onReorderFields,
+ }: Props) {
+   const router = useRouter();
+ 
+@@ -1334,12 +1342,17 @@ export function DynamicFormRenderer({
+         <div data-guidance="workflow-main-fields">
+         <WorkflowStepCard
+           step={displayCurrentStep}
++          workflow={normalizedWorkflow}
+           values={values}
+           serviceSlug={workflow.serviceSlug}
+           onChange={updateValue}
+           canEditFieldLabel={isFieldLabelEditable}
+           onUpdateFieldLabel={handleFieldLabelUpdate}
+           embedded={embedded}
++          editingMode={editingMode}
++          selectedFieldId={selectedFieldId}
++          onSelectField={onSelectField}
++          onReorderFields={onReorderFields}
+         />
+         </div>
+       ) : null}
+diff --git a/components/workflow/workflow-step-card.tsx b/components/workflow/workflow-step-card.tsx
+index 0636bcc..49e3ff7 100644
+--- a/components/workflow/workflow-step-card.tsx
++++ b/components/workflow/workflow-step-card.tsx
+@@ -5,11 +5,12 @@ import {
+   isCommitteeRowsValid,
+ } from "@/components/committees/committee-chain-repeater";
+ import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
++import { GripVertical } from "lucide-react";
+ import {
+   shouldShowField,
+   type RuntimeValues,
+ } from "@/engine/runtime/field-dependency-engine";
+-import type { RuntimeField, RuntimeStep } from "@/engine/runtime/runtime-resolver";
++import type { RuntimeField, RuntimeStep, RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+ import { getVisibleWorkflowStepDescription } from "@/lib/workflows/workflow-runtime-copy";
+ 
+ type WorkflowStepCardProps = {
+@@ -24,6 +25,11 @@ type WorkflowStepCardProps = {
+     label: string
+   ) => Promise<void> | void;
+   embedded?: boolean;
++  workflow: RuntimeWorkflow;
++  editingMode?: boolean;
++  selectedFieldId?: string | null;
++  onSelectField?: (field: RuntimeField) => void;
++  onReorderFields?: (stepId: string, fieldIds: string[]) => Promise<void> | void;
+ };
+ 
+ function normalizeText(value: string) {
+@@ -100,6 +106,11 @@ export function WorkflowStepCard({
+   canEditFieldLabel,
+   onUpdateFieldLabel,
+   embedded = false,
++  workflow,
++  editingMode = false,
++  selectedFieldId,
++  onSelectField,
++  onReorderFields,
+ }: WorkflowStepCardProps) {
+   const visibleFields = step.fields.filter((field) =>
+     shouldShowField(field, values),
+@@ -145,10 +156,46 @@ export function WorkflowStepCard({
+         {normalFields.map((field) => (
+           <div
+             key={field.id}
+-            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
++            draggable={editingMode}
++            onDragStart={(event) => event.dataTransfer.setData("text/workflow-field-id", field.id)}
++            onDragOver={(event) => {
++              if (editingMode) event.preventDefault();
++            }}
++            onDrop={(event) => {
++              if (!editingMode || !onReorderFields) return;
++              event.preventDefault();
++              const sourceId = event.dataTransfer.getData("text/workflow-field-id");
++              if (!sourceId || sourceId === field.id) return;
++              const ids = normalFields.map((item) => item.id);
++              const sourceIndex = ids.indexOf(sourceId);
++              const targetIndex = ids.indexOf(field.id);
++              if (sourceIndex < 0 || targetIndex < 0) return;
++              ids.splice(sourceIndex, 1);
++              ids.splice(targetIndex, 0, sourceId);
++              const visibleIdSet = new Set(ids);
++              let visibleIndex = 0;
++              const completeOrder = step.fields.map((item) =>
++                visibleIdSet.has(item.id) ? ids[visibleIndex++] : item.id,
++              );
++              void onReorderFields(step.id, completeOrder);
++            }}
++            onClickCapture={() => {
++              if (editingMode) onSelectField?.(field);
++            }}
++            className={[
++              "relative animate-in fade-in slide-in-from-bottom-2 duration-300",
++              editingMode ? "cursor-pointer rounded-2xl ring-2 ring-transparent transition hover:ring-sky-300" : "",
++              selectedFieldId === field.id ? "ring-2 ring-sky-500" : "",
++            ].join(" ")}
+           >
++            {editingMode ? (
++              <span className="absolute left-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-white shadow-lg" title="╪º╪│╪¡╪¿ ┘ä╪Ñ╪╣╪º╪»╪⌐ ╪º┘ä╪¬╪▒╪¬┘è╪¿">
++                <GripVertical className="h-4 w-4" />
++              </span>
++            ) : null}
+             <DynamicFieldRenderer
+               field={field}
++              workflow={workflow}
+               value={values[field.key]}
+               values={values}
+               onChange={(key, value) => onChange(key, value)}
+diff --git a/engine/cases/case-runtime-engine.ts b/engine/cases/case-runtime-engine.ts
+index 3555142..ccb73fd 100644
+--- a/engine/cases/case-runtime-engine.ts
++++ b/engine/cases/case-runtime-engine.ts
+@@ -216,6 +216,7 @@ async function buildWorkflowSnapshotForCase(workflowId?: string | null) {
+         order: field.order,
+         dependsOnFieldKey: field.dependsOnFieldKey,
+         linkedToValue: field.linkedToValue,
++        behaviorConfig: field.behaviorConfig,
+         allowOther: field.allowOther,
+         isRepeater: field.isRepeater,
+         options: field.options.map((option) => ({
+diff --git a/engine/runtime/runtime-resolver.ts b/engine/runtime/runtime-resolver.ts
+index 4db727f..5a4423d 100644
+--- a/engine/runtime/runtime-resolver.ts
++++ b/engine/runtime/runtime-resolver.ts
+@@ -26,6 +26,7 @@ export type RuntimeField = {
+   defaultValue?: string | null;
+   defaultJson?: unknown | null;
+   autoSelectWhenLinked?: boolean;
++  behaviorConfig?: unknown | null;
+   options: RuntimeOption[];
+ };
+ 
+@@ -120,6 +121,7 @@ export async function getRuntimeWorkflowByServiceSlug(
+           defaultValue: field.defaultValue,
+           defaultJson: field.defaultJson,
+           autoSelectWhenLinked: field.autoSelectWhenLinked,
++          behaviorConfig: field.behaviorConfig,
+           options: field.options.map((option) => ({
+             id: option.id,
+             label: option.label,
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 98210f3..859c0d8 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -565,6 +565,7 @@ model DynamicField {
+ 
+   defaultValue         String? @db.Text
+   defaultJson          Json?
++  behaviorConfig       Json?
+   autoSelectWhenLinked Boolean @default(false)
+ 
+   options DynamicFieldOption[]

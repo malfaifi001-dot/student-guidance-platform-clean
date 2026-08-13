@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 
 import { SpecialReportFieldAi } from "@/components/special-report/special-report-field-ai";
+import { WorkflowFieldAiActions } from "@/components/workflow/workflow-field-ai-actions";
 import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
 import type {
   RuntimeField,
   RuntimeOption,
+  RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
 import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
@@ -32,6 +34,7 @@ type DynamicFieldRendererProps = {
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  workflow: RuntimeWorkflow;
 };
 
 const baseInputClass =
@@ -525,10 +528,11 @@ export function DynamicFieldRenderer({
   onChange,
   canEditFieldLabel = false,
   onUpdateFieldLabel,
+  workflow,
 }: DynamicFieldRendererProps) {
   const filteredOptions = getFilteredOptions(field, values);
   const shouldShowAi =
-    (field.type === "TEXT" || field.type === "TEXTAREA") && !field.isRepeater;
+    (field.type === "TEXT" || field.type === "TEXTAREA" || field.type === "RICH_TEXT") && !field.isRepeater;
 
   if (field.isRepeater) {
     return (
@@ -572,7 +576,10 @@ export function DynamicFieldRenderer({
         <HelpText text={field.helpText} />
 
         {shouldShowAi ? (
-          <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
+          <>
+            <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
+            <WorkflowFieldAiActions field={field} workflow={workflow} values={values} value={value} onChange={onChange} />
+          </>
         ) : null}
       </div>
     );
@@ -598,7 +605,10 @@ export function DynamicFieldRenderer({
         <HelpText text={field.helpText} />
 
         {shouldShowAi ? (
-          <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
+          <>
+            <SpecialReportFieldAi field={field} value={value} onChange={onChange} />
+            <WorkflowFieldAiActions field={field} workflow={workflow} values={values} value={value} onChange={onChange} />
+          </>
         ) : null}
       </div>
     );

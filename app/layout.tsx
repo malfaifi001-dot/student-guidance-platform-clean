@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://teachix.sa"),
   title: {
-    default: "Teachix | منصة مدرسية رقمية متكاملة",
+    default: "تيتشكس | الأسرع والأشمل",
     template: "%s | Teachix",
   },
   description:

@@ -75,6 +75,7 @@ export default async function NewStudentGuidanceEvaluationIndicatorPage() {
           order: field.order,
           dependsOnFieldKey: field.dependsOnFieldKey,
           linkedToValue: field.linkedToValue,
+          behaviorConfig: field.behaviorConfig,
           allowOther: field.allowOther,
           isRepeater: field.isRepeater,
           options: field.options.map((option) => ({

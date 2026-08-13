@@ -121,6 +121,7 @@ function buildWorkflowFromSnapshot(caseEntry: any): RuntimeWorkflow | null {
                 order: safeNumber(field.order, fieldIndex + 1),
                 dependsOnFieldKey: field.dependsOnFieldKey ?? null,
                 linkedToValue: field.linkedToValue ?? null,
+                behaviorConfig: field.behaviorConfig ?? null,
                 allowOther: safeBoolean(field.allowOther),
                 isRepeater: safeBoolean(field.isRepeater),
                 options: Array.isArray(field.options)
@@ -176,6 +177,7 @@ function buildWorkflowFromDatabase(caseEntry: any): RuntimeWorkflow | null {
         order: field.order,
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
+        behaviorConfig: field.behaviorConfig,
         allowOther: field.allowOther,
         isRepeater: Boolean(field.isRepeater),
         options: field.options.map((option: any) => ({

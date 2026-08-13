@@ -24,7 +24,7 @@ const homeDescription =
   "Teachix منصة مدرسية رقمية متكاملة لمدير المدرسة والمعلم والموجه الطلابي ورائد النشاط، لتنظيم الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.";
 
 export const metadata: Metadata = {
-  title: { absolute: "Teachix | منصة مدرسية رقمية متكاملة" },
+  title: { absolute: "تيتشكس | الأسرع والأشمل" },
   description: homeDescription,
   alternates: {
     canonical: "https://teachix.sa/",

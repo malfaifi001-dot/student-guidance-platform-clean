@@ -6,9 +6,11 @@ import {
   MessageCircle,
   Send,
 } from "lucide-react";
-
-const SUPPORT_EMAIL = "support@teachix.sa";
-const WHATSAPP_NUMBER = "966500000000";
+import {
+  TEACHIX_SUPPORT_EMAIL,
+  TEACHIX_WHATSAPP_DISPLAY_NUMBER,
+  TEACHIX_WHATSAPP_URL,
+} from "@/lib/marketing/contact-details";
 
 type ContactState = {
   name: string;
@@ -100,7 +102,7 @@ export function ContactForm() {
     ].join("\n");
 
     const href =
-      `mailto:${SUPPORT_EMAIL}` +
+      `mailto:${TEACHIX_SUPPORT_EMAIL}` +
       `?subject=${encodeURIComponent(`[Teachix] ${form.subject}`)}` +
       `&body=${encodeURIComponent(body)}`;
 
@@ -113,7 +115,7 @@ export function ContactForm() {
     }
 
     const href =
-      `https://wa.me/${WHATSAPP_NUMBER}` +
+      TEACHIX_WHATSAPP_URL +
       `?text=${encodeURIComponent(whatsappText)}`;
 
     const opened = window.open(
@@ -291,7 +293,7 @@ export function ContactForm() {
 
         <div className="mt-10 space-y-4">
           <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            href={TEACHIX_WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-sky-200"
@@ -306,13 +308,13 @@ export function ContactForm() {
               </p>
 
               <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">
-                +966 50 000 0000
+                {TEACHIX_WHATSAPP_DISPLAY_NUMBER}
               </p>
             </div>
           </a>
 
           <a
-            href={`mailto:${SUPPORT_EMAIL}`}
+            href={`mailto:${TEACHIX_SUPPORT_EMAIL}`}
             className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-sky-200"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
@@ -325,7 +327,7 @@ export function ContactForm() {
               </p>
 
               <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">
-                support@teachix.sa
+                {TEACHIX_SUPPORT_EMAIL}
               </p>
             </div>
           </a>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { WorkflowPreviewEditor } from "@/components/admin/workflow-preview-editor";
 import { normalizeConditionalWorkflow } from "@/engine/runtime/workflow-conditional-logic";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
@@ -143,6 +143,7 @@ export default async function WorkflowPreviewPage({
         isRepeater: field.isRepeater,
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
+        behaviorConfig: field.behaviorConfig,
         options: field.options.map((option) => ({
           id: option.id,
           label: option.label,
@@ -191,11 +192,10 @@ export default async function WorkflowPreviewPage({
         </div>
       </section>
 
-      <DynamicFormRenderer
+      <WorkflowPreviewEditor
         workflow={runtimeWorkflow}
         serviceId={workflow.service.id}
         title={`معاينة - ${workflow.name}`}
-        previewMode
       />
     </main>
   );

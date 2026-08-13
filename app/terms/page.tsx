@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
+import { TEACHIX_WHATSAPP_DISPLAY_NUMBER } from "@/lib/marketing/contact-details";
 
 export const metadata: Metadata = {
   title: "الشروط والأحكام",
@@ -235,7 +236,7 @@ const sections = [
     content: [
       "يمكن التواصل مع Teachix للاستفسارات أو الشكاوى أو طلبات الإلغاء عبر صفحة تواصل معنا.",
       "البريد: support@teachix.sa.",
-      "واتساب الدعم: +966 50 000 0000.",
+      `واتساب الدعم: ${TEACHIX_WHATSAPP_DISPLAY_NUMBER}.`,
       "سيتم تحديث بيانات المنشأة والعنوان الرسمي عند اعتمادها نهائيًا.",
     ],
   },

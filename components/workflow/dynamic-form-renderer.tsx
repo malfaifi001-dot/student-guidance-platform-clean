@@ -111,6 +111,10 @@ type Props = {
   submitLabel?: string;
   embedded?: boolean;
   beforeSubmit?: ReactNode;
+  editingMode?: boolean;
+  selectedFieldId?: string | null;
+  onSelectField?: (field: RuntimeField) => void;
+  onReorderFields?: (stepId: string, fieldIds: string[]) => Promise<void> | void;
 };
 
 /**
@@ -649,6 +653,10 @@ export function DynamicFormRenderer({
   submitLabel,
   embedded = false,
   beforeSubmit,
+  editingMode = false,
+  selectedFieldId,
+  onSelectField,
+  onReorderFields,
 }: Props) {
   const router = useRouter();
 
@@ -1334,12 +1342,17 @@ export function DynamicFormRenderer({
         <div data-guidance="workflow-main-fields">
         <WorkflowStepCard
           step={displayCurrentStep}
+          workflow={normalizedWorkflow}
           values={values}
           serviceSlug={workflow.serviceSlug}
           onChange={updateValue}
           canEditFieldLabel={isFieldLabelEditable}
           onUpdateFieldLabel={handleFieldLabelUpdate}
           embedded={embedded}
+          editingMode={editingMode}
+          selectedFieldId={selectedFieldId}
+          onSelectField={onSelectField}
+          onReorderFields={onReorderFields}
         />
         </div>
       ) : null}
