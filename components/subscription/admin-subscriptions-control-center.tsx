@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import type { PlanAudience } from "@/lib/subscription/plan-audience";
 import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
@@ -17,16 +18,20 @@ import {
 } from "@/lib/subscription/plan-audience";
 import {
   ArrowUpRight,
+  Archive,
   CheckCircle2,
   Crown,
   Eye,
   Layers3,
   Loader2,
   PackagePlus,
+  Pencil,
+  RotateCcw,
   ShieldCheck,
   ToggleLeft,
   ToggleRight,
   Users,
+  X,
 } from "lucide-react";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
@@ -122,6 +127,11 @@ export function AdminSubscriptionsControlCenter() {
   const [planVisibleRoles, setPlanVisibleRoles] = useState<PlanVisibleRole[]>(
     getDefaultVisibleRolesForAudience("ALL"),
   );
+  const [planIsActive, setPlanIsActive] = useState(true);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveCandidate, setArchiveCandidate] = useState<PlanItem | null>(null);
+  const [working, setWorking] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -156,6 +166,8 @@ export function AdminSubscriptionsControlCenter() {
   }
 
   useEffect(() => {
+    // The initial request intentionally hydrates this client-side admin control center.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -164,15 +176,17 @@ export function AdminSubscriptionsControlCenter() {
     () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
     [data?.plans],
   );
+  const currentPlans = useMemo(() => regularPlans.filter((plan) => !plan.isArchived), [regularPlans]);
+  const archivedPlans = useMemo(() => regularPlans.filter((plan) => plan.isArchived), [regularPlans]);
+  const editingPlan = regularPlans.find((plan) => plan.id === editingPlanId) ?? null;
 
-  const visibleServices = useMemo(() => {
-    if (!data?.services) return [];
-    return filterServicesByPlanAudience(data.services, planAudience);
-  }, [data?.services, planAudience]);
+  const visibleServices = data?.services
+    ? filterServicesByPlanAudience(data.services, planAudience)
+    : [];
 
   const activePlansCount = useMemo(
-    () => regularPlans.filter((plan) => plan.isActive).length,
-    [regularPlans],
+    () => currentPlans.filter((plan) => plan.isActive).length,
+    [currentPlans],
   );
 
   const publicPlansCount = useMemo(
@@ -182,31 +196,77 @@ export function AdminSubscriptionsControlCenter() {
 
   async function runAction(payload: Record<string, unknown>) {
     setMessage(null);
+    setWorking(true);
 
-    const response = await fetch("/api/dashboard/admin/subscriptions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await readApiResponse(response);
-
-    if (response.ok) {
-      setMessage({
-        type: "success",
-        text:
-          typeof result.message === "string" ? result.message : "تم تنفيذ العملية.",
+    try {
+      const response = await fetch("/api/dashboard/admin/subscriptions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
-      await load();
-    } else {
+
+      const result = await readApiResponse(response);
+
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text:
+            typeof result.message === "string" ? result.message : "تم تنفيذ العملية.",
+        });
+        await load();
+        return true;
+      }
+
       setMessage({
         type: "error",
         text:
           typeof result.error === "string" ? result.error : "تعذر تنفيذ العملية.",
       });
+      return false;
+    } catch {
+      setMessage({ type: "error", text: "تعذر الاتصال بالخادم. حاول مرة أخرى." });
+      return false;
+    } finally {
+      setWorking(false);
     }
+  }
+
+  function resetForm() {
+    setEditingPlanId(null);
+    setPlanAudience("ALL");
+    setPlanName("باقة جديدة");
+    setPlanSlug("");
+    setPriceMonthly("0");
+    setPriceYearly("0");
+    setDurationDays("30");
+    setMaxStudents("0");
+    setMaxUsers("1");
+    setMaxReports("0");
+    setPlanIsActive(true);
+    setPlanIsPublic(true);
+    setPlanVisibleRoles(getDefaultVisibleRolesForAudience("ALL"));
+    setEnabledServiceSlugs(data?.services.map((service) => service.slug) ?? []);
+  }
+
+  function editPlan(plan: PlanItem) {
+    const audience = getPlanAudience(plan.features);
+    setEditingPlanId(plan.id);
+    setPlanAudience(audience);
+    setPlanName(plan.name);
+    setPlanSlug(plan.slug);
+    setPriceMonthly(String(plan.priceMonthly));
+    setPriceYearly(String(plan.priceYearly));
+    setDurationDays(getPlanFeatureValue(plan, "durationDays", "30"));
+    setMaxStudents(getPlanFeatureValue(plan, "maxStudents", "0"));
+    setMaxUsers(getPlanFeatureValue(plan, "maxUsers", "0"));
+    setMaxReports(getPlanFeatureValue(plan, "maxReports", "0"));
+    setEnabledServiceSlugs(getPlanServices(plan));
+    setPlanIsActive(plan.isActive);
+    setPlanIsPublic(plan.isPublic);
+    setPlanVisibleRoles(getPlanVisibilityRoles(plan));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleServiceSlug(slug: string) {
@@ -245,8 +305,9 @@ export function AdminSubscriptionsControlCenter() {
   }
 
   async function createPlan() {
-    await runAction({
-      action: "create-plan",
+    const success = await runAction({
+      action: editingPlanId ? "update-plan" : "create-plan",
+      planId: editingPlanId,
       targetAudience: planAudience,
       name: planName,
       slug: planSlug,
@@ -258,8 +319,20 @@ export function AdminSubscriptionsControlCenter() {
       maxReports,
       enabledServiceSlugs,
       isPublic: planIsPublic,
+      isActive: planIsActive,
       visibleRoles: planVisibleRoles,
     });
+    if (success) resetForm();
+  }
+
+  async function archivePlan(plan: PlanItem) {
+    const success = await runAction({ action: "archive-plan", planId: plan.id });
+    setArchiveCandidate(null);
+    if (success && editingPlanId === plan.id) resetForm();
+  }
+
+  async function restorePlan(plan: PlanItem) {
+    await runAction({ action: "restore-plan", planId: plan.id });
   }
 
   async function togglePlan(plan: PlanItem) {
@@ -363,9 +436,16 @@ export function AdminSubscriptionsControlCenter() {
         <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
           <SectionHeader
             icon={<PackagePlus className="h-6 w-6" />}
-            title="إنشاء باقة اشتراك"
-            subtitle="عرّف الباقة مرة واحدة ثم اضبط جمهورها وخدماتها وظهورها."
+            title={editingPlan ? `تعديل الباقة: ${editingPlan.name}` : "إنشاء باقة جديدة"}
+            subtitle={editingPlan ? "عدّل إعدادات الباقة الحالية مع الحفاظ على معرّفها وسجلها واشتراكاتها." : "عرّف الباقة مرة واحدة ثم اضبط جمهورها وخدماتها وظهورها."}
           />
+
+          {editingPlan ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50 p-4">
+              <div><p className="text-xs font-black text-sky-700">وضع التعديل</p><p className="mt-1 text-sm font-black text-slate-900">{editingPlan.name}</p></div>
+              <button type="button" onClick={resetForm} className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200"><X className="h-4 w-4" /> إلغاء التعديل</button>
+            </div>
+          ) : null}
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field label="اسم الباقة">
@@ -373,7 +453,7 @@ export function AdminSubscriptionsControlCenter() {
             </Field>
 
             <Field label="معرف الباقة">
-              <input value={planSlug} onChange={(event) => setPlanSlug(event.target.value)} className="input" />
+              <input value={planSlug} onChange={(event) => setPlanSlug(event.target.value)} disabled={Boolean(editingPlan)} className="input disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400" />
             </Field>
 
             <Field label={`سعر ${getSubscriptionPeriodLabel("MONTHLY")}`}>
@@ -472,6 +552,13 @@ export function AdminSubscriptionsControlCenter() {
             </button>
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" onClick={() => setPlanIsActive((value) => !value)} className={[
+              "rounded-full px-3 py-1.5 text-xs font-black",
+              planIsActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-600",
+            ].join(" ")}>{planIsActive ? "الباقة مفعلة" : "الباقة موقفة"}</button>
+          </div>
+
           <div className="mt-5">
             <p className="text-[13px] font-black text-slate-700">الخدمات المشمولة في الباقة</p>
 
@@ -508,10 +595,13 @@ export function AdminSubscriptionsControlCenter() {
           <button
             type="button"
             onClick={createPlan}
-            className="mt-5 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+            disabled={working}
+            className="mt-5 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:opacity-60"
           >
-            إنشاء الباقة
+            {working ? "جاري الحفظ..." : editingPlan ? "حفظ التعديلات" : "إنشاء الباقة"}
           </button>
+
+          {editingPlan ? <button type="button" disabled={working} onClick={() => setArchiveCandidate(editingPlan)} className="mt-3 h-11 w-full rounded-2xl border border-amber-200 bg-amber-50 text-sm font-black text-amber-700 disabled:opacity-60"><Archive className="ml-2 inline h-4 w-4" /> أرشفة الباقة</button> : null}
         </section>
 
         <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
@@ -521,8 +611,14 @@ export function AdminSubscriptionsControlCenter() {
             subtitle="راجع الباقات الحالية وعدّل ظهورها وأرشفتها وخدماتها."
           />
 
+          <div className="mt-4 flex justify-end">
+            <button type="button" onClick={() => setArchiveOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700">
+              <Archive className="h-4 w-4" /> الباقات المؤرشفة ({archivedPlans.length})
+            </button>
+          </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {regularPlans.map((plan) => {
+            {currentPlans.map((plan) => {
               const services = getPlanServices(plan);
               const audience = getPlanAudience(plan.features);
               const visibilityRoles = getPlanVisibilityRoles(plan);
@@ -530,7 +626,19 @@ export function AdminSubscriptionsControlCenter() {
               return (
                 <article
                   key={plan.id}
-                  className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest("button")) return;
+                    editPlan(plan);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      editPlan(plan);
+                    }
+                  }}
+                  className="cursor-pointer rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50/40 focus:outline-none focus:ring-2 focus:ring-sky-200"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -563,6 +671,14 @@ export function AdminSubscriptionsControlCenter() {
                       </div>
                     </div>
 
+                    <button
+                      type="button"
+                      aria-label={`تعديل ${plan.name}`}
+                      onClick={() => editPlan(plan)}
+                      className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-50 text-sky-700"
+                    >
+                      <Pencil className="h-5 w-5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => togglePlan(plan)}
@@ -625,18 +741,7 @@ export function AdminSubscriptionsControlCenter() {
                       {plan.isPublic ? "إخفاء من المستخدمين" : "إظهار للمستخدمين"}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => updatePlanVisibility(plan, { isArchived: !plan.isArchived })}
-                      className={[
-                        "rounded-2xl px-3 py-2 text-[12px] font-black",
-                        plan.isArchived
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-amber-50 text-amber-700",
-                      ].join(" ")}
-                    >
-                      {plan.isArchived ? "إلغاء الأرشفة" : "أرشفة الباقة"}
-                    </button>
+                    <button type="button" onClick={() => setArchiveCandidate(plan)} className="rounded-2xl bg-amber-50 px-3 py-2 text-[12px] font-black text-amber-700">أرشفة الباقة</button>
 
                     <div className="grid gap-1.5 sm:grid-cols-2">
                       {OPERATIONAL_PLAN_ROLES.map((role) => {
@@ -663,9 +768,27 @@ export function AdminSubscriptionsControlCenter() {
                 </article>
               );
             })}
+            {currentPlans.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm font-bold text-slate-500 md:col-span-2 xl:col-span-3">لا توجد باقات حالية.</p> : null}
           </div>
+
+          {archiveOpen ? (
+            <div className="mt-5 rounded-[1.35rem] border border-amber-100 bg-amber-50/50 p-4">
+              <div><h3 className="text-base font-black text-slate-900">الباقات المؤرشفة</h3><p className="mt-1 text-xs font-bold text-slate-500">تبقى الاشتراكات والسجلات السابقة محفوظة.</p></div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {archivedPlans.map((plan) => <article key={plan.id} className="rounded-2xl border border-amber-100 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3"><div><h4 className="font-black text-slate-950">{plan.name}</h4><p className="mt-1 text-xs font-bold text-slate-400">{plan.slug}</p></div><span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">مؤرشفة</span></div>
+                  <div className="mt-3 grid grid-cols-2 gap-2"><PlanMini label={getSubscriptionPeriodLabel("MONTHLY")} value={`${plan.priceMonthly} ريال`} /><PlanMini label={getSubscriptionPeriodLabel("YEARLY")} value={`${plan.priceYearly} ريال`} /></div>
+                  <div className="mt-3 flex flex-wrap gap-1.5"><span className={plan.isActive ? "rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700" : "rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500"}>{plan.isActive ? "مفعلة" : "موقفة"}</span><span className={plan.isPublic ? "rounded-full bg-sky-50 px-2 py-1 text-[10px] font-black text-sky-700" : "rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500"}>{plan.isPublic ? "عامة" : "خاصة"}</span></div>
+                  <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" onClick={() => editPlan(plan)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700"><Pencil className="h-4 w-4" /> تعديل</button><button type="button" disabled={working} onClick={() => void restorePlan(plan)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-60"><RotateCcw className="h-4 w-4" /> استعادة</button></div>
+                </article>)}
+                {archivedPlans.length === 0 ? <p className="rounded-2xl bg-white p-5 text-center text-sm font-bold text-slate-500 md:col-span-2 xl:col-span-3">لا توجد باقات مؤرشفة.</p> : null}
+              </div>
+            </div>
+          ) : null}
         </section>
       </section>
+
+      <SmartActionModal open={Boolean(archiveCandidate)} title="أرشفة الباقة؟" description="لن تظهر هذه الباقة ضمن الباقات المتاحة، وستبقى الاشتراكات والسجلات السابقة محفوظة." variant="warning" confirmLabel="أرشفة الباقة" cancelLabel="إلغاء" loading={working} onConfirm={() => { if (archiveCandidate) void archivePlan(archiveCandidate); }} onClose={() => { if (!working) setArchiveCandidate(null); }} />
 
       <style jsx>{`
         .input {

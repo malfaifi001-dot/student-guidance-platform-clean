@@ -213,6 +213,16 @@ export async function POST(request: Request) {
       typeof payload?.isPublic === "boolean" ? payload.isPublic : true;
     const isArchived = Boolean(payload?.isArchived);
 
+    if (!Number.isFinite(priceMonthly) || !Number.isFinite(priceYearly) || priceMonthly < 0 || priceYearly < 0) {
+      return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
+    }
+
+    const knownServices = await prisma.service.findMany({ select: { slug: true } });
+    const knownServiceSlugs = new Set(knownServices.map((service) => service.slug));
+    if (enabledServiceSlugs.some((serviceSlug) => !knownServiceSlugs.has(serviceSlug))) {
+      return NextResponse.json({ error: "تتضمن الباقة خدمة غير معروفة." }, { status: 400 });
+    }
+
     if (!name) {
       return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
     }
@@ -241,9 +251,10 @@ export async function POST(request: Request) {
       data: {
         name,
         slug,
-        priceMonthly: priceMonthly >= 0 ? priceMonthly : 0,
-        priceYearly: priceYearly >= 0 ? priceYearly : 0,
-        isActive: true,
+        priceMonthly,
+        priceYearly,
+        isActive:
+          typeof payload?.isActive === "boolean" ? payload.isActive : true,
         isPublic,
         isArchived,
         visibleRoles,
@@ -291,6 +302,85 @@ export async function POST(request: Request) {
       message: "تم إنشاء الباقة بنجاح.",
       plan,
     });
+  }
+
+  if (action === "update-plan") {
+    const planId = String(payload?.planId || "").trim();
+    const name = String(payload?.name || "").trim();
+    const priceMonthly = Number(payload?.priceMonthly);
+    const priceYearly = Number(payload?.priceYearly);
+    const durationDays = Number(payload?.durationDays || 30);
+    const maxStudents = Number(payload?.maxStudents || 0);
+    const maxUsers = Number(payload?.maxUsers || 0);
+    const maxReports = Number(payload?.maxReports || 0);
+    const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
+    const targetAudience: PlanAudience = targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY" ? targetAudienceRaw : "ALL";
+    const visibleRoles = normalizePlanVisibleRoles(payload?.visibleRoles);
+    const enabledServiceSlugs = getActivityProgramsBillingServiceSlugs(
+      Array.isArray(payload?.enabledServiceSlugs) ? payload.enabledServiceSlugs.map(String) : [],
+    );
+
+    if (!planId) return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    if (!name) return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
+    if (!Number.isFinite(priceMonthly) || !Number.isFinite(priceYearly) || priceMonthly < 0 || priceYearly < 0) {
+      return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
+    }
+    if (!visibleRoles) return NextResponse.json({ error: "الأدوار المحددة للباقة غير صالحة." }, { status: 400 });
+
+    const [existingPlan, knownServices] = await Promise.all([
+      prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true, isArchived: true } }),
+      prisma.service.findMany({ select: { slug: true } }),
+    ]);
+    if (!existingPlan) return NextResponse.json({ error: "الباقة غير موجودة." }, { status: 404 });
+    if (existingPlan.slug === "default-free-auto") {
+      return NextResponse.json({ error: "تُدار الباقة التلقائية من صفحتها المخصصة." }, { status: 400 });
+    }
+    const knownServiceSlugs = new Set(knownServices.map((service) => service.slug));
+    if (enabledServiceSlugs.some((serviceSlug) => !knownServiceSlugs.has(serviceSlug))) {
+      return NextResponse.json({ error: "تتضمن الباقة خدمة غير معروفة." }, { status: 400 });
+    }
+
+    const managedKeys = ["targetAudience", "durationDays", "maxStudents", "maxUsers", "maxReports"];
+    const featureData = [
+      { key: "targetAudience", label: "الجمهور المستهدف", value: targetAudience },
+      { key: "durationDays", label: "مدة الاشتراك بالأيام", value: String(durationDays > 0 ? durationDays : 30) },
+      { key: "maxStudents", label: "حد الطلاب", value: String(maxStudents > 0 ? maxStudents : 0) },
+      { key: "maxUsers", label: "حد المستخدمين", value: String(maxUsers > 0 ? maxUsers : 0) },
+      { key: "maxReports", label: "حد التقارير", value: String(maxReports > 0 ? maxReports : 0) },
+      ...enabledServiceSlugs.map((serviceSlug) => ({ key: `service:${serviceSlug}`, label: `خدمة: ${serviceSlug}`, value: "enabled" })),
+    ];
+
+    const plan = await prisma.$transaction(async (transaction) => {
+      await transaction.planFeature.deleteMany({
+        where: { planId, OR: [{ key: { in: managedKeys } }, { key: { startsWith: "service:" } }] },
+      });
+      await transaction.planFeature.createMany({ data: featureData.map((feature) => ({ ...feature, planId })) });
+      return transaction.plan.update({
+        where: { id: planId },
+        data: {
+          name,
+          priceMonthly,
+          priceYearly,
+          isActive: typeof payload?.isActive === "boolean" ? payload.isActive : undefined,
+          isPublic: typeof payload?.isPublic === "boolean" ? payload.isPublic : undefined,
+          visibleRoles,
+        },
+        include: { features: true },
+      });
+    });
+
+    return NextResponse.json({ message: "تم تحديث الباقة.", plan });
+  }
+
+  if (action === "archive-plan" || action === "restore-plan") {
+    const planId = String(payload?.planId || "").trim();
+    if (!planId) return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    const plan = await prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true } });
+    if (!plan) return NextResponse.json({ error: "الباقة غير موجودة." }, { status: 404 });
+    if (plan.slug === "default-free-auto") return NextResponse.json({ error: "لا يمكن أرشفة الباقة التلقائية من هنا." }, { status: 400 });
+    const isArchived = action === "archive-plan";
+    const updated = await prisma.plan.update({ where: { id: planId }, data: { isArchived }, include: { features: true } });
+    return NextResponse.json({ message: isArchived ? "تمت أرشفة الباقة." : "تمت استعادة الباقة.", plan: updated });
   }
 
   if (action === "toggle-plan") {
