@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import * as QRCode from "qrcode";
+import { BrandLoader } from "@/components/common/brand-loader";
 import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
 
 type SurveyShareShellProps = {
@@ -107,11 +108,7 @@ export function SurveyShareShell({ surveyId, boardPath }: SurveyShareShellProps)
   }, [publicLink]);
 
   if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        جاري تحميل صفحة المشاركة...
-      </div>
-    );
+    return <BrandLoader variant="section" label="جاري تحميل صفحة المشاركة..." />;
   }
 
   if (error) {

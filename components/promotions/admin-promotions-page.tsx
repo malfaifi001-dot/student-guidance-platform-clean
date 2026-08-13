@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Tag } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
+
+import { BrandLoader } from "@/components/common/brand-loader";
 
 type Plan = { id: string; name: string; slug: string };
 type Coupon = {
@@ -88,7 +90,7 @@ export function AdminPromotionsPage() {
     };
   }, [data]);
 
-  if (!data) return <div className="grid min-h-[50vh] place-items-center"><Loader2 className="h-7 w-7 animate-spin text-sky-600" /></div>;
+  if (!data) return <BrandLoader variant="section" label="جاري تحميل العروض..." />;
 
   return (
     <main className="min-w-0 space-y-6" dir="rtl">

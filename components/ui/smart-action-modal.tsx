@@ -1,7 +1,9 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { BrandLoader } from "@/components/common/brand-loader";
 
 type SmartActionModalVariant = "info" | "success" | "warning" | "danger" | "error";
 
@@ -119,7 +121,7 @@ export function SmartActionModal({
                   tone.buttonClass,
                 ].join(" ")}
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                {loading ? <BrandLoader variant="button" size="xs" label={null} /> : null}
                 {loading ? "جار التنفيذ..." : confirmLabel}
               </button>
             ) : null}

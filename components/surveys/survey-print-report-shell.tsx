@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BrandLoader } from "@/components/common/brand-loader";
 import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
 
 type OptionCount = {
@@ -111,11 +112,7 @@ export function SurveyPrintReportShell({ surveyId, backPath }: SurveyPrintReport
   }, [surveyId]);
 
   if (isLoading) {
-    return (
-      <main className="min-h-screen bg-slate-100 p-8 text-center" dir="rtl">
-        جاري تجهيز تقرير الاستبيان...
-      </main>
-    );
+    return <BrandLoader variant="page" label="جاري تجهيز تقرير الاستبيان..." />;
   }
 
   if (error) {

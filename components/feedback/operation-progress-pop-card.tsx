@@ -1,7 +1,8 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
 import { createPortal } from "react-dom";
+
+import { BrandLoader } from "@/components/common/brand-loader";
 
 export function OperationProgressPopCard({
   open,
@@ -24,7 +25,7 @@ export function OperationProgressPopCard({
       aria-describedby="operation-progress-message"
     >
       <section className="w-full max-w-md rounded-[2rem] bg-white px-6 py-7 text-center shadow-2xl">
-        <LoaderCircle className="mx-auto h-10 w-10 animate-spin text-sky-600" aria-hidden="true" />
+        <BrandLoader variant="inline" size="md" label={null} className="mx-auto" />
         <h2 id="operation-progress-title" className="mt-4 text-xl font-black text-slate-950">
           {title}
         </h2>

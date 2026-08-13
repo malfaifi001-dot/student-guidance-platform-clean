@@ -19,12 +19,13 @@ import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
+import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 
 const homeDescription =
   "Teachix منصة مدرسية رقمية متكاملة لمدير المدرسة والمعلم والموجه الطلابي ورائد النشاط، لتنظيم الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.";
 
 export const metadata: Metadata = {
-  title: { absolute: "تيتشكس | الأسرع والأشمل" },
+  title: { absolute: TEACHIX_TAGLINE },
   description: homeDescription,
   alternates: {
     canonical: "https://teachix.sa/",

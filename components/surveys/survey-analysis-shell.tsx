@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Link2, BarChart3, CheckCircle2, ListChecks, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { BrandLoader } from "@/components/common/brand-loader";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import {
@@ -275,11 +276,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
   }
 
   if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        جاري تحميل تحليل الاستبيان...
-      </div>
-    );
+    return <BrandLoader variant="section" label="جاري تحميل تحليل الاستبيان..." />;
   }
 
   if (error) {

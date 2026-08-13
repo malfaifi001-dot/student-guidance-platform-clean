@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
+
+import { BrandLoader } from "@/components/common/brand-loader";
 
 type GuardianSummonsReportEnginePdfButtonProps = {
   payload: Record<string, unknown>;
@@ -79,7 +81,7 @@ export function GuardianSummonsReportEnginePdfButton({
       className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isDownloading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <BrandLoader variant="button" size="xs" label={null} />
       ) : (
         <Download className="h-4 w-4" />
       )}

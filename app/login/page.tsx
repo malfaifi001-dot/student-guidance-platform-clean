@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
+import { BrandLoader } from "@/components/common/brand-loader";
 import {
   classifyLoginIdentifier,
   LOGIN_IDENTIFIER_ERROR,
@@ -133,7 +134,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-sky-600/10 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "جاري الدخول..." : "دخول"}
+                {loading ? <BrandLoader variant="button" size="xs" label="جاري الدخول..." /> : "دخول"}
 
                 {!loading ? (
                   <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-1" />

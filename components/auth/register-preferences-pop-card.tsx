@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 
+import { BrandLoader } from "@/components/common/brand-loader";
+
 type Gender = "MALE" | "FEMALE";
 export type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER" | "PRINCIPAL";
 
@@ -196,7 +198,7 @@ export function RegisterPreferencesPopCard({
             ].join(" ")}
           >
             {loading
-              ? "جاري إنشاء الحساب..."
+              ? <BrandLoader variant="button" size="xs" label="جاري إنشاء الحساب..." />
               : selectedRole === "PRINCIPAL"
                 ? `إنشاء حساب ${selectedGender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة"}`
                 : "تأكيد وإنشاء الحساب"}

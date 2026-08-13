@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { BrandLoader } from "@/components/common/brand-loader";
 import {
   parseSurveyQuestionHelpText,
   surveyAudienceLabels,
@@ -211,11 +212,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
   }
 
   if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        جاري تحميل الاستبيان...
-      </div>
-    );
+    return <BrandLoader variant="section" label="جاري تحميل الاستبيان..." />;
   }
 
   if (error && !survey) {

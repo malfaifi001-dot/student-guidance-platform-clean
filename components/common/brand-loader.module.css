@@ -1,0 +1,10 @@
+.loader { --teachix-loader-size: 64px; animation: teachix-loader-fade 320ms ease-out both; }
+.visual { position: relative; display: grid; width: var(--teachix-loader-size); height: var(--teachix-loader-size); flex: none; place-items: center; }
+.glow { position: absolute; inset: 12%; border-radius: 9999px; background: rgb(14 165 233 / 28%); filter: blur(calc(var(--teachix-loader-size) * 0.18)); animation: teachix-loader-glow 2.2s ease-in-out infinite; }
+.ring { position: absolute; inset: -12%; border: max(1px, calc(var(--teachix-loader-size) * 0.035)) solid transparent; border-top-color: rgb(14 165 233 / 72%); border-left-color: rgb(56 189 248 / 22%); border-radius: 9999px; animation: teachix-loader-spin 2.8s linear infinite; }
+.mark { position: relative; z-index: 1; width: 72%; height: 72%; filter: drop-shadow(0 8px 16px rgb(2 132 199 / 20%)); animation: teachix-loader-pulse 1.8s ease-in-out infinite; }
+@keyframes teachix-loader-pulse { 0%, 100% { transform: scale(0.94); } 50% { transform: scale(1.04); } }
+@keyframes teachix-loader-spin { to { transform: rotate(360deg); } }
+@keyframes teachix-loader-glow { 0%, 100% { opacity: 0.45; transform: scale(0.9); } 50% { opacity: 0.9; transform: scale(1.08); } }
+@keyframes teachix-loader-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .loader, .mark, .ring, .glow { animation: none; } }

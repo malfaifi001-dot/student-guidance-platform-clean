@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { BrandLoader } from "@/components/common/brand-loader";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import {
   WorkflowStepCard,
@@ -1436,7 +1437,7 @@ export function DynamicFormRenderer({
             disabled={loading}
             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : submitLabel || (caseId ? "تحديث الحالة" : "إرسال")}
+            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? <BrandLoader variant="button" size="xs" label="جاري الحفظ..." /> : submitLabel || (caseId ? "تحديث الحالة" : "إرسال")}
           </button>
           ) : null}
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -20,7 +21,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://teachix.sa"),
   title: {
-    default: "تيتشكس | الأسرع والأشمل",
+    default: TEACHIX_TAGLINE,
     template: "%s | Teachix",
   },
   description:
