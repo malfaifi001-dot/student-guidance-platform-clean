@@ -5,6 +5,7 @@ type PhraseReplacement = {
   to: string;
 };
 
+
 const FEMALE_EXACT_REPLACEMENTS: PhraseReplacement[] = [
   { from: "عدد الطلاب المشاركين", to: "عدد الطالبات المشاركات" },
   { from: "الطلاب المشاركين", to: "الطالبات المشاركات" },
