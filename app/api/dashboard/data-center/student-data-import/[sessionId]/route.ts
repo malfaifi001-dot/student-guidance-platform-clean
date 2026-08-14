@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
-import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
-import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+import {
+  deleteStudentImportSession,
+  normalizeStudentImportSessionId,
+  StudentImportDeleteError,
+} from "@/lib/data-center/delete-student-import-session";
 
 export const runtime = "nodejs";
 
@@ -56,7 +59,7 @@ export async function GET(_request: Request, context: RouteContext) {
         ...session,
         rowCount: session._count.rows,
         planSummary: planGroups.reduce(
-          (summary: any, item: any) => {
+          (summary, item) => {
             summary[item.planAction || "NEEDS_REVIEW"] = item._count._all;
             return summary;
           },
@@ -82,67 +85,38 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const current = await resolveCurrentSchoolContext();
     const params = await getParams(context);
 
-    const session = await prisma.studentImportSession.findFirst({
-      where: {
-        id: params.sessionId,
-        schoolAccountId: current.schoolAccountId,
-      },
-    });
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "لم يتم العثور على تحديث بيانات الطلاب." },
-        { status: 404 },
-      );
-    }
-
-    if (session.status === "COMMITTED") {
-      return NextResponse.json(
-        {
-          error:
-            "لا يمكن حذف تحديث معتمد. يمكن عرض أثره فقط حفاظًا على سجل بيانات المدرسة.",
-        },
-        { status: 409 },
-      );
-    }
-
-    await prisma.$transaction(async (tx: any) => {
-      await tx.studentImportSession.delete({
-        where: {
-          id: session.id,
-        },
-      });
-
-      await syncNoorImportCycle(tx, {
-        cycleId: session.cycleId,
-        schoolAccountId: current.schoolAccountId,
-      });
-    });
-
-    await writeNoorImportActivity({
+    const deleted = await deleteStudentImportSession({
+      sessionId: normalizeStudentImportSessionId(params.sessionId),
       schoolAccountId: current.schoolAccountId,
-      userId: current.user.id,
-      event: "NOOR_IMPORT_SESSION_DELETED",
-      title: "تم حذف تحديث بيانات الطلاب غير معتمد",
-      description: "تم حذف تحديث نور كان بانتظار المراجعة ولم يتم اعتماده.",
-      metadata: {
-        sessionId: session.id,
-        cycleId: session.cycleId,
-        title: session.title,
-      },
+      actorUserId: current.user.id,
     });
 
     return NextResponse.json({
-      message: "تم حذف تحديث بيانات الطلاب غير المعتمد.",
+      message: "تم حذف ملف بيانات الطلاب بنجاح.",
+      deleted,
     });
   } catch (error) {
+    if (error instanceof StudentImportDeleteError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.code === "NOT_FOUND" ? 404 : 400 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER") {
+      return NextResponse.json(
+        { error: "يجب تسجيل الدخول بحساب مرتبط بمدرسة." },
+        { status: 401 },
+      );
+    }
+
+    console.error(
+      "STUDENT_DATA_IMPORT_DELETE_ERROR",
+      error instanceof Error ? error.message : "UNKNOWN",
+    );
+
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
-            ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر حذف تحديث بيانات الطلاب.",
-      },
+      { error: "تعذر حذف ملف بيانات الطلاب. حاول مرة أخرى." },
       { status: 500 },
     );
   }

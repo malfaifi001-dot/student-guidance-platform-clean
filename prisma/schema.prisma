@@ -267,10 +267,37 @@ model User {
   portfolioSnapshots            PortfolioSnapshot[]        @relation("PortfolioSnapshotOwner")
   createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
   referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
+  createdGuidanceVideos         GuidanceVideo[]            @relation("GuidanceVideoCreatedBy")
   createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
   timetableTeacherProfiles      TimetableTeacher[]
 
   @@index([schoolAccountId])
+}
+
+model GuidanceVideo {
+  id String @id @default(cuid())
+
+  title       String  @db.VarChar(200)
+  description String? @db.Text
+
+  storageKey       String @unique @db.VarChar(255)
+  originalFileName String @db.VarChar(255)
+  mimeType         String @db.VarChar(100)
+  sizeBytes        Int
+
+  targetRoles Json
+  isPublished Boolean @default(false)
+  sortOrder   Int     @default(0)
+
+  createdById String?
+  createdBy   User?   @relation("GuidanceVideoCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, sortOrder])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 model UserSession {

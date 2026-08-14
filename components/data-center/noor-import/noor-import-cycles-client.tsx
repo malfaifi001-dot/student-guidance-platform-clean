@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { readApiResponse } from "@/lib/http/read-api-response";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
+import { StudentDataCardDeleteDialog } from "@/components/data-center/noor-import/student-data-card-delete-dialog";
 
 type NoorCycle = {
   id: string;
@@ -94,8 +96,11 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<NoorCycle | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function loadCycles() {
+  const loadCycles = useCallback(async () => {
     const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
       cache: "no-store",
     });
@@ -107,16 +112,54 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
     }
 
     setCycles(result.cycles ?? []);
-  }
+  }, []);
 
   useEffect(() => {
-    loadCycles().catch((error) => {
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات الطلاب.",
+    const timeoutId = window.setTimeout(() => {
+      loadCycles().catch((error) => {
+        setMessage({
+          type: "error",
+          text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات الطلاب.",
+        });
       });
-    });
-  }, []);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadCycles]);
+
+  async function confirmDeleteCycle() {
+    if (!deleteTarget || deleteBusy) return;
+
+    setDeleteBusy(true);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/data-center/student-data-import/cycles/${encodeURIComponent(deleteTarget.id)}`,
+        { method: "DELETE" },
+      );
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر حذف بطاقة بيانات الطلاب.");
+      }
+
+      setDeleteTarget(null);
+      await loadCycles();
+      setMessage({
+        type: "success",
+        text: "تم حذف بطاقة بيانات الطلاب بنجاح، وتم الاحتفاظ بالتقارير السابقة.",
+      });
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "تعذر حذف بطاقة بيانات الطلاب. حاول مرة أخرى.",
+      );
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -175,7 +218,11 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+    <main
+      className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8"
+      dir="rtl"
+      data-school-name={schoolName}
+    >
       <div className="mx-auto max-w-7xl space-y-5">
         <GuidanceScope context="student-data-import" />
 
@@ -306,6 +353,17 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                           آخر تحديث
                         </Link>
                       ) : null}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError(null);
+                          setDeleteTarget(cycle);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        حذف البطاقة
+                      </button>
                     </div>
                   </div>
 
@@ -427,6 +485,28 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
           </div>
         ) : null}
       </div>
+
+      <StudentDataCardDeleteDialog
+        target={
+          deleteTarget
+            ? {
+                title: `بيانات الطلاب ${deleteTarget.academicYear} - ${deleteTarget.term}`,
+                academicYear: deleteTarget.academicYear,
+                term: deleteTarget.term,
+                studentCount: deleteTarget.totalStudents || deleteTarget.latestSession?.totalRows || 0,
+                lastUpdatedAt: formatDate(deleteTarget.latestSession?.createdAt || deleteTarget.createdAt),
+              }
+            : null
+        }
+        busy={deleteBusy}
+        error={deleteError}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={() => void confirmDeleteCycle()}
+      />
     </main>
   );
 }

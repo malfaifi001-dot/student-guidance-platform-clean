@@ -55,6 +55,7 @@ import {
   Users,
   UsersRound,
   TrendingUp,
+  Video,
   WalletCards,
   X,
 } from "lucide-react";
@@ -505,6 +506,11 @@ const adminMainLinks: SidebarLinkItem[] = [
     label: "إدارة مكتبة الموجه الطلابي",
     href: "/dashboard/admin/counselor-reference-library",
     icon: BookOpen,
+  },
+  {
+    label: "الفيديوهات الإرشادية",
+    href: "/dashboard/admin/guidance-videos",
+    icon: Video,
   },
   {
     label: "التفعيلات",

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+import {
+  deleteStudentDataCycle,
+  normalizeStudentDataCycleId,
+  StudentDataCycleDeleteError,
+} from "@/lib/data-center/delete-student-data-cycle";
 
 export const runtime = "nodejs";
 
@@ -17,11 +22,11 @@ function computeCycleStatus(sessions: Array<{ status: string }>, isArchived?: bo
     return "ARCHIVED";
   }
 
-  if (sessions.some((session: any) => session.status !== "COMMITTED")) {
+  if (sessions.some((session) => session.status !== "COMMITTED")) {
     return "REVIEW_PENDING";
   }
 
-  if (sessions.some((session: any) => session.status === "COMMITTED")) {
+  if (sessions.some((session) => session.status === "COMMITTED")) {
     return "COMMITTED";
   }
 
@@ -61,8 +66,8 @@ export async function GET(_request: Request, context: RouteContext) {
     });
 
     const latestSession = sessions[0] ?? null;
-    const committedSessions = sessions.filter((session: any) => session.status === "COMMITTED");
-    const pendingSessions = sessions.filter((session: any) => session.status !== "COMMITTED");
+    const committedSessions = sessions.filter((session) => session.status === "COMMITTED");
+    const pendingSessions = sessions.filter((session) => session.status !== "COMMITTED");
     const latestCommitted = committedSessions[0] ?? null;
 
     const planGroups = latestSession
@@ -78,7 +83,7 @@ export async function GET(_request: Request, context: RouteContext) {
       : [];
 
     const planSummary = planGroups.reduce(
-      (summary: any, item: any) => {
+      (summary, item) => {
         summary[item.planAction || "NEEDS_REVIEW"] = item._count._all;
         return summary;
       },
@@ -114,6 +119,46 @@ export async function GET(_request: Request, context: RouteContext) {
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
             : "تعذر جلب بطاقة بيانات الطلاب.",
       },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const current = await resolveCurrentSchoolContext();
+    const params = await getParams(context);
+    const deleted = await deleteStudentDataCycle({
+      cycleId: normalizeStudentDataCycleId(params.cycleId),
+      schoolAccountId: current.schoolAccountId,
+      actorUserId: current.user.id,
+    });
+
+    return NextResponse.json({
+      message: "تم حذف بطاقة بيانات الطلاب بنجاح، وتم الاحتفاظ بالتقارير السابقة.",
+      deleted,
+    });
+  } catch (error) {
+    if (error instanceof StudentDataCycleDeleteError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.code === "NOT_FOUND" ? 404 : 400 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER") {
+      return NextResponse.json(
+        { error: "يجب تسجيل الدخول بحساب مرتبط بمدرسة." },
+        { status: 401 },
+      );
+    }
+
+    console.error(
+      "STUDENT_DATA_CARD_DELETE_ERROR",
+      error instanceof Error ? error.message : "UNKNOWN",
+    );
+    return NextResponse.json(
+      { error: "تعذر حذف بطاقة بيانات الطلاب. حاول مرة أخرى." },
       { status: 500 },
     );
   }

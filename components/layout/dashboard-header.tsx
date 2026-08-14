@@ -7,8 +7,8 @@ import { createPortal } from "react-dom";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { GuidanceLauncher } from "@/components/guidance/guidance-launcher";
+import { GuidanceVideosLauncher } from "@/components/guidance-videos/guidance-videos-launcher";
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Menu,
@@ -180,16 +180,7 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
 
           <GuidanceLauncher />
 
-          <button
-            type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-sky-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-sky-300"
-            aria-label="الإشعارات"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
-              4
-            </span>
-          </button>
+          <GuidanceVideosLauncher notificationCount={4} />
 
           <div
             className="relative"

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { StudentImportDeleteDialog } from "@/components/data-center/noor-import/student-import-delete-dialog";
 import { readApiResponse } from "@/lib/http/read-api-response";
 
 type SessionItem = {
@@ -91,6 +93,9 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SessionItem | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const pendingSessions = useMemo(
     () => sessions.filter((session) => session.status !== "COMMITTED"),
@@ -105,7 +110,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
   const latestPendingSession = pendingSessions[0] ?? null;
   const hasPendingUpdate = Boolean(latestPendingSession);
 
-  async function loadCycle() {
+  const loadCycle = useCallback(async () => {
     const response = await fetch(`/api/dashboard/data-center/student-data-import/cycles/${cycleId}`, {
       cache: "no-store",
     });
@@ -118,16 +123,51 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
 
     setCycle(result.cycle);
     setSessions(result.sessions ?? []);
-  }
+  }, [cycleId]);
 
   useEffect(() => {
-    loadCycle().catch((error) => {
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
+    const timeoutId = window.setTimeout(() => {
+      loadCycle().catch((error) => {
+        setMessage({
+          type: "error",
+          text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
+        });
       });
-    });
-  }, [cycleId]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadCycle]);
+
+  async function confirmDelete() {
+    if (!deleteTarget || deleteBusy) return;
+
+    setDeleteBusy(true);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/data-center/student-data-import/${encodeURIComponent(deleteTarget.id)}`,
+        { method: "DELETE" },
+      );
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر حذف ملف بيانات الطلاب.");
+      }
+
+      setDeleteTarget(null);
+      await loadCycle();
+      setMessage({ type: "success", text: "تم حذف ملف بيانات الطلاب بنجاح." });
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "تعذر حذف ملف بيانات الطلاب. حاول مرة أخرى.",
+      );
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -364,7 +404,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
 
           <div className="mt-5 grid gap-3">
             {sessions.length ? (
-              sessions.map((session, index) => (
+              sessions.map((session) => (
                 <article
                   key={session.id}
                   className="rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50"
@@ -393,6 +433,17 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                       >
                         {session.status === "COMMITTED" ? "عرض" : "مراجعة"}
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError(null);
+                          setDeleteTarget(session);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-black text-rose-700 transition hover:bg-rose-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        حذف
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -405,6 +456,28 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
           </div>
         </section>
       </div>
+
+      <StudentImportDeleteDialog
+        target={
+          deleteTarget
+            ? {
+                fileName: getFileName(deleteTarget),
+                rowCount: deleteTarget.totalRows,
+                uploadedAt: formatDate(deleteTarget.createdAt),
+                statusLabel: statusLabel[deleteTarget.status] || deleteTarget.status,
+                isCommitted: deleteTarget.status === "COMMITTED",
+              }
+            : null
+        }
+        busy={deleteBusy}
+        error={deleteError}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </main>
   );
 }
