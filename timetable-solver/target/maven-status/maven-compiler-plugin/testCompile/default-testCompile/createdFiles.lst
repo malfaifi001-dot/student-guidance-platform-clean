@@ -1,0 +1,3 @@
+com\teachix\timetable\v1\ConstraintRegistryV1Tests.class
+com\teachix\timetable\TimetableSolverApplicationTests.class
+com\teachix\timetable\v1\TimetableRequestMapperV1Tests.class

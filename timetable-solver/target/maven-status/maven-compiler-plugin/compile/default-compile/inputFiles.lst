@@ -1,0 +1,14 @@
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\TimetableSolverApplication.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\api\TimetableSolveRequestV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\api\TimetableSolveResultV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\api\TimetableSolverV1Controller.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\constraints\ConstraintRegistryV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\constraints\TimetableConstraintProviderV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\domain\LessonBlockV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\domain\PlanningSlotV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\domain\PreferredSlotRuleV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\domain\TimetableSolutionV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\mapping\StructuralEligibilityV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\mapping\TimetableRequestMapperV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\mapping\TimetableResultMapperV1.java
+D:\student-guidance-platform-clean\timetable-solver\src\main\java\com\teachix\timetable\v1\solver\TimetableSolverServiceV1.java

@@ -10,6 +10,7 @@ import {
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
 import {
   getArabicSignatureTitle,
+  getArabicUserRoleIdentityCopy,
   getArabicUserRoleLabel,
 } from "@/lib/auth/user-role-display";
 import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
@@ -152,13 +153,10 @@ export function SchoolSettingsForm() {
       messageText: string;
     }>(null);
   const [principalWhatsAppLink, setPrincipalWhatsAppLink] = useState("");
-  const accountSectionTitle =
-    form.currentUserRole === "PRINCIPAL"
-      ? `بيانات ${getArabicUserRoleLabel({
-          role: form.currentUserRole,
-          gender: form.currentUserGender,
-        })}`
-      : "بيانات الموجه/الموجهة";
+  const identityCopy = getArabicUserRoleIdentityCopy({
+    role: form.currentUserRole,
+    gender: form.currentUserGender,
+  });
 
   const requiredCompleted = useMemo(() => {
     return Boolean(
@@ -193,7 +191,10 @@ export function SchoolSettingsForm() {
   }, [form, initialForm]);
 
   const readiness = useMemo(() => {
-    return calculateSchoolIdentityReadiness(form);
+    return calculateSchoolIdentityReadiness(form, {
+      role: form.currentUserRole,
+      gender: form.currentUserGender,
+    });
   }, [form]);
 
   useEffect(() => {
@@ -391,7 +392,7 @@ export function SchoolSettingsForm() {
 
     try {
       if (!form.currentUserSignatureKind) {
-        throw new Error("لا يتوفر حفظ توقيع لهذا الدور.");
+        throw new Error(`لا يتوفر حفظ توقيع ${identityCopy.roleLabel} من هذه الصفحة.`);
       }
 
       setSignatureSavingKind(form.currentUserSignatureKind);
@@ -410,7 +411,7 @@ export function SchoolSettingsForm() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "تعذر حفظ توقيع المستخدم الحالي.");
+        throw new Error(data.error || `تعذر حفظ توقيع ${identityCopy.roleLabel}.`);
       }
 
       const patch = {
@@ -432,7 +433,7 @@ export function SchoolSettingsForm() {
 
       setFeedback({
         type: "success",
-        message: "تم حفظ توقيع المستخدم الحالي وسيظهر تلقائيًا في التقارير المرتبطة بدوره.",
+        message: `تم حفظ توقيع ${identityCopy.roleLabel} وسيظهر تلقائيًا في التقارير المرتبطة بهذا الدور.`,
       });
     } catch (error) {
       setFeedback({
@@ -440,7 +441,7 @@ export function SchoolSettingsForm() {
         message:
           error instanceof Error
             ? error.message
-            : "تعذر حفظ توقيع المستخدم الحالي.",
+            : `تعذر حفظ توقيع ${identityCopy.roleLabel}.`,
       });
     } finally {
       setSignatureSavingKind("");
@@ -459,7 +460,7 @@ export function SchoolSettingsForm() {
 if (!form.principalName.trim()) {
       setFeedback({
         type: "warning",
-        message: "اكتب اسم مدير المدرسة أولًا.",
+        message: `اكتب اسم ${identityCopy.schoolPrincipalLabel} أولًا.`,
       });
       return;
     }
@@ -484,13 +485,13 @@ if (!form.principalName.trim()) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "تعذر إنشاء رابط توقيع المدير.");
+        throw new Error(data.error || `تعذر إنشاء رابط توقيع ${identityCopy.schoolPrincipalLabel}.`);
       }
 
       const signatureUrl = String(data.signatureUrl || "");
       const whatsappUrl = String(data.whatsappUrl || "");
       const messageText = `السلام عليكم
-فضلاً اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:
+فضلاً اعتماد توقيع ${identityCopy.schoolPrincipalLabel} في منصة التوجيه الطلابي عبر الرابط:
 ${signatureUrl}`;
 
       setPrincipalSignatureLink(signatureUrl);
@@ -515,7 +516,7 @@ ${signatureUrl}`;
 
       setFeedback({
         type: "success",
-        message: "تم إنشاء رابط توقيع المدير. افتح رابط الواتساب لإرساله.",
+        message: `تم إنشاء رابط توقيع ${identityCopy.schoolPrincipalLabel}. افتح رابط الواتساب لإرساله.`,
       });
     } catch (error) {
       setFeedback({
@@ -523,7 +524,7 @@ ${signatureUrl}`;
         message:
           error instanceof Error
             ? error.message
-            : "تعذر إرسال رابط توقيع المدير.",
+            : `تعذر إرسال رابط توقيع ${identityCopy.schoolPrincipalLabel}.`,
       });
     } finally {
       setSendingPrincipalRequest(false);
@@ -585,6 +586,7 @@ ${signatureUrl}`;
 
       {principalPhoneModalOpen ? (
         <PrincipalPhoneModal
+          principalLabel={identityCopy.schoolPrincipalLabel}
           defaultValue={principalPhoneDraft || form.principalPhone}
           loading={sendingPrincipalRequest}
           onClose={() => setPrincipalPhoneModalOpen(false)}
@@ -604,6 +606,7 @@ ${signatureUrl}`;
       ) : null}
       {principalSignatureRequestModal ? (
         <PrincipalSignatureRequestModal
+          principalLabel={identityCopy.schoolPrincipalLabel}
           signatureUrl={principalSignatureRequestModal.signatureUrl}
           whatsappUrl={principalSignatureRequestModal.whatsappUrl}
           messageText={principalSignatureRequestModal.messageText}
@@ -618,7 +621,7 @@ ${signatureUrl}`;
             role: form.currentUserRole,
             gender: form.currentUserGender,
           })}
-          signerName={form.currentUserName || "صاحب الحساب"}
+          signerName={form.currentUserName || identityCopy.roleLabel}
           saving={Boolean(signatureSavingKind)}
           onClose={() => setSchoolSignaturePadOpen(null)}
           onSave={saveCurrentUserSignature}
@@ -629,10 +632,10 @@ ${signatureUrl}`;
           <div>
             <p className="text-sm font-black text-blue-700">هوية الحساب</p>
             <h2 className="mt-2 text-2xl font-black text-slate-950">
-              {accountSectionTitle}
+              {identityCopy.accountHeading}
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-500">
-              هذه البيانات تظهر في التقارير الرسمية والتوقيعات.
+              {identityCopy.accountDescription}
             </p>
           </div>
 
@@ -641,7 +644,7 @@ ${signatureUrl}`;
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Input
-            label="الاسم الرسمي في التقارير"
+            label={identityCopy.officialNameLabel}
             value={form.officialName}
             onChange={(value) => update("officialName", value)}
             required
@@ -655,7 +658,7 @@ ${signatureUrl}`;
           />
 
           <Input
-            label="رقم الجوال"
+            label={identityCopy.phoneLabel}
             value={form.phone}
             onChange={(value) => update("phone", value)}
           />
@@ -692,7 +695,7 @@ ${signatureUrl}`;
           />
 
           <Input
-            label="اسم المدير/ة"
+            label={`اسم ${identityCopy.schoolPrincipalLabel}`}
             value={form.principalName}
             onChange={(value) => update("principalName", value)}
           />
@@ -831,6 +834,10 @@ function SchoolSignaturesCard({
     role: form.currentUserRole,
     gender: form.currentUserGender,
   });
+  const identityCopy = getArabicUserRoleIdentityCopy({
+    role: form.currentUserRole,
+    gender: form.currentUserGender,
+  });
   const canSaveCurrentUserSignature = Boolean(
     form.currentUserSignatureKind,
   );
@@ -844,7 +851,7 @@ function SchoolSignaturesCard({
             اعتماد التواقيع المستخدمة في التقارير
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-            توقيع المستخدم الحالي يحفظ مباشرة من هذه الصفحة عند توفر حقل مخصص لدوره، وتوقيع المدير يتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير.
+            {identityCopy.signatureDescription} أما توقيع مدير/مديرة المدرسة فيتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير.
           </p>
         </div>
 
@@ -865,7 +872,7 @@ function SchoolSignaturesCard({
                 {signatureTitle}
               </h3>
               <p className="mt-1 text-xs font-bold text-slate-500">
-                {form.currentUserName || "صاحب الحساب"}
+                {form.currentUserName || roleLabel}
               </p>
               <p className="mt-1 text-xs font-bold text-slate-500">
                 {roleLabel}
@@ -907,7 +914,7 @@ function SchoolSignaturesCard({
             {signatureSavingKind
               ? "جاري الحفظ..."
               : !canSaveCurrentUserSignature
-                ? "لا يتوفر حفظ توقيع لهذا الدور"
+                ? `لا يتوفر حفظ توقيع ${roleLabel} من هذه الصفحة`
                 : form.currentUserSignatureUrl
                   ? "تحديث التوقيع"
                   : "إضافة توقيع"}
@@ -918,10 +925,10 @@ function SchoolSignaturesCard({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-lg font-black text-slate-950">
-                توقيع مدير المدرسة
+                توقيع {identityCopy.schoolPrincipalLabel}
               </h3>
               <p className="mt-1 text-xs font-bold text-slate-500">
-                {form.principalName || "مدير المدرسة"}
+                {form.principalName || identityCopy.schoolPrincipalLabel}
               </p>
             </div>
 
@@ -932,12 +939,12 @@ function SchoolSignaturesCard({
             {form.principalSignatureUrl ? (
               <img
                 src={form.principalSignatureUrl}
-                alt="توقيع مدير المدرسة"
+                alt={`توقيع ${identityCopy.schoolPrincipalLabel}`}
                 className="max-h-20 max-w-full object-contain"
               />
             ) : (
               <span className="text-xs font-black text-slate-400">
-                يوقع المدير من رابط واتساب خاص
+                يتم التوقيع من رابط واتساب خاص
               </span>
             )}
           </div>
@@ -959,7 +966,7 @@ function SchoolSignaturesCard({
               disabled={sendingPrincipalRequest}
               className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {sendingPrincipalRequest ? "جاري إنشاء الرابط..." : "إنشاء رابط المدير"}
+              {sendingPrincipalRequest ? "جاري إنشاء الرابط..." : `إنشاء رابط ${identityCopy.schoolPrincipalLabel}`}
             </button>
 
             {principalWhatsAppLink ? (
@@ -977,7 +984,7 @@ function SchoolSignaturesCard({
                 onClick={onRefresh}
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
               >
-                تحديث بعد توقيع المدير
+                تحديث بعد اكتمال التوقيع
               </button>
             )}
 
@@ -988,7 +995,7 @@ function SchoolSignaturesCard({
                 rel="noreferrer"
                 className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-50 sm:col-span-2"
               >
-                فتح صفحة توقيع المدير مباشرة
+                فتح صفحة توقيع {identityCopy.schoolPrincipalLabel} مباشرة
               </a>
             ) : null}
           </div>
@@ -999,11 +1006,13 @@ function SchoolSignaturesCard({
 }
 
 function PrincipalPhoneModal({
+  principalLabel,
   defaultValue,
   loading,
   onClose,
   onSubmit,
 }: {
+  principalLabel: string;
   defaultValue: string;
   loading: boolean;
   onClose: () => void;
@@ -1022,13 +1031,13 @@ function PrincipalPhoneModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-black text-blue-700">
-              توقيع مدير المدرسة
+              توقيع {principalLabel}
             </p>
             <h3 className="mt-1 text-2xl font-black text-slate-950">
-              رقم واتساب المدير
+              رقم واتساب {principalLabel}
             </h3>
             <p className="mt-2 text-sm leading-7 text-slate-500">
-              أدخل رقم واتساب المدير حتى يتم إنشاء رابط التوقيع وإرسال الرسالة الجاهزة.
+              أدخل رقم واتساب {principalLabel} حتى يتم إنشاء رابط التوقيع وإرسال الرسالة الجاهزة.
             </p>
           </div>
 
@@ -1044,7 +1053,7 @@ function PrincipalPhoneModal({
 
         <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
           <label className="text-xs font-black text-slate-500">
-            رقم واتساب المدير
+            رقم واتساب {principalLabel}
           </label>
 
           <input
@@ -1085,11 +1094,13 @@ function PrincipalPhoneModal({
   );
 }
 function PrincipalSignatureRequestModal({
+  principalLabel,
   signatureUrl,
   whatsappUrl,
   messageText,
   onClose,
 }: {
+  principalLabel: string;
   signatureUrl: string;
   whatsappUrl: string;
   messageText: string;
@@ -1115,12 +1126,12 @@ function PrincipalSignatureRequestModal({
       <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-black text-blue-700">رابط توقيع المدير</p>
+            <p className="text-sm font-black text-blue-700">رابط توقيع {principalLabel}</p>
             <h3 className="mt-1 text-2xl font-black text-slate-950">
               تم إنشاء رابط التوقيع
             </h3>
             <p className="mt-2 text-sm leading-7 text-slate-500">
-              انسخ الرسالة أو افتح واتساب لإرسالها للمدير. بعد توقيع المدير اضغط تحديث الحالة.
+              انسخ الرسالة أو افتح واتساب لإرسالها إلى {principalLabel}. بعد اكتمال التوقيع اضغط تحديث الحالة.
             </p>
           </div>
 
@@ -1597,6 +1608,11 @@ function ReportIdentityPreviewCard({
 }: {
   form: SchoolSettingsFormState;
 }) {
+  const identityCopy = getArabicUserRoleIdentityCopy({
+    role: form.currentUserRole,
+    gender: form.currentUserGender,
+  });
+
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1625,9 +1641,9 @@ function ReportIdentityPreviewCard({
         </div>
 
         <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
-          <PreviewLine label="الموجه/الموجهة" value={form.officialName || "الاسم الرسمي"} />
+          <PreviewLine label={identityCopy.roleLabel} value={form.officialName || "الاسم الرسمي"} />
           <PreviewLine label="المسمى" value={form.jobTitle || "المسمى الوظيفي"} />
-          <PreviewLine label="مدير/ة المدرسة" value={form.principalName || "غير محدد"} />
+          <PreviewLine label={identityCopy.schoolPrincipalLabel} value={form.principalName || "غير محدد"} />
           <PreviewLine label="المدينة" value={form.city || "غير محدد"} />
         </div>
       </div>

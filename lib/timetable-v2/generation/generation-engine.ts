@@ -2411,11 +2411,9 @@ function prepareSearchTasks(
     );
 
   /*
-   * Static MRV:
-   * المجال الأقل أولاً، لكن مرة واحدة فقط.
-   *
-   * لا نعيد حساب جميع remaining tasks
-   * داخل كل عقدة كما كان Engine 1.2.
+   * Static preparation order (search uses Dynamic MRV without mutating it):
+   * المجال الثابت الأقل أولاً كترتيب تحضيري حتمي فقط، بينما يعاد حساب
+   * المجالات الصالحة للمهام المتبقية داخل كل عقدة بحث.
    */
   prepared.sort(
     (
@@ -2532,6 +2530,9 @@ function materializeCandidates(
     Candidate[] =
       [];
 
+  let evaluations =
+    0;
+
   for (
     const staticCandidate of
     preparedTask.staticCandidates
@@ -2555,6 +2556,9 @@ function materializeCandidates(
         penalty:
           0,
       };
+
+    evaluations +=
+      1;
 
     /*
      * الحكم الحقيقي يبقى ديناميكيًا.
@@ -2610,7 +2614,10 @@ function materializeCandidates(
     },
   );
 
-  return candidates;
+  return {
+    candidates,
+    evaluations,
+  };
 }
 
 function placeCandidate(
@@ -4111,6 +4118,9 @@ function runAttempt(
       number
     >();
 
+  const assignedTaskIds =
+    new Set<string>();
+
   const impossibleTask =
     searchTasks.find(
       (item) =>
@@ -4195,9 +4205,143 @@ function runAttempt(
     };
   }
 
+  type DynamicTaskSelection = {
+    preparedTask:
+      PreparedSearchTask;
+
+    candidates:
+      Candidate[];
+  };
+
+  function selectNextTask():
+    DynamicTaskSelection | null {
+    let selected:
+      DynamicTaskSelection | null =
+        null;
+
+    for (
+      const preparedTask of
+      searchTasks
+    ) {
+      const task =
+        preparedTask.task;
+
+      if (
+        assignedTaskIds.has(
+          task.id,
+        )
+      ) {
+        continue;
+      }
+
+      const previousEquivalentTaskId =
+        preparedTask
+          .previousEquivalentTaskId;
+
+      /*
+       * Only the first unassigned member of an equivalent-task chain is
+       * eligible. This retains the existing canonical static-rank ordering
+       * while allowing MRV to choose dynamically between independent tasks.
+       */
+      if (
+        previousEquivalentTaskId &&
+        !assignedTaskIds.has(
+          previousEquivalentTaskId,
+        )
+      ) {
+        continue;
+      }
+
+      const minimumStaticRank =
+        previousEquivalentTaskId
+          ? placementRankByTask.get(
+              previousEquivalentTaskId,
+            ) ?? null
+          : null;
+
+      const materialized =
+        materializeCandidates(
+          problem,
+          constraints,
+          state,
+          preparedTask,
+          random,
+          minimumStaticRank,
+        );
+
+      candidateEvaluations +=
+        materialized.evaluations;
+
+      const selection = {
+        preparedTask,
+        candidates:
+          materialized.candidates,
+      };
+
+      if (
+        selection.candidates
+          .length === 0
+      ) {
+        return selection;
+      }
+
+      if (!selected) {
+        selected =
+          selection;
+        continue;
+      }
+
+      const candidateCountOrder =
+        selection.candidates.length -
+        selected.candidates.length;
+
+      if (
+        candidateCountOrder < 0 ||
+        (
+          candidateCountOrder === 0 &&
+          (
+            preparedTask.difficulty >
+              selected.preparedTask
+                .difficulty ||
+            (
+              preparedTask.difficulty ===
+                selected.preparedTask
+                  .difficulty &&
+              task.id.localeCompare(
+                selected.preparedTask
+                  .task.id,
+              ) < 0
+            )
+          )
+        )
+      ) {
+        selected =
+          selection;
+      }
+    }
+
+    return selected;
+  }
+
+  function captureBestPartial() {
+    if (
+      state.sessions.length <=
+      bestPartial.length
+    ) {
+      return;
+    }
+
+    bestPartial =
+      state.sessions.map(
+        (session) => ({
+          ...session,
+        }),
+      );
+  }
+
   function search(
-    taskIndex:
-      number,
+    preselected?:
+      DynamicTaskSelection | null,
   ): boolean {
     /*
      * إذا وصلنا للنهاية:
@@ -4207,7 +4351,7 @@ function runAttempt(
      * ونبحث عن توزيع آخر.
      */
     if (
-      taskIndex >=
+      assignedTaskIds.size >=
       searchTasks.length
     ) {
       return (
@@ -4235,62 +4379,29 @@ function runAttempt(
      * bestPartial لا يحتاج النسخ إلا عندما
      * نصل إلى عمق جديد لأول مرة.
      */
-    if (
-      state.sessions.length >
-      bestPartial.length
-    ) {
-      bestPartial =
-        state.sessions.map(
-          (session) => ({
-            ...session,
-          }),
-        );
+    captureBestPartial();
+
+    const selection =
+      preselected ===
+      undefined
+        ? selectNextTask()
+        : preselected;
+
+    if (!selection) {
+      backtracks +=
+        1;
+
+      return false;
     }
 
     const preparedTask =
-      searchTasks[
-        taskIndex
-      ];
+      selection.preparedTask;
 
     const task =
       preparedTask.task;
 
-    let minimumStaticRank:
-      number | null =
-        null;
-
-    if (
-      preparedTask
-        .previousEquivalentTaskId
-    ) {
-      const previousRank =
-        placementRankByTask.get(
-          preparedTask
-            .previousEquivalentTaskId,
-        );
-
-      if (
-        previousRank !==
-        undefined
-      ) {
-        minimumStaticRank =
-          previousRank;
-      }
-    }
-
     const candidates =
-      materializeCandidates(
-        problem,
-        constraints,
-        state,
-        preparedTask,
-        random,
-        minimumStaticRank,
-      );
-
-    candidateEvaluations +=
-      preparedTask.staticCandidates
-        .length;
+      selection.candidates;
 
     if (
       candidates.length ===
@@ -4330,13 +4441,48 @@ function runAttempt(
         candidate.staticRank,
       );
 
+      assignedTaskIds.add(
+        task.id,
+      );
+
+      captureBestPartial();
+
+      const nextSelection =
+        assignedTaskIds.size ===
+        searchTasks.length
+          ? null
+          : selectNextTask();
+
       if (
-        search(
-          taskIndex + 1,
+        (
+          assignedTaskIds.size ===
+          searchTasks.length
         )
+          ? search(null)
+          : nextSelection &&
+            nextSelection.candidates
+              .length > 0 &&
+            search(nextSelection)
       ) {
         return true;
       }
+
+      if (
+        assignedTaskIds.size <
+          searchTasks.length &&
+        (
+          !nextSelection ||
+          nextSelection.candidates
+            .length === 0
+        )
+      ) {
+        backtracks +=
+          1;
+      }
+
+      assignedTaskIds.delete(
+        task.id,
+      );
 
       placementRankByTask.delete(
         task.id,
@@ -4363,9 +4509,7 @@ function runAttempt(
   }
 
   const solved =
-    search(
-      0,
-    );
+    search();
 
   const sessions =
     solved

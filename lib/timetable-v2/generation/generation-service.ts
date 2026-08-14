@@ -1441,6 +1441,15 @@ async function saveGeneratedSchedule(
   throw lastError;
 }
 
+export async function loadTimetableV2GenerationProblemForSolver(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  return loadProblem(
+    projectId,
+    schoolAccountId,
+  );
+}
 export async function generateAndSaveTimetableV2(
   projectId: string,
   schoolAccountId: string,

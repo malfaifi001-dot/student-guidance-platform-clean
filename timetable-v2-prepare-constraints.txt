@@ -1,0 +1,141 @@
+      );
+
+    previous =
+      period;
+  }
+
+  return longest;
+}
+
+function prepareConstraints(
+  problem:
+    GenerationProblem,
+) {
+  const allDays =
+    problem.days.map(
+      (day) => day.id,
+    );
+
+  const allPeriods =
+    problem.periods.map(
+      (period) =>
+        period.id,
+    );
+
+  return problem.constraints.map(
+    (
+      constraint,
+    ): PreparedConstraint => {
+      const type =
+        normalizeGenerationConstraintType(
+          constraint.type,
+        );
+
+      const effectiveSlots =
+        new Set<string>();
+
+      if (
+        constraint.slots.length >
+        0
+      ) {
+        for (
+          const slot of
+          constraint.slots
+        ) {
+          effectiveSlots.add(
+            slotKey(
+              slot.dayId,
+              slot.periodId,
+            ),
+          );
+        }
+      }
+      else if (
+        constraint.dayIds.length >
+          0 &&
+        constraint.periodIds.length >
+          0
+      ) {
+        for (
+          const dayId of
+          constraint.dayIds
+        ) {
+          for (
+            const periodId of
+            constraint.periodIds
+          ) {
+            effectiveSlots.add(
+              slotKey(
+                dayId,
+                periodId,
+              ),
+            );
+          }
+        }
+      }
+      else if (
+        constraint.dayIds.length >
+        0
+      ) {
+        for (
+          const dayId of
+          constraint.dayIds
+        ) {
+          for (
+            const periodId of
+            allPeriods
+          ) {
+            effectiveSlots.add(
+              slotKey(
+                dayId,
+                periodId,
+              ),
+            );
+          }
+        }
+      }
+      else if (
+        constraint.periodIds.length >
+        0
+      ) {
+        for (
+          const dayId of
+          allDays
+        ) {
+          for (
+            const periodId of
+            constraint.periodIds
+          ) {
+            effectiveSlots.add(
+              slotKey(
+                dayId,
+                periodId,
+              ),
+            );
+          }
+        }
+      }
+
+      return {
+        ...constraint,
+        type,
+        effectiveSlots,
+      };
+    },
+  );
+}
+
+function matchesTarget(
+  values: string[],
+  value: string,
+) {
+  return (
+    values.length === 0 ||
+    values.includes(value)
+  );
+}
+
+function matchesTask(
+  constraint:
+    PreparedConstraint,
+  task:

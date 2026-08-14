@@ -1,3 +1,8 @@
+import {
+  getArabicUserRoleIdentityCopy,
+  type UserRoleDisplayInput,
+} from "@/lib/auth/user-role-display";
+
 export type SchoolIdentityReadinessInput = {
   officialName?: string | null;
   jobTitle?: string | null;
@@ -22,7 +27,7 @@ export type SchoolIdentityReadinessItem = {
 export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
   {
     key: "officialName",
-    label: "الاسم الرسمي للموجه/الموجهة",
+    label: "الاسم الرسمي",
     required: true,
     weight: 14,
   },
@@ -46,7 +51,7 @@ export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
   },
   {
     key: "principalName",
-    label: "اسم المدير/ة",
+    label: "اسم مدير/مديرة المدرسة",
     required: false,
     weight: 8,
   },
@@ -64,21 +69,35 @@ export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
   },
   {
     key: "phone",
-    label: "رقم جوال الموجه/الموجهة",
+    label: "رقم الجوال",
     required: false,
     weight: 3,
   },
 ];
 
 export function calculateSchoolIdentityReadiness(
-  input: SchoolIdentityReadinessInput
+  input: SchoolIdentityReadinessInput,
+  actor?: UserRoleDisplayInput,
 ) {
-  const totalWeight = SCHOOL_IDENTITY_READINESS_ITEMS.reduce(
+  const identityCopy = actor ? getArabicUserRoleIdentityCopy(actor) : null;
+  const readinessItems = SCHOOL_IDENTITY_READINESS_ITEMS.map((item) => {
+    if (item.key === "officialName" && identityCopy) {
+      return { ...item, label: identityCopy.officialNameLabel };
+    }
+    if (item.key === "phone" && identityCopy) {
+      return { ...item, label: identityCopy.phoneLabel };
+    }
+    if (item.key === "principalName" && identityCopy) {
+      return { ...item, label: `اسم ${identityCopy.schoolPrincipalLabel}` };
+    }
+    return item;
+  });
+  const totalWeight = readinessItems.reduce(
     (sum, item) => sum + item.weight,
     0
   );
 
-  const completedItems = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
+  const completedItems = readinessItems.filter((item) => {
     const value = input[item.key];
     return typeof value === "string" ? Boolean(value.trim()) : Boolean(value);
   });
@@ -88,14 +107,14 @@ export function calculateSchoolIdentityReadiness(
     0
   );
 
-  const missingRequired = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
+  const missingRequired = readinessItems.filter((item) => {
     if (!item.required) return false;
 
     const value = input[item.key];
     return typeof value === "string" ? !value.trim() : !value;
   });
 
-  const missingOptional = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
+  const missingOptional = readinessItems.filter((item) => {
     if (item.required) return false;
 
     const value = input[item.key];

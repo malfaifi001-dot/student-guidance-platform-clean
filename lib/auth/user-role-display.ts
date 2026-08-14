@@ -1,6 +1,6 @@
 import type { Gender, UserRole } from "@prisma/client";
 
-type UserRoleDisplayInput = {
+export type UserRoleDisplayInput = {
   role: UserRole | string | null | undefined;
   gender: Gender | string | null | undefined;
 };
@@ -34,4 +34,19 @@ export function getArabicUserRoleLabel({
 
 export function getArabicSignatureTitle(input: UserRoleDisplayInput) {
   return `توقيع ${getArabicUserRoleLabel(input)}`;
+}
+
+export function getArabicUserRoleIdentityCopy(input: UserRoleDisplayInput) {
+  const roleLabel = getArabicUserRoleLabel(input);
+  const isPrincipal = String(input.role || "").trim().toUpperCase() === "PRINCIPAL";
+
+  return {
+    roleLabel,
+    schoolPrincipalLabel: isPrincipal ? roleLabel : "مدير/مديرة المدرسة",
+    accountHeading: `بيانات ${roleLabel}`,
+    accountDescription: `تظهر بيانات ${roleLabel} في التقارير الرسمية والتوقيعات.`,
+    officialNameLabel: `اسم ${roleLabel} في التقارير`,
+    phoneLabel: `رقم جوال ${roleLabel}`,
+    signatureDescription: `يُحفظ توقيع ${roleLabel} مباشرة من هذه الصفحة عند توفر حقل التوقيع المخصص لهذا الدور.`,
+  };
 }
