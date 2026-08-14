@@ -1,28 +1,31 @@
-warning: in the working copy of 'app/api/dashboard/report-2/snapshots/[snapshotId]/route.ts', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/dashboard/cases/[caseId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/dashboard/cases/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/dashboard/report-2/snapshots/[snapshotId]/preview/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/cases/case-details-view.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/cases/cases-search-table.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/report-2/report-two-archive-client.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/report-2/report-two-snapshot-preview.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/report-2/report-two-studio-runtime.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/reports/report-delete-action.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/reports/report-delete-modal.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'components/reports/reports-dashboard.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'lib/report-2/report-snapshot-service.ts', LF will be replaced by CRLF the next time Git touches it
- .../report-2/snapshots/[snapshotId]/route.ts       | 153 [32m+++++++++++++++[m[31m------[m
- app/dashboard/cases/[caseId]/page.tsx              |   1 [32m+[m
- app/dashboard/cases/page.tsx                       |   1 [32m+[m
- .../snapshots/[snapshotId]/preview/page.tsx        |   1 [32m+[m
- components/cases/case-details-view.tsx             |  23 [32m++++[m
- components/cases/cases-search-table.tsx            |   9 [32m+[m[31m-[m
- components/report-2/report-two-archive-client.tsx  |  11 [32m++[m
- .../report-2/report-two-snapshot-preview.tsx       |  47 [32m+++++[m[31m--[m
- components/report-2/report-two-studio-runtime.tsx  |  41 [32m++++++[m
- components/reports/report-delete-action.tsx        |  37 [32m++++[m[31m-[m
- components/reports/report-delete-modal.tsx         |  54 [32m++++++[m[31m--[m
- components/reports/reports-dashboard.tsx           |   2 [32m+[m[31m-[m
- lib/report-2/report-snapshot-service.ts            |  19 [32m++[m[31m-[m
- tsconfig.tsbuildinfo                               |   2 [32m+[m[31m-[m
- 14 files changed, 328 insertions(+), 73 deletions(-)
+* [33ma1a45d2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mbackup-before-reset-a1a45d2-20260814[m[33m)[m تعديل الفيديوهات
+* [33m75cd823[m اليوتيوب
+* [33m3c6b771[m تعدليلات كثيرة
+* [33mbb73bfc[m تغيير اللودر
+* [33maeb1adb[m تعديل المينيو
+* [33m09110c5[m اختبار
+[31m|[m * [33m54688fe[m[33m ([m[1;31morigin/fix/patch-vulnerabilities-aeda9377-1786648596[m[33m)[m fix: patch Node.js security vulnerabilities
+[31m|[m[31m/[m  
+* [33me817078[m Update next-env.d.ts
+* [33mf61a0ba[m تشخيص -1
+* [33me6fd09d[m تشخيص
+* [33m079a1cf[m تحديث
+* [33m02425b3[m نشر التعديل لللباقات
+* [33mbf64bcd[m اللودر تم
+* [33m55a6598[m التعديل على الحقول
+* [33mf467d8c[m المساعد الذكي
+* [33m6e32010[m تحسين الظهور  على قووقل
+* [33m6d1c02b[m قبل الميقريشن
+* [33m53fc3f5[m التقويم
+* [33m988cb45[m نشر السنوي
+* [33mb233a8f[m تم تعديل الشعار الي تحت
+* [33md803a68[m خل الاهتزاز
+* [33md5ff491[m تم تعديل الاراء
+* [33m4eed1b7[m تعديل
+* [33m4dc4b89[m تعديل الشعار
+* [33mc1c728b[m اختبار الدخول الان
+* [33m0898f6e[m قبل تعديل تسجيل الدخول بالجاول
+* [33m1aa6bc5[m ju]dg
+* [33mbdecbf1[m اختبار التعديل على الاستورج
+* [33m4ebe52a[m قبل تعديل الستورج
+* [33m89c080f[m .pdf-report-page

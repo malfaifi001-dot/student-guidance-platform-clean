@@ -1,7 +1,8 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { BrandLoader } from "@/components/common/brand-loader";
 
@@ -16,6 +17,8 @@ type SmartActionModalProps = {
   cancelLabel?: string;
   loading?: boolean;
   children?: ReactNode;
+  portal?: boolean;
+  showFooter?: boolean;
   onConfirm?: () => void;
   onClose: () => void;
 };
@@ -65,23 +68,37 @@ export function SmartActionModal({
   cancelLabel = "إلغاء",
   loading,
   children,
+  portal = false,
+  showFooter = true,
   onConfirm,
   onClose,
 }: SmartActionModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const tone = getTone(variant);
   const Icon = tone.icon;
 
-  return (
+  const modal = (
     <div
       dir="rtl"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
     >
-      <section className="relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-2xl shadow-slate-950/20">
+      <section className="relative flex max-h-[calc(100dvh-24px)] w-[calc(100%-24px)] max-w-[520px] flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-white shadow-2xl shadow-slate-950/25 sm:max-h-[calc(100dvh-48px)]">
         <div className={["absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l", tone.barClass].join(" ")} />
 
-        <div className="p-6">
+        <div className="overflow-y-auto overscroll-contain p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className={["grid h-14 w-14 shrink-0 place-items-center rounded-3xl ring-1", tone.iconClass].join(" ")}>
               <Icon className="h-7 w-7" />
@@ -110,7 +127,7 @@ export function SmartActionModal({
 
           {children ? <div className="mt-5">{children}</div> : null}
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+          {showFooter ? <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
             {onConfirm ? (
               <button
                 type="button"
@@ -134,9 +151,13 @@ export function SmartActionModal({
             >
               {onConfirm ? cancelLabel : "إغلاق"}
             </button>
-          </div>
+          </div> : null}
         </div>
       </section>
     </div>
   );
+
+  return portal && typeof document !== "undefined"
+    ? createPortal(modal, document.body)
+    : modal;
 }

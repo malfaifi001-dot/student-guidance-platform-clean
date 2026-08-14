@@ -4,6 +4,8 @@ import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { applyExternalPrincipalSignature } from "@/lib/report-signatures/report-two-signature";
+import { getReportSignatureStatus } from "@/lib/report-signatures/report-signature-service";
 import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
@@ -153,14 +155,47 @@ export default async function ReportTwoCaseStudioPage({
     },
   });
 
+  const [schoolProfile, signatureRequest] = await Promise.all([
+    prisma.schoolProfile.findUnique({
+      where: {
+        schoolAccountId:
+          activeReport?.schoolAccountId || current.user.schoolAccountId || "__missing__",
+      },
+      select: { principalName: true, principalPhone: true },
+    }),
+    activeReport
+      ? prisma.reportSignatureRequest.findFirst({
+          where: { reportTwoActiveId: activeReport.id },
+          orderBy: { createdAt: "desc" },
+        })
+      : null,
+  ]);
+  const effectiveRequestStatus = signatureRequest
+    ? getReportSignatureStatus(signatureRequest)
+    : undefined;
+  const previewPayload = applyExternalPrincipalSignature(
+    result.payload,
+    effectiveRequestStatus === "SIGNED" ? signatureRequest?.signatureUrl : null,
+  );
+
   return (
     <ReportTwoStudioRuntime
       caseId={caseId}
       selectedTemplateId={selectedTemplateId}
       selectedVariantId={selectedVariantId}
       initialMode={initialMode}
-      payload={result.payload}
+      payload={previewPayload}
       templates={templates}
+      initialPrincipalName={schoolProfile?.principalName || ""}
+      initialPrincipalPhone={schoolProfile?.principalPhone || ""}
+      initialSignatureRequest={signatureRequest ? {
+        id: signatureRequest.id,
+        status: effectiveRequestStatus || "PENDING",
+        expiresAt: signatureRequest.expiresAt.toISOString(),
+        openedAt: signatureRequest.openedAt?.toISOString() || null,
+        signedAt: signatureRequest.signedAt?.toISOString() || null,
+        signatureUrl: signatureRequest.signatureUrl,
+      } : null}
       initialReport={activeReport ? {
         id: activeReport.id,
         status: activeReport.status,

@@ -39,7 +39,7 @@ export function TeachixLogo({
         "inline-flex items-center gap-2.5 whitespace-nowrap",
         className,
       ].join(" ")}
-      aria-label="تيتشكس"
+      aria-label="تيتش اكس"
     >
       {icon}
       <span
@@ -48,7 +48,7 @@ export function TeachixLogo({
           size === "sm" ? "text-sm" : "text-xl",
         ].join(" ")}
       >
-        تيتشكس
+        تيتش اكس
       </span>
     </span>
   );

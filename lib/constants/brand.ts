@@ -1,1 +1,1 @@
-export const TEACHIX_TAGLINE = "تيتشكس | الأسهل والأشمل";
+export const TEACHIX_TAGLINE = "تيتش اكس | الأسهل والأشمل";

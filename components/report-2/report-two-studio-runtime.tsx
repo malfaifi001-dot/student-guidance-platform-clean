@@ -15,6 +15,10 @@ import { PrintExportPopCard } from "@/components/print-export/print-export-pop-c
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import {
+  ReportSignatureRequestCard,
+  type ReportSignatureRequestView,
+} from "@/components/report-signatures/report-signature-request-card";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
@@ -316,6 +320,9 @@ type ReportTwoStudioRuntimeProps = {
   initialMode?: "preview" | "edit";
   payload: SmartReportPayload;
   templates: TemplateOption[];
+  initialPrincipalName?: string;
+  initialPrincipalPhone?: string;
+  initialSignatureRequest?: ReportSignatureRequestView | null;
   initialReport?: {
     id: string;
     status: "DRAFT" | "APPROVED";
@@ -2600,6 +2607,9 @@ export function ReportTwoStudioRuntime({
   initialMode = "edit",
   payload,
   templates,
+  initialPrincipalName = "",
+  initialPrincipalPhone = "",
+  initialSignatureRequest = null,
   initialReport = null,
 }: ReportTwoStudioRuntimeProps) {
   const router = useRouter();
@@ -3652,12 +3662,15 @@ export function ReportTwoStudioRuntime({
     }
   }
 
-  async function persistReportTwoDraft(approvedEditConfirmed = false) {
-    if (reportTwoSaveSubmitting) return;
+  async function persistReportTwoDraft(
+    approvedEditConfirmed = false,
+    options?: { silent?: boolean },
+  ): Promise<string | null> {
+    if (reportTwoSaveSubmitting) return null;
     const snapshotHtml = buildReportTwoSnapshotHtml();
     if (!snapshotHtml.trim()) {
       setPopup({ type: "alert", title: "حفظ التقرير", message: "تعذر التقاط معاينة التقرير الحالية." });
-      return;
+      return null;
     }
 
     if (persistedReport?.status === "APPROVED" && !approvedEditConfirmed) {
@@ -3667,7 +3680,7 @@ export function ReportTwoStudioRuntime({
         message: "سيتم تعديل محتوى التقرير مع بقاء حالة الاعتماد وتاريخ الاعتماد كما هما.",
         onConfirm: () => void persistReportTwoDraft(true),
       });
-      return;
+      return null;
     }
 
     saveReportTwoDraftNow(false);
@@ -3704,14 +3717,18 @@ export function ReportTwoStudioRuntime({
         editorState: result.report.editorState,
         previewUrl: result.previewUrl,
       });
-      setReportTwoActionModal({
-        title: result.report.status === "APPROVED" ? "تم حفظ التقرير المعتمد" : "تم حفظ التقرير",
-        message: result.message,
-        linkHref: result.previewUrl,
-        linkLabel: "معاينة التقرير",
-      });
+      if (!options?.silent) {
+        setReportTwoActionModal({
+          title: result.report.status === "APPROVED" ? "تم حفظ التقرير المعتمد" : "تم حفظ التقرير",
+          message: result.message,
+          linkHref: result.previewUrl,
+          linkLabel: "معاينة التقرير",
+        });
+      }
+      return result.report.id;
     } catch (error) {
       setPopup({ type: "alert", title: "حفظ التقرير", message: error instanceof Error ? error.message : "تعذر حفظ التقرير." });
+      return null;
     } finally {
       setReportTwoSaveSubmitting(false);
     }
@@ -4485,6 +4502,16 @@ export function ReportTwoStudioRuntime({
           </div>
 
           <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+            <ReportSignatureRequestCard
+              reportId={persistedReport?.id || null}
+              initialRequest={initialSignatureRequest}
+              initialPrincipalName={initialPrincipalName}
+              initialPrincipalPhone={initialPrincipalPhone}
+              ensureReportId={async () =>
+                persistedReport?.id ||
+                (await persistReportTwoDraft(false, { silent: true }))
+              }
+            />
             {persistedReport?.id ? (
               <ReportDeleteAction
                 reportId={persistedReport.id}

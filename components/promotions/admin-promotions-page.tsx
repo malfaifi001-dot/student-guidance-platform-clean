@@ -95,7 +95,7 @@ export function AdminPromotionsPage() {
   return (
     <main className="min-w-0 space-y-6" dir="rtl">
       <header className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700"><Tag className="h-5 w-5" /></div><div><h1 className="text-2xl font-black text-slate-950">العروض والكوبونات</h1><p className="mt-1 text-sm font-bold text-slate-500">خصومات بسيطة ومخصصة لباقات تيتشكس.</p></div></div>
+        <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700"><Tag className="h-5 w-5" /></div><div><h1 className="text-2xl font-black text-slate-950">العروض والكوبونات</h1><p className="mt-1 text-sm font-bold text-slate-500">خصومات بسيطة ومخصصة لباقات تيتش اكس.</p></div></div>
       </header>
 
       {message ? <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">{message}</div> : null}

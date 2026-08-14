@@ -193,7 +193,7 @@ export default function HomePage() {
                     <TeachixLogo size="sm" />
 
                     <h2 className="mt-1.5 text-xl font-black text-slate-950 xl:text-2xl">
-                      مساحة فريق المدرسة
+                      لجميع منسوبي المدرسة
                     </h2>
                   </div>
 

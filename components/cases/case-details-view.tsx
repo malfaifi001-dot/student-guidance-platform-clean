@@ -62,7 +62,7 @@ const COMMITTEE_SERVICE_SLUG = "committees-meetings";
 function buildFieldMap(caseEntry: any) {
   const map = new Map<string, FieldLookupItem>();
 
-  caseEntry.workflow?.steps?.forEach((step: any) => {
+  const addWorkflowFields = (steps: any[] | undefined) => steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
       if (!field?.key) return;
 
@@ -75,7 +75,32 @@ function buildFieldMap(caseEntry: any) {
     });
   });
 
+  const workflowSnapshot = caseEntry.workflowSnapshot as
+    | { steps?: any[]; workflow?: { steps?: any[] } }
+    | null
+    | undefined;
+
+  addWorkflowFields(
+    workflowSnapshot?.steps || workflowSnapshot?.workflow?.steps,
+  );
+  // The currently published workflow is authoritative when it is available.
+  addWorkflowFields(caseEntry.workflow?.steps);
+
   return map;
+}
+
+function resolveArabicFieldLabel(
+  workflowField: FieldLookupItem | undefined,
+  relatedField: FieldLookupItem | null | undefined,
+  index: number,
+) {
+  for (const label of [workflowField?.label, relatedField?.label]) {
+    if (!String(label || "").trim()) continue;
+    const repaired = getWorkflowFieldLabel({ field: { label } });
+    if (/[\u0600-\u06ff]/.test(repaired)) return repaired;
+  }
+
+  return `بيان رقم ${index + 1}`;
 }
 
 function normalizeText(value: string) {
@@ -123,9 +148,11 @@ function shouldHideCommitteeMainValue(fieldKey: string) {
 function normalizeCaseValue(
   value: any,
   fieldMap: Map<string, FieldLookupItem>,
+  index: number,
 ): WorkflowValueLike {
   const fieldKey = value.field?.key || value.fieldKey || "";
   const fieldFromWorkflow = fieldMap.get(fieldKey);
+  const label = resolveArabicFieldLabel(fieldFromWorkflow, value.field, index);
 
   return {
     id: value.id,
@@ -135,15 +162,15 @@ function normalizeCaseValue(
     field: value.field
       ? {
           key: value.field.key || fieldKey,
-          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          label,
           type: value.field.type || fieldFromWorkflow?.type,
           options: value.field.options || fieldFromWorkflow?.options || [],
         }
       : fieldFromWorkflow
-        ? fieldFromWorkflow
+        ? { ...fieldFromWorkflow, label }
         : {
             key: fieldKey,
-            label: fieldKey,
+            label,
             options: [],
           },
   };
@@ -825,15 +852,17 @@ export function CaseDetailsView({
   reportTwoStatus = null,
   reportTwoTitle = null,
 }: CaseDetailsViewProps) {
-  const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
+  const workflowValues: WorkflowValueLike[] = (caseEntry.values || []).map(
+    (value: any, index: number) => normalizeCaseValue(value, fieldMap, index),
+  );
+  const displayTitle = getSmartCaseDisplayTitle({
+    ...caseEntry,
+    values: workflowValues,
+  });
   const latestReport = getLatestReport(caseEntry);
   const latestReportUrl = getReportPreviewUrl(latestReport);
   const savedReports = getSavedReports(caseEntry);
-
-  const workflowValues: WorkflowValueLike[] = (caseEntry.values || []).map(
-    (value: any) => normalizeCaseValue(value, fieldMap),
-  );
 
   const displayValues = workflowValues.filter((value: WorkflowValueLike) => {
     const key = value.field?.key || value.fieldKey || "";

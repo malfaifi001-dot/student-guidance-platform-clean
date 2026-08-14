@@ -206,31 +206,32 @@ model SchoolAccount {
   studentImportSessions StudentImportSession[]
   users                 User[]
 
-  profile                    SchoolProfile?
-  students                   Student[]
-  guardians                  Guardian[]
-  staff                      StaffMember[]
-  services                   ServiceAccess[]
-  cases                      CaseEntry[]
-  subscription               Subscription?
-  resultsAnalyses            ResultsAnalysis[]
-  assessmentAnalyses         AssessmentAnalysis[]
-  calendarReminders          CalendarReminder[]
-  activityAssignments        ActivityAssignment[]       @relation("ActivityAssignmentsBySchool")
-  surveys                    Survey[]                   @relation("SurveysBySchool")
-  surveyResponses            SurveyResponse[]           @relation("SurveyResponsesBySchool")
-  createdAt                  DateTime                   @default(now())
-  updatedAt                  DateTime                   @updatedAt
-  achievementPortfolios      AchievementPortfolio[]
-  portfolioSnapshots         PortfolioSnapshot[]
-  referenceLibraryItems      ReferenceLibraryItem[]     @relation("ReferenceLibrarySchool")
-  timetableProjects          TimetableProject[]
-  timetableDailyAbsences     TimetableDailyAbsence[]
-  timetableSubstitutions     TimetableSubstitution[]
-  timetableSupervisionDuties TimetableSupervisionDuty[]
-  timetableSubjectBank       TimetableSubjectBankEntry[]
+  profile                      SchoolProfile?
+  students                     Student[]
+  guardians                    Guardian[]
+  staff                        StaffMember[]
+  services                     ServiceAccess[]
+  cases                        CaseEntry[]
+  subscription                 Subscription?
+  resultsAnalyses              ResultsAnalysis[]
+  assessmentAnalyses           AssessmentAnalysis[]
+  calendarReminders            CalendarReminder[]
+  activityAssignments          ActivityAssignment[]          @relation("ActivityAssignmentsBySchool")
+  surveys                      Survey[]                      @relation("SurveysBySchool")
+  surveyResponses              SurveyResponse[]              @relation("SurveyResponsesBySchool")
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  achievementPortfolios        AchievementPortfolio[]
+  portfolioSnapshots           PortfolioSnapshot[]
+  referenceLibraryItems        ReferenceLibraryItem[]        @relation("ReferenceLibrarySchool")
+  timetableProjects            TimetableProject[]
+  timetableDailyAbsences       TimetableDailyAbsence[]
+  timetableSubstitutions       TimetableSubstitution[]
+  timetableSupervisionDuties   TimetableSupervisionDuty[]
+  timetableSubjectBank         TimetableSubjectBankEntry[]
   timetableCurriculumTemplates TimetableCurriculumTemplate[]
   couponRedemptions            CouponRedemption[]
+  reportSignatureRequests      ReportSignatureRequest[]
 }
 
 model User {
@@ -275,6 +276,7 @@ model User {
   createdGuidanceVideos         GuidanceVideo[]            @relation("GuidanceVideoCreatedBy")
   createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
   timetableTeacherProfiles      TimetableTeacher[]
+  reportSignatureRequests       ReportSignatureRequest[]
 
   @@index([schoolAccountId])
 }
@@ -1208,6 +1210,13 @@ enum ReportTwoStatus {
   APPROVED
 }
 
+enum ReportSignatureRequestStatus {
+  PENDING
+  SIGNED
+  EXPIRED
+  CANCELED
+}
+
 enum ReportTemplateType {
   SYSTEM
   SCHOOL
@@ -1243,7 +1252,8 @@ model GuidanceReport {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  evidenceItems ReportEvidence[]
+  evidenceItems     ReportEvidence[]
+  signatureRequests ReportSignatureRequest[]
 
   @@index([caseEntryId])
   @@index([serviceSlug])
@@ -1316,10 +1326,48 @@ model ReportTwoActive {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  signatureRequests ReportSignatureRequest[]
+
   @@index([schoolAccountId])
   @@index([serviceSlug])
   @@index([status])
   @@index([approvedAt])
+}
+
+model ReportSignatureRequest {
+  id String @id @default(cuid())
+
+  reportId String?
+  report   GuidanceReport? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  reportTwoActiveId String?
+  reportTwoActive   ReportTwoActive? @relation(fields: [reportTwoActiveId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  requestedById String
+  requestedBy   User   @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  requesterDisplayName String
+  principalName        String
+  tokenHash            String                       @unique @db.VarChar(64)
+  status               ReportSignatureRequestStatus @default(PENDING)
+  reportSnapshot       Json
+  signatureUrl         String?                      @db.Text
+  consentedToReuse     Boolean                      @default(false)
+  expiresAt            DateTime
+  openedAt             DateTime?
+  signedAt             DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  @@index([reportTwoActiveId, status])
+  @@index([reportId, status])
+  @@index([schoolAccountId, status])
+  @@index([requestedById])
+  @@index([expiresAt])
 }
 
 model ReportEvidence {
@@ -2077,8 +2125,8 @@ model AchievementPortfolio {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  sections AchievementPortfolioSection[]
-  items    AchievementPortfolioItem[]
+  sections  AchievementPortfolioSection[]
+  items     AchievementPortfolioItem[]
   snapshots PortfolioSnapshot[]
 
   @@unique([schoolAccountId, ownerUserId, academicYear, term])
