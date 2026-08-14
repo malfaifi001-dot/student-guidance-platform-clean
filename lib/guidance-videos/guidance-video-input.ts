@@ -1,7 +1,10 @@
 import {
+  isGuidanceVideoSourceType,
   parseGuidanceVideoTargetRoles,
+  type GuidanceVideoSourceType,
   type GuidanceVideoTargetRole,
 } from "@/lib/guidance-videos/guidance-video-config";
+import { parseYouTubeVideoUrl } from "@/lib/guidance-videos/youtube";
 
 export type GuidanceVideoMetadataInput = {
   title: string;
@@ -72,6 +75,42 @@ export function parseGuidanceVideoMetadata(
 export function getOptionalGuidanceVideoFile(formData: FormData) {
   const value = formData.get("video");
   return value instanceof File && value.size > 0 ? value : null;
+}
+
+export function parseGuidanceVideoSource(
+  formData: FormData,
+  fallback?: {
+    sourceType: GuidanceVideoSourceType;
+    youtubeVideoId: string | null;
+  },
+) {
+  const rawSourceType = formData.get("sourceType");
+  const sourceType = rawSourceType === null
+    ? (fallback?.sourceType ?? "UPLOAD")
+    : String(rawSourceType);
+
+  if (!isGuidanceVideoSourceType(sourceType)) {
+    return { ok: false as const, error: "مصدر الفيديو غير صالح." };
+  }
+
+  if (sourceType === "YOUTUBE") {
+    const rawYouTubeUrl = formData.get("youtubeUrl");
+    const youtubeVideoId = rawYouTubeUrl === null
+      ? fallback?.youtubeVideoId
+      : parseYouTubeVideoUrl(rawYouTubeUrl);
+    if (!youtubeVideoId) {
+      return { ok: false as const, error: "رابط YouTube غير صالح." };
+    }
+    return {
+      ok: true as const,
+      data: { sourceType, youtubeVideoId },
+    };
+  }
+
+  return {
+    ok: true as const,
+    data: { sourceType, youtubeVideoId: null },
+  };
 }
 
 export function sanitizeOriginalVideoFileName(value: string) {

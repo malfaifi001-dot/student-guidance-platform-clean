@@ -4,6 +4,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { PlayCircle, X } from "lucide-react";
 
+import { GuidanceVideoPlayer } from "@/components/guidance-videos/guidance-video-player";
 import type { GuidanceVideoPlayable } from "@/lib/guidance-videos/guidance-video-config";
 
 export function GuidanceVideoPlayerDialog({
@@ -83,15 +84,7 @@ export function GuidanceVideoPlayerDialog({
 
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-sm dark:border-slate-700">
           <div className="aspect-video w-full">
-            <video
-              key={video.id}
-              ref={playerRef}
-              src={video.mediaUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="h-full w-full bg-black object-contain"
-            />
+            <GuidanceVideoPlayer video={video} uploadedPlayerRef={playerRef} />
           </div>
         </div>
 

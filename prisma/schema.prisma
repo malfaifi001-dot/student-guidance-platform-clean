@@ -16,6 +16,11 @@ enum UserRole {
   STAFF
 }
 
+enum GuidanceVideoSourceType {
+  UPLOAD
+  YOUTUBE
+}
+
 enum ReferenceLibraryItemType {
   FOLDER
   FILE
@@ -280,10 +285,12 @@ model GuidanceVideo {
   title       String  @db.VarChar(200)
   description String? @db.Text
 
-  storageKey       String @unique @db.VarChar(255)
-  originalFileName String @db.VarChar(255)
-  mimeType         String @db.VarChar(100)
-  sizeBytes        Int
+  sourceType       GuidanceVideoSourceType @default(UPLOAD)
+  storageKey       String?                 @unique @db.VarChar(255)
+  originalFileName String?                 @db.VarChar(255)
+  mimeType         String?                 @db.VarChar(100)
+  sizeBytes        Int?
+  youtubeVideoId   String?                 @db.VarChar(32)
 
   targetRoles Json
   isPublished Boolean @default(false)
@@ -298,6 +305,7 @@ model GuidanceVideo {
   @@index([isPublished, sortOrder])
   @@index([createdById])
   @@index([createdAt])
+  @@index([sourceType])
 }
 
 model UserSession {

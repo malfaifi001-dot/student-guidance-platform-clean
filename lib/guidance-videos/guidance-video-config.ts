@@ -1,5 +1,18 @@
 import type { UserRole } from "@/lib/security/roles";
 
+export const GUIDANCE_VIDEO_SOURCE_TYPES = ["UPLOAD", "YOUTUBE"] as const;
+export type GuidanceVideoSourceType =
+  (typeof GUIDANCE_VIDEO_SOURCE_TYPES)[number];
+
+export function isGuidanceVideoSourceType(
+  value: unknown,
+): value is GuidanceVideoSourceType {
+  return (
+    typeof value === "string" &&
+    GUIDANCE_VIDEO_SOURCE_TYPES.includes(value as GuidanceVideoSourceType)
+  );
+}
+
 export const GUIDANCE_VIDEO_TARGET_ROLES = [
   "COUNSELOR",
   "ACTIVITY_LEADER",
@@ -40,20 +53,27 @@ export type GuidanceVideoDto = {
   id: string;
   title: string;
   description: string | null;
-  originalFileName: string;
-  mimeType: string;
-  sizeBytes: number;
+  sourceType: GuidanceVideoSourceType;
+  originalFileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  youtubeVideoId: string | null;
   targetRoles: GuidanceVideoTargetRole[];
   isPublished: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
-  mediaUrl: string;
+  mediaUrl: string | null;
 };
 
 export type GuidanceVideoPlayable = Pick<
   GuidanceVideoDto,
-  "id" | "title" | "description" | "mediaUrl"
+  | "id"
+  | "title"
+  | "description"
+  | "sourceType"
+  | "mediaUrl"
+  | "youtubeVideoId"
 >;
 
 export type GuidanceVideoPublicDto = GuidanceVideoPlayable;

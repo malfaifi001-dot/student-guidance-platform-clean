@@ -23,7 +23,9 @@ export async function GET() {
       id: dto.id,
       title: dto.title,
       description: dto.description,
+      sourceType: dto.sourceType,
       mediaUrl: dto.mediaUrl,
+      youtubeVideoId: dto.youtubeVideoId,
     };
   });
   return NextResponse.json({ videos: publicVideos });

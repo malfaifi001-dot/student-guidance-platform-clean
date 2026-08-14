@@ -15,15 +15,20 @@ export function guidanceVideoToDto(video: GuidanceVideo): GuidanceVideoDto {
     id: video.id,
     title: video.title,
     description: video.description,
+    sourceType: video.sourceType,
     originalFileName: video.originalFileName,
     mimeType: video.mimeType,
     sizeBytes: video.sizeBytes,
+    youtubeVideoId: video.youtubeVideoId,
     targetRoles: parseGuidanceVideoTargetRoles(video.targetRoles),
     isPublished: video.isPublished,
     sortOrder: video.sortOrder,
     createdAt: video.createdAt.toISOString(),
     updatedAt: video.updatedAt.toISOString(),
-    mediaUrl: `/api/dashboard/guidance-videos/${encodeURIComponent(video.id)}/media`,
+    mediaUrl:
+      video.sourceType === "UPLOAD"
+        ? `/api/dashboard/guidance-videos/${encodeURIComponent(video.id)}/media`
+        : null,
   };
 }
 

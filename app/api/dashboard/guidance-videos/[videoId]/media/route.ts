@@ -39,6 +39,9 @@ export async function GET(request: Request, context: RouteContext) {
   if (!video || !canRoleViewGuidanceVideo(video, current.user.role)) {
     return NextResponse.json({ error: "الفيديو غير موجود." }, { status: 404 });
   }
+  if (video.sourceType !== "UPLOAD" || !video.storageKey || !video.mimeType) {
+    return NextResponse.json({ error: "ملف الفيديو غير متاح." }, { status: 404 });
+  }
   if (!(await guidanceVideoFileExists(video.storageKey))) {
     return NextResponse.json({ error: "ملف الفيديو غير متاح." }, { status: 404 });
   }
