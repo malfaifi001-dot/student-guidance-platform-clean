@@ -4,6 +4,7 @@ import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { withStudentPrimaryFields } from "@/lib/report-engine/with-student-primary-fields";
 import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
@@ -159,7 +160,7 @@ export default async function ReportTwoCaseStudioPage({
       selectedTemplateId={selectedTemplateId}
       selectedVariantId={selectedVariantId}
       initialMode={initialMode}
-      payload={result.payload}
+      payload={withStudentPrimaryFields(result.payload)}
       templates={templates}
       initialReport={activeReport ? {
         id: activeReport.id,
