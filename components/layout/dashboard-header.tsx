@@ -21,6 +21,7 @@ import {
 
 type DashboardHeaderProps = {
   user?: {
+    id?: string | null;
     name?: string | null;
     officialName?: string | null;
     gender?: string | null;
@@ -180,10 +181,10 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
 
           <GuidanceLauncher />
 
-          <GuidanceVideosLauncher notificationCount={4} />
+          <GuidanceVideosLauncher userId={user?.id ?? undefined} />
 
           <div
-            className="relative"
+            className="relative ms-auto sm:ms-0"
             onMouseEnter={() => setMenuOpen(true)}
             onMouseLeave={() => setMenuOpen(false)}
             onFocus={() => setMenuOpen(true)}
@@ -204,7 +205,7 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
               onClick={() => setMenuOpen((value) => !value)}
               aria-expanded={menuOpen}
               aria-haspopup="menu"
-              className="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
+              className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-0 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-2 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
             >
               <div className="h-8 w-8 overflow-hidden rounded-full bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
                 {avatar ? (
