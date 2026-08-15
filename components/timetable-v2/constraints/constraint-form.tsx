@@ -68,6 +68,8 @@ type Props = {
   busy: boolean;
   onCancel: () => void;
   onSave: (draft: ConstraintDraft) => void;
+
+  hideTypeSelector?: boolean;
 };
 
 function blankDraft(): ConstraintDraft {
@@ -107,6 +109,7 @@ export function ConstraintForm({
   busy,
   onCancel,
   onSave,
+  hideTypeSelector = false,
 }: Props) {
   const catalog = useMemo(
     () => getCatalogForBuilder(),
@@ -579,7 +582,8 @@ export function ConstraintForm({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
+      {!hideTypeSelector ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-black">
@@ -649,7 +653,8 @@ export function ConstraintForm({
             </div>
           ))}
         </div>
-      </div>
+        </div>
+      ) : null}
 
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">

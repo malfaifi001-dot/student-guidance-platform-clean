@@ -23,7 +23,8 @@ public final class ConstraintRegistryV1 {
 
     private static final Set<String> SOFT =
         Set.of(
-            "SUBJECT_PREFERRED"
+            "SUBJECT_PREFERRED",
+            "TEACHER_PREFERRED"
         );
 
     public static void validate(

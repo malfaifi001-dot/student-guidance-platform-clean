@@ -794,7 +794,7 @@ export function analyzeTimetableV2Feasibility(
           true,
 
         message:
-          "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£ÙŠØ§Ù… Ø¯Ø±Ø§Ø³ÙŠØ© ÙÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©.",
+          "لا توجد أيام دراسية في المشكلة.",
 
         entityId:
           problem.projectId,
@@ -824,7 +824,7 @@ export function analyzeTimetableV2Feasibility(
           true,
 
         message:
-          "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­ØµØµ ÙŠÙˆÙ…ÙŠØ© ÙÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©.",
+          "لا توجد حصص يومية في المشكلة.",
 
         entityId:
           problem.projectId,
@@ -869,7 +869,7 @@ export function analyzeTimetableV2Feasibility(
           true,
 
         message:
-          "ÙŠÙˆØ¬Ø¯ ØªÙƒØ±Ø§Ø± ÙÙŠ Ù…Ø¹Ø±ÙØ§Øª Ø§Ù„Ø£ÙŠØ§Ù….",
+          "يوجد تكرار في معرفات الأيام.",
 
         entityId:
           duplicateDayIds[0].id,
@@ -921,7 +921,7 @@ export function analyzeTimetableV2Feasibility(
           true,
 
         message:
-          "ÙŠÙˆØ¬Ø¯ ØªÙƒØ±Ø§Ø± ÙÙŠ ØªØ±ØªÙŠØ¨ Ø§Ù„Ø­ØµØµ Ø§Ù„ÙŠÙˆÙ…ÙŠØ©.",
+          "يوجد تكرار في ترتيب الحصص اليومية.",
 
         entityId:
           duplicatePeriodOrders[0].id,
@@ -968,7 +968,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ù…Ø¹Ø±Ù Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù…ÙƒØ±Ø±.",
+            "معرف التكليف مكرر.",
 
           entityId:
             assignment.id,
@@ -1006,7 +1006,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù…Ø±ØªØ¨Ø· Ø¨Ù…Ø¹Ù„Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©.",
+            "التكليف مرتبط بمعلم غير موجود في المشكلة.",
 
           entityId:
             assignment.id,
@@ -1043,7 +1043,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù…Ø±ØªØ¨Ø· Ø¨ÙØµÙ„ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©.",
+            "التكليف مرتبط بفصل غير موجود في المشكلة.",
 
           entityId:
             assignment.id,
@@ -1080,7 +1080,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù…Ø±ØªØ¨Ø· Ø¨Ù…Ø§Ø¯Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©.",
+            "التكليف مرتبط بمادة غير موجودة في المشكلة.",
 
           entityId:
             assignment.id,
@@ -1116,7 +1116,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø¹Ø¯Ø¯ Ø­ØµØµ Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø£Ù† ÙŠÙƒÙˆÙ† Ø³Ø§Ù„Ø¨Ù‹Ø§.",
+            "عدد حصص التكليف لا يمكن أن يكون سالبًا.",
 
           entityId:
             assignment.id,
@@ -1156,7 +1156,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø¹Ø¯Ø¯ Ø­ØµØµ Ø§Ù„Ø£Ø²ÙˆØ§Ø¬ ÙŠØªØ¬Ø§ÙˆØ² Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø­ØµØµ Ø§Ù„ØªÙƒÙ„ÙŠÙ.",
+            "عدد حصص الأزواج يتجاوز إجمالي حصص التكليف.",
 
           entityId:
             assignment.id,
@@ -1199,7 +1199,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ø«Ø§Ø¨ØªØ© Ø£ÙƒØ¨Ø± Ù…Ù† Ø­ØµØµ Ø§Ù„ØªÙƒÙ„ÙŠÙ.",
+            "عدد الحصص الثابتة أكبر من حصص التكليف.",
 
           entityId:
             assignment.id,
@@ -1257,7 +1257,7 @@ export function analyzeTimetableV2Feasibility(
           true,
 
         message:
-          "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø£ÙƒØ¨Ø± Ù…Ù† Ø§Ù„Ø³Ø¹Ø© Ø§Ù„Ù†Ø¸Ø±ÙŠØ© Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„ÙØµÙˆÙ„.",
+          "إجمالي الحصص المطلوبة أكبر من السعة النظرية لجميع الفصول.",
 
         entityId:
           problem.projectId,
@@ -1322,7 +1322,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø§Ù„ÙØµÙ„ ÙŠØ­ØªØ§Ø¬ Ø­ØµØµÙ‹Ø§ Ø£ÙƒØ«Ø± Ù…Ù† Ø¹Ø¯Ø¯ Ø§Ù„Ø®Ø§Ù†Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© Ù„Ù‡.",
+            "الفصل يحتاج حصصًا أكثر من عدد الخانات المتاحة له.",
 
           entityId:
             classItem.id,
@@ -1365,7 +1365,7 @@ export function analyzeTimetableV2Feasibility(
             false,
 
           message:
-            "Ø§Ù„ÙØµÙ„ ÙŠØ³ØªØ®Ø¯Ù… ÙƒÙ„ Ø®Ø§Ù†Ø© Ù…ØªØ§Ø­Ø©Ø› Ø£ÙŠ ØªØ¹Ø¯ÙŠÙ„ ÙÙŠ Ø§Ù„Ø¬Ø¯ÙˆÙ„ ÙŠØ­ØªØ§Ø¬ ØºØ§Ù„Ø¨Ù‹Ø§ ØªØ¨Ø¯ÙŠÙ„Ø§Øª Ù…Ø¨Ø§Ø´Ø±Ø©.",
+            "الفصل يستخدم كل خانة متاحة؛ أي تعديل في الجدول يحتاج غالبًا تبديلات مباشرة.",
 
           entityId:
             classItem.id,
@@ -1508,7 +1508,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø­Ù…Ù„ Ø§Ù„Ù…Ø¹Ù„Ù… Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ Ø£ÙƒØ¨Ø± Ù…Ù† Ø£Ù‚ØµÙ‰ Ø³Ø¹Ø© Ù…Ù…ÙƒÙ†Ø© Ø¨Ø¹Ø¯ ØªØ·Ø¨ÙŠÙ‚ Ø£ÙŠØ§Ù… Ø§Ù„Ø±Ø§Ø­Ø© ÙˆØ¹Ø¯Ù… Ø§Ù„ØªÙˆÙØ± ÙˆØ§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„ÙŠÙˆÙ…ÙŠØ© ÙˆØ§Ù„Ù…ØªØªØ§Ù„ÙŠØ©.",
+            "حمل المعلم الأسبوعي أكبر من أقصى سعة ممكنة بعد تطبيق أيام الراحة وعدم التوفر والحدود اليومية والمتتالية.",
 
           entityId:
             teacher.id,
@@ -1560,7 +1560,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø­ØµØµ Ø§Ù„Ù…Ø¹Ù„Ù… ØªØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ Ø§Ù„Ù…Ø³Ø¬Ù„ Ù„Ù‡.",
+            "حصص المعلم تتجاوز الحد الأسبوعي المسجل له.",
 
           entityId:
             teacher.id,
@@ -1635,7 +1635,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø§Ù„ØªÙƒÙ„ÙŠÙ Ù„Ø§ ÙŠÙ…Ù„Ùƒ Ø¹Ø¯Ø¯Ù‹Ø§ ÙƒØ§ÙÙŠÙ‹Ø§ Ù…Ù† Ø§Ù„Ø®Ø§Ù†Ø§Øª Ø§Ù„ØªÙŠ ØªÙƒÙˆÙ† Ù…ØªØ§Ø­Ø© Ù„Ù„Ù…Ø¹Ù„Ù… ÙˆØ§Ù„ÙØµÙ„ ÙˆØ§Ù„Ù…Ø§Ø¯Ø© Ù…Ø¹Ù‹Ø§.",
+            "التكليف لا يملك عددًا كافيًا من الخانات التي تكون متاحة للمعلم والفصل والمادة معًا.",
 
           entityId:
             assignment.id,
@@ -1739,7 +1739,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ø¹Ø¯Ø¯ Ø­ØµØµ Ø§Ù„Ù…Ø§Ø¯Ø© ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„ØªÙƒÙ„ÙŠÙ Ø£ÙƒØ¨Ø± Ù…Ù† Ø§Ù„Ø³Ø¹Ø© Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠØ© Ø§Ù„Ù…Ù…ÙƒÙ†Ø© Ø¨Ø¹Ø¯ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø­Ø¯ Ø§Ù„ÙŠÙˆÙ…ÙŠ ÙˆØ§Ù„Ø®Ø§Ù†Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©.",
+              "عدد حصص المادة في هذا التكليف أكبر من السعة الأسبوعية الممكنة بعد تطبيق الحد اليومي والخانات المتاحة.",
 
             entityId:
               assignment.id,
@@ -1810,7 +1810,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ø§Ù„ØªÙƒÙ„ÙŠÙ ÙŠØªØ·Ù„Ø¨ Ø­ØµØ© Ù…Ø²Ø¯ÙˆØ¬Ø© ÙˆÙ„ÙƒÙ† Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£ÙŠ Ø®Ø§Ù†ØªÙŠÙ† Ù…ØªØªØ§Ù„ÙŠØªÙŠÙ† Ù…ØªØ§Ø­ØªÙŠÙ† Ù„Ù‡.",
+              "التكليف يتطلب حصة مزدوجة ولكن لا توجد أي خانتين متتاليتين متاحتين له.",
 
             entityId:
               assignment.id,
@@ -1857,7 +1857,7 @@ export function analyzeTimetableV2Feasibility(
               false,
 
             message:
-              "Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ø²Ø¯ÙˆØ¬Ø© ÙƒØ¨ÙŠØ± Ù…Ù‚Ø§Ø±Ù†Ø© Ø¨Ø¹Ø¯Ø¯ Ø¨Ø¯Ø§ÙŠØ§Øª Ø§Ù„ÙØªØ±Ø§Øª Ø§Ù„Ù…ØªØªØ§Ù„ÙŠØ© Ø§Ù„Ù…ØªØ§Ø­Ø©. Ù‚Ø¯ ÙŠØªØ·Ù„Ø¨ Ø§Ù„Ø£Ù…Ø± ÙØ­ØµÙ‹Ø§ ØªØ±ÙƒÙŠØ¨ÙŠÙ‹Ø§ Ø£Ø¹Ù…Ù‚ Ø¨Ø³Ø¨Ø¨ ØªØ¯Ø§Ø®Ù„ Ø§Ù„Ø¨Ø¯Ø§ÙŠØ§Øª.",
+              "عدد الحصص المزدوجة كبير مقارنة بعدد بدايات الفترات المتتالية المتاحة. قد يتطلب الأمر فحصًا تركيبيًا أعمق بسبب تداخل البدايات.",
 
             entityId:
               assignment.id,
@@ -2022,7 +2022,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø­ØµØµ Ø§Ù„Ù…Ø§Ø¯Ø© Ù„Ù‡Ø°Ø§ Ø§Ù„ÙØµÙ„ Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªÙˆØ²ÙŠØ¹Ù‡ Ø¶Ù…Ù† Ø§Ù„Ø­Ø¯ Ø§Ù„ÙŠÙˆÙ…ÙŠ ÙˆØ§Ù„Ø£ÙŠØ§Ù… Ø§Ù„Ù…ØªØ§Ø­Ø©.",
+            "إجمالي حصص المادة لهذا الفصل لا يمكن توزيعه ضمن الحد اليومي والأيام المتاحة.",
 
           entityId:
             `${subjectId}:${classId}`,
@@ -2076,7 +2076,7 @@ export function analyzeTimetableV2Feasibility(
             false,
 
           message:
-            "Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø§Ø¯Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªØ¸Ù‡Ø± Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙŠ ÙƒÙ„ ÙŠÙˆÙ… Ø¯Ø±Ø§Ø³ÙŠ Ø¨Ø§Ù„Ø¶Ø¨Ø·Ø› ÙÙ‚Ø¯Ø§Ù† Ø£ÙŠ ÙŠÙˆÙ… ØµØ§Ù„Ø­ ÙŠØ¬Ø¹Ù„ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ù…Ø³ØªØ­ÙŠÙ„Ù‹Ø§.",
+            "هذه المادة يجب أن تظهر مرة واحدة في كل يوم دراسي بالضبط؛ فقدان أي يوم صالح يجعل الجدول مستحيلًا.",
 
           entityId:
             `${subjectId}:${classId}`,
@@ -2155,7 +2155,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ø§Ù„Ø­ØµØ© Ø§Ù„Ø«Ø§Ø¨ØªØ© ØªØ´ÙŠØ± Ø¥Ù„Ù‰ ÙŠÙˆÙ… Ø£Ùˆ ÙØªØ±Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+              "الحصة الثابتة تشير إلى يوم أو فترة غير موجودة.",
 
             entityId:
               assignment.id,
@@ -2209,7 +2209,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ù‡Ù†Ø§Ùƒ Ø­ØµØ© Ø«Ø§Ø¨ØªØ© Ù…ÙˆØ¶ÙˆØ¹Ø© ÙÙŠ Ø®Ø§Ù†Ø© ÙŠÙ…Ù†Ø¹Ù‡Ø§ Ø£Ø­Ø¯ Ù‚ÙŠÙˆØ¯ HARD.",
+              "هناك حصة ثابتة موضوعة في خانة يمنعها أحد قيود HARD.",
 
             entityId:
               assignment.id,
@@ -2266,7 +2266,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ø§Ù„Ù…Ø¹Ù„Ù… Ù…Ø«Ø¨Øª ÙÙŠ ØªÙƒÙ„ÙŠÙÙŠÙ† Ù…Ø®ØªÙ„ÙÙŠÙ† ÙÙŠ Ù†ÙØ³ Ø§Ù„Ø­ØµØ©.",
+              "المعلم مثبت في تكليفين مختلفين في نفس الحصة.",
 
             entityId:
               assignment.teacherId,
@@ -2328,7 +2328,7 @@ export function analyzeTimetableV2Feasibility(
               true,
 
             message:
-              "Ø§Ù„ÙØµÙ„ Ù…Ø«Ø¨Øª Ù„Ù‡ ØªÙƒÙ„ÙŠÙØ§Ù† Ù…Ø®ØªÙ„ÙØ§Ù† ÙÙŠ Ù†ÙØ³ Ø§Ù„Ø­ØµØ©.",
+              "الفصل مثبت له تكليفان مختلفان في نفس الحصة.",
 
             entityId:
               assignment.classId,
@@ -2406,7 +2406,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "Ù‚ÙŠØ¯ HARD ÙŠØªØ·Ù„Ø¨ Ø­Ø¯Ù‹Ø§ Ø±Ù‚Ù…ÙŠÙ‹Ø§ Ù…ÙˆØ¬Ø¨Ù‹Ø§ Ù„ÙƒÙ†Ù‡ Ù„Ø§ ÙŠØ­ØªÙˆÙŠ Ù‚ÙŠÙ…Ø© ØµØ§Ù„Ø­Ø©.",
+            "قيد HARD يتطلب حدًا رقميًا موجبًا لكنه لا يحتوي قيمة صالحة.",
 
           entityId:
             constraint.id,

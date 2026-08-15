@@ -294,6 +294,41 @@ public class TimetableRequestMapperV1 {
                 "SOFT".equals(
                     strength
                 ) &&
+                "TEACHER_PREFERRED".equals(
+                    type
+                ) &&
+                contains(
+                    constraint.teacherIds(),
+                    block.getTeacherId()
+                )
+            ) {
+                Set<String> slotKeys =
+                    preferredSlotKeys(
+                        slots,
+                        constraint
+                    );
+
+                if (
+                    !slotKeys.isEmpty()
+                ) {
+                    preferred.add(
+                        new PreferredSlotRuleV1(
+                            slotKeys,
+                            Math.max(
+                                1,
+                                constraint.weight()
+                            )
+                        )
+                    );
+                }
+
+                continue;
+            }
+
+            if (
+                "SOFT".equals(
+                    strength
+                ) &&
                 "SUBJECT_PREFERRED".equals(
                     type
                 ) &&

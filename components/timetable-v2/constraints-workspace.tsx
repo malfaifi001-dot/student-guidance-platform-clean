@@ -88,6 +88,11 @@ type Props = {
   subjects: Subject[];
   classes: ClassItem[];
   initialConstraints: Constraint[];
+
+  apiBasePath?: string;
+  backPath?: string;
+  nextPath?: string;
+  stepLabel?: string;
 };
 
 function Metric({
@@ -125,6 +130,17 @@ export function TimetableV2ConstraintsWorkspace({
   subjects,
   classes,
   initialConstraints,
+
+  apiBasePath =
+    "/api/dashboard/principal/timetable-v2",
+
+  backPath =
+    `/dashboard/timetable-v2/${project.id}`,
+
+  nextPath,
+
+  stepLabel =
+    "القيود",
 }: Props) {
   const router = useRouter();
 
@@ -536,7 +552,7 @@ export function TimetableV2ConstraintsWorkspace({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="inline-flex rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-black text-teal-700">
-              الخطوة 4
+              {stepLabel}
             </div>
 
             <h1 className="mt-3 text-3xl font-black text-slate-950">
@@ -553,11 +569,11 @@ export function TimetableV2ConstraintsWorkspace({
           <button
             type="button"
             onClick={() =>
-              router.push(`/dashboard/timetable-v2/${project.id}`)
+              router.push(backPath)
             }
             className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700"
           >
-            العودة للمشروع
+            السابق
           </button>
         </div>
 
@@ -925,6 +941,30 @@ export function TimetableV2ConstraintsWorkspace({
             />
           </div>
         </section>
+      ) : null}
+
+      {nextPath && !formMode ? (
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              router.push(backPath)
+            }
+            className="h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+          >
+            السابق
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(nextPath)
+            }
+            className="h-11 rounded-xl bg-[#3478B8] px-6 text-sm font-black text-white transition hover:bg-[#2D6BA5]"
+          >
+            التالي: التحقق
+          </button>
+        </div>
       ) : null}
 
       {reviewSlot ? (
