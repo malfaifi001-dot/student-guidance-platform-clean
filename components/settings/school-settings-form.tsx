@@ -343,7 +343,8 @@ export function SchoolSettingsForm() {
         type: "success",
         message: "تم حفظ بيانات المدرسة والحساب بنجاح.",
       });
-      setSaveConfirmationOpen(true);
+      const showStandardSaveFeedback = window.dispatchEvent(new CustomEvent("teachix:school-settings-saved", { cancelable: true }));
+      if (showStandardSaveFeedback) setSaveConfirmationOpen(true);
     } catch (error) {
       setFeedback({
         type: "error",
@@ -500,7 +501,9 @@ ${signatureUrl}`;
         signatureUrl,
         whatsappUrl,
         messageText,
-      });const patch = {
+      });
+      window.dispatchEvent(new CustomEvent("teachix:principal-signature-requested"));
+      const patch = {
         principalSignatureRequestedAt: data.requestedAt || "",
       };
 
@@ -539,7 +542,14 @@ ${signatureUrl}`;
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      data-guidance="teacher-school-settings"
+      data-principal-signature-ready={Boolean(form.principalSignatureUrl)}
+      data-school-identity-ready={readiness.readyForOfficialReports}
+      data-principal-name-ready={Boolean(form.principalName.trim())}
+      data-has-changes={hasChanges}
+    >
       <SmartFeedbackModal
         open={saveConfirmationOpen}
         type="success"
@@ -682,6 +692,7 @@ ${signatureUrl}`;
             value={form.schoolName}
             onChange={(value) => update("schoolName", value)}
             required
+            guidanceTarget="teacher-school-identity"
           />
 
           <Input
@@ -698,6 +709,7 @@ ${signatureUrl}`;
             label={`اسم ${identityCopy.schoolPrincipalLabel}`}
             value={form.principalName}
             onChange={(value) => update("principalName", value)}
+            guidanceTarget="teacher-principal-name"
           />
 
           <Select
@@ -764,6 +776,7 @@ ${signatureUrl}`;
           <button
             type="button"
             onClick={save}
+            data-guidance="teacher-school-save"
             disabled={saving || !hasChanges}
             className="rounded-2xl bg-slate-950 px-7 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -843,7 +856,7 @@ function SchoolSignaturesCard({
   );
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <section data-guidance="teacher-principal-signature" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-black text-blue-700">تواقيع المدرسة</p>
@@ -963,6 +976,7 @@ function SchoolSignaturesCard({
             <button
               type="button"
               onClick={onSendPrincipalSignatureRequest}
+              data-guidance="teacher-principal-signature-request"
               disabled={sendingPrincipalRequest}
               className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -1682,6 +1696,7 @@ function Input({
   required = false,
   inputMode,
   maxLength,
+  guidanceTarget,
 }: {
   label: string;
   value: string;
@@ -1689,9 +1704,10 @@ function Input({
   required?: boolean;
   inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
   maxLength?: number;
+  guidanceTarget?: string;
 }) {
   return (
-    <label className="block">
+    <label className="block" data-guidance={guidanceTarget}>
       <span className="text-sm font-black text-slate-700">
         {label}
         {required ? <span className="text-red-500"> *</span> : null}

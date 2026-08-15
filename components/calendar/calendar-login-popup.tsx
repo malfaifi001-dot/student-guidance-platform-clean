@@ -141,6 +141,15 @@ export function CalendarLoginPopup() {
   );
 
   useEffect(() => {
+    const handleTeacherJourney = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{ active?: boolean }>;
+      if (event.detail?.active) setOpen(false);
+    };
+    window.addEventListener("teachix:teacher-onboarding-active", handleTeacherJourney);
+    return () => window.removeEventListener("teachix:teacher-onboarding-active", handleTeacherJourney);
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
 
     async function loadDueReminders() {
@@ -163,7 +172,10 @@ export function CalendarLoginPopup() {
           : [];
 
         setReminders(dueReminders);
-        setOpen(dueReminders.length > 0);
+        setOpen(
+          dueReminders.length > 0 &&
+            !document.documentElement.hasAttribute("data-teacher-onboarding"),
+        );
       } catch {
         if (mounted) {
           setReminders([]);

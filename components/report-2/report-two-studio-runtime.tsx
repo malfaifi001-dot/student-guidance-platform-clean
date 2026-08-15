@@ -20,6 +20,7 @@ import {
   type ReportSignatureRequestView,
 } from "@/components/report-signatures/report-signature-request-card";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
+import { MoreVertical } from "lucide-react";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -2627,6 +2628,24 @@ export function ReportTwoStudioRuntime({
   const [reportTwoSaveSubmitting, setReportTwoSaveSubmitting] = useState(false);
   const [reportTwoApprovalSubmitting, setReportTwoApprovalSubmitting] =
     useState(false);
+  const [finalActionsOpen, setFinalActionsOpen] = useState(false);
+  const finalActionsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!finalActionsOpen) return;
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!finalActionsRef.current?.contains(event.target as Node)) setFinalActionsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFinalActionsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutside);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [finalActionsOpen]);
 
   useEffect(() => {
     const preparation =
@@ -3318,8 +3337,12 @@ export function ReportTwoStudioRuntime({
         editorState: result.snapshot.editorState,
         previewUrl: nextApprovedSnapshot.previewUrl,
       });
+      const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+        cancelable: true,
+        detail: { reportId: String(nextApprovedSnapshot.id || ""), caseId },
+      }));
 
-      if (showSuccessPopup) {
+      if (showSuccessPopup && showStandardApprovalFeedback) {
         setReportTwoActionModal({
           title: "تم اعتماد التقرير",
           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
@@ -3328,6 +3351,8 @@ export function ReportTwoStudioRuntime({
         });
         return nextApprovedSnapshot;
       }
+
+      if (showSuccessPopup) return nextApprovedSnapshot;
 
       if (showSuccessPopup) {
         setPopup({
@@ -3439,7 +3464,11 @@ export function ReportTwoStudioRuntime({
           result.previewUrl ||
           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
       });
-      setPopup({
+      const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+        cancelable: true,
+        detail: { reportId: String(result.snapshot?.id || ""), caseId },
+      }));
+      if (showStandardApprovalFeedback) setPopup({
         type: "alert",
         title: "تم اعتماد التقرير",
         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
@@ -4503,16 +4532,6 @@ export function ReportTwoStudioRuntime({
           </div>
 
           <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-            <ReportSignatureRequestCard
-              reportId={persistedReport?.id || null}
-              initialRequest={initialSignatureRequest}
-              initialPrincipalName={initialPrincipalName}
-              initialPrincipalPhone={initialPrincipalPhone}
-              ensureReportId={async () =>
-                persistedReport?.id ||
-                (await persistReportTwoDraft(false, { silent: true }))
-              }
-            />
             {persistedReport?.id ? (
               <ReportDeleteAction
                 reportId={persistedReport.id}
@@ -4533,33 +4552,38 @@ export function ReportTwoStudioRuntime({
               </ReportDeleteAction>
             ) : null}
 
-            <button
-              type="button"
-              onClick={() => {
-                setRuntimeMode("edit");
-                syncReportTwoStudioUrl("edit");
-              }}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-white px-2.5 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 sm:flex-none sm:px-3 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-              </svg>
-              تعديل قبل الحفظ
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void saveAndDownloadReportTwoSnapshot()}
-              disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
-              className="min-w-0 flex-1 rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white transition hover:bg-rose-700 sm:flex-none sm:px-4 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {reportTwoApprovalSubmitting
-                ? "جاري الحفظ..."
-                : reportTwoPdfExporting
-                  ? "جاري التحميل..."
-                  : "حفظ وتحميل"}
-            </button>
+            <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={() => void saveAndDownloadReportTwoSnapshot()}
+                disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+                className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFinalActionsOpen((open) => !open)}
+                aria-label="إجراءات التقرير الإضافية"
+                aria-expanded={finalActionsOpen}
+                aria-haspopup="menu"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <MoreVertical className="h-5 w-5" aria-hidden="true" />
+              </button>
+              {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+                <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+                <ReportSignatureRequestCard
+                  reportId={persistedReport?.id || null}
+                  initialRequest={initialSignatureRequest}
+                  initialPrincipalName={initialPrincipalName}
+                  initialPrincipalPhone={initialPrincipalPhone}
+                  ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+                  triggerLabel="إرسال للمدير للتوقيع"
+                  triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                />
+              </div> : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -4861,6 +4885,7 @@ export function ReportTwoStudioRuntime({
                 type="button"
                 disabled={reportTwoApprovalSubmitting}
                 onClick={approveReportTwoSnapshot}
+                data-guidance="teacher-report-finalize"
                 className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
@@ -4963,7 +4988,7 @@ export function ReportTwoStudioRuntime({
         </div>
       </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-approved={Boolean(approvedSnapshot)} data-report-id={approvedSnapshot?.id || persistedReport?.id || ""} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />

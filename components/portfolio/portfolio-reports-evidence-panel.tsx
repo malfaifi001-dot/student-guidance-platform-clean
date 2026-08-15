@@ -79,7 +79,7 @@ export function PortfolioReportsEvidencePanel(props: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-guidance="teacher-portfolio-reports">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

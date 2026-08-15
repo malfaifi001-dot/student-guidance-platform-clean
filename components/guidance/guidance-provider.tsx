@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuidanceOverlay } from "@/components/guidance/guidance-overlay";
+import { TeacherOnboardingController, replayTeacherOnboarding } from "@/components/guidance/teacher-onboarding-controller";
 import { resolveGuidanceSteps, isGuidanceRole } from "@/lib/guidance/guidance-resolver";
 import { readGuidanceProgress, writeGuidanceProgress } from "@/lib/guidance/guidance-storage";
 import type { GuidanceScopeConfig } from "@/lib/guidance/guidance-types";
@@ -15,16 +16,17 @@ type GuidanceContextValue = {
 
 const GuidanceContext = createContext<GuidanceContextValue | null>(null);
 
-export function GuidanceProvider({ userId, role, children }: { userId: string; role?: string | null; children: ReactNode }) {
+export function GuidanceProvider({ userId, role, gender, children }: { userId: string; role?: string | null; gender?: string | null; children: ReactNode }) {
   const [scope, setScope] = useState<GuidanceScopeConfig | null>(null);
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [teacherJourneyActive, setTeacherJourneyActive] = useState(false);
   const supportedRole = isGuidanceRole(role) ? role : null;
   const steps = useMemo(() => scope && supportedRole ? resolveGuidanceSteps({ context: scope.context, role: supportedRole, capabilities: scope.capabilities || [] }) : [], [scope, supportedRole]);
 
   useEffect(() => {
     setOpen(false);
-    if (!scope || !supportedRole || scope.autoStart === false || !steps.length) return;
+    if (teacherJourneyActive || !scope || !supportedRole || scope.autoStart === false || !steps.length) return;
     const progress = readGuidanceProgress(userId, scope.context);
     if (progress.status === "completed" || progress.status === "skipped") return;
     const timer = window.setTimeout(() => {
@@ -32,20 +34,31 @@ export function GuidanceProvider({ userId, role, children }: { userId: string; r
       setOpen(true);
     }, scope.context === "report-studio" ? 450 : 180);
     return () => window.clearTimeout(timer);
-  }, [scope, steps.length, supportedRole, userId]);
+  }, [scope, steps.length, supportedRole, teacherJourneyActive, userId]);
 
   const replay = useCallback(() => {
+    if (role === "TEACHER") {
+      replayTeacherOnboarding();
+      return;
+    }
     if (!scope || !steps.length) return;
     setStepIndex(0);
     setOpen(true);
-  }, [scope, steps.length]);
+  }, [role, scope, steps.length]);
 
-  const value = useMemo(() => ({ scope, setScope, replay, canReplay: Boolean(scope && supportedRole && steps.length) }), [scope, replay, supportedRole, steps.length]);
+  const value = useMemo(() => ({ scope, setScope, replay, canReplay: role === "TEACHER" || Boolean(scope && supportedRole && steps.length) }), [role, scope, replay, supportedRole, steps.length]);
 
   return (
     <GuidanceContext.Provider value={value}>
       {children}
-      {scope && open ? (
+      {role === "TEACHER" ? (
+        <TeacherOnboardingController
+          userId={userId}
+          gender={gender}
+          onActiveChange={setTeacherJourneyActive}
+        />
+      ) : null}
+      {role !== "TEACHER" && scope && open && !teacherJourneyActive ? (
         <GuidanceOverlay
           steps={steps}
           initialIndex={stepIndex}

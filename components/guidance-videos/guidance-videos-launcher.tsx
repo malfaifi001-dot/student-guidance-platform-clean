@@ -27,7 +27,7 @@ import {
 const GUIDANCE_VIDEOS_INTRO_KEY = "guidance-videos-intro-v1";
 const emptySubscribe = () => () => undefined;
 
-export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
+export function GuidanceVideosLauncher({ userId, role }: { userId?: string; role?: string | null }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isMounted = useSyncExternalStore(
@@ -73,7 +73,7 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
       } catch {
         // Some privacy modes can deny localStorage access.
       }
-      setShowCoachMark(availableVideos.length > 0 && !introCompleted);
+      setShowCoachMark(role !== "TEACHER" && availableVideos.length > 0 && !introCompleted);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -84,7 +84,7 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
     } finally {
       setLoading(false);
     }
-  }, [tourKey]);
+  }, [role, tourKey]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

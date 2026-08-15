@@ -181,7 +181,7 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
 
           <GuidanceLauncher />
 
-          <GuidanceVideosLauncher userId={user?.id ?? undefined} />
+          <GuidanceVideosLauncher userId={user?.id ?? undefined} role={user?.role} />
 
           <div
             className="relative ms-auto sm:ms-0"

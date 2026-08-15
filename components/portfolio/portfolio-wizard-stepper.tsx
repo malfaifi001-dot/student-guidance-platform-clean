@@ -47,6 +47,7 @@ export function PortfolioWizardStepper({
               <button
                 ref={active ? activeButtonRef : undefined}
                 type="button"
+                data-guidance={step.id === "reports" ? "teacher-portfolio-reports-tab" : undefined}
                 aria-current={active ? "step" : undefined}
                 aria-label={`الخطوة ${index + 1}: ${step.label}${completed ? "، مكتملة" : active ? "، الحالية" : ""}`}
                 onClick={() => onStepChange(step.id)}

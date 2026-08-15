@@ -446,7 +446,7 @@ export function ReportFieldSelectionGate({
   return (
     <main className="min-h-screen bg-[#eef3ef] px-6 py-8" dir="rtl">
       <div className="mx-auto max-w-6xl">
-        <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
+        <section data-guidance="report-prepare-fields" className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-black text-emerald-700">
@@ -464,6 +464,7 @@ export function ReportFieldSelectionGate({
             <button
               type="button"
               onClick={continueToReport}
+              data-guidance="report-prepare-continue"
               disabled={selectedCount === 0}
               className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
             >

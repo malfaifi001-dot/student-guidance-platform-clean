@@ -1184,6 +1184,16 @@ export function DynamicFormRenderer({
           : `${caseDetailsBasePath}/${data.caseId}`;
         feedbackTitle = "تم حفظ بيانات الحالة";
         feedbackMessage = data.message || data.reportSync?.message || feedbackMessage;
+
+        if (!caseId && type === "submit" && data.caseId) {
+          const journeyEvent = new CustomEvent("teachix:case-saved", {
+            cancelable: true,
+            detail: { caseId: String(data.caseId), serviceId, workflowId: workflow.id },
+          });
+          if (!window.dispatchEvent(journeyEvent)) {
+            redirectTo = `${caseDetailsBasePath}/${encodeURIComponent(String(data.caseId))}`;
+          }
+        }
       }
 
       showFeedback("success", feedbackTitle, feedbackMessage);
@@ -1262,7 +1272,7 @@ export function DynamicFormRenderer({
   }
 
   return (
-    <main className={embedded ? "space-y-5" : "space-y-8"}>
+    <main className={embedded ? "space-y-5" : "space-y-8"} data-workflow-supports-evidence={supportsEvidence}>
       {!embedded ? <GuidanceScope context="workflow-runtime" /> : null}
       <SmartFeedbackModal
         open={feedback.open}
@@ -1367,7 +1377,7 @@ export function DynamicFormRenderer({
       ) : null}
 
       {showEvidenceCard ? (
-        <section className={embedded ? "border-t border-slate-100 pt-5" : "rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"}>
+        <section data-guidance="workflow-evidence" className={embedded ? "border-t border-slate-100 pt-5" : "rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"}>
           <div className={embedded ? "mb-4" : "mb-6"}>
             <h2 className={embedded ? "text-base font-black text-slate-900" : "text-3xl font-black text-slate-900"}>
               الشواهد والمرفقات
@@ -1442,6 +1452,7 @@ export function DynamicFormRenderer({
           <button
             type="button"
             onClick={() => handleSave("submit")}
+            data-guidance="workflow-submit"
             disabled={loading}
             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >

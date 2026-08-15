@@ -44,12 +44,16 @@ export function ReportSignatureRequestCard({
   initialPrincipalName = "",
   initialPrincipalPhone = "",
   ensureReportId,
+  triggerClassName,
+  triggerLabel = "إرسال للمدير للتوقيع",
 }: {
   reportId: string | null;
   initialRequest: ReportSignatureRequestView | null;
   initialPrincipalName?: string;
   initialPrincipalPhone?: string;
   ensureReportId?: () => Promise<string | null>;
+  triggerClassName?: string;
+  triggerLabel?: string;
 }) {
   const router = useRouter();
   const [request, setRequest] = useState(initialRequest);
@@ -148,9 +152,9 @@ export function ReportSignatureRequestCard({
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex min-w-0 flex-1 items-center justify-center rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800 sm:flex-none"
+        className={triggerClassName || "inline-flex min-w-0 flex-1 items-center justify-center rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800 sm:flex-none"}
       >
-        إرسال للمدير للتوقيع
+        {triggerLabel}
       </button>
       <SmartActionModal
         open={open}
