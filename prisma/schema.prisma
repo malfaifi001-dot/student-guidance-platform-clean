@@ -181,6 +181,37 @@ enum PaymentMethod {
   MANUAL
 }
 
+enum OperationalExpenseStatus {
+  DUE
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+enum ExpensePaymentMethod {
+  BANK_TRANSFER
+  CARD
+  CASH
+  WALLET
+  DIRECT_DEBIT
+  OTHER
+}
+
+enum ExpensePaymentSourceType {
+  BANK_ACCOUNT
+  CARD
+  CASH
+  WALLET
+  OTHER
+}
+
+enum ExpenseRecurrenceInterval {
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUAL
+}
+
 enum PromotionDiscountType {
   PERCENTAGE
   FIXED_AMOUNT
@@ -1654,6 +1685,170 @@ model PlatformActivityLog {
   @@index([category])
   @@index([action])
   @@index([createdAt])
+}
+
+model ExpenseCategory {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String  @unique
+  isSystem    Boolean @default(false)
+  isActive    Boolean @default(true)
+  createdById String?
+
+  expenses OperationalExpense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, name])
+}
+
+model ExpensePaymentSource {
+  id               String                   @id @default(cuid())
+  name             String
+  type             ExpensePaymentSourceType
+  institutionName  String?
+  maskedIdentifier String?
+  notes            String?                  @db.Text
+  isActive         Boolean                  @default(true)
+  createdById      String?
+
+  expenses OperationalExpense[]
+  payments ExpensePaymentRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, type])
+  @@index([name])
+}
+
+model OperationalExpense {
+  id String @id @default(cuid())
+
+  title      String
+  vendor     String?
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  amountBeforeTax Decimal @db.Decimal(14, 2)
+  taxAmount       Decimal @default(0) @db.Decimal(14, 2)
+  totalAmount     Decimal @db.Decimal(14, 2)
+  currency        String  @default("SAR") @db.VarChar(3)
+
+  invoiceNumber String?
+  invoiceDate   DateTime?
+  dueDate       DateTime?
+  paidDate      DateTime?
+  status        OperationalExpenseStatus @default(DUE)
+
+  paymentMethod   ExpensePaymentMethod?
+  paymentSourceId String?
+  paymentSource   ExpensePaymentSource? @relation(fields: [paymentSourceId], references: [id], onDelete: SetNull)
+
+  isRecurring        Boolean                    @default(false)
+  recurrenceInterval ExpenseRecurrenceInterval?
+  nextRenewalDate    DateTime?
+
+  notes String? @db.Text
+
+  paidById      String?
+  paidByName    String?
+  createdById   String
+  createdByName String?
+  updatedById   String
+  updatedByName String?
+
+  archivedAt   DateTime?
+  archivedById String?
+
+  attachments ExpenseAttachment[]
+  payments    ExpensePaymentRecord[]
+  audits      ExpenseAuditEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, dueDate])
+  @@index([categoryId, invoiceDate])
+  @@index([paymentSourceId, paidDate])
+  @@index([isRecurring, nextRenewalDate])
+  @@index([vendor])
+  @@index([archivedAt])
+}
+
+model ExpensePaymentRecord {
+  id        String             @id @default(cuid())
+  expenseId String
+  expense   OperationalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  amountBeforeTax Decimal @db.Decimal(14, 2)
+  taxAmount       Decimal @db.Decimal(14, 2)
+  totalAmount     Decimal @db.Decimal(14, 2)
+  currency        String  @db.VarChar(3)
+
+  paymentMethod         ExpensePaymentMethod
+  paymentSourceId       String?
+  paymentSource         ExpensePaymentSource?    @relation(fields: [paymentSourceId], references: [id], onDelete: SetNull)
+  paymentSourceName     String
+  paymentSourceType     ExpensePaymentSourceType
+  paymentSourceSnapshot Json?
+
+  paidAt         DateTime
+  reference      String?
+  recordedById   String
+  recordedByName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([expenseId, paidAt])
+  @@index([paymentSourceId, paidAt])
+  @@index([recordedById])
+}
+
+model ExpenseAttachment {
+  id        String             @id @default(cuid())
+  expenseId String
+  expense   OperationalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  originalFileName String
+  storedFileName   String
+  mimeType         String
+  sizeBytes        Int
+  fileUrl          String
+
+  createdById   String
+  createdByName String?
+  isArchived    Boolean   @default(false)
+  archivedAt    DateTime?
+  archivedById  String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([expenseId, storedFileName])
+  @@index([expenseId, isArchived, createdAt])
+}
+
+model ExpenseAuditEntry {
+  id        String             @id @default(cuid())
+  expenseId String
+  expense   OperationalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  action     String
+  summary    String
+  beforeJson Json?
+  afterJson  Json?
+
+  actorUserId String
+  actorName   String?
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([expenseId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action])
 }
 
 model StudentImportChange {

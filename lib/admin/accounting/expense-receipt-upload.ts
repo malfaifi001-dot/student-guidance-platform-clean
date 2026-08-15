@@ -1,0 +1,36 @@
+export const EXPENSE_RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
+
+export const EXPENSE_RECEIPT_MIME_EXTENSIONS = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const;
+
+export type ExpenseReceiptMimeType = keyof typeof EXPENSE_RECEIPT_MIME_EXTENSIONS;
+
+export function validateExpenseReceipt(file: File) {
+  if (!(file.type in EXPENSE_RECEIPT_MIME_EXTENSIONS)) {
+    return "المرفق يجب أن يكون PDF أو صورة JPG/PNG/WEBP.";
+  }
+  if (file.size <= 0 || file.size > EXPENSE_RECEIPT_MAX_BYTES) {
+    return "حجم المرفق يجب ألا يتجاوز 10 ميجابايت.";
+  }
+  return null;
+}
+
+export function hasValidExpenseReceiptSignature(
+  buffer: Buffer,
+  mimeType: ExpenseReceiptMimeType,
+) {
+  if (mimeType === "application/pdf") {
+    return buffer.length >= 5 && buffer.subarray(0, 5).toString("ascii") === "%PDF-";
+  }
+  if (mimeType === "image/jpeg") {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+}

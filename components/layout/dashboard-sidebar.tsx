@@ -583,6 +583,11 @@ const adminMainLinks: SidebarLinkItem[] = [
 
 const adminPaymentLinks: SidebarLinkItem[] = [
   {
+    label: "المحاسبة والمصروفات",
+    href: "/dashboard/admin/accounting",
+    icon: WalletCards,
+  },
+  {
     label: "عمليات الدفع",
     href: "/dashboard/admin/payments",
     icon: WalletCards,
