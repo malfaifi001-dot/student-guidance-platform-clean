@@ -281,7 +281,7 @@ export const REPORT_SMART_A4_PROFILES: readonly ReportSmartA4Profile[] = [
   },
 ] as const;
 
-export const REPORT_SMART_A4_TOLERANCE_PX = 2;
+export const REPORT_SMART_A4_TOLERANCE_PX = 4;
 
 type SmartA4Style =
   CSSProperties &

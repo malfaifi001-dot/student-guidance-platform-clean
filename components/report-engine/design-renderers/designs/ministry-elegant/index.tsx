@@ -36,9 +36,9 @@ export function MinistryElegantReportDesign({
 
         <header className="report-design-header relative shrink-0 px-[11mm] pb-[6mm] pt-[7mm]">
           <div dir="ltr" className="grid grid-cols-[1fr_52mm_1fr] items-center gap-[7mm]">
-            <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-[10px] font-bold leading-[1.8] text-[#0f2a4d]">
-              <p className="w-full text-center">{serviceName}</p>
-              <p className="mt-1 w-full text-center">{createdAt}</p>
+            <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-[11px] font-black leading-[1.8] text-[#0f2a4d]">
+              <p className="w-full text-center text-[11px] text-[#0f2a4d]">{serviceName}</p>
+              <p className="mt-1 w-full text-center text-[11px] text-[#4f6b75]">{createdAt}</p>
             </div>
 
             <div className="flex w-[52mm] shrink-0 flex-col items-center justify-center text-center">
@@ -50,11 +50,11 @@ export function MinistryElegantReportDesign({
               />
             </div>
 
-            <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-[10px] font-bold leading-[1.8] text-[#0f2a4d]">
-              <p className="w-full text-center">المملكة العربية السعودية</p>
-              <p className="w-full text-center">{ministryName}</p>
-              <p className="w-full text-center">{department}</p>
-              <p className="w-full text-center text-[#0f766e]">{schoolName}</p>
+            <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-[11px] font-black leading-[1.8] text-[#0f2a4d]">
+              <p className="w-full text-center text-[11px] text-[#0f2a4d]">المملكة العربية السعودية</p>
+              <p className="w-full text-center text-[11px] text-[#0f2a4d]">{ministryName}</p>
+              <p className="w-full text-center text-[11px] text-[#0f2a4d]">{department}</p>
+              <p className="w-full text-center text-[11px] text-[#0f2a4d]">{schoolName}</p>
             </div>
           </div>
         </header>

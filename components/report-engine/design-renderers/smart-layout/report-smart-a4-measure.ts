@@ -297,10 +297,7 @@ export function measureReportSmartA4Layout(
   )[0];
 
   return {
-    fits:
-      !crossesHardBoundary &&
-      blockOverflowPx <= 0 &&
-      overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
+    fits: overflowPx <= REPORT_SMART_A4_TOLERANCE_PX,
 
     viewportHeightPx: round(usableViewportHeightPx),
     contentHeightPx: round(content.scrollHeight),

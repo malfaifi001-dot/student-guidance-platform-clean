@@ -2,6 +2,7 @@
 
 import { Check, CreditCard, Landmark, Loader2, X } from "lucide-react";
 import { MoyasarCheckoutForm } from "./moyasar-checkout-form";
+import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
 
 type PaymentTransactionSummary = {
   id: string;
@@ -72,6 +73,22 @@ export function PlanPaymentModal({
     coupon && coupon.discountAmount > 0 && coupon.originalAmount !== total,
   );
 
+  function openTabbyWhatsApp() {
+    const message = [
+      "مرحبًا، أرغب في الدفع عبر Tabby.",
+      `الباقة: ${planName}`,
+      `المدة: ${billingLabel}`,
+      `المبلغ: ${total.toLocaleString("ar-SA")} ريال`,
+      "أرجو إرسال رابط الدفع عبر Tabby.",
+    ].join("\n");
+
+    window.open(
+      `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-6"
@@ -90,7 +107,7 @@ export function PlanPaymentModal({
           <X className="h-5 w-5" />
         </button>
 
-        <aside className="order-2 flex flex-col justify-center border-t border-sky-100 bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-600 p-6 text-white sm:p-7 lg:order-1 lg:border-l lg:border-t-0">
+        <aside className="order-1 flex flex-col justify-center border-t border-sky-100 bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-600 p-6 text-white sm:p-7 lg:order-1 lg:border-l lg:border-t-0">
           <p className="text-xs font-black text-sky-100">ملخص الاشتراك</p>
           <h2 className="mt-3 text-2xl font-black">{planName}</h2>
           <p className="mt-2 text-sm font-bold text-sky-100">{billingLabel}</p>
@@ -159,7 +176,7 @@ export function PlanPaymentModal({
           </div>
         </aside>
 
-        <div className="order-1 p-6 pt-16 sm:p-7 sm:pt-16 lg:order-2">
+        <div className="order-2 p-6 pt-16 sm:p-7 sm:pt-16 lg:order-2">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700">
               {mode === "online" ? (
@@ -208,13 +225,24 @@ export function PlanPaymentModal({
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                onClick={() => onSwitchMode("bank")}
-                className="mx-auto mt-4 block text-sm font-black text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-900"
-              >
-                أفضل التحويل البنكي
-              </button>
+              <div className="mx-auto mt-5 border-t border-slate-100 pt-4 text-center">
+                <p className="text-xs font-black text-slate-500">الدفع بواسطة</p>
+                <button
+                  type="button"
+                  onClick={openTabbyWhatsApp}
+                  className="mx-auto mt-2 flex min-h-12 min-w-28 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2"
+                  aria-label="الدفع بواسطة Tabby عبر واتساب"
+                >
+                  <img
+                    src="/brand/payments/tabby.svg"
+                    alt="Tabby"
+                    className="h-7 w-auto max-w-24 object-contain"
+                  />
+                </button>
+                <p className="mt-2 text-[11px] font-bold text-slate-400">
+                  اطلب رابط الدفع عبر واتساب
+                </p>
+              </div>
             </>
           ) : (
             <>

@@ -52,9 +52,12 @@ export function MoeClassicFrameReportDesign({
             <div className="h-[20mm] w-[0.7mm] shrink-0 bg-[#16ad78]" />
 
             {/* بيانات الإدارة يسار */}
-            <div className="w-[52mm] text-right text-[9.5px] font-bold leading-[1.55] text-white">
-              <p className="whitespace-nowrap text-[#18a69a]">
+            <div className="w-[52mm] text-right text-[11px] font-black leading-[1.55] text-white">
+              <p className="whitespace-nowrap text-white">
                 المملكة العربية السعودية
+              </p>
+              <p className="whitespace-nowrap text-white">
+                وزارة التعليم
               </p>
               <p className="whitespace-nowrap">
                 {department}
@@ -67,7 +70,7 @@ export function MoeClassicFrameReportDesign({
         </header>
 
         {/* عنوان التقرير في شريط الهوية السفلي */}
-        <div className="absolute left-1/2 top-[32mm] z-40 flex h-[12mm] w-[98mm] -translate-x-1/2 items-center justify-center rounded-b-[4mm] border-x border-b border-[#148c9c] bg-[#073f4c] px-[7mm] text-center text-[10px] font-bold leading-5 text-white shadow-sm">
+        <div className="absolute left-1/2 top-[32mm] z-40 flex h-[12mm] w-[98mm] -translate-x-1/2 items-center justify-center rounded-b-[4mm] border-x border-b border-[#148c9c] bg-[#073f4c] px-[7mm] text-center text-[11px] font-black leading-5 text-white shadow-sm">
           {reportTitle}
         </div>
 
