@@ -17,9 +17,13 @@ import {
 } from "@/lib/timetable-v2/readiness-analysis";
 
 import {
-  ENGINE_VERSION,
-  generateTimetableV2,
-} from "./generation-engine";
+  TIMEFOLD_V1_ENGINE_VERSION,
+  generateTimetableV2WithTimefold,
+} from "@/lib/timetable-v2/solver/timefold-v1-generation";
+
+import type {
+  TimefoldV1GenerationResult,
+} from "@/lib/timetable-v2/solver/timefold-v1-generation";
 
 import type {
   GenerationConstraint,
@@ -1187,9 +1191,7 @@ async function saveGeneratedSchedule(
   createdById: string,
   fingerprint: string,
   result:
-    ReturnType<
-      typeof generateTimetableV2
-    >,
+    TimefoldV1GenerationResult,
 ) {
   let lastError:
     unknown;
@@ -1268,7 +1270,7 @@ async function saveGeneratedSchedule(
                   result.durationMs,
 
                 engineVersion:
-                  ENGINE_VERSION,
+                  TIMEFOLD_V1_ENGINE_VERSION,
 
                 dataFingerprint:
                   fingerprint,
@@ -1504,20 +1506,14 @@ export async function generateAndSaveTimetableV2(
     );
 
   const result =
-    generateTimetableV2(
+    await generateTimetableV2WithTimefold(
       problem,
       {
-        attempts:
-          input.attempts,
-
         seed:
           input.seed,
 
-        maxNodesPerAttempt:
-          12000,
-
-        maxCandidatesPerTask:
-          8,
+        spentLimitSeconds:
+          60,
       },
     );
 

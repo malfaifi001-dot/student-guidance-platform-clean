@@ -282,10 +282,53 @@ export async function POST(
             result.reason,
 
           error:
-            "لم يتمكن المحرك من إنشاء جدول كامل وصالح ضمن المحاولات الحالية.",
+            result.result.diagnostics.some(
+              (diagnostic) =>
+                diagnostic.code ===
+                "FEASIBILITY_PRECHECK_FAILED",
+            )
+              ? "تعذر إنشاء الجدول لأن فحص القيود أثبت وجود تعارض يجعل الجدول غير قابل للحل."
+              : "لم يتمكن Timefold من الوصول إلى جدول صالح لجميع القيود الإلزامية.",
 
-          result:
-            result.result,
+          result: {
+            engine:
+              result.result.best
+                .scoreBreakdown
+                .engine,
+
+            score:
+              result.result.best.score,
+
+            completeness:
+              result.result.best
+                .completeness,
+
+            sessions:
+              result.result.best
+                .sessions.length,
+
+            hardViolations:
+              result.result.best
+                .validation
+                .hardViolationCount,
+
+            softPenalty:
+              result.result.best
+                .softPenalty,
+
+            durationMs:
+              result.result.durationMs,
+
+            seed:
+              result.result.seed,
+
+            validation:
+              result.result.best
+                .validation,
+
+            diagnostics:
+              result.result.diagnostics,
+          },
         },
         {
           status: 422,
@@ -300,6 +343,11 @@ export async function POST(
         result.schedule,
 
       result: {
+        engine:
+          result.result.best
+            .scoreBreakdown
+            .engine,
+
         score:
           result.result.best.score,
 
@@ -313,12 +361,20 @@ export async function POST(
 
         sessions:
           result.result.best
-            .scheduledSessions,
+            .sessions.length,
 
         hardViolations:
           result.result.best
             .validation
             .hardViolationCount,
+
+        softPenalty:
+          result.result.best
+            .softPenalty,
+
+        validation:
+          result.result.best
+            .validation,
 
         attempts:
           result.result.attemptCount,

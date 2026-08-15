@@ -320,13 +320,30 @@ export function TimetableV2GenerationWorkspace({
             !response.ok ||
             !data?.success
           ) {
-            const best =
-              data?.result
-                ?.best;
+            const generationResult =
+              data?.result;
 
-            if (best) {
+            if (generationResult) {
+              const sessions =
+                Number(
+                  generationResult.sessions ??
+                  0,
+                );
+
+              const completeness =
+                Number(
+                  generationResult.completeness ??
+                  0,
+                );
+
+              const hardViolations =
+                Number(
+                  generationResult.hardViolations ??
+                  0,
+                );
+
               throw new Error(
-                `${data.error} أفضل محاولة: ${best.scheduledSessions}/${best.requiredSessions} حصة.`,
+                `${data.error ?? "تعذر إنشاء الجدول."} النتيجة: ${sessions} حصة، اكتمال ${completeness.toFixed(1)}%، مخالفات إلزامية ${hardViolations}.`,
               );
             }
 
@@ -341,7 +358,7 @@ export function TimetableV2GenerationWorkspace({
               "success",
 
             text:
-              `تم إنشاء نسخة جديدة بنجاح: ${data.result.sessions} حصة، الجودة ${data.result.score}%، خلال ${formatDuration(data.result.durationMs)}.`,
+              `تم إنشاء الجدول بنجاح عبر Timefold: ${data.result.sessions} حصة، اكتمال ${Number(data.result.completeness ?? 0).toFixed(1)}%، مخالفات إلزامية ${data.result.hardViolations ?? 0}، خلال ${formatDuration(data.result.durationMs)}.`,
           });
 
           router.refresh();
@@ -673,8 +690,8 @@ export function TimetableV2GenerationWorkspace({
           />
 
           <InfoCard
-            title="أفضل محاولة"
-            text="يتم حفظ الأفضل من جميع المحاولات."
+            title="فحص قابلية الجدولة"
+            text="تُفحص القيود قبل تشغيل Timefold، ويُوقف التوليد إذا ثبت أن مجموعة القيود مستحيلة."
           />
         </div>
       </section>

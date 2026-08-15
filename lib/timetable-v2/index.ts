@@ -6,7 +6,6 @@ export * from "./project-curriculum";
 export * from "./custom-curriculum-types";
 
 export * from "./generation/generation-domain";
-export * from "./generation/generation-engine";
 
 export * from "./generation/constraint-type-normalizer";
 export * from "./generation/generation-validator";
