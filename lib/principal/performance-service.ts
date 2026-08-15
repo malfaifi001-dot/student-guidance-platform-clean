@@ -23,6 +23,10 @@ export type SimplePerformanceRowInput = {
   value: string;
 };
 
+export type PrincipalServiceDefinition = {
+  serviceSlug: string;
+};
+
 function clean(value: unknown, maxLength: number) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -44,25 +48,31 @@ export function normalizeSimplePerformanceRows(input: unknown) {
     .filter((row) => row.title || row.value);
 }
 
-export async function requirePrincipalPerformancePageAccess(
-  performanceItem: PrincipalPerformanceItem,
+export async function requirePrincipalServicePageAccess(
+  serviceDefinition: PrincipalServiceDefinition,
 ) {
   const principal = await requirePrincipalPage();
-  await ensureDashboardWorkflowService(performanceItem.serviceSlug);
+  await ensureDashboardWorkflowService(serviceDefinition.serviceSlug);
   await requireActiveSubscriptionForCurrentUser();
-  await requireServiceAccessForCurrentUser(performanceItem.serviceSlug);
+  await requireServiceAccessForCurrentUser(serviceDefinition.serviceSlug);
 
   const service = await prisma.service.findUniqueOrThrow({
-    where: { slug: performanceItem.serviceSlug },
+    where: { slug: serviceDefinition.serviceSlug },
   });
 
   return { ...principal, service };
 }
 
-export async function getPrincipalPerformancePageData(
+export function requirePrincipalPerformancePageAccess(
   performanceItem: PrincipalPerformanceItem,
 ) {
-  const context = await requirePrincipalPerformancePageAccess(performanceItem);
+  return requirePrincipalServicePageAccess(performanceItem);
+}
+
+export async function getPrincipalServicePageData(
+  serviceDefinition: PrincipalServiceDefinition,
+) {
+  const context = await requirePrincipalServicePageAccess(serviceDefinition);
   const schoolAccountId = context.schoolAccountId as string;
 
   const [entries, assignments, members] = await Promise.all([
@@ -137,6 +147,12 @@ export async function getPrincipalPerformancePageData(
   };
 }
 
+export function getPrincipalPerformancePageData(
+  performanceItem: PrincipalPerformanceItem,
+) {
+  return getPrincipalServicePageData(performanceItem);
+}
+
 export async function createSimplePrincipalPerformanceEntry(input: {
   performanceItem: PrincipalPerformanceItem;
   serviceId: string;
@@ -207,8 +223,7 @@ export async function createSimplePrincipalPerformanceEntry(input: {
   });
 }
 
-export async function createPrincipalPerformanceAssignment(input: {
-  performanceItem: PrincipalPerformanceItem;
+export async function createPrincipalInternalAssignment(input: {
   serviceId: string;
   schoolAccountId: string;
   createdById: string;
@@ -250,4 +265,17 @@ export async function createPrincipalPerformanceAssignment(input: {
     },
     select: { id: true },
   });
+}
+
+export function createPrincipalPerformanceAssignment(input: {
+  performanceItem: PrincipalPerformanceItem;
+  serviceId: string;
+  schoolAccountId: string;
+  createdById: string;
+  assigneeId: string;
+  title?: unknown;
+  note?: unknown;
+  dueDate?: unknown;
+}) {
+  return createPrincipalInternalAssignment(input);
 }

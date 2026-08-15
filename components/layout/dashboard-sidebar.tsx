@@ -8,6 +8,7 @@ import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-progr
 import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
 import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
+import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
@@ -486,6 +487,14 @@ const principalPerformanceLinks: SidebarLinkItem[] = PRINCIPAL_PERFORMANCE_ITEMS
     shortLabel: item.shortTitle,
   }),
 );
+
+const principalEvaluationAccreditationLinks: SidebarLinkItem[] =
+  PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map((service) => ({
+    label: service.title,
+    href: service.href,
+    icon: ShieldCheck,
+    shortLabel: service.shortTitle,
+  }));
 
 const principalAccountLinks: SidebarLinkItem[] = [
   {
@@ -1338,6 +1347,22 @@ function PrincipalSidebar({
         collapsed={collapsed}
       >
         {principalPerformanceLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+          />
+        ))}
+      </SidebarDropdown>
+
+      <SidebarDropdown
+        title="التقويم والاعتماد"
+        defaultOpen={hasActive(pathname, principalEvaluationAccreditationLinks)}
+        collapsed={collapsed}
+      >
+        {principalEvaluationAccreditationLinks.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}

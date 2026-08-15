@@ -129,7 +129,7 @@ export default async function AdminWorkflowsPage() {
             <p className="mt-5 max-w-4xl text-sm font-bold leading-8 text-slate-300">
               هذه الصفحة هي نقطة التحكم الأساسية في نماذج الخدمات. من هنا يتم رفع
               ملفات Excel، مراجعة النموذج قبل اعتماده، حفظه كمسودة، ثم نشره
-              للموجهين والموجهات بدون التأثير على الحالات السابقة.
+              لمساحات العمل المستفيدة بدون التأثير على الحالات السابقة.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -187,7 +187,7 @@ export default async function AdminWorkflowsPage() {
           icon={<CheckCircle2 className="h-5 w-5" />}
           label="النماذج المنشورة"
           value={activeWorkflows.length}
-          hint="هذه هي النسخ التي تظهر للموجهين."
+          hint="هذه هي النسخ التي تظهر في مساحات العمل المستفيدة."
         />
 
         <AdminWorkflowMetricCard

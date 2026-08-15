@@ -12,6 +12,7 @@ type Props = {
   itemHref: string;
   serviceId: string;
   workflow: RuntimeWorkflow;
+  saveEndpoint?: string;
 };
 
 export function PrincipalWorkflowEntryForm({
@@ -20,10 +21,12 @@ export function PrincipalWorkflowEntryForm({
   itemHref,
   serviceId,
   workflow,
+  saveEndpoint,
 }: Props) {
   const save: DynamicFormRendererSaveHandler = async (params) => {
     const response = await fetch(
-      `/api/dashboard/principal/performance/${encodeURIComponent(itemSlug)}/entries`,
+      saveEndpoint ||
+        `/api/dashboard/principal/performance/${encodeURIComponent(itemSlug)}/entries`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

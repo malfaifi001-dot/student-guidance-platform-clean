@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ArrowUpLeft, FileSpreadsheet, Search, X } from "lucide-react";
 import {
   BOARDS,
-  classifyServiceSlug,
   filterServicesByBoard,
+  type WorkflowBoardId,
 } from "@/lib/admin/workflows/workflow-board-helpers";
 import type { AppService } from "@/lib/constants/services";
 
@@ -44,7 +44,7 @@ function getWorkflowStatusLabel(
   status: string | null | undefined,
   isActive: boolean,
 ) {
-  if (isActive) return "منشور للموجهين";
+  if (isActive) return "منشور لمساحة العمل";
   if (status === "DRAFT") return "مسودة جاهزة للمراجعة";
   if (status === "ACTIVE") return "منشور غير مفعل";
   if (status === "ARCHIVED") return "مؤرشف";
@@ -191,7 +191,7 @@ export function AdminWorkflowsFilterBar({
   services: AppService[];
   workflows: WorkflowSummary[];
 }) {
-  const [activeBoard, setActiveBoard] = useState("all");
+  const [activeBoard, setActiveBoard] = useState<WorkflowBoardId>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const serviceMap = useMemo(() => {

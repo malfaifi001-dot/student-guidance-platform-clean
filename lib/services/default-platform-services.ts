@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ACTIVITY_PROGRAM_PARENT_SERVICE } from "@/lib/activity-programs/activity-program-catalog";
 import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
+import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 
 export const DEFAULT_PLATFORM_SERVICES = [
   {
@@ -31,6 +32,11 @@ export const DEFAULT_PLATFORM_SERVICES = [
   },
   ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES.map((service) => ({
     slug: service.slug,
+    name: service.title,
+    description: service.description,
+  })),
+  ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map((service) => ({
+    slug: service.serviceSlug,
     name: service.title,
     description: service.description,
   })),

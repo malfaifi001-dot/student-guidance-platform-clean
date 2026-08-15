@@ -6,6 +6,7 @@ import {
 import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
 import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
+import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 
 export type AppService = {
   slug: string;
@@ -13,6 +14,26 @@ export type AppService = {
   description: string;
   href: string;
   kind: "workflow" | "standalone" | "admin";
+};
+
+export const WORKFLOW_SERVICE_OWNER_ROLES = [
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "TEACHER",
+  "PRINCIPAL",
+] as const;
+
+export type WorkflowServiceOwnerRole =
+  (typeof WORKFLOW_SERVICE_OWNER_ROLES)[number];
+
+export const WORKFLOW_SERVICE_OWNER_LABELS: Record<
+  WorkflowServiceOwnerRole,
+  string
+> = {
+  COUNSELOR: "الموجه الطلابي",
+  ACTIVITY_LEADER: "رائد النشاط",
+  TEACHER: "المعلم",
+  PRINCIPAL: "مدير المدرسة",
 };
 
 export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
@@ -69,20 +90,22 @@ export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
   },
 ];
 
-export const workflowServices: AppService[] = [
-  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
-  STUDENT_ACTIVITY_COMPETITIONS_SERVICE,
-  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
-  ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES,
-  {
-    slug: "teacher-report-issuance",
-    title: "إصدار تقرير",
-    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
-    href: "/dashboard/teacher/report-issuance",
-    kind: "workflow",
-  },
-  ...COUNSELOR_GUIDANCE_WORKFLOW_SERVICES,
-];
+const principalEvaluationAccreditationWorkflowServices: AppService[] =
+  PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map((service) => ({
+    slug: service.serviceSlug,
+    title: service.title,
+    description: service.description,
+    href: service.href,
+    kind: "workflow" as const,
+  }));
+
+const teacherReportIssuanceWorkflowService: AppService = {
+  slug: "teacher-report-issuance",
+  title: "إصدار تقرير",
+  description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+  href: "/dashboard/teacher/report-issuance",
+  kind: "workflow",
+};
 
 export const smartInterventionWorkflowServices: AppService[] = [
   {
@@ -136,6 +159,57 @@ export const smartInterventionWorkflowServices: AppService[] = [
   },
 ];
 
+/**
+ * المصدر المركزي لملكية خدمات Workflow حسب مساحة العمل.
+ * تعتمد عليه واجهة ADMIN وقائمة خدمات الرفع بدل استنتاج الدور من slug الخدمة.
+ */
+export const workflowServicesByRole: Record<
+  WorkflowServiceOwnerRole,
+  AppService[]
+> = {
+  COUNSELOR: [
+    ...COUNSELOR_GUIDANCE_WORKFLOW_SERVICES,
+    ...smartInterventionWorkflowServices,
+  ],
+  ACTIVITY_LEADER: [
+    ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+    STUDENT_ACTIVITY_COMPETITIONS_SERVICE,
+  ],
+  TEACHER: [
+    ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+    teacherReportIssuanceWorkflowService,
+  ],
+  PRINCIPAL: [
+    ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES,
+    ...principalEvaluationAccreditationWorkflowServices,
+  ],
+};
+
+const workflowServiceOwnerRoleBySlug = new Map<
+  string,
+  WorkflowServiceOwnerRole
+>(
+  WORKFLOW_SERVICE_OWNER_ROLES.flatMap((role) =>
+    workflowServicesByRole[role].map(
+      (service) => [service.slug, role] as const,
+    ),
+  ),
+);
+
+export function getWorkflowServiceOwnerRole(serviceSlug: string) {
+  return workflowServiceOwnerRoleBySlug.get(serviceSlug) ?? null;
+}
+
+/**
+ * خدمات التشغيل المعتادة. التدخلات الذكية تبقى خارج dashboardServices كما كانت.
+ */
+export const workflowServices: AppService[] = [
+  ...workflowServicesByRole.ACTIVITY_LEADER,
+  ...workflowServicesByRole.TEACHER,
+  ...workflowServicesByRole.PRINCIPAL,
+  ...COUNSELOR_GUIDANCE_WORKFLOW_SERVICES,
+];
+
 export const SMART_INTERVENTION_SERVICE_SLUGS = smartInterventionWorkflowServices.map(
   (service) => service.slug,
 );
@@ -150,10 +224,10 @@ export const SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE: Record<string, stri
   SUBJECT_SUPPORT: "smart-subject-support",
 };
 
-export const workflowUploadServices: AppService[] = [
-  ...workflowServices,
-  ...smartInterventionWorkflowServices,
-];
+export const workflowUploadServices: AppService[] =
+  WORKFLOW_SERVICE_OWNER_ROLES.flatMap(
+    (role) => workflowServicesByRole[role],
+  );
 
 export const standaloneServices: AppService[] = [
   {

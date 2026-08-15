@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { COUNSELOR_GUIDANCE_WORKFLOW_SERVICES } from "@/lib/constants/services";
 import { ACTIVITY_PROGRAM_WORKFLOW_SERVICES, getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
+import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import {
   parseWorkflowFieldBehaviorConfig,
   supportsWorkflowFieldAi,
@@ -21,12 +23,19 @@ const teacherServices = new Set([
   ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES.map((service) => service.slug),
   "teacher-report-issuance",
 ]);
+const principalServices = new Set([
+  ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES.map((service) => service.slug),
+  ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map(
+    (service) => service.serviceSlug,
+  ),
+]);
 
 function roleCanUseWorkflowService(role: string, serviceSlug: string) {
   if (role === "ADMIN") return true;
   if (activityServices.has(serviceSlug)) return role === "ACTIVITY_LEADER";
   if (teacherServices.has(serviceSlug)) return role === "TEACHER";
   if (counselorServices.has(serviceSlug)) return role === "COUNSELOR";
+  if (principalServices.has(serviceSlug)) return role === "PRINCIPAL";
   return true;
 }
 

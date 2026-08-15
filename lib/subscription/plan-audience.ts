@@ -3,6 +3,10 @@ import {
   PRINCIPAL_PERFORMANCE_ITEMS,
   isPrincipalPerformanceServiceSlug,
 } from "@/lib/principal/performance-items";
+import {
+  PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES,
+  isPrincipalEvaluationAccreditationServiceSlug,
+} from "@/lib/principal/evaluation-accreditation-services";
 
 export const PLAN_AUDIENCE_FEATURE_KEY = "targetAudience";
 
@@ -46,7 +50,12 @@ const LEGACY_ALL_OPERATIONAL_PLAN_ROLES: PlanVisibleRole[] = [
 ];
 
 const PRINCIPAL_PLAN_SERVICE_SLUGS = new Set<string>(
-  PRINCIPAL_PERFORMANCE_ITEMS.map((item) => item.serviceSlug),
+  [
+    ...PRINCIPAL_PERFORMANCE_ITEMS.map((item) => item.serviceSlug),
+    ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map(
+      (service) => service.serviceSlug,
+    ),
+  ],
 );
 
 export function getPlanRoleLabel(role: PlanVisibleRole): string {
@@ -166,6 +175,7 @@ export function classifyServiceSlug(
   slug: string,
 ): "guidance" | "activity" | "principal" {
   if (isPrincipalPerformanceServiceSlug(slug)) return "principal";
+  if (isPrincipalEvaluationAccreditationServiceSlug(slug)) return "principal";
   if (slug === "custom-report") return "guidance";
   if (slug === "assessment-center") return "guidance";
   if (slug === "activity-programs") return "activity";

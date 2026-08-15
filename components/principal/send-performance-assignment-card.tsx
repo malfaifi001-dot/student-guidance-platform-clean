@@ -21,10 +21,12 @@ export function SendPerformanceAssignmentCard({
   itemSlug,
   itemTitle,
   members,
+  endpoint,
 }: {
   itemSlug: string;
   itemTitle: string;
   members: Member[];
+  endpoint?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -53,7 +55,8 @@ export function SendPerformanceAssignmentCard({
     setFeedback(null);
     try {
       const response = await fetch(
-        `/api/dashboard/principal/performance/${encodeURIComponent(itemSlug)}/assignments`,
+        endpoint ||
+          `/api/dashboard/principal/performance/${encodeURIComponent(itemSlug)}/assignments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -82,7 +85,7 @@ export function SendPerformanceAssignmentCard({
       </button>
       {open ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/50 p-3 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-labelledby="performance-assignment-title" dir="rtl" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/60 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-950">
+          <section role="dialog" aria-modal="true" aria-labelledby="performance-assignment-title" dir="rtl" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/60 bg-white text-slate-950 shadow-2xl dark:border-slate-700 dark:bg-slate-950 dark:text-white">
             <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 sm:p-6 dark:border-slate-800">
               <div>
                 <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700 dark:bg-teal-950 dark:text-teal-300">{itemTitle}</span>
@@ -91,7 +94,10 @@ export function SendPerformanceAssignmentCard({
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label="إغلاق" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200"><X className="h-5 w-5" /></button>
             </header>
-            <form onSubmit={submit} className="space-y-4 p-5 sm:p-6">
+            <form
+              onSubmit={submit}
+              className="space-y-4 p-5 text-slate-950 sm:p-6 dark:text-white [&_input]:text-inherit [&_select]:text-inherit [&_textarea]:text-inherit [&_input]:placeholder:text-slate-400 [&_textarea]:placeholder:text-slate-400 [&_option]:bg-white [&_option]:text-slate-950 dark:[&_option]:bg-slate-900 dark:[&_option]:text-white [&_:disabled]:cursor-not-allowed [&_:disabled]:text-slate-400 dark:[&_:disabled]:text-slate-500"
+            >
               <label className="block">
                 <span className="mb-2 flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-200"><UserRound className="h-4 w-4" /> المنسوب</span>
                 <select required value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900">
