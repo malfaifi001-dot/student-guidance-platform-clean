@@ -120,6 +120,63 @@ export function classifyReportSmartField(
   return "long";
 }
 
+/**
+ * Returns grid spans that preserve each field's semantic kind while filling
+ * unused columns in the final row of each four-column grid run.
+ */
+export function getBalancedReportSmartFieldSpans(
+  items: ReportValueItem[],
+): number[] {
+  const baseSpans = items.map((item) => {
+    const kind = classifyReportSmartField(item);
+    return kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+  });
+  const effectiveSpans = [...baseSpans];
+  let row: number[] = [];
+  let used = 0;
+
+  const balanceRow = () => {
+    let remaining = 4 - used;
+    while (remaining > 0) {
+      let candidate: number | undefined;
+      for (const index of row) {
+        if (
+          effectiveSpans[index] >= 4 ||
+          (candidate !== undefined &&
+            effectiveSpans[index] > effectiveSpans[candidate])
+        ) {
+          continue;
+        }
+        // On ties, prefer the later field so [1, 1, 1] becomes [1, 1, 2].
+        candidate = index;
+      }
+      if (candidate === undefined) break;
+      effectiveSpans[candidate] += 1;
+      remaining -= 1;
+    }
+    row = [];
+    used = 0;
+  };
+
+  for (let index = 0; index < baseSpans.length; index += 1) {
+    const span = baseSpans[index];
+    if (span === 4 || used + span > 4) {
+      if (row.length) balanceRow();
+      row = [index];
+      used = span;
+      if (span === 4) balanceRow();
+      continue;
+    }
+
+    row.push(index);
+    used += span;
+    if (used === 4) balanceRow();
+  }
+
+  if (row.length) balanceRow();
+  return effectiveSpans;
+}
+
 export function getReportSmartFieldProfile(
   items: ReportValueItem[],
 ): ReportSmartFieldProfile {

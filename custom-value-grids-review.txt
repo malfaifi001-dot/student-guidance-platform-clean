@@ -1,0 +1,545 @@
+============================================================
+FILE: components\report-engine\design-renderers\designs\ministry-elegant\values.tsx
+============================================================
+
+import type {
+  ReportValueGridProps,
+  ReportValueItem,
+} from "../report-design-component-types";
+
+import { classifyReportSmartField } from "../../smart-layout/report-smart-field-layout";
+
+function getValueItems(item: ReportValueItem) {
+  const source = item.valueItems?.length
+    ? item.valueItems
+    : Array.isArray(item.value)
+      ? item.value
+      : [];
+
+  return Array.from(
+    new Set(source.map((value) => String(value || "").trim()).filter(Boolean)),
+  );
+}
+
+function getDisplayValue(item: ReportValueItem, valueItems: string[]) {
+  if (valueItems.length === 1) {
+    return valueItems[0];
+  }
+
+  if (!Array.isArray(item.value)) {
+    const value = String(item.value || "").trim();
+    if (value) return value;
+  }
+
+  return "غير متوفر";
+}
+
+export function MinistryElegantValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <div
+      className="grid grid-cols-4 items-stretch"
+      data-ministry-elegant-value-grid
+      data-report-smart-field-grid
+      style={{ gap: "calc(var(--report-value-grid-gap, 0.5rem) * 0.82)" }}
+    >
+      {items.map((item, index) => {
+        const kind = classifyReportSmartField(item);
+        const valueItems = getValueItems(item);
+        const columnSpan = kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+
+        return (
+          <div
+            key={item.key || item.label || index}
+            className="min-w-0 break-inside-avoid rounded-[9px] border border-[#d4e1e4] bg-white"
+            data-smart-field-kind={kind}
+            style={{
+              gridColumn: `span ${columnSpan}`,
+              minHeight: "calc(48px * var(--report-field-spacing-scale, 1))",
+              paddingInline: "calc(8px * var(--report-field-spacing-scale, 1))",
+              paddingTop: "calc(6px * var(--report-field-spacing-scale, 1))",
+              paddingBottom: "calc(6px * var(--report-field-spacing-scale, 1))",
+              breakInside: "avoid",
+              pageBreakInside: "avoid",
+            }}
+          >
+            <div
+              className="flex h-full min-w-0 items-start"
+              style={{ gap: "calc(8px * var(--report-field-spacing-scale, 1))" }}
+            >
+              <span
+                aria-hidden="true"
+                className="mt-[5px] h-[6px] w-[6px] shrink-0 rounded-full bg-[#0f766e]"
+                style={{
+                  WebkitPrintColorAdjust: "exact",
+                  printColorAdjust: "exact",
+                }}
+              />
+
+              <div className="min-w-0 flex-1">
+
+            <p
+              className="font-bold text-[#60747e]"
+              style={{
+                margin: 0,
+                marginBottom: "calc(2px * var(--report-field-spacing-scale, 1))",
+                fontSize: "calc(10.5px * var(--report-field-label-scale, 1))",
+                lineHeight: 1.35,
+              }}
+            >
+              {item.label}
+            </p>
+
+            {valueItems.length > 1 ? (
+              <ul
+                className="grid font-bold text-[#0f2a4d]"
+                style={{
+                  gap: "var(--report-field-value-item-gap, 0.25rem)",
+                  margin: 0,
+                  padding: 0,
+                  fontSize: "calc(13px * var(--report-field-value-scale, 1))",
+                  lineHeight: "var(--report-content-line-height, 1.55)",
+                  listStyle: "none",
+                }}
+              >
+                {valueItems.map((value, valueIndex) => (
+                  <li
+                    key={`${item.key || item.label}-${value}-${valueIndex}`}
+                    className="flex min-w-0 items-start"
+                    style={{ gap: "var(--report-field-gap, 0.4rem)" }}
+                  >
+                    <span className="mt-[0.6em] h-1 w-1 shrink-0 rounded-full bg-[#0f766e]" />
+                    <span className="min-w-0 break-words">{value}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p
+                className="break-words font-bold text-[#0f2a4d]"
+                style={{
+                  margin: 0,
+                  fontSize: "calc(13px * var(--report-field-value-scale, 1))",
+                  lineHeight: "var(--report-content-line-height, 1.55)",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {getDisplayValue(item, valueItems)}
+              </p>
+            )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\ministry-form\values.tsx
+============================================================
+
+import type {
+  ReportValueGridProps,
+  ReportValueItem,
+} from "../report-design-component-types";
+
+import { classifyReportSmartField } from "../../smart-layout/report-smart-field-layout";
+
+function getValueItems(item: ReportValueItem) {
+  const source = item.valueItems?.length
+    ? item.valueItems
+    : Array.isArray(item.value)
+      ? item.value
+      : [];
+
+  return Array.from(
+    new Set(source.map((value) => String(value || "").trim()).filter(Boolean)),
+  );
+}
+
+function getDisplayValue(item: ReportValueItem, valueItems: string[]) {
+  if (valueItems.length === 1) {
+    return valueItems[0];
+  }
+
+  if (!Array.isArray(item.value)) {
+    const value = String(item.value || "").trim();
+    if (value) return value;
+  }
+
+  return "غير متوفر";
+}
+
+export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <div
+      className="grid grid-cols-4 items-stretch"
+      data-ministry-form-value-grid
+      data-report-smart-field-grid
+      style={{ gap: "calc(var(--report-value-grid-gap, 0.5rem) * 0.82)" }}
+    >
+      {items.map((item, index) => {
+        const kind = classifyReportSmartField(item);
+        const valueItems = getValueItems(item);
+        const columnSpan = kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+
+        return (
+          <div
+            key={item.key || item.label || index}
+            className="min-w-0 break-inside-avoid rounded-[9px] border border-slate-200 bg-white"
+            data-smart-field-kind={kind}
+            style={{
+              gridColumn: `span ${columnSpan}`,
+              minHeight: "calc(48px * var(--report-field-spacing-scale, 1))",
+              paddingInline: "calc(8px * var(--report-field-spacing-scale, 1))",
+              paddingTop: "calc(6px * var(--report-field-spacing-scale, 1))",
+              paddingBottom: "calc(6px * var(--report-field-spacing-scale, 1))",
+              breakInside: "avoid",
+              pageBreakInside: "avoid",
+            }}
+          >
+            <div
+              className="flex h-full min-w-0 items-start"
+              style={{ gap: "calc(8px * var(--report-field-spacing-scale, 1))" }}
+            >
+              <span
+                aria-hidden="true"
+                className="mt-[5px] h-[6px] w-[6px] shrink-0 rounded-full bg-emerald-600"
+                style={{
+                  WebkitPrintColorAdjust: "exact",
+                  printColorAdjust: "exact",
+                }}
+              />
+
+              <div className="min-w-0 flex-1">
+
+            <p
+              className="font-bold text-slate-500"
+              style={{
+                margin: 0,
+                marginBottom: "calc(2px * var(--report-field-spacing-scale, 1))",
+                fontSize: "calc(10.5px * var(--report-field-label-scale, 1))",
+                lineHeight: 1.35,
+              }}
+            >
+              {item.label}
+            </p>
+
+            {valueItems.length > 1 ? (
+              <ul
+                className="grid font-bold text-slate-900"
+                style={{
+                  gap: "var(--report-field-value-item-gap, 0.25rem)",
+                  margin: 0,
+                  padding: 0,
+                  fontSize: "calc(13px * var(--report-field-value-scale, 1))",
+                  lineHeight: "var(--report-content-line-height, 1.55)",
+                  listStyle: "none",
+                }}
+              >
+                {valueItems.map((value, valueIndex) => (
+                  <li
+                    key={`${item.key || item.label}-${value}-${valueIndex}`}
+                    className="flex min-w-0 items-start"
+                    style={{ gap: "var(--report-field-gap, 0.4rem)" }}
+                  >
+                    <span className="mt-[0.6em] h-1 w-1 shrink-0 rounded-full bg-emerald-600" />
+                    <span className="min-w-0 break-words">{value}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p
+                className="break-words font-bold text-slate-900"
+                style={{
+                  margin: 0,
+                  fontSize: "calc(13px * var(--report-field-value-scale, 1))",
+                  lineHeight: "var(--report-content-line-height, 1.55)",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {getDisplayValue(item, valueItems)}
+              </p>
+            )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\moe-classic-frame\values.tsx
+============================================================
+
+import type {
+  ReportValueGridProps,
+  ReportValueItem,
+} from "../report-design-component-types";
+
+import {
+  classifyReportSmartField,
+  getReportSmartFieldProfile,
+} from "../../smart-layout/report-smart-field-layout";
+
+const SECTION_HEADER_COLORS = [
+  "#fee8a8",
+  "#ececec",
+  "#dce7f7",
+  "#e1efd9",
+] as const;
+
+function getDisplayValue(
+  item: ReportValueItem,
+) {
+  if (
+    Array.isArray(item.valueItems) &&
+    item.valueItems.length
+  ) {
+    return item.valueItems.join(
+      " • ",
+    );
+  }
+
+  if (Array.isArray(item.value)) {
+    return item.value.join(" • ");
+  }
+
+  return String(
+    item.value || "—",
+  );
+}
+
+export function MoeClassicFrameValueGrid({
+  items,
+}: ReportValueGridProps) {
+  const visibleItems =
+    items.filter(
+      (item) =>
+        String(
+          item.label || "",
+        ).trim() ||
+        String(
+          getDisplayValue(item),
+        ).trim(),
+    );
+
+  if (!visibleItems.length) {
+    return null;
+  }
+
+  const profile =
+    getReportSmartFieldProfile(
+      visibleItems,
+    );
+
+  return (
+    <div
+      dir="rtl"
+      className="report-classic-smart-grid"
+      data-moe-classic-value-grid
+      data-report-smart-role="fields"
+      data-smart-field-profile={profile}
+    >
+      {visibleItems.map(
+        (item, index) => {
+          const kind =
+            classifyReportSmartField(
+              item,
+            );
+
+          const headerColor =
+            SECTION_HEADER_COLORS[
+              index %
+                SECTION_HEADER_COLORS.length
+            ];
+
+          return (
+            <div
+              key={
+                item.key ||
+                item.label ||
+                index
+              }
+              className="report-classic-smart-field-item min-w-0 break-inside-avoid"
+              data-smart-field-kind={kind}
+              style={{
+                breakInside: "avoid",
+                pageBreakInside:
+                  "avoid",
+              }}
+            >
+              <table className="h-full w-full table-fixed border-collapse">
+                <thead>
+                  <tr>
+                    <th
+                      className="border border-[#263238] text-center font-black text-[#17242b]"
+                      style={{
+                        background:
+                          headerColor,
+
+                        paddingInline:
+                          "calc(0.48rem * var(--report-table-spacing-scale, 1))",
+
+                        paddingBlock:
+                          "calc(0.9mm * var(--report-table-spacing-scale, 1))",
+
+                        fontSize:
+                          "calc(10.5px * var(--report-field-label-scale, 1))",
+
+                        lineHeight:
+                          "calc(1.1rem * var(--report-narrative-density-scale, 1))",
+                      }}
+                    >
+                      {item.label ||
+                        "البيان"}
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr>
+                    <td
+                      className="border border-[#263238] bg-white text-center font-bold text-[#1e293b]"
+                      style={{
+                        paddingInline:
+                          "calc(0.5rem * var(--report-table-spacing-scale, 1))",
+
+                        paddingBlock:
+                          kind === "long" ||
+                          kind === "list"
+                            ? "calc(0.8mm * var(--report-table-spacing-scale, 1))"
+                            : "calc(0.8mm * var(--report-table-spacing-scale, 1))",
+
+                        fontSize:
+                          "calc(10.5px * var(--report-field-value-scale, 1))",
+
+                        lineHeight:
+                          "var(--report-content-line-height, 1.55)",
+
+                        whiteSpace:
+                          "normal",
+
+                        overflowWrap:
+                          "anywhere",
+
+                        verticalAlign:
+                          "middle",
+                      }}
+                    >
+                      {getDisplayValue(
+                        item,
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        },
+      )}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\moe-official-2024\values.tsx
+============================================================
+
+import type { ReportValueGridProps } from "../report-design-component-types";
+import { MoeOfficial2024ValueGrid } from "./value-grid";
+
+export function MoeOfficial2024ReportValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <MoeOfficial2024ValueGrid
+      items={items.map((item) => ({
+        key: item.key,
+        label: item.label,
+        value: item.valueItems?.length ? item.valueItems : item.value,
+      }))}
+    />
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\report-calm-reader\values.tsx
+============================================================
+
+import type { ReportValueGridProps } from "../report-design-component-types";
+
+export function ReportCalmReaderValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={item.key || item.label || index} className="rounded-2xl border border-stone-200 bg-white px-5 py-4">
+          <p className="text-[11px] font-black tracking-wide text-stone-500">{item.label}</p>
+          <p className="mt-2 text-sm font-medium leading-8 text-stone-800">
+            {String(item.value || "غير متوفر")}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\report-official-archive\values.tsx
+============================================================
+
+import type { ReportValueGridProps } from "../report-design-component-types";
+
+export function ReportOfficialArchiveValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <div className="overflow-hidden border border-slate-900 text-xs">
+      {items.map((item, index) => (
+        <div key={item.key || item.label || index} className="grid grid-cols-[42mm_1fr] border-b border-slate-300 last:border-b-0">
+          <div className="border-l border-slate-900 bg-slate-100 px-3 py-3 font-black text-slate-900">
+            {item.label}
+          </div>
+          <div className="px-3 py-3 font-bold leading-7 text-slate-800">
+            {String(item.value || "غير متوفر")}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\report-engine\design-renderers\designs\report-playful-cards\values.tsx
+============================================================
+
+import type { ReportValueGridProps } from "../report-design-component-types";
+
+export function ReportPlayfulCardsValueGrid({ items }: ReportValueGridProps) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {items.map((item, index) => (
+        <div key={item.key || item.label || index} className="rounded-[28px] border border-orange-100 bg-gradient-to-l from-orange-50 to-white p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-sm font-black text-white">
+              {index + 1}
+            </span>
+            <div>
+              <p className="text-[11px] font-black text-orange-700">{item.label}</p>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-800">
+                {String(item.value || "غير متوفر")}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+

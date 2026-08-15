@@ -129,7 +129,7 @@ export function MoyasarCheckoutForm({
         )}`;
 
       const validateMerchantUrl =
-        `${window.location.origin}/api/payments/moyasar/apple-pay/session`;
+        "https://api.moyasar.com/v1/applepay/initiate";
       const methods = ["creditcard", "applepay"];
       const applePaySession = window.ApplePaySession;
       let canMakePayments: boolean | null = null;

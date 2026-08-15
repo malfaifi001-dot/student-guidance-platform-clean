@@ -3,7 +3,10 @@ import type {
   ReportValueItem,
 } from "../report-design-component-types";
 
-import { classifyReportSmartField } from "../../smart-layout/report-smart-field-layout";
+import {
+  classifyReportSmartField,
+  getBalancedReportSmartFieldSpans,
+} from "../../smart-layout/report-smart-field-layout";
 
 function getValueItems(item: ReportValueItem) {
   const source = item.valueItems?.length
@@ -31,6 +34,8 @@ function getDisplayValue(item: ReportValueItem, valueItems: string[]) {
 }
 
 export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
+  const balancedSpans = getBalancedReportSmartFieldSpans(items);
+
   return (
     <div
       className="grid grid-cols-4 items-stretch"
@@ -41,7 +46,7 @@ export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
       {items.map((item, index) => {
         const kind = classifyReportSmartField(item);
         const valueItems = getValueItems(item);
-        const columnSpan = kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+        const columnSpan = balancedSpans[index] ?? 4;
 
         return (
           <div
@@ -60,21 +65,11 @@ export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
           >
             <div
               className="flex h-full min-w-0 items-start"
-              style={{ gap: "calc(8px * var(--report-field-spacing-scale, 1))" }}
             >
-              <span
-                aria-hidden="true"
-                className="mt-[5px] h-[6px] w-[6px] shrink-0 rounded-full bg-emerald-600"
-                style={{
-                  WebkitPrintColorAdjust: "exact",
-                  printColorAdjust: "exact",
-                }}
-              />
-
               <div className="min-w-0 flex-1">
 
             <p
-              className="font-bold text-slate-500"
+              className="text-center font-bold text-slate-500"
               style={{
                 margin: 0,
                 marginBottom: "calc(2px * var(--report-field-spacing-scale, 1))",
@@ -87,7 +82,7 @@ export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
 
             {valueItems.length > 1 ? (
               <ul
-                className="grid font-bold text-slate-900"
+                className="grid text-center font-bold text-slate-900"
                 style={{
                   gap: "var(--report-field-value-item-gap, 0.25rem)",
                   margin: 0,
@@ -101,7 +96,10 @@ export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
                   <li
                     key={`${item.key || item.label}-${value}-${valueIndex}`}
                     className="flex min-w-0 items-start"
-                    style={{ gap: "var(--report-field-gap, 0.4rem)" }}
+                    style={{
+                      gap: "var(--report-field-gap, 0.4rem)",
+                      justifyContent: "center",
+                    }}
                   >
                     <span className="mt-[0.6em] h-1 w-1 shrink-0 rounded-full bg-emerald-600" />
                     <span className="min-w-0 break-words">{value}</span>
@@ -110,7 +108,7 @@ export function MinistryFormValueGrid({ items }: ReportValueGridProps) {
               </ul>
             ) : (
               <p
-                className="break-words font-bold text-slate-900"
+                className="break-words text-center font-bold text-slate-900"
                 style={{
                   margin: 0,
                   fontSize: "calc(13px * var(--report-field-value-scale, 1))",

@@ -1,0 +1,2213 @@
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\ministry-elegant\values.tsx
+LINE: 50
+MATCH: data-smart-field-kind
+============================================================
+   43:         const valueItems = getValueItems(item);
+   44:         const columnSpan = kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+   45: 
+   46:         return (
+   47:           <div
+   48:             key={item.key || item.label || index}
+   49:             className="min-w-0 break-inside-avoid rounded-[9px] border border-[#d4e1e4] bg-white"
+   50:             data-smart-field-kind={kind}
+   51:             style={{
+   52:               gridColumn: `span ${columnSpan}`,
+   53:               minHeight: "calc(48px * var(--report-field-spacing-scale, 1))",
+   54:               paddingInline: "calc(8px * var(--report-field-spacing-scale, 1))",
+   55:               paddingTop: "calc(6px * var(--report-field-spacing-scale, 1))",
+   56:               paddingBottom: "calc(6px * var(--report-field-spacing-scale, 1))",
+   57:               breakInside: "avoid",
+   58:               pageBreakInside: "avoid",
+   59:             }}
+   60:           >
+   61:             <div
+   62:               className="flex h-full min-w-0 items-start"
+   63:               style={{ gap: "calc(8px * var(--report-field-spacing-scale, 1))" }}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\ministry-form\values.tsx
+LINE: 50
+MATCH: data-smart-field-kind
+============================================================
+   43:         const valueItems = getValueItems(item);
+   44:         const columnSpan = kind === "short" ? 1 : kind === "medium" ? 2 : 4;
+   45: 
+   46:         return (
+   47:           <div
+   48:             key={item.key || item.label || index}
+   49:             className="min-w-0 break-inside-avoid rounded-[9px] border border-slate-200 bg-white"
+   50:             data-smart-field-kind={kind}
+   51:             style={{
+   52:               gridColumn: `span ${columnSpan}`,
+   53:               minHeight: "calc(48px * var(--report-field-spacing-scale, 1))",
+   54:               paddingInline: "calc(8px * var(--report-field-spacing-scale, 1))",
+   55:               paddingTop: "calc(6px * var(--report-field-spacing-scale, 1))",
+   56:               paddingBottom: "calc(6px * var(--report-field-spacing-scale, 1))",
+   57:               breakInside: "avoid",
+   58:               pageBreakInside: "avoid",
+   59:             }}
+   60:           >
+   61:             <div
+   62:               className="flex h-full min-w-0 items-start"
+   63:               style={{ gap: "calc(8px * var(--report-field-spacing-scale, 1))" }}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\moe-classic-frame\values.tsx
+LINE: 65
+MATCH: report-classic-smart-grid
+============================================================
+   58:     getReportSmartFieldProfile(
+   59:       visibleItems,
+   60:     );
+   61: 
+   62:   return (
+   63:     <div
+   64:       dir="rtl"
+   65:       className="report-classic-smart-grid"
+   66:       data-moe-classic-value-grid
+   67:       data-report-smart-role="fields"
+   68:       data-smart-field-profile={profile}
+   69:     >
+   70:       {visibleItems.map(
+   71:         (item, index) => {
+   72:           const kind =
+   73:             classifyReportSmartField(
+   74:               item,
+   75:             );
+   76: 
+   77:           const headerColor =
+   78:             SECTION_HEADER_COLORS[
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\moe-classic-frame\values.tsx
+LINE: 90
+MATCH: report-classic-smart-field-item
+============================================================
+   83:           return (
+   84:             <div
+   85:               key={
+   86:                 item.key ||
+   87:                 item.label ||
+   88:                 index
+   89:               }
+   90:               className="report-classic-smart-field-item min-w-0 break-inside-avoid"
+   91:               data-smart-field-kind={kind}
+   92:               style={{
+   93:                 breakInside: "avoid",
+   94:                 pageBreakInside:
+   95:                   "avoid",
+   96:               }}
+   97:             >
+   98:               <table className="h-full w-full table-fixed border-collapse">
+   99:                 <thead>
+  100:                   <tr>
+  101:                     <th
+  102:                       className="border border-[#263238] text-center font-black text-[#17242b]"
+  103:                       style={{
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\moe-classic-frame\values.tsx
+LINE: 91
+MATCH: data-smart-field-kind
+============================================================
+   84:             <div
+   85:               key={
+   86:                 item.key ||
+   87:                 item.label ||
+   88:                 index
+   89:               }
+   90:               className="report-classic-smart-field-item min-w-0 break-inside-avoid"
+   91:               data-smart-field-kind={kind}
+   92:               style={{
+   93:                 breakInside: "avoid",
+   94:                 pageBreakInside:
+   95:                   "avoid",
+   96:               }}
+   97:             >
+   98:               <table className="h-full w-full table-fixed border-collapse">
+   99:                 <thead>
+  100:                   <tr>
+  101:                     <th
+  102:                       className="border border-[#263238] text-center font-black text-[#17242b]"
+  103:                       style={{
+  104:                         background:
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\shared\report-values.tsx
+LINE: 77
+MATCH: report-smart-field-item
+============================================================
+   70:           return (
+   71:             <div
+   72:               key={
+   73:                 item.key ||
+   74:                 item.label ||
+   75:                 index
+   76:               }
+   77:               className="report-smart-field-item min-w-0"
+   78:               data-smart-field-kind={kind}
+   79:             >
+   80:               {FieldRenderer ? (
+   81:                 <FieldRenderer
+   82:                   item={item}
+   83:                   index={index}
+   84:                   block={block}
+   85:                 />
+   86:               ) : (
+   87:                 <MetaCard
+   88:                   label={item.label}
+   89:                   value={
+   90:                     Array.isArray(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\shared\report-values.tsx
+LINE: 78
+MATCH: data-smart-field-kind
+============================================================
+   71:             <div
+   72:               key={
+   73:                 item.key ||
+   74:                 item.label ||
+   75:                 index
+   76:               }
+   77:               className="report-smart-field-item min-w-0"
+   78:               data-smart-field-kind={kind}
+   79:             >
+   80:               {FieldRenderer ? (
+   81:                 <FieldRenderer
+   82:                   item={item}
+   83:                   index={index}
+   84:                   block={block}
+   85:                 />
+   86:               ) : (
+   87:                 <MetaCard
+   88:                   label={item.label}
+   89:                   value={
+   90:                     Array.isArray(
+   91:                       item.value,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 635
+MATCH: report-classic-smart-grid
+============================================================
+  628:   /*
+  629:    * =========================================================
+  630:    * CLASSIC FORMAL TABLE GRID
+  631:    * =========================================================
+  632:    */
+  633: 
+  634:   .report-smart-a4-content
+  635:   .report-classic-smart-grid {
+  636:     display: grid;
+  637:     grid-template-columns:
+  638:       repeat(4, minmax(0, 1fr));
+  639:     gap:
+  640:       calc(
+  641:         2.6mm *
+  642:         var(--report-field-spacing-scale, 1)
+  643:       );
+  644:     align-items: stretch;
+  645:   }
+  646: 
+  647:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  648:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 648
+MATCH: report-classic-smart-field-item
+============================================================
+  641:         2.6mm *
+  642:         var(--report-field-spacing-scale, 1)
+  643:       );
+  644:     align-items: stretch;
+  645:   }
+  646: 
+  647:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  648:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  649:     grid-column: span 1;
+  650:   }
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 653
+MATCH: report-classic-smart-field-item
+============================================================
+  646: 
+  647:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  648:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  649:     grid-column: span 1;
+  650:   }
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 658
+MATCH: report-classic-smart-field-item
+============================================================
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 660
+MATCH: report-classic-smart-field-item
+============================================================
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 665
+MATCH: report-classic-smart-field-item
+============================================================
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 667
+MATCH: report-classic-smart-field-item
+============================================================
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 672
+MATCH: report-classic-smart-field-item
+============================================================
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 674
+MATCH: report-classic-smart-field-item
+============================================================
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 679
+MATCH: report-classic-smart-field-item
+============================================================
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 681
+MATCH: report-classic-smart-field-item
+============================================================
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 683
+MATCH: report-classic-smart-field-item
+============================================================
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+  695:    * We only reduce wasted vertical height and allow two-column
+  696:    * packing for non-wide values.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 685
+MATCH: report-classic-smart-field-item
+============================================================
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+  695:    * We only reduce wasted vertical height and allow two-column
+  696:    * packing for non-wide values.
+  697:    */
+  698: 
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 149
+MATCH: report-smart-field-item
+============================================================
+  142: 
+  143:   /*
+  144:    * Comfortable:
+  145:    * نحافظ على شكل البطاقات الواسع.
+  146:    */
+  147: 
+  148:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  149:   .report-smart-field-item[data-smart-field-kind="short"] {
+  150:     grid-column: span 1;
+  151:   }
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 154
+MATCH: report-smart-field-item
+============================================================
+  147: 
+  148:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  149:   .report-smart-field-item[data-smart-field-kind="short"] {
+  150:     grid-column: span 1;
+  151:   }
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 159
+MATCH: report-smart-field-item
+============================================================
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 161
+MATCH: report-smart-field-item
+============================================================
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 172
+MATCH: report-smart-field-item
+============================================================
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 174
+MATCH: report-smart-field-item
+============================================================
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 179
+MATCH: report-smart-field-item
+============================================================
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 181
+MATCH: report-smart-field-item
+============================================================
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 186
+MATCH: report-smart-field-item
+============================================================
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 188
+MATCH: report-smart-field-item
+============================================================
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 190
+MATCH: report-smart-field-item
+============================================================
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+  202:    * Elegant official information table.
+  203:    *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 192
+MATCH: report-smart-field-item
+============================================================
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+  202:    * Elegant official information table.
+  203:    *
+  204:    * Goals:
+  205:    * - preserve the compact horizontal packing
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 235
+MATCH: report-smart-field-item
+============================================================
+  228:     background:
+  229:       #ffffff;
+  230: 
+  231:     gap: 0 !important;
+  232:   }
+  233: 
+  234:   .report-smart-a4-content
+  235:   .report-smart-field-item {
+  236:     min-width: 0;
+  237: 
+  238:     border-inline-start:
+  239:       1px solid
+  240:       #dbe4ec;
+  241: 
+  242:     border-bottom:
+  243:       1px solid
+  244:       #dbe4ec;
+  245: 
+  246:     background:
+  247:       #ffffff;
+  248:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 254
+MATCH: report-smart-field-item
+============================================================
+  247:       #ffffff;
+  248:   }
+  249: 
+  250:   /*
+  251:    * Remove doubled outer borders visually.
+  252:    */
+  253:   .report-smart-a4-content
+  254:   .report-smart-field-item:nth-child(4n + 1) {
+  255:     border-inline-start: 0;
+  256:   }
+  257: 
+  258:   /*
+  259:    * ---------------------------------------------------------
+  260:    * FIELD WIDTH POLICY
+  261:    * ---------------------------------------------------------
+  262:    */
+  263: 
+  264:   .report-smart-a4-content
+  265:   .report-smart-field-item[data-smart-field-kind="short"] {
+  266:     grid-column: span 1;
+  267:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 265
+MATCH: report-smart-field-item
+============================================================
+  258:   /*
+  259:    * ---------------------------------------------------------
+  260:    * FIELD WIDTH POLICY
+  261:    * ---------------------------------------------------------
+  262:    */
+  263: 
+  264:   .report-smart-a4-content
+  265:   .report-smart-field-item[data-smart-field-kind="short"] {
+  266:     grid-column: span 1;
+  267:   }
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 270
+MATCH: report-smart-field-item
+============================================================
+  263: 
+  264:   .report-smart-a4-content
+  265:   .report-smart-field-item[data-smart-field-kind="short"] {
+  266:     grid-column: span 1;
+  267:   }
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 275
+MATCH: report-smart-field-item
+============================================================
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+  284:    * ---------------------------------------------------------
+  285:    */
+  286: 
+  287:   .report-smart-a4-content
+  288:   .report-smart-meta-card {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 277
+MATCH: report-smart-field-item
+============================================================
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+  284:    * ---------------------------------------------------------
+  285:    */
+  286: 
+  287:   .report-smart-a4-content
+  288:   .report-smart-meta-card {
+  289:     display: flex;
+  290:     flex-direction: column;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 527
+MATCH: report-smart-field-item
+============================================================
+  520:    *
+  521:    * label | value
+  522:    *
+  523:    * Long/list fields remain vertically stacked.
+  524:    */
+  525: 
+  526:   .report-smart-a4-content[data-report-field-layout="inline"]
+  527:   .report-smart-field-item[data-smart-field-kind="short"]
+  528:   .report-smart-meta-card,
+  529:   .report-smart-a4-content[data-report-field-layout="inline"]
+  530:   .report-smart-field-item[data-smart-field-kind="medium"]
+  531:   .report-smart-meta-card {
+  532:     display: grid;
+  533: 
+  534:     grid-template-columns:
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 530
+MATCH: report-smart-field-item
+============================================================
+  523:    * Long/list fields remain vertically stacked.
+  524:    */
+  525: 
+  526:   .report-smart-a4-content[data-report-field-layout="inline"]
+  527:   .report-smart-field-item[data-smart-field-kind="short"]
+  528:   .report-smart-meta-card,
+  529:   .report-smart-a4-content[data-report-field-layout="inline"]
+  530:   .report-smart-field-item[data-smart-field-kind="medium"]
+  531:   .report-smart-meta-card {
+  532:     display: grid;
+  533: 
+  534:     grid-template-columns:
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 542
+MATCH: report-smart-field-item
+============================================================
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+  544:   .report-smart-a4-content[data-report-field-layout="inline"]
+  545:   .report-smart-field-item[data-smart-field-kind="medium"]
+  546:   .report-smart-meta-label {
+  547:     min-height:
+  548:       calc(
+  549:         27px *
+  550:         var(--report-field-spacing-scale, 1)
+  551:       );
+  552: 
+  553:     border-bottom: 0;
+  554: 
+  555:     border-inline-end:
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 545
+MATCH: report-smart-field-item
+============================================================
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+  544:   .report-smart-a4-content[data-report-field-layout="inline"]
+  545:   .report-smart-field-item[data-smart-field-kind="medium"]
+  546:   .report-smart-meta-label {
+  547:     min-height:
+  548:       calc(
+  549:         27px *
+  550:         var(--report-field-spacing-scale, 1)
+  551:       );
+  552: 
+  553:     border-bottom: 0;
+  554: 
+  555:     border-inline-end:
+  556:       1px solid
+  557:       #e2e8f0;
+  558: 
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 566
+MATCH: report-smart-field-item
+============================================================
+  559:     background:
+  560:       #f8fafc;
+  561: 
+  562:     white-space: normal;
+  563:   }
+  564: 
+  565:   .report-smart-a4-content[data-report-field-layout="inline"]
+  566:   .report-smart-field-item[data-smart-field-kind="short"]
+  567:   .report-smart-meta-value,
+  568:   .report-smart-a4-content[data-report-field-layout="inline"]
+  569:   .report-smart-field-item[data-smart-field-kind="medium"]
+  570:   .report-smart-meta-value {
+  571:     min-height:
+  572:       calc(
+  573:         27px *
+  574:         var(--report-field-spacing-scale, 1)
+  575:       );
+  576: 
+  577:     padding-block:
+  578:       calc(
+  579:         0.2rem *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 569
+MATCH: report-smart-field-item
+============================================================
+  562:     white-space: normal;
+  563:   }
+  564: 
+  565:   .report-smart-a4-content[data-report-field-layout="inline"]
+  566:   .report-smart-field-item[data-smart-field-kind="short"]
+  567:   .report-smart-meta-value,
+  568:   .report-smart-a4-content[data-report-field-layout="inline"]
+  569:   .report-smart-field-item[data-smart-field-kind="medium"]
+  570:   .report-smart-meta-value {
+  571:     min-height:
+  572:       calc(
+  573:         27px *
+  574:         var(--report-field-spacing-scale, 1)
+  575:       );
+  576: 
+  577:     padding-block:
+  578:       calc(
+  579:         0.2rem *
+  580:         var(--report-field-spacing-scale, 1)
+  581:       );
+  582:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 588
+MATCH: report-smart-field-item
+============================================================
+  581:       );
+  582:   }
+  583: 
+  584:   /*
+  585:    * Long/list items remain stacked even in inline mode.
+  586:    */
+  587:   .report-smart-a4-content[data-report-field-layout="inline"]
+  588:   .report-smart-field-item[data-smart-field-kind="long"]
+  589:   .report-smart-meta-card,
+  590:   .report-smart-a4-content[data-report-field-layout="inline"]
+  591:   .report-smart-field-item[data-smart-field-kind="list"]
+  592:   .report-smart-meta-card {
+  593:     display: flex;
+  594:     flex-direction: column;
+  595:   }
+  596: 
+  597:   /*
+  598:    * ---------------------------------------------------------
+  599:    * PRINT
+  600:    * ---------------------------------------------------------
+  601:    */
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 591
+MATCH: report-smart-field-item
+============================================================
+  584:   /*
+  585:    * Long/list items remain stacked even in inline mode.
+  586:    */
+  587:   .report-smart-a4-content[data-report-field-layout="inline"]
+  588:   .report-smart-field-item[data-smart-field-kind="long"]
+  589:   .report-smart-meta-card,
+  590:   .report-smart-a4-content[data-report-field-layout="inline"]
+  591:   .report-smart-field-item[data-smart-field-kind="list"]
+  592:   .report-smart-meta-card {
+  593:     display: flex;
+  594:     flex-direction: column;
+  595:   }
+  596: 
+  597:   /*
+  598:    * ---------------------------------------------------------
+  599:    * PRINT
+  600:    * ---------------------------------------------------------
+  601:    */
+  602: 
+  603:   @media print {
+  604:     .report-smart-a4-content
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 149
+MATCH: data-smart-field-kind
+============================================================
+  142: 
+  143:   /*
+  144:    * Comfortable:
+  145:    * نحافظ على شكل البطاقات الواسع.
+  146:    */
+  147: 
+  148:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  149:   .report-smart-field-item[data-smart-field-kind="short"] {
+  150:     grid-column: span 1;
+  151:   }
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 154
+MATCH: data-smart-field-kind
+============================================================
+  147: 
+  148:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  149:   .report-smart-field-item[data-smart-field-kind="short"] {
+  150:     grid-column: span 1;
+  151:   }
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 159
+MATCH: data-smart-field-kind
+============================================================
+  152: 
+  153:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 161
+MATCH: data-smart-field-kind
+============================================================
+  154:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  155:     grid-column: span 2;
+  156:   }
+  157: 
+  158:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  159:   .report-smart-field-item[data-smart-field-kind="long"],
+  160:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  161:   .report-smart-field-item[data-smart-field-kind="list"] {
+  162:     grid-column: span 4;
+  163:   }
+  164: 
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 172
+MATCH: data-smart-field-kind
+============================================================
+  165:   /*
+  166:    * Packed:
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 174
+MATCH: data-smart-field-kind
+============================================================
+  167:    * القيم القصيرة تصبح ربع صف.
+  168:    * المتوسط نصف صف.
+  169:    */
+  170: 
+  171:   .report-smart-a4-content[data-report-field-layout="packed"]
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 179
+MATCH: data-smart-field-kind
+============================================================
+  172:   .report-smart-field-item[data-smart-field-kind="short"],
+  173:   .report-smart-a4-content[data-report-field-layout="inline"]
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 181
+MATCH: data-smart-field-kind
+============================================================
+  174:   .report-smart-field-item[data-smart-field-kind="short"] {
+  175:     grid-column: span 1;
+  176:   }
+  177: 
+  178:   .report-smart-a4-content[data-report-field-layout="packed"]
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 186
+MATCH: data-smart-field-kind
+============================================================
+  179:   .report-smart-field-item[data-smart-field-kind="medium"],
+  180:   .report-smart-a4-content[data-report-field-layout="inline"]
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 188
+MATCH: data-smart-field-kind
+============================================================
+  181:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  182:     grid-column: span 2;
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 190
+MATCH: data-smart-field-kind
+============================================================
+  183:   }
+  184: 
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+  202:    * Elegant official information table.
+  203:    *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 192
+MATCH: data-smart-field-kind
+============================================================
+  185:   .report-smart-a4-content[data-report-field-layout="packed"]
+  186:   .report-smart-field-item[data-smart-field-kind="long"],
+  187:   .report-smart-a4-content[data-report-field-layout="packed"]
+  188:   .report-smart-field-item[data-smart-field-kind="list"],
+  189:   .report-smart-a4-content[data-report-field-layout="inline"]
+  190:   .report-smart-field-item[data-smart-field-kind="long"],
+  191:   .report-smart-a4-content[data-report-field-layout="inline"]
+  192:   .report-smart-field-item[data-smart-field-kind="list"] {
+  193:     grid-column: span 4;
+  194:   }
+  195: 
+  196: 
+  197:   /*
+  198:    * =========================================================
+  199:    * SMART FIELD RENDERER
+  200:    * =========================================================
+  201:    *
+  202:    * Elegant official information table.
+  203:    *
+  204:    * Goals:
+  205:    * - preserve the compact horizontal packing
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 265
+MATCH: data-smart-field-kind
+============================================================
+  258:   /*
+  259:    * ---------------------------------------------------------
+  260:    * FIELD WIDTH POLICY
+  261:    * ---------------------------------------------------------
+  262:    */
+  263: 
+  264:   .report-smart-a4-content
+  265:   .report-smart-field-item[data-smart-field-kind="short"] {
+  266:     grid-column: span 1;
+  267:   }
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 270
+MATCH: data-smart-field-kind
+============================================================
+  263: 
+  264:   .report-smart-a4-content
+  265:   .report-smart-field-item[data-smart-field-kind="short"] {
+  266:     grid-column: span 1;
+  267:   }
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 275
+MATCH: data-smart-field-kind
+============================================================
+  268: 
+  269:   .report-smart-a4-content
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+  284:    * ---------------------------------------------------------
+  285:    */
+  286: 
+  287:   .report-smart-a4-content
+  288:   .report-smart-meta-card {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 277
+MATCH: data-smart-field-kind
+============================================================
+  270:   .report-smart-field-item[data-smart-field-kind="medium"] {
+  271:     grid-column: span 2;
+  272:   }
+  273: 
+  274:   .report-smart-a4-content
+  275:   .report-smart-field-item[data-smart-field-kind="long"],
+  276:   .report-smart-a4-content
+  277:   .report-smart-field-item[data-smart-field-kind="list"] {
+  278:     grid-column: span 4;
+  279:   }
+  280: 
+  281:   /*
+  282:    * ---------------------------------------------------------
+  283:    * BASE CELL
+  284:    * ---------------------------------------------------------
+  285:    */
+  286: 
+  287:   .report-smart-a4-content
+  288:   .report-smart-meta-card {
+  289:     display: flex;
+  290:     flex-direction: column;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 527
+MATCH: data-smart-field-kind
+============================================================
+  520:    *
+  521:    * label | value
+  522:    *
+  523:    * Long/list fields remain vertically stacked.
+  524:    */
+  525: 
+  526:   .report-smart-a4-content[data-report-field-layout="inline"]
+  527:   .report-smart-field-item[data-smart-field-kind="short"]
+  528:   .report-smart-meta-card,
+  529:   .report-smart-a4-content[data-report-field-layout="inline"]
+  530:   .report-smart-field-item[data-smart-field-kind="medium"]
+  531:   .report-smart-meta-card {
+  532:     display: grid;
+  533: 
+  534:     grid-template-columns:
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 530
+MATCH: data-smart-field-kind
+============================================================
+  523:    * Long/list fields remain vertically stacked.
+  524:    */
+  525: 
+  526:   .report-smart-a4-content[data-report-field-layout="inline"]
+  527:   .report-smart-field-item[data-smart-field-kind="short"]
+  528:   .report-smart-meta-card,
+  529:   .report-smart-a4-content[data-report-field-layout="inline"]
+  530:   .report-smart-field-item[data-smart-field-kind="medium"]
+  531:   .report-smart-meta-card {
+  532:     display: grid;
+  533: 
+  534:     grid-template-columns:
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 542
+MATCH: data-smart-field-kind
+============================================================
+  535:       minmax(64px, auto)
+  536:       minmax(0, 1fr);
+  537: 
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+  544:   .report-smart-a4-content[data-report-field-layout="inline"]
+  545:   .report-smart-field-item[data-smart-field-kind="medium"]
+  546:   .report-smart-meta-label {
+  547:     min-height:
+  548:       calc(
+  549:         27px *
+  550:         var(--report-field-spacing-scale, 1)
+  551:       );
+  552: 
+  553:     border-bottom: 0;
+  554: 
+  555:     border-inline-end:
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 545
+MATCH: data-smart-field-kind
+============================================================
+  538:     align-items: stretch;
+  539:   }
+  540: 
+  541:   .report-smart-a4-content[data-report-field-layout="inline"]
+  542:   .report-smart-field-item[data-smart-field-kind="short"]
+  543:   .report-smart-meta-label,
+  544:   .report-smart-a4-content[data-report-field-layout="inline"]
+  545:   .report-smart-field-item[data-smart-field-kind="medium"]
+  546:   .report-smart-meta-label {
+  547:     min-height:
+  548:       calc(
+  549:         27px *
+  550:         var(--report-field-spacing-scale, 1)
+  551:       );
+  552: 
+  553:     border-bottom: 0;
+  554: 
+  555:     border-inline-end:
+  556:       1px solid
+  557:       #e2e8f0;
+  558: 
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 566
+MATCH: data-smart-field-kind
+============================================================
+  559:     background:
+  560:       #f8fafc;
+  561: 
+  562:     white-space: normal;
+  563:   }
+  564: 
+  565:   .report-smart-a4-content[data-report-field-layout="inline"]
+  566:   .report-smart-field-item[data-smart-field-kind="short"]
+  567:   .report-smart-meta-value,
+  568:   .report-smart-a4-content[data-report-field-layout="inline"]
+  569:   .report-smart-field-item[data-smart-field-kind="medium"]
+  570:   .report-smart-meta-value {
+  571:     min-height:
+  572:       calc(
+  573:         27px *
+  574:         var(--report-field-spacing-scale, 1)
+  575:       );
+  576: 
+  577:     padding-block:
+  578:       calc(
+  579:         0.2rem *
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 569
+MATCH: data-smart-field-kind
+============================================================
+  562:     white-space: normal;
+  563:   }
+  564: 
+  565:   .report-smart-a4-content[data-report-field-layout="inline"]
+  566:   .report-smart-field-item[data-smart-field-kind="short"]
+  567:   .report-smart-meta-value,
+  568:   .report-smart-a4-content[data-report-field-layout="inline"]
+  569:   .report-smart-field-item[data-smart-field-kind="medium"]
+  570:   .report-smart-meta-value {
+  571:     min-height:
+  572:       calc(
+  573:         27px *
+  574:         var(--report-field-spacing-scale, 1)
+  575:       );
+  576: 
+  577:     padding-block:
+  578:       calc(
+  579:         0.2rem *
+  580:         var(--report-field-spacing-scale, 1)
+  581:       );
+  582:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 588
+MATCH: data-smart-field-kind
+============================================================
+  581:       );
+  582:   }
+  583: 
+  584:   /*
+  585:    * Long/list items remain stacked even in inline mode.
+  586:    */
+  587:   .report-smart-a4-content[data-report-field-layout="inline"]
+  588:   .report-smart-field-item[data-smart-field-kind="long"]
+  589:   .report-smart-meta-card,
+  590:   .report-smart-a4-content[data-report-field-layout="inline"]
+  591:   .report-smart-field-item[data-smart-field-kind="list"]
+  592:   .report-smart-meta-card {
+  593:     display: flex;
+  594:     flex-direction: column;
+  595:   }
+  596: 
+  597:   /*
+  598:    * ---------------------------------------------------------
+  599:    * PRINT
+  600:    * ---------------------------------------------------------
+  601:    */
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 591
+MATCH: data-smart-field-kind
+============================================================
+  584:   /*
+  585:    * Long/list items remain stacked even in inline mode.
+  586:    */
+  587:   .report-smart-a4-content[data-report-field-layout="inline"]
+  588:   .report-smart-field-item[data-smart-field-kind="long"]
+  589:   .report-smart-meta-card,
+  590:   .report-smart-a4-content[data-report-field-layout="inline"]
+  591:   .report-smart-field-item[data-smart-field-kind="list"]
+  592:   .report-smart-meta-card {
+  593:     display: flex;
+  594:     flex-direction: column;
+  595:   }
+  596: 
+  597:   /*
+  598:    * ---------------------------------------------------------
+  599:    * PRINT
+  600:    * ---------------------------------------------------------
+  601:    */
+  602: 
+  603:   @media print {
+  604:     .report-smart-a4-content
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 648
+MATCH: data-smart-field-kind
+============================================================
+  641:         2.6mm *
+  642:         var(--report-field-spacing-scale, 1)
+  643:       );
+  644:     align-items: stretch;
+  645:   }
+  646: 
+  647:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  648:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  649:     grid-column: span 1;
+  650:   }
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 653
+MATCH: data-smart-field-kind
+============================================================
+  646: 
+  647:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  648:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  649:     grid-column: span 1;
+  650:   }
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 658
+MATCH: data-smart-field-kind
+============================================================
+  651: 
+  652:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 660
+MATCH: data-smart-field-kind
+============================================================
+  653:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  654:     grid-column: span 2;
+  655:   }
+  656: 
+  657:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 665
+MATCH: data-smart-field-kind
+============================================================
+  658:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  659:   .report-smart-a4-content[data-report-field-layout="comfortable"]
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 667
+MATCH: data-smart-field-kind
+============================================================
+  660:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  661:     grid-column: span 4;
+  662:   }
+  663: 
+  664:   .report-smart-a4-content[data-report-field-layout="packed"]
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 672
+MATCH: data-smart-field-kind
+============================================================
+  665:   .report-classic-smart-field-item[data-smart-field-kind="short"],
+  666:   .report-smart-a4-content[data-report-field-layout="inline"]
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 674
+MATCH: data-smart-field-kind
+============================================================
+  667:   .report-classic-smart-field-item[data-smart-field-kind="short"] {
+  668:     grid-column: span 1;
+  669:   }
+  670: 
+  671:   .report-smart-a4-content[data-report-field-layout="packed"]
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 679
+MATCH: data-smart-field-kind
+============================================================
+  672:   .report-classic-smart-field-item[data-smart-field-kind="medium"],
+  673:   .report-smart-a4-content[data-report-field-layout="inline"]
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 681
+MATCH: data-smart-field-kind
+============================================================
+  674:   .report-classic-smart-field-item[data-smart-field-kind="medium"] {
+  675:     grid-column: span 2;
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 683
+MATCH: data-smart-field-kind
+============================================================
+  676:   }
+  677: 
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+  695:    * We only reduce wasted vertical height and allow two-column
+  696:    * packing for non-wide values.
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 685
+MATCH: data-smart-field-kind
+============================================================
+  678:   .report-smart-a4-content[data-report-field-layout="packed"]
+  679:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  680:   .report-smart-a4-content[data-report-field-layout="packed"]
+  681:   .report-classic-smart-field-item[data-smart-field-kind="list"],
+  682:   .report-smart-a4-content[data-report-field-layout="inline"]
+  683:   .report-classic-smart-field-item[data-smart-field-kind="long"],
+  684:   .report-smart-a4-content[data-report-field-layout="inline"]
+  685:   .report-classic-smart-field-item[data-smart-field-kind="list"] {
+  686:     grid-column: span 4;
+  687:   }
+  688: 
+  689:   /*
+  690:    * =========================================================
+  691:    * CUSTOM VALUE GRIDS - GENERIC DENSITY HOOKS
+  692:    * =========================================================
+  693:    *
+  694:    * MOE 2024 keeps its original visual identity.
+  695:    * We only reduce wasted vertical height and allow two-column
+  696:    * packing for non-wide values.
+  697:    */
+  698: 

@@ -5,6 +5,7 @@ import type {
 
 import {
   classifyReportSmartField,
+  getBalancedReportSmartFieldSpans,
   getReportSmartFieldProfile,
 } from "../../smart-layout/report-smart-field-layout";
 
@@ -58,6 +59,10 @@ export function MoeClassicFrameValueGrid({
     getReportSmartFieldProfile(
       visibleItems,
     );
+  const balancedSpans =
+    getBalancedReportSmartFieldSpans(
+      visibleItems,
+    );
 
   return (
     <div
@@ -90,6 +95,7 @@ export function MoeClassicFrameValueGrid({
               className="report-classic-smart-field-item min-w-0 break-inside-avoid"
               data-smart-field-kind={kind}
               style={{
+                gridColumn: `span ${balancedSpans[index] ?? 4}`,
                 breakInside: "avoid",
                 pageBreakInside:
                   "avoid",
