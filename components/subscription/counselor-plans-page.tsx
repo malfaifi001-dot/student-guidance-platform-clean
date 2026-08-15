@@ -525,9 +525,27 @@ export function CounselorPlansPage() {
                 <span className="pb-1 text-sm font-bold text-slate-500">ريال / {getBillingLabel(billingCycle)}</span>
               </div>
 
-              <div className="mt-6 flex flex-1 items-start gap-2 text-sm font-bold text-slate-600">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                <span>شاملة جميع الخدمات</span>
+              <div className="mt-6 flex flex-1 flex-col gap-2 text-sm font-bold text-slate-600">
+                {plan.services.length > 0 ? (
+                  <>
+                    {plan.services.slice(0, 4).map((service) => (
+                      <div key={service.id} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                        <span>{service.name}</span>
+                      </div>
+                    ))}
+                    {plan.services.length > 4 ? (
+                      <p className="pr-6 text-xs font-black text-sky-700">
+                        و{plan.services.length - 4} خدمات أخرى
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                    <span>مزايا الباقة حسب إعداد الاشتراك</span>
+                  </div>
+                )}
               </div>
 
               <button

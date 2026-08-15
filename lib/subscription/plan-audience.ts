@@ -1,4 +1,8 @@
 import { isActivityProgramDomainServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+import {
+  PRINCIPAL_PERFORMANCE_ITEMS,
+  isPrincipalPerformanceServiceSlug,
+} from "@/lib/principal/performance-items";
 
 export const PLAN_AUDIENCE_FEATURE_KEY = "targetAudience";
 
@@ -7,6 +11,7 @@ export type PlanVisibleRole =
   | "COUNSELOR"
   | "ACTIVITY_LEADER"
   | "TEACHER"
+  | "PRINCIPAL"
   | "SCHOOL_OWNER"
   | "STAFF";
 
@@ -27,9 +32,22 @@ export const OPERATIONAL_PLAN_ROLES: PlanVisibleRole[] = [
   "COUNSELOR",
   "ACTIVITY_LEADER",
   "TEACHER",
+  "PRINCIPAL",
   "SCHOOL_OWNER",
   "STAFF",
 ];
+
+const LEGACY_ALL_OPERATIONAL_PLAN_ROLES: PlanVisibleRole[] = [
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "TEACHER",
+  "SCHOOL_OWNER",
+  "STAFF",
+];
+
+const PRINCIPAL_PLAN_SERVICE_SLUGS = new Set<string>(
+  PRINCIPAL_PERFORMANCE_ITEMS.map((item) => item.serviceSlug),
+);
 
 export function getPlanRoleLabel(role: PlanVisibleRole): string {
   switch (role) {
@@ -39,6 +57,8 @@ export function getPlanRoleLabel(role: PlanVisibleRole): string {
       return "رائد النشاط";
     case "TEACHER":
       return "المعلم";
+    case "PRINCIPAL":
+      return "مدير المدرسة";
     case "SCHOOL_OWNER":
       return "مالك المدرسة";
     case "STAFF":
@@ -88,7 +108,42 @@ export function getDefaultVisibleRolesForAudience(audience: PlanAudience): PlanV
 
 export function getPlanVisibilityRoles(plan: PlanVisibilityLike): PlanVisibleRole[] {
   const roles = normalizePlanVisibleRoles(plan.visibleRoles);
-  return roles ?? getDefaultVisibleRolesForAudience(getPlanAudience(plan.features));
+  const resolvedRoles =
+    roles ?? getDefaultVisibleRolesForAudience(getPlanAudience(plan.features));
+
+  // Before PRINCIPAL existed, selecting every operational role was the stored
+  // representation of "all roles". Preserve that intent for existing plans.
+  if (
+    !resolvedRoles.includes("PRINCIPAL") &&
+    LEGACY_ALL_OPERATIONAL_PLAN_ROLES.every((role) => resolvedRoles.includes(role))
+  ) {
+    return [...resolvedRoles, "PRINCIPAL"];
+  }
+
+  return resolvedRoles;
+}
+
+export function getRoleEligiblePlanServiceSlugs(
+  role: string,
+  serviceSlugs: string[],
+): string[] {
+  if (role !== "PRINCIPAL") return serviceSlugs;
+  return serviceSlugs.filter((serviceSlug) =>
+    PRINCIPAL_PLAN_SERVICE_SLUGS.has(serviceSlug),
+  );
+}
+
+function planHasEligibleServiceForRole(plan: PlanVisibilityLike, role: string) {
+  if (role !== "PRINCIPAL") return true;
+
+  return plan.features.some(
+    (feature) =>
+      feature.value === "enabled" &&
+      feature.key.startsWith("service:") &&
+      PRINCIPAL_PLAN_SERVICE_SLUGS.has(
+        feature.key.slice("service:".length).trim(),
+      ),
+  );
 }
 
 export function isPlanVisibleToRole(plan: PlanVisibilityLike, role: string): boolean {
@@ -100,14 +155,17 @@ export function isPlanSelfServiceVisible(plan: PlanVisibilityLike, role: string)
   if (!plan.isActive) return false;
   if (plan.isPublic === false) return false;
   if (plan.isArchived) return false;
-  return isPlanVisibleToRole(plan, role);
+  return isPlanVisibleToRole(plan, role) && planHasEligibleServiceForRole(plan, role);
 }
 
 export function isPlanVisibleForRole(audience: PlanAudience, role: string): boolean {
   return getAllowedPlanAudiencesForRole(role).includes(audience);
 }
 
-export function classifyServiceSlug(slug: string): "guidance" | "activity" {
+export function classifyServiceSlug(
+  slug: string,
+): "guidance" | "activity" | "principal" {
+  if (isPrincipalPerformanceServiceSlug(slug)) return "principal";
   if (slug === "custom-report") return "guidance";
   if (slug === "assessment-center") return "guidance";
   if (slug === "activity-programs") return "activity";

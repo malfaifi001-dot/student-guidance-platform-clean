@@ -85,6 +85,7 @@ function getRoleVisibilityLabel(role: PlanVisibleRole) {
   if (role === "COUNSELOR") return "يظهر للموجه";
   if (role === "ACTIVITY_LEADER") return "يظهر لرائد النشاط";
   if (role === "TEACHER") return "يظهر للمعلم";
+  if (role === "PRINCIPAL") return "يظهر لمدير المدرسة";
   if (role === "SCHOOL_OWNER") return "يظهر لمالك المدرسة";
   return "يظهر للموظف";
 }

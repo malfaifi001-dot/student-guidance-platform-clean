@@ -4,7 +4,11 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { logPlanOrderCreatedEvent } from "@/lib/admin/activity-events";
 import { DEFAULT_FREE_PLAN_SLUG } from "@/lib/subscription/default-free-plan";
-import { getPlanAudience, isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+import {
+  getPlanAudience,
+  getRoleEligiblePlanServiceSlugs,
+  isPlanSelfServiceVisible,
+} from "@/lib/subscription/plan-audience";
 import {
   assignPlanToSchool,
   getPlanFeatureValue,
@@ -78,13 +82,16 @@ export async function GET() {
 
   const role = current.user.role;
   const visiblePlans = plans.filter(
-    (plan: any) =>
+    (plan) =>
       plan.slug !== DEFAULT_FREE_PLAN_SLUG && isPlanSelfServiceVisible(plan, role),
   );
 
-  const mappedPlans = visiblePlans.map((plan: any) => {
-    const serviceSlugs = getPlanServiceSlugs(plan.features);
-    const planServices = services.filter((service: any) =>
+  const mappedPlans = visiblePlans.map((plan) => {
+    const serviceSlugs = getRoleEligiblePlanServiceSlugs(
+      role,
+      getPlanServiceSlugs(plan.features),
+    );
+    const planServices = services.filter((service) =>
       serviceSlugs.includes(service.slug)
     );
     const audience = getPlanAudience(plan.features);
@@ -100,7 +107,7 @@ export async function GET() {
       maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
       maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
       targetAudience: audience,
-      services: planServices.map((service: any) => ({
+      services: planServices.map((service) => ({
         id: service.id,
         slug: service.slug,
         name: service.name,
@@ -198,7 +205,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isPlanSelfServiceVisible(plan as any, current.user.role)) {
+  if (!isPlanSelfServiceVisible(plan, current.user.role)) {
     return NextResponse.json(
       {
         error: "الباقة غير متاحة حاليًا.",

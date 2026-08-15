@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ACTIVITY_PROGRAM_PARENT_SERVICE } from "@/lib/activity-programs/activity-program-catalog";
+import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
 
 export const DEFAULT_PLATFORM_SERVICES = [
   {
@@ -28,6 +29,11 @@ export const DEFAULT_PLATFORM_SERVICES = [
     name: "الاستبيانات",
     description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
   },
+  ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES.map((service) => ({
+    slug: service.slug,
+    name: service.title,
+    description: service.description,
+  })),
 ] as const;
 
 export async function ensureDefaultPlatformServices() {
