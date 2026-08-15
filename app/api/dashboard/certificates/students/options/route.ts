@@ -31,6 +31,7 @@ export async function GET(request: Request) {
     SELECT DISTINCT grade
     FROM Student
     WHERE schoolAccountId = ?
+      AND isActive = 1
       AND grade IS NOT NULL
       AND grade <> ''
     ORDER BY grade ASC
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
     SELECT DISTINCT classroom
     FROM Student
     WHERE schoolAccountId = ?
+      AND isActive = 1
       AND classroom IS NOT NULL
       AND classroom <> ''
       AND (? = '' OR grade = ?)
@@ -60,6 +62,7 @@ export async function GET(request: Request) {
     SELECT id, fullName, nationalId, grade, classroom, gender
     FROM Student
     WHERE schoolAccountId = ?
+      AND isActive = 1
       AND (? = '' OR grade = ?)
       AND (? = '' OR classroom = ?)
       AND (

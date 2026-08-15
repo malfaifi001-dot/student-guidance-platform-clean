@@ -42,6 +42,7 @@ export async function deleteStudentImportSession(input: {
       include: {
         files: true,
         _count: { select: { rows: true } },
+        rows: { select: { matchedStudentId: true } },
       },
     });
 
@@ -57,6 +58,27 @@ export async function deleteStudentImportSession(input: {
     const deletedChanges = await tx.studentImportChange.deleteMany({
       where: { sessionId: session.id },
     });
+
+    const importedStudentIds = Array.from(
+      new Set(session.rows.map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id))),
+    );
+    const retainedStudentIds = importedStudentIds.length
+      ? new Set((await tx.studentImportRow.findMany({
+          where: {
+            matchedStudentId: { in: importedStudentIds },
+            sessionId: { not: session.id },
+            session: { schoolAccountId: input.schoolAccountId, status: "COMMITTED", isArchived: false },
+          },
+          select: { matchedStudentId: true },
+        })).map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id)))
+      : new Set<string>();
+    const studentsToDeactivate = importedStudentIds.filter((id) => !retainedStudentIds.has(id));
+    const deactivatedStudents = studentsToDeactivate.length
+      ? await tx.student.updateMany({
+          where: { schoolAccountId: input.schoolAccountId, id: { in: studentsToDeactivate } },
+          data: { isActive: false },
+        })
+      : { count: 0 };
 
     // StudentImportFile and StudentImportRow are owned by the session and cascade
     // with it. Canonical Student/Guardian records are deliberately preserved.
@@ -83,6 +105,7 @@ export async function deleteStudentImportSession(input: {
           rowCount: session._count.rows,
           status: session.status,
           deletedImportChanges: deletedChanges.count,
+          deactivatedStudents: deactivatedStudents.count,
           deletedBy: input.actorUserId,
           deletedAt: deletedAt.toISOString(),
           canonicalStudentsPreserved: true,

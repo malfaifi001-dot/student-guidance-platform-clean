@@ -414,7 +414,7 @@ async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
           _count: {
             select: {
               users: true,
-              students: true,
+              students: { where: { isActive: true } },
             },
           },
         },

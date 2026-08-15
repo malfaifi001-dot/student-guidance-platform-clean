@@ -160,6 +160,7 @@ export async function commitStudentImportSession(
           grade: row.grade,
           classroom: row.classroom,
           guardianId,
+          isActive: true,
         },
       });
 

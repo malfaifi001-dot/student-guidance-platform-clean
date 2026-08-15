@@ -114,7 +114,7 @@ export async function GET() {
         _count: {
           select: {
             users: true,
-            students: true,
+            students: { where: { isActive: true } },
           },
         },
       },

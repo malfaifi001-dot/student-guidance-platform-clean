@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     SELECT id, fullName, nationalId, grade, classroom, gender
     FROM Student
     WHERE schoolAccountId = ?
+      AND isActive = 1
       AND (
         fullName LIKE ?
         OR nationalId LIKE ?

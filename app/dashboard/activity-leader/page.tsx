@@ -30,6 +30,7 @@ export default async function ActivityLeaderDashboardPage() {
       ? prisma.student.count({
           where: {
             schoolAccountId,
+            isActive: true,
           },
         })
       : 0,

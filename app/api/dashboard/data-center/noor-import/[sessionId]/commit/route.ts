@@ -201,6 +201,12 @@ export async function POST(request: Request, context: RouteContext) {
         };
 
         if (existingStudent && row.planAction === "UNCHANGED") {
+          if (!existingStudent.isActive) {
+            await tx.student.update({
+              where: { id: existingStudent.id },
+              data: { isActive: true },
+            });
+          }
           skippedCount += 1;
 
           await tx.studentImportRow.update({
