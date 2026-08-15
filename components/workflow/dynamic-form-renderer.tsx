@@ -283,6 +283,7 @@ const RUNTIME_SERVICE_LABELS: Record<string, string> = {
   "activity-programs-scouting": "برامج النشاط - النشاط الكشفي",
   "activity-programs-events-occasions": "برامج النشاط - الأيام والمناسبات",
   "activity-programs-non-class-periods": "برامج النشاط - الفترات اللاصفية",
+  "activity-programs-school-broadcast": "برامج النشاط - الإذاعة المدرسية",
 };
 
 const RUNTIME_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {

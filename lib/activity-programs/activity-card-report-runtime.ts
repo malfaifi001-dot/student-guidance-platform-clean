@@ -31,6 +31,7 @@ const STATIC_ACTIVITY_VALUE_LABELS: Record<string, string> = {
   scouting: "النشاط الكشفي",
   events_occasions: "الأيام والمناسبات",
   non_class_periods: "الفترات اللاصفية",
+  school_broadcast: "الإذاعة المدرسية",
 
   term_1: "الفصل الدراسي الأول",
   term_2: "الفصل الدراسي الثاني",

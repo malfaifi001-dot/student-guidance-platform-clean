@@ -40,6 +40,7 @@ const ARABIC_VALUE_MAP: Record<string, string> = {
   scouting: "النشاط الكشفي",
   events_occasions: "الأيام والمناسبات",
   non_class_periods: "الفترات اللاصفية",
+  school_broadcast: "الإذاعة المدرسية",
 };
 
 const ARABIC_LABEL_MAP: Record<string, string> = {

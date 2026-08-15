@@ -165,6 +165,10 @@ export async function WorkflowServiceHomePage({
       workflows: {
         where: {
           isActive: true,
+          status: "ACTIVE",
+          workflowType: {
+            in: ["service-main", "default"],
+          },
         },
         orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
         take: 1,

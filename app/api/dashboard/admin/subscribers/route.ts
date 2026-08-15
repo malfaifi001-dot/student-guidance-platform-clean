@@ -6,6 +6,8 @@ import {
   getRemainingDays,
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
+import { ensureDashboardWorkflowService } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
 
 export const runtime = "nodejs";
 
@@ -78,6 +80,10 @@ export async function GET() {
   if (adminError) {
     return adminError;
   }
+
+  await ensureDashboardWorkflowService(
+    STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
+  );
 
   const [schoolAccounts, plans, services, serviceAccess, pendingRequests] = await Promise.all([
     prisma.schoolAccount.findMany({

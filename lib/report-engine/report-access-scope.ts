@@ -1,5 +1,6 @@
 import { buildCaseEntryPermissionWhere } from "@/lib/cases/case-permissions";
 import type { Prisma } from "@prisma/client";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
 
 type ReportScopeUser = {
   id: string;
@@ -17,7 +18,9 @@ const ACTIVITY_LEADER_REPORT_SERVICE_SLUGS = [
   "activity-programs-scouting",
   "activity-programs-events-occasions",
   "activity-programs-non-class-periods",
+  "activity-programs-school-broadcast",
   "custom-report",
+  STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
 ];
 
 export function buildCaseEntryReportWhereForUser(
@@ -41,6 +44,32 @@ export function buildGuidanceReportWhereForUser(
   if (user.role === "ADMIN") {
     return {};
   }
+
+  if (user.role === "PRINCIPAL") {
+    const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
+    return {
+      OR: [
+        {
+          caseEntry: {
+            is: {
+              schoolAccountId,
+              createdById: user.id,
+            },
+          },
+        },
+        {
+          internalAssignments: {
+            some: {
+              schoolAccountId,
+              createdById: user.id,
+              status: { in: ["SUBMITTED", "COMPLETED"] },
+            },
+          },
+        },
+      ],
+    };
+  }
+
   return {
     caseEntry: {
       is: buildCaseEntryReportWhereForUser(user),

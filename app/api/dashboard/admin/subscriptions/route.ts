@@ -17,6 +17,8 @@ import {
   type PlanAudience,
 } from "@/lib/subscription/plan-audience";
 import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+import { ensureDashboardWorkflowService } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
 
 function slugify(input: string) {
   return input
@@ -47,6 +49,9 @@ export async function GET() {
   }
 
   await ensureDefaultPlatformServices();
+  await ensureDashboardWorkflowService(
+    STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
+  );
 
   const [defaultFreePlan, plans, services, schools, subscriptions, serviceAccess] =
     await Promise.all([
@@ -140,6 +145,10 @@ export async function POST(request: Request) {
   if (adminError) {
     return adminError;
   }
+
+  await ensureDashboardWorkflowService(
+    STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
+  );
 
   const current = await getCurrentSessionUser();
 

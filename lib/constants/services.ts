@@ -4,6 +4,8 @@ import {
   ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
 } from "@/lib/activity-programs/activity-program-catalog";
 import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
+import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
 
 export type AppService = {
   slug: string;
@@ -69,7 +71,9 @@ export const COUNSELOR_GUIDANCE_WORKFLOW_SERVICES: AppService[] = [
 
 export const workflowServices: AppService[] = [
   ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+  STUDENT_ACTIVITY_COMPETITIONS_SERVICE,
   ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+  ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES,
   {
     slug: "teacher-report-issuance",
     title: "إصدار تقرير",

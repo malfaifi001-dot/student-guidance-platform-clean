@@ -22,8 +22,10 @@ function buildSubscriptionRequiredResponse() {
   );
 }
 
-export async function requireActiveSubscriptionForCurrentUser(): Promise<DashboardAuthResult> {
-  const context = await requireSchoolDashboardApiContext();
+export async function requireActiveSubscriptionForCurrentUser(
+  options: { allowPrincipal?: boolean } = {},
+): Promise<DashboardAuthResult> {
+  const context = await requireSchoolDashboardApiContext(options);
 
   if (context instanceof Response) {
     return context;
@@ -44,8 +46,9 @@ export async function requireActiveSubscriptionForCurrentUser(): Promise<Dashboa
 
 export async function requireServiceAccessForCurrentUser(
   serviceSlug: string,
+  options: { allowPrincipal?: boolean } = {},
 ): Promise<DashboardAuthResult> {
-  const context = await requireActiveSubscriptionForCurrentUser();
+  const context = await requireActiveSubscriptionForCurrentUser(options);
 
   if (context instanceof Response) {
     return context;

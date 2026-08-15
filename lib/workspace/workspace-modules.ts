@@ -1,3 +1,5 @@
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
+
 export type WorkspaceRole = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
 
 export type WorkspaceModuleIcon =
@@ -35,6 +37,7 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
   counselorHome: "/dashboard",
   activityLeaderHome: "/dashboard/activity-leader",
   activityLeaderPrograms: "/dashboard/activity-leader/programs",
+  activityLeaderCompetitions: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.href,
   teacherHome: "/dashboard/teacher",
   teacherSurveys: "/dashboard/teacher/surveys",
   teacherStudentData: "/dashboard/teacher/student-data",
@@ -42,6 +45,13 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
 } as const;
 
 export const counselorWorkspaceModules: WorkspaceModule[] = [
+  {
+    title: "تكليفاتي",
+    description: "تكليفات إدارة المدرسة واختيار تقرير موجود لإرساله.",
+    href: "/dashboard/assignments",
+    icon: "assignments",
+    status: "available",
+  },
   {
     title: "خدمات التوجيه الطلابي",
     description: "خدمات وبرامج التوجيه الطلابي المعتمدة للموجه الطلابي.",
@@ -102,9 +112,23 @@ export const counselorWorkspaceModules: WorkspaceModule[] = [
 
 export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
   {
+    title: "تكليفاتي",
+    description: "تكليفات إدارة المدرسة واختيار تقرير نشاط موجود لإرساله.",
+    href: "/dashboard/activity-leader/assignments",
+    icon: "assignments",
+    status: "available",
+  },
+  {
     title: "برامج النشاط",
     description: "اختيار مجال النشاط وتعبئة بطاقة التنفيذ.",
     href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+    icon: "workflow",
+    status: "available",
+  },
+  {
+    title: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.title,
+    description: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.description,
+    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderCompetitions,
     icon: "workflow",
     status: "available",
   },
@@ -193,7 +217,7 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     description: "متابعة التكليفات المرسلة لك من المدرسة وتنفيذ المطلوب.",
     href: "/dashboard/teacher/assignments",
     icon: "assignments",
-    status: "soon",
+    status: "available",
   },
   {
     title: "الاستبيانات",

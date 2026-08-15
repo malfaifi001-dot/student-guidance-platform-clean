@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 
 
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
+import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
@@ -41,6 +43,7 @@ import {
   Palette,
   PenTool,
   PartyPopper,
+  Radio,
   School,
   Send,
   Settings,
@@ -95,6 +98,11 @@ const HOME_ROUTES = new Set([
  * ============================================================ */
 
 const counselorImportantLinks: SidebarLinkItem[] = [
+  {
+    label: "تكليفاتي",
+    href: "/dashboard/assignments",
+    icon: Send,
+  },
   {
     label: "الرئيسية",
     href: "/dashboard",
@@ -234,6 +242,11 @@ const counselorAccountLinks: SidebarLinkItem[] = [
 
 const activityLeaderImportantLinks: SidebarLinkItem[] = [
   {
+    label: "تكليفاتي",
+    href: "/dashboard/activity-leader/assignments",
+    icon: Send,
+  },
+  {
     label: "الرئيسية",
     href: "/dashboard/activity-leader",
     icon: Home,
@@ -267,9 +280,15 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
       scouting: Compass,
       "events-occasions": PartyPopper,
       "non-class-periods": Clock3,
+      "school-broadcast": Radio,
     }[domain.slug],
     shortLabel: domain.shortLabel,
   })),
+  {
+    label: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.title,
+    href: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.href,
+    icon: Award,
+  },
   {
     label: "ملف الإنجاز",
     href: "/dashboard/activity-leader/portfolio",
@@ -323,6 +342,11 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
  * ============================================================ */
 
 const teacherServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "تكليفاتي",
+    href: "/dashboard/teacher/assignments",
+    icon: Send,
+  },
   {
     label: "الرئيسية",
     href: OFFICIAL_WORKSPACE_ROUTES.teacherHome,
@@ -453,6 +477,15 @@ const principalLinks: SidebarLinkItem[] = [
     icon: FileText,
   },
 ];
+
+const principalPerformanceLinks: SidebarLinkItem[] = PRINCIPAL_PERFORMANCE_ITEMS.map(
+  (item) => ({
+    label: item.title,
+    href: item.href,
+    icon: ClipboardList,
+    shortLabel: item.shortTitle,
+  }),
+);
 
 const principalAccountLinks: SidebarLinkItem[] = [
   {
@@ -1298,6 +1331,22 @@ function PrincipalSidebar({
           />
         ))}
       </SidebarSection>
+
+      <SidebarDropdown
+        title="عناصر التقييم"
+        defaultOpen={hasActive(pathname, principalPerformanceLinks)}
+        collapsed={collapsed}
+      >
+        {principalPerformanceLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+          />
+        ))}
+      </SidebarDropdown>
 
       <SidebarDropdown
         title="الحساب والباقات"

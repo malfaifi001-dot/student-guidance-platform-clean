@@ -93,7 +93,9 @@ export async function getDashboardContext(): Promise<DashboardContext | null> {
   return toDashboardContext(user);
 }
 
-export async function requireDashboardApiContext() {
+export async function requireDashboardApiContext(
+  options: { allowPrincipal?: boolean } = {},
+) {
   const context = await getDashboardContext();
 
   if (!context) {
@@ -107,7 +109,7 @@ export async function requireDashboardApiContext() {
     );
   }
 
-  if (context.user.role === "PRINCIPAL") {
+  if (context.user.role === "PRINCIPAL" && !options.allowPrincipal) {
     return NextResponse.json(
       {
         success: false,
@@ -121,8 +123,10 @@ export async function requireDashboardApiContext() {
   return context;
 }
 
-export async function requireSchoolDashboardApiContext() {
-  const contextOrResponse = await requireDashboardApiContext();
+export async function requireSchoolDashboardApiContext(
+  options: { allowPrincipal?: boolean } = {},
+) {
+  const contextOrResponse = await requireDashboardApiContext(options);
 
   if (contextOrResponse instanceof NextResponse) {
     return contextOrResponse;

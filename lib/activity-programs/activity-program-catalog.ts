@@ -50,6 +50,13 @@ export const ACTIVITY_PROGRAM_DOMAINS = [
     shortLabel: "اللاصفية",
     description: "برامج حصص النشاط والفترات اللاصفية داخل المدرسة.",
   },
+  {
+    slug: "school-broadcast",
+    serviceSlug: "activity-programs-school-broadcast",
+    title: "الإذاعة المدرسية",
+    shortLabel: "الإذاعة المدرسية",
+    description: "برامج الإذاعة المدرسية وتنظيم فقراتها ومشاركاتها الطلابية.",
+  },
 ] as const;
 
 export type ActivityProgramDomain = (typeof ACTIVITY_PROGRAM_DOMAINS)[number];

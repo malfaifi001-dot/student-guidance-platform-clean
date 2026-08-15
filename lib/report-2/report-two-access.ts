@@ -85,6 +85,36 @@ export async function getAuthorizedReportTwoById(
     where: { id: reportId },
   });
   if (active) {
+    if (context.user.role === "PRINCIPAL") {
+      const returned = await prisma.internalAssignment.findFirst({
+        where: {
+          reportSnapshotId: reportId,
+          schoolAccountId: context.schoolAccountId || "__NO_SCHOOL__",
+          createdById: context.user.id,
+          status: { in: ["SUBMITTED", "COMPLETED"] },
+        },
+        select: { id: true },
+      });
+      if (returned) {
+        const caseEntry = await prisma.caseEntry.findFirst({
+          where: {
+            id: active.caseEntryId,
+            schoolAccountId: context.schoolAccountId || "__NO_SCHOOL__",
+          },
+          select: {
+            id: true,
+            schoolAccountId: true,
+            serviceId: true,
+            title: true,
+            service: { select: { slug: true, name: true } },
+          },
+        });
+        if (caseEntry && caseEntry.schoolAccountId === active.schoolAccountId) {
+          return { kind: "ACTIVE" as const, report: active, caseEntry };
+        }
+      }
+    }
+
     const caseEntry = await getAuthorizedReportTwoCase(
       context,
       active.caseEntryId,
@@ -99,6 +129,39 @@ export async function getAuthorizedReportTwoById(
     where: { id: reportId },
   });
   if (!snapshot) return null;
+
+  if (context.user.role === "PRINCIPAL") {
+    const returned = await prisma.internalAssignment.findFirst({
+      where: {
+        reportSnapshotId: reportId,
+        schoolAccountId: context.schoolAccountId || "__NO_SCHOOL__",
+        createdById: context.user.id,
+        status: { in: ["SUBMITTED", "COMPLETED"] },
+      },
+      select: { id: true },
+    });
+    if (returned) {
+      const caseEntry = await prisma.caseEntry.findFirst({
+        where: {
+          id: snapshot.caseEntryId,
+          schoolAccountId: context.schoolAccountId || "__NO_SCHOOL__",
+        },
+        select: {
+          id: true,
+          schoolAccountId: true,
+          serviceId: true,
+          title: true,
+          service: { select: { slug: true, name: true } },
+        },
+      });
+      if (
+        caseEntry &&
+        (!snapshot.schoolAccountId || snapshot.schoolAccountId === caseEntry.schoolAccountId)
+      ) {
+        return { kind: "SNAPSHOT" as const, report: snapshot, caseEntry };
+      }
+    }
+  }
 
   const caseEntry = await getAuthorizedReportTwoCase(
     context,

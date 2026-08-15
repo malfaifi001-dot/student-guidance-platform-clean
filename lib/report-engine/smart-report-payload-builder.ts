@@ -1014,6 +1014,7 @@ const ACTIVITY_REPORT_SERVICE_SLUGS = new Set([
   "scouting",
   "events-occasions",
   "non-class-periods",
+  "school-broadcast",
 ]);
 
 function isActivityProgramReportService(serviceSlug: string) {

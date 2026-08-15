@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
 
 export type CasePermissionUser = {
   id: string;
@@ -35,6 +36,8 @@ const ACTIVITY_PROGRAM_SERVICE_SLUGS = new Set([
   "activity-programs-scouting",
   "activity-programs-events-occasions",
   "activity-programs-non-class-periods",
+  "activity-programs-school-broadcast",
+  STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
 ]);
 
 const LOCKED_TEACHER_ASSIGNMENT_STATUSES = new Set([
@@ -96,6 +99,9 @@ export function buildCaseEntryPermissionWhere(
 
     return {
       schoolAccountId,
+      service: {
+        slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+      },
       OR: ownershipScope,
     };
   }
@@ -104,6 +110,9 @@ export function buildCaseEntryPermissionWhere(
     return {
       schoolAccountId,
       createdById: user.id || "__NO_USER__",
+      service: {
+        slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+      },
     };
   }
 
@@ -111,10 +120,18 @@ export function buildCaseEntryPermissionWhere(
     return {
       schoolAccountId,
       createdById: user.id || "__NO_USER__",
+      service: {
+        slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+      },
     };
   }
 
-  return { schoolAccountId };
+  return {
+    schoolAccountId,
+    service: {
+      slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+    },
+  };
 }
 
 export function resolveCaseCapabilities(
@@ -137,6 +154,19 @@ export function resolveCaseCapabilities(
   );
 
   if (!sameSchool) {
+    return {
+      canViewCase: false,
+      canEditCase: false,
+      canDeleteCase: false,
+      canOpenCaseReport: false,
+      canDeleteCaseReport: false,
+    };
+  }
+
+  if (
+    caseEntry.service?.slug === STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG &&
+    user.role !== "ACTIVITY_LEADER"
+  ) {
     return {
       canViewCase: false,
       canEditCase: false,

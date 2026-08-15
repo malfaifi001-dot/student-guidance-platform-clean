@@ -5,6 +5,10 @@ import { logCaseSavedEvent } from "@/lib/admin/activity-events";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+import {
+  canUseStudentActivityCompetitionsService,
+  isStudentActivityCompetitionsServiceSlug,
+} from "@/lib/activity-competitions/activity-competitions-service";
 
 export async function POST(request: Request) {
   const authResult = await requireSchoolDashboardApiContext();
@@ -50,6 +54,19 @@ export async function POST(request: Request) {
 
     const serviceGuard = await requireServiceAccessApi(getActivityProgramsBillingServiceSlug(service.slug));
     if (serviceGuard) return serviceGuard;
+
+    if (
+      isStudentActivityCompetitionsServiceSlug(service.slug) &&
+      !canUseStudentActivityCompetitionsService(authResult.user.role)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "هذه الخدمة متاحة لرائد النشاط فقط.",
+        },
+        { status: 403 },
+      );
+    }
 
     if (
       service.slug === "guardian-summons" &&

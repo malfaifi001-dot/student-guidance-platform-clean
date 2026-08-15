@@ -858,6 +858,7 @@ const REPORT_TWO_VALUE_LABELS: Record<string, string> = {
   sports_health: "الرياضة والصحة",
   events_occasions: "الأيام والمناسبات",
   non_class_periods: "الفترات اللاصفية",
+  school_broadcast: "الإذاعة المدرسية",
   activity_leader: "رائد النشاط",
   teacher: "المعلم",
   counselor: "الموجه الطلابي",
