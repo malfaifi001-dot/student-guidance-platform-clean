@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { GuidanceOverlay } from "@/components/guidance/guidance-overlay";
 import { TeacherOnboardingController, replayTeacherOnboarding } from "@/components/guidance/teacher-onboarding-controller";
+import { RoleOnboardingController } from "@/components/guidance/role-onboarding-controller";
 import { resolveGuidanceSteps, isGuidanceRole } from "@/lib/guidance/guidance-resolver";
 import { readGuidanceProgress, writeGuidanceProgress } from "@/lib/guidance/guidance-storage";
 import type { GuidanceScopeConfig } from "@/lib/guidance/guidance-types";
@@ -16,11 +17,12 @@ type GuidanceContextValue = {
 
 const GuidanceContext = createContext<GuidanceContextValue | null>(null);
 
-export function GuidanceProvider({ userId, role, gender, children }: { userId: string; role?: string | null; gender?: string | null; children: ReactNode }) {
+export function GuidanceProvider({ userId, role, gender, displayName, children }: { userId: string; role?: string | null; gender?: string | null; displayName?: string | null; children: ReactNode }) {
   const [scope, setScope] = useState<GuidanceScopeConfig | null>(null);
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [teacherJourneyActive, setTeacherJourneyActive] = useState(false);
+  const [roleJourneyActive, setRoleJourneyActive] = useState(false);
   const supportedRole = isGuidanceRole(role) ? role : null;
   const steps = useMemo(() => scope && supportedRole ? resolveGuidanceSteps({ context: scope.context, role: supportedRole, capabilities: scope.capabilities || [] }) : [], [scope, supportedRole]);
 
@@ -58,7 +60,10 @@ export function GuidanceProvider({ userId, role, gender, children }: { userId: s
           onActiveChange={setTeacherJourneyActive}
         />
       ) : null}
-      {role !== "TEACHER" && scope && open && !teacherJourneyActive ? (
+      {role === "COUNSELOR" || role === "ACTIVITY_LEADER" ? (
+        <RoleOnboardingController userId={userId} role={role} gender={gender} displayName={displayName} onActiveChange={setRoleJourneyActive} />
+      ) : null}
+      {role !== "TEACHER" && role !== "COUNSELOR" && role !== "ACTIVITY_LEADER" && scope && open && !teacherJourneyActive && !roleJourneyActive ? (
         <GuidanceOverlay
           steps={steps}
           initialIndex={stepIndex}

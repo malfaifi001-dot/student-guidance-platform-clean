@@ -54,7 +54,7 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider>
-      <GuidanceProvider userId={current.user.id} role={current.user.role} gender={current.user.gender}>
+      <GuidanceProvider userId={current.user.id} role={current.user.role} gender={current.user.gender} displayName={current.user.officialName || current.user.name}>
       <div
         dir="rtl"
         className="h-screen overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"

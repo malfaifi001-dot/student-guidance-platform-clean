@@ -4,7 +4,7 @@ import { Check, Gift, Route, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 
-import type { TeacherPerformanceService } from "@/lib/teacher-performance/teacher-performance-services";
+type PerformanceOption = { slug: string; title: string; href: string };
 import type { TeacherJourneyCard } from "@/lib/guidance/teacher-onboarding-journey";
 
 const GAP = 14;
@@ -18,7 +18,7 @@ export function TeacherOnboardingPopCard({ card, busy, feedback, onPrimary, onPa
   onPause: () => void;
   onDismiss?: () => void;
   onLuckyAnswer: (answer: number) => void;
-  performanceServices?: TeacherPerformanceService[];
+  performanceServices?: PerformanceOption[];
   selectedPerformanceSlug?: string;
   onPerformanceSelect?: (slug: string) => void;
 }) {

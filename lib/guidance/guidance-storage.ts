@@ -4,6 +4,7 @@ import {
   TEACHER_ONBOARDING_PHASES,
   type TeacherOnboardingState,
 } from "@/lib/guidance/teacher-onboarding-journey";
+import { ROLE_ONBOARDING_INITIAL_STATE, type GuidedWorkspaceRole, type RoleOnboardingState } from "@/lib/guidance/role-onboarding-journey";
 
 const PREFIX = "guidance-progress:v1";
 
@@ -53,4 +54,23 @@ export function writeTeacherOnboardingState(userId: string, state: TeacherOnboar
     teacherJourneyKey(userId),
     JSON.stringify({ ...state, updatedAt: new Date().toISOString() }),
   );
+}
+
+function roleJourneyKey(userId: string, role: GuidedWorkspaceRole) {
+  return `${PREFIX}:workspace-onboarding:v1:${role}:${userId}`;
+}
+
+export function readRoleOnboardingState(userId: string, role: GuidedWorkspaceRole): RoleOnboardingState {
+  const initial = ROLE_ONBOARDING_INITIAL_STATE(role);
+  if (typeof window === "undefined") return initial;
+  try {
+    const value = JSON.parse(window.localStorage.getItem(roleJourneyKey(userId, role)) || "null");
+    if (value?.version === 1 && value?.role === role && typeof value.phase === "string") return { ...initial, ...value };
+  } catch {}
+  return initial;
+}
+
+export function writeRoleOnboardingState(userId: string, state: RoleOnboardingState) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(roleJourneyKey(userId, state.role), JSON.stringify({ ...state, updatedAt: new Date().toISOString() }));
 }
