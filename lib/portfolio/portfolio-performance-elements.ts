@@ -1,5 +1,13 @@
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import { COUNSELOR_GUIDANCE_WORKFLOW_SERVICES } from "@/lib/constants/services";
+import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
+import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
+
+export type PortfolioServiceGroup = {
+  key: string;
+  title: string;
+  order: number;
+};
 
 export type PortfolioPerformanceElement = {
   key: string;
@@ -7,6 +15,7 @@ export type PortfolioPerformanceElement = {
   weight: number;
   serviceSlug: string;
   intro: string;
+  group?: PortfolioServiceGroup;
 };
 
 export const TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS: PortfolioPerformanceElement[] = [
@@ -120,10 +129,42 @@ const ACTIVITY_LEADER_PORTFOLIO_ELEMENTS: PortfolioPerformanceElement[] = ACTIVI
   intro: domain.description,
 }));
 
+const PRINCIPAL_PERFORMANCE_GROUP: PortfolioServiceGroup = {
+  key: "principal-performance-evaluation",
+  title: "عناصر تقييم الأداء",
+  order: 1,
+};
+
+const PRINCIPAL_EVALUATION_ACCREDITATION_GROUP: PortfolioServiceGroup = {
+  key: "principal-evaluation-accreditation",
+  title: "التقويم والاعتماد",
+  order: 2,
+};
+
+const PRINCIPAL_PORTFOLIO_ELEMENTS: PortfolioPerformanceElement[] = [
+  ...PRINCIPAL_PERFORMANCE_ITEMS.map((item) => ({
+    key: item.serviceSlug,
+    title: item.title,
+    weight: 0,
+    serviceSlug: item.serviceSlug,
+    intro: item.description,
+    group: PRINCIPAL_PERFORMANCE_GROUP,
+  })),
+  ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map((service) => ({
+    key: service.serviceSlug,
+    title: service.title,
+    weight: 0,
+    serviceSlug: service.serviceSlug,
+    intro: service.description,
+    group: PRINCIPAL_EVALUATION_ACCREDITATION_GROUP,
+  })),
+];
+
 export function getPortfolioPerformanceElements(role?: string | null): PortfolioPerformanceElement[] {
   if (role === "TEACHER") return TEACHER_PORTFOLIO_PERFORMANCE_ELEMENTS;
   if (role === "COUNSELOR") return COUNSELOR_PORTFOLIO_ELEMENTS;
   if (role === "ACTIVITY_LEADER") return ACTIVITY_LEADER_PORTFOLIO_ELEMENTS;
+  if (role === "PRINCIPAL") return PRINCIPAL_PORTFOLIO_ELEMENTS;
   return [];
 }
 

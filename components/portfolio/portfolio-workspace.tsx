@@ -181,5 +181,101 @@ export function PortfolioWorkspace({ initialData }: { initialData: PortfolioWork
 }
 
 function Overview({ data }: { data: PortfolioWorkspaceData }) {
-  return <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">{data.showWeights ? "عناصر الأداء" : "أقسام الخدمات"}</h2>{data.performanceSections.length ? <div className="mt-5 grid gap-3 md:grid-cols-2">{data.performanceSections.map((section) => <div key={section.key} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><div><h3 className="text-sm font-black text-slate-900">{section.title}</h3><p className="mt-1 text-xs font-bold text-slate-400">{data.showWeights ? `الوزن ${section.weight}% · ` : ""}{section.isEnabled ? "ظاهر" : "مخفي"}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{section.reports.length}</span></div></div>)}</div> : <p className="mt-4 text-sm font-bold text-slate-500">لا توجد أقسام خدمات مضافة لهذا الدور حاليًا.</p>}</section>;
+  const groupedSections = Array.from(
+    data.performanceSections.reduce((groups, section) => {
+      const key = section.group?.key || "services";
+      const current = groups.get(key) || {
+        key,
+        title: section.group?.title || null,
+        order: section.group?.order ?? Number.MAX_SAFE_INTEGER,
+        sections: [],
+      };
+      current.sections.push(section);
+      groups.set(key, current);
+      return groups;
+    }, new Map<string, {
+      key: string;
+      title: string | null;
+      order: number;
+      sections: PortfolioWorkspaceData["performanceSections"];
+    }>()),
+  )
+    .map(([, group]) => group)
+    .sort((first, second) => first.order - second.order);
+  const hasNamedGroups = groupedSections.some((group) => group.title);
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-black text-slate-950">
+        {data.showWeights ? "عناصر الأداء" : "أقسام الخدمات"}
+      </h2>
+      {data.performanceSections.length ? (
+        hasNamedGroups ? (
+          <div className="mt-5 space-y-6">
+            {groupedSections.map((group) => (
+              <section
+                key={group.key}
+                className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                  <h3 className="text-lg font-black text-slate-950">{group.title}</h3>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                    {group.sections.length} خدمة
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {group.sections.map((section) => (
+                    <ServiceSectionCard
+                      key={section.key}
+                      section={section}
+                      showWeights={data.showWeights}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {data.performanceSections.map((section) => (
+              <ServiceSectionCard
+                key={section.key}
+                section={section}
+                showWeights={data.showWeights}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        <p className="mt-4 text-sm font-bold text-slate-500">
+          لا توجد أقسام خدمات مضافة لهذا الدور حاليًا.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ServiceSectionCard({
+  section,
+  showWeights,
+}: {
+  section: PortfolioWorkspaceData["performanceSections"][number];
+  showWeights: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-black text-slate-900">{section.title}</h4>
+          <p className="mt-1 text-xs font-bold text-slate-400">
+            {showWeights ? `الوزن ${section.weight}% · ` : ""}
+            {section.isEnabled ? "ظاهر" : "مخفي"}
+          </p>
+        </div>
+        <span className="h-fit rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+          {section.reports.length}
+        </span>
+      </div>
+    </div>
+  );
 }
