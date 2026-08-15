@@ -1,0 +1,2683 @@
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3244
+============================================================
+ 3225:       ${clone.outerHTML}
+ 3226:     `;
+ 3227:   }
+ 3228: 
+ 3229:   async function createReportTwoApprovedSnapshotInternal(options?: {
+ 3230:     showSuccessPopup?: boolean;
+ 3231:     allowReuseExisting?: boolean;
+ 3232:   }) {
+ 3233:     const showSuccessPopup = options?.showSuccessPopup !== false;
+ 3234:     const allowReuseExisting = options?.allowReuseExisting !== false;
+ 3235: 
+ 3236:     if (reportTwoApprovalSubmitting) return null;
+ 3237: 
+ 3238:     if (approvedSnapshot && allowReuseExisting) {
+ 3239:       return approvedSnapshot;
+ 3240:     }
+ 3241: 
+ 3242:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3243:       setReportTwoActionModal({
+ 3244:         title: "اعتماد التقرير",
+ 3245:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3246:       });
+ 3247:       return null;
+ 3248:     }
+ 3249: 
+ 3250:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3251:       setPopup({
+ 3252:         type: "alert",
+ 3253:         title: "اعتماد التقرير",
+ 3254:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3255:       });
+ 3256:       return null;
+ 3257:     }
+ 3258: 
+ 3259:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3260: 
+ 3261:     if (!snapshotHtml.trim()) {
+ 3262:       setReportTwoActionModal({
+ 3263:         title: "اعتماد التقرير",
+ 3264:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3265:       });
+ 3266:       return null;
+ 3267:     }
+ 3268: 
+ 3269:     if (!snapshotHtml.trim()) {
+ 3270:       setPopup({
+ 3271:         type: "alert",
+ 3272:         title: "اعتماد التقرير",
+ 3273:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3274:       });
+ 3275:       return null;
+ 3276:     }
+ 3277: 
+ 3278:     setReportTwoApprovalSubmitting(true);
+ 3279: 
+ 3280:     try {
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3253
+============================================================
+ 3234:     const allowReuseExisting = options?.allowReuseExisting !== false;
+ 3235: 
+ 3236:     if (reportTwoApprovalSubmitting) return null;
+ 3237: 
+ 3238:     if (approvedSnapshot && allowReuseExisting) {
+ 3239:       return approvedSnapshot;
+ 3240:     }
+ 3241: 
+ 3242:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3243:       setReportTwoActionModal({
+ 3244:         title: "اعتماد التقرير",
+ 3245:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3246:       });
+ 3247:       return null;
+ 3248:     }
+ 3249: 
+ 3250:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3251:       setPopup({
+ 3252:         type: "alert",
+ 3253:         title: "اعتماد التقرير",
+ 3254:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3255:       });
+ 3256:       return null;
+ 3257:     }
+ 3258: 
+ 3259:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3260: 
+ 3261:     if (!snapshotHtml.trim()) {
+ 3262:       setReportTwoActionModal({
+ 3263:         title: "اعتماد التقرير",
+ 3264:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3265:       });
+ 3266:       return null;
+ 3267:     }
+ 3268: 
+ 3269:     if (!snapshotHtml.trim()) {
+ 3270:       setPopup({
+ 3271:         type: "alert",
+ 3272:         title: "اعتماد التقرير",
+ 3273:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3274:       });
+ 3275:       return null;
+ 3276:     }
+ 3277: 
+ 3278:     setReportTwoApprovalSubmitting(true);
+ 3279: 
+ 3280:     try {
+ 3281:       const activeTemplate = templates.find(
+ 3282:         (item) => item.id === selectedTemplateOptionId,
+ 3283:       );
+ 3284:       const response = await fetch(
+ 3285:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+ 3286:         {
+ 3287:           method: "POST",
+ 3288:           headers: {
+ 3289:             "Content-Type": "application/json",
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3263
+============================================================
+ 3244:         title: "اعتماد التقرير",
+ 3245:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3246:       });
+ 3247:       return null;
+ 3248:     }
+ 3249: 
+ 3250:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3251:       setPopup({
+ 3252:         type: "alert",
+ 3253:         title: "اعتماد التقرير",
+ 3254:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3255:       });
+ 3256:       return null;
+ 3257:     }
+ 3258: 
+ 3259:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3260: 
+ 3261:     if (!snapshotHtml.trim()) {
+ 3262:       setReportTwoActionModal({
+ 3263:         title: "اعتماد التقرير",
+ 3264:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3265:       });
+ 3266:       return null;
+ 3267:     }
+ 3268: 
+ 3269:     if (!snapshotHtml.trim()) {
+ 3270:       setPopup({
+ 3271:         type: "alert",
+ 3272:         title: "اعتماد التقرير",
+ 3273:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3274:       });
+ 3275:       return null;
+ 3276:     }
+ 3277: 
+ 3278:     setReportTwoApprovalSubmitting(true);
+ 3279: 
+ 3280:     try {
+ 3281:       const activeTemplate = templates.find(
+ 3282:         (item) => item.id === selectedTemplateOptionId,
+ 3283:       );
+ 3284:       const response = await fetch(
+ 3285:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+ 3286:         {
+ 3287:           method: "POST",
+ 3288:           headers: {
+ 3289:             "Content-Type": "application/json",
+ 3290:           },
+ 3291:           body: JSON.stringify({
+ 3292:             reportTitle: getReportTwoSnapshotTitle(),
+ 3293:             templateId: selectedTemplateOptionId || null,
+ 3294:             templateName: activeTemplate?.name || template.name || null,
+ 3295:             variantId: selectedVariantId || null,
+ 3296:             snapshotPayload: preparedPayload,
+ 3297:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+ 3298:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+ 3299:             snapshotHtml,
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3272
+============================================================
+ 3253:         title: "اعتماد التقرير",
+ 3254:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3255:       });
+ 3256:       return null;
+ 3257:     }
+ 3258: 
+ 3259:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3260: 
+ 3261:     if (!snapshotHtml.trim()) {
+ 3262:       setReportTwoActionModal({
+ 3263:         title: "اعتماد التقرير",
+ 3264:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3265:       });
+ 3266:       return null;
+ 3267:     }
+ 3268: 
+ 3269:     if (!snapshotHtml.trim()) {
+ 3270:       setPopup({
+ 3271:         type: "alert",
+ 3272:         title: "اعتماد التقرير",
+ 3273:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3274:       });
+ 3275:       return null;
+ 3276:     }
+ 3277: 
+ 3278:     setReportTwoApprovalSubmitting(true);
+ 3279: 
+ 3280:     try {
+ 3281:       const activeTemplate = templates.find(
+ 3282:         (item) => item.id === selectedTemplateOptionId,
+ 3283:       );
+ 3284:       const response = await fetch(
+ 3285:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+ 3286:         {
+ 3287:           method: "POST",
+ 3288:           headers: {
+ 3289:             "Content-Type": "application/json",
+ 3290:           },
+ 3291:           body: JSON.stringify({
+ 3292:             reportTitle: getReportTwoSnapshotTitle(),
+ 3293:             templateId: selectedTemplateOptionId || null,
+ 3294:             templateName: activeTemplate?.name || template.name || null,
+ 3295:             variantId: selectedVariantId || null,
+ 3296:             snapshotPayload: preparedPayload,
+ 3297:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+ 3298:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+ 3299:             snapshotHtml,
+ 3300:             editorState: createReportTwoDraftSnapshot(),
+ 3301:             approvedEditConfirmed: persistedReport?.status === "APPROVED",
+ 3302:           }),
+ 3303:         },
+ 3304:       );
+ 3305:       const text = await response.text();
+ 3306:       let result: any = {};
+ 3307: 
+ 3308:       try {
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3347
+============================================================
+ 3328:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+ 3329:       };
+ 3330: 
+ 3331:       setApprovedSnapshot(nextApprovedSnapshot);
+ 3332:       setPersistedReport({
+ 3333:         id: result.snapshot.id,
+ 3334:         status: "APPROVED",
+ 3335:         version: result.snapshot.version,
+ 3336:         approvedAt: result.snapshot.approvedAt,
+ 3337:         editorState: result.snapshot.editorState,
+ 3338:         previewUrl: nextApprovedSnapshot.previewUrl,
+ 3339:       });
+ 3340:       const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+ 3341:         cancelable: true,
+ 3342:         detail: { reportId: String(nextApprovedSnapshot.id || ""), caseId },
+ 3343:       }));
+ 3344: 
+ 3345:       if (showSuccessPopup && showStandardApprovalFeedback) {
+ 3346:         setReportTwoActionModal({
+ 3347:           title: "تم اعتماد التقرير",
+ 3348:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3349:           linkHref: nextApprovedSnapshot.previewUrl,
+ 3350:           linkLabel: "استعراض التقرير المعتمد",
+ 3351:         });
+ 3352:         return nextApprovedSnapshot;
+ 3353:       }
+ 3354: 
+ 3355:       if (showSuccessPopup) return nextApprovedSnapshot;
+ 3356: 
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3360
+============================================================
+ 3341:         cancelable: true,
+ 3342:         detail: { reportId: String(nextApprovedSnapshot.id || ""), caseId },
+ 3343:       }));
+ 3344: 
+ 3345:       if (showSuccessPopup && showStandardApprovalFeedback) {
+ 3346:         setReportTwoActionModal({
+ 3347:           title: "تم اعتماد التقرير",
+ 3348:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3349:           linkHref: nextApprovedSnapshot.previewUrl,
+ 3350:           linkLabel: "استعراض التقرير المعتمد",
+ 3351:         });
+ 3352:         return nextApprovedSnapshot;
+ 3353:       }
+ 3354: 
+ 3355:       if (showSuccessPopup) return nextApprovedSnapshot;
+ 3356: 
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3369
+============================================================
+ 3350:           linkLabel: "استعراض التقرير المعتمد",
+ 3351:         });
+ 3352:         return nextApprovedSnapshot;
+ 3353:       }
+ 3354: 
+ 3355:       if (showSuccessPopup) return nextApprovedSnapshot;
+ 3356: 
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3370
+============================================================
+ 3351:         });
+ 3352:         return nextApprovedSnapshot;
+ 3353:       }
+ 3354: 
+ 3355:       if (showSuccessPopup) return nextApprovedSnapshot;
+ 3356: 
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+ 3406:         type: "alert",
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3375
+============================================================
+ 3356: 
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+ 3406:         type: "alert",
+ 3407:         title: "اعتماد التقرير",
+ 3408:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3409:       });
+ 3410:       return;
+ 3411:     }
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3376
+============================================================
+ 3357:       if (showSuccessPopup) {
+ 3358:         setPopup({
+ 3359:           type: "alert",
+ 3360:           title: "تم اعتماد التقرير",
+ 3361:           message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3362:         });
+ 3363:       }
+ 3364: 
+ 3365:       return nextApprovedSnapshot;
+ 3366:     } catch (error) {
+ 3367:       console.error(error);
+ 3368:       setReportTwoActionModal({
+ 3369:         title: "اعتماد التقرير",
+ 3370:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3371:       });
+ 3372:       return null;
+ 3373:       setPopup({
+ 3374:         type: "alert",
+ 3375:         title: "اعتماد التقرير",
+ 3376:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+ 3406:         type: "alert",
+ 3407:         title: "اعتماد التقرير",
+ 3408:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3409:       });
+ 3410:       return;
+ 3411:     }
+ 3412: 
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3396
+============================================================
+ 3377:       });
+ 3378:       return null;
+ 3379:     } finally {
+ 3380:       setReportTwoApprovalSubmitting(false);
+ 3381:     }
+ 3382:   }
+ 3383: 
+ 3384:   async function approveReportTwoSnapshot() {
+ 3385:     if (approvedSnapshot) return;
+ 3386: 
+ 3387:     await createReportTwoApprovedSnapshotInternal({
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+ 3406:         type: "alert",
+ 3407:         title: "اعتماد التقرير",
+ 3408:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3409:       });
+ 3410:       return;
+ 3411:     }
+ 3412: 
+ 3413:     setReportTwoApprovalSubmitting(true);
+ 3414: 
+ 3415:     try {
+ 3416:       const activeTemplate = templates.find(
+ 3417:         (item) => item.id === selectedTemplateOptionId,
+ 3418:       );
+ 3419:       const response = await fetch(
+ 3420:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+ 3421:         {
+ 3422:           method: "POST",
+ 3423:           headers: {
+ 3424:             "Content-Type": "application/json",
+ 3425:           },
+ 3426:           body: JSON.stringify({
+ 3427:             reportTitle:
+ 3428:               (previewCase as any)?.title ||
+ 3429:               (previewCase as any)?.caseTitle ||
+ 3430:               (preparedPayload as any)?.caseInfo?.title ||
+ 3431:               "تقرير معتمد",
+ 3432:             templateId: selectedTemplateOptionId || null,
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3407
+============================================================
+ 3388:       showSuccessPopup: true,
+ 3389:       allowReuseExisting: false,
+ 3390:     });
+ 3391:     return;
+ 3392: 
+ 3393:     if (!signedVisiblePreviewTemplate.pages.length) {
+ 3394:       setPopup({
+ 3395:         type: "alert",
+ 3396:         title: "اعتماد التقرير",
+ 3397:         message: "لا توجد صفحات جاهزة للاعتماد.",
+ 3398:       });
+ 3399:       return;
+ 3400:     }
+ 3401: 
+ 3402:     const snapshotHtml = buildReportTwoSnapshotHtml();
+ 3403: 
+ 3404:     if (!snapshotHtml.trim()) {
+ 3405:       setPopup({
+ 3406:         type: "alert",
+ 3407:         title: "اعتماد التقرير",
+ 3408:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+ 3409:       });
+ 3410:       return;
+ 3411:     }
+ 3412: 
+ 3413:     setReportTwoApprovalSubmitting(true);
+ 3414: 
+ 3415:     try {
+ 3416:       const activeTemplate = templates.find(
+ 3417:         (item) => item.id === selectedTemplateOptionId,
+ 3418:       );
+ 3419:       const response = await fetch(
+ 3420:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+ 3421:         {
+ 3422:           method: "POST",
+ 3423:           headers: {
+ 3424:             "Content-Type": "application/json",
+ 3425:           },
+ 3426:           body: JSON.stringify({
+ 3427:             reportTitle:
+ 3428:               (previewCase as any)?.title ||
+ 3429:               (previewCase as any)?.caseTitle ||
+ 3430:               (preparedPayload as any)?.caseInfo?.title ||
+ 3431:               "تقرير معتمد",
+ 3432:             templateId: selectedTemplateOptionId || null,
+ 3433:             templateName: activeTemplate?.name || template.name || null,
+ 3434:             variantId: selectedVariantId || null,
+ 3435:             snapshotPayload: preparedPayload,
+ 3436:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+ 3437:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+ 3438:             snapshotHtml,
+ 3439:           }),
+ 3440:         },
+ 3441:       );
+ 3442:       const text = await response.text();
+ 3443:       let result: any = {};
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3473
+============================================================
+ 3454:         throw new Error(
+ 3455:           result?.details ||
+ 3456:             result?.error ||
+ 3457:             `APPROVAL_FAILED_${response.status}`,
+ 3458:         );
+ 3459:       }
+ 3460: 
+ 3461:       setApprovedSnapshot({
+ 3462:         id: result.snapshot?.id,
+ 3463:         previewUrl:
+ 3464:           result.previewUrl ||
+ 3465:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+ 3466:       });
+ 3467:       const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+ 3468:         cancelable: true,
+ 3469:         detail: { reportId: String(result.snapshot?.id || ""), caseId },
+ 3470:       }));
+ 3471:       if (showStandardApprovalFeedback) setPopup({
+ 3472:         type: "alert",
+ 3473:         title: "تم اعتماد التقرير",
+ 3474:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3475:       });
+ 3476:     } catch (error) {
+ 3477:       console.error(error);
+ 3478:       setPopup({
+ 3479:         type: "alert",
+ 3480:         title: "اعتماد التقرير",
+ 3481:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3482:       });
+ 3483:     } finally {
+ 3484:       setReportTwoApprovalSubmitting(false);
+ 3485:     }
+ 3486:   }
+ 3487: 
+ 3488:   async function exportReportTwoPdfInternal(options?: {
+ 3489:     fileName?: string;
+ 3490:     snapshot?: ReturnType<typeof buildReportTwoPdfExportSnapshot>;
+ 3491:   }) {
+ 3492:     if (reportTwoPdfExporting) return null;
+ 3493: 
+ 3494:     if (!visiblePreviewTemplate.pages.length) {
+ 3495:       setReportTwoActionModal({
+ 3496:         title: "تصدير PDF",
+ 3497:         message: "لا توجد صفحات جاهزة للتصدير.",
+ 3498:       });
+ 3499:       return null;
+ 3500:     }
+ 3501: 
+ 3502:     try {
+ 3503:       const fileName = options?.fileName || getReportTwoPdfFileName();
+ 3504:       const result = await runPrintExport({
+ 3505:         exportUrl: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+ 3506:         fileName,
+ 3507:         method: "POST",
+ 3508:         body: {
+ 3509:           fileName,
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3480
+============================================================
+ 3461:       setApprovedSnapshot({
+ 3462:         id: result.snapshot?.id,
+ 3463:         previewUrl:
+ 3464:           result.previewUrl ||
+ 3465:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+ 3466:       });
+ 3467:       const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+ 3468:         cancelable: true,
+ 3469:         detail: { reportId: String(result.snapshot?.id || ""), caseId },
+ 3470:       }));
+ 3471:       if (showStandardApprovalFeedback) setPopup({
+ 3472:         type: "alert",
+ 3473:         title: "تم اعتماد التقرير",
+ 3474:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3475:       });
+ 3476:     } catch (error) {
+ 3477:       console.error(error);
+ 3478:       setPopup({
+ 3479:         type: "alert",
+ 3480:         title: "اعتماد التقرير",
+ 3481:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3482:       });
+ 3483:     } finally {
+ 3484:       setReportTwoApprovalSubmitting(false);
+ 3485:     }
+ 3486:   }
+ 3487: 
+ 3488:   async function exportReportTwoPdfInternal(options?: {
+ 3489:     fileName?: string;
+ 3490:     snapshot?: ReturnType<typeof buildReportTwoPdfExportSnapshot>;
+ 3491:   }) {
+ 3492:     if (reportTwoPdfExporting) return null;
+ 3493: 
+ 3494:     if (!visiblePreviewTemplate.pages.length) {
+ 3495:       setReportTwoActionModal({
+ 3496:         title: "تصدير PDF",
+ 3497:         message: "لا توجد صفحات جاهزة للتصدير.",
+ 3498:       });
+ 3499:       return null;
+ 3500:     }
+ 3501: 
+ 3502:     try {
+ 3503:       const fileName = options?.fileName || getReportTwoPdfFileName();
+ 3504:       const result = await runPrintExport({
+ 3505:         exportUrl: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+ 3506:         fileName,
+ 3507:         method: "POST",
+ 3508:         body: {
+ 3509:           fileName,
+ 3510:           snapshot: options?.snapshot || buildReportTwoPdfExportSnapshot(),
+ 3511:         },
+ 3512:         blockedTitle: "معاينة الطباعة",
+ 3513:         blockedMessage:
+ 3514:           "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
+ 3515:         errorTitle: "تصدير PDF",
+ 3516:         errorMessage: "تعذر تصدير التقرير. حاول مرة أخرى.",
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 3481
+============================================================
+ 3462:         id: result.snapshot?.id,
+ 3463:         previewUrl:
+ 3464:           result.previewUrl ||
+ 3465:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+ 3466:       });
+ 3467:       const showStandardApprovalFeedback = window.dispatchEvent(new CustomEvent("teachix:report-approved", {
+ 3468:         cancelable: true,
+ 3469:         detail: { reportId: String(result.snapshot?.id || ""), caseId },
+ 3470:       }));
+ 3471:       if (showStandardApprovalFeedback) setPopup({
+ 3472:         type: "alert",
+ 3473:         title: "تم اعتماد التقرير",
+ 3474:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+ 3475:       });
+ 3476:     } catch (error) {
+ 3477:       console.error(error);
+ 3478:       setPopup({
+ 3479:         type: "alert",
+ 3480:         title: "اعتماد التقرير",
+ 3481:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+ 3482:       });
+ 3483:     } finally {
+ 3484:       setReportTwoApprovalSubmitting(false);
+ 3485:     }
+ 3486:   }
+ 3487: 
+ 3488:   async function exportReportTwoPdfInternal(options?: {
+ 3489:     fileName?: string;
+ 3490:     snapshot?: ReturnType<typeof buildReportTwoPdfExportSnapshot>;
+ 3491:   }) {
+ 3492:     if (reportTwoPdfExporting) return null;
+ 3493: 
+ 3494:     if (!visiblePreviewTemplate.pages.length) {
+ 3495:       setReportTwoActionModal({
+ 3496:         title: "تصدير PDF",
+ 3497:         message: "لا توجد صفحات جاهزة للتصدير.",
+ 3498:       });
+ 3499:       return null;
+ 3500:     }
+ 3501: 
+ 3502:     try {
+ 3503:       const fileName = options?.fileName || getReportTwoPdfFileName();
+ 3504:       const result = await runPrintExport({
+ 3505:         exportUrl: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+ 3506:         fileName,
+ 3507:         method: "POST",
+ 3508:         body: {
+ 3509:           fileName,
+ 3510:           snapshot: options?.snapshot || buildReportTwoPdfExportSnapshot(),
+ 3511:         },
+ 3512:         blockedTitle: "معاينة الطباعة",
+ 3513:         blockedMessage:
+ 3514:           "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
+ 3515:         errorTitle: "تصدير PDF",
+ 3516:         errorMessage: "تعذر تصدير التقرير. حاول مرة أخرى.",
+ 3517:       });
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 4562
+============================================================
+ 4543:                 reportTwoDraftStorage={{
+ 4544:                   caseId,
+ 4545:                   serviceSlug: serviceSlugForSavedTemplates,
+ 4546:                 }}
+ 4547:                 className="rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+ 4548:               >
+ 4549:                 {persistedReport.status === "APPROVED"
+ 4550:                   ? "حذف التقرير المعتمد"
+ 4551:                   : "حذف مسودة التقرير"}
+ 4552:               </ReportDeleteAction>
+ 4553:             ) : null}
+ 4554: 
+ 4555:             <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+ 4556:               <button
+ 4557:                 type="button"
+ 4558:                 onClick={() => void saveAndDownloadReportTwoSnapshot()}
+ 4559:                 disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+ 4560:                 className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4561:               >
+ 4562:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 4891
+============================================================
+ 4872:               {reportTwoSaveSubmitting ? "جاري الحفظ..." : "حفظ الآن"}
+ 4873:             </button>
+ 4874: 
+ 4875:             <button
+ 4876:               type="button"
+ 4877:               onClick={openReportTwoFinalWizard}
+ 4878:               data-guidance="studio-finalize"
+ 4879:               className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
+ 4880:             >
+ 4881:               فحص نهائي قبل الاعتماد
+ 4882:             </button>
+ 4883:             {!approvedSnapshot ? (
+ 4884:               <button
+ 4885:                 type="button"
+ 4886:                 disabled={reportTwoApprovalSubmitting}
+ 4887:                 onClick={approveReportTwoSnapshot}
+ 4888:                 data-guidance="teacher-report-finalize"
+ 4889:                 className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4890:               >
+ 4891:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4892:               </button>
+ 4893:             ) : (
+ 4894:               <>
+ 4895:                 <a
+ 4896:                   href={approvedSnapshot.previewUrl}
+ 4897:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 4898:                 >
+ 4899:                   معاينة التقرير
+ 4900:                 </a>
+ 4901: 
+ 4902:                 <button
+ 4903:                   type="button"
+ 4904:                   disabled={reportTwoPdfExporting}
+ 4905:                   onClick={exportReportTwoPdf}
+ 4906:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4907:                 >
+ 4908:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+ 4909:                 </button>
+ 4910:               </>
+ 4911:             )}
+ 4912: 
+ 4913:             {approvedSnapshot ? (
+ 4914:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+ 4915:                 تم اعتماد التقرير
+ 4916:               </span>
+ 4917:             ) : null}
+ 4918: 
+ 4919:             {persistedReport?.id ? (
+ 4920:               <ReportDeleteAction
+ 4921:                 reportId={persistedReport.id}
+ 4922:                 reportTitle={getReportTwoSnapshotTitle()}
+ 4923:                 caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
+ 4924:                 reportStatus={persistedReport.status || "DRAFT"}
+ 4925:                 deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
+ 4926:                 redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
+ 4927:                 reportTwoDraftStorage={{
+
+============================================================
+MATCH: اعتماد التقرير
+LINE: 4915
+============================================================
+ 4896:                   href={approvedSnapshot.previewUrl}
+ 4897:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 4898:                 >
+ 4899:                   معاينة التقرير
+ 4900:                 </a>
+ 4901: 
+ 4902:                 <button
+ 4903:                   type="button"
+ 4904:                   disabled={reportTwoPdfExporting}
+ 4905:                   onClick={exportReportTwoPdf}
+ 4906:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4907:                 >
+ 4908:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+ 4909:                 </button>
+ 4910:               </>
+ 4911:             )}
+ 4912: 
+ 4913:             {approvedSnapshot ? (
+ 4914:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+ 4915:                 تم اعتماد التقرير
+ 4916:               </span>
+ 4917:             ) : null}
+ 4918: 
+ 4919:             {persistedReport?.id ? (
+ 4920:               <ReportDeleteAction
+ 4921:                 reportId={persistedReport.id}
+ 4922:                 reportTitle={getReportTwoSnapshotTitle()}
+ 4923:                 caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
+ 4924:                 reportStatus={persistedReport.status || "DRAFT"}
+ 4925:                 deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
+ 4926:                 redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
+ 4927:                 reportTwoDraftStorage={{
+ 4928:                   caseId,
+ 4929:                   serviceSlug: serviceSlugForSavedTemplates,
+ 4930:                 }}
+ 4931:                 className="rounded-2xl border border-rose-200 bg-white px-3 py-2 text-[11px] font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+ 4932:               >
+ 4933:                 {persistedReport.status === "APPROVED"
+ 4934:                   ? "حذف التقرير المعتمد"
+ 4935:                   : "حذف مسودة التقرير"}
+ 4936:               </ReportDeleteAction>
+ 4937:             ) : null}
+ 4938: 
+ 4939:             {finalCheckConfirmedAt ? (
+ 4940:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+ 4941:                 جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
+ 4942:               </span>
+ 4943:             ) : null}
+ 4944:           </div>
+ 4945:         </div>
+ 4946: 
+ 4947:         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
+ 4948:           <h2 className="text-sm font-black text-slate-950 dark:text-white">
+ 4949:             تطبيق قالب محفوظ
+ 4950:           </h2>
+ 4951: 
+
+============================================================
+MATCH: إرسال للمدير للتوقيع
+LINE: 4582
+============================================================
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+ 4599:             onClick={() => setRightSidebarCollapsed((current) => !current)}
+ 4600:             className={[
+ 4601:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4602:               rightSidebarCollapsed
+ 4603:                 ? "bg-emerald-700 text-white"
+ 4604:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4605:             ].join(" ")}
+ 4606:           >
+ 4607:             {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+ 4608:           </button>
+ 4609: 
+ 4610:           <button
+ 4611:             type="button"
+ 4612:             onClick={() => setLeftSidebarCollapsed((current) => !current)}
+ 4613:             className={[
+ 4614:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4615:               leftSidebarCollapsed
+ 4616:                 ? "bg-emerald-700 text-white"
+ 4617:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4618:             ].join(" ")}
+
+============================================================
+MATCH: MoreVertical
+LINE: 23
+============================================================
+    4: import { useRouter } from "next/navigation";
+    5: import {
+    6:   DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
+    7:   ReportDesignRenderer,
+    8:   reportDesignTemplates,
+    9:   selectableReportDesignTemplates,
+   10:   type ReportDesignId,
+   11:   type ReportHeaderSettings,
+   12: } from "@/components/report-engine/design-renderers/report-design-renderer";
+   13: import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+   14: import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+   15: import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+   16: import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
+   17: import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+   18: import {
+   19:   ReportSignatureRequestCard,
+   20:   type ReportSignatureRequestView,
+   21: } from "@/components/report-signatures/report-signature-request-card";
+   22: import { GuidanceScope } from "@/components/guidance/guidance-scope";
+   23: import { MoreVertical } from "lucide-react";
+   24: import {
+   25:   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
+   26:   ReportTwoOfficialActivitySignatureStyle,
+   27: } from "@/components/report-2/report-two-official-activity-signature-style";
+   28: import type {
+   29:   SmartReportPayload,
+   30:   SmartReportTable,
+   31: } from "@/lib/report-engine/smart-report-types";
+   32: import {
+   33:   normalizeSmartReportTablePresentation,
+   34:   normalizeStudentDataTableBlockOrder,
+   35: } from "@/lib/report-engine/report-structured-table-display";
+   36: import {
+   37:   isStudentDataTable,
+   38:   isStudentIdentityField,
+   39: } from "@/lib/workflow-values/structured-value-metadata";
+   40: import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+   41: import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+   42: import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
+   43: 
+   44: 
+   45: type ReportTwoCollapsibleCardProps = {
+   46:   id: string;
+   47:   title: string;
+   48:   children: ReactNode;
+   49: };
+   50: 
+   51: function ReportTwoCollapsibleCard({
+   52:   id,
+   53:   title,
+   54:   children,
+   55: }: ReportTwoCollapsibleCardProps) {
+   56:   const [open, setOpen] = useState(false);
+   57:   const guidanceTarget =
+   58:     id === "design"
+   59:       ? "studio-design-controls"
+
+============================================================
+MATCH: MoreVertical
+LINE: 4572
+============================================================
+ 4553:             ) : null}
+ 4554: 
+ 4555:             <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+ 4556:               <button
+ 4557:                 type="button"
+ 4558:                 onClick={() => void saveAndDownloadReportTwoSnapshot()}
+ 4559:                 disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+ 4560:                 className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4561:               >
+ 4562:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+ 4599:             onClick={() => setRightSidebarCollapsed((current) => !current)}
+ 4600:             className={[
+ 4601:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4602:               rightSidebarCollapsed
+ 4603:                 ? "bg-emerald-700 text-white"
+ 4604:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4605:             ].join(" ")}
+ 4606:           >
+ 4607:             {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+ 4608:           </button>
+
+============================================================
+MATCH: overflow-hidden
+LINE: 4329
+============================================================
+ 4310:       restoringDraftRef.current = false;
+ 4311:     }, 900);
+ 4312: 
+ 4313:     return () => window.clearTimeout(timer);
+ 4314:   }, [
+ 4315:     draftRestored,
+ 4316:     reportTwoDraftStorageKey,
+ 4317:     selectedTemplateOptionId,
+ 4318:     activeSavedRuntimeTemplateId,
+ 4319:     runtimeTemplateName,
+ 4320:     template,
+ 4321:     headerValues,
+ 4322:     headerAlignments,
+ 4323:     logoSettings,
+ 4324:     activePageId,
+ 4325:     selectedBlockId,
+ 4326:     finalCheckConfirmedAt,
+ 4327:   ]);
+ 4328:   const reportTwoLayoutGridClass = [
+ 4329:     "mx-auto grid w-full min-w-0 max-w-[1760px] gap-4 overflow-hidden transition-all",
+ 4330:     runtimeMode === "preview"
+ 4331:       ? "xl:grid-cols-[minmax(0,1fr)]"
+ 4332:       : rightSidebarCollapsed && leftSidebarCollapsed
+ 4333:         ? "xl:grid-cols-[minmax(0,1fr)]"
+ 4334:         : rightSidebarCollapsed
+ 4335:           ? "xl:grid-cols-[minmax(0,1fr)_300px]"
+ 4336:           : leftSidebarCollapsed
+ 4337:             ? "xl:grid-cols-[280px_minmax(0,1fr)]"
+ 4338:             : "xl:grid-cols-[280px_minmax(0,1fr)_300px]",
+ 4339:   ].join(" ");
+ 4340: 
+ 4341:   const reportTwoPreviewModeClass =
+ 4342:     runtimeMode === "preview"
+ 4343:       ? "report-two-preview-focus"
+ 4344:       : rightSidebarCollapsed && leftSidebarCollapsed
+ 4345:       ? "report-two-preview-focus"
+ 4346:       : rightSidebarCollapsed || leftSidebarCollapsed
+ 4347:         ? "report-two-preview-wide"
+ 4348:         : "report-two-preview-normal";
+ 4349: 
+ 4350:   useEffect(() => {
+ 4351:     const host = reportTwoPreviewExportRef.current;
+ 4352:     const viewport = reportTwoPreviewViewportRef.current;
+ 4353:     if (!host || !viewport || typeof ResizeObserver === "undefined") return;
+ 4354: 
+ 4355:     let frameId = 0;
+ 4356: 
+ 4357:     const updatePreviewScale = () => {
+ 4358:       window.cancelAnimationFrame(frameId);
+ 4359:       frameId = window.requestAnimationFrame(() => {
+ 4360:         const sheet = host.querySelector<HTMLElement>(
+ 4361:           '[data-a4-sheet-presentation="true"]',
+ 4362:         );
+ 4363:         const page =
+ 4364:           sheet?.querySelector<HTMLElement>(".pdf-report-page") ||
+ 4365:           host.querySelector<HTMLElement>(".pdf-report-page");
+
+============================================================
+MATCH: overflow-hidden
+LINE: 4574
+============================================================
+ 4555:             <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+ 4556:               <button
+ 4557:                 type="button"
+ 4558:                 onClick={() => void saveAndDownloadReportTwoSnapshot()}
+ 4559:                 disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+ 4560:                 className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4561:               >
+ 4562:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+ 4599:             onClick={() => setRightSidebarCollapsed((current) => !current)}
+ 4600:             className={[
+ 4601:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4602:               rightSidebarCollapsed
+ 4603:                 ? "bg-emerald-700 text-white"
+ 4604:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4605:             ].join(" ")}
+ 4606:           >
+ 4607:             {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+ 4608:           </button>
+ 4609: 
+ 4610:           <button
+
+============================================================
+MATCH: overflow-hidden
+LINE: 4820
+============================================================
+ 4801:                       "min-w-0 snap-start rounded-2xl border px-3 py-3 text-right transition",
+ 4802:                       active
+ 4803:                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+ 4804:                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+ 4805:                     ].join(" ")}
+ 4806:                   >
+ 4807:                     <p className="text-xs font-black">{design.name}</p>
+ 4808:                     <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+ 4809:                       {design.description}
+ 4810:                     </p>
+ 4811:                   </button>
+ 4812:                 );
+ 4813:               })}
+ 4814:             </div>
+ 4815:           
+ 4816: </ReportTwoCollapsibleCard>
+ 4817:         </aside>
+ 4818:         ) : null}
+ 4819: 
+ 4820:         <section className="w-full min-w-0 max-w-full space-y-3 overflow-hidden">
+ 4821: 
+ 4822:                     
+ 4823:           {semanticPlacementNotice ? (
+ 4824:             <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 shadow-sm">
+ 4825:               <span>{semanticPlacementNotice}</span>
+ 4826: 
+ 4827:               <button
+ 4828:                 type="button"
+ 4829:                 onClick={() => setSemanticPlacementNotice("")}
+ 4830:                 className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 ring-1 ring-amber-200"
+ 4831:               >
+ 4832:                 إخفاء
+ 4833:               </button>
+ 4834:             </div>
+ 4835:           ) : null}
+ 4836: 
+ 4837:           {runtimeMode !== "preview" ? (
+ 4838: <section data-guidance="studio-autosave" className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+ 4839:         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
+ 4840:           <div className="flex flex-wrap items-start justify-between gap-2">
+ 4841:             <div>
+ 4842:               <h2 className="text-sm font-black text-slate-950 dark:text-white">
+ 4843:                 الحفظ التلقائي والتراجع
+ 4844:               </h2>
+ 4845:               <p className="mt-1 text-xs font-bold text-slate-500">
+ 4846:                 يتم حفظ تعديلاتك تلقائيًا حتى لا تضيع، ويمكنك الرجوع عن آخر تعديل.
+ 4847:               </p>
+ 4848:             </div>
+ 4849: 
+ 4850:             <span className="rounded-full bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+ 4851:               آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
+ 4852:             </span>
+ 4853:           </div>
+ 4854: 
+ 4855:           <div className="mt-2 flex flex-wrap items-center gap-2">
+ 4856:             <button
+
+============================================================
+MATCH: overflow-hidden
+LINE: 4991
+============================================================
+ 4972:               {savedRuntimeTemplates.map((item) => (
+ 4973:                 <option key={item.id} value={item.id}>
+ 4974:                   {item.name}
+ 4975:                 </option>
+ 4976:               ))}
+ 4977:             </select>
+ 4978: 
+ 4979:             <button
+ 4980:               type="button"
+ 4981:               disabled={!selectedQuickSavedTemplateId}
+ 4982:               onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
+ 4983:               className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4984:             >
+ 4985:               تطبيق
+ 4986:             </button>
+ 4987:           </div>
+ 4988:         </div>
+ 4989:       </section>
+ 4990:           ) : null}
+ 4991: <section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-approved={Boolean(approvedSnapshot)} data-report-id={approvedSnapshot?.id || persistedReport?.id || ""} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+ 4992:             <ReportTwoOfficialActivitySignatureStyle
+ 4993:               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
+ 4994:             />
+ 4995:             <style>{`
+ 4996:               .report-two-a4-host {
+ 4997:                 --report-two-preview-scale: 0.66;
+ 4998:                 --report-two-preview-stage-height: 1123px;
+ 4999:                 --report-two-preview-scaled-height: 741px;
+ 5000:                 --report-two-preview-page-width: 794px;
+ 5001:                 --report-two-preview-stage-width: 794px;
+ 5002:                 --report-two-preview-scaled-width: 524px;
+ 5003:                 max-width: 100%;
+ 5004:                 overflow-x: hidden;
+ 5005:                 overscroll-behavior-x: contain;
+ 5006:               }
+ 5007: 
+ 5008:               .report-two-a4-host .report-design-logo-control-style {
+ 5009:                 display: flex;
+ 5010:                 flex-direction: column;
+ 5011:                 align-items: center;
+ 5012:               }
+ 5013: 
+ 5014:               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
+ 5015:                 position: relative;
+ 5016:                 width: var(--report-two-preview-scaled-width);
+ 5017:                 min-width: var(--report-two-preview-scaled-width);
+ 5018:                 max-width: var(--report-two-preview-scaled-width);
+ 5019:                 height: var(--report-two-preview-scaled-height);
+ 5020:                 margin-inline: auto;
+ 5021:                 padding: 0 !important;
+ 5022:                 overflow: visible;
+ 5023:                 border: 0;
+ 5024:                 background: transparent;
+ 5025:                 box-shadow: none;
+ 5026:               }
+ 5027: 
+
+============================================================
+MATCH: overflow-hidden
+LINE: 5146
+============================================================
+ 5127:                 }
+ 5128: 
+ 5129:                 .report-two-a4-host .pdf-report-page {
+ 5130:                   zoom: 1 !important;
+ 5131:                   margin: 0 !important;
+ 5132:                   border: 0 !important;
+ 5133:                   outline: 0 !important;
+ 5134:                   box-shadow: none !important;
+ 5135:                 }
+ 5136: 
+ 5137:                 .report-two-a4-host .pdf-report-page::before,
+ 5138:                 .report-two-a4-host .pdf-report-page::after {
+ 5139:                   display: none !important;
+ 5140:                 }
+ 5141:               }
+ 5142:             `}</style>
+ 5143: 
+ 5144:             <div
+ 5145:               ref={reportTwoPreviewViewportRef}
+ 5146:               className="report-two-preview-viewport box-border w-full min-w-0 overflow-hidden rounded-2xl bg-slate-50 p-3 md:p-4 min-[1180px]:p-5 dark:bg-slate-900/70"
+ 5147:             >
+ 5148:             <div className="report-two-preview-renderer">
+ 5149:             <ReportDesignRenderer
+ 5150:               chromeLayout="split"
+ 5151:               designId={
+ 5152:                 template.designTemplateId || DEFAULT_SELECTABLE_REPORT_DESIGN_ID
+ 5153:               }
+ 5154:               template={signedVisiblePreviewTemplate}
+ 5155:               activePage={activePage}
+ 5156:               activePageId={activePage?.id || activePageId}
+ 5157:               context={editableRuntimeContext}
+ 5158:               previewCase={previewCase}
+ 5159:               onDesignChange={(designTemplateId) => {
+ 5160:                 if (
+ 5161:                   runtimeMode === "preview" &&
+ 5162:                   designTemplateId !== template.designTemplateId
+ 5163:                 ) {
+ 5164:                   setDesignTransitionTargetId(designTemplateId);
+ 5165:                 }
+ 5166:                 updateTemplate({ designTemplateId });
+ 5167:               }}
+ 5168:               showAddPageControl={runtimeMode !== "preview"}
+ 5169:               useMobileDesignSelect={runtimeMode === "preview"}
+ 5170:               physicalLayoutLoadingLabel={
+ 5171:                 designTransitionTargetId
+ 5172:                   ? "جاري تجهيز التصميم..."
+ 5173:                   : "جاري تجهيز التقرير..."
+ 5174:               }
+ 5175:               showPhysicalLayoutLoadingWhilePreparing={
+ 5176:                 runtimeMode === "preview"
+ 5177:               }
+ 5178:               onPhysicalLayoutReady={(readyDesignId) => {
+ 5179:                 setDesignTransitionTargetId((current) =>
+ 5180:                   current === readyDesignId ? null : current,
+ 5181:                 );
+ 5182:               }}
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6170
+============================================================
+ 6151:               </div>
+ 6152:             
+ 6153: </ReportTwoCollapsibleCard>
+ 6154:           ) : (
+ 6155:             <ReportTwoCollapsibleCard id="edit-block" title="تعديل البلوك">
+ 6156:               <p className="py-8 text-center text-xs font-black text-slate-400">
+ 6157:                 اختر بلوكًا من بلوكات الصفحة لتعديل إعداداته.
+ 6158:               </p>
+ 6159:             </ReportTwoCollapsibleCard>
+ 6160:           )}
+ 6161:         </aside>
+ 6162:         ) : null}
+ 6163:       </div>
+ 6164: 
+ 6165:       {reportTwoActionModal ? (
+ 6166:         <div
+ 6167:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6168:           dir="rtl"
+ 6169:         >
+ 6170:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6171:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6172:               <div>
+ 6173:                 <h2 className="text-xl font-black text-slate-950">
+ 6174:                   {reportTwoActionModal.title}
+ 6175:                 </h2>
+ 6176:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6177:                   {reportTwoActionModal.message}
+ 6178:                 </p>
+ 6179:                 {reportTwoActionModal.linkHref ? (
+ 6180:                   <a
+ 6181:                     href={reportTwoActionModal.linkHref}
+ 6182:                     target="_blank"
+ 6183:                     rel="noreferrer"
+ 6184:                     className="mt-3 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+ 6185:                   >
+ 6186:                     {reportTwoActionModal.linkLabel || "استعراض التقرير المعتمد"}
+ 6187:                   </a>
+ 6188:                 ) : null}
+ 6189:               </div>
+ 6190:             </header>
+ 6191: 
+ 6192:             <footer className="flex flex-wrap items-center justify-end gap-3 px-6 py-4">
+ 6193:               <button
+ 6194:                 type="button"
+ 6195:                 onClick={closeReportTwoActionModal}
+ 6196:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6197:               >
+ 6198:                 حسنًا
+ 6199:               </button>
+ 6200:             </footer>
+ 6201:           </section>
+ 6202:         </div>
+ 6203:       ) : null}
+ 6204: 
+ 6205:       <PrintExportPopCard
+ 6206:         modal={printExportModal}
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6222
+============================================================
+ 6203:       ) : null}
+ 6204: 
+ 6205:       <PrintExportPopCard
+ 6206:         modal={printExportModal}
+ 6207:         onClose={closePrintExportModal}
+ 6208:         onOpenFallback={openFallbackPrintUrl}
+ 6209:       />
+ 6210: 
+ 6211:       <OperationProgressPopCard
+ 6212:         open={reportTwoPdfExporting}
+ 6213:         title="جاري تجهيز الملف"
+ 6214:         message="يتم الآن تجهيز التحميل، الرجاء الانتظار..."
+ 6215:       />
+ 6216: 
+ 6217:       {popup ? (
+ 6218:         <div
+ 6219:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6220:           dir="rtl"
+ 6221:         >
+ 6222:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6223:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6224:               <div>
+ 6225:                 <h2 className="text-xl font-black text-slate-950">{popup.title}</h2>
+ 6226:                 <p className="mt-1 text-sm font-bold text-slate-500">{popup.message}</p>
+ 6227:               </div>
+ 6228:             </header>
+ 6229: 
+ 6230:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6231:               {popup.type === "confirm" ? (
+ 6232:                 <>
+ 6233:                   <button
+ 6234:                     type="button"
+ 6235:                     onClick={() => {
+ 6236:                       popup.onCancel?.();
+ 6237:                       closePopup();
+ 6238:                     }}
+ 6239:                     className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6240:                   >
+ 6241:                     لا
+ 6242:                   </button>
+ 6243: 
+ 6244:                   <button
+ 6245:                     type="button"
+ 6246:                     onClick={() => {
+ 6247:                       popup.onConfirm?.();
+ 6248:                       closePopup();
+ 6249:                     }}
+ 6250:                     className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6251:                   >
+ 6252:                     نعم
+ 6253:                   </button>
+ 6254:                 </>
+ 6255:               ) : (
+ 6256:                 <button
+ 6257:                   type="button"
+ 6258:                   onClick={closePopup}
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6274
+============================================================
+ 6255:               ) : (
+ 6256:                 <button
+ 6257:                   type="button"
+ 6258:                   onClick={closePopup}
+ 6259:                   className="mr-auto rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6260:                 >
+ 6261:                   حسناً
+ 6262:                 </button>
+ 6263:               )}
+ 6264:             </footer>
+ 6265:           </section>
+ 6266:         </div>
+ 6267:       ) : null}
+ 6268: 
+ 6269:       {runtimeMode === "edit" && pendingDraftSnapshot ? (
+ 6270:         <div
+ 6271:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6272:           dir="rtl"
+ 6273:         >
+ 6274:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6275:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6276:               <div>
+ 6277:                 <p className="text-xs font-black text-emerald-700">
+ 6278:                   استعادة المسودة
+ 6279:                 </p>
+ 6280: 
+ 6281:                 <h2 className="mt-1 text-xl font-black text-slate-950">
+ 6282:                   توجد مسودة محفوظة
+ 6283:                 </h2>
+ 6284: 
+ 6285:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6286:                   يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+ 6287:                 </p>
+ 6288:               </div>
+ 6289:             </header>
+ 6290: 
+ 6291:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6292:               <button
+ 6293:                 type="button"
+ 6294:                 onClick={() => {
+ 6295:                   setPendingDraftSnapshot(null);
+ 6296:                   setDraftRestored(true);
+ 6297:                 }}
+ 6298:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6299:               >
+ 6300:                 لا، بداية جديدة
+ 6301:               </button>
+ 6302: 
+ 6303:               <button
+ 6304:                 type="button"
+ 6305:                 onClick={() => {
+ 6306:                   const snapshot = pendingDraftSnapshot;
+ 6307:                   if (!snapshot) return;
+ 6308:                   setPendingDraftSnapshot(null);
+ 6309:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6310:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6328
+============================================================
+ 6309:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6310:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+ 6311:                   setLastAutoSavedAt(snapshot.savedAt);
+ 6312:                   setDraftRestored(true);
+ 6313:                 }}
+ 6314:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6315:               >
+ 6316:                 نعم، استعادة المسودة
+ 6317:               </button>
+ 6318:             </footer>
+ 6319:           </section>
+ 6320:         </div>
+ 6321:       ) : null}
+ 6322: 
+ 6323:       {false ? (
+ 6324:         <div
+ 6325:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6326:           dir="rtl"
+ 6327:         >
+ 6328:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6329:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6330:               <div>
+ 6331:                 <p className="text-xs font-black text-emerald-700">
+ 6332:                   استعادة المسودة
+ 6333:                 </p>
+ 6334: 
+ 6335:                 <h2 className="mt-1 text-xl font-black text-slate-950">
+ 6336:                   توجد مسودة محفوظة
+ 6337:                 </h2>
+ 6338: 
+ 6339:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6340:                   يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+ 6341:                 </p>
+ 6342:               </div>
+ 6343:             </header>
+ 6344: 
+ 6345:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6346:               <button
+ 6347:                 type="button"
+ 6348:                 onClick={() => {
+ 6349:                   setPendingDraftSnapshot(null);
+ 6350:                   setDraftRestored(true);
+ 6351:                 }}
+ 6352:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6353:               >
+ 6354:                 لا، بداية جديدة
+ 6355:               </button>
+ 6356: 
+ 6357:               <button
+ 6358:                 type="button"
+ 6359:                 onClick={() => {
+ 6360:                   const snapshot = pendingDraftSnapshot;
+ 6361:                   if (!snapshot) return;
+ 6362:                   setPendingDraftSnapshot(null);
+ 6363:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6364:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6381
+============================================================
+ 6362:                   setPendingDraftSnapshot(null);
+ 6363:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6364:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+ 6365:                   setLastAutoSavedAt(snapshot.savedAt);
+ 6366:                   setDraftRestored(true);
+ 6367:                 }}
+ 6368:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6369:               >
+ 6370:                 نعم، استعادة المسودة
+ 6371:               </button>
+ 6372:             </footer>
+ 6373:           </section>
+ 6374:         </div>
+ 6375:       ) : null}
+ 6376:       {finalWizardOpen ? (
+ 6377:         <div
+ 6378:           className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6379:           dir="rtl"
+ 6380:         >
+ 6381:           <section className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6382:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6383:               <div>
+ 6384:                 <p className="text-xs font-black text-emerald-700">
+ 6385:                   معالج الاعتماد
+ 6386:                 </p>
+ 6387: 
+ 6388:                 <h2 className="mt-1 text-2xl font-black text-slate-950">
+ 6389:                   فحص نهائي قبل الاعتماد
+ 6390:                 </h2>
+ 6391: 
+ 6392:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6393:                   راجع البنود التالية قبل حفظ التقرير كنسخة جاهزة.
+ 6394:                 </p>
+ 6395:               </div>
+ 6396: 
+ 6397:               <button
+ 6398:                 type="button"
+ 6399:                 onClick={() => setFinalWizardOpen(false)}
+ 6400:                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+ 6401:               >
+ 6402:                 ×
+ 6403:               </button>
+ 6404:             </header>
+ 6405: 
+ 6406:             <main className="max-h-[calc(90vh-170px)] overflow-y-auto px-6 py-5">
+ 6407:               <div className="grid gap-3 md:grid-cols-2">
+ 6408:                 {finalCheckItems.map((item) => (
+ 6409:                   <article
+ 6410:                     key={item.id}
+ 6411:                     className={[
+ 6412:                       "rounded-[1.5rem] border p-4",
+ 6413:                       item.passed
+ 6414:                         ? "border-emerald-100 bg-emerald-50"
+ 6415:                         : item.required
+ 6416:                           ? "border-red-100 bg-red-50"
+ 6417:                           : "border-amber-100 bg-amber-50",
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6530
+============================================================
+ 6511: 
+ 6512:                 <button
+ 6513:                   type="button"
+ 6514:                   disabled={!finalCheckPassed}
+ 6515:                   onClick={confirmReportTwoFinalWizard}
+ 6516:                   className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 6517:                 >
+ 6518:                   تأكيد الجاهزية
+ 6519:                 </button>
+ 6520:               </div>
+ 6521:             </footer>
+ 6522:           </section>
+ 6523:         </div>
+ 6524:       ) : null}
+ 6525:       {editingTableDraft ? (
+ 6526:         <div
+ 6527:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6528:           dir="rtl"
+ 6529:         >
+ 6530:           <section className="flex h-[88vh] w-full max-w-[1220px] min-h-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6531:             <main className="flex min-w-0 flex-1 flex-col">
+ 6532:               <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+ 6533:                 <div>
+ 6534:                   <h2 className="text-2xl font-black text-slate-950">
+ 6535:                     تحرير الجدول
+ 6536:                   </h2>
+ 6537:                   <p className="mt-1 text-xs font-bold text-slate-500">
+ 6538:                     عدّل الأعمدة والخلايا بنفس نمط محرر التقارير الرسمي.
+ 6539:                   </p>
+ 6540:                 </div>
+ 6541: 
+ 6542:                 <button
+ 6543:                   type="button"
+ 6544:                   onClick={closeTableEditor}
+ 6545:                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+ 6546:                 >
+ 6547:                   ×
+ 6548:                 </button>
+ 6549:               </header>
+ 6550: 
+ 6551:               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_270px]">
+ 6552:                 <section className="flex min-h-0 flex-col">
+ 6553:                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+ 6554:                     <div>
+ 6555:                       <h3 className="text-sm font-black text-slate-900">
+ 6556:                         محتوى الجدول
+ 6557:                       </h3>
+ 6558:                       <p className="mt-1 text-xs font-bold text-slate-500">
+ 6559:                         مساحة الجدول قابلة للتمرير أفقيًا ورأسيًا عند زيادة الأعمدة والصفوف.
+ 6560:                       </p>
+ 6561:                     </div>
+ 6562: 
+ 6563:                     <div className="flex items-center gap-2">
+ 6564:                       <button
+ 6565:                         type="button"
+ 6566:                         onClick={closeTableEditor}
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6582
+============================================================
+ 6563:                     <div className="flex items-center gap-2">
+ 6564:                       <button
+ 6565:                         type="button"
+ 6566:                         onClick={closeTableEditor}
+ 6567:                         className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-200"
+ 6568:                       >
+ 6569:                         إلغاء
+ 6570:                       </button>
+ 6571: 
+ 6572:                       <button
+ 6573:                         type="button"
+ 6574:                         onClick={saveEditingTable}
+ 6575:                         className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
+ 6576:                       >
+ 6577:                         حفظ الجدول
+ 6578:                       </button>
+ 6579:                     </div>
+ 6580:                   </div>
+ 6581: 
+ 6582:                   <div className="min-h-0 flex-1 overflow-hidden p-5">
+ 6583:                     <div className="h-full overflow-auto rounded-[1.5rem] border border-slate-100 bg-slate-50 p-3 [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+ 6584:                       <div
+ 6585:                         className={[
+ 6586:                           "w-max min-w-[900px] overflow-hidden border border-emerald-100 bg-white shadow-sm",
+ 6587:                           editingTableDraft.settings.rounded
+ 6588:                             ? "rounded-[1.4rem]"
+ 6589:                             : "rounded-md",
+ 6590:                         ].join(" ")}
+ 6591:                       >
+ 6592:                         <div
+ 6593:                           className="grid border-b border-emerald-100"
+ 6594:                           style={{
+ 6595:                             gridTemplateColumns: `54px repeat(${editingTableDraft.columns.length}, minmax(210px, 1fr))`,
+ 6596:                           }}
+ 6597:                         >
+ 6598:                           <div className="bg-emerald-700 px-3 py-3 text-center text-xs font-black text-white">
+ 6599:                             #
+ 6600:                           </div>
+ 6601: 
+ 6602:                           {editingTableDraft.columns.map((column, columnIndex) => (
+ 6603:                             <div
+ 6604:                               key={`column-${columnIndex}`}
+ 6605:                               className="flex items-center gap-2 border-r border-emerald-100 bg-emerald-700 px-3 py-2"
+ 6606:                             >
+ 6607:                               <input
+ 6608:                                 value={column}
+ 6609:                                 onChange={(event) =>
+ 6610:                                   updateEditingTableDraft((draft) =>
+ 6611:                                     updateReportTwoTableColumn(
+ 6612:                                       draft,
+ 6613:                                       columnIndex,
+ 6614:                                       event.target.value,
+ 6615:                                     ),
+ 6616:                                   )
+ 6617:                                 }
+ 6618:                                 className="min-w-0 flex-1 rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-center text-xs font-black text-slate-800 outline-none focus:border-emerald-500"
+
+============================================================
+MATCH: overflow-hidden
+LINE: 6586
+============================================================
+ 6567:                         className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-200"
+ 6568:                       >
+ 6569:                         إلغاء
+ 6570:                       </button>
+ 6571: 
+ 6572:                       <button
+ 6573:                         type="button"
+ 6574:                         onClick={saveEditingTable}
+ 6575:                         className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
+ 6576:                       >
+ 6577:                         حفظ الجدول
+ 6578:                       </button>
+ 6579:                     </div>
+ 6580:                   </div>
+ 6581: 
+ 6582:                   <div className="min-h-0 flex-1 overflow-hidden p-5">
+ 6583:                     <div className="h-full overflow-auto rounded-[1.5rem] border border-slate-100 bg-slate-50 p-3 [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+ 6584:                       <div
+ 6585:                         className={[
+ 6586:                           "w-max min-w-[900px] overflow-hidden border border-emerald-100 bg-white shadow-sm",
+ 6587:                           editingTableDraft.settings.rounded
+ 6588:                             ? "rounded-[1.4rem]"
+ 6589:                             : "rounded-md",
+ 6590:                         ].join(" ")}
+ 6591:                       >
+ 6592:                         <div
+ 6593:                           className="grid border-b border-emerald-100"
+ 6594:                           style={{
+ 6595:                             gridTemplateColumns: `54px repeat(${editingTableDraft.columns.length}, minmax(210px, 1fr))`,
+ 6596:                           }}
+ 6597:                         >
+ 6598:                           <div className="bg-emerald-700 px-3 py-3 text-center text-xs font-black text-white">
+ 6599:                             #
+ 6600:                           </div>
+ 6601: 
+ 6602:                           {editingTableDraft.columns.map((column, columnIndex) => (
+ 6603:                             <div
+ 6604:                               key={`column-${columnIndex}`}
+ 6605:                               className="flex items-center gap-2 border-r border-emerald-100 bg-emerald-700 px-3 py-2"
+ 6606:                             >
+ 6607:                               <input
+ 6608:                                 value={column}
+ 6609:                                 onChange={(event) =>
+ 6610:                                   updateEditingTableDraft((draft) =>
+ 6611:                                     updateReportTwoTableColumn(
+ 6612:                                       draft,
+ 6613:                                       columnIndex,
+ 6614:                                       event.target.value,
+ 6615:                                     ),
+ 6616:                                   )
+ 6617:                                 }
+ 6618:                                 className="min-w-0 flex-1 rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-center text-xs font-black text-slate-800 outline-none focus:border-emerald-500"
+ 6619:                               />
+ 6620: 
+ 6621:                               <button
+ 6622:                                 type="button"
+
+============================================================
+MATCH: overflow-visible
+LINE: 4787
+============================================================
+ 4768:               value={selectedTemplateOptionId}
+ 4769:               onChange={(event) => selectTemplate(event.target.value)}
+ 4770:               className="mt-3 block w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+ 4771:             >
+ 4772:               {templates.map((item) => (
+ 4773:                 <option key={item.id} value={item.id}>
+ 4774:                   {item.name}
+ 4775:                 </option>
+ 4776:               ))}
+ 4777:             </select>
+ 4778:           
+ 4779: </ReportTwoCollapsibleCard>
+ 4780: 
+ 4781:           <ReportTwoCollapsibleCard id="design" title="التصميم">
+ 4782: 
+ 4783:             <h2 className="text-sm font-black text-slate-950 dark:text-white">
+ 4784:               التصميم
+ 4785:             </h2>
+ 4786: 
+ 4787:             <div className="mt-3 grid min-w-0 snap-x snap-mandatory grid-flow-col auto-cols-[82vw] gap-2 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] md:grid-flow-row md:grid-cols-2 md:auto-cols-auto md:overflow-visible md:pb-0 xl:grid-cols-1 [&::-webkit-scrollbar]:hidden">
+ 4788:               {selectableReportDesignTemplates.map((design) => {
+ 4789:                 const active = template.designTemplateId === design.id;
+ 4790: 
+ 4791:                 return (
+ 4792:                   <button
+ 4793:                     key={design.id}
+ 4794:                     type="button"
+ 4795:                     onClick={() =>
+ 4796:                       updateTemplate({
+ 4797:                         designTemplateId: design.id,
+ 4798:                       })
+ 4799:                     }
+ 4800:                     className={[
+ 4801:                       "min-w-0 snap-start rounded-2xl border px-3 py-3 text-right transition",
+ 4802:                       active
+ 4803:                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+ 4804:                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+ 4805:                     ].join(" ")}
+ 4806:                   >
+ 4807:                     <p className="text-xs font-black">{design.name}</p>
+ 4808:                     <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+ 4809:                       {design.description}
+ 4810:                     </p>
+ 4811:                   </button>
+ 4812:                 );
+ 4813:               })}
+ 4814:             </div>
+ 4815:           
+ 4816: </ReportTwoCollapsibleCard>
+ 4817:         </aside>
+ 4818:         ) : null}
+ 4819: 
+ 4820:         <section className="w-full min-w-0 max-w-full space-y-3 overflow-hidden">
+ 4821: 
+ 4822:                     
+ 4823:           {semanticPlacementNotice ? (
+
+============================================================
+MATCH: absolute
+LINE: 4574
+============================================================
+ 4555:             <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+ 4556:               <button
+ 4557:                 type="button"
+ 4558:                 onClick={() => void saveAndDownloadReportTwoSnapshot()}
+ 4559:                 disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+ 4560:                 className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4561:               >
+ 4562:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+ 4599:             onClick={() => setRightSidebarCollapsed((current) => !current)}
+ 4600:             className={[
+ 4601:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4602:               rightSidebarCollapsed
+ 4603:                 ? "bg-emerald-700 text-white"
+ 4604:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4605:             ].join(" ")}
+ 4606:           >
+ 4607:             {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+ 4608:           </button>
+ 4609: 
+ 4610:           <button
+
+============================================================
+MATCH: absolute
+LINE: 5029
+============================================================
+ 5010:                 flex-direction: column;
+ 5011:                 align-items: center;
+ 5012:               }
+ 5013: 
+ 5014:               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child {
+ 5015:                 position: relative;
+ 5016:                 width: var(--report-two-preview-scaled-width);
+ 5017:                 min-width: var(--report-two-preview-scaled-width);
+ 5018:                 max-width: var(--report-two-preview-scaled-width);
+ 5019:                 height: var(--report-two-preview-scaled-height);
+ 5020:                 margin-inline: auto;
+ 5021:                 padding: 0 !important;
+ 5022:                 overflow: visible;
+ 5023:                 border: 0;
+ 5024:                 background: transparent;
+ 5025:                 box-shadow: none;
+ 5026:               }
+ 5027: 
+ 5028:               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+ 5029:                 position: absolute;
+ 5030:                 top: 0;
+ 5031:                 left: 0;
+ 5032:                 width: var(--report-two-preview-stage-width);
+ 5033:                 height: var(--report-two-preview-stage-height);
+ 5034:                 max-width: none;
+ 5035:               }
+ 5036: 
+ 5037:               .report-two-a4-host .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+ 5038:                 transform: scale(var(--report-two-preview-scale));
+ 5039:                 transform-origin: top left;
+ 5040:               }
+ 5041: 
+ 5042:               .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child {
+ 5043:                 width: auto !important;
+ 5044:                 min-width: 0 !important;
+ 5045:                 max-width: none !important;
+ 5046:                 height: auto !important;
+ 5047:                 padding: 0 !important;
+ 5048:                 border: 0 !important;
+ 5049:                 overflow: visible !important;
+ 5050:               }
+ 5051: 
+ 5052:               .report-two-snapshot-approved-root .report-two-preview-viewport {
+ 5053:                 padding: 0 !important;
+ 5054:                 overflow: visible !important;
+ 5055:                 background: transparent !important;
+ 5056:               }
+ 5057: 
+ 5058:               .report-two-snapshot-approved-root .report-two-preview-renderer > .space-y-4 > section:last-child > .report-design-logo-control-style {
+ 5059:                 position: static !important;
+ 5060:                 width: auto !important;
+ 5061:                 height: auto !important;
+ 5062:                 transform: none !important;
+ 5063:               }
+ 5064: 
+ 5065:               .report-two-a4-host [data-report-physical-output-planning="false"] .pdf-report-page {
+
+============================================================
+MATCH: z-
+LINE: 4574
+============================================================
+ 4555:             <div ref={finalActionsRef} className="relative flex w-full items-center gap-2 sm:w-auto">
+ 4556:               <button
+ 4557:                 type="button"
+ 4558:                 onClick={() => void saveAndDownloadReportTwoSnapshot()}
+ 4559:                 disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+ 4560:                 className="min-w-0 flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 sm:min-w-[150px] disabled:cursor-not-allowed disabled:bg-slate-300"
+ 4561:               >
+ 4562:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+ 4563:               </button>
+ 4564:               <button
+ 4565:                 type="button"
+ 4566:                 onClick={() => setFinalActionsOpen((open) => !open)}
+ 4567:                 aria-label="إجراءات التقرير الإضافية"
+ 4568:                 aria-expanded={finalActionsOpen}
+ 4569:                 aria-haspopup="menu"
+ 4570:                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4571:               >
+ 4572:                 <MoreVertical className="h-5 w-5" aria-hidden="true" />
+ 4573:               </button>
+ 4574:               {finalActionsOpen ? <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+ 4575:                 <button type="button" role="menuitem" onClick={() => { setFinalActionsOpen(false); setRuntimeMode("edit"); syncReportTwoStudioUrl("edit"); }} className="block w-full rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">تعديل قبل الاعتماد</button>
+ 4576:                 <ReportSignatureRequestCard
+ 4577:                   reportId={persistedReport?.id || null}
+ 4578:                   initialRequest={initialSignatureRequest}
+ 4579:                   initialPrincipalName={initialPrincipalName}
+ 4580:                   initialPrincipalPhone={initialPrincipalPhone}
+ 4581:                   ensureReportId={async () => persistedReport?.id || (await persistReportTwoDraft(false, { silent: true }))}
+ 4582:                   triggerLabel="إرسال للمدير للتوقيع"
+ 4583:                   triggerClassName="block w-full rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 4584:                 />
+ 4585:               </div> : null}
+ 4586:             </div>
+ 4587:           </div>
+ 4588:         </div>
+ 4589:       ) : null}
+ 4590:       {runtimeMode !== "preview" ? (
+ 4591:       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+ 4592:         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
+ 4593:           تحكم سريع بمساحة العمل
+ 4594:         </div>
+ 4595: 
+ 4596:         <div className="flex flex-wrap items-center gap-2">
+ 4597:           <button
+ 4598:             type="button"
+ 4599:             onClick={() => setRightSidebarCollapsed((current) => !current)}
+ 4600:             className={[
+ 4601:               "rounded-2xl px-4 py-2 text-xs font-black transition",
+ 4602:               rightSidebarCollapsed
+ 4603:                 ? "bg-emerald-700 text-white"
+ 4604:                 : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+ 4605:             ].join(" ")}
+ 4606:           >
+ 4607:             {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+ 4608:           </button>
+ 4609: 
+ 4610:           <button
+
+============================================================
+MATCH: z-
+LINE: 6167
+============================================================
+ 6148:                     </label>
+ 6149:                   </div>
+ 6150:                 ) : null}
+ 6151:               </div>
+ 6152:             
+ 6153: </ReportTwoCollapsibleCard>
+ 6154:           ) : (
+ 6155:             <ReportTwoCollapsibleCard id="edit-block" title="تعديل البلوك">
+ 6156:               <p className="py-8 text-center text-xs font-black text-slate-400">
+ 6157:                 اختر بلوكًا من بلوكات الصفحة لتعديل إعداداته.
+ 6158:               </p>
+ 6159:             </ReportTwoCollapsibleCard>
+ 6160:           )}
+ 6161:         </aside>
+ 6162:         ) : null}
+ 6163:       </div>
+ 6164: 
+ 6165:       {reportTwoActionModal ? (
+ 6166:         <div
+ 6167:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6168:           dir="rtl"
+ 6169:         >
+ 6170:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6171:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6172:               <div>
+ 6173:                 <h2 className="text-xl font-black text-slate-950">
+ 6174:                   {reportTwoActionModal.title}
+ 6175:                 </h2>
+ 6176:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6177:                   {reportTwoActionModal.message}
+ 6178:                 </p>
+ 6179:                 {reportTwoActionModal.linkHref ? (
+ 6180:                   <a
+ 6181:                     href={reportTwoActionModal.linkHref}
+ 6182:                     target="_blank"
+ 6183:                     rel="noreferrer"
+ 6184:                     className="mt-3 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+ 6185:                   >
+ 6186:                     {reportTwoActionModal.linkLabel || "استعراض التقرير المعتمد"}
+ 6187:                   </a>
+ 6188:                 ) : null}
+ 6189:               </div>
+ 6190:             </header>
+ 6191: 
+ 6192:             <footer className="flex flex-wrap items-center justify-end gap-3 px-6 py-4">
+ 6193:               <button
+ 6194:                 type="button"
+ 6195:                 onClick={closeReportTwoActionModal}
+ 6196:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6197:               >
+ 6198:                 حسنًا
+ 6199:               </button>
+ 6200:             </footer>
+ 6201:           </section>
+ 6202:         </div>
+ 6203:       ) : null}
+
+============================================================
+MATCH: z-
+LINE: 6219
+============================================================
+ 6200:             </footer>
+ 6201:           </section>
+ 6202:         </div>
+ 6203:       ) : null}
+ 6204: 
+ 6205:       <PrintExportPopCard
+ 6206:         modal={printExportModal}
+ 6207:         onClose={closePrintExportModal}
+ 6208:         onOpenFallback={openFallbackPrintUrl}
+ 6209:       />
+ 6210: 
+ 6211:       <OperationProgressPopCard
+ 6212:         open={reportTwoPdfExporting}
+ 6213:         title="جاري تجهيز الملف"
+ 6214:         message="يتم الآن تجهيز التحميل، الرجاء الانتظار..."
+ 6215:       />
+ 6216: 
+ 6217:       {popup ? (
+ 6218:         <div
+ 6219:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6220:           dir="rtl"
+ 6221:         >
+ 6222:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6223:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6224:               <div>
+ 6225:                 <h2 className="text-xl font-black text-slate-950">{popup.title}</h2>
+ 6226:                 <p className="mt-1 text-sm font-bold text-slate-500">{popup.message}</p>
+ 6227:               </div>
+ 6228:             </header>
+ 6229: 
+ 6230:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6231:               {popup.type === "confirm" ? (
+ 6232:                 <>
+ 6233:                   <button
+ 6234:                     type="button"
+ 6235:                     onClick={() => {
+ 6236:                       popup.onCancel?.();
+ 6237:                       closePopup();
+ 6238:                     }}
+ 6239:                     className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6240:                   >
+ 6241:                     لا
+ 6242:                   </button>
+ 6243: 
+ 6244:                   <button
+ 6245:                     type="button"
+ 6246:                     onClick={() => {
+ 6247:                       popup.onConfirm?.();
+ 6248:                       closePopup();
+ 6249:                     }}
+ 6250:                     className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6251:                   >
+ 6252:                     نعم
+ 6253:                   </button>
+ 6254:                 </>
+ 6255:               ) : (
+
+============================================================
+MATCH: z-
+LINE: 6271
+============================================================
+ 6252:                     نعم
+ 6253:                   </button>
+ 6254:                 </>
+ 6255:               ) : (
+ 6256:                 <button
+ 6257:                   type="button"
+ 6258:                   onClick={closePopup}
+ 6259:                   className="mr-auto rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6260:                 >
+ 6261:                   حسناً
+ 6262:                 </button>
+ 6263:               )}
+ 6264:             </footer>
+ 6265:           </section>
+ 6266:         </div>
+ 6267:       ) : null}
+ 6268: 
+ 6269:       {runtimeMode === "edit" && pendingDraftSnapshot ? (
+ 6270:         <div
+ 6271:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6272:           dir="rtl"
+ 6273:         >
+ 6274:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6275:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6276:               <div>
+ 6277:                 <p className="text-xs font-black text-emerald-700">
+ 6278:                   استعادة المسودة
+ 6279:                 </p>
+ 6280: 
+ 6281:                 <h2 className="mt-1 text-xl font-black text-slate-950">
+ 6282:                   توجد مسودة محفوظة
+ 6283:                 </h2>
+ 6284: 
+ 6285:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6286:                   يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+ 6287:                 </p>
+ 6288:               </div>
+ 6289:             </header>
+ 6290: 
+ 6291:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6292:               <button
+ 6293:                 type="button"
+ 6294:                 onClick={() => {
+ 6295:                   setPendingDraftSnapshot(null);
+ 6296:                   setDraftRestored(true);
+ 6297:                 }}
+ 6298:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6299:               >
+ 6300:                 لا، بداية جديدة
+ 6301:               </button>
+ 6302: 
+ 6303:               <button
+ 6304:                 type="button"
+ 6305:                 onClick={() => {
+ 6306:                   const snapshot = pendingDraftSnapshot;
+ 6307:                   if (!snapshot) return;
+
+============================================================
+MATCH: z-
+LINE: 6325
+============================================================
+ 6306:                   const snapshot = pendingDraftSnapshot;
+ 6307:                   if (!snapshot) return;
+ 6308:                   setPendingDraftSnapshot(null);
+ 6309:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6310:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+ 6311:                   setLastAutoSavedAt(snapshot.savedAt);
+ 6312:                   setDraftRestored(true);
+ 6313:                 }}
+ 6314:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6315:               >
+ 6316:                 نعم، استعادة المسودة
+ 6317:               </button>
+ 6318:             </footer>
+ 6319:           </section>
+ 6320:         </div>
+ 6321:       ) : null}
+ 6322: 
+ 6323:       {false ? (
+ 6324:         <div
+ 6325:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6326:           dir="rtl"
+ 6327:         >
+ 6328:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6329:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6330:               <div>
+ 6331:                 <p className="text-xs font-black text-emerald-700">
+ 6332:                   استعادة المسودة
+ 6333:                 </p>
+ 6334: 
+ 6335:                 <h2 className="mt-1 text-xl font-black text-slate-950">
+ 6336:                   توجد مسودة محفوظة
+ 6337:                 </h2>
+ 6338: 
+ 6339:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6340:                   يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+ 6341:                 </p>
+ 6342:               </div>
+ 6343:             </header>
+ 6344: 
+ 6345:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+ 6346:               <button
+ 6347:                 type="button"
+ 6348:                 onClick={() => {
+ 6349:                   setPendingDraftSnapshot(null);
+ 6350:                   setDraftRestored(true);
+ 6351:                 }}
+ 6352:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+ 6353:               >
+ 6354:                 لا، بداية جديدة
+ 6355:               </button>
+ 6356: 
+ 6357:               <button
+ 6358:                 type="button"
+ 6359:                 onClick={() => {
+ 6360:                   const snapshot = pendingDraftSnapshot;
+ 6361:                   if (!snapshot) return;
+
+============================================================
+MATCH: z-
+LINE: 6378
+============================================================
+ 6359:                 onClick={() => {
+ 6360:                   const snapshot = pendingDraftSnapshot;
+ 6361:                   if (!snapshot) return;
+ 6362:                   setPendingDraftSnapshot(null);
+ 6363:                   restoreReportTwoDraftSnapshot(snapshot);
+ 6364:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+ 6365:                   setLastAutoSavedAt(snapshot.savedAt);
+ 6366:                   setDraftRestored(true);
+ 6367:                 }}
+ 6368:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+ 6369:               >
+ 6370:                 نعم، استعادة المسودة
+ 6371:               </button>
+ 6372:             </footer>
+ 6373:           </section>
+ 6374:         </div>
+ 6375:       ) : null}
+ 6376:       {finalWizardOpen ? (
+ 6377:         <div
+ 6378:           className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6379:           dir="rtl"
+ 6380:         >
+ 6381:           <section className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6382:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+ 6383:               <div>
+ 6384:                 <p className="text-xs font-black text-emerald-700">
+ 6385:                   معالج الاعتماد
+ 6386:                 </p>
+ 6387: 
+ 6388:                 <h2 className="mt-1 text-2xl font-black text-slate-950">
+ 6389:                   فحص نهائي قبل الاعتماد
+ 6390:                 </h2>
+ 6391: 
+ 6392:                 <p className="mt-1 text-sm font-bold text-slate-500">
+ 6393:                   راجع البنود التالية قبل حفظ التقرير كنسخة جاهزة.
+ 6394:                 </p>
+ 6395:               </div>
+ 6396: 
+ 6397:               <button
+ 6398:                 type="button"
+ 6399:                 onClick={() => setFinalWizardOpen(false)}
+ 6400:                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+ 6401:               >
+ 6402:                 ×
+ 6403:               </button>
+ 6404:             </header>
+ 6405: 
+ 6406:             <main className="max-h-[calc(90vh-170px)] overflow-y-auto px-6 py-5">
+ 6407:               <div className="grid gap-3 md:grid-cols-2">
+ 6408:                 {finalCheckItems.map((item) => (
+ 6409:                   <article
+ 6410:                     key={item.id}
+ 6411:                     className={[
+ 6412:                       "rounded-[1.5rem] border p-4",
+ 6413:                       item.passed
+ 6414:                         ? "border-emerald-100 bg-emerald-50"
+
+============================================================
+MATCH: z-
+LINE: 6527
+============================================================
+ 6508:                 >
+ 6509:                   تركيز المعاينة
+ 6510:                 </button>
+ 6511: 
+ 6512:                 <button
+ 6513:                   type="button"
+ 6514:                   disabled={!finalCheckPassed}
+ 6515:                   onClick={confirmReportTwoFinalWizard}
+ 6516:                   className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+ 6517:                 >
+ 6518:                   تأكيد الجاهزية
+ 6519:                 </button>
+ 6520:               </div>
+ 6521:             </footer>
+ 6522:           </section>
+ 6523:         </div>
+ 6524:       ) : null}
+ 6525:       {editingTableDraft ? (
+ 6526:         <div
+ 6527:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+ 6528:           dir="rtl"
+ 6529:         >
+ 6530:           <section className="flex h-[88vh] w-full max-w-[1220px] min-h-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+ 6531:             <main className="flex min-w-0 flex-1 flex-col">
+ 6532:               <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+ 6533:                 <div>
+ 6534:                   <h2 className="text-2xl font-black text-slate-950">
+ 6535:                     تحرير الجدول
+ 6536:                   </h2>
+ 6537:                   <p className="mt-1 text-xs font-bold text-slate-500">
+ 6538:                     عدّل الأعمدة والخلايا بنفس نمط محرر التقارير الرسمي.
+ 6539:                   </p>
+ 6540:                 </div>
+ 6541: 
+ 6542:                 <button
+ 6543:                   type="button"
+ 6544:                   onClick={closeTableEditor}
+ 6545:                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+ 6546:                 >
+ 6547:                   ×
+ 6548:                 </button>
+ 6549:               </header>
+ 6550: 
+ 6551:               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_270px]">
+ 6552:                 <section className="flex min-h-0 flex-col">
+ 6553:                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+ 6554:                     <div>
+ 6555:                       <h3 className="text-sm font-black text-slate-900">
+ 6556:                         محتوى الجدول
+ 6557:                       </h3>
+ 6558:                       <p className="mt-1 text-xs font-bold text-slate-500">
+ 6559:                         مساحة الجدول قابلة للتمرير أفقيًا ورأسيًا عند زيادة الأعمدة والصفوف.
+ 6560:                       </p>
+ 6561:                     </div>
+ 6562: 
+ 6563:                     <div className="flex items-center gap-2">

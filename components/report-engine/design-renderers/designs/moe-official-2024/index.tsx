@@ -54,7 +54,7 @@ function MoeReportPage({
           <img
             src={ministryLogoSrc}
             alt="شعار الوزارة الرسمي"
-            className="h-[8mm] w-[25mm] object-contain"
+            className="h-[12mm] w-[37.5mm] object-contain"
           />
         </div>
 
@@ -76,6 +76,20 @@ function MoeReportPage({
         <span />
         <span className="moe24-page-number" />
       </footer>
+      <div
+        dir="rtl"
+        className="pointer-events-auto absolute bottom-[3mm] right-[15mm] z-10 whitespace-nowrap text-[8px] font-medium text-[var(--moe24-muted)]"
+      >
+        بواسطة{" "}
+        <a
+          href="https://teachix.sa"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-inherit no-underline hover:underline"
+        >
+          Teachix.sa
+        </a>
+      </div>
     </section>
   );
 }

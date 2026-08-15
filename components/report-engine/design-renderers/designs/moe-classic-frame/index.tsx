@@ -95,6 +95,20 @@ export function MoeClassicFrameReportDesign({
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#168ac4] via-[#28aca7] to-[#35bd70]" />
         </footer>
+        <div
+          dir="rtl"
+          className="pointer-events-auto absolute bottom-[1mm] right-[12mm] z-40 whitespace-nowrap text-[8px] font-medium text-white/80"
+        >
+          بواسطة{" "}
+          <a
+            href="https://teachix.sa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-inherit no-underline hover:underline"
+          >
+            Teachix.sa
+          </a>
+        </div>
       </div>
     </article>
   );

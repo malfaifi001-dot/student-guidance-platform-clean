@@ -52,6 +52,20 @@ export function MinistryFormReportDesign({
         <footer data-report-page-footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
           <div className="h-1 rounded-full bg-gradient-to-l from-slate-900 to-emerald-300" />
         </footer>
+        <div
+          dir="rtl"
+          className="pointer-events-auto absolute bottom-[4mm] right-[12mm] z-20 whitespace-nowrap text-[8px] font-medium text-slate-500"
+        >
+          بواسطة{" "}
+          <a
+            href="https://teachix.sa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-inherit no-underline hover:underline"
+          >
+            Teachix.sa
+          </a>
+        </div>
     </article>
   );
 }

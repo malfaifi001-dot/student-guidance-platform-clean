@@ -48,9 +48,6 @@ export function MinistryElegantReportDesign({
                 className="h-[27mm] w-auto max-w-[50mm] object-contain"
                 style={{ filter: "none", opacity: 1 }}
               />
-              <p className="mt-1 text-[9px] font-black text-[#0f766e]">
-                منصة التوجيه الطلابي
-              </p>
             </div>
 
             <div dir="rtl" className="flex min-w-0 flex-col items-center justify-center text-center text-[10px] font-bold leading-[1.8] text-[#0f2a4d]">
@@ -81,8 +78,22 @@ export function MinistryElegantReportDesign({
           data-report-page-footer
           className="mx-[10mm] mb-[5mm] mt-auto shrink-0 border-t border-[#0f766e]/20 pt-1 text-center text-[12px] font-bold leading-none text-[#0f2a4d]/65"
         >
-          وزارة التعليم
         </footer>
+
+        <div
+          dir="rtl"
+          className="pointer-events-auto absolute bottom-[1.5mm] right-[10mm] z-20 whitespace-nowrap text-[8px] font-medium text-[#0f2a4d]/55"
+        >
+          بواسطة{" "}
+          <a
+            href="https://teachix.sa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-inherit no-underline hover:underline"
+          >
+            Teachix.sa
+          </a>
+        </div>
       </div>
     </article>
   );
