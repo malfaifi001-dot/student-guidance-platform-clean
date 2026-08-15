@@ -3,6 +3,7 @@ import {
   parseGuidanceVideoTargetRoles,
   type GuidanceVideoSourceType,
   type GuidanceVideoTargetRole,
+  type GuidanceMediaType,
 } from "@/lib/guidance-videos/guidance-video-config";
 import { parseYouTubeVideoUrl } from "@/lib/guidance-videos/youtube";
 
@@ -43,17 +44,21 @@ export function parseGuidanceVideoMetadata(
     formData.get("sortOrder") ?? fallback?.sortOrder ?? 0,
   );
 
-  if (!title) return { ok: false as const, error: "عنوان الفيديو مطلوب." };
+  if (!title) return { ok: false as const, error: "عنوان المحتوى مطلوب." };
   if (title.length > 200) {
-    return { ok: false as const, error: "عنوان الفيديو طويل جدًا." };
+    return { ok: false as const, error: "عنوان المحتوى طويل جدًا." };
   }
   if (rawDescription.length > 2000) {
-    return { ok: false as const, error: "وصف الفيديو طويل جدًا." };
+    return { ok: false as const, error: "وصف المحتوى طويل جدًا." };
   }
   if (!targetRoles.length) {
     return { ok: false as const, error: "اختر فئة مستهدفة واحدة على الأقل." };
   }
-  if (!Number.isSafeInteger(rawSortOrder) || rawSortOrder < 0 || rawSortOrder > 100000) {
+  if (
+    !Number.isSafeInteger(rawSortOrder) ||
+    rawSortOrder < 0 ||
+    rawSortOrder > 100000
+  ) {
     return { ok: false as const, error: "ترتيب الظهور غير صالح." };
   }
 
@@ -73,7 +78,7 @@ export function parseGuidanceVideoMetadata(
 }
 
 export function getOptionalGuidanceVideoFile(formData: FormData) {
-  const value = formData.get("video");
+  const value = formData.get("media") ?? formData.get("video");
   return value instanceof File && value.size > 0 ? value : null;
 }
 
@@ -82,41 +87,57 @@ export function parseGuidanceVideoSource(
   fallback?: {
     sourceType: GuidanceVideoSourceType;
     youtubeVideoId: string | null;
+    mediaType?: GuidanceMediaType;
   },
 ) {
   const rawSourceType = formData.get("sourceType");
-  const sourceType = rawSourceType === null
-    ? (fallback?.sourceType ?? "UPLOAD")
-    : String(rawSourceType);
+  const sourceType =
+    rawSourceType === null
+      ? (fallback?.sourceType ?? "UPLOAD")
+      : String(rawSourceType);
 
   if (!isGuidanceVideoSourceType(sourceType)) {
-    return { ok: false as const, error: "مصدر الفيديو غير صالح." };
+    return { ok: false as const, error: "مصدر المحتوى غير صالح." };
   }
 
+  const rawMediaType = String(
+    formData.get("mediaType") ?? fallback?.mediaType ?? "VIDEO",
+  );
+  if (rawMediaType !== "VIDEO" && rawMediaType !== "IMAGE") {
+    return { ok: false as const, error: "نوع المحتوى غير صالح." };
+  }
+  const mediaType: GuidanceMediaType = rawMediaType;
+
   if (sourceType === "YOUTUBE") {
+    if (mediaType !== "VIDEO") {
+      return { ok: false as const, error: "روابط YouTube متاحة للفيديو فقط." };
+    }
     const rawYouTubeUrl = formData.get("youtubeUrl");
-    const youtubeVideoId = rawYouTubeUrl === null
-      ? fallback?.youtubeVideoId
-      : parseYouTubeVideoUrl(rawYouTubeUrl);
+    const youtubeVideoId =
+      rawYouTubeUrl === null
+        ? fallback?.youtubeVideoId
+        : parseYouTubeVideoUrl(rawYouTubeUrl);
     if (!youtubeVideoId) {
       return { ok: false as const, error: "رابط YouTube غير صالح." };
     }
     return {
       ok: true as const,
-      data: { sourceType, youtubeVideoId },
+      data: { sourceType, youtubeVideoId, mediaType },
     };
   }
 
   return {
     ok: true as const,
-    data: { sourceType, youtubeVideoId: null },
+    data: { sourceType, youtubeVideoId: null, mediaType },
   };
 }
 
 export function sanitizeOriginalVideoFileName(value: string) {
-  return value
-    .replace(/[\r\n\0]/g, "")
-    .replace(/[\\/]/g, "-")
-    .trim()
-    .slice(0, 255) || "guidance-video.mp4";
+  return (
+    value
+      .replace(/[\r\n\0]/g, "")
+      .replace(/[\\/]/g, "-")
+      .trim()
+      .slice(0, 255) || "guidance-media"
+  );
 }

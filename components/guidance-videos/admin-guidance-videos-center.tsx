@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   Film,
+  ImageIcon,
   Link2,
   Pencil,
   PlayCircle,
@@ -22,6 +23,7 @@ import {
   GUIDANCE_VIDEO_ROLE_LABELS,
   GUIDANCE_VIDEO_TARGET_ROLES,
   type GuidanceVideoDto,
+  type GuidanceMediaType,
   type GuidanceVideoSourceType,
   type GuidanceVideoTargetRole,
 } from "@/lib/guidance-videos/guidance-video-config";
@@ -36,6 +38,7 @@ type FormState = {
   isPublished: boolean;
   sortOrder: string;
   sourceType: GuidanceVideoSourceType;
+  mediaType: GuidanceMediaType;
   youtubeUrl: string;
   file: File | null;
 };
@@ -47,6 +50,7 @@ const emptyForm: FormState = {
   isPublished: false,
   sortOrder: "0",
   sourceType: "UPLOAD",
+  mediaType: "VIDEO",
   youtubeUrl: "",
   file: null,
 };
@@ -62,12 +66,15 @@ async function readResponse(response: Response) {
 
 function formatBytes(value: number | null) {
   if (value === null) return "—";
-  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} كيلوبايت`;
+  if (value < 1024 * 1024)
+    return `${Math.max(1, Math.round(value / 1024))} كيلوبايت`;
   return `${(value / (1024 * 1024)).toFixed(1)} ميجابايت`;
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 export function AdminGuidanceVideosCenter() {
@@ -78,24 +85,41 @@ export function AdminGuidanceVideosCenter() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const [previewVideo, setPreviewVideo] = useState<GuidanceVideoDto | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<GuidanceVideoDto | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<GuidanceVideoDto | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = useState<GuidanceVideoDto | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
 
   const sortedVideos = useMemo(
-    () => [...videos].sort((a, b) => a.sortOrder - b.sortOrder || b.createdAt.localeCompare(a.createdAt)),
+    () =>
+      [...videos].sort(
+        (a, b) =>
+          a.sortOrder - b.sortOrder || b.createdAt.localeCompare(a.createdAt),
+      ),
     [videos],
   );
 
   const loadVideos = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/dashboard/admin/guidance-videos", { cache: "no-store" });
+      const response = await fetch("/api/dashboard/admin/guidance-videos", {
+        cache: "no-store",
+      });
       const data = await readResponse(response);
-      if (!response.ok) throw new Error(data.error || "تعذر تحميل الفيديوهات.");
+      if (!response.ok)
+        throw new Error(data.error || "تعذر تحميل المحتوى الإرشادي.");
       setVideos(data.videos ?? []);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "تعذر تحميل الفيديوهات." });
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر تحميل المحتوى الإرشادي.",
+      });
     } finally {
       setLoading(false);
     }
@@ -122,6 +146,7 @@ export function AdminGuidanceVideosCenter() {
       isPublished: video.isPublished,
       sortOrder: String(video.sortOrder),
       sourceType: video.sourceType,
+      mediaType: video.mediaType,
       youtubeUrl: video.youtubeVideoId
         ? (buildYouTubeWatchUrl(video.youtubeVideoId) ?? "")
         : "",
@@ -140,8 +165,10 @@ export function AdminGuidanceVideosCenter() {
     data.set("isPublished", String(state.isPublished));
     data.set("sortOrder", state.sortOrder);
     data.set("sourceType", state.sourceType);
-    if (state.sourceType === "YOUTUBE") data.set("youtubeUrl", state.youtubeUrl);
-    if (state.file) data.set("video", state.file);
+    data.set("mediaType", state.mediaType);
+    if (state.sourceType === "YOUTUBE")
+      data.set("youtubeUrl", state.youtubeUrl);
+    if (state.file) data.set("media", state.file);
     return data;
   }
 
@@ -157,19 +184,29 @@ export function AdminGuidanceVideosCenter() {
         { method: editingId ? "PATCH" : "POST", body: buildFormData(form) },
       );
       const data = await readResponse(response);
-      if (!response.ok || !data.video) throw new Error(data.error || "تعذر حفظ الفيديو.");
+      if (!response.ok || !data.video)
+        throw new Error(data.error || "تعذر حفظ المحتوى الإرشادي.");
       setVideos((current) => {
         const exists = current.some((item) => item.id === data.video?.id);
         return exists
-          ? current.map((item) => (item.id === data.video?.id ? data.video! : item))
+          ? current.map((item) =>
+              item.id === data.video?.id ? data.video! : item,
+            )
           : [...current, data.video!];
       });
-      setFeedback({ type: "success", message: data.message || "تم حفظ الفيديو بنجاح." });
+      setFeedback({
+        type: "success",
+        message: data.message || "تم حفظ المحتوى الإرشادي بنجاح.",
+      });
       setFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "تعذر حفظ الفيديو." });
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "تعذر حفظ المحتوى الإرشادي.",
+      });
     } finally {
       setSaving(false);
     }
@@ -186,18 +223,32 @@ export function AdminGuidanceVideosCenter() {
         isPublished: next.isPublished,
         sortOrder: String(next.sortOrder),
         sourceType: next.sourceType,
+        mediaType: next.mediaType,
         youtubeUrl: next.youtubeVideoId
           ? (buildYouTubeWatchUrl(next.youtubeVideoId) ?? "")
           : "",
         file: null,
       });
-      const response = await fetch(`/api/dashboard/admin/guidance-videos/${encodeURIComponent(video.id)}`, { method: "PATCH", body: formData });
+      const response = await fetch(
+        `/api/dashboard/admin/guidance-videos/${encodeURIComponent(video.id)}`,
+        { method: "PATCH", body: formData },
+      );
       const data = await readResponse(response);
-      if (!response.ok || !data.video) throw new Error(data.error || "تعذر تحديث حالة النشر.");
-      setVideos((current) => current.map((item) => (item.id === video.id ? data.video! : item)));
-      setFeedback({ type: "success", message: data.message || "تم تحديث حالة النشر." });
+      if (!response.ok || !data.video)
+        throw new Error(data.error || "تعذر تحديث حالة النشر.");
+      setVideos((current) =>
+        current.map((item) => (item.id === video.id ? data.video! : item)),
+      );
+      setFeedback({
+        type: "success",
+        message: data.message || "تم تحديث حالة النشر.",
+      });
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "تعذر تحديث حالة النشر." });
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "تعذر تحديث حالة النشر.",
+      });
     } finally {
       setSaving(false);
     }
@@ -207,14 +258,27 @@ export function AdminGuidanceVideosCenter() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const response = await fetch(`/api/dashboard/admin/guidance-videos/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+      const response = await fetch(
+        `/api/dashboard/admin/guidance-videos/${encodeURIComponent(deleteTarget.id)}`,
+        { method: "DELETE" },
+      );
       const data = await readResponse(response);
-      if (!response.ok) throw new Error(data.error || "تعذر حذف الفيديو.");
-      setVideos((current) => current.filter((item) => item.id !== deleteTarget.id));
-      setFeedback({ type: "success", message: data.message || "تم حذف الفيديو." });
+      if (!response.ok)
+        throw new Error(data.error || "تعذر حذف المحتوى الإرشادي.");
+      setVideos((current) =>
+        current.filter((item) => item.id !== deleteTarget.id),
+      );
+      setFeedback({
+        type: "success",
+        message: data.message || "تم حذف المحتوى الإرشادي.",
+      });
       setDeleteTarget(null);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "تعذر حذف الفيديو." });
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "تعذر حذف المحتوى الإرشادي.",
+      });
     } finally {
       setDeleting(false);
     }
@@ -225,44 +289,155 @@ export function AdminGuidanceVideosCenter() {
       <header className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-950">
         <div>
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300"><Film className="h-6 w-6" /></span>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+              <Film className="h-6 w-6" />
+            </span>
             <div>
-              <h1 className="text-2xl font-black text-slate-950 sm:text-3xl dark:text-white">الفيديوهات الإرشادية</h1>
-              <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">إدارة الفيديوهات التعليمية التي تظهر للمستخدمين داخل المنصة.</p>
+              <h1 className="text-2xl font-black text-slate-950 sm:text-3xl dark:text-white">
+                المحتوى الإرشادي
+              </h1>
+              <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+                إدارة الفيديوهات والصور الإرشادية التي تظهر للمستخدمين داخل
+                المنصة.
+              </p>
             </div>
           </div>
         </div>
-        <button type="button" onClick={startCreate} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700">
-          <Plus className="h-5 w-5" /> إضافة فيديو إرشادي
+        <button
+          type="button"
+          onClick={startCreate}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+        >
+          <Plus className="h-5 w-5" /> إضافة محتوى إرشادي
         </button>
       </header>
 
       {feedback ? (
-        <div className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${feedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300" : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"}`} role="status">
+        <div
+          className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-bold ${feedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300" : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"}`}
+          role="status"
+        >
           <span>{feedback.message}</span>
-          <button type="button" onClick={() => setFeedback(null)} aria-label="إغلاق الرسالة"><X className="h-4 w-4" /></button>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            aria-label="إغلاق الرسالة"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       ) : null}
 
       {formOpen ? (
-        <form onSubmit={saveVideo} className="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm sm:p-6 dark:border-sky-500/20 dark:bg-slate-950">
+        <form
+          onSubmit={saveVideo}
+          className="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm sm:p-6 dark:border-sky-500/20 dark:bg-slate-950"
+        >
           <div className="flex items-center justify-between gap-3">
-            <div><h2 className="text-xl font-black text-slate-950 dark:text-white">{editingId ? "تعديل الفيديو الإرشادي" : "إضافة فيديو إرشادي"}</h2><p className="mt-1 text-xs font-bold text-slate-400">اختر رفع ملف MP4 أو إضافة رابط YouTube.</p></div>
-            <button type="button" onClick={() => setFormOpen(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-300" aria-label="إغلاق"><X className="h-5 w-5" /></button>
+            <div>
+              <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                {editingId ? "تعديل المحتوى الإرشادي" : "إضافة محتوى إرشادي"}
+              </h2>
+              <p className="mt-1 text-xs font-bold text-slate-400">
+                ارفع فيديو MP4 أو صورة، أو أضف رابط YouTube.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-300"
+              aria-label="إغلاق"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <label className="space-y-2"><span className="text-sm font-black text-slate-700 dark:text-slate-200">عنوان الفيديو</span><input required maxLength={200} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white" /></label>
-            <label className="space-y-2"><span className="text-sm font-black text-slate-700 dark:text-slate-200">ترتيب الظهور</span><input type="number" min={0} max={100000} value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: event.target.value }))} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white" /></label>
-            <label className="space-y-2 lg:col-span-2"><span className="text-sm font-black text-slate-700 dark:text-slate-200">الوصف</span><textarea rows={3} maxLength={2000} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white" /></label>
+            <label className="space-y-2">
+              <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                عنوان المحتوى
+              </span>
+              <input
+                required
+                maxLength={200}
+                value={form.title}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                ترتيب الظهور
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={100000}
+                value={form.sortOrder}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    sortOrder: event.target.value,
+                  }))
+                }
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <label className="space-y-2 lg:col-span-2">
+              <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                الوصف
+              </span>
+              <textarea
+                rows={3}
+                maxLength={2000}
+                value={form.description}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+                className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
             <fieldset className="lg:col-span-2">
-              <legend className="text-sm font-black text-slate-700 dark:text-slate-200">مصدر الفيديو</legend>
-              <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5 dark:bg-slate-900">
-                {([
-                  { value: "UPLOAD", label: "رفع فيديو", icon: UploadCloud },
-                  { value: "YOUTUBE", label: "رابط YouTube", icon: Link2 },
-                ] as const).map((option) => {
+              <legend className="text-sm font-black text-slate-700 dark:text-slate-200">
+                نوع ومصدر المحتوى
+              </legend>
+              <div className="mt-3 grid grid-cols-1 gap-2 rounded-2xl bg-slate-100 p-1.5 sm:grid-cols-3 dark:bg-slate-900">
+                {(
+                  [
+                    {
+                      value: "UPLOAD_VIDEO",
+                      sourceType: "UPLOAD",
+                      mediaType: "VIDEO",
+                      label: "رفع فيديو",
+                      icon: UploadCloud,
+                    },
+                    {
+                      value: "YOUTUBE",
+                      sourceType: "YOUTUBE",
+                      mediaType: "VIDEO",
+                      label: "رابط YouTube",
+                      icon: Link2,
+                    },
+                    {
+                      value: "UPLOAD_IMAGE",
+                      sourceType: "UPLOAD",
+                      mediaType: "IMAGE",
+                      label: "رفع صورة",
+                      icon: ImageIcon,
+                    },
+                  ] as const
+                ).map((option) => {
                   const Icon = option.icon;
-                  const active = form.sourceType === option.value;
+                  const active =
+                    form.sourceType === option.sourceType &&
+                    form.mediaType === option.mediaType;
                   return (
                     <button
                       key={option.value}
@@ -270,8 +445,9 @@ export function AdminGuidanceVideosCenter() {
                       onClick={() =>
                         setForm((current) => ({
                           ...current,
-                          sourceType: option.value,
-                          file: option.value === "YOUTUBE" ? null : current.file,
+                          sourceType: option.sourceType,
+                          mediaType: option.mediaType,
+                          file: null,
                         }))
                       }
                       className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${active ? "bg-white text-sky-700 shadow-sm dark:bg-slate-800 dark:text-sky-300" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"}`}
@@ -285,50 +461,312 @@ export function AdminGuidanceVideosCenter() {
             </fieldset>
             {form.sourceType === "UPLOAD" ? (
               <label className="space-y-2 lg:col-span-2">
-                <span className="text-sm font-black text-slate-700 dark:text-slate-200">الفيديو</span>
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                  {form.mediaType === "IMAGE" ? "الصورة" : "الفيديو"}
+                </span>
                 <span className="flex min-h-24 cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 p-4 text-sm font-black text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300">
                   <UploadCloud className="h-6 w-6" />
-                  {form.file?.name || (editingId && form.sourceType === "UPLOAD" ? "اختيار فيديو بديل (اختياري)" : "اختيار ملف MP4")}
+                  {form.file?.name ||
+                    (editingId &&
+                    videos.find((video) => video.id === editingId)
+                      ?.sourceType === "UPLOAD" &&
+                    videos.find((video) => video.id === editingId)
+                      ?.mediaType === form.mediaType
+                      ? `اختيار ${form.mediaType === "IMAGE" ? "صورة" : "فيديو"} بديل (اختياري)`
+                      : form.mediaType === "IMAGE"
+                        ? "اختيار صورة JPG أو PNG أو WebP أو GIF"
+                        : "اختيار ملف MP4")}
                   <input
                     type="file"
-                    accept="video/mp4,.mp4"
-                    required={!editingId || videos.find((video) => video.id === editingId)?.sourceType === "YOUTUBE"}
-                    onChange={(event) => setForm((current) => ({ ...current, file: event.target.files?.[0] ?? null }))}
+                    accept={
+                      form.mediaType === "IMAGE"
+                        ? "image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                        : "video/mp4,.mp4"
+                    }
+                    required={
+                      !editingId ||
+                      videos.find((video) => video.id === editingId)
+                        ?.sourceType === "YOUTUBE" ||
+                      videos.find((video) => video.id === editingId)
+                        ?.mediaType !== form.mediaType
+                    }
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        file: event.target.files?.[0] ?? null,
+                      }))
+                    }
                     className="sr-only"
                   />
                 </span>
               </label>
             ) : (
               <label className="space-y-2 lg:col-span-2">
-                <span className="text-sm font-black text-slate-700 dark:text-slate-200">رابط فيديو YouTube</span>
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                  رابط فيديو YouTube
+                </span>
                 <input
                   type="url"
                   required
                   value={form.youtubeUrl}
-                  onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      youtubeUrl: event.target.value,
+                    }))
+                  }
                   placeholder="https://www.youtube.com/watch?v=..."
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-left text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   dir="ltr"
                 />
-                <span className="block text-xs font-bold text-slate-400">أدخل رابط فيديو YouTube صالحًا.</span>
+                <span className="block text-xs font-bold text-slate-400">
+                  أدخل رابط فيديو YouTube صالحًا.
+                </span>
               </label>
             )}
-            <fieldset className="lg:col-span-2"><legend className="text-sm font-black text-slate-700 dark:text-slate-200">الفئة المستهدفة</legend><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{GUIDANCE_VIDEO_TARGET_ROLES.map((role) => <label key={role} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-3 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200"><input type="checkbox" checked={form.targetRoles.includes(role)} onChange={(event) => setForm((current) => ({ ...current, targetRoles: event.target.checked ? [...current.targetRoles, role] : current.targetRoles.filter((item) => item !== role) }))} className="h-4 w-4 accent-sky-600" />{GUIDANCE_VIDEO_ROLE_LABELS[role]}</label>)}</div></fieldset>
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200"><input type="checkbox" checked={form.isPublished} onChange={(event) => setForm((current) => ({ ...current, isPublished: event.target.checked }))} className="h-5 w-5 accent-sky-600" />نشر الفيديو للمستخدمين المستهدفين</label>
+            <fieldset className="lg:col-span-2">
+              <legend className="text-sm font-black text-slate-700 dark:text-slate-200">
+                الفئة المستهدفة
+              </legend>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {GUIDANCE_VIDEO_TARGET_ROLES.map((role) => (
+                  <label
+                    key={role}
+                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-3 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.targetRoles.includes(role)}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          targetRoles: event.target.checked
+                            ? [...current.targetRoles, role]
+                            : current.targetRoles.filter(
+                                (item) => item !== role,
+                              ),
+                        }))
+                      }
+                      className="h-4 w-4 accent-sky-600"
+                    />
+                    {GUIDANCE_VIDEO_ROLE_LABELS[role]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={form.isPublished}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    isPublished: event.target.checked,
+                  }))
+                }
+                className="h-5 w-5 accent-sky-600"
+              />
+              نشر المحتوى للمستخدمين المستهدفين
+            </label>
           </div>
-          <div className="mt-6 flex flex-wrap justify-end gap-3"><button type="button" onClick={() => setFormOpen(false)} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 dark:border-slate-700 dark:text-slate-300">إلغاء</button><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white disabled:opacity-60">{saving ? <BrandLoader variant="button" size="xs" label={null} /> : <Save className="h-4 w-4" />}{editingId ? "حفظ التعديلات" : "حفظ الفيديو"}</button></div>
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 dark:border-slate-700 dark:text-slate-300"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white disabled:opacity-60"
+            >
+              {saving ? (
+                <BrandLoader variant="button" size="xs" label={null} />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {editingId ? "حفظ التعديلات" : "حفظ المحتوى"}
+            </button>
+          </div>
         </form>
       ) : null}
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-950">
-        <div className="mb-5"><h2 className="text-xl font-black text-slate-950 dark:text-white">الفيديوهات المضافة</h2><p className="mt-1 text-sm font-bold text-slate-400">{videos.length} فيديو</p></div>
-        {loading ? <BrandLoader variant="section" label="جاري تحميل الفيديوهات..." /> : null}
-        {!loading && sortedVideos.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-200 py-14 text-center dark:border-slate-700"><Film className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-3 font-black text-slate-600 dark:text-slate-300">لم تتم إضافة فيديوهات إرشادية بعد.</p></div> : null}
-        {!loading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{sortedVideos.map((video) => <article key={video.id} className="flex flex-col rounded-3xl border border-slate-200 p-4 dark:border-slate-800"><div className="flex items-start justify-between gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300"><PlayCircle className="h-5 w-5" /></span><div className="flex flex-wrap justify-end gap-1.5"><span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">{video.sourceType === "YOUTUBE" ? "YouTube" : "مرفوع"}</span><span className={`rounded-full px-3 py-1 text-[11px] font-black ${video.isPublished ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"}`}>{video.isPublished ? "منشور" : "مخفي"}</span></div></div><h3 className="mt-4 text-lg font-black text-slate-950 dark:text-white">{video.title}</h3>{video.description ? <p className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-slate-500 dark:text-slate-400">{video.description}</p> : null}<div className="mt-4 flex flex-wrap gap-1.5">{video.targetRoles.map((role) => <span key={role} className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">{GUIDANCE_VIDEO_ROLE_LABELS[role]}</span>)}</div><p className="mt-4 truncate text-xs font-bold text-slate-400" title={video.originalFileName ?? undefined}>{video.sourceType === "YOUTUBE" ? "رابط YouTube" : video.originalFileName}</p><dl className="mt-3 grid grid-cols-3 gap-2 text-xs font-bold text-slate-400"><div><dt>الحجم</dt><dd className="mt-1 text-slate-600 dark:text-slate-300">{formatBytes(video.sizeBytes)}</dd></div><div><dt>الترتيب</dt><dd className="mt-1 text-slate-600 dark:text-slate-300">{video.sortOrder}</dd></div><div><dt>تاريخ الإضافة</dt><dd className="mt-1 text-slate-600 dark:text-slate-300">{formatDate(video.createdAt)}</dd></div></dl><div className="mt-auto grid grid-cols-2 gap-2 pt-5"><button type="button" onClick={() => setPreviewVideo(video)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"><Eye className="h-4 w-4" />معاينة</button><button type="button" onClick={() => startEdit(video)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 dark:bg-slate-900 dark:text-slate-300"><Pencil className="h-4 w-4" />تعديل</button><button type="button" disabled={saving} onClick={() => void togglePublish(video)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{video.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{video.isPublished ? "إخفاء" : "نشر"}</button><button type="button" onClick={() => setDeleteTarget(video)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"><Trash2 className="h-4 w-4" />حذف</button></div></article>)}</div> : null}
+        <div className="mb-5">
+          <h2 className="text-xl font-black text-slate-950 dark:text-white">
+            المحتوى المضاف
+          </h2>
+          <p className="mt-1 text-sm font-bold text-slate-400">
+            {videos.length} عنصر
+          </p>
+        </div>
+        {loading ? (
+          <BrandLoader variant="section" label="جاري تحميل المحتوى..." />
+        ) : null}
+        {!loading && sortedVideos.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-200 py-14 text-center dark:border-slate-700">
+            <Film className="mx-auto h-10 w-10 text-slate-300" />
+            <p className="mt-3 font-black text-slate-600 dark:text-slate-300">
+              لم تتم إضافة محتوى إرشادي بعد.
+            </p>
+          </div>
+        ) : null}
+        {!loading ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sortedVideos.map((video) => (
+              <article
+                key={video.id}
+                className="flex flex-col overflow-hidden rounded-3xl border border-slate-200 p-4 dark:border-slate-800"
+              >
+                {video.mediaType === "IMAGE" && video.mediaUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewVideo(video)}
+                    className="mb-4 aspect-video overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-900"
+                    aria-label={`معاينة ${video.title}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={video.mediaUrl}
+                      alt={video.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ) : null}
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+                    {video.mediaType === "IMAGE" ? (
+                      <ImageIcon className="h-5 w-5" />
+                    ) : (
+                      <PlayCircle className="h-5 w-5" />
+                    )}
+                  </span>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                      {video.mediaType === "IMAGE"
+                        ? "صورة"
+                        : video.sourceType === "YOUTUBE"
+                          ? "YouTube"
+                          : "فيديو مرفوع"}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-black ${video.isPublished ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"}`}
+                    >
+                      {video.isPublished ? "منشور" : "مخفي"}
+                    </span>
+                  </div>
+                </div>
+                <h3 className="mt-4 text-lg font-black text-slate-950 dark:text-white">
+                  {video.title}
+                </h3>
+                {video.description ? (
+                  <p className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-slate-500 dark:text-slate-400">
+                    {video.description}
+                  </p>
+                ) : null}
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {video.targetRoles.map((role) => (
+                    <span
+                      key={role}
+                      className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                    >
+                      {GUIDANCE_VIDEO_ROLE_LABELS[role]}
+                    </span>
+                  ))}
+                </div>
+                <p
+                  className="mt-4 truncate text-xs font-bold text-slate-400"
+                  title={video.originalFileName ?? undefined}
+                >
+                  {video.sourceType === "YOUTUBE"
+                    ? "رابط YouTube"
+                    : video.originalFileName}
+                </p>
+                <dl className="mt-3 grid grid-cols-3 gap-2 text-xs font-bold text-slate-400">
+                  <div>
+                    <dt>الحجم</dt>
+                    <dd className="mt-1 text-slate-600 dark:text-slate-300">
+                      {formatBytes(video.sizeBytes)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>الترتيب</dt>
+                    <dd className="mt-1 text-slate-600 dark:text-slate-300">
+                      {video.sortOrder}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>تاريخ الإضافة</dt>
+                    <dd className="mt-1 text-slate-600 dark:text-slate-300">
+                      {formatDate(video.createdAt)}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewVideo(video)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                  >
+                    <Eye className="h-4 w-4" />
+                    معاينة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(video)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    تعديل
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void togglePublish(video)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                  >
+                    {video.isPublished ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                    {video.isPublished ? "إخفاء" : "نشر"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(video)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    حذف
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
-      <GuidanceVideoPlayerDialog video={previewVideo} onClose={() => setPreviewVideo(null)} />
-      <SmartActionModal open={Boolean(deleteTarget)} title="حذف الفيديو الإرشادي؟" description={deleteTarget?.sourceType === "UPLOAD" ? "سيُحذف الفيديو وملفه المخزن نهائيًا، ولا يمكن التراجع عن هذا الإجراء." : "سيُحذف رابط الفيديو من المنصة نهائيًا، ولا يمكن التراجع عن هذا الإجراء."} variant="danger" confirmLabel="حذف الفيديو" loading={deleting} onConfirm={() => void deleteVideo()} onClose={() => setDeleteTarget(null)} />
+      <GuidanceVideoPlayerDialog
+        video={previewVideo}
+        onClose={() => setPreviewVideo(null)}
+      />
+      <SmartActionModal
+        open={Boolean(deleteTarget)}
+        title={`حذف ${deleteTarget?.mediaType === "IMAGE" ? "الصورة" : "الفيديو"} الإرشادي؟`}
+        description={
+          deleteTarget?.sourceType === "UPLOAD"
+            ? "سيُحذف المحتوى وملفه المخزن نهائيًا، ولا يمكن التراجع عن هذا الإجراء."
+            : "سيُحذف رابط الفيديو من المنصة نهائيًا، ولا يمكن التراجع عن هذا الإجراء."
+        }
+        variant="danger"
+        confirmLabel="حذف المحتوى"
+        loading={deleting}
+        onConfirm={() => void deleteVideo()}
+        onClose={() => setDeleteTarget(null)}
+      />
     </main>
   );
 }

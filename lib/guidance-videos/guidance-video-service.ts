@@ -11,11 +11,16 @@ import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@/lib/security/roles";
 
 export function guidanceVideoToDto(video: GuidanceVideo): GuidanceVideoDto {
+  const mediaType =
+    video.sourceType === "UPLOAD" && video.mimeType?.startsWith("image/")
+      ? "IMAGE"
+      : "VIDEO";
   return {
     id: video.id,
     title: video.title,
     description: video.description,
     sourceType: video.sourceType,
+    mediaType,
     originalFileName: video.originalFileName,
     mimeType: video.mimeType,
     sizeBytes: video.sizeBytes,

@@ -10,12 +10,13 @@ import {
 } from "@/lib/guidance-videos/guidance-video-input";
 import { guidanceVideoToDto } from "@/lib/guidance-videos/guidance-video-service";
 import {
-  createGuidanceVideoStorageKey,
+  createGuidanceMediaStorageKey,
   deleteGuidanceVideoFile,
-  GUIDANCE_VIDEO_MIME_TYPE,
-  hasMp4Signature,
+  GUIDANCE_IMAGE_MAX_BYTES,
+  GUIDANCE_VIDEO_MAX_BYTES,
+  hasGuidanceMediaSignature,
   saveGuidanceVideoFile,
-  validateGuidanceVideoFileMetadata,
+  validateGuidanceMediaFileMetadata,
 } from "@/lib/guidance-videos/guidance-video-storage";
 import { prisma } from "@/lib/prisma";
 
@@ -28,14 +29,19 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (adminError) return adminError;
 
   const { videoId } = await context.params;
-  const existing = await prisma.guidanceVideo.findUnique({ where: { id: videoId } });
+  const existing = await prisma.guidanceVideo.findUnique({
+    where: { id: videoId },
+  });
   if (!existing) {
-    return NextResponse.json({ error: "الفيديو غير موجود." }, { status: 404 });
+    return NextResponse.json({ error: "المحتوى غير موجود." }, { status: 404 });
   }
 
   const formData = await request.formData().catch(() => null);
   if (!formData) {
-    return NextResponse.json({ error: "تعذر قراءة بيانات الفيديو." }, { status: 400 });
+    return NextResponse.json(
+      { error: "تعذر قراءة بيانات المحتوى." },
+      { status: 400 },
+    );
   }
 
   const metadata = parseGuidanceVideoMetadata(formData, {
@@ -52,6 +58,11 @@ export async function PATCH(request: Request, context: RouteContext) {
   const source = parseGuidanceVideoSource(formData, {
     sourceType: existing.sourceType,
     youtubeVideoId: existing.youtubeVideoId,
+    mediaType:
+      existing.sourceType === "UPLOAD" &&
+      existing.mimeType?.startsWith("image/")
+        ? "IMAGE"
+        : "VIDEO",
   });
   if (!source.ok) {
     return NextResponse.json({ error: source.error }, { status: 400 });
@@ -63,32 +74,60 @@ export async function PATCH(request: Request, context: RouteContext) {
   let nextMimeType = existing.mimeType;
   let nextSizeBytes = existing.sizeBytes;
   let replacementSaved = false;
+  const existingMediaType =
+    existing.sourceType === "UPLOAD" && existing.mimeType?.startsWith("image/")
+      ? "IMAGE"
+      : "VIDEO";
 
   try {
-    if (source.data.sourceType === "UPLOAD" && existing.sourceType !== "UPLOAD" && !replacement) {
+    if (
+      source.data.sourceType === "UPLOAD" &&
+      (existing.sourceType !== "UPLOAD" ||
+        existingMediaType !== source.data.mediaType) &&
+      !replacement
+    ) {
       return NextResponse.json(
-        { error: "اختر ملف الفيديو المراد رفعه." },
+        {
+          error: `اختر ملف ${source.data.mediaType === "IMAGE" ? "الصورة" : "الفيديو"} المراد رفعه.`,
+        },
         { status: 400 },
       );
     }
 
     if (source.data.sourceType === "UPLOAD" && replacement) {
-      const fileError = validateGuidanceVideoFileMetadata(replacement);
-      if (fileError) {
+      const validation = validateGuidanceMediaFileMetadata(
+        replacement,
+        source.data.mediaType,
+      );
+      if (!validation.ok) {
         return NextResponse.json(
-          { error: fileError },
-          { status: replacement.size > 100 * 1024 * 1024 ? 413 : 415 },
+          { error: validation.error },
+          {
+            status:
+              replacement.size >
+              (source.data.mediaType === "IMAGE"
+                ? GUIDANCE_IMAGE_MAX_BYTES
+                : GUIDANCE_VIDEO_MAX_BYTES)
+                ? 413
+                : 415,
+          },
         );
       }
 
       const buffer = new Uint8Array(await replacement.arrayBuffer());
-      if (!hasMp4Signature(buffer)) {
-        return NextResponse.json({ error: "محتوى ملف MP4 غير صالح." }, { status: 415 });
+      if (!hasGuidanceMediaSignature(buffer, validation.mimeType)) {
+        return NextResponse.json(
+          { error: "محتوى الملف لا يطابق صيغته المعلنة." },
+          { status: 415 },
+        );
       }
 
-      nextStorageKey = createGuidanceVideoStorageKey();
+      nextStorageKey = createGuidanceMediaStorageKey(
+        source.data.mediaType,
+        validation.mimeType,
+      );
       nextOriginalName = sanitizeOriginalVideoFileName(replacement.name);
-      nextMimeType = GUIDANCE_VIDEO_MIME_TYPE;
+      nextMimeType = validation.mimeType;
       nextSizeBytes = buffer.byteLength;
       await saveGuidanceVideoFile(nextStorageKey, buffer);
       replacementSaved = true;
@@ -105,7 +144,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       where: { id: videoId },
       data: {
         ...metadata.data,
-        ...source.data,
+        sourceType: source.data.sourceType,
+        youtubeVideoId: source.data.youtubeVideoId,
         storageKey: nextStorageKey,
         originalFileName: nextOriginalName,
         mimeType: nextMimeType,
@@ -120,15 +160,24 @@ export async function PATCH(request: Request, context: RouteContext) {
       await deleteGuidanceVideoFile(existing.storageKey).catch(() => undefined);
     }
 
-    return NextResponse.json({ message: "تم تحديث الفيديو بنجاح.", video: guidanceVideoToDto(video) });
+    return NextResponse.json({
+      message: `تم تحديث ${source.data.mediaType === "IMAGE" ? "الصورة" : "الفيديو"} بنجاح.`,
+      video: guidanceVideoToDto(video),
+    });
   } catch (error) {
     if (replacementSaved) {
       if (nextStorageKey) {
         await deleteGuidanceVideoFile(nextStorageKey).catch(() => undefined);
       }
     }
-    console.error("GUIDANCE_VIDEO_UPDATE_ERROR", error instanceof Error ? error.message : "UNKNOWN");
-    return NextResponse.json({ error: "تعذر تحديث الفيديو الإرشادي." }, { status: 500 });
+    console.error(
+      "GUIDANCE_VIDEO_UPDATE_ERROR",
+      error instanceof Error ? error.message : "UNKNOWN",
+    );
+    return NextResponse.json(
+      { error: "تعذر تحديث المحتوى الإرشادي." },
+      { status: 500 },
+    );
   }
 }
 
@@ -137,9 +186,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (adminError) return adminError;
 
   const { videoId } = await context.params;
-  const existing = await prisma.guidanceVideo.findUnique({ where: { id: videoId } });
+  const existing = await prisma.guidanceVideo.findUnique({
+    where: { id: videoId },
+  });
   if (!existing) {
-    return NextResponse.json({ error: "الفيديو غير موجود." }, { status: 404 });
+    return NextResponse.json({ error: "المحتوى غير موجود." }, { status: 404 });
   }
 
   await prisma.guidanceVideo.delete({ where: { id: videoId } });
@@ -147,5 +198,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     await deleteGuidanceVideoFile(existing.storageKey).catch(() => undefined);
   }
 
-  return NextResponse.json({ message: "تم حذف الفيديو الإرشادي." });
+  return NextResponse.json({
+    message: `تم حذف ${existing.mimeType?.startsWith("image/") ? "الصورة" : "الفيديو"} الإرشادي.`,
+  });
 }

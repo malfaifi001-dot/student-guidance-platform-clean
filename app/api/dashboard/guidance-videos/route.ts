@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import type { GuidanceVideoPublicDto } from "@/lib/guidance-videos/guidance-video-config";
-import { guidanceVideoToDto, listGuidanceVideosForRole } from "@/lib/guidance-videos/guidance-video-service";
+import {
+  guidanceVideoToDto,
+  listGuidanceVideosForRole,
+} from "@/lib/guidance-videos/guidance-video-service";
 import { isUserRole } from "@/lib/security/roles";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,7 @@ export async function GET() {
       title: dto.title,
       description: dto.description,
       sourceType: dto.sourceType,
+      mediaType: dto.mediaType,
       mediaUrl: dto.mediaUrl,
       youtubeVideoId: dto.youtubeVideoId,
     };

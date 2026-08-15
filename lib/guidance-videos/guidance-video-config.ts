@@ -4,6 +4,9 @@ export const GUIDANCE_VIDEO_SOURCE_TYPES = ["UPLOAD", "YOUTUBE"] as const;
 export type GuidanceVideoSourceType =
   (typeof GUIDANCE_VIDEO_SOURCE_TYPES)[number];
 
+export const GUIDANCE_MEDIA_TYPES = ["VIDEO", "IMAGE"] as const;
+export type GuidanceMediaType = (typeof GUIDANCE_MEDIA_TYPES)[number];
+
 export function isGuidanceVideoSourceType(
   value: unknown,
 ): value is GuidanceVideoSourceType {
@@ -54,6 +57,7 @@ export type GuidanceVideoDto = {
   title: string;
   description: string | null;
   sourceType: GuidanceVideoSourceType;
+  mediaType: GuidanceMediaType;
   originalFileName: string | null;
   mimeType: string | null;
   sizeBytes: number | null;
@@ -72,6 +76,7 @@ export type GuidanceVideoPlayable = Pick<
   | "title"
   | "description"
   | "sourceType"
+  | "mediaType"
   | "mediaUrl"
   | "youtubeVideoId"
 >;

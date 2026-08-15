@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { PlayCircle, X } from "lucide-react";
+import { ImageIcon, PlayCircle, X } from "lucide-react";
 
 import { GuidanceVideoPlayer } from "@/components/guidance-videos/guidance-video-player";
 import type { GuidanceVideoPlayable } from "@/lib/guidance-videos/guidance-video-config";
@@ -60,10 +60,19 @@ export function GuidanceVideoPlayerDialog({
         <header className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2 text-sky-600 dark:text-sky-300">
-              <PlayCircle className="h-5 w-5" />
-              <span className="text-xs font-black">فيديو إرشادي</span>
+              {video.mediaType === "IMAGE" ? (
+                <ImageIcon className="h-5 w-5" />
+              ) : (
+                <PlayCircle className="h-5 w-5" />
+              )}
+              <span className="text-xs font-black">
+                {video.mediaType === "IMAGE" ? "صورة إرشادية" : "فيديو إرشادي"}
+              </span>
             </div>
-            <h2 id="guidance-video-title" className="text-xl font-black text-slate-950 sm:text-2xl dark:text-white">
+            <h2
+              id="guidance-video-title"
+              className="text-xl font-black text-slate-950 sm:text-2xl dark:text-white"
+            >
               {video.title}
             </h2>
             {video.description ? (

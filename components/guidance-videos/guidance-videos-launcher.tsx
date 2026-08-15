@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import {
   BookOpenCheck,
   Clapperboard,
+  ImageIcon,
   PlayCircle,
   X,
 } from "lucide-react";
@@ -29,7 +30,11 @@ const emptySubscribe = () => () => undefined;
 export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const [open, setOpen] = useState(false);
   const [videos, setVideos] = useState<GuidanceVideoPublicDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +60,7 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
       };
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "تعذر تحميل الفيديوهات الإرشادية.",
-        );
+        throw new Error(data.error || "تعذر تحميل الفيديوهات الإرشادية.");
       }
 
       const availableVideos = data.videos ?? [];
@@ -173,8 +176,8 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
           type="button"
           onClick={() => (open ? closeVideos() : openVideos())}
           className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-sky-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200/70 md:h-11 md:w-11 md:rounded-2xl dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-sky-300 dark:focus-visible:ring-sky-500/20"
-          aria-label="الفيديوهات الإرشادية"
-          title="الفيديوهات الإرشادية"
+          aria-label="المحتوى الإرشادي"
+          title="المحتوى الإرشادي"
           aria-expanded={open}
           aria-haspopup="dialog"
           data-tour-id="guidance-videos-launcher"
@@ -198,7 +201,7 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
           <div
             className="absolute left-0 top-full z-50 mt-2 hidden w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/98 shadow-2xl shadow-slate-300/60 backdrop-blur-xl md:block dark:border-slate-800 dark:bg-slate-950/98 dark:shadow-black/50"
             role="dialog"
-            aria-label="الفيديوهات الإرشادية"
+            aria-label="المحتوى الإرشادي"
             data-guidance-videos-panel
           >
             {panel}
@@ -208,22 +211,19 @@ export function GuidanceVideosLauncher({ userId }: { userId?: string }) {
 
       {open && isMounted
         ? createPortal(
-            <div
-              className="fixed inset-0 z-[90] md:hidden"
-              role="presentation"
-            >
+            <div className="fixed inset-0 z-[90] md:hidden" role="presentation">
               <button
                 type="button"
                 className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]"
                 onClick={closeVideos}
-                aria-label="إغلاق الفيديوهات الإرشادية"
+                aria-label="إغلاق المحتوى الإرشادي"
               />
               <div
                 className="absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[min(80dvh,640px)] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
                 dir="rtl"
                 role="dialog"
                 aria-modal="true"
-                aria-label="الفيديوهات الإرشادية"
+                aria-label="المحتوى الإرشادي"
                 data-guidance-videos-panel
               >
                 {panel}
@@ -264,10 +264,10 @@ function GuidanceVideosPanel({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-black text-slate-950 dark:text-white">
-            الفيديوهات الإرشادية
+            المحتوى الإرشادي
           </h2>
           <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
-            شروحات تساعدك على استخدام المنصة وخدماتها.
+            فيديوهات وصور تساعدك على استخدام المنصة وخدماتها.
           </p>
         </div>
         <button
@@ -307,7 +307,7 @@ function GuidanceVideosPanel({
           <div className="py-8 text-center">
             <BookOpenCheck className="mx-auto h-9 w-9 text-slate-300" />
             <p className="mt-3 text-sm font-black text-slate-600 dark:text-slate-300">
-              لا توجد فيديوهات إرشادية متاحة حاليًا.
+              لا يوجد محتوى إرشادي متاح حاليًا.
             </p>
           </div>
         ) : null}
@@ -322,7 +322,11 @@ function GuidanceVideosPanel({
                 className="flex w-full items-start gap-3 rounded-2xl border border-slate-100 p-3 text-right transition hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200/60 dark:border-slate-800 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
               >
                 <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
-                  <PlayCircle className="h-5 w-5" />
+                  {video.mediaType === "IMAGE" ? (
+                    <ImageIcon className="h-5 w-5" />
+                  ) : (
+                    <PlayCircle className="h-5 w-5" />
+                  )}
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-black text-slate-800 dark:text-slate-100">
@@ -374,7 +378,8 @@ function GuidanceVideosCoachMark({
             فيديوهات توضيحية عن المنصة
           </h2>
           <p className="mt-2 text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">
-            يمكنك مشاهدة الفيديوهات الإرشادية للتعرف على طريقة استخدام خدمات Teachix.
+            يمكنك مشاهدة الفيديوهات الإرشادية للتعرف على طريقة استخدام خدمات
+            Teachix.
           </p>
         </div>
       </div>

@@ -31,6 +31,19 @@ export function GuidanceVideoPlayer({
 
   if (!video.mediaUrl) return null;
 
+  if (video.mediaType === "IMAGE") {
+    return (
+      // The URL is an authenticated same-origin media route, not user HTML.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        key={video.id}
+        src={video.mediaUrl}
+        alt={video.title}
+        className="h-full w-full bg-slate-950 object-contain"
+      />
+    );
+  }
+
   return (
     <video
       key={video.id}
