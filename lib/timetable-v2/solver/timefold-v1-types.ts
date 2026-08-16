@@ -71,6 +71,7 @@ export type TimefoldV1Constraint = {
 export type TimefoldSolveRequestV1 = {
   contractVersion: "1";
   projectId: string;
+  requestId?: string;
 
   days: TimefoldV1Day[];
   periods: TimefoldV1Period[];

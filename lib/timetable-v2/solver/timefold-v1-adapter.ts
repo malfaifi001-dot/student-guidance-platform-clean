@@ -11,6 +11,7 @@ export function buildTimefoldSolveRequestV1(
   options?: {
     seed?: number;
     spentLimitSeconds?: number;
+    requestId?: string;
   },
 ): TimefoldSolveRequestV1 {
   return {
@@ -19,6 +20,9 @@ export function buildTimefoldSolveRequestV1(
 
     projectId:
       problem.projectId,
+
+    requestId:
+      options?.requestId,
 
     days:
       problem.days.map(

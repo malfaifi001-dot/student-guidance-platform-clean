@@ -13,9 +13,16 @@ import ai.timefold.solver.core.api.solver.SolverJob;
 import ai.timefold.solver.core.api.solver.SolverManager;
 
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class TimetableSolverServiceV1 {
+
+    private static final Logger log =
+        LoggerFactory.getLogger(
+            TimetableSolverServiceV1.class
+        );
 
     private final SolverManager<TimetableSolutionV1>
         solverManager;
@@ -53,6 +60,23 @@ public class TimetableSolverServiceV1 {
         UUID problemId =
             UUID.randomUUID();
 
+        String requestId =
+            request.requestId() != null &&
+            !request.requestId().isBlank()
+                ? request.requestId()
+                : problemId.toString().substring(0, 8);
+
+        log.info(
+            "[TIMETABLE] {} SOLVER REQUEST project={} days={} periods={} teachers={} classes={} assignments={}",
+            requestId,
+            request.projectId(),
+            request.days().size(),
+            request.periods().size(),
+            request.teachers().size(),
+            request.classes().size(),
+            request.assignments().size()
+        );
+
         long startedAt =
             System.currentTimeMillis();
 
@@ -68,6 +92,14 @@ public class TimetableSolverServiceV1 {
         long durationMs =
             System.currentTimeMillis()
                 - startedAt;
+
+        log.info(
+            "[TIMETABLE] {} SOLVER OK durationMs={} score={} sessions={}",
+            requestId,
+            durationMs,
+            solution.getScore(),
+            solution.getBlocks().size()
+        );
 
         return resultMapper.map(
             request.projectId(),

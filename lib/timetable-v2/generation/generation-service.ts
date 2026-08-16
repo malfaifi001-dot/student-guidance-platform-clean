@@ -25,6 +25,11 @@ import type {
   TimefoldV1GenerationResult,
 } from "@/lib/timetable-v2/solver/timefold-v1-generation";
 
+import {
+  createTimetableGenerationRequestId,
+  logTimetableGeneration,
+} from "./generation-diagnostics";
+
 import type {
   GenerationConstraint,
   GenerationFixedSlot,
@@ -1461,11 +1466,31 @@ export async function generateAndSaveTimetableV2(
     seed: number;
   },
 ) {
+  const requestId =
+    createTimetableGenerationRequestId();
+  const generationStartedAt = Date.now();
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "PREPARE",
+    status: "START",
+  });
+
   const readiness =
     await analyzeTimetableV2Readiness(
       projectId,
       schoolAccountId,
     );
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "READINESS",
+    status: readiness.canGenerate ? "OK" : "FAILED",
+    durationMs: Date.now() - generationStartedAt,
+    errorCode: readiness.canGenerate ? undefined : "READINESS_BLOCKED",
+  });
 
   if (
     !readiness.canGenerate
@@ -1476,6 +1501,9 @@ export async function generateAndSaveTimetableV2(
 
       reason:
         "READINESS_BLOCKED" as const,
+
+      diagnosticId:
+        requestId,
 
       readiness: {
         score:
@@ -1505,6 +1533,29 @@ export async function generateAndSaveTimetableV2(
       schoolAccountId,
     );
 
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "PREPARE",
+    status: "OK",
+    durationMs: Date.now() - generationStartedAt,
+  });
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "SOLVER_REQUEST",
+    status: "START",
+  });
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "SOLVER_REQUEST",
+    status: "OK",
+    durationMs: 0,
+  });
+
   const result =
     await generateTimetableV2WithTimefold(
       problem,
@@ -1514,15 +1565,42 @@ export async function generateAndSaveTimetableV2(
 
         spentLimitSeconds:
           60,
+
+        requestId,
       },
     );
 
+  const generationAccepted =
+    result.success &&
+    result.best.validation.valid &&
+    result.best.validation.hardViolationCount === 0;
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "SOLVER",
+    status: generationAccepted ? "OK" : "FAILED",
+    durationMs: result.durationMs,
+    score: result.best.score,
+    hardViolations: result.best.validation.hardViolationCount,
+    softPenalty: result.best.softPenalty,
+    sessions: result.best.sessions.length,
+    errorCode: generationAccepted ? undefined : "TIMEFOLD_V1_INVALID_RESULT",
+  });
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "VALIDATION",
+    status: generationAccepted ? "OK" : "FAILED",
+    durationMs: Date.now() - generationStartedAt,
+    hardViolations: result.best.validation.hardViolationCount,
+    sessions: result.best.sessions.length,
+    errorCode: generationAccepted ? undefined : "HARD_CONSTRAINT_VIOLATION",
+  });
+
   if (
-    !result.success ||
-    !result.best.validation.valid ||
-    result.best.validation
-      .hardViolationCount >
-      0
+    !generationAccepted
   ) {
     return {
       ok:
@@ -1530,6 +1608,9 @@ export async function generateAndSaveTimetableV2(
 
       reason:
         "GENERATION_FAILED" as const,
+
+      diagnosticId:
+        requestId,
 
       result,
     };
@@ -1543,9 +1624,29 @@ export async function generateAndSaveTimetableV2(
       result,
     );
 
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "PERSISTENCE",
+    status: "OK",
+    durationMs: Date.now() - generationStartedAt,
+  });
+
+  logTimetableGeneration({
+    requestId,
+    projectId,
+    phase: "COMPLETED",
+    status: "OK",
+    durationMs: Date.now() - generationStartedAt,
+    sessions: result.best.sessions.length,
+  });
+
   return {
     ok:
       true as const,
+
+    diagnosticId:
+      requestId,
 
     schedule,
     result,

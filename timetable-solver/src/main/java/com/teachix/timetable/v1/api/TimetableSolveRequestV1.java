@@ -13,7 +13,8 @@ public record TimetableSolveRequestV1(
     List<SubjectInput> subjects,
     List<AssignmentInput> assignments,
     List<ConstraintInput> constraints,
-    SolveOptions options
+    SolveOptions options,
+    String requestId
 ) {
 
     public record DayInput(

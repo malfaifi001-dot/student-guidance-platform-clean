@@ -135,6 +135,7 @@ class TimetableRequestMapperV1Tests {
                 ),
 
                 List.of(),
+                null,
                 null
             );
 
@@ -237,6 +238,7 @@ class TimetableRequestMapperV1Tests {
                     Map.of()
                 )
             ),
+            null,
             null
         );
     }

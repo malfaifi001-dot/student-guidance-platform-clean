@@ -37,6 +37,7 @@ export async function generateTimetableV2WithTimefold(
   input: {
     seed: number;
     spentLimitSeconds?: number;
+    requestId?: string;
   },
 ) {
   const startedAt =
@@ -177,6 +178,9 @@ export async function generateTimetableV2WithTimefold(
         spentLimitSeconds:
           input.spentLimitSeconds ??
           60,
+
+        requestId:
+          input.requestId,
       },
     );
 
