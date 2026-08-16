@@ -11,6 +11,7 @@ import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 
 import {
   Activity,
@@ -971,6 +972,8 @@ function SidebarHeader({
               </p>
             </div>
           </Link>
+
+          {drawer ? <ThemeToggleButton compact /> : null}
 
           <button
             type="button"

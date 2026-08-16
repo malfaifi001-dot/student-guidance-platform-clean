@@ -11,6 +11,7 @@ import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-s
 import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
 import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authenticated-analytics-identity";
 import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
+import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-bottom-nav";
 
 export const metadata: Metadata = {
   robots: {
@@ -88,13 +89,14 @@ export default async function DashboardLayout({
               </>
             ) : null}
 
-            <div className="mx-auto w-full min-w-0 max-w-[1680px] px-2.5 py-3 sm:px-3 sm:py-4 md:px-4 md:py-4 xl:px-5">
+            <div className="mx-auto w-full min-w-0 max-w-[1680px] px-2.5 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5">
               {children}
             </div>
           </main>
         </div>
       </div>
       </GuidanceProvider>
+      <DashboardMobileBottomNav role={current.user.role} />
     </ThemeProvider>
   );
 }

@@ -23,6 +23,7 @@ import type {
   WorkspaceModuleIcon,
 } from "@/lib/workspace/workspace-modules";
 import { AcademicCalendarDashboardCard } from "@/components/academic-calendar/academic-calendar-dashboard-card";
+import { MobileWorkspaceModuleCarousel } from "@/components/workspace/mobile-workspace-module-carousel";
 
 type WorkspaceStatIcon =
   | "progress"
@@ -131,16 +132,16 @@ export function WorkspaceHome({
             <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                  <span className="rounded-full bg-transparent px-0 py-0 text-xs font-black text-sky-700 ring-0 md:bg-sky-50 md:px-3 md:py-1 md:ring-1 md:ring-sky-100">
                     {eyebrow}
                   </span>
 
-                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                  <span className="hidden rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200 sm:inline-flex">
                     مساحة عمل موحدة
                   </span>
                 </div>
 
-                <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+                <h1 className="mt-4 text-2xl font-black leading-9 text-slate-950 sm:text-3xl sm:leading-10">
                   {welcomeText} {getDisplayName(userName)}
                 </h1>
 
@@ -150,7 +151,7 @@ export function WorkspaceHome({
               </div>
 
               {actions.length > 0 ? (
-                <div className="flex flex-wrap gap-2 xl:justify-end">
+                <div className="hidden flex-wrap gap-2 md:flex xl:justify-end">
                   {actions.map((action) => {
                     const Icon = actionIconByName[action.icon];
 
@@ -166,6 +167,16 @@ export function WorkspaceHome({
                   })}
                 </div>
               ) : null}
+
+              <Link
+                href="/dashboard/settings/school"
+                aria-label="أكمل هوية المدرسة!"
+                className="group relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-12px_rgba(2,132,199,0.75)] ring-1 ring-sky-500/20 transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 motion-safe:animate-[pulse_3s_ease-in-out_infinite] md:hidden"
+              >
+                <span className="absolute inset-0 rounded-2xl bg-sky-300/10 opacity-0 transition-opacity group-hover:opacity-100" />
+                <School className="relative h-4 w-4" aria-hidden="true" />
+                <span className="relative">أكمل هوية المدرسة!</span>
+              </Link>
             </div>
           </section>
 
@@ -177,11 +188,12 @@ export function WorkspaceHome({
             </section>
           ) : null}
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:overflow-visible">
             <div>
               <p className="text-xs font-black text-sky-700">{title}</p>
-              <h2 className="mt-1 text-2xl font-black text-slate-950">
-                اختر الخدمة المطلوبة
+              <h2 className="mt-1 text-right text-xs font-black leading-5 text-sky-700 md:text-2xl md:text-slate-950">
+                <span className="md:hidden">اختر الخدمة</span>
+                <span className="hidden md:inline">اختر الخدمة المطلوبة</span>
               </h2>
               {showModuleDescription ? (
                 <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
@@ -190,7 +202,11 @@ export function WorkspaceHome({
               ) : null}
             </div>
 
-            <div className={`${showModuleDescription ? "mt-5" : "mt-4"} grid gap-4 md:grid-cols-2 xl:grid-cols-4`}>
+            <div className="mt-4 md:hidden">
+              <MobileWorkspaceModuleCarousel modules={modules} />
+            </div>
+
+            <div className={`${showModuleDescription ? "mt-5" : "mt-4"} hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4`}>
               {modules.map((module) => {
                 const Icon = iconByName[module.icon];
                 const isSoon = module.status === "soon";
@@ -298,7 +314,7 @@ function StatCard({ stat }: { stat: WorkspaceStat }) {
     <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black text-slate-400">{stat.label}</p>
+        <p className="text-xs font-black text-sky-700 md:text-slate-400">{stat.label}</p>
           <p className="mt-2 text-3xl font-black text-slate-950">
             {stat.value}
           </p>

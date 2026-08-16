@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { MobileAppShell } from "@/components/mobile/mobile-app-shell";
 import { MobileIcon, type MobileIconName } from "@/components/mobile/mobile-icons";
@@ -66,11 +67,11 @@ function ServiceCard({ service }: { service: NewCaseService }) {
   return (
     <Link
       href={`/mobile/counselor/${service.slug}/new`}
-      className="flex min-h-[7.8rem] flex-col justify-between rounded-[1.45rem] bg-white/82 p-3 shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]"
+      className="flex min-h-[5.8rem] items-center gap-2.5 rounded-[1.45rem] bg-white/82 p-3 shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]"
     >
       <IconBox icon={service.icon} />
 
-      <span className="text-sm font-black leading-6 text-slate-950">
+      <span className="min-w-0 text-sm font-black leading-5 text-slate-950">
         {service.title}
       </span>
     </Link>
@@ -78,6 +79,10 @@ function ServiceCard({ service }: { service: NewCaseService }) {
 }
 
 export function MobileNewCaseServices() {
+  const pages = Array.from({ length: Math.ceil(services.length / 4) }, (_, pageIndex) =>
+    services.slice(pageIndex * 4, pageIndex * 4 + 4),
+  );
+
   return (
     <MobileAppShell activeSection="cases">
       <div className="space-y-4">
@@ -97,10 +102,37 @@ export function MobileNewCaseServices() {
           </div>
         </section>
 
-        <section className="grid grid-cols-2 gap-2.5">
-          {services.map((service) => (
-            <ServiceCard key={service.slug} service={service} />
-          ))}
+        <section className="relative space-y-2.5" aria-label="Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/85 text-sky-600 shadow-sm ring-1 ring-sky-100">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/85 text-sky-600 shadow-sm ring-1 ring-sky-100">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
+
+          <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex snap-x snap-mandatory gap-3">
+              {pages.map((page, pageIndex) => {
+                const columns = [page.slice(0, 2), page.slice(2, 4)];
+
+                return (
+                  <div key={`services-page-${pageIndex}`} className="grid w-full shrink-0 snap-start grid-cols-2 gap-2.5">
+                    {columns.map((column, columnIndex) => (
+                      <div key={`services-column-${pageIndex}-${columnIndex}`} className="space-y-2.5">
+                        {column.map((service) => (
+                          <ServiceCard key={service.slug} service={service} />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         <Link

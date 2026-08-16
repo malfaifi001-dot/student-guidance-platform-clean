@@ -186,7 +186,9 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
             </div>
           ) : null}
 
-          <ThemeToggleButton />
+          <div className="hidden md:block">
+            <ThemeToggleButton />
+          </div>
 
           <GuidanceLauncher />
 
