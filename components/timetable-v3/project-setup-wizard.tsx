@@ -41,6 +41,8 @@ import type {
   TimetableAiImportResult,
 } from "@/lib/timetable-v3/ai-import/ai-import-types";
 
+import { notifyTimetableHistoryUpdated } from "@/lib/timetable-v3/history/history-client";
+
 type Props = {
   projectId: string;
 };
@@ -69,6 +71,37 @@ type SubjectBankItem = {
   name: string;
   stageIds: string[];
 };
+
+function normalizeStageWeeklyPeriodTargets(
+  targets: TimetableStageWeeklyPeriodTargets,
+  selectedStages: readonly TimetableV3StageId[],
+): TimetableStageWeeklyPeriodTargets {
+  const selected = new Set(selectedStages);
+  const normalized: TimetableStageWeeklyPeriodTargets = {};
+
+  for (const [stageId, value] of Object.entries(targets)) {
+    if (!selected.has(stageId as TimetableV3StageId)) {
+      continue;
+    }
+
+    const numericValue =
+      typeof value === "number"
+        ? value
+        : Number(value);
+
+    if (
+      Number.isFinite(numericValue) &&
+      Number.isInteger(numericValue) &&
+      numericValue >= 1 &&
+      numericValue <= 100
+    ) {
+      normalized[stageId as TimetableV3StageId] =
+        numericValue;
+    }
+  }
+
+  return normalized;
+}
 
 const STEPS = [
   "الأيام",
@@ -426,6 +459,8 @@ export function TimetableV3ProjectSetupWizard(
         data.workspace,
       );
 
+      notifyTimetableHistoryUpdated();
+
       return true;
     }
     catch (
@@ -681,6 +716,12 @@ export function TimetableV3ProjectSetupWizard(
           return;
         }
 
+        const normalizedStageWeeklyPeriodTargets =
+          normalizeStageWeeklyPeriodTargets(
+            stageWeeklyPeriodTargets,
+            stages,
+          );
+
         ok =
           await save({
             action:
@@ -692,16 +733,10 @@ export function TimetableV3ProjectSetupWizard(
               ),
 
             stages,
-          });
 
-        if (ok) {
-          ok = await save({
-            action:
-              "SAVE_STAGE_WEEKLY_PERIOD_TARGETS",
-
-            stageWeeklyPeriodTargets,
+            stageWeeklyPeriodTargets:
+              normalizedStageWeeklyPeriodTargets,
           });
-        }
         break;
 
       case 3:
@@ -3027,7 +3062,16 @@ function ClassesStep(
                       if (!value) {
                         delete next[stage.id];
                       } else {
-                        next[stage.id] = Number(value);
+                        const numericValue = Number(value);
+
+                        if (
+                          Number.isFinite(numericValue) &&
+                          Number.isInteger(numericValue) &&
+                          numericValue >= 1 &&
+                          numericValue <= 100
+                        ) {
+                          next[stage.id] = numericValue;
+                        }
                       }
 
                       props.onStageWeeklyPeriodTargetsChange(next);

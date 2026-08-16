@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { TimetableV3HistoryControls } from "@/components/timetable-v3/timetable-history-controls";
+
 const FLOW_STEPS = [
   { segment: "setup", label: "الإعداد" },
   { segment: "assignments", label: "الإسنادات" },
@@ -36,6 +38,9 @@ export function TimetableV3ProjectFlowWizard({
   return (
     <div dir="rtl" className="mx-auto w-full max-w-6xl px-4 pt-5 sm:px-6 lg:pt-7">
       <nav aria-label="مراحل إعداد الجدول" className="rounded-[2rem] border border-[#CFE5F3] bg-white px-4 py-3 shadow-sm sm:px-5">
+        <div className="mb-3 flex justify-end">
+          <TimetableV3HistoryControls projectId={projectId} />
+        </div>
         <div className="mb-3 flex items-center justify-between gap-4 text-xs font-medium text-slate-500">
           <span>{isOperations ? "التشغيل اليومي" : FLOW_STEPS[currentIndex].label}</span>
           <span>{currentIndex + 1} من {FLOW_STEPS.length}</span>

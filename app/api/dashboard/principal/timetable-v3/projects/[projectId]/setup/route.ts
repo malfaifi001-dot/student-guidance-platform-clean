@@ -31,6 +31,37 @@ const dayId =
     "THURSDAY",
   ]);
 
+const timetableStageId =
+  z.enum([
+    "ELEMENTARY",
+    "MIDDLE",
+    "HIGH",
+  ]);
+
+const stageWeeklyPeriodTarget =
+  z.preprocess(
+    (value) => {
+      if (
+        typeof value === "string" &&
+        value.trim().length > 0
+      ) {
+        return Number(value);
+      }
+
+      return value;
+    },
+    z.number().int().min(1).max(100),
+  );
+
+const stageWeeklyPeriodTargets =
+  z.partialRecord(
+    timetableStageId,
+    stageWeeklyPeriodTarget,
+  )
+    .refine(
+      (value) => Object.keys(value).length <= 3,
+    );
+
 const schema =
   z.discriminatedUnion(
     "action",
@@ -105,25 +136,13 @@ const schema =
 
         stages:
           z.array(
-            z.enum([
-              "ELEMENTARY",
-              "MIDDLE",
-              "HIGH",
-            ]),
+            timetableStageId,
           )
             .min(1)
             .max(3),
 
         stageWeeklyPeriodTargets:
-          z.record(
-            z.enum([
-              "ELEMENTARY",
-              "MIDDLE",
-              "HIGH",
-            ]),
-            z.number().int().min(1).max(100),
-          )
-            .optional(),
+          stageWeeklyPeriodTargets.optional(),
       }),
 
       z.object({
@@ -168,17 +187,7 @@ const schema =
           ),
 
         stageWeeklyPeriodTargets:
-          z.record(
-            z.enum([
-              "ELEMENTARY",
-              "MIDDLE",
-              "HIGH",
-            ]),
-            z.number().int().min(1).max(100),
-          )
-            .refine(
-              (value) => Object.keys(value).length <= 3,
-            ),
+          stageWeeklyPeriodTargets,
       }),
 
       z.object({
@@ -322,18 +331,47 @@ export async function PATCH(
     );
 
   if (!parsed.success) {
+    const rawAction =
+      body &&
+      typeof body === "object" &&
+      !Array.isArray(body) &&
+      "action" in body
+        ? (body as { action?: unknown }).action
+        : undefined;
+    const action =
+      typeof rawAction === "string"
+        ? rawAction
+        : "UNKNOWN";
+
+    console.error(
+      "TIMETABLE_V3_SETUP_VALIDATION_FAILED",
+      {
+        action,
+        issues: parsed.error.issues
+          .slice(0, 8)
+          .map((issue) => ({
+            path: issue.path,
+            code: issue.code,
+            message: issue.message,
+          })),
+      },
+    );
+
+    const hasStageTargetIssue =
+      parsed.error.issues.some((issue) =>
+        issue.path.includes(
+          "stageWeeklyPeriodTargets",
+        ),
+      );
+
     return NextResponse.json(
       {
-        success:
-          false,
-
-        error:
-          "تحقق من البيانات المدخلة.",
+        success: false,
+        error: hasStageTargetIssue
+          ? "تحقق من عدد الحصص الأسبوعية للمرحلة."
+          : "تحقق من البيانات المدخلة.",
       },
-      {
-        status:
-          400,
-      },
+      { status: 400 },
     );
   }
 

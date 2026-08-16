@@ -8,6 +8,10 @@ import {
   prisma,
 } from "@/lib/prisma";
 
+import type {
+  TimetableHistoryDb,
+} from "./history/timetable-history-service";
+
 import {
   normalizeTimetableV3ClassMappings,
   normalizeTimetableV3Stages,
@@ -47,11 +51,12 @@ function isTimetableV3Project(
 }
 
 async function requireProject(
+  db: TimetableHistoryDb,
   projectId: string,
   schoolAccountId: string,
 ) {
   const project =
-    await prisma.timetableProject.findFirst({
+    await db.timetableProject.findFirst({
       where: {
         id:
           projectId,
@@ -92,6 +97,7 @@ async function requireProject(
 }
 
 async function requireResources(
+  db: TimetableHistoryDb,
   projectId: string,
   input: {
     teacherId: string;
@@ -104,7 +110,7 @@ async function requireResources(
     classItem,
     subject,
   ] = await Promise.all([
-    prisma.timetableTeacher.findFirst({
+    db.timetableTeacher.findFirst({
       where: {
         id:
           input.teacherId,
@@ -127,7 +133,7 @@ async function requireResources(
       },
     }),
 
-    prisma.timetableClass.findFirst({
+    db.timetableClass.findFirst({
       where: {
         id:
           input.classId,
@@ -147,7 +153,7 @@ async function requireResources(
       },
     }),
 
-    prisma.timetableSubject.findFirst({
+    db.timetableSubject.findFirst({
       where: {
         id:
           input.subjectId,
@@ -212,12 +218,13 @@ function validateLessons(
 }
 
 async function getTeacherCurrentLoad(
+  db: TimetableHistoryDb,
   projectId: string,
   teacherId: string,
   excludeAssignmentId?: string,
 ) {
   const result =
-    await prisma.timetableAssignment.aggregate({
+    await db.timetableAssignment.aggregate({
       where: {
         projectId,
 
@@ -252,6 +259,7 @@ export async function getTimetableV3AssignmentsWorkspace(
 ) {
   const project =
     await requireProject(
+      prisma,
       projectId,
       schoolAccountId,
     );
@@ -524,8 +532,10 @@ export async function createTimetableV3Assignment(
     assignedLessons: number;
     allowOverload?: boolean;
   },
+  db: TimetableHistoryDb = prisma,
 ) {
   await requireProject(
+    db,
     projectId,
     schoolAccountId,
   );
@@ -537,12 +547,13 @@ export async function createTimetableV3Assignment(
   const {
     teacher,
   } = await requireResources(
+    db,
     projectId,
     input,
   );
 
   const duplicate =
-    await prisma.timetableAssignment.findFirst({
+    await db.timetableAssignment.findFirst({
       where: {
         projectId,
 
@@ -570,6 +581,7 @@ export async function createTimetableV3Assignment(
 
   const currentLoad =
     await getTeacherCurrentLoad(
+      db,
       projectId,
       input.teacherId,
     );
@@ -605,7 +617,7 @@ export async function createTimetableV3Assignment(
   }
 
   const assignment =
-    await prisma.timetableAssignment.create({
+    await db.timetableAssignment.create({
       data: {
         projectId,
 
@@ -656,8 +668,10 @@ export async function updateTimetableV3Assignment(
     assignedLessons: number;
     allowOverload?: boolean;
   },
+  db: TimetableHistoryDb = prisma,
 ) {
   await requireProject(
+    db,
     projectId,
     schoolAccountId,
   );
@@ -667,7 +681,7 @@ export async function updateTimetableV3Assignment(
   );
 
   const current =
-    await prisma.timetableAssignment.findFirst({
+    await db.timetableAssignment.findFirst({
       where: {
         id:
           assignmentId,
@@ -702,12 +716,13 @@ export async function updateTimetableV3Assignment(
   const {
     teacher,
   } = await requireResources(
+    db,
     projectId,
     input,
   );
 
   const duplicate =
-    await prisma.timetableAssignment.findFirst({
+    await db.timetableAssignment.findFirst({
       where: {
         projectId,
 
@@ -740,6 +755,7 @@ export async function updateTimetableV3Assignment(
 
   const currentLoad =
     await getTeacherCurrentLoad(
+      db,
       projectId,
       input.teacherId,
       assignmentId,
@@ -779,7 +795,7 @@ export async function updateTimetableV3Assignment(
     current.assignedLessons ===
     input.assignedLessons;
 
-  await prisma.timetableAssignment.update({
+  await db.timetableAssignment.update({
     where: {
       id:
         assignmentId,
@@ -823,14 +839,16 @@ export async function deleteTimetableV3Assignment(
   projectId: string,
   assignmentId: string,
   schoolAccountId: string,
+  db: TimetableHistoryDb = prisma,
 ) {
   await requireProject(
+    db,
     projectId,
     schoolAccountId,
   );
 
   const current =
-    await prisma.timetableAssignment.findFirst({
+    await db.timetableAssignment.findFirst({
       where: {
         id:
           assignmentId,
@@ -850,7 +868,7 @@ export async function deleteTimetableV3Assignment(
     );
   }
 
-  await prisma.timetableAssignment.delete({
+  await db.timetableAssignment.delete({
     where: {
       id:
         assignmentId,

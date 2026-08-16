@@ -31,6 +31,12 @@ import {
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
 
+import {
+  getTimetableHistorySnapshot,
+  recordTimetableHistory,
+  TIMETABLE_HISTORY_ACTIONS,
+} from "@/lib/timetable-v3/history/timetable-history-service";
+
 function normalizeText(
   value: string,
 ) {
@@ -689,6 +695,11 @@ export async function saveTimetableV3Stages(
     schoolAccountId,
   );
 
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.STAGES_UPDATED,
+  );
+
   const allowed = new Set<string>(
     TIMETABLE_V3_STAGE_IDS,
   );
@@ -717,6 +728,17 @@ export async function saveTimetableV3Stages(
       } as Prisma.InputJsonValue,
     },
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.STAGES_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.STAGES_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3StageWeeklyPeriodTargets(
@@ -727,6 +749,11 @@ export async function saveTimetableV3StageWeeklyPeriodTargets(
   const project = await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.STAGE_WEEKLY_TARGET_UPDATED,
   );
 
   const normalized = normalizeTimetableStageWeeklyPeriodTargets(targets);
@@ -753,6 +780,18 @@ export async function saveTimetableV3StageWeeklyPeriodTargets(
       } as Prisma.InputJsonValue,
     },
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.STAGE_WEEKLY_TARGET_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.STAGE_WEEKLY_TARGET_UPDATED,
+    ),
+    metadata: { stageIds: Object.keys(normalized) },
+  });
 }
 
 export async function saveTimetableV3ClassMappings(
@@ -763,6 +802,11 @@ export async function saveTimetableV3ClassMappings(
   const project = await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.CLASS_MAPPING_UPDATED,
   );
 
   const classes = await prisma.timetableClass.findMany({
@@ -814,6 +858,17 @@ export async function saveTimetableV3ClassMappings(
       } as Prisma.InputJsonValue,
     },
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CLASS_MAPPING_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.CLASS_MAPPING_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3Days(
@@ -824,6 +879,11 @@ export async function saveTimetableV3Days(
   await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.STUDY_DAYS_UPDATED,
   );
 
   const unique =
@@ -878,6 +938,17 @@ export async function saveTimetableV3Days(
         days as Prisma.InputJsonValue,
     },
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.STUDY_DAYS_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.STUDY_DAYS_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3Periods(
@@ -893,6 +964,11 @@ export async function saveTimetableV3Periods(
   await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.PERIODS_UPDATED,
   );
 
   if (
@@ -955,6 +1031,17 @@ export async function saveTimetableV3Periods(
         normalized as Prisma.InputJsonValue,
     },
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.PERIODS_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.PERIODS_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3Classes(
@@ -965,6 +1052,11 @@ export async function saveTimetableV3Classes(
   const project = await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.CLASSES_UPDATED,
   );
 
   const mappedClassIds = new Set(
@@ -1075,6 +1167,17 @@ export async function saveTimetableV3Classes(
       }
     },
   );
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CLASSES_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.CLASSES_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3Subjects(
@@ -1085,6 +1188,11 @@ export async function saveTimetableV3Subjects(
   await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.SUBJECTS_UPDATED,
   );
 
   const normalized =
@@ -1176,6 +1284,17 @@ export async function saveTimetableV3Subjects(
       }
     },
   );
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.SUBJECTS_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.SUBJECTS_UPDATED,
+    ),
+  });
 }
 
 export async function saveTimetableV3Teachers(
@@ -1186,6 +1305,11 @@ export async function saveTimetableV3Teachers(
   await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.TEACHERS_UPDATED,
   );
 
   const normalized =
@@ -1375,4 +1499,15 @@ export async function saveTimetableV3Teachers(
       }
     },
   );
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.TEACHERS_UPDATED,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.TEACHERS_UPDATED,
+    ),
+  });
 }

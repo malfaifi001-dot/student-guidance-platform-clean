@@ -50,6 +50,8 @@ import type {
   Teacher,
 } from "@/components/timetable-v2/constraints/types";
 
+import { notifyTimetableHistoryUpdated } from "@/lib/timetable-v3/history/history-client";
+
 type Props = {
   project: {
     id: string;
@@ -675,6 +677,8 @@ export function TimetableV3ConstraintsWorkspace(
         );
       }
 
+      notifyTimetableHistoryUpdated();
+
       setFormMode(
         null,
       );
@@ -760,6 +764,7 @@ export function TimetableV3ConstraintsWorkspace(
                 : item,
           ),
       );
+      notifyTimetableHistoryUpdated();
     }
     catch (error) {
       showMessage(
@@ -829,6 +834,7 @@ export function TimetableV3ConstraintsWorkspace(
               constraintId,
           ),
       );
+      notifyTimetableHistoryUpdated();
 
       setReviewSlot(
         null,

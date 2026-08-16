@@ -1,0 +1,121 @@
+﻿            grade.sectionNames.length,
+          0,
+        ),
+      [state.grades],
+    );
+
+  const stepValidation =
+    useMemo(() => {
+      const step1 =
+        state.name.trim().length >
+          0 &&
+        state.academicYear.trim()
+          .length > 0 &&
+        state.teacherCount > 0;
+
+      const step2 =
+        state.stageIds.length > 0 &&
+        state.grades.length > 0 &&
+        state.grades.every(
+          (grade) =>
+            grade.sectionNames.length >
+              0 &&
+            grade.sectionNames.every(
+              (name) =>
+                name.trim().length > 0,
+            ),
+        );
+
+      const step3 =
+        expectedClassCount > 0 &&
+        classResolutions.length ===
+          expectedClassCount;
+
+      const step4 =
+        state.studyDays.length > 0 &&
+        state.periodsPerDay > 0;
+
+      const step5 =
+        step1 &&
+        step2 &&
+        step3 &&
+        step4 &&
+        metrics.remainingSlots >= 0;
+
+      return {
+        1: step1,
+        2: step2,
+        3: step3,
+        4: step4,
+        5: step5,
+      } satisfies Record<
+        WizardStepId,
+        boolean
+      >;
+    }, [
+      classResolutions.length,
+      expectedClassCount,
+      metrics.remainingSlots,
+      state,
+    ]);
+
+  const completedSteps =
+    useMemo(() => {
+      const result =
+        new Set<WizardStepId>();
+
+      for (
+        const step of WIZARD_STEPS
+      ) {
+        if (
+          stepValidation[step.id]
+        ) {
+          result.add(step.id);
+        }
+      }
+
+      return result;
+    }, [stepValidation]);
+
+  const getStepError = (
+    step: WizardStepId,
+  ) => {
+    if (
+      step === 1
+    ) {
+      if (!state.name.trim()) {
+        return "اكتب اسم المشروع.";
+      }
+
+      if (
+        !state.academicYear.trim()
+      ) {
+        return "اكتب العام الدراسي.";
+      }
+
+      if (
+        state.teacherCount <= 0
+      ) {
+        return "حدد العدد المتوقع للمعلمين.";
+      }
+    }
+
+    if (
+      step === 2
+    ) {
+      if (
+        state.stageIds.length === 0
+      ) {
+        return "اختر مرحلة دراسية واحدة على الأقل.";
+      }
+
+      const hasEmptySection =
+        state.grades.some(
+          (grade) =>
+            grade.sectionNames.some(
+              (name) =>
+                !name.trim(),
+            ),
+        );
+
+      if (hasEmptySection) {

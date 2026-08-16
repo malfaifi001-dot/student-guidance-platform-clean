@@ -270,6 +270,7 @@ model SchoolAccount {
   portfolioSnapshots           PortfolioSnapshot[]
   referenceLibraryItems        ReferenceLibraryItem[]        @relation("ReferenceLibrarySchool")
   timetableProjects            TimetableProject[]
+  timetableProjectHistory      TimetableProjectHistoryEntry[]
   timetableDailyAbsences       TimetableDailyAbsence[]
   timetableSubstitutions       TimetableSubstitution[]
   timetableSupervisionDuties   TimetableSupervisionDuty[]
@@ -322,6 +323,8 @@ model User {
   referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
   createdGuidanceVideos         GuidanceVideo[]            @relation("GuidanceVideoCreatedBy")
   createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
+  timetableHistoryEntries       TimetableProjectHistoryEntry[] @relation("TimetableHistoryActor")
+  timetableHistoryReversions    TimetableProjectHistoryEntry[] @relation("TimetableHistoryReverter")
   timetableTeacherProfiles      TimetableTeacher[]
   reportSignatureRequests       ReportSignatureRequest[]
 
@@ -2609,6 +2612,7 @@ model TimetableProject {
   constraints       TimetableConstraint[]
 
   schedules TimetableSchedule[]
+  historyEntries TimetableProjectHistoryEntry[]
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
 
@@ -2616,6 +2620,39 @@ model TimetableProject {
   @@index([createdById])
   @@index([status])
   @@index([createdAt])
+}
+
+model TimetableProjectHistoryEntry {
+  id String @id @default(cuid())
+
+  projectId String
+  project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  actorUserId String?
+  actorUser   User? @relation("TimetableHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  revertedByUserId String?
+  revertedByUser   User? @relation("TimetableHistoryReverter", fields: [revertedByUserId], references: [id], onDelete: SetNull)
+
+  actionType  String
+  entityType  String?
+  entityId    String?
+  state       String @default("ACTIVE")
+
+  beforeJson  Json?
+  afterJson   Json?
+  metadataJson Json?
+
+  revertedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([projectId, state, createdAt])
+  @@index([schoolAccountId, createdAt])
+  @@index([entityId])
 }
 
 model TimetableTeacher {

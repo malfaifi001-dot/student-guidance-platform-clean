@@ -7,6 +7,10 @@ import {
 } from "zod";
 
 import {
+  prisma,
+} from "@/lib/prisma";
+
+import {
   requireTimetableApiAccess,
 } from "@/lib/timetable/timetable-access";
 
@@ -16,6 +20,12 @@ import {
   getTimetableV3AssignmentsWorkspace,
   updateTimetableV3Assignment,
 } from "@/lib/timetable-v3/assignment-service";
+
+import {
+  getTimetableHistorySnapshot,
+  recordTimetableHistory,
+  TIMETABLE_HISTORY_ACTIONS,
+} from "@/lib/timetable-v3/history/timetable-history-service";
 
 type RouteContext = {
   params: Promise<{
@@ -119,6 +129,19 @@ function errorMessage(
     ] ??
     "تعذر تنفيذ العملية."
   );
+}
+
+function logMutationFailure(
+  action: string,
+  projectId: string,
+  error: unknown,
+) {
+  console.error("TIMETABLE_V3_ASSIGNMENT_MUTATION_FAILED", {
+    action,
+    projectId,
+    errorType: error instanceof Error ? error.constructor.name : typeof error,
+    errorCode: error instanceof Error ? error.message : "UNKNOWN",
+  });
 }
 
 export async function GET(
@@ -230,12 +253,34 @@ export async function POST(
       ...input
     } = parsed.data;
 
-    const result =
-      await createTimetableV3Assignment(
+    const result = await prisma.$transaction(async (tx) => {
+      const mutation = await createTimetableV3Assignment(
         projectId,
         access.schoolAccountId!,
         input,
+        tx,
       );
+
+      if (!mutation.overload) {
+        await recordTimetableHistory({
+          projectId,
+          schoolAccountId: access.schoolAccountId!,
+          actionType: TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_CREATED,
+          entityType: "ASSIGNMENT",
+          entityId: mutation.assignment.id,
+          before: null,
+          after: await getTimetableHistorySnapshot(
+            projectId,
+            TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_CREATED,
+            mutation.assignment.id,
+            tx,
+          ),
+          metadata: { source: "V3_ASSIGNMENTS" },
+        }, tx);
+      }
+
+      return mutation;
+    });
 
     if (
       result.overload
@@ -281,6 +326,7 @@ export async function POST(
     );
   }
   catch (error) {
+    logMutationFailure("CREATE", projectId, error);
     return NextResponse.json(
       {
         success:
@@ -353,13 +399,42 @@ export async function PATCH(
       ...input
     } = parsed.data;
 
-    const result =
-      await updateTimetableV3Assignment(
+    const result = await prisma.$transaction(async (tx) => {
+      const assignmentBefore = await getTimetableHistorySnapshot(
+        projectId,
+        TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_UPDATED,
+        assignmentId,
+        tx,
+      );
+
+      const mutation = await updateTimetableV3Assignment(
         projectId,
         assignmentId,
         access.schoolAccountId!,
         input,
+        tx,
       );
+
+      if (!mutation.overload) {
+        await recordTimetableHistory({
+          projectId,
+          schoolAccountId: access.schoolAccountId!,
+          actionType: TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_UPDATED,
+          entityType: "ASSIGNMENT",
+          entityId: assignmentId,
+          before: assignmentBefore,
+          after: await getTimetableHistorySnapshot(
+            projectId,
+            TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_UPDATED,
+            assignmentId,
+            tx,
+          ),
+          metadata: { source: "V3_ASSIGNMENTS" },
+        }, tx);
+      }
+
+      return mutation;
+    });
 
     if (
       result.overload
@@ -399,6 +474,7 @@ export async function PATCH(
     });
   }
   catch (error) {
+    logMutationFailure("UPDATE", projectId, error);
     return NextResponse.json(
       {
         success:
@@ -464,11 +540,32 @@ export async function DELETE(
   }
 
   try {
-    await deleteTimetableV3Assignment(
-      projectId,
-      parsed.data.assignmentId,
-      access.schoolAccountId!,
-    );
+    await prisma.$transaction(async (tx) => {
+      const assignmentBefore = await getTimetableHistorySnapshot(
+        projectId,
+        TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_REMOVED,
+        parsed.data.assignmentId,
+        tx,
+      );
+
+      await deleteTimetableV3Assignment(
+        projectId,
+        parsed.data.assignmentId,
+        access.schoolAccountId!,
+        tx,
+      );
+
+      await recordTimetableHistory({
+        projectId,
+        schoolAccountId: access.schoolAccountId!,
+        actionType: TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_REMOVED,
+        entityType: "ASSIGNMENT",
+        entityId: parsed.data.assignmentId,
+        before: assignmentBefore,
+        after: null,
+        metadata: { source: "V3_ASSIGNMENTS" },
+      }, tx);
+    });
 
     const workspace =
       await getTimetableV3AssignmentsWorkspace(
@@ -484,6 +581,7 @@ export async function DELETE(
     });
   }
   catch (error) {
+    logMutationFailure("DELETE", projectId, error);
     return NextResponse.json(
       {
         success:

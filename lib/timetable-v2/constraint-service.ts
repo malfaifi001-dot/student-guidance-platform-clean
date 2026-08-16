@@ -8,6 +8,12 @@ import {
   prisma,
 } from "@/lib/prisma";
 
+import {
+  getTimetableHistorySnapshot,
+  recordTimetableHistory,
+  TIMETABLE_HISTORY_ACTIONS,
+} from "@/lib/timetable-v3/history/timetable-history-service";
+
 export type TimetableV2SlotInput = {
   dayId: string;
   periodId: string;
@@ -496,7 +502,7 @@ export async function createTimetableV2Constraint(
       input,
     );
 
-  return prisma.timetableConstraint.create({
+  const constraint = await prisma.timetableConstraint.create({
     data: {
       projectId,
       type:
@@ -581,6 +587,22 @@ export async function createTimetableV2Constraint(
     include:
       constraintInclude,
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_CREATED,
+    entityType: "CONSTRAINT",
+    entityId: constraint.id,
+    before: null,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_CREATED,
+      constraint.id,
+    ),
+  });
+
+  return constraint;
 }
 
 export async function updateTimetableV2Constraint(
@@ -620,7 +642,13 @@ export async function updateTimetableV2Constraint(
       input,
     );
 
-  return prisma.$transaction(
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+    constraintId,
+  );
+
+  const constraint = await prisma.$transaction(
     async (tx) => {
       await tx.timetableConstraintTeacher.deleteMany({
         where: {
@@ -747,6 +775,22 @@ export async function updateTimetableV2Constraint(
       });
     },
   );
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+    entityType: "CONSTRAINT",
+    entityId: constraintId,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+      constraintId,
+    ),
+  });
+
+  return constraint;
 }
 
 export async function setTimetableV2ConstraintActive(
@@ -777,7 +821,13 @@ export async function setTimetableV2ConstraintActive(
     );
   }
 
-  return prisma.timetableConstraint.update({
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+    constraintId,
+  );
+
+  const constraint = await prisma.timetableConstraint.update({
     where: {
       id: constraintId,
     },
@@ -787,6 +837,22 @@ export async function setTimetableV2ConstraintActive(
     include:
       constraintInclude,
   });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+    entityType: "CONSTRAINT",
+    entityId: constraintId,
+    before,
+    after: await getTimetableHistorySnapshot(
+      projectId,
+      TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_UPDATED,
+      constraintId,
+    ),
+  });
+
+  return constraint;
 }
 
 export async function deleteTimetableV2Constraint(
@@ -816,10 +882,26 @@ export async function deleteTimetableV2Constraint(
     );
   }
 
+  const before = await getTimetableHistorySnapshot(
+    projectId,
+    TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_REMOVED,
+    constraintId,
+  );
+
   await prisma.timetableConstraint.delete({
     where: {
       id: constraintId,
     },
+  });
+
+  await recordTimetableHistory({
+    projectId,
+    schoolAccountId,
+    actionType: TIMETABLE_HISTORY_ACTIONS.CONSTRAINT_REMOVED,
+    entityType: "CONSTRAINT",
+    entityId: constraintId,
+    before,
+    after: null,
   });
 }
 

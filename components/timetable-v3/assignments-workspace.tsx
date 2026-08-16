@@ -19,6 +19,8 @@ import {
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
 
+import { notifyTimetableHistoryUpdated } from "@/lib/timetable-v3/history/history-client";
+
 type Teacher = {
   id: string;
   name: string;
@@ -595,6 +597,7 @@ export function TimetableV3AssignmentsWorkspace(
       setWorkspace(
         data.workspace,
       );
+      notifyTimetableHistoryUpdated();
 
       setOverload(
         null,
@@ -677,6 +680,7 @@ export function TimetableV3AssignmentsWorkspace(
       setWorkspace(
         data.workspace,
       );
+      notifyTimetableHistoryUpdated();
 
       setOverload(
         null,
@@ -745,6 +749,8 @@ export function TimetableV3AssignmentsWorkspace(
       setWorkspace(
         data.workspace,
       );
+
+      notifyTimetableHistoryUpdated();
 
       if (
         editingAssignmentId ===
