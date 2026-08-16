@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Eye, FileText, PencilLine, Trash2 } from "lucide-react";
 
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
+
 import { CaseDeleteAction } from "@/components/cases/case-delete-action";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import type { CaseCapabilities } from "@/lib/cases/case-permissions";
@@ -35,21 +37,21 @@ export type CaseCardActionEntry = {
 function getReportAction(caseEntry: CaseCardActionEntry) {
   if (caseEntry.reportTwoReport?.id && caseEntry.reportTwoReport.previewUrl) {
     return {
-      label: "معاينة التقرير",
+      label: "Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
       href: caseEntry.reportTwoReport.previewUrl,
     };
   }
 
   if (caseEntry.latestReport?.previewUrl) {
     return {
-      label: "معاينة التقرير",
+      label: "Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
       href: caseEntry.latestReport.previewUrl,
     };
   }
 
   if (caseEntry.status === "SUBMITTED") {
     return {
-      label: "إصدار تقرير",
+      label: "Ø¥ØµØ¯Ø§Ø± ØªÙ‚Ø±ÙŠØ±",
       href: `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`,
     };
   }
@@ -96,12 +98,12 @@ export function CaseCardActions({
     : disabledIconButtonClass;
 
   return (
-    <div className="flex shrink-0 items-center gap-2" dir="ltr">
+    <ExpandableActionMenu menuId={`case:${caseEntry.id}`}>
       {caseEntry.capabilities.canViewCase ? (
         <Link
           href={`/dashboard/cases/${caseEntry.id}`}
-          aria-label="عرض الحالة"
-          title="عرض الحالة"
+          aria-label="Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø©"
+          title="Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø©"
           className={baseIconButtonClass}
         >
           <Eye className="h-4 w-4" />
@@ -111,8 +113,8 @@ export function CaseCardActions({
       {caseEntry.capabilities.canEditCase ? (
         <Link
           href={`/dashboard/cases/${caseEntry.id}/edit`}
-          aria-label="تعديل الحالة"
-          title="تعديل الحالة"
+          aria-label="ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø­Ø§Ù„Ø©"
+          title="ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø­Ø§Ù„Ø©"
           className={baseIconButtonClass}
         >
           <PencilLine className="h-4 w-4" />
@@ -130,8 +132,8 @@ export function CaseCardActions({
         </Link>
       ) : (
         <span
-          aria-label="لا يوجد تقرير جاهز"
-          title="لا يوجد تقرير جاهز"
+          aria-label="Ù„Ø§ ÙŠÙˆØ¬Ø¯ ØªÙ‚Ø±ÙŠØ± Ø¬Ø§Ù‡Ø²"
+          title="Ù„Ø§ ÙŠÙˆØ¬Ø¯ ØªÙ‚Ø±ÙŠØ± Ø¬Ø§Ù‡Ø²"
           className={disabledIconButtonClass}
         >
           <FileText className="h-4 w-4" />
@@ -167,6 +169,7 @@ export function CaseCardActions({
           onDeleted={onCaseDeleted}
         />
       ) : null}
-    </div>
+
+    </ExpandableActionMenu>
   );
 }

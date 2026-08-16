@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  Filter,
   Search,
   UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CaseCardActions } from "@/components/cases/case-card-actions";
+import { MobileFilterPopCard } from "@/components/ui/mobile-filter-pop-card";
 import type { CaseCapabilities } from "@/lib/cases/case-permissions";
 
 type CaseRow = {
@@ -152,6 +154,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
   const [selectedService, setSelectedService] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedReportState, setSelectedReportState] = useState("all");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const services = useMemo(() => {
     const map = new Map<string, string>();
@@ -251,7 +254,8 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
     <div className="space-y-4">
       <section className="rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm">
         <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
-          <div className="relative">
+          <div className="flex min-w-0 items-center gap-2 xl:contents">
+            <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
@@ -259,12 +263,29 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
               placeholder="ابحث باسم الطالب أو الحالة أو الخدمة..."
               className={CASES_FILTER_INPUT_CLASS}
             />
+            </div>
+            <button
+              type="button"
+              aria-label="فتح الفلاتر"
+              aria-expanded={mobileFiltersOpen}
+              onClick={() => setMobileFiltersOpen(true)}
+              className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-[1.35rem] border text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 md:hidden ${
+                selectedService !== "all" || selectedStatus !== "all" || selectedReportState !== "all"
+                  ? "border-sky-300 bg-sky-50 text-sky-700"
+                  : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50"
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              {selectedService !== "all" || selectedStatus !== "all" || selectedReportState !== "all" ? (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-600" />
+              ) : null}
+            </button>
           </div>
 
           <select
             value={selectedService}
             onChange={(event) => setSelectedService(event.target.value)}
-            className={CASES_FILTER_SELECT_CLASS}
+            className={`${CASES_FILTER_SELECT_CLASS} hidden md:block`}
           >
             <option value="all">كل الخدمات</option>
             {services.map((service) => (
@@ -277,7 +298,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
           <select
             value={selectedStatus}
             onChange={(event) => setSelectedStatus(event.target.value)}
-            className={CASES_FILTER_SELECT_CLASS}
+            className={`${CASES_FILTER_SELECT_CLASS} hidden md:block`}
           >
             <option value="all">كل الحالات</option>
             <option value="DRAFT">مسودة</option>
@@ -289,13 +310,50 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
           <select
             value={selectedReportState}
             onChange={(event) => setSelectedReportState(event.target.value)}
-            className={CASES_FILTER_SELECT_CLASS}
+            className={`${CASES_FILTER_SELECT_CLASS} hidden md:block`}
           >
             <option value="all">كل التقارير</option>
             <option value="hasReport">لها تقرير</option>
             <option value="missingReport">بدون تقرير</option>
           </select>
         </div>
+        <MobileFilterPopCard
+          open={mobileFiltersOpen}
+          onClose={() => setMobileFiltersOpen(false)}
+        >
+          <select
+            value={selectedService}
+            onChange={(event) => setSelectedService(event.target.value)}
+            className={CASES_FILTER_SELECT_CLASS}
+          >
+            <option value="all">كل الخدمات</option>
+            {services.map((service) => (
+              <option key={service.slug} value={service.slug}>
+                {service.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedStatus}
+            onChange={(event) => setSelectedStatus(event.target.value)}
+            className={CASES_FILTER_SELECT_CLASS}
+          >
+            <option value="all">كل الحالات</option>
+            <option value="DRAFT">مسودة</option>
+            <option value="SUBMITTED">مرسلة</option>
+            <option value="READY_FOR_REPORT">جاهزة للتقرير</option>
+            <option value="ARCHIVED">مؤرشفة</option>
+          </select>
+          <select
+            value={selectedReportState}
+            onChange={(event) => setSelectedReportState(event.target.value)}
+            className={CASES_FILTER_SELECT_CLASS}
+          >
+            <option value="all">كل التقارير</option>
+            <option value="hasReport">لها تقرير</option>
+            <option value="missingReport">بدون تقرير</option>
+          </select>
+        </MobileFilterPopCard>
       </section>
 
       <section className="grid gap-3 2xl:grid-cols-2">
@@ -396,6 +454,7 @@ function CaseFollowUpCard({
         {caseItem.title}
       </h2>
 
+      {caseItem.student ? (
       <div className="mt-3 rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
@@ -407,11 +466,12 @@ function CaseFollowUpCard({
               الطالب/الطالبة
             </p>
             <p className="mt-1 truncate text-sm font-black text-slate-900">
-              {caseItem.student?.fullName || "غير مرتبط بطالب"}
+              {caseItem.student.fullName}
             </p>
           </div>
         </div>
       </div>
+      ) : null}
 
       <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-600">
         الإجراء التالي: {getNextActionText(caseItem)}

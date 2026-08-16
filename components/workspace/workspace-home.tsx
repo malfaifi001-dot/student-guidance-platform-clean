@@ -3,18 +3,21 @@ import type { ReactNode } from "react";
 import {
   BarChart3,
   Bell,
+  BriefcaseBusiness,
   CalendarDays,
   ClipboardList,
-  FileText,
+  ClipboardCheck,
+  FileCheck2,
   FolderKanban,
-  GraduationCap,
   Medal,
   Plus,
   School,
+  ListChecks,
   TrendingUp,
   UploadCloud,
-  UserCheck,
+  UserRound,
   Users,
+  UsersRound,
   WalletCards,
 } from "lucide-react";
 
@@ -22,8 +25,10 @@ import type {
   WorkspaceModule,
   WorkspaceModuleIcon,
 } from "@/lib/workspace/workspace-modules";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { AcademicCalendarDashboardCard } from "@/components/academic-calendar/academic-calendar-dashboard-card";
 import { MobileWorkspaceModuleCarousel } from "@/components/workspace/mobile-workspace-module-carousel";
+import { WorkspaceHeaderCta } from "@/components/workspace/workspace-header-cta";
 
 type WorkspaceStatIcon =
   | "progress"
@@ -72,20 +77,22 @@ type WorkspaceHomeProps = {
   notices?: WorkspaceNotice[];
   welcomeText?: string;
   showModuleDescription?: boolean;
+  schoolIdentityComplete?: boolean;
+  userId?: string | null;
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
-  workflow: ClipboardList,
-  assignments: ClipboardList,
+  workflow: UsersRound,
+  assignments: ClipboardCheck,
   evidence: UploadCloud,
-  surveys: UserCheck,
-  reports: FileText,
-  students: GraduationCap,
+  surveys: ListChecks,
+  reports: FileCheck2,
+  students: UsersRound,
   assessment: BarChart3,
   certificates: Medal,
-  portfolio: FolderKanban,
+  portfolio: BriefcaseBusiness,
   subscription: WalletCards,
-  account: UserCheck,
+  account: UserRound,
   schoolSettings: School,
   calendar: CalendarDays,
 };
@@ -93,7 +100,7 @@ const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
 const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {
   progress: TrendingUp,
   students: Users,
-  reports: FileText,
+  reports: FileCheck2,
   alerts: Bell,
   cases: FolderKanban,
   evidence: UploadCloud,
@@ -102,7 +109,7 @@ const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {
 const actionIconByName: Record<WorkspaceActionIcon, typeof Plus> = {
   plus: Plus,
   cases: FolderKanban,
-  reports: FileText,
+  reports: FileCheck2,
   portfolio: FolderKanban,
   calendar: CalendarDays,
   programs: ClipboardList,
@@ -123,36 +130,56 @@ export function WorkspaceHome({
   notices = [],
   welcomeText = "أهلًا بك",
   showModuleDescription = true,
+  schoolIdentityComplete = false,
+  userId,
 }: WorkspaceHomeProps) {
+  const headerCtaOptions = [
+    {
+      key: "approved-reports",
+      label: "التقارير المعتمدة",
+      href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    },
+    { key: "cases", label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases },
+    { key: "portfolio", label: "ملف الإنجاز", href: "/dashboard/portfolio" },
+    { key: "surveys", label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys },
+    {
+      key: "assessment-center",
+      label: "مركز التحليل",
+      href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    },
+  ].filter((option) =>
+    modules.some(
+      (module) => module.status !== "soon" && module.href === option.href,
+    ),
+  );
   return (
     <main className="space-y-6" dir="rtl">
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
         <section className="space-y-5">
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-[2.5rem] border border-sky-600/30 bg-gradient-to-br from-sky-800 via-sky-700 to-sky-500 p-6 text-white shadow-sm shadow-sky-900/10">
             <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-transparent px-0 py-0 text-xs font-black text-sky-700 ring-0 md:bg-sky-50 md:px-3 md:py-1 md:ring-1 md:ring-sky-100">
+                  <span className="rounded-full bg-transparent px-0 py-0 text-xs font-black text-white/90 ring-0 md:bg-white/15 md:px-3 md:py-1 md:ring-1 md:ring-white/20">
                     {eyebrow}
                   </span>
 
-                  <span className="hidden rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200 sm:inline-flex">
+                  <span className="hidden rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/80 ring-1 ring-white/20 sm:inline-flex">
                     مساحة عمل موحدة
                   </span>
                 </div>
 
-                <h1 className="mt-4 text-2xl font-black leading-9 text-slate-950 sm:text-3xl sm:leading-10">
+                <h1 className="mt-4 text-2xl font-black leading-9 text-white sm:text-3xl sm:leading-10">
                   {welcomeText} {getDisplayName(userName)}
                 </h1>
 
-                <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+                <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-white/80">
                   {description}
                 </p>
               </div>
 
-              {actions.length > 0 ? (
-                <div className="hidden flex-wrap gap-2 md:flex xl:justify-end">
-                  {actions.map((action) => {
+              <div className="hidden flex-wrap gap-2 md:flex xl:justify-end">
+                {actions.map((action) => {
                     const Icon = actionIconByName[action.icon];
 
                     return (
@@ -164,19 +191,45 @@ export function WorkspaceHome({
                         primary={action.primary}
                       />
                     );
-                  })}
-                </div>
-              ) : null}
+                })}
 
+                <WorkspaceHeaderCta
+                  identityComplete={schoolIdentityComplete}
+                  userId={userId}
+                  options={headerCtaOptions}
+                />
+              </div>
+
+              {!schoolIdentityComplete ? (
               <Link
                 href="/dashboard/settings/school"
                 aria-label="أكمل هوية المدرسة!"
-                className="group relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-12px_rgba(2,132,199,0.75)] ring-1 ring-sky-500/20 transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 motion-safe:animate-[pulse_3s_ease-in-out_infinite] md:hidden"
+                className="hidden"
               >
                 <span className="absolute inset-0 rounded-2xl bg-sky-300/10 opacity-0 transition-opacity group-hover:opacity-100" />
                 <School className="relative h-4 w-4" aria-hidden="true" />
                 <span className="relative">أكمل هوية المدرسة!</span>
               </Link>
+              ) : null}
+
+              {!schoolIdentityComplete ? (
+                <Link
+                  href="/dashboard/settings/school"
+                  aria-label="أكمل هوية المدرسة!"
+                  className="hidden"
+                >
+                  <School className="h-4 w-4" aria-hidden="true" />
+                  <span>أكمل هوية المدرسة!</span>
+                </Link>
+              ) : null}
+
+              <div className="md:hidden">
+                <WorkspaceHeaderCta
+                  identityComplete={schoolIdentityComplete}
+                  userId={userId}
+                  options={headerCtaOptions}
+                />
+              </div>
             </div>
           </section>
 

@@ -7,6 +7,8 @@ type PrincipalDashboardProps = {
   roleLabel: string;
   schoolName: string | null;
   isFemale: boolean;
+  schoolIdentityComplete: boolean;
+  userId?: string | null;
 };
 
 const principalModules: WorkspaceModule[] = [
@@ -73,6 +75,8 @@ export function PrincipalDashboard({
   roleLabel,
   schoolName,
   isFemale,
+  schoolIdentityComplete,
+  userId,
 }: PrincipalDashboardProps) {
   return (
     <WorkspaceHome
@@ -84,6 +88,8 @@ export function PrincipalDashboard({
           : "مساحة العمل الموحدة لمدير المدرسة."
       }
       userName={principalName}
+      userId={userId}
+      schoolIdentityComplete={schoolIdentityComplete}
       welcomeText={isFemale ? "أهلًا بكِ" : "أهلًا بك"}
       modules={principalModules}
     />

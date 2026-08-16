@@ -6,6 +6,7 @@ import {
 
 type CounselorWorkspacePageProps = {
   user?: {
+    id?: string;
     name?: string | null;
     officialName?: string | null;
   } | null;
@@ -18,6 +19,7 @@ type CounselorWorkspacePageProps = {
     readyForReport: number;
   };
   remindersCount: number;
+  schoolIdentityComplete: boolean;
 };
 
 function formatCount(value: number) {
@@ -28,6 +30,7 @@ export function CounselorWorkspacePage({
   user,
   stats,
   remindersCount,
+  schoolIdentityComplete,
 }: CounselorWorkspacePageProps) {
   const compactModules = counselorWorkspaceModules.map((module) => ({
     ...module,
@@ -41,6 +44,8 @@ export function CounselorWorkspacePage({
         title=""
         description=""
         userName={user?.officialName || user?.name}
+        userId={user?.id}
+        schoolIdentityComplete={schoolIdentityComplete}
         modules={compactModules}
         stats={[
           {
@@ -72,12 +77,6 @@ export function CounselorWorkspacePage({
           },
         ]}
         actions={[
-          {
-            label: "بدء متابعة",
-            href: "/dashboard/student-follow-up/new",
-            icon: "plus",
-            primary: true,
-          },
           {
             label: "الحالات",
             href: OFFICIAL_WORKSPACE_ROUTES.cases,

@@ -6,6 +6,7 @@ import {
 
 type ActivityLeaderWorkspacePageProps = {
   user?: {
+    id?: string;
     name?: string | null;
     officialName?: string | null;
     schoolAccount?: {
@@ -21,6 +22,7 @@ type ActivityLeaderWorkspacePageProps = {
     evidenceItems: number;
     activityReports: number;
   };
+  schoolIdentityComplete: boolean;
 };
 
 function formatCount(value: number) {
@@ -30,6 +32,7 @@ function formatCount(value: number) {
 export function ActivityLeaderWorkspacePage({
   user,
   stats,
+  schoolIdentityComplete,
 }: ActivityLeaderWorkspacePageProps) {
   const schoolName =
     user?.schoolAccount?.profile?.schoolName ||
@@ -42,6 +45,8 @@ export function ActivityLeaderWorkspacePage({
       title="خدمات رائد النشاط"
       description={`ابدأ من برامج النشاط في ${schoolName}، ثم تابع الحالات والشواهد وأصدر التقارير من المسارات الرسمية.`}
       userName={user?.officialName || user?.name}
+      userId={user?.id}
+      schoolIdentityComplete={schoolIdentityComplete}
       modules={activityLeaderWorkspaceModules}
       showModuleDescription={false}
       stats={[

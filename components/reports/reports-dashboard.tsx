@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Filter, Trash2 } from "lucide-react";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { ReportDeleteModal } from "@/components/reports/report-delete-modal";
+import { MobileFilterPopCard } from "@/components/ui/mobile-filter-pop-card";
 
 type ReportStatus = "DRAFT" | "GENERATED" | "APPROVED" | "ARCHIVED" | string;
 
@@ -96,6 +98,7 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
   const [snapshotFilter, setSnapshotFilter] = useState<SnapshotFilter>("ALL");
   const [templateFilter, setTemplateFilter] = useState<TemplateFilter>("ALL");
   const [serviceFilter, setServiceFilter] = useState("ALL");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [actionError, setActionError] = useState("");
@@ -239,17 +242,35 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
         </div>
 
         <div className="mt-5 grid gap-3 lg:grid-cols-[1.5fr_repeat(4,1fr)]">
+          <div className="flex min-w-0 items-center gap-2 lg:contents">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="بحث باسم الطالب، عنوان التقارير، الخدمة..."
             className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
           />
+          <button
+            type="button"
+            aria-label="فتح الفلاتر"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => setMobileFiltersOpen(true)}
+            className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 lg:hidden ${
+              statusFilter !== "ALL" || snapshotFilter !== "ALL" || templateFilter !== "ALL" || serviceFilter !== "ALL"
+                ? "border-sky-300 bg-sky-50 text-sky-700"
+                : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50"
+            }`}
+          >
+            <Filter className="h-4 w-4" />
+            {statusFilter !== "ALL" || snapshotFilter !== "ALL" || templateFilter !== "ALL" || serviceFilter !== "ALL" ? (
+              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-600" />
+            ) : null}
+          </button>
+          </div>
 
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none"
+            className="hidden h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none lg:block"
           >
             <option value="ALL">كل الحالات</option>
             <option value="DRAFT">مسودة</option>
@@ -261,7 +282,7 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
           <select
             value={serviceFilter}
             onChange={(event) => setServiceFilter(event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none"
+            className="hidden h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none lg:block"
           >
             <option value="ALL">كل الخدمات</option>
             {services.map((service) => (
@@ -276,7 +297,7 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
             onChange={(event) =>
               setTemplateFilter(event.target.value as TemplateFilter)
             }
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none"
+            className="hidden h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none lg:block"
           >
             <option value="ALL">كل القوالب</option>
             <option value="official-long">القالب الرسمي</option>
@@ -290,13 +311,42 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
             onChange={(event) =>
               setSnapshotFilter(event.target.value as SnapshotFilter)
             }
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none"
+            className="hidden h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none lg:block"
           >
             <option value="ALL">كل الأنواع</option>
             <option value="SNAPSHOT">Snapshot ثابت</option>
             <option value="LIVE">Live قديم</option>
           </select>
         </div>
+
+        <MobileFilterPopCard
+          open={mobileFiltersOpen}
+          onClose={() => setMobileFiltersOpen(false)}
+        >
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none">
+            <option value="ALL">كل الحالات</option>
+            <option value="DRAFT">مسودة</option>
+            <option value="GENERATED">مولّد</option>
+            <option value="APPROVED">معتمد</option>
+            <option value="ARCHIVED">مؤرشف</option>
+          </select>
+          <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none">
+            <option value="ALL">كل الخدمات</option>
+            {services.map((service) => <option key={service.slug} value={service.slug}>{service.name}</option>)}
+          </select>
+          <select value={templateFilter} onChange={(event) => setTemplateFilter(event.target.value as TemplateFilter)} className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none">
+            <option value="ALL">كل القوالب</option>
+            <option value="official-long">القالب الرسمي</option>
+            <option value="visual-activity">القالب البصري</option>
+            <option value="executive-brief">القالب المختصر</option>
+            <option value="UNKNOWN">بدون قالب</option>
+          </select>
+          <select value={snapshotFilter} onChange={(event) => setSnapshotFilter(event.target.value as SnapshotFilter)} className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none">
+            <option value="ALL">كل الأنواع</option>
+            <option value="SNAPSHOT">Snapshot ثابت</option>
+            <option value="LIVE">Live قديم</option>
+          </select>
+        </MobileFilterPopCard>
 
         <div className="mt-5 flex items-center justify-between text-xs font-bold text-slate-500">
           <span>النتائج المعروضة</span>
@@ -469,7 +519,7 @@ function ReportCard({
             {report.caseEntry.service.name}
             {report.caseEntry.student
               ? ` — ${report.caseEntry.student.fullName}`
-              : " — بدون طالب مرتبط"}
+              : ""}
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-4">
@@ -487,25 +537,29 @@ function ReportCard({
               label="عدد الشواهد"
               value={`${report.evidenceItemsCount}`}
             />
-            <InfoBox
-              label="الصف/الفصل"
-              value={
-                report.caseEntry.student
-                  ? [
-                      report.caseEntry.student.grade,
-                      report.caseEntry.student.classroom
-                        ? `فصل ${report.caseEntry.student.classroom}`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" - ") || "غير محدد"
-                  : "غير مرتبط"
-              }
-            />
+            {report.caseEntry.student ? (
+              <InfoBox
+                label="الصف/الفصل"
+                value={
+                  [
+                    report.caseEntry.student.grade,
+                    report.caseEntry.student.classroom
+                      ? `فصل ${report.caseEntry.student.classroom}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" - ") || "غير محدد"
+                }
+              />
+            ) : null}
           </div>
         </div>
 
-        <div className="flex min-w-[190px] flex-col gap-2">
+        <ExpandableActionMenu
+          menuId={`report-card:${report.id}`}
+          className="min-w-[190px] flex-col gap-2"
+          stripClassName="flex-wrap justify-end"
+        >
           <Link
             href={`/dashboard/report/${report.id}/preview`}
             className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
@@ -581,7 +635,7 @@ function ReportCard({
               PDF لاحقًا
             </button>
           )}
-        </div>
+        </ExpandableActionMenu>
       </div>
     </article>
   );

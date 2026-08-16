@@ -487,11 +487,7 @@ function CaseSelectionButton({
             ? ` - فصل ${caseEntry.student.classroom}`
             : ""}
         </p>
-      ) : (
-        <p className="mt-3 text-xs text-amber-600">
-          لا يوجد طالب مرتبط بهذه الحالة
-        </p>
-      )}
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
         <span className="rounded-full bg-slate-100 px-2 py-1">
@@ -586,18 +582,7 @@ function CaseOverviewCard({ caseEntry }: { caseEntry: ReportCaseListItem }) {
             />
           </div>
         </div>
-      ) : (
-        <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-5">
-          <p className="text-sm font-black text-amber-800">
-            تنبيه: لا يوجد طالب/طالبة مرتبط بهذه الحالة.
-          </p>
-
-          <p className="mt-1 text-xs leading-6 text-amber-700">
-            يمكن إنشاء التقارير، لكن بعض بلوكات بيانات الطالب في القوالب
-            الرسمية قد تظهر فارغة.
-          </p>
-        </div>
-      )}
+      ) : null}
     </section>
   );
 }

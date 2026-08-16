@@ -13,6 +13,7 @@ type TeacherWorkspacePageProps = {
     schoolAccountId?: string | null;
   } | null;
   schoolAccountId?: string | null;
+  schoolIdentityComplete: boolean;
 };
 
 function formatDate(value: Date) {
@@ -31,6 +32,7 @@ function formatDate(value: Date) {
 export async function TeacherWorkspacePage({
   user,
   schoolAccountId,
+  schoolIdentityComplete,
 }: TeacherWorkspacePageProps) {
   const notices: { title: string; helper: string }[] = [];
 
@@ -91,6 +93,8 @@ export async function TeacherWorkspacePage({
       title="خدمات المعلم"
       description="ابدأ من خدمات المعلم، تابع التكليفات والشواهد، ثم استعرض التقارير وملف الإنجاز بنفس هوية المنصة الموحدة."
       userName={user?.officialName || user?.name}
+      userId={user?.id}
+      schoolIdentityComplete={schoolIdentityComplete}
       modules={teacherWorkspaceModules}
       actions={[
         {

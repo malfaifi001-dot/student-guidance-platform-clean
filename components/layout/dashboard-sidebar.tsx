@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  ClipboardCheck,
   Crown,
   Database,
   Dumbbell,
@@ -104,7 +105,7 @@ const counselorImportantLinks: SidebarLinkItem[] = [
   {
     label: "تكليفاتي",
     href: "/dashboard/assignments",
-    icon: Send,
+    icon: ClipboardCheck,
   },
   {
     label: "الرئيسية",
@@ -132,12 +133,12 @@ const counselorServiceLinks: SidebarLinkItem[] = [
   {
     label: "برامج التوجيه الطلابي",
     href: "/dashboard/guidance-programs",
-    icon: ClipboardList,
+    icon: Sparkles,
   },
   {
     label: "اللجان والاجتماعات",
     href: "/dashboard/committees-meetings",
-    icon: ShieldCheck,
+    icon: UsersRound,
   },
   {
     label: "متابعة الطلبة والمواقف اليومية الطارئة",
@@ -147,7 +148,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
   {
     label: "خدمات التوجيه الطلابي",
     href: "/dashboard/student-guidance-services",
-    icon: FileText,
+    icon: HandHeart,
   },
   {
     label: "التواصل بين الأسرة والمدرسة وزيارات أولياء الأمور",
@@ -167,7 +168,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
   {
     label: "إشعار ولي الأمر",
     href: "/dashboard/guardian-summons",
-    icon: Send,
+    icon: MessageCircle,
   },
   {
     label: "الإحصائيات",
@@ -247,7 +248,7 @@ const activityLeaderImportantLinks: SidebarLinkItem[] = [
   {
     label: "تكليفاتي",
     href: "/dashboard/activity-leader/assignments",
-    icon: Send,
+    icon: ClipboardCheck,
   },
   {
     label: "الرئيسية",
@@ -348,7 +349,7 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   {
     label: "تكليفاتي",
     href: "/dashboard/teacher/assignments",
-    icon: Send,
+    icon: ClipboardCheck,
   },
   {
     label: "الرئيسية",
@@ -393,7 +394,7 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
   ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
     label: service.title,
     href: service.href,
-    icon: teacherPerformanceIcons[service.slug] ?? ClipboardList,
+    icon: teacherPerformanceIcons[service.slug] ?? ListChecks,
     shortLabel: service.shortTitle,
   })),
   {
@@ -422,7 +423,7 @@ const teacherAdditionalLinks: SidebarLinkItem[] = [
   {
     label: "الاستبيانات",
     href: OFFICIAL_WORKSPACE_ROUTES.surveys,
-    icon: ClipboardList,
+    icon: ListChecks,
   },
 ];
 

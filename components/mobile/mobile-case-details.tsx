@@ -356,11 +356,13 @@ export function MobileCaseDetails({
         <section className="space-y-2.5">
           <SectionTitle title="البيانات الأساسية" />
 
-          <InfoRow
-            icon="users"
-            title="الطالب"
-            value={cleanText(caseEntry.student?.fullName) || "غير مرتبط بطالب"}
-          />
+          {caseEntry.student ? (
+            <InfoRow
+              icon="users"
+              title="الطالب"
+              value={cleanText(caseEntry.student.fullName)}
+            />
+          ) : null}
 
           <InfoRow
             icon="check"
