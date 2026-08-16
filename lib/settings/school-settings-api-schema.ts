@@ -76,6 +76,6 @@ export const principalSignatureRequestSchema = z.object({
 });
 
 export const schoolSignaturePostSchema = z.object({
-  kind: z.enum(["activityLeader", "counselor", "teacher"]),
+  kind: z.enum(["principal", "activityLeader", "counselor", "teacher"]),
   dataUrl: z.string().trim().min(1, "بيانات التوقيع مطلوبة.").max(3_000_000),
 });

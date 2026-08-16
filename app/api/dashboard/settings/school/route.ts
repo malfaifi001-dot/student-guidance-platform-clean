@@ -52,7 +52,9 @@ export async function GET() {
 
   const profile = current.user.schoolAccount?.profile;
   const signatureKind =
-    current.user.role === "COUNSELOR"
+    current.user.role === "PRINCIPAL"
+      ? "principal"
+      : current.user.role === "COUNSELOR"
       ? "counselor"
       : current.user.role === "ACTIVITY_LEADER"
         ? "activityLeader"
@@ -69,7 +71,9 @@ export async function GET() {
       currentUserGender: current.user.gender,
       currentUserSignatureKind: signatureKind,
       currentUserSignatureUrl:
-        signatureKind === "teacher"
+        signatureKind === "principal"
+          ? profile?.principalSignatureUrl || ""
+          : signatureKind === "teacher"
           ? current.user.signatureUrl || ""
           : signatureKind === "counselor"
           ? profile?.counselorSignatureUrl || ""
@@ -77,7 +81,9 @@ export async function GET() {
             ? profile?.activityLeaderSignatureUrl || ""
             : "",
       currentUserSignedAt:
-        signatureKind === "teacher"
+        signatureKind === "principal"
+          ? profile?.principalSignatureSignedAt?.toISOString() || ""
+          : signatureKind === "teacher"
           ? current.user.signatureSignedAt?.toISOString() || ""
           : signatureKind === "counselor"
           ? profile?.counselorSignedAt?.toISOString() || ""

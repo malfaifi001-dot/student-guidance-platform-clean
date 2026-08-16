@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 import "./globals.css";
@@ -17,6 +18,7 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
 };
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://teachix.sa"),
   title: {
@@ -63,6 +65,8 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
+
+      <GoogleAnalytics gaId="G-7NPFWYDTJP" />
     </html>
   );
 }

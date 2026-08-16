@@ -1,7 +1,11 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { loadTimetableV2GenerationProblemForSolver } from "@/lib/timetable-v2/generation/generation-service";
+import {
+  approveTimetableV2Schedule,
+  loadTimetableV2GenerationProblemForSolver,
+  publishTimetableV2Schedule,
+} from "@/lib/timetable-v2/generation/generation-service";
 import { validateGeneratedTimetableV2 } from "@/lib/timetable-v2/generation/generation-validator";
 import type { GeneratedSession } from "@/lib/timetable-v2/generation/generation-domain";
 import { normalizeTimetableV3Stages } from "@/lib/timetable-v3/project-setup-service";
@@ -163,6 +167,140 @@ export async function getTimetableV3CurrentSchedule(
     generatedAt: current.generatedAt.toISOString(),
     sessions: current._count.entries,
   };
+}
+
+export async function getTimetableV3PublishedScheduleSummary(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  await requireV3Project(projectId, schoolAccountId);
+
+  const schedule = await prisma.timetableSchedule.findFirst({
+    where: {
+      projectId,
+      status: "PUBLISHED",
+    },
+    orderBy: { version: "desc" },
+    select: {
+      id: true,
+      version: true,
+      status: true,
+      _count: { select: { entries: true } },
+    },
+  });
+
+  return schedule
+    ? {
+        id: schedule.id,
+        version: schedule.version,
+        status: schedule.status,
+        sessions: schedule._count.entries,
+      }
+    : null;
+}
+
+export async function getTimetableV3PublishCandidate(
+  projectId: string,
+  schoolAccountId: string,
+) {
+  await requireV3Project(projectId, schoolAccountId);
+
+  const schedule = await prisma.timetableSchedule.findFirst({
+    where: { projectId, isCurrent: true },
+    orderBy: { version: "desc" },
+    select: {
+      id: true,
+      version: true,
+      status: true,
+      generatedAt: true,
+      completeness: true,
+      hardViolations: true,
+      _count: { select: { entries: true } },
+    },
+  }) ?? await prisma.timetableSchedule.findFirst({
+    where: { projectId },
+    orderBy: { version: "desc" },
+    select: {
+      id: true,
+      version: true,
+      status: true,
+      generatedAt: true,
+      completeness: true,
+      hardViolations: true,
+      _count: { select: { entries: true } },
+    },
+  });
+
+  if (!schedule) return null;
+
+  const validation = await validateTimetableV3Schedule(
+    projectId,
+    schoolAccountId,
+    schedule.id,
+  );
+
+  return {
+    id: schedule.id,
+    version: schedule.version,
+    status: schedule.status,
+    generatedAt: schedule.generatedAt.toISOString(),
+    sessions: schedule._count.entries,
+    completeness: schedule.completeness,
+    hardViolations: schedule.hardViolations,
+    isFresh: validation.ok ? validation.freshness.fresh : false,
+    valid: validation.ok && validation.validation.valid,
+  };
+}
+
+export async function publishTimetableV3Schedule(
+  projectId: string,
+  scheduleId: string,
+  schoolAccountId: string,
+) {
+  const validation = await validateTimetableV3Schedule(
+    projectId,
+    schoolAccountId,
+    scheduleId,
+  );
+
+  if (!validation.ok || !validation.validation.valid || !validation.freshness.fresh) {
+    throw new Error("SCHEDULE_VALIDATION_FAILED");
+  }
+
+  if (validation.schedule.status !== "APPROVED" && validation.schedule.status !== "PUBLISHED") {
+    await approveTimetableV2Schedule(projectId, scheduleId, schoolAccountId);
+  }
+
+  return publishTimetableV2Schedule(
+    projectId,
+    scheduleId,
+    schoolAccountId,
+  );
+}
+
+export async function deleteTimetableV3Schedule(
+  projectId: string,
+  scheduleId: string,
+  schoolAccountId: string,
+) {
+  await requireV3Project(projectId, schoolAccountId);
+  const schedule = await prisma.timetableSchedule.findFirst({
+    where: { id: scheduleId, projectId },
+    select: { id: true, status: true, entries: { select: { id: true } } },
+  });
+  if (!schedule) throw new Error("SCHEDULE_NOT_FOUND");
+  if (schedule.status === "PUBLISHED") throw new Error("PUBLISHED_SCHEDULE_DELETE_BLOCKED");
+
+  const entryIds = schedule.entries.map((entry) => entry.id);
+  if (entryIds.length > 0) {
+    const operationalReference = await prisma.timetableSubstitution.count({
+      where: { projectId, originalSessionId: { in: entryIds } },
+    });
+    if (operationalReference > 0) throw new Error("SCHEDULE_IN_USE");
+  }
+
+  await prisma.timetableSchedule.delete({ where: { id: schedule.id } });
+  return { id: schedule.id };
 }
 
 async function loadSchedule(

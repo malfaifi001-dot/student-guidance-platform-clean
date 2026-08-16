@@ -1043,6 +1043,27 @@ function buildSignatures(
   const transformTitle = (value: string) =>
     applyReportLanguageModeToText(value, languageMode);
 
+  if (current.user.role === "PRINCIPAL") {
+    const managerLabel = getArabicUserRoleLabel({
+      role: current.user.role,
+      gender: current.user.gender,
+    });
+
+    return [
+      {
+        key: "principal",
+        label: managerLabel,
+        signerName:
+          profile?.principalName ||
+          current.user.officialName ||
+          current.user.name,
+        signerTitle: managerLabel,
+        imageUrl: profile?.principalSignatureUrl || null,
+        required: false,
+      },
+    ];
+  }
+
   const signatures: SmartReportSignature[] = [];
 
   signatures.push({
@@ -1455,7 +1476,9 @@ export async function buildSmartReportPayloadForCase({
       schoolLeaderSignatureUrl: profile?.principalSignatureUrl || "",
       userName: current.user.officialName || current.user.name || "",
       userSignatureUrl:
-        current.user.role === "TEACHER"
+        current.user.role === "PRINCIPAL"
+          ? profile?.principalSignatureUrl || ""
+          : current.user.role === "TEACHER"
           ? current.user.signatureUrl || ""
           : profile?.counselorSignatureUrl ||
             profile?.activityLeaderSignatureUrl ||

@@ -924,10 +924,11 @@ export function TimetableV3ConstraintsWorkspace(
   return (
     <div
       dir="rtl"
-      className="mx-auto w-full max-w-7xl space-y-5 pb-20"
+      className="mx-auto w-full max-w-7xl space-y-5 px-4 pb-20 pt-6 sm:px-6 lg:pt-8"
     >
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
+          <p className="text-xs font-black text-[#3478B8]">خدمات مدير المدرسة</p>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             القيود
           </h1>

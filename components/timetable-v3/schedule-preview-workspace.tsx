@@ -67,6 +67,7 @@ export function TimetableV3SchedulePreviewWorkspace({
     return (
       <main dir="rtl" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:py-10">
         <header className="mb-8">
+          <p className="text-xs font-black text-[#3478B8]">خدمات مدير المدرسة</p>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">معاينة الجدول</h1>
         </header>
         <section className="rounded-[28px] border border-slate-200 bg-white px-6 py-12 text-center">
@@ -93,6 +94,7 @@ export function TimetableV3SchedulePreviewWorkspace({
     <main dir="rtl" className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-10">
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
+          <p className="text-xs font-black text-[#3478B8]">خدمات مدير المدرسة</p>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">معاينة الجدول</h1>
           <p className="mt-2 text-sm text-slate-500">النسخة {schedule.version} · {dateFormatter.format(new Date(schedule.generatedAt))} · {timetableV3StatusLabel(schedule.status)} · {schedule.sessions} حصة</p>
         </div>

@@ -677,6 +677,7 @@ export function TimetableV3AssignmentsWorkspace(
     >
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
+          <p className="text-xs font-black text-[#3478B8]">خدمات مدير المدرسة</p>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             الإسنادات
           </h1>

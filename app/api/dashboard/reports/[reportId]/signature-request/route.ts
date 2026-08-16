@@ -78,6 +78,16 @@ export async function POST(request: Request, context: Context) {
   const access = await authorizedReport(reportId);
   if ("response" in access) return access.response;
 
+  if (access.auth.user.role === "PRINCIPAL") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يستخدم مدير المدرسة توقيعه المحفوظ مباشرة في التقارير.",
+      },
+      { status: 403 },
+    );
+  }
+
   const serviceGuard = await requireServiceAccessApi(access.report.serviceSlug || "");
   if (serviceGuard) return serviceGuard;
 

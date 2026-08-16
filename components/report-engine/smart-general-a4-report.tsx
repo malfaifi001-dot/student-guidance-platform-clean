@@ -269,11 +269,21 @@ export function SmartGeneralA4Report({ payload }: SmartGeneralA4ReportProps) {
       ) : null}
 
       {payload.signatures.length > 0 ? (
-        <section className="mt-8 grid grid-cols-3 gap-3">
+        <section
+          className={[
+            "mt-8",
+            payload.signatures.length === 1
+              ? "flex justify-center"
+              : "grid grid-cols-3 gap-3",
+          ].join(" ")}
+        >
           {payload.signatures.slice(0, 3).map((signature) => (
             <div
               key={signature.key}
-              className="flex min-h-28 flex-col items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 text-center"
+              className={[
+                "flex min-h-28 flex-col items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 text-center",
+                payload.signatures.length === 1 ? "w-[58mm] max-w-full" : "",
+              ].join(" ")}
             >
               <p className="text-xs font-black text-slate-500">
                 {signature.label}

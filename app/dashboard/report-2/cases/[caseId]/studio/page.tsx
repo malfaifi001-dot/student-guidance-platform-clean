@@ -155,6 +155,8 @@ export default async function ReportTwoCaseStudioPage({
     },
   });
 
+  const isSchoolManager = current.user.role === "PRINCIPAL";
+
   const [schoolProfile, signatureRequest] = await Promise.all([
     prisma.schoolProfile.findUnique({
       where: {
@@ -163,7 +165,7 @@ export default async function ReportTwoCaseStudioPage({
       },
       select: { principalName: true, principalPhone: true },
     }),
-    activeReport
+    !isSchoolManager && activeReport
       ? prisma.reportSignatureRequest.findFirst({
           where: { reportTwoActiveId: activeReport.id },
           orderBy: { createdAt: "desc" },
@@ -175,7 +177,9 @@ export default async function ReportTwoCaseStudioPage({
     : undefined;
   const previewPayload = applyExternalPrincipalSignature(
     result.payload,
-    effectiveRequestStatus === "SIGNED" ? signatureRequest?.signatureUrl : null,
+    !isSchoolManager && effectiveRequestStatus === "SIGNED"
+      ? signatureRequest?.signatureUrl
+      : null,
   );
 
   return (
@@ -185,6 +189,7 @@ export default async function ReportTwoCaseStudioPage({
       selectedVariantId={selectedVariantId}
       initialMode={initialMode}
       payload={previewPayload}
+      isSchoolManager={isSchoolManager}
       templates={templates}
       initialPrincipalName={schoolProfile?.principalName || ""}
       initialPrincipalPhone={schoolProfile?.principalPhone || ""}

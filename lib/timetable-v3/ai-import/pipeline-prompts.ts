@@ -1,58 +1,88 @@
+import {
+  buildTimetableAiImportLanguageInstruction,
+  detectTimetableAiImportLanguage,
+  type TimetableAiImportLanguage,
+} from "./language";
+
 const BASE_RULES = `
-أنت مساعد تخطيط جداول مدرسية متقدم داخل منصة تيتش اكس.
+أنت مساعد تخطيط جداول مدرسية داخل منصة تيتش اكس.
 
-مسموح لك التفكير واتخاذ قرارات تخطيطية منطقية عندما يطلب المدير بناء تصور أو استكمال بيانات ناقصة.
+مهمتك تجهيز مسودة بيانات منظمة وقابلة للمراجعة قبل إنشاء الجدول.
 
-لا تتعامل مع نفسك كمجرد مستخرج نصوص.
+مسموح لك اتخاذ قرارات منطقية واقتراح بيانات ناقصة عندما يكون وضع الطلب PROPOSE.
 
-قواعد العمل:
-- إذا ذكر المدير معلومة صراحة فاعتبر source = USER.
-- إذا أنشأت أو اقترحت معلومة فاعتبر source = AI_PROPOSAL.
-- لا تتوقف بسبب نقص التفاصيل إذا كان مقصد المدير واضحًا.
-- اتخذ افتراضات عملية واذكرها.
-- أعط confidence من 0 إلى 1.
-- لا تحفظ أي شيء.
-- لا تنشئ الجدول النهائي.
-- لا تحدد توقيت الحصص النهائي.
-- Timefold هو الذي سيولد الجدول لاحقًا.
-- أعد JSON فقط.
-- لا تستخدم Markdown.
+ممنوع:
+- حفظ أي بيانات.
+- إنشاء الجدول النهائي.
+- تحديد أوقات الجدول النهائي.
+- استدعاء محرك إنشاء الجدول.
+- اختراع كيانات غير موجودة في البيانات التي أعطيت لك في المرحلة الحالية.
+
+قواعد الإخراج:
+- JSON صالح فقط.
+- لا Markdown.
+- لا شرح خارج JSON.
+- استخدم المراحل الداخلية فقط:
+  ELEMENTARY
+  MIDDLE
+  HIGH
+- source:
+  USER للمعلومة الصريحة من المدير.
+  AI_PROPOSAL للمعلومة المقترحة.
+- confidence رقم من 0 إلى 1.
 `.trim();
 
+function languageInstruction(request: string) {
+  return buildTimetableAiImportLanguageInstruction(
+    detectTimetableAiImportLanguage(request),
+  );
+}
+
 export function buildPlanningPrompt(
-  request: string,
+  input: {
+    request: string;
+    expectedTeacherCount: number | null;
+    expectedClassCount: number | null;
+    expectedStageCount: number | null;
+  },
 ) {
   return `
 ${BASE_RULES}
 
-المرحلة الحالية: تصميم المشروع المدرسي.
+${languageInstruction(input.request)}
 
-افهم طلب المدير وابنِ تصورًا عمليًا كاملًا.
+المرحلة: PLANNING
 
-حدد:
-- هل الطلب EXTRACT أو PROPOSE.
-- المراحل.
-- الصفوف والفصول.
-- المواد المناسبة.
-- الحصص الأسبوعية عندما يكون من المنطقي اقتراحها.
-- الافتراضات.
-- البدائل المهمة.
+طلب المدير:
+${input.request}
 
-إذا قال المدير "3 مراحل"، افهم أنها:
+مؤشرات رقمية مستخرجة من طلب المدير:
+expectedTeacherCount=${input.expectedTeacherCount ?? "unknown"}
+expectedClassCount=${input.expectedClassCount ?? "unknown"}
+expectedStageCount=${input.expectedStageCount ?? "unknown"}
+
+ابنِ:
+- mode
+- summary
+- stages
+- classes
+- subjects
+- assumptions
+- alternatives
+- warnings
+
+إذا طلب المدير 3 مراحل فالمقصود:
 ELEMENTARY
 MIDDLE
 HIGH
 
-إذا لم يحدد عدد الفصول:
-اختر توزيعًا عمليًا مناسبًا واذكره كافتراض.
+إذا ذكر عدد الفصول صراحة:
+أنشئ بالضبط هذا العدد.
 
-لا تنشئ المعلمين الآن.
-لا تنشئ الإسنادات الآن.
+لا تنشئ المعلمين هنا.
+لا تنشئ الإسنادات هنا.
 
-طلب المدير:
-${request}
-
-JSON المطلوب:
+JSON:
 {
   "mode": "EXTRACT | PROPOSE",
   "summary": "",
@@ -62,19 +92,19 @@ JSON المطلوب:
   "classes": [
     {
       "name": "",
-      "stage": "ELEMENTARY | MIDDLE | HIGH",
+      "stage": "ELEMENTARY",
       "grade": null,
       "source": "USER | AI_PROPOSAL",
-      "confidence": 0
+      "confidence": 0.9
     }
   ],
   "subjects": [
     {
       "name": "",
-      "stageIds": [],
-      "weeklyLessons": null,
+      "stageIds": ["ELEMENTARY"],
+      "weeklyLessons": 5,
       "source": "USER | AI_PROPOSAL",
-      "confidence": 0
+      "confidence": 0.9
     }
   ],
   "warnings": []
@@ -86,29 +116,34 @@ export function buildTeachersPrompt(
   input: {
     request: string;
     planningJson: string;
+    expectedTeacherCount: number | null;
   },
 ) {
   return `
 ${BASE_RULES}
 
-المرحلة الحالية: بناء هيئة التدريس.
+${languageInstruction(input.request)}
 
-طلب المدير الأصلي:
+المرحلة: TEACHERS
+
+طلب المدير:
 ${input.request}
 
-تصميم المدرسة المعتمد لهذه المسودة:
+تصميم المدرسة:
 ${input.planningJson}
 
-المطلوب:
-- استخرج عدد المعلمين المطلوب من كلام المدير.
-- إذا ذكر عددًا صريحًا مثل 40، أنشئ بالضبط 40 معلمًا.
-- إذا لم يذكر أسماء، أنشئ أسماء مؤقتة مفهومة مثل:
-  معلم رياضيات 1
-  معلم لغة عربية 2
-- وزع التخصصات بما يتناسب مع المواد والمراحل.
-- اجعل التوزيع عمليًا وقابلًا للإسناد.
-- اقترح maxWeeklyLoad مناسبًا.
-- لا تنشئ الإسنادات في هذه المرحلة.
+عدد المعلمين المطلوب صراحة:
+${input.expectedTeacherCount ?? "غير محدد"}
+
+إذا كان العدد محددًا:
+أنشئ بالضبط هذا العدد.
+
+إذا لم توجد أسماء:
+استخدم أسماء مؤقتة عربية واضحة مثل:
+معلم رياضيات 1
+معلم لغة عربية 2
+
+وزع التخصصات حسب المواد والمراحل بصورة عملية ومتوازنة.
 
 JSON:
 {
@@ -118,7 +153,7 @@ JSON:
       "specialty": "",
       "maxWeeklyLoad": 24,
       "source": "USER | AI_PROPOSAL",
-      "confidence": 0
+      "confidence": 0.9
     }
   ],
   "assumptions": [],
@@ -139,32 +174,33 @@ export function buildAssignmentsPrompt(
   return `
 ${BASE_RULES}
 
-المرحلة الحالية: بناء الإسنادات للمرحلة:
-${input.stage}
+${languageInstruction(input.request)}
+
+المرحلة: ASSIGNMENTS_${input.stage}
 
 طلب المدير:
 ${input.request}
 
-فصول هذه المرحلة:
+فصول المرحلة:
 ${input.classesJson}
 
-المواد:
+مواد المرحلة:
 ${input.subjectsJson}
 
 المعلمون المتاحون:
 ${input.teachersJson}
 
-المطلوب:
-- أنشئ الإسنادات الكاملة لهذه المرحلة فقط.
-- كل إسناد = معلم + مادة + فصل + عدد حصص أسبوعية.
+أنشئ إسنادات لهذه المرحلة فقط.
+
+قواعد إلزامية:
 - استخدم أسماء المعلمين الموجودة فقط.
-- استخدم أسماء الفصول الموجودة فقط.
+- استخدم الفصول الموجودة فقط.
 - استخدم المواد الموجودة فقط.
-- وزع الأحمال بصورة متوازنة قدر الإمكان.
-- لا تجعل نفس المادة في نفس الفصل مسندة مرتين بلا سبب.
-- إذا كانت weeklyLessons للمادة غير محددة، اتخذ قيمة تربوية معقولة واذكرها كافتراض.
-- لا تنشئ قيودًا هنا.
-- لا تنشئ أوقاتًا للحصص.
+- كل إسناد = معلم + مادة + فصل + عدد حصص أسبوعية.
+- لا تكرر نفس المادة داخل نفس الفصل بلا سبب.
+- راع تخصص المعلم قدر الإمكان.
+- راع maxWeeklyLoad قدر الإمكان.
+- لا تحدد أوقات الحصص.
 
 JSON:
 {
@@ -173,9 +209,9 @@ JSON:
       "teacherName": "",
       "subjectName": "",
       "className": "",
-      "weeklyLessons": 1,
+      "weeklyLessons": 5,
       "source": "USER | AI_PROPOSAL",
-      "confidence": 0
+      "confidence": 0.9
     }
   ],
   "assumptions": [],
@@ -195,7 +231,9 @@ export function buildConstraintsPrompt(
   return `
 ${BASE_RULES}
 
-المرحلة الحالية: اقتراح قيود وجدولة أولية.
+${languageInstruction(input.request)}
+
+المرحلة: CONSTRAINTS
 
 طلب المدير:
 ${input.request}
@@ -209,15 +247,11 @@ ${input.teachersJson}
 ملخص الإسنادات:
 ${input.assignmentsSummary}
 
-المطلوب:
-- استخرج أي قيود صريحة ذكرها المدير.
-- واقترح قيودًا مدرسية ومعلمين منطقية إذا طلب المدير منك ذلك.
-- يمكنك اقتراح أيام راحة، عدم توفر، حدود يومية، تفضيلات، أو توزيع مناسب.
-- النص الحر للقيد مهم ويمكنك التعبير فيه بحرية.
-- suggestedType اختياري.
-- إذا لم تكن متأكدًا من مفتاح Constraint معتمد داخل تيتش اكس، اجعله null بدل اختراع مفتاح تقني.
-- لا تحفظ القيود.
-- القرار النهائي للمدير.
+استخرج القيود الصريحة أولًا.
+إذا طلب المدير اقتراح قيود، اقترح قيودًا عملية باعتدال.
+
+لا تخترع suggestedType تقني غير معروف.
+إذا لم تكن متأكدًا اجعله null.
 
 JSON:
 {
@@ -229,19 +263,12 @@ JSON:
       "className": null,
       "suggestedType": null,
       "source": "USER | AI_PROPOSAL",
-      "confidence": 0
+      "confidence": 0.8
     }
   ],
   "assumptions": [],
   "warnings": [],
-  "uncertainFields": [
-    {
-      "entity": "",
-      "field": "",
-      "value": null,
-      "reason": ""
-    }
-  ]
+  "uncertainFields": []
 }
 `.trim();
 }
@@ -249,32 +276,34 @@ JSON:
 export function buildRepairPrompt(
   input: {
     phase: string;
+    language: TimetableAiImportLanguage;
     originalPrompt: string;
     previousResponse: string;
     validationErrors: string;
   },
 ) {
   return `
-أنت تصلح JSON لمرحلة من مراحل تخطيط جدول تيتش اكس.
+${buildTimetableAiImportLanguageInstruction(input.language)}
 
-المرحلة:
-${input.phase}
+أصلح JSON لمرحلة ${input.phase}.
 
-المطلوب الأصلي:
+التعليمات الأصلية:
 ${input.originalPrompt}
 
 الرد السابق:
-${input.previousResponse}
+${input.previousResponse.slice(0, 16000)}
 
 أخطاء التحقق:
 ${input.validationErrors}
 
-أعد نفس المحتوى بعد إصلاح البنية فقط.
+أعد JSON كاملًا وصالحًا فقط.
 
-لا تقلل التفاصيل.
-لا تحذف بيانات صحيحة.
-لا تحول اقتراحًا غنيًا إلى نتيجة فارغة.
 لا تستخدم Markdown.
-أعد JSON صالحًا فقط.
+لا تكتب شرحًا.
+لا تحذف البيانات الصحيحة.
+التزم بالقيم الداخلية للمراحل:
+ELEMENTARY
+MIDDLE
+HIGH
 `.trim();
 }

@@ -49,21 +49,26 @@ export default async function TimetableV3PrintPage({
   return (
       <main dir="rtl" className="print-document mx-auto bg-white p-6 text-slate-950">
         <style>{`
-          @page { size: ${mode === "full" ? "A3 landscape" : "A4 landscape"}; margin: ${mode === "full" ? "6mm" : "12mm"}; }
+          @page { size: ${mode === "full" ? "A3 landscape" : "A4 landscape"}; margin: ${mode === "full" ? "5mm" : "12mm"}; }
           @media print {
-            html, body { background: white !important; }
-            .print-document { box-sizing: border-box; width: 100%; padding: 0 0 10mm !important; }
-            .full-schedule { font-size: 7px; }
-            .full-schedule th, .full-schedule td { overflow-wrap: anywhere; word-break: normal; }
+            :root, html, body { margin: 0 !important; background: white !important; }
+            .print-document { box-sizing: border-box; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 0 8mm !important; }
+            .print-header { margin-bottom: 3mm !important; padding-bottom: 2.5mm !important; }
+            .print-header h1 { font-size: 14pt !important; }
+            .print-header .print-meta { font-size: 8pt !important; line-height: 1.35 !important; }
+            .full-schedule { width: 100%; table-layout: fixed; font-size: 8pt; }
+            .full-schedule th, .full-schedule td { box-sizing: border-box; overflow-wrap: anywhere; word-break: normal; padding: 1.2mm 0.8mm !important; }
+            .full-schedule td { height: auto !important; }
             .print-section { break-after: page; page-break-after: always; }
             .print-section:last-of-type { break-after: auto; page-break-after: auto; }
             thead { display: table-header-group; }
             tr { break-inside: avoid; page-break-inside: avoid; }
+            .print-footer { margin-top: 3mm !important; padding-top: 1.5mm !important; font-size: 8pt !important; }
           }
         `}</style>
         <TimetableV3PrintController enabled={query.print === "1"} />
 
-        <header className="mb-5 border-b-2 border-slate-900 pb-4">
+        <header className="print-header mb-5 border-b-2 border-slate-900 pb-4">
           <div className="flex items-start justify-between gap-6">
             <div>
               <div className="text-xl font-black">تيتش اكس</div>
@@ -73,7 +78,7 @@ export default async function TimetableV3PrintPage({
               <h1 className="text-xl font-black">{teacher ? data.project.name : "الجدول الدراسي الشامل"}</h1>
               <p className="mt-1 text-sm">{teacher ? `المعلم: ${teacher.name}` : data.project.name}</p>
             </div>
-            <div className="text-left text-xs leading-6 text-slate-600">
+            <div className="print-meta text-left text-xs leading-6 text-slate-600">
               <div>النسخة {data.schedule.version}</div>
               <div>العام الدراسي: {data.project.academicYear}</div>
               <div>الفصل الدراسي: {data.project.semester}</div>
@@ -148,7 +153,7 @@ export default async function TimetableV3PrintPage({
           </section>
         )}
 
-        <footer className="mt-6 flex items-center justify-between border-t border-slate-300 pt-3 text-[10px] text-slate-500 print:fixed print:bottom-0 print:left-0 print:right-0">
+        <footer className="print-footer mt-6 flex items-center justify-between border-t border-slate-300 pt-3 text-[10px] text-slate-500">
           <span>تم إنشاء الجدول بواسطة تيتش اكس</span>
           <span>{siteUrl}</span>
         </footer>

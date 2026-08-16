@@ -12,7 +12,7 @@ import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 
 export const runtime = "nodejs";
 
-type SignatureKind = "activityLeader" | "counselor" | "teacher";
+type SignatureKind = "principal" | "activityLeader" | "counselor" | "teacher";
 
 async function saveSignatureImage(input: {
   schoolAccountId: string;
@@ -53,12 +53,6 @@ async function saveSignatureImage(input: {
 }
 
 export async function POST(request: Request) {
-  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
-
-  if (subscriptionGuard instanceof Response) {
-    return subscriptionGuard;
-  }
-
   const current = await getCurrentSessionUser();
 
   if (!current?.user.schoolAccountId) {
@@ -66,6 +60,14 @@ export async function POST(request: Request) {
       { success: false, error: "يلزم تسجيل الدخول." },
       { status: 401 },
     );
+  }
+
+  if (current.user.role !== "PRINCIPAL") {
+    const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+    if (subscriptionGuard instanceof Response) {
+      return subscriptionGuard;
+    }
   }
 
   const body = await request.json().catch(() => null);
@@ -84,7 +86,9 @@ export async function POST(request: Request) {
 
   const { kind, dataUrl } = payloadResult.data;
   const expectedKind: SignatureKind | null =
-    current.user.role === "COUNSELOR"
+    current.user.role === "PRINCIPAL"
+      ? "principal"
+      : current.user.role === "COUNSELOR"
       ? "counselor"
       : current.user.role === "ACTIVITY_LEADER"
         ? "activityLeader"
@@ -138,7 +142,12 @@ export async function POST(request: Request) {
         schoolAccountId: current.user.schoolAccountId,
       },
       update:
-        kind === "activityLeader"
+        kind === "principal"
+          ? {
+              principalSignatureUrl: signatureUrl,
+              principalSignatureSignedAt: signedAt,
+            }
+          : kind === "activityLeader"
           ? {
               activityLeaderSignatureUrl: signatureUrl,
               activityLeaderSignedAt: signedAt,
@@ -153,7 +162,12 @@ export async function POST(request: Request) {
           current.user.schoolAccount?.profile?.schoolName ||
           current.user.schoolAccount?.name ||
           "اسم المدرسة",
-        ...(kind === "activityLeader"
+        ...(kind === "principal"
+          ? {
+              principalSignatureUrl: signatureUrl,
+              principalSignatureSignedAt: signedAt,
+            }
+          : kind === "activityLeader"
           ? {
               activityLeaderSignatureUrl: signatureUrl,
               activityLeaderSignedAt: signedAt,

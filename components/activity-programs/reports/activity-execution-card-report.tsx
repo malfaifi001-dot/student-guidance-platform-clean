@@ -69,6 +69,8 @@ export type ActivityExecutionCardReportData = {
     teacherSignatureUrl?: string;
     activityLeaderName: string;
     principalName?: string;
+    principalSignatureUrl?: string;
+    managerOnly?: boolean;
   };
 };
 
@@ -531,6 +533,27 @@ function EvidenceGrid({
 }
 
 function ApprovalGrid({ data }: { data: ActivityExecutionCardReportData }) {
+  if (data.approvals.managerOnly) {
+    return (
+      <section className="activity-approval-grid manager-only">
+        <div className="activity-signature-box">
+          <span>مدير المدرسة</span>
+
+          {data.approvals.principalSignatureUrl ? (
+            <img
+              src={data.approvals.principalSignatureUrl}
+              alt={`توقيع ${data.approvals.principalName || "مدير المدرسة"}`}
+            />
+          ) : (
+            <em>............................</em>
+          )}
+
+          <strong>{data.approvals.principalName || "مدير المدرسة"}</strong>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="activity-approval-grid">
       <div className="activity-signature-box">
@@ -977,6 +1000,15 @@ function ActivityExecutionCardReportStyles() {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 9px;
         flex: 0 0 auto;
+      }
+
+      .activity-approval-grid.manager-only {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .activity-approval-grid.manager-only .activity-signature-box {
+        width: min(100%, 58mm);
+        justify-self: center;
       }
 
       .activity-signature-box {

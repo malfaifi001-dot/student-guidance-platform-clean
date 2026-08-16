@@ -99,6 +99,7 @@ export const planningSchema =
             z.number()
               .int()
               .positive()
+              .max(20)
               .nullable()
               .default(null),
 
@@ -194,6 +195,7 @@ export const assignmentsSchema =
             z.number()
               .int()
               .positive()
+              .max(20)
               .nullable()
               .default(null),
 

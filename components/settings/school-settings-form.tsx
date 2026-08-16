@@ -26,7 +26,11 @@ import {
   SCHOOL_STAGES,
 } from "@/lib/constants/school-profile-options";
 
-type CurrentUserSignatureKind = "activityLeader" | "counselor" | "teacher";
+type CurrentUserSignatureKind =
+  | "principal"
+  | "activityLeader"
+  | "counselor"
+  | "teacher";
 
 type SchoolSettingsFormState = {
   officialName: string;
@@ -839,6 +843,8 @@ function SchoolSignaturesCard({
   onOpenCurrentUserSignature: () => void;
   onRefresh: () => void;
 }) {
+  const isSchoolManager =
+    String(form.currentUserRole || "").trim().toUpperCase() === "PRINCIPAL";
   const roleLabel = getArabicUserRoleLabel({
     role: form.currentUserRole,
     gender: form.currentUserGender,
@@ -864,7 +870,10 @@ function SchoolSignaturesCard({
             اعتماد التواقيع المستخدمة في التقارير
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-            {identityCopy.signatureDescription} أما توقيع مدير/مديرة المدرسة فيتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير.
+            {identityCopy.signatureDescription}
+            {isSchoolManager
+              ? " يستخدم هذا التوقيع في التقارير بصفتك مدير/مديرة المدرسة."
+              : " أما توقيع مدير/مديرة المدرسة فيتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير."}
           </p>
         </div>
 
@@ -877,7 +886,7 @@ function SchoolSignaturesCard({
         </button>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className={`mt-6 grid gap-4 ${isSchoolManager ? "max-w-xl" : "lg:grid-cols-2"}`}>
         <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -934,7 +943,7 @@ function SchoolSignaturesCard({
           </button>
         </article>
 
-        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+        {!isSchoolManager ? <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-lg font-black text-slate-950">
@@ -1013,7 +1022,7 @@ function SchoolSignaturesCard({
               </a>
             ) : null}
           </div>
-        </article>
+        </article> : null}
       </div>
     </section>
   );

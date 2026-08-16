@@ -19,6 +19,7 @@ import {
   BookOpen,
   BriefcaseBusiness,
   CalendarDays,
+  CalendarClock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -453,19 +454,9 @@ const principalLinks: SidebarLinkItem[] = [
     icon: Home,
   },
   {
-    label: "ملف إنجازي",
-    href: "/dashboard/principal/portfolio",
-    icon: FolderKanban,
-  },
-  {
     label: "منسوبو المدرسة",
     href: "/dashboard/principal/teachers",
     icon: Users,
-  },
-  {
-    label: "الجدول الدراسي",
-    href: "/dashboard/principal/timetable",
-    icon: CalendarDays,
   },
   {
     label: "الحالات",
@@ -476,6 +467,19 @@ const principalLinks: SidebarLinkItem[] = [
     label: "التقارير",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
     icon: FileText,
+  },
+];
+
+const principalTimetableLinks: SidebarLinkItem[] = [
+  {
+    label: "الجدول الدراسي",
+    href: "/dashboard/timetable-v3",
+    icon: CalendarDays,
+  },
+  {
+    label: "حصص الانتظار",
+    href: "/dashboard/timetable-v3/operations",
+    icon: CalendarClock,
   },
 ];
 
@@ -1347,6 +1351,27 @@ function PrincipalSidebar({
       </SidebarSection>
 
       <SidebarDropdown
+        title="الجدول الدراسي"
+        defaultOpen={
+          pathname.startsWith("/dashboard/principal/timetable") ||
+          pathname.startsWith("/dashboard/timetable-v3")
+        }
+        collapsed={collapsed}
+      >
+        {principalTimetableLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={item.href === "/dashboard/timetable-v3"
+              ? pathname === item.href
+              : isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+          />
+        ))}
+      </SidebarDropdown>
+
+      <SidebarDropdown
         title="عناصر التقييم"
         defaultOpen={hasActive(pathname, principalPerformanceLinks)}
         collapsed={collapsed}
@@ -1363,7 +1388,7 @@ function PrincipalSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="التقويم والاعتماد"
+        title="التقويم والاعتماد المدرسي"
         defaultOpen={hasActive(pathname, principalEvaluationAccreditationLinks)}
         collapsed={collapsed}
       >

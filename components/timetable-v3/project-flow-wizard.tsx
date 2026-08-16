@@ -22,17 +22,22 @@ export function TimetableV3ProjectFlowWizard({
 }) {
   const pathname = usePathname();
   const currentSegment = pathname.split("/").filter(Boolean).at(-1) ?? "setup";
+  const isOperations = currentSegment === "operations";
   const currentIndex = Math.max(
     0,
-    FLOW_STEPS.findIndex((step) => step.segment === currentSegment),
+    isOperations ? FLOW_STEPS.length - 1 : FLOW_STEPS.findIndex((step) => step.segment === currentSegment),
   );
   const progress = ((currentIndex + 1) / FLOW_STEPS.length) * 100;
 
+  if (isOperations) {
+    return null;
+  }
+
   return (
     <div dir="rtl" className="mx-auto w-full max-w-6xl px-4 pt-5 sm:px-6 lg:pt-7">
-      <nav aria-label="مراحل إعداد الجدول" className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
+      <nav aria-label="مراحل إعداد الجدول" className="rounded-[2rem] border border-[#CFE5F3] bg-white px-4 py-3 shadow-sm sm:px-5">
         <div className="mb-3 flex items-center justify-between gap-4 text-xs font-medium text-slate-500">
-          <span>{FLOW_STEPS[currentIndex].label}</span>
+          <span>{isOperations ? "التشغيل اليومي" : FLOW_STEPS[currentIndex].label}</span>
           <span>{currentIndex + 1} من {FLOW_STEPS.length}</span>
         </div>
 
@@ -82,6 +87,16 @@ export function TimetableV3ProjectFlowWizard({
               );
             })}
           </ol>
+        </div>
+
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <Link
+            href={`/dashboard/timetable-v3/${projectId}/operations`}
+            aria-current={isOperations ? "page" : undefined}
+            className={`inline-flex items-center rounded-xl border px-4 py-2.5 text-sm font-bold transition ${isOperations ? "border-[#3478B8] bg-[#3478B8] text-white" : "border-[#3478B8] bg-[#EEF7FC] text-[#3478B8] hover:bg-[#DCEFFA]"}`}
+          >
+            التشغيل اليومي
+          </Link>
         </div>
       </nav>
     </div>

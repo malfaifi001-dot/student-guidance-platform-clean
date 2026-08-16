@@ -268,6 +268,25 @@ export async function listTimetableV3Projects(
               true,
           },
         },
+        schedules: {
+          where: {
+            status: "PUBLISHED",
+          },
+          orderBy: {
+            version: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            version: true,
+            status: true,
+            _count: {
+              select: {
+                entries: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -291,11 +310,24 @@ export async function listTimetableV3Projects(
       semester:
         project.semester,
 
+      status:
+        project.status,
+
       updatedAt:
         project.updatedAt,
 
       counts:
         project._count,
+
+      publishedSchedule:
+        project.schedules[0]
+          ? {
+              id: project.schedules[0].id,
+              version: project.schedules[0].version,
+              status: project.schedules[0].status,
+              sessions: project.schedules[0]._count.entries,
+            }
+          : null,
     }));
 }
 

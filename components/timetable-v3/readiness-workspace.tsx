@@ -46,7 +46,7 @@ function issueText(
     issue.description ||
     issue.title ||
     issue.actionLabel ||
-    issue.code
+    "راجع هذه النقطة قبل المتابعة."
   );
 }
 
@@ -169,6 +169,7 @@ export function TimetableV3ReadinessWorkspace(
       className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:py-10"
     >
       <header className="mb-8">
+        <p className="text-xs font-black text-[#3478B8]">خدمات مدير المدرسة</p>
         <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
           الجاهزية
         </h1>

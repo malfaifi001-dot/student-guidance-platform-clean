@@ -77,12 +77,6 @@ function getPublicBaseUrl(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
-
-  if (subscriptionGuard instanceof Response) {
-    return subscriptionGuard;
-  }
-
   const current = await getCurrentSessionUser();
 
   if (!current?.user.schoolAccountId) {
@@ -90,6 +84,22 @@ export async function POST(request: Request) {
       { success: false, error: "يلزم تسجيل الدخول." },
       { status: 401 },
     );
+  }
+
+  if (current.user.role === "PRINCIPAL") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يستخدم مدير المدرسة توقيعه المحفوظ مباشرة في التقارير.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionGuard instanceof Response) {
+    return subscriptionGuard;
   }
 
   const body = await request.json().catch(() => null);

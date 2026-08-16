@@ -140,6 +140,8 @@ function mapSmartPayloadToActivityReportData(
   payload: SmartReportPayload,
 ): ActivityExecutionCardReportData {
   const principalSignature = getSignature(payload, "principal");
+  const managerOnlySignature =
+    payload.signatures.length === 1 && Boolean(principalSignature);
   const activityLeaderSignature =
     getSignature(payload, "activity_leader") ||
     getSignature(payload, "counselor") ||
@@ -247,6 +249,8 @@ function mapSmartPayloadToActivityReportData(
         payload.caseInfo.issuedBy ||
         "رائد النشاط",
       principalName: principalSignature?.signerName || undefined,
+      principalSignatureUrl: principalSignature?.imageUrl || undefined,
+      managerOnly: managerOnlySignature,
     },
   };
 }

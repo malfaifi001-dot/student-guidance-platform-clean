@@ -139,6 +139,14 @@ export function TimetableV3ProjectSetupWizard(
   );
 
   const [
+    aiImportDraft,
+    setAiImportDraft,
+  ] = useState<
+    TimetableAiImportResult |
+    null
+  >(null);
+
+  const [
     dayIds,
     setDayIds,
   ] = useState<
@@ -409,12 +417,22 @@ export function TimetableV3ProjectSetupWizard(
     result:
       TimetableAiImportResult,
   ) {
+    setAiImportDraft(
+      result,
+    );
+
     if (
       result.stages.length >
       0
     ) {
       setStages(
-        result.stages as TimetableV3StageId[],
+        (
+          current,
+        ) =>
+          uniqueStrings([
+            ...current,
+            ...result.stages,
+          ]) as TimetableV3StageId[],
       );
     }
 
@@ -539,8 +557,16 @@ export function TimetableV3ProjectSetupWizard(
       null,
     );
 
+    console.info(
+      "[TIMETABLE_V3_AI_IMPORT_APPLY]",
+      `stages=${result.stages.length} classes=${result.classes.length} subjects=${result.subjects.length} teachers=${result.teachers.length} assignments=${result.assignments.length} constraints=${result.constraintCandidates.length}`,
+    );
+
     setSuccess(
       "تم تطبيق البيانات المستخرجة على الإعداد. راجعها ثم احفظ الخطوات بالطريقة المعتادة.",
+    );
+    setSuccess(
+      "\u062a\u0645 \u062a\u0637\u0628\u064a\u0642 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0639\u0644\u0649 \u0625\u0639\u062f\u0627\u062f \u0627\u0644\u0645\u0634\u0631\u0648\u0639. \u0631\u0627\u062c\u0639 \u0627\u0644\u062e\u0637\u0648\u0627\u062a \u062b\u0645 \u0627\u062d\u0641\u0638\u0647\u0627.\n\u062a\u0645 \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0625\u0633\u0646\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0642\u064a\u0648\u062f \u0644\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0641\u064a \u062e\u0637\u0648\u0627\u062a\u0647\u0627 \u0627\u0644\u0645\u062e\u0635\u0635\u0629.",
     );
   }
 
@@ -951,7 +977,7 @@ export function TimetableV3ProjectSetupWizard(
           ) : null}
 
           {success ? (
-            <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            <div className="mt-4 whitespace-pre-line rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
               {
                 success
               }

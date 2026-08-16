@@ -11,14 +11,14 @@ import {
 import type {
   TimetableAiImportResult,
   TimetableAiImportStage,
-} from "@/lib/timetable-v3/ai-import/ai-import-types";
+} from "./ai-import-types";
 
 import {
   assignmentsSchema,
   constraintsSchema,
   planningSchema,
   teachersSchema,
-} from "@/lib/timetable-v3/ai-import/pipeline-schema";
+} from "./pipeline-schema";
 
 import {
   buildAssignmentsPrompt,
@@ -26,10 +26,57 @@ import {
   buildPlanningPrompt,
   buildRepairPrompt,
   buildTeachersPrompt,
-} from "@/lib/timetable-v3/ai-import/pipeline-prompts";
+} from "./pipeline-prompts";
+
+import {
+  normalizeAiImportPhasePayload,
+} from "./pipeline-normalizer";
+
+import {
+  auditTimetableAiImportResult,
+} from "./pipeline-audit";
+
+import {
+  detectTimetableAiImportLanguage,
+  type TimetableAiImportLanguage,
+} from "./language";
 
 const MAX_SOURCE_LENGTH =
   40_000;
+
+const PHASE_TIMEOUT_MS =
+  120_000;
+
+const PHASE_MAX_TOKENS =
+  8_000;
+
+type RequestHints = {
+  teacherCount: number | null;
+  classCount: number | null;
+  stageCount: number | null;
+};
+
+function createRunId() {
+  return Math.random()
+    .toString(36)
+    .slice(2, 8);
+}
+
+function logPhase(
+  runId: string,
+  phase: string,
+  status: string,
+  details = "",
+) {
+  const suffix =
+    details
+      ? ` ${details}`
+      : "";
+
+  console.info(
+    `[AI_IMPORT] ${runId} ${phase} ${status}${suffix}`,
+  );
+}
 
 function normalizeSourceText(
   value: string,
@@ -37,6 +84,7 @@ function normalizeSourceText(
   return value
     .replace(/\u0000/g, "")
     .replace(/\r\n/g, "\n")
+    .normalize("NFKC")
     .trim();
 }
 
@@ -58,17 +106,10 @@ function cleanModelResponse(
 function findBalancedJsonObject(
   value: string,
 ) {
-  let start =
-    -1;
-
-  let depth =
-    0;
-
-  let insideString =
-    false;
-
-  let escaped =
-    false;
+  let start = -1;
+  let depth = 0;
+  let insideString = false;
+  let escaped = false;
 
   for (
     let index = 0;
@@ -80,53 +121,56 @@ function findBalancedJsonObject(
 
     if (insideString) {
       if (escaped) {
-        escaped =
-          false;
-
+        escaped = false;
         continue;
       }
 
-      if (character === "\\") {
-        escaped =
-          true;
-
+      if (
+        character === "\\"
+      ) {
+        escaped = true;
         continue;
       }
 
-      if (character === '"') {
-        insideString =
-          false;
+      if (
+        character === '"'
+      ) {
+        insideString = false;
       }
 
       continue;
     }
 
-    if (character === '"') {
-      insideString =
-        true;
-
+    if (
+      character === '"'
+    ) {
+      insideString = true;
       continue;
     }
 
-    if (character === "{") {
-      if (depth === 0) {
-        start =
-          index;
+    if (
+      character === "{"
+    ) {
+      if (
+        depth === 0
+      ) {
+        start = index;
       }
 
-      depth +=
-        1;
-
+      depth += 1;
       continue;
     }
 
-    if (character === "}") {
-      if (depth === 0) {
+    if (
+      character === "}"
+    ) {
+      if (
+        depth === 0
+      ) {
         continue;
       }
 
-      depth -=
-        1;
+      depth -= 1;
 
       if (
         depth === 0 &&
@@ -168,17 +212,108 @@ function parseJson(
       );
     }
 
-    try {
-      return JSON.parse(
-        balanced,
-      ) as unknown;
+    return JSON.parse(
+      balanced,
+    ) as unknown;
+  }
+}
+
+function parseArabicOrLatinNumber(
+  value: string,
+) {
+  const normalized =
+    value.replace(
+      /[٠-٩]/g,
+      (
+        digit,
+      ) =>
+        String(
+          "٠١٢٣٤٥٦٧٨٩".indexOf(
+            digit,
+          ),
+        ),
+    );
+
+  const parsed =
+    Number(normalized);
+
+  return Number.isFinite(
+    parsed,
+  )
+    ? parsed
+    : null;
+}
+
+function extractCount(
+  text: string,
+  patterns: RegExp[],
+) {
+  for (
+    const pattern of
+    patterns
+  ) {
+    const match =
+      text.match(pattern);
+
+    if (
+      !match?.[1]
+    ) {
+      continue;
     }
-    catch {
-      throw new Error(
-        "AI_IMPORT_INVALID_JSON",
+
+    const parsed =
+      parseArabicOrLatinNumber(
+        match[1],
+      );
+
+    if (
+      parsed != null &&
+      parsed > 0 &&
+      parsed < 500
+    ) {
+      return Math.round(
+        parsed,
       );
     }
   }
+
+  return null;
+}
+
+function extractRequestHints(
+  text: string,
+): RequestHints {
+  return {
+    teacherCount:
+      extractCount(
+        text,
+        [
+          /(?:عدد\s*)?(?:المعلمين|معلمين|معلم)\s*[:=-]?\s*([0-9٠-٩]+)/i,
+          /([0-9٠-٩]+)\s*(?:معلمين|معلم)/i,
+          /([0-9]+)\s*teachers?/i,
+        ],
+      ),
+
+    classCount:
+      extractCount(
+        text,
+        [
+          /([0-9٠-٩]+)\s*(?:فصول|فصل)(?:\s|$|[،,.؛;])/i,
+          /(?:عدد\s*)?(?:الفصول|فصول|فصل)\s*[:=-]?\s*([0-9٠-٩]+)/i,
+          /([0-9]+)\s*(?:classes|sections)(?:\s|$|[,.])/i,
+        ],
+      ),
+
+    stageCount:
+      extractCount(
+        text,
+        [
+          /(?:عدد\s*)?(?:المراحل|مراحل|مرحلة)\s*[:=-]?\s*([0-9٠-٩]+)/i,
+          /([0-9٠-٩]+)\s*(?:مراحل|مرحلة)/i,
+          /([0-9]+)\s*stages?/i,
+        ],
+      ),
+  };
 }
 
 async function callJson(
@@ -191,7 +326,7 @@ async function callJson(
           "system",
 
         content:
-          "أنت مساعد تخطيط مدرسي لتطبيق تيتش اكس. أعد JSON صالحًا فقط وفق التعليمات.",
+          "أنت مساعد تخطيط مدرسي داخل منصة تيتش اكس. التزم بالمخطط وأعد JSON صالحًا فقط.",
       },
       {
         role:
@@ -203,46 +338,288 @@ async function callJson(
     ],
 
     temperature:
-      0.3,
+      0.25,
 
     maxTokens:
-      8_000,
+      PHASE_MAX_TOKENS,
 
     timeoutMs:
-      120_000,
+      PHASE_TIMEOUT_MS,
 
     responseFormat:
       "json_object",
   });
 }
 
+function formatSchemaErrors(
+  value: unknown,
+) {
+  try {
+    return JSON.stringify(
+      value,
+    );
+  }
+  catch {
+    return "تعذر قراءة أخطاء التحقق.";
+  }
+}
+
+function logValidationFailure(
+  input: {
+    runId: string;
+    phase: string;
+    durationMs: number;
+    error: unknown;
+  },
+) {
+  console.error(
+    `[AI_IMPORT] ${input.runId} ${input.phase} FAILED code=SCHEMA_VALIDATION duration=${input.durationMs}ms`,
+  );
+
+  if (
+    input.error &&
+    typeof input.error === "object" &&
+    "issues" in input.error &&
+    Array.isArray(
+      (input.error as {
+        issues?: unknown[];
+      }).issues,
+    )
+  ) {
+    const issues =
+      (
+        input.error as {
+          issues: Array<{
+            path?: Array<
+              string | number
+            >;
+            message?: string;
+            code?: string;
+          }>;
+        }
+      ).issues;
+
+    for (
+      const issue of
+      issues.slice(0, 8)
+    ) {
+      console.error(
+        `[AI_IMPORT] ${input.runId} ${input.phase} DETAILS field=${issue.path?.join(".") || "root"} code=${issue.code ?? "UNKNOWN"} message=${issue.message ?? "Unknown validation error"}`,
+      );
+    }
+  }
+}
+
+function getAiImportErrorCode(
+  error: unknown,
+) {
+  if (!(error instanceof Error)) {
+    return "UNKNOWN_ERROR";
+  }
+
+  const message =
+    error.message || "";
+
+  if (
+    message.includes(
+      "DEEPSEEK_TIMEOUT",
+    )
+  ) {
+    return "DEEPSEEK_TIMEOUT";
+  }
+
+  if (
+    message.includes(
+      "TIMEOUT",
+    )
+  ) {
+    return "TIMEOUT";
+  }
+
+  if (
+    message.includes(
+      "AI_IMPORT_INVALID_JSON",
+    )
+  ) {
+    return "INVALID_JSON";
+  }
+
+  if (
+    message.includes(
+      "AI_IMPORT_PHASE_FAILED",
+    )
+  ) {
+    return "PHASE_FAILED";
+  }
+
+  if (
+    message.includes(
+      "fetch failed",
+    )
+  ) {
+    return "NETWORK_ERROR";
+  }
+
+  return error.name ||
+    "UNKNOWN_ERROR";
+}
+
 async function runPhase<T>(
   input: {
+    runId: string;
     phase: string;
+    language: TimetableAiImportLanguage;
     prompt: string;
     schema: ZodType<T>;
+    semanticValidate?: (
+      value: T,
+    ) => string[];
   },
 ): Promise<T> {
-  const firstResponse =
-    await callJson(
-      input.prompt,
+  const startedAt =
+    Date.now();
+
+  logPhase(
+    input.runId,
+    input.phase,
+    "START",
+  );
+
+  const validate = (
+    raw: unknown,
+  ) => {
+    const normalized =
+      normalizeAiImportPhasePayload(
+        input.phase,
+        raw,
+      );
+
+    const parsed =
+      input.schema.safeParse(
+        normalized,
+      );
+
+    if (!parsed.success) {
+      logValidationFailure({
+        runId:
+          input.runId,
+
+        phase:
+          input.phase,
+
+        durationMs:
+          Date.now() -
+          startedAt,
+
+        error:
+          parsed.error,
+      });
+
+      return {
+        ok:
+          false as const,
+
+        errors:
+          formatSchemaErrors(
+            parsed.error.flatten(),
+          ),
+      };
+    }
+
+    const semanticErrors =
+      input.semanticValidate?.(
+        parsed.data,
+      ) ?? [];
+
+    if (
+      semanticErrors.length >
+      0
+    ) {
+      return {
+        ok:
+          false as const,
+
+        errors:
+          semanticErrors.join(
+            "\n",
+          ),
+      };
+    }
+
+    return {
+      ok:
+        true as const,
+
+      data:
+        parsed.data,
+    };
+  };
+
+  let firstResponse:
+    string;
+
+  try {
+    firstResponse =
+      await callJson(
+        input.prompt,
+      );
+  }
+  catch (error) {
+    const code =
+      getAiImportErrorCode(
+        error,
+      );
+
+    console.error(
+      `[AI_IMPORT] ${input.runId} ${input.phase} FAILED code=${code} duration=${Date.now() - startedAt}ms message=${error instanceof Error ? error.message : "Unknown error"}`,
     );
 
-  let firstJson:
+    throw error;
+  }
+
+  let firstRaw:
     unknown;
 
   try {
-    firstJson =
+    firstRaw =
       parseJson(
         firstResponse,
       );
   }
   catch {
-    const repaired =
+    firstRaw =
+      null;
+  }
+
+  if (
+    firstRaw != null
+  ) {
+    const firstValidation =
+      validate(
+        firstRaw,
+      );
+
+    if (
+      firstValidation.ok
+    ) {
+      logPhase(
+        input.runId,
+        input.phase,
+        "OK",
+        `${Date.now() - startedAt}ms`,
+      );
+
+      return firstValidation.data;
+    }
+
+    const repairResponse =
       await callJson(
         buildRepairPrompt({
           phase:
             input.phase,
+
+          language:
+            input.language,
 
           originalPrompt:
             input.prompt,
@@ -251,70 +628,39 @@ async function runPhase<T>(
             firstResponse,
 
           validationErrors:
-            "JSON غير صالح نحويًا.",
+            firstValidation.errors,
         }),
       );
 
-    const repairedParsed =
-      input.schema.safeParse(
+    const repairValidation =
+      validate(
         parseJson(
-          repaired,
+          repairResponse,
         ),
       );
 
-    if (!repairedParsed.success) {
-      throw new Error(
-        `AI_IMPORT_PHASE_FAILED:${input.phase}`,
+    if (
+      repairValidation.ok
+    ) {
+      logPhase(
+        input.runId,
+        input.phase,
+        "REPAIRED",
+        `${Date.now() - startedAt}ms`,
       );
+
+      return repairValidation.data;
     }
 
-    return repairedParsed.data;
-  }
-
-  const firstParsed =
-    input.schema.safeParse(
-      firstJson,
-    );
-
-  if (firstParsed.success) {
-    return firstParsed.data;
-  }
-
-  const repaired =
-    await callJson(
-      buildRepairPrompt({
-        phase:
-          input.phase,
-
-        originalPrompt:
-          input.prompt,
-
-        previousResponse:
-          firstResponse,
-
-        validationErrors:
-          JSON.stringify(
-            firstParsed.error.flatten(),
-          ),
-      }),
-    );
-
-  const repairedParsed =
-    input.schema.safeParse(
-      parseJson(
-        repaired,
-      ),
-    );
-
-  if (!repairedParsed.success) {
     console.error(
       "TIMETABLE_V3_AI_IMPORT_PHASE_SCHEMA_FAILED",
       {
+        runId:
+          input.runId,
         phase:
           input.phase,
-
         errors:
-          repairedParsed.error.flatten(),
+          repairValidation.errors,
       },
     );
 
@@ -323,7 +669,61 @@ async function runPhase<T>(
     );
   }
 
-  return repairedParsed.data;
+  const repairResponse =
+    await callJson(
+      buildRepairPrompt({
+        phase:
+          input.phase,
+
+        language:
+          input.language,
+
+        originalPrompt:
+          input.prompt,
+
+        previousResponse:
+          firstResponse,
+
+        validationErrors:
+          "JSON غير صالح نحويًا.",
+      }),
+    );
+
+  const repairValidation =
+    validate(
+      parseJson(
+        repairResponse,
+      ),
+    );
+
+  if (
+    !repairValidation.ok
+  ) {
+    console.error(
+      "TIMETABLE_V3_AI_IMPORT_PHASE_SCHEMA_FAILED",
+      {
+        runId:
+          input.runId,
+        phase:
+          input.phase,
+        errors:
+          repairValidation.errors,
+      },
+    );
+
+    throw new Error(
+      `AI_IMPORT_PHASE_FAILED:${input.phase}`,
+    );
+  }
+
+  logPhase(
+    input.runId,
+    input.phase,
+    "REPAIRED",
+    `${Date.now() - startedAt}ms`,
+  );
+
+  return repairValidation.data;
 }
 
 function uniqueStrings(
@@ -333,7 +733,9 @@ function uniqueStrings(
     ...new Set(
       values
         .map(
-          (value) =>
+          (
+            value,
+          ) =>
             value.trim(),
         )
         .filter(Boolean),
@@ -343,11 +745,7 @@ function uniqueStrings(
 
 function compactTeachers(
   teachers:
-    Array<{
-      name: string;
-      specialty: string | null;
-      maxWeeklyLoad: number | null;
-    }>,
+    TimetableAiImportResult["teachers"],
 ) {
   return teachers.map(
     (
@@ -368,6 +766,9 @@ function compactTeachers(
 export async function analyzeTimetableV3ImportText(
   sourceText: string,
 ): Promise<TimetableAiImportResult> {
+  const runId =
+    createRunId();
+
   const request =
     normalizeSourceText(
       sourceText,
@@ -388,41 +789,97 @@ export async function analyzeTimetableV3ImportText(
     );
   }
 
-  // ========================================================
-  // PHASE 1 — SCHOOL PLAN
-  // ========================================================
+  const hints =
+    extractRequestHints(
+      request,
+    );
+
+  const language =
+    detectTimetableAiImportLanguage(
+      request,
+    );
+
+  logPhase(
+    runId,
+    "PIPELINE",
+    "START",
+    `teachers=${hints.teacherCount ?? "?"} classes=${hints.classCount ?? "?"} stages=${hints.stageCount ?? "?"}`,
+  );
 
   const planning =
     await runPhase({
+      runId,
+
       phase:
         "PLANNING",
 
+      language,
+
       prompt:
-        buildPlanningPrompt(
+        buildPlanningPrompt({
           request,
-        ),
+
+          expectedTeacherCount:
+            hints.teacherCount,
+
+          expectedClassCount:
+            hints.classCount,
+
+          expectedStageCount:
+            hints.stageCount,
+        }),
 
       schema:
         planningSchema,
+
+      semanticValidate:
+        (
+          value,
+        ) => {
+          const errors:
+            string[] = [];
+
+          if (
+            value.stages.length ===
+            0
+          ) {
+            errors.push(
+              "يجب تحديد مرحلة دراسية واحدة على الأقل.",
+            );
+          }
+
+          if (
+            hints.stageCount != null &&
+            value.stages.length !==
+              hints.stageCount
+          ) {
+            errors.push(
+              `عدد المراحل المطلوب ${hints.stageCount} لكن الناتج يحتوي ${value.stages.length}.`,
+            );
+          }
+
+          if (
+            hints.classCount != null &&
+            value.classes.length !==
+              hints.classCount
+          ) {
+            errors.push(
+              `عدد الفصول المطلوب ${hints.classCount} لكن الناتج يحتوي ${value.classes.length}.`,
+            );
+          }
+
+          return errors;
+        },
     });
-
-  if (
-    planning.stages.length ===
-    0
-  ) {
-    throw new Error(
-      "AI_IMPORT_NO_STAGES",
-    );
-  }
-
-  // ========================================================
-  // PHASE 2 — TEACHERS
-  // ========================================================
 
   const teacherPlan =
     await runPhase({
+      runId,
+
       phase:
         "TEACHERS",
+
+      language,
 
       prompt:
         buildTeachersPrompt({
@@ -439,16 +896,31 @@ export async function analyzeTimetableV3ImportText(
               subjects:
                 planning.subjects,
             }),
+
+          expectedTeacherCount:
+            hints.teacherCount,
         }),
 
       schema:
         teachersSchema,
-    });
 
-  // ========================================================
-  // PHASE 3 — ASSIGNMENTS
-  // One DeepSeek request per school stage.
-  // ========================================================
+      semanticValidate:
+        (
+          value,
+        ) => {
+          if (
+            hints.teacherCount != null &&
+            value.teachers.length !==
+              hints.teacherCount
+          ) {
+            return [
+              `عدد المعلمين المطلوب ${hints.teacherCount} لكن الناتج يحتوي ${value.teachers.length}.`,
+            ];
+          }
+
+          return [];
+        },
+    });
 
   const assignments:
     TimetableAiImportResult["assignments"] =
@@ -500,15 +972,18 @@ export async function analyzeTimetableV3ImportText(
       continue;
     }
 
-    const stageAssignments =
+    const stageResult =
       await runPhase({
+        runId,
+
         phase:
           `ASSIGNMENTS_${stage}`,
+
+        language,
 
         prompt:
           buildAssignmentsPrompt({
             request,
-
             stage,
 
             classesJson:
@@ -534,27 +1009,23 @@ export async function analyzeTimetableV3ImportText(
       });
 
     assignments.push(
-      ...stageAssignments.assignments,
+      ...stageResult.assignments,
     );
 
     assignmentAssumptions.push(
-      ...stageAssignments.assumptions,
+      ...stageResult.assumptions,
     );
 
     assignmentWarnings.push(
-      ...stageAssignments.warnings,
+      ...stageResult.warnings,
     );
   }
-
-  // ========================================================
-  // PHASE 4 — CONSTRAINTS
-  // ========================================================
 
   const assignmentSummary =
     assignments
       .slice(
         0,
-        250,
+        350,
       )
       .map(
         (
@@ -568,8 +1039,12 @@ export async function analyzeTimetableV3ImportText(
 
   const constraints =
     await runPhase({
+      runId,
+
       phase:
         "CONSTRAINTS",
+
+      language,
 
       prompt:
         buildConstraintsPrompt({
@@ -602,60 +1077,71 @@ export async function analyzeTimetableV3ImportText(
         constraintsSchema,
     });
 
-  // ========================================================
-  // MERGE
-  // ========================================================
+  const merged:
+    TimetableAiImportResult = {
+      mode:
+        planning.mode,
 
-  return {
-    mode:
-      planning.mode,
+      summary:
+        planning.summary,
 
-    summary:
-      planning.summary,
+      stages:
+        [
+          ...new Set(
+            planning.stages,
+          ),
+        ] as TimetableAiImportStage[],
 
-    stages:
-      [
-        ...new Set(
-          planning.stages,
+      classes:
+        planning.classes,
+
+      subjects:
+        planning.subjects,
+
+      teachers:
+        teacherPlan.teachers,
+
+      assignments,
+
+      constraintCandidates:
+        constraints.constraintCandidates,
+
+      assumptions:
+        uniqueStrings([
+          ...planning.assumptions,
+          ...teacherPlan.assumptions,
+          ...assignmentAssumptions,
+          ...constraints.assumptions,
+        ]),
+
+      alternatives:
+        uniqueStrings(
+          planning.alternatives,
         ),
-      ] as TimetableAiImportStage[],
 
-    classes:
-      planning.classes,
+      warnings:
+        uniqueStrings([
+          ...planning.warnings,
+          ...teacherPlan.warnings,
+          ...assignmentWarnings,
+          ...constraints.warnings,
+        ]),
 
-    subjects:
-      planning.subjects,
+      uncertainFields:
+        constraints.uncertainFields,
+    };
 
-    teachers:
-      teacherPlan.teachers,
+  const audited =
+    auditTimetableAiImportResult(
+      merged,
+    );
 
-    assignments,
+  logPhase(
+    runId,
+    "PIPELINE",
+    "COMPLETED",
+    `stages=${audited.stages.length} classes=${audited.classes.length} subjects=${audited.subjects.length} teachers=${audited.teachers.length} assignments=${audited.assignments.length} warnings=${audited.warnings.length}`,
+  );
 
-    constraintCandidates:
-      constraints.constraintCandidates,
-
-    assumptions:
-      uniqueStrings([
-        ...planning.assumptions,
-        ...teacherPlan.assumptions,
-        ...assignmentAssumptions,
-        ...constraints.assumptions,
-      ]),
-
-    alternatives:
-      uniqueStrings(
-        planning.alternatives,
-      ),
-
-    warnings:
-      uniqueStrings([
-        ...planning.warnings,
-        ...teacherPlan.warnings,
-        ...assignmentWarnings,
-        ...constraints.warnings,
-      ]),
-
-    uncertainFields:
-      constraints.uncertainFields,
-  };
+  return audited;
 }

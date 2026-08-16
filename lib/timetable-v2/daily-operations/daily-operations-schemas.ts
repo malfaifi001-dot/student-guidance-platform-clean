@@ -34,6 +34,7 @@ export const waitingPolicySchema = z.object({
   settingsJson: z
     .object({
       referenceLoad: z.number().int().min(1).max(40).optional(),
+      excludedTeacherIds: z.array(z.string().min(1)).max(500).optional(),
       goldenDaysByTeacher: z
         .record(z.string(), z.array(z.string()))
         .optional(),

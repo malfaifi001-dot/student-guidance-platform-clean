@@ -57,6 +57,7 @@ type CandidateReasonCode =
 
 type ExclusionCode =
   | "ORIGINAL_TEACHER"
+  | "EXCLUDED_FROM_WAITING"
   | "INACTIVE_TEACHER"
   | "BUSY_IN_PERIOD"
   | "ABSENT_ON_DATE"
@@ -1789,7 +1790,6 @@ export async function createSupervisionDuty(
       },
       select: {
         id: true,
-        settingsJson: true,
       },
     });
 
@@ -1819,9 +1819,9 @@ export async function createSupervisionDuty(
   }
 
   if (input.periodId) {
-    const schedule = normalizeSchedule(
-      normalizeRecord(project.settingsJson)
-        .generatedSchedule,
+    const schedule = await loadPublishedSchedule(
+      projectId,
+      schoolAccountId,
     );
 
     for (const teacher of validTeachers) {
@@ -1889,7 +1889,7 @@ export async function updateSupervisionDuty(
   const [project, duty, validTeachers] = await Promise.all([
     prisma.timetableProject.findFirst({
       where: { id: projectId, schoolAccountId },
-      select: { id: true, settingsJson: true },
+      select: { id: true },
     }),
     prisma.timetableSupervisionDuty.findFirst({
       where: { id: dutyId, projectId, schoolAccountId },
@@ -1907,7 +1907,10 @@ export async function updateSupervisionDuty(
   }
 
   if (input.periodId) {
-    const schedule = normalizeSchedule(normalizeRecord(project.settingsJson).generatedSchedule);
+    const schedule = await loadPublishedSchedule(
+      projectId,
+      schoolAccountId,
+    );
     const hasConflict = validTeachers.some((teacher) =>
       schedule.some(
         (session) =>
@@ -2090,9 +2093,18 @@ function rankCandidates(input: {
         input.session.teacherId,
     )?.specialty || null;
 
+  const excludedTeacherIds =
+    normalizeStringArray(
+      input.policySettings.excludedTeacherIds,
+    );
+
   for (const teacher of input.teachers) {
     const exclusionCodes: ExclusionCode[] =
       [];
+
+    if (excludedTeacherIds.includes(teacher.id)) {
+      exclusionCodes.push("EXCLUDED_FROM_WAITING");
+    }
 
     if (
       teacher.id ===
@@ -2692,6 +2704,8 @@ function exclusionLabel(
     ExclusionCode,
     string
   > = {
+    EXCLUDED_FROM_WAITING:
+      "المعلم غير مشمول بحصص الانتظار",
     ORIGINAL_TEACHER:
       "هو المعلم الغائب نفسه",
     INACTIVE_TEACHER:

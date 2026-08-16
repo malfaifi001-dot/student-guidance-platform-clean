@@ -127,20 +127,17 @@ export function TimetableV3NewProjectForm() {
   return (
     <div
       dir="rtl"
-      className="mx-auto flex min-h-[72vh] w-full max-w-xl items-center px-4 py-8"
+      className="mx-auto flex min-h-[68vh] w-full max-w-xl items-center px-4 py-8"
     >
       <form
         onSubmit={
           submit
         }
-        className="w-full"
+        className="w-full rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
       >
         <div className="mb-8">
-          <div className="mb-2 text-sm font-medium text-slate-500">
-            Timetable V3
-          </div>
-
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+          <p className="text-xs font-black text-[#3478B8]">الجدول الدراسي</p>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
             مشروع جديد
           </h1>
         </div>
@@ -160,7 +157,7 @@ export function TimetableV3NewProjectForm() {
                   )
               }
               autoFocus
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-slate-900"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-[#3478B8] focus:ring-4 focus:ring-[#3478B8]/10"
             />
           </Field>
 
@@ -177,7 +174,7 @@ export function TimetableV3NewProjectForm() {
                     event.target.value,
                   )
               }
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-slate-900"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-[#3478B8] focus:ring-4 focus:ring-[#3478B8]/10"
             />
           </Field>
 
@@ -229,7 +226,7 @@ export function TimetableV3NewProjectForm() {
           disabled={
             saving
           }
-          className="mt-8 h-12 w-full rounded-xl bg-slate-950 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-8 h-11 w-full rounded-xl bg-[#3478B8] font-bold text-white transition hover:bg-[#2D6BA5] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
             ? "جاري الإنشاء..."
@@ -279,8 +276,8 @@ function Choice(
       className={[
         "h-12 rounded-xl border text-sm font-semibold transition",
         props.active
-          ? "border-slate-950 bg-slate-950 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+          ? "border-[#3478B8] bg-[#3478B8] text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:border-[#8FC4E3]",
       ].join(
         " ",
       )}
