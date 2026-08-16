@@ -19,6 +19,8 @@ import {
 
 import {
   TIMETABLE_V3_STAGES,
+  findTimetableV3Grade,
+  type TimetableV3ClassMappings,
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
 
@@ -52,6 +54,49 @@ function asObject(
   return value as Record<string, unknown>;
 }
 
+export function normalizeTimetableV3ClassMappings(
+  settingsJson: unknown,
+  classes: Array<{ id: string }>,
+): TimetableV3ClassMappings {
+  const rawMappings = asObject(
+    asObject(
+      asObject(settingsJson).timetableV3,
+    ).classMappings,
+  );
+  const classIds = new Set(classes.map((item) => item.id));
+  const normalized: TimetableV3ClassMappings = {};
+
+  for (const [classId, rawValue] of Object.entries(rawMappings)) {
+    if (!classIds.has(classId)) {
+      continue;
+    }
+
+    const value = asObject(rawValue);
+    const stageId = value.stageId;
+    const gradeId = value.gradeId;
+
+    if (
+      typeof stageId !== "string" ||
+      typeof gradeId !== "string"
+    ) {
+      continue;
+    }
+
+    const grade = findTimetableV3Grade(stageId, gradeId);
+    if (!grade) {
+      continue;
+    }
+
+    normalized[classId] = {
+      stageId: grade.stageId,
+      gradeId: grade.id,
+      gradeName: grade.name,
+    };
+  }
+
+  return normalized;
+}
+
 function isTimetableV3Project(
   settingsJson: unknown,
 ) {
@@ -76,6 +121,10 @@ export function normalizeTimetableV3Stages(
   const v3 = asObject(
     asObject(settingsJson).timetableV3,
   );
+  const classMappings = asObject(v3.classMappings);
+  const mappedStages = Object.values(classMappings)
+    .map((value) => asObject(value).stageId)
+    .filter((value): value is string => typeof value === "string");
 
   const hasStoredStages =
     (Array.isArray(v3.stages) && v3.stages.length > 0) ||
@@ -86,15 +135,17 @@ export function normalizeTimetableV3Stages(
       ? v3.stages
       : [v3.stage]
     : classNames.length > 0
-      ? TIMETABLE_V3_STAGES.filter((stage) =>
-          stage.grades.some((grade) =>
-            classNames.some(
-              (className) =>
-                className === grade.name ||
-                className.startsWith(`${grade.name} `),
+      ? mappedStages.length > 0
+        ? mappedStages
+        : TIMETABLE_V3_STAGES.filter((stage) =>
+            stage.grades.some((grade) =>
+              classNames.some(
+                (className) =>
+                  className === grade.name ||
+                  className.startsWith(`${grade.name} `),
+              ),
             ),
-          ),
-        ).map((stage) => stage.id)
+          ).map((stage) => stage.id)
       : [];
 
   const allowed = new Set<string>(
@@ -583,6 +634,12 @@ export async function getTimetableV3SetupWorkspace(
 
     classes,
 
+    classMappings:
+      normalizeTimetableV3ClassMappings(
+        project.settingsJson,
+        classes,
+      ),
+
     subjects,
 
     teachers:
@@ -639,6 +696,67 @@ export async function saveTimetableV3Stages(
         timetableV3: {
           ...timetableV3,
           stages: unique,
+        },
+      } as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function saveTimetableV3ClassMappings(
+  projectId: string,
+  schoolAccountId: string,
+  mappings: TimetableV3ClassMappings,
+) {
+  const project = await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  const classes = await prisma.timetableClass.findMany({
+    where: { projectId },
+    select: { id: true },
+  });
+  const classIds = new Set(classes.map((item) => item.id));
+  const normalized: TimetableV3ClassMappings = {};
+
+  for (const [classId, value] of Object.entries(mappings)) {
+    if (!classIds.has(classId)) {
+      continue;
+    }
+
+    const grade = findTimetableV3Grade(
+      value.stageId,
+      value.gradeId,
+    );
+    if (!grade) {
+      throw new Error("INVALID_CLASS_MAPPING");
+    }
+
+    normalized[classId] = {
+      stageId: grade.stageId,
+      gradeId: grade.id,
+      gradeName: grade.name,
+    };
+  }
+
+  const settings = asObject(project.settingsJson);
+  const timetableV3 = asObject(settings.timetableV3);
+  const existing = normalizeTimetableV3ClassMappings(
+    project.settingsJson,
+    classes,
+  );
+
+  await prisma.timetableProject.update({
+    where: { id: projectId },
+    data: {
+      settingsJson: {
+        ...settings,
+        timetableV3: {
+          ...timetableV3,
+          classMappings: {
+            ...existing,
+            ...normalized,
+          },
         },
       } as Prisma.InputJsonValue,
     },
@@ -791,9 +909,19 @@ export async function saveTimetableV3Classes(
   schoolAccountId: string,
   names: string[],
 ) {
-  await requireProject(
+  const project = await requireProject(
     projectId,
     schoolAccountId,
+  );
+
+  const mappedClassIds = new Set(
+    Object.keys(
+      asObject(
+        asObject(
+          asObject(project.settingsJson).timetableV3,
+        ).classMappings,
+      ),
+    ),
   );
 
   const normalized =
@@ -834,6 +962,15 @@ export async function saveTimetableV3Classes(
         const item of
         existing
       ) {
+        if (mappedClassIds.has(item.id)) {
+          await tx.timetableClass.update({
+            where: { id: item.id },
+            data: { isActive: true },
+          });
+          wanted.delete(item.name);
+          continue;
+        }
+
         if (
           wanted.has(
             item.name,

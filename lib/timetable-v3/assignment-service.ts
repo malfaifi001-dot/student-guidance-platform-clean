@@ -9,6 +9,7 @@ import {
 } from "@/lib/prisma";
 
 import {
+  normalizeTimetableV3ClassMappings,
   normalizeTimetableV3Stages,
 } from "./project-setup-service";
 
@@ -465,6 +466,12 @@ export async function getTimetableV3AssignmentsWorkspace(
       ),
 
     classes,
+
+    classMappings:
+      normalizeTimetableV3ClassMappings(
+        project.settingsJson,
+        classes,
+      ),
 
     subjects,
 

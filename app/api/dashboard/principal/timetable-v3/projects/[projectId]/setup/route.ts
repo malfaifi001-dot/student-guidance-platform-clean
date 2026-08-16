@@ -13,6 +13,7 @@ import {
 import {
   getTimetableV3SetupWorkspace,
   saveTimetableV3Classes,
+  saveTimetableV3ClassMappings,
   saveTimetableV3Days,
   saveTimetableV3Periods,
   saveTimetableV3Subjects,
@@ -111,6 +112,41 @@ const schema =
           )
             .min(1)
             .max(3),
+      }),
+
+      z.object({
+        action:
+          z.literal(
+            "SAVE_CLASS_MAPPINGS",
+          ),
+
+        classMappings:
+          z.record(
+            z.string().min(1),
+            z.object({
+              stageId:
+                z.enum([
+                  "ELEMENTARY",
+                  "MIDDLE",
+                  "HIGH",
+                ]),
+
+              gradeId:
+                z.string()
+                  .trim()
+                  .min(1)
+                  .max(50),
+
+              gradeName:
+                z.string()
+                  .trim()
+                  .min(1)
+                  .max(120),
+            }),
+          )
+          .refine(
+            (value) => Object.keys(value).length <= 500,
+          ),
       }),
 
       z.object({
@@ -299,6 +335,14 @@ export async function PATCH(
           projectId,
           access.schoolAccountId!,
           parsed.data.names,
+        );
+        break;
+
+      case "SAVE_CLASS_MAPPINGS":
+        await saveTimetableV3ClassMappings(
+          projectId,
+          access.schoolAccountId!,
+          parsed.data.classMappings,
         );
         break;
 

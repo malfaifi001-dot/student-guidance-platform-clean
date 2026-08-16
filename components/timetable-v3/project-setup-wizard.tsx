@@ -10,7 +10,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -25,6 +24,8 @@ import {
   ARABIC_CLASS_SECTION_LETTERS,
   TIMETABLE_V3_STAGES,
   buildTimetableV3GradeClasses,
+  resolveTimetableV3ClassClassification,
+  type TimetableV3ClassMappings,
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
 
@@ -176,6 +177,11 @@ export function TimetableV3ProjectSetupWizard(
   );
 
   const [
+    classMappings,
+    setClassMappings,
+  ] = useState<TimetableV3ClassMappings>({});
+
+  const [
     stages,
     setStages,
   ] = useState<TimetableV3StageId[]>([]);
@@ -242,6 +248,10 @@ export function TimetableV3ProjectSetupWizard(
                   item.name,
               )
             : [],
+        );
+
+        setClassMappings(
+          data.classMappings ?? {},
         );
 
         setStages(
@@ -413,6 +423,21 @@ export function TimetableV3ProjectSetupWizard(
         false,
       );
     }
+  }
+
+  async function saveClassMappings(
+    mappings: TimetableV3ClassMappings,
+  ) {
+    const ok = await save({
+      action: "SAVE_CLASS_MAPPINGS",
+      classMappings: mappings,
+    });
+
+    if (ok) {
+      setSuccess("تم حفظ ربط الفصول دون تغيير بياناتها الحالية.");
+    }
+
+    return ok;
   }
 
   function applyAiImport(
@@ -933,6 +958,9 @@ export function TimetableV3ProjectSetupWizard(
                 }
                 stages={stages}
                 onStagesChange={setStages}
+                classItems={workspace.classes}
+                classMappings={classMappings}
+                onSaveClassMappings={saveClassMappings}
               />
             ) : null}
 
@@ -2420,6 +2448,17 @@ function ClassesStep(
       value:
         TimetableV3StageId[],
     ) => void;
+
+    classItems: Array<{
+      id: string;
+      name: string;
+    }>;
+
+    classMappings: TimetableV3ClassMappings;
+
+    onSaveClassMappings: (
+      value: TimetableV3ClassMappings,
+    ) => Promise<boolean>;
   },
 ) {
   const [
@@ -2445,8 +2484,31 @@ function ClassesStep(
         : [],
   );
 
-  const initialized =
-    useRef(false);
+  const [
+    mappingDrafts,
+    setMappingDrafts,
+  ] = useState<TimetableV3ClassMappings>(
+    props.classMappings,
+  );
+
+  const [
+    mappingSavingId,
+    setMappingSavingId,
+  ] = useState<string | null>(null);
+
+  const [
+    mappingError,
+    setMappingError,
+  ] = useState<string | null>(null);
+
+  const [
+    countWarning,
+    setCountWarning,
+  ] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMappingDrafts(props.classMappings);
+  }, [props.classMappings]);
 
   const selectedStages =
     TIMETABLE_V3_STAGES.filter(
@@ -2456,15 +2518,140 @@ function ClassesStep(
         ),
     );
 
-  useEffect(() => {
-    if (initialized.current) {
+  const mappedCountByGrade = useMemo(() => {
+    const counts: GradeCountMap = {};
+
+    for (const classItem of props.classItems) {
+      const classification = resolveTimetableV3ClassClassification(
+        classItem.id,
+        classItem.name,
+        props.classMappings,
+      );
+
+      if (
+        classification?.source === "mapping" &&
+        props.value.includes(classItem.name)
+      ) {
+        counts[classification.gradeId] =
+          (counts[classification.gradeId] ?? 0) + 1;
+      }
+    }
+
+    return counts;
+  }, [props.classItems, props.classMappings, props.value]);
+
+  const unresolvedClasses = useMemo(
+    () =>
+      props.classItems.filter(
+        (classItem) =>
+          props.value.includes(classItem.name) &&
+          !resolveTimetableV3ClassClassification(
+            classItem.id,
+            classItem.name,
+            props.classMappings,
+          ),
+      ),
+    [props.classItems, props.classMappings, props.value],
+  );
+
+  function updateMappingStage(
+    classId: string,
+    nextStageId: TimetableV3StageId | "",
+  ) {
+    setMappingError(null);
+
+    if (!nextStageId) {
+      setMappingDrafts((current) => {
+        const next = { ...current };
+        delete next[classId];
+        return next;
+      });
       return;
     }
 
-    initialized.current = true;
+    setMappingDrafts((current) => ({
+      ...current,
+      [classId]: {
+        stageId: nextStageId,
+        gradeId: "",
+        gradeName: "",
+      },
+    }));
+  }
 
+  function updateMappingGrade(
+    classId: string,
+    gradeId: string,
+  ) {
+    const draft = mappingDrafts[classId];
+    if (!draft) {
+      return;
+    }
+
+    const stage = TIMETABLE_V3_STAGES.find(
+      (item) => item.id === draft.stageId,
+    );
+    const grade = stage?.grades.find(
+      (item) => item.id === gradeId,
+    );
+
+    if (!grade) {
+      return;
+    }
+
+    setMappingError(null);
+    setMappingDrafts((current) => ({
+      ...current,
+      [classId]: {
+        stageId: draft.stageId,
+        gradeId: grade.id,
+        gradeName: grade.name,
+      },
+    }));
+  }
+
+  async function saveMapping(classId: string) {
+    const draft = mappingDrafts[classId];
+    if (!draft?.stageId || !draft.gradeId) {
+      setMappingError("اختر المرحلة والصف قبل حفظ الربط.");
+      return;
+    }
+
+    setMappingError(null);
+    setMappingSavingId(classId);
+    const ok = await props.onSaveClassMappings({
+      ...props.classMappings,
+      [classId]: draft,
+    });
+    setMappingSavingId(null);
+
+    if (!ok) {
+      setMappingError("تعذر حفظ ربط الفصل.");
+    }
+  }
+
+  useEffect(() => {
     const nextCounts: GradeCountMap = {};
     const generatedNames = new Set<string>();
+    const mappedNames = new Set<string>();
+    const mappedCounts: GradeCountMap = {};
+
+    for (const classItem of props.classItems) {
+      const classification = resolveTimetableV3ClassClassification(
+        classItem.id,
+        classItem.name,
+        props.classMappings,
+      );
+
+      if (
+        classification?.source === "mapping" &&
+        props.value.includes(classItem.name)
+      ) {
+        mappedNames.add(classItem.name);
+        mappedCounts[classification.gradeId] =
+          (mappedCounts[classification.gradeId] ?? 0) + 1;
+      }
+    }
 
     for (const stage of selectedStages) {
       for (const grade of stage.grades) {
@@ -2473,10 +2660,11 @@ function ClassesStep(
           ARABIC_CLASS_SECTION_LETTERS.length,
         );
         const existing = generated.filter((name) =>
-          props.value.includes(name),
+          props.value.includes(name) && !mappedNames.has(name),
         );
 
-        nextCounts[grade.id] = existing.length;
+        nextCounts[grade.id] =
+          existing.length + (mappedCounts[grade.id] ?? 0);
         existing.forEach((name) => generatedNames.add(name));
       }
     }
@@ -2485,7 +2673,12 @@ function ClassesStep(
     setManual(
       props.value.filter((name) => !generatedNames.has(name)),
     );
-  }, [props.value, selectedStages]);
+  }, [
+    props.classItems,
+    props.classMappings,
+    props.stages,
+    props.value,
+  ]);
 
   function commit(
     nextCounts:
@@ -2511,10 +2704,11 @@ function ClassesStep(
             ) =>
               buildTimetableV3GradeClasses(
                 grade.name,
-                nextCounts[
-                  grade.id
-                ] ??
+                Math.max(
                   0,
+                  (nextCounts[grade.id] ?? 0) -
+                    (mappedCountByGrade[grade.id] ?? 0),
+                ),
               ),
           ),
       );
@@ -2531,16 +2725,36 @@ function ClassesStep(
     stageId: TimetableV3StageId,
   ) {
     const removing = props.stages.includes(stageId);
+    const stageToPreserve =
+      TIMETABLE_V3_STAGES.find((stage) => stage.id === stageId);
+
+    if (removing && stageToPreserve) {
+      const mappedInStage = stageToPreserve.grades.reduce(
+        (total, grade) => total + (mappedCountByGrade[grade.id] ?? 0),
+        0,
+      );
+
+      if (mappedInStage > 0) {
+        setCountWarning(
+          `يوجد ${mappedInStage} فصول مرتبطة بهذه المرحلة. لا يمكن إلغاء المرحلة دون معالجة الفصول الحالية.`,
+        );
+        return;
+      }
+    }
+
+    setCountWarning(null);
     const nextStages = removing
       ? props.stages.filter((item) => item !== stageId)
       : [...props.stages, stageId];
-    const stageToPreserve =
-      TIMETABLE_V3_STAGES.find((stage) => stage.id === stageId);
     const preservedGenerated = removing && stageToPreserve
       ? stageToPreserve.grades.flatMap((grade) =>
           buildTimetableV3GradeClasses(
             grade.name,
-            counts[grade.id] ?? 0,
+            Math.max(
+              0,
+              (counts[grade.id] ?? 0) -
+                (mappedCountByGrade[grade.id] ?? 0),
+            ),
           ),
         )
       : [];
@@ -2560,6 +2774,16 @@ function ClassesStep(
     gradeId: string,
     value: number,
   ) {
+    const mappedCount = mappedCountByGrade[gradeId] ?? 0;
+
+    if (value < mappedCount) {
+      setCountWarning(
+        `يوجد ${mappedCount} فصول مرتبطة بهذا الصف. لا يمكن تقليل العدد دون معالجة الفصول الحالية.`,
+      );
+      return;
+    }
+
+    setCountWarning(null);
     const next = {
       ...counts,
 
@@ -2732,6 +2956,99 @@ function ClassesStep(
         </div>
       ) : null}
 
+      {countWarning ? (
+        <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          {countWarning}
+        </div>
+      ) : null}
+
+      {unresolvedClasses.length > 0 ? (
+        <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="mb-1 text-sm font-bold text-amber-900">
+            فصول تحتاج ربط
+          </div>
+          <div className="mb-4 text-xs text-amber-800">
+            اربط الفصول القديمة بالمرحلة والصف دون فقد الإسنادات.
+          </div>
+
+          <div className="space-y-2">
+            {unresolvedClasses.map((classItem) => {
+              const draft = mappingDrafts[classItem.id];
+              const stage = TIMETABLE_V3_STAGES.find(
+                (item) => item.id === draft?.stageId,
+              );
+
+              return (
+                <div
+                  key={classItem.id}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-100 bg-white px-3 py-2"
+                >
+                  <span className="min-w-16 font-bold text-slate-900">
+                    {classItem.name}
+                  </span>
+
+                  <select
+                    value={draft?.stageId ?? ""}
+                    onChange={(event) =>
+                      updateMappingStage(
+                        classItem.id,
+                        event.target.value as TimetableV3StageId | "",
+                      )
+                    }
+                    className="h-9 min-w-40 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#3478B8]"
+                  >
+                    <option value="">المرحلة</option>
+                    {TIMETABLE_V3_STAGES.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={draft?.gradeId ?? ""}
+                    disabled={!stage}
+                    onChange={(event) =>
+                      updateMappingGrade(
+                        classItem.id,
+                        event.target.value,
+                      )
+                    }
+                    className="h-9 min-w-36 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#3478B8] disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    <option value="">الصف</option>
+                    {stage?.grades.map((grade) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    disabled={
+                      mappingSavingId === classItem.id ||
+                      !draft?.stageId ||
+                      !draft.gradeId
+                    }
+                    onClick={() => void saveMapping(classItem.id)}
+                    className="h-9 rounded-lg bg-[#3478B8] px-3 text-xs font-bold text-white transition hover:bg-[#2D6BA5] disabled:opacity-40"
+                  >
+                    {mappingSavingId === classItem.id ? "جارٍ الحفظ..." : "حفظ الربط"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {mappingError ? (
+            <div className="mt-3 text-xs font-semibold text-red-700">
+              {mappingError}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-6 space-y-6">
         {selectedStages.map(
           (stage) => (
@@ -2747,6 +3064,19 @@ function ClassesStep(
                 grade.id
               ] ??
               0;
+            const mappedCount =
+              mappedCountByGrade[grade.id] ??
+              0;
+            const sectionLetters =
+              ARABIC_CLASS_SECTION_LETTERS
+                .slice(
+                  0,
+                  Math.min(
+                    Math.max(count, 0),
+                    ARABIC_CLASS_SECTION_LETTERS.length,
+                  ),
+                )
+                .join("، ");
 
                   return (
               <div
@@ -2761,16 +3091,14 @@ function ClassesStep(
                       grade.name
                     }
                   </div>
-                  {count > 0 ? (
+                  {mappedCount > 0 ? (
+                    <div className="mt-1 text-xs font-semibold text-amber-700">
+                      {mappedCount} فصول مرتبطة
+                    </div>
+                  ) : null}
+                  {sectionLetters ? (
                     <div className="mt-1 text-xs font-semibold text-slate-400">
-                      {buildTimetableV3GradeClasses(
-                        grade.name,
-                        count,
-                      )
-                        .map((className) =>
-                          className.slice(grade.name.length + 1),
-                        )
-                        .join("، ")}
+                      {sectionLetters}
                     </div>
                   ) : null}
                 </div>

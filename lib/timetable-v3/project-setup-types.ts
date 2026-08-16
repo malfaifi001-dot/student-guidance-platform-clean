@@ -63,6 +63,8 @@ export type TimetableV3SetupWorkspace = {
     name: string;
   }>;
 
+  classMappings: import("@/lib/timetable-v3/school-setup-catalog").TimetableV3ClassMappings;
+
   subjects: Array<{
     id: string;
     name: string;

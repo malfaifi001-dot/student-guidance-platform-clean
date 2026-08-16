@@ -14,6 +14,8 @@ import type {
 
 import {
   TIMETABLE_V3_STAGES,
+  resolveTimetableV3ClassClassification,
+  type TimetableV3ClassMappings,
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
 
@@ -73,33 +75,26 @@ type Workspace = {
   subjects: Subject[];
   classSubjects?: ClassSubject[];
   assignments: Assignment[];
-};
-
-type TimetableV3ClassMetadata = {
-  stageId: TimetableV3StageId;
-  gradeId: string;
+  classMappings?: TimetableV3ClassMappings;
 };
 
 function resolveTimetableV3ClassMetadata(
+  classId: string,
   className: string,
-): TimetableV3ClassMetadata | null {
-  const normalizedName = className.trim();
+  mappings: TimetableV3ClassMappings = {},
+) {
+  const classification = resolveTimetableV3ClassClassification(
+    classId,
+    className,
+    mappings,
+  );
 
-  for (const stage of TIMETABLE_V3_STAGES) {
-    for (const grade of stage.grades) {
-      if (
-        normalizedName === grade.name ||
-        normalizedName.startsWith(`${grade.name} `)
-      ) {
-        return {
-          stageId: stage.id,
-          gradeId: grade.id,
-        };
+  return classification
+    ? {
+        stageId: classification.stageId,
+        gradeId: classification.gradeId,
       }
-    }
-  }
-
-  return null;
+    : null;
 }
 
 type Draft = {
@@ -1321,10 +1316,14 @@ function AssignmentsGrid({
       new Map(
         workspace.classes.map((classItem) => [
           classItem.id,
-          resolveTimetableV3ClassMetadata(classItem.name),
+          resolveTimetableV3ClassMetadata(
+            classItem.id,
+            classItem.name,
+            workspace.classMappings,
+          ),
         ]),
       ),
-    [workspace.classes],
+    [workspace.classMappings, workspace.classes],
   );
 
   const stageOptions = useMemo(() => {
