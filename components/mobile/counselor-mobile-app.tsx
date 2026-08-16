@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { MobileAppShell, type MobileShellSection } from "@/components/mobile/mobile-app-shell";
 import { MobileIcon, type MobileIconName } from "@/components/mobile/mobile-icons";
+import { MobilePopCard } from "@/components/mobile/mobile-pop-card";
 
 type MobileAction = {
   id: string;
   title: string;
   description: string;
   icon: MobileIconName;
+  href?: string;
 };
 
 type MobileModule = {
@@ -16,16 +19,20 @@ type MobileModule = {
   title: string;
   subtitle: string;
   icon: MobileIconName;
-  route: string;
+  route?: string;
+  available?: boolean;
   metric: string;
   actions: MobileAction[];
 };
 
 type GuidanceService = {
   title: string;
-  href: string;
+  href?: string;
   icon: MobileIconName;
 };
+
+const unavailableTitle = "\u0645\u0633\u0627\u0631 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u0639\u0644\u0649 \u0627\u0644\u0647\u0627\u062a\u0641 \u0628\u0639\u062f";
+const unavailableDescription = "\u0633\u064a\u062a\u0645 \u062a\u0648\u0641\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u0645\u0633\u0627\u0631 \u0639\u0646\u062f \u062c\u0627\u0647\u0632\u064a\u062a\u0647 \u0636\u0645\u0646 \u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0647\u0627\u062a\u0641.";
 
 const modules: MobileModule[] = [
   {
@@ -48,6 +55,7 @@ const modules: MobileModule[] = [
     subtitle: "معاينة وإصدار.",
     icon: "file",
     route: "/mobile/counselor/reports",
+    available: false,
     metric: "8",
     actions: [
       { id: "create", title: "تقرير جديد", description: "إصدار تقرير.", icon: "plus" },
@@ -62,6 +70,7 @@ const modules: MobileModule[] = [
     subtitle: "رفع وبحث ومراجعة.",
     icon: "upload",
     route: "/mobile/counselor/students-upload",
+    available: false,
     metric: "248",
     actions: [
       { id: "upload", title: "رفع ملف", description: "بيانات الطلاب.", icon: "upload" },
@@ -76,6 +85,7 @@ const modules: MobileModule[] = [
     subtitle: "إنشاء وردود.",
     icon: "survey",
     route: "/mobile/counselor/surveys",
+    available: false,
     metric: "5",
     actions: [
       { id: "create", title: "استبيان جديد", description: "إنشاء سريع.", icon: "plus" },
@@ -90,6 +100,7 @@ const modules: MobileModule[] = [
     subtitle: "نتائج وتدخلات.",
     icon: "chart",
     route: "/mobile/counselor/assessment-center",
+    available: false,
     metric: "9",
     actions: [
       { id: "upload", title: "رفع تحليل", description: "نتائج اختبار.", icon: "upload" },
@@ -138,17 +149,14 @@ const guidanceServices: GuidanceService[] = [
   },
   {
     title: "بيانات الطلاب",
-    href: "/mobile/counselor/students-upload",
     icon: "upload",
   },
   {
     title: "الاستبيانات",
-    href: "/mobile/counselor/surveys",
     icon: "survey",
   },
   {
     title: "مركز التحليل",
-    href: "/mobile/counselor/assessment-center",
     icon: "chart",
   },
 ];
@@ -184,7 +192,7 @@ function IconBox({ icon, dark = false }: { icon: MobileIconName; dark?: boolean 
   );
 }
 
-function HomeHero({ userName }: { userName?: string }) {
+function HomeHero({ userName, onUnavailable }: { userName?: string; onUnavailable: () => void }) {
   const firstName = String(userName || "")
     .trim()
     .split(/\s+/)
@@ -214,22 +222,22 @@ function HomeHero({ userName }: { userName?: string }) {
             <p className="mt-1 text-[9px] font-black leading-none text-white/75">حالات نشطة</p>
           </Link>
 
-          <Link href="/mobile/counselor/reports" className="rounded-[1rem] px-1 py-1.5 transition active:scale-[0.98]">
+          <button type="button" onClick={onUnavailable} className="rounded-[1rem] px-1 py-1.5 text-right transition active:scale-[0.98]">
             <p className="text-[1.35rem] font-black leading-none text-white">8</p>
             <p className="mt-1 text-[9px] font-black leading-none text-white/75">تقارير جاهزة</p>
-          </Link>
+          </button>
 
-          <Link href="/mobile/counselor/surveys" className="rounded-[1rem] px-1 py-1.5 transition active:scale-[0.98]">
+          <button type="button" onClick={onUnavailable} className="rounded-[1rem] px-1 py-1.5 text-right transition active:scale-[0.98]">
             <p className="text-[1.35rem] font-black leading-none text-white">5</p>
             <p className="mt-1 text-[9px] font-black leading-none text-white/75">استبيانات</p>
-          </Link>
+          </button>
         </div>
       </div>
     </section>
   );
 }
 
-function MainActions() {
+function MainActions({ onUnavailable }: { onUnavailable: () => void }) {
   const actions = [
     {
       title: "حالة جديدة",
@@ -238,17 +246,14 @@ function MainActions() {
     },
     {
       title: "تقرير",
-      href: "/mobile/counselor/reports/create",
       icon: "file" as MobileIconName,
     },
     {
       title: "استبيان",
-      href: "/mobile/counselor/surveys/create",
       icon: "survey" as MobileIconName,
     },
     {
       title: "رفع تحليل",
-      href: "/mobile/counselor/assessment-center/upload",
       icon: "chart" as MobileIconName,
     },
   ];
@@ -256,32 +261,43 @@ function MainActions() {
   return (
     <section className="grid grid-cols-2 gap-2.5">
       {actions.map((action) => (
-        <Link
+        action.href ? <Link
           key={action.title}
           href={action.href}
           className="flex items-center gap-3 rounded-[1.45rem] bg-white/80 p-3 shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]"
         >
           <IconBox icon={action.icon} />
           <span className="text-sm font-black text-slate-950">{action.title}</span>
-        </Link>
+        </Link> : <button key={action.title} type="button" onClick={onUnavailable} className="flex items-center gap-3 rounded-[1.45rem] bg-white/80 p-3 text-right shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]">
+          <IconBox icon={action.icon} />
+          <span className="text-sm font-black text-slate-950">{action.title}</span>
+        </button>
       ))}
     </section>
   );
 }
 
-function GuidanceServiceCard({ service }: { service: GuidanceService }) {
-  return (
+function GuidanceServiceCard({ service, onUnavailable }: { service: GuidanceService; onUnavailable: () => void }) {
+  const content = <>
+    <IconBox icon={service.icon} />
+    <span className="text-sm font-black leading-5 text-slate-950">{service.title}</span>
+  </>;
+
+  return service.href ? (
     <Link
       href={service.href}
       className="flex min-h-[7.8rem] flex-col justify-between rounded-[1.45rem] bg-white/82 p-3 shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]"
     >
-      <IconBox icon={service.icon} />
-      <span className="text-sm font-black leading-5 text-slate-950">{service.title}</span>
+      {content}
     </Link>
+  ) : (
+    <button type="button" onClick={onUnavailable} className="flex min-h-[7.8rem] flex-col justify-between rounded-[1.45rem] bg-white/82 p-3 text-right shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]">
+      {content}
+    </button>
   );
 }
 
-function GuidanceServicesPager() {
+function GuidanceServicesPager({ onUnavailable }: { onUnavailable: () => void }) {
   const pages = [
     guidanceServices.slice(0, 4),
     guidanceServices.slice(4, 8),
@@ -308,7 +324,7 @@ function GuidanceServicesPager() {
               className="grid w-full shrink-0 snap-start grid-cols-2 gap-2.5"
             >
               {page.map((service) => (
-                <GuidanceServiceCard key={service.title} service={service} />
+                <GuidanceServiceCard key={service.title} service={service} onUnavailable={onUnavailable} />
               ))}
             </div>
           ))}
@@ -318,36 +334,42 @@ function GuidanceServicesPager() {
   );
 }
 
-function HomeView({ userName }: { userName?: string }) {
+function HomeView({ userName, onUnavailable }: { userName?: string; onUnavailable: () => void }) {
   return (
     <div className="space-y-4">
-      <HomeHero userName={userName} />
-      <MainActions />
-      <GuidanceServicesPager />
+      <HomeHero userName={userName} onUnavailable={onUnavailable} />
+      <MainActions onUnavailable={onUnavailable} />
+      <GuidanceServicesPager onUnavailable={onUnavailable} />
     </div>
   );
 }
 
-function ServiceLauncherCard({ module }: { module: MobileModule }) {
+function ServiceLauncherCard({ module, onUnavailable }: { module: MobileModule; onUnavailable: () => void }) {
+  const route = module.route;
+  const content = <>
+    <div className="flex items-start justify-between gap-2">
+      <IconBox icon={module.icon} />
+      <span className="rounded-full bg-slate-100/70 px-2.5 py-1 text-[10px] font-black text-slate-500">{module.metric}</span>
+    </div>
+    <p className="mt-3 text-sm font-black text-slate-950">{module.title}</p>
+    <p className="mt-1 text-[11px] leading-5 text-slate-500">{module.subtitle}</p>
+  </>;
+
+  if (module.available === false || !route) {
+    return <button type="button" onClick={onUnavailable} className="rounded-[1.45rem] bg-white/80 p-3 text-right shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]">{content}</button>;
+  }
+
   return (
     <Link
-      href={module.route}
+      href={route}
       className="rounded-[1.45rem] bg-white/80 p-3 shadow-sm ring-1 ring-white/90 backdrop-blur-xl transition active:scale-[0.99]"
     >
-      <div className="flex items-start justify-between gap-2">
-        <IconBox icon={module.icon} />
-        <span className="rounded-full bg-slate-100/70 px-2.5 py-1 text-[10px] font-black text-slate-500">
-          {module.metric}
-        </span>
-      </div>
-
-      <p className="mt-3 text-sm font-black text-slate-950">{module.title}</p>
-      <p className="mt-1 text-[11px] leading-5 text-slate-500">{module.subtitle}</p>
+      {content}
     </Link>
   );
 }
 
-function ServicesView() {
+function ServicesView({ onUnavailable }: { onUnavailable: () => void }) {
   return (
     <div className="space-y-4">
       <section className="rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-[0_10px_24px_rgba(6,73,103,0.16)]">
@@ -364,7 +386,7 @@ function ServicesView() {
 
       <section className="grid grid-cols-2 gap-2.5">
         {modules.map((module) => (
-          <ServiceLauncherCard key={module.id} module={module} />
+          <ServiceLauncherCard key={module.id} module={module} onUnavailable={onUnavailable} />
         ))}
       </section>
     </div>
@@ -409,8 +431,8 @@ function ActionCard({ module, action }: { module: MobileModule; action: MobileAc
   );
 }
 
-function ModuleView({ module }: { module: MobileModule }) {
-  if (module.id === "services") return <ServicesView />;
+function ModuleView({ module, onUnavailable }: { module: MobileModule; onUnavailable: () => void }) {
+  if (module.id === "services") return <ServicesView onUnavailable={onUnavailable} />;
 
   return (
     <div className="space-y-4">
@@ -456,7 +478,7 @@ function ActionRouteView({ module, actionId }: { module: MobileModule; actionId:
       </section>
 
       <Link
-        href={module.route}
+        href={module.route ?? "/mobile/counselor"}
         className="flex h-11 items-center justify-center rounded-2xl bg-sky-50 text-sm font-black text-sky-700 ring-1 ring-sky-100"
       >
         الرجوع
@@ -475,15 +497,27 @@ export function CounselorMobileApp({
   userName?: string;
 }) {
   const section = getSection(initialSection);
-  const module = getModule(section);
+  const activeModule = getModule(section);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const onUnavailable = () => setFeedbackOpen(true);
 
   return (
-    <MobileAppShell activeSection={section}>
-      {section === "home" ? <HomeView userName={userName} /> : null}
-      {section !== "home" && module && !initialAction ? <ModuleView module={module} /> : null}
-      {section !== "home" && module && initialAction ? (
-        <ActionRouteView module={module} actionId={initialAction} />
+    <MobileAppShell
+      activeSection={section}
+      disabledSections={["reports", "assessment-center"]}
+      onUnavailable={onUnavailable}
+    >
+      {section === "home" ? <HomeView userName={userName} onUnavailable={onUnavailable} /> : null}
+      {section !== "home" && activeModule && !initialAction ? <ModuleView module={activeModule} onUnavailable={onUnavailable} /> : null}
+      {section !== "home" && activeModule && initialAction ? (
+        <ActionRouteView module={activeModule} actionId={initialAction} />
       ) : null}
+      <MobilePopCard
+        open={feedbackOpen}
+        title={unavailableTitle}
+        description={unavailableDescription}
+        onClose={() => setFeedbackOpen(false)}
+      />
     </MobileAppShell>
   );
 }

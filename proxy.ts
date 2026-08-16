@@ -39,6 +39,10 @@ function isDashboardApiPath(pathname: string) {
   return pathname === "/api/dashboard" || pathname.startsWith("/api/dashboard/");
 }
 
+function isMobilePath(pathname: string) {
+  return pathname === "/mobile" || pathname.startsWith("/mobile/");
+}
+
 function hasSessionCookie(request: NextRequest) {
   const value = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   return Boolean(value && value.includes(".") && value.length > 40);
@@ -83,6 +87,10 @@ export function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
+  if (isMobilePath(pathname) && !hasSessionCookie(request)) {
+    return redirectToLogin(request);
+  }
+
   return NextResponse.next();
 }
 
@@ -90,6 +98,8 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/api/dashboard/:path*",
+    "/mobile",
+    "/mobile/:path*",
   ],
 };
 

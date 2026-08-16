@@ -2612,3 +2612,71 @@
          "pdf-lib": "^1.17.1",[m
          "playwright": "^1.60.0",[m
          "prisma": "^7.8.0",[m
++ [36magents/feedback-request-discussion                                   [m a80fc15 ([36mD:/student-guidance-platform-clean.worktrees/agents-feedback-request-discussion[m) Checkpoint before smart official report template studio
+  backup-after-ec83c72-before-force-restore-20260614-145746            [m ebc1d63 Restore stable report PDF export-1
+  backup-after-wrong-restore-20260605-124850                           [m 193c19c Update dashboard layout, sidebar, calendar, and student record UX
+  backup-before-add-information-center-menu-20260605-151213            [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-align-blue-dashboard-card-20260605-150634              [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-align-dashboard-left-cards-20260605-150443             [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-better-dashboard-sidebar-ux-20260605-033234            [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-calendar-center-20260605-024420                        [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-calendar-login-popup-20260605-025334                   [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-checkout-50e8422                                       [m 62bf446 Sync project from second device
+  backup-before-clean-fixed-dashboard-colors-20260605-131720           [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-clean-reports-20260611-153809                          [m f3f43be Unify cases and reports access scopes
+  backup-before-clean-workflows-20260604-230652                        [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-comprehensive-student-record-20260605-030602           [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-dashboard-attention-panel-20260605-025213              [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-exact-reset-20260610-135757                            [m 8d916f6 before princible sing
+  backup-before-final-dashboard-service-layout-20260605-034739         [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-fix-committee-next-validation-20260605-015637          [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-fix-committee-next-validation-20260605-015703          [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-fix-dashboard-card-alignment-icons-20260605-150910     [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-fix-student-follow-up-encoding-20260604-232016         [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-fixed-no-scroll-dashboard-20260605-131149              [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-floating-dashboard-shell-20260605-124311               [m 193c19c Update dashboard layout, sidebar, calendar, and student record UX
+  backup-before-floating-dashboard-ui-20260605-130333                  [m 0b624e5 Restore latest correct dashboard calendar UX
+  backup-before-force-restore-20260803-060723                          [m 18fe903 تم
+  backup-before-generalize-perfect-workflow-upload-20260604-230258     [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-generalize-perfect-workflow-upload-20260604-230305     [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-generalize-workflow-service-home-20260605-023505       [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-guardian-summons-fix                                   [m 25f6625 لخبطة الاستدعاء
+  backup-before-hijri-date-20260607-085701                             [m b203f14 [[34morigin/backup-before-hijri-date-20260607-085701[m] chore: backup current state before hijri date enhancement
+  backup-before-hijri-date-20260607-085745                             [m b203f14 chore: backup current state before hijri date enhancement
+  backup-before-hijri-date-20260607-090126                             [m a752910 [[34morigin/backup-before-hijri-date-20260607-090126[m: ahead 1] fix: redirect admins to admin dashboard after login
+  backup-before-improve-committee-case-details-20260605-022409         [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-improve-committees-meetings-home-20260605-023219       [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-live-student-record-search-20260605-031408             [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-move-dashboard-calendar-card-20260605-025446           [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-organize-fixed-dashboard-20260605-131406               [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-reapply-report-2-improvements-20260613-181323          [m fe27df5 تحسينات على الاستيديو
+  backup-before-reset-20260719-035352                                  [m 7e87184 تعديل النسخ والحذف
+  backup-before-reset-a1a45d2-20260814                                 [m a1a45d2 تعديل الفيديوهات
+  backup-before-reset-ec83c72-20260614-142238                          [m 98b91bc Fix PDF export puppeteer loading on Hostinger
+  backup-before-reset-fe27df5-20260613-181144                          [m fe27df5 تحسينات على الاستيديو
+  backup-before-restore-1cfe870-20260607-153408                        [m 1cfe870 fix: redirect admins to admin dashboard
+  backup-before-restore-2852977                                        [m 2a41bff done
+  backup-before-restore-correct-latest-20260605-125647                 [m 193c19c Update dashboard layout, sidebar, calendar, and student record UX
+  backup-before-restore-dashboard-calendar-alerts-20260605-145342      [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-restore-dashboard-like-screenshot-light-20260605-033923[m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-restore-dashboard-version-20260605-124554              [m 193c19c Update dashboard layout, sidebar, calendar, and student record UX
+  backup-before-restore-data-center-route-20260605-151624              [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-restore-from-main-9fcbc31-20260605-130014              [m 193c19c Update dashboard layout, sidebar, calendar, and student record UX
+  backup-before-restore-login-popup-and-scroll-alerts-20260605-145845  [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-restore-real-noor-import-20260605-163826               [m aa645b4 Apply floating dashboard UI and fix comprehensive reference filter
+  backup-before-return-clean-original-dashboard-20260605-033549        [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-return-smart-student-picker-20260604-225144            [m 87d8209 Update workflow smart student picker
+  backup-before-return-smart-student-picker-20260604-225839            [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-rollback-20260610-135337                               [m 8d916f6 before princible sing
+  backup-before-standardize-service-display-names-20260605-034319      [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-strict-committee-chain-20260605-021745                 [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-student-record-demo-20260605-031642                    [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  backup-before-template-rollback                                      [m 0ec60ae feat: add official guardian summons template preview
+  backup-before-ux-clean-dashboard-sidebar-20260605-032618             [m 44d2cc7 Merge pull request #2 from malfaifi001-dot/feature/smart-official-report-template-studio
+  clean-after-rollback-0d1cf22                                         [m 0d1cf22 Add admin monitoring, subscriptions, activity analytics, and dark mode
+  experiment/authentica-otp-login                                      [m 93e01da experiment: add Authentica OTP phone login
+  feature/smart-official-report-template-studio                        [m ebbe943 [[34morigin/feature/smart-official-report-template-studio[m] Prepare project for Vercel deployment
+* [32mmain                                                                 [m 1d5bbf5 [[34morigin/main[m] تعديل الظهور
+  pre-online                                                           [m b3d388f النشاط مكتمل الان
+  rebuild-from-stable-0d1cf22                                          [m 9450cc9 [[34morigin/rebuild-from-stable-0d1cf22[m] Resolve merge conflicts
+  staging                                                              [m 0cc6531 تعديلات كثيرة لكن خلها كذا

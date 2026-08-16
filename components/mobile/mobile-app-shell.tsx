@@ -17,6 +17,8 @@ export type MobileShellSection =
 type MobileAppShellProps = {
   activeSection: MobileShellSection;
   children: ReactNode;
+  disabledSections?: MobileShellSection[];
+  onUnavailable?: () => void;
 };
 
 type NavItem = {
@@ -55,14 +57,34 @@ function NotificationButton() {
   );
 }
 
-function BottomNavigation({ activeSection }: { activeSection: MobileShellSection }) {
+function BottomNavigation({
+  activeSection,
+  disabledSections = [],
+  onUnavailable,
+}: {
+  activeSection: MobileShellSection;
+  disabledSections?: MobileShellSection[];
+  onUnavailable?: () => void;
+}) {
   return (
     <nav className="fixed inset-x-0 bottom-3 z-40 mx-auto w-[calc(100%-2rem)] max-w-[390px] rounded-[2rem] bg-white/94 p-2 shadow-[0_12px_28px_rgba(15,23,42,0.10)] ring-1 ring-slate-100 backdrop-blur-2xl dark:bg-slate-900/90 dark:shadow-slate-950/50 dark:ring-white/10">
       <div className="grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const active = activeSection === item.id;
+          const disabled = disabledSections.includes(item.id);
 
-          return (
+          return disabled ? (
+            <button
+              key={item.id}
+              type="button"
+              onClick={onUnavailable}
+              className={["relative flex h-[4.35rem] flex-col items-center justify-center gap-1 rounded-[1.55rem] text-[11px] font-black transition active:scale-[0.98]", "text-slate-400 dark:text-slate-500"].join(" ")}
+              aria-label={item.label}
+            >
+              <MobileIcon name={item.icon} className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+              <span>{item.label}</span>
+            </button>
+          ) : (
             <Link
               key={item.id}
               href={item.href}
@@ -93,7 +115,7 @@ function BottomNavigation({ activeSection }: { activeSection: MobileShellSection
   );
 }
 
-export function MobileAppShell({ activeSection, children }: MobileAppShellProps) {
+export function MobileAppShell({ activeSection, children, disabledSections, onUnavailable }: MobileAppShellProps) {
   return (
     <div
       dir="rtl"
@@ -109,7 +131,7 @@ export function MobileAppShell({ activeSection, children }: MobileAppShellProps)
           {children}
         </main>
 
-        <BottomNavigation activeSection={activeSection} />
+        <BottomNavigation activeSection={activeSection} disabledSections={disabledSections} onUnavailable={onUnavailable} />
       </div>
     </div>
   );
