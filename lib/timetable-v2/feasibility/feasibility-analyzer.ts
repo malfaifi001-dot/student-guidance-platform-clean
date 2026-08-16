@@ -731,6 +731,16 @@ export function analyzeTimetableV2Feasibility(
       ),
     );
 
+  const teacherById =
+    new Map(
+      problem.teachers.map(
+        (teacher) => [
+          teacher.id,
+          teacher,
+        ],
+      ),
+    );
+
   const classIds =
     new Set(
       problem.classes.map(
@@ -739,11 +749,31 @@ export function analyzeTimetableV2Feasibility(
       ),
     );
 
+  const classById =
+    new Map(
+      problem.classes.map(
+        (classItem) => [
+          classItem.id,
+          classItem,
+        ],
+      ),
+    );
+
   const subjectIds =
     new Set(
       problem.subjects.map(
         (subject) =>
           subject.id,
+      ),
+    );
+
+  const subjectById =
+    new Map(
+      problem.subjects.map(
+        (subject) => [
+          subject.id,
+          subject,
+        ],
       ),
     );
 
@@ -1322,7 +1352,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "الفصل يحتاج حصصًا أكثر من عدد الخانات المتاحة له.",
+            `الفصل «${classItem.name}» يحتاج حصصًا أكثر من عدد الخانات المتاحة له.`,
 
           entityId:
             classItem.id,
@@ -1365,7 +1395,7 @@ export function analyzeTimetableV2Feasibility(
             false,
 
           message:
-            "الفصل يستخدم كل خانة متاحة؛ أي تعديل في الجدول يحتاج غالبًا تبديلات مباشرة.",
+            `الفصل «${classItem.name}» يستخدم كل خانة متاحة؛ أي تعديل في الجدول يحتاج غالبًا تبديلات مباشرة.`,
 
           entityId:
             classItem.id,
@@ -1508,7 +1538,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "حمل المعلم الأسبوعي أكبر من أقصى سعة ممكنة بعد تطبيق أيام الراحة وعدم التوفر والحدود اليومية والمتتالية.",
+            `حمل المعلم «${teacher.name}» الأسبوعي أكبر من أقصى سعة ممكنة بعد تطبيق أيام الراحة وعدم التوفر والحدود اليومية والمتتالية.`,
 
           entityId:
             teacher.id,
@@ -1560,7 +1590,7 @@ export function analyzeTimetableV2Feasibility(
             true,
 
           message:
-            "حصص المعلم تتجاوز الحد الأسبوعي المسجل له.",
+            `حصص المعلم «${teacher.name}» تتجاوز الحد الأسبوعي المسجل له.`,
 
           entityId:
             teacher.id,
@@ -2432,6 +2462,35 @@ export function analyzeTimetableV2Feasibility(
   // ==========================================================
   // Final status.
   // ==========================================================
+
+  // Resolve display names from the current GenerationProblem. These are
+  // project-local entities, so manually entered classes and subjects remain
+  // explainable without consulting an external school catalogue.
+  for (const issue of issues) {
+    const evidence = issue.evidence;
+    const teacher = evidence.teacherId
+      ? teacherById.get(evidence.teacherId)
+      : undefined;
+    const classItem = evidence.classId
+      ? classById.get(evidence.classId)
+      : undefined;
+    const subject = evidence.subjectId
+      ? subjectById.get(evidence.subjectId)
+      : undefined;
+
+    issue.evidence = {
+      ...evidence,
+      ...(teacher && !evidence.teacherName
+        ? { teacherName: teacher.name }
+        : {}),
+      ...(classItem && !evidence.className
+        ? { className: classItem.name }
+        : {}),
+      ...(subject && !evidence.subjectName
+        ? { subjectName: subject.name }
+        : {}),
+    };
+  }
 
   const provenContradictions =
     issues.filter(

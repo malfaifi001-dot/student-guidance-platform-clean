@@ -28,8 +28,11 @@ export type TimetableFeasibilityEvidence = {
   limit?: number;
 
   teacherId?: string;
+  teacherName?: string;
   classId?: string;
+  className?: string;
   subjectId?: string;
+  subjectName?: string;
   assignmentId?: string;
   constraintId?: string;
 

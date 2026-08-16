@@ -59,13 +59,36 @@ function EvidenceRows({
   const evidence =
     issue.evidence;
 
+  const excess =
+    evidence.required !== undefined &&
+    evidence.capacity !== undefined &&
+    evidence.required > evidence.capacity
+      ? evidence.required - evidence.capacity
+      : undefined;
+
   const rows = [
+    evidence.className
+      ? ["الفصل", evidence.className]
+      : null,
+
+    evidence.teacherName
+      ? ["المعلم", evidence.teacherName]
+      : null,
+
+    evidence.subjectName
+      ? ["المادة", evidence.subjectName]
+      : null,
+
     evidence.required !== undefined
       ? ["المطلوب", evidence.required]
       : null,
 
     evidence.capacity !== undefined
       ? ["السعة", evidence.capacity]
+      : null,
+
+    excess !== undefined
+      ? ["الزيادة", excess]
       : null,
 
     evidence.availableDays !== undefined
