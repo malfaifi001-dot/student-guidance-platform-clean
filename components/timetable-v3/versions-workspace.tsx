@@ -43,7 +43,9 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(workspace.current?.id ?? workspace.versions[0]?.id ?? "");
   const [printMode, setPrintMode] = useState<"full" | "stage" | "grade" | "teacher">("full");
-  const [teacherId, setTeacherId] = useState(workspace.teachers[0]?.id ?? "");
+  const [teacherId, setTeacherId] = useState("ALL");
+  const [stageId, setStageId] = useState(workspace.printScopes.stage.options[0]?.id ?? "");
+  const [gradeId, setGradeId] = useState(workspace.printScopes.grade.options[0]?.id ?? "");
   const [publishConfirm, setPublishConfirm] = useState<Version | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -100,7 +102,9 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
   function printSelected() {
     if (!selected) return;
     const query = new URLSearchParams({ scheduleId: selected.id, mode: printMode, print: "1" });
-    if (printMode === "teacher" && teacherId) query.set("teacherId", teacherId);
+    if (printMode === "teacher" && teacherId && teacherId !== "ALL") query.set("teacherId", teacherId);
+    if (printMode === "stage" && stageId) query.set("stageId", stageId);
+    if (printMode === "grade" && gradeId) query.set("gradeId", gradeId);
     void printAction.runPrintExport({
       printUrl: `/print/timetable-v3/${workspace.project.id}?${query.toString()}`,
       blockedTitle: "طباعة الجدول",
@@ -192,9 +196,13 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
 
           {printMode === "teacher" ? (
             <select value={teacherId} onChange={(event) => setTeacherId(event.target.value)} className="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+              <option value="ALL">جميع المعلمين</option>
               {workspace.teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}{teacher.specialty ? ` — ${teacher.specialty}` : ""}</option>)}
             </select>
           ) : null}
+
+          {printMode === "stage" && workspace.printScopes.stage.available ? <select value={stageId} onChange={(event) => setStageId(event.target.value)} className="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">{workspace.printScopes.stage.options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select> : null}
+          {printMode === "grade" && workspace.printScopes.grade.available ? <select value={gradeId} onChange={(event) => setGradeId(event.target.value)} className="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">{workspace.printScopes.grade.options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select> : null}
 
           {modeUnavailable ? (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-800">
@@ -202,7 +210,7 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
             </div>
           ) : null}
 
-          <button type="button" onClick={printSelected} disabled={!selected || modeUnavailable || (printMode === "teacher" && !teacherId)} className="mt-4 h-11 w-full rounded-xl bg-[#3478B8] px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">طباعة الجدول A3</button>
+          <button type="button" onClick={printSelected} disabled={!selected || modeUnavailable || (printMode === "teacher" && !teacherId)} className="mt-4 h-11 w-full rounded-xl bg-[#3478B8] px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{printMode === "teacher" ? "طباعة جداول المعلمين" : "طباعة الجدول A3"}</button>
 
           {selected ? (
             <a href={`/api/dashboard/principal/timetable-v3/projects/${workspace.project.id}/versions/export?${new URLSearchParams({ scheduleId: selected.id }).toString()}`} className="mt-2 flex h-11 w-full items-center justify-center rounded-xl border border-[#C9DFEC] bg-white px-5 text-sm font-bold text-[#3478B8] transition hover:bg-[#F4FAFD]">تصدير Excel</a>

@@ -27,6 +27,7 @@ import {
 import {
   TIMETABLE_V3_STAGES,
   findTimetableV3Grade,
+  inferTimetableV3ClassClassification,
   type TimetableV3ClassMappings,
   type TimetableV3StageId,
 } from "@/lib/timetable-v3/school-setup-catalog";
@@ -36,6 +37,10 @@ import {
   recordTimetableHistory,
   TIMETABLE_HISTORY_ACTIONS,
 } from "@/lib/timetable-v3/history/timetable-history-service";
+
+import {
+  cleanupOrphanTimetableAssignments,
+} from "@/lib/timetable-v3/data-integrity-service";
 
 function normalizeText(
   value: string,
@@ -108,6 +113,73 @@ export function normalizeTimetableV3ClassMappings(
   }
 
   return normalized;
+}
+
+export async function reconcileTimetableV3ClassMappings(
+  projectId: string,
+  db: typeof prisma | Prisma.TransactionClient = prisma,
+) {
+  const project = await db.timetableProject.findUnique({
+    where: { id: projectId },
+    select: { settingsJson: true },
+  });
+  const classes = await db.timetableClass.findMany({
+    where: { projectId },
+    select: { id: true, name: true, stage: true, grade: true },
+  });
+  const explicit = normalizeTimetableV3ClassMappings(project?.settingsJson, classes);
+  const mappings: TimetableV3ClassMappings = { ...explicit };
+  const updates: Array<{ id: string; stage: string; grade: string }> = [];
+
+  for (const item of classes) {
+    let mapping = mappings[item.id];
+    if (!mapping && item.stage && item.grade) {
+      const grade = findTimetableV3Grade(item.stage, item.grade);
+      if (grade) {
+        mapping = { stageId: grade.stageId, gradeId: grade.id, gradeName: grade.name };
+      }
+    }
+    if (!mapping) {
+      const inferred = inferTimetableV3ClassClassification(item.name);
+      if (inferred) {
+        mapping = {
+          stageId: inferred.stageId,
+          gradeId: inferred.gradeId,
+          gradeName: inferred.gradeName,
+        };
+      }
+    }
+    if (!mapping) continue;
+
+    mappings[item.id] = mapping;
+    if (item.stage !== mapping.stageId || item.grade !== mapping.gradeId) {
+      updates.push({ id: item.id, stage: mapping.stageId, grade: mapping.gradeId });
+    }
+  }
+
+  for (const update of updates) {
+    await db.timetableClass.update({
+      where: { id: update.id },
+      data: { stage: update.stage, grade: update.grade },
+    });
+  }
+
+  const currentV3 = asObject(asObject(project?.settingsJson).timetableV3);
+  const currentMappings = asObject(currentV3.classMappings);
+  if (JSON.stringify(currentMappings) !== JSON.stringify(mappings)) {
+    const settings = asObject(project?.settingsJson);
+    await db.timetableProject.update({
+      where: { id: projectId },
+      data: {
+        settingsJson: {
+          ...settings,
+          timetableV3: { ...currentV3, classMappings: mappings },
+        } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  return mappings;
 }
 
 function isTimetableV3Project(
@@ -538,6 +610,7 @@ export async function getTimetableV3SetupWorkspace(
       projectId,
       schoolAccountId,
     );
+  const classMappings = await reconcileTimetableV3ClassMappings(projectId);
 
   const [
     classes,
@@ -561,6 +634,12 @@ export async function getTimetableV3SetupWorkspace(
           true,
 
         name:
+          true,
+
+        stage:
+          true,
+
+        grade:
           true,
       },
     }),
@@ -657,11 +736,7 @@ export async function getTimetableV3SetupWorkspace(
 
     classes,
 
-    classMappings:
-      normalizeTimetableV3ClassMappings(
-        project.settingsJson,
-        classes,
-      ),
+    classMappings,
 
     subjects,
 
@@ -842,21 +917,28 @@ export async function saveTimetableV3ClassMappings(
     project.settingsJson,
     classes,
   );
+  const mergedMappings = { ...existing, ...normalized };
 
-  await prisma.timetableProject.update({
-    where: { id: projectId },
-    data: {
-      settingsJson: {
-        ...settings,
-        timetableV3: {
-          ...timetableV3,
-          classMappings: {
-            ...existing,
-            ...normalized,
+  await prisma.$transaction(async (tx) => {
+    await tx.timetableProject.update({
+      where: { id: projectId },
+      data: {
+        settingsJson: {
+          ...settings,
+          timetableV3: {
+            ...timetableV3,
+            classMappings: mergedMappings,
           },
-        },
-      } as Prisma.InputJsonValue,
-    },
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    for (const [classId, mapping] of Object.entries(mergedMappings)) {
+      await tx.timetableClass.updateMany({
+        where: { id: classId, projectId },
+        data: { stage: mapping.stageId, grade: mapping.gradeId },
+      });
+    }
   });
 
   await recordTimetableHistory({
@@ -1089,6 +1171,7 @@ export async function saveTimetableV3Classes(
     );
   }
 
+  const affectedClassIds: string[] = [];
   await prisma.$transaction(
     async (tx) => {
       const existing =
@@ -1108,6 +1191,7 @@ export async function saveTimetableV3Classes(
         existing
       ) {
         if (mappedClassIds.has(item.id)) {
+          affectedClassIds.push(item.id);
           await tx.timetableClass.update({
             where: { id: item.id },
             data: { isActive: true },
@@ -1121,6 +1205,7 @@ export async function saveTimetableV3Classes(
             item.name,
           )
         ) {
+          affectedClassIds.push(item.id);
           await tx.timetableClass.update({
             where: {
               id:
@@ -1140,6 +1225,7 @@ export async function saveTimetableV3Classes(
         else if (
           item.isActive
         ) {
+          affectedClassIds.push(item.id);
           await tx.timetableClass.update({
             where: {
               id:
@@ -1158,15 +1244,18 @@ export async function saveTimetableV3Classes(
         const name of
         wanted
       ) {
-        await tx.timetableClass.create({
+        const created = await tx.timetableClass.create({
           data: {
             projectId,
             name,
           },
         });
+        affectedClassIds.push(created.id);
       }
     },
   );
+
+  await cleanupOrphanTimetableAssignments(projectId, affectedClassIds);
 
   await recordTimetableHistory({
     projectId,
@@ -1284,6 +1373,8 @@ export async function saveTimetableV3Subjects(
       }
     },
   );
+
+  await cleanupOrphanTimetableAssignments(projectId);
 
   await recordTimetableHistory({
     projectId,

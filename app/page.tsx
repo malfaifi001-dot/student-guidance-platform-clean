@@ -18,6 +18,7 @@ import {
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { TeachixStructuredData } from "@/components/marketing/teachix-structured-data";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ar_SA",
     url: "https://teachix.sa/",
-    siteName: "Teachix",
+    siteName: "تيتش اكس",
     title: "Teachix | منصة مدرسية رقمية متكاملة",
     description: homeDescription,
   },
@@ -136,6 +137,7 @@ function ReviewCard({
 export default function HomePage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-white text-slate-950">
+      <TeachixStructuredData />
       <MarketingNavbar />
 
       <main>
@@ -179,6 +181,13 @@ export default function HomePage() {
                   تسجيل الدخول
                 </Link>
               </div>
+
+              <nav aria-label="روابط Teachix العامة" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500">
+                <Link href="/services" className="transition hover:text-sky-600">خدمات Teachix</Link>
+                <Link href="/features" className="transition hover:text-sky-600">مميزات Teachix</Link>
+                <Link href="/about" className="transition hover:text-sky-600">عن Teachix</Link>
+                <Link href="/contact" className="transition hover:text-sky-600">تواصل معنا</Link>
+              </nav>
 
 
             </div>

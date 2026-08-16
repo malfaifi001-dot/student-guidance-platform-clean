@@ -8,8 +8,15 @@ import {
 } from "@/lib/timetable-v2/generation/generation-service";
 import { validateGeneratedTimetableV2 } from "@/lib/timetable-v2/generation/generation-validator";
 import type { GeneratedSession } from "@/lib/timetable-v2/generation/generation-domain";
-import { normalizeTimetableV3Stages } from "@/lib/timetable-v3/project-setup-service";
-import { TIMETABLE_V3_STAGES } from "@/lib/timetable-v3/school-setup-catalog";
+import {
+  normalizeTimetableV3ClassMappings,
+  normalizeTimetableV3Stages,
+  reconcileTimetableV3ClassMappings,
+} from "@/lib/timetable-v3/project-setup-service";
+import {
+  resolveTimetableV3ClassClassification,
+  TIMETABLE_V3_STAGES,
+} from "@/lib/timetable-v3/school-setup-catalog";
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -115,6 +122,23 @@ export async function getTimetableV3Versions(
   const versions = schedules.map((schedule) =>
     scheduleSummary(schedule, loaded.fingerprint),
   );
+  const mappings = await reconcileTimetableV3ClassMappings(projectId);
+  const setupClasses = await prisma.timetableClass.findMany({
+    where: { projectId, isActive: true },
+    select: { id: true, name: true },
+  });
+  const classifications = setupClasses
+    .map((item) => resolveTimetableV3ClassClassification(item.id, item.name, mappings))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const stageIds = new Set(classifications.map((item) => item.stageId));
+  const gradeIds = new Set(classifications.map((item) => item.gradeId));
+  const printStageOptions = TIMETABLE_V3_STAGES
+    .filter((stage) => stageIds.has(stage.id))
+    .map((stage) => ({ id: stage.id, label: stage.name }));
+  const printGradeOptions = TIMETABLE_V3_STAGES
+    .flatMap((stage) => stage.grades)
+    .filter((grade) => gradeIds.has(grade.id))
+    .map((grade) => ({ id: grade.id, label: grade.name }));
 
   return {
     project: {
@@ -129,14 +153,14 @@ export async function getTimetableV3Versions(
     teachers,
     printScopes: {
       stage: {
-        available: false,
+        available: printStageOptions.length > 0,
         reason: "لا توجد بيانات مرحلة مرتبطة بالفصول داخل نموذج الجدول الحالي.",
-        options: [] as Array<{ id: string; label: string }>,
+        options: printStageOptions,
       },
       grade: {
-        available: false,
+        available: printGradeOptions.length > 0,
         reason: "لا توجد بيانات صف منظمة مرتبطة بالفصول، لذلك لن يتم استنتاجها من أسماء الفصول.",
-        options: [] as Array<{ id: string; label: string }>,
+        options: printGradeOptions,
       },
     },
   };
@@ -457,15 +481,31 @@ export async function getTimetableV3PrintData(
   ]);
   if (!schedule) throw new Error("SCHEDULE_NOT_FOUND");
 
-  return buildScheduleWorkspace(project, schedule, loaded.problem);
+  const mappings = await reconcileTimetableV3ClassMappings(projectId);
+  return buildScheduleWorkspace(project, schedule, loaded.problem, mappings);
 }
 
 function buildScheduleWorkspace(
   project: Awaited<ReturnType<typeof requireV3Project>>,
   schedule: NonNullable<Awaited<ReturnType<typeof loadSchedule>>>,
   problem: Awaited<ReturnType<typeof loadTimetableV2GenerationProblemForSolver>>["problem"],
+  mappings = normalizeTimetableV3ClassMappings(project.settingsJson, problem.classes),
 ) {
   const stages = normalizeTimetableV3Stages(project.settingsJson);
+  const classes = problem.classes.map((item) => ({
+    ...item,
+    classification: resolveTimetableV3ClassClassification(item.id, item.name, mappings),
+  }));
+  const classifiedClasses = classes.filter((item) => item.classification);
+  const stageIds = new Set(classifiedClasses.map((item) => item.classification?.stageId));
+  const gradeIds = new Set(classifiedClasses.map((item) => item.classification?.gradeId));
+  const stageOptions = TIMETABLE_V3_STAGES
+    .filter((stage) => stages.includes(stage.id) && stageIds.has(stage.id))
+    .map((stage) => ({ id: stage.id, label: stage.name }));
+  const gradeOptions = TIMETABLE_V3_STAGES
+    .flatMap((stage) => stage.grades)
+    .filter((grade) => gradeIds.has(grade.id))
+    .map((grade) => ({ id: grade.id, label: grade.name }));
 
   return {
     project: {
@@ -487,21 +527,22 @@ function buildScheduleWorkspace(
     },
     days: problem.days,
     periods: problem.periods,
-    classes: problem.classes,
+    classes,
     teachers: problem.teachers,
     subjects: problem.subjects,
     scopes: {
       stage: {
-        available: false,
+        available: stageOptions.length > 0,
         reason: "مراحل المشروع محفوظة، لكن لا توجد مرحلة منظمة مرتبطة بكل فصل؛ لذلك لن يتم الاستنتاج من اسم الفصل.",
         options: TIMETABLE_V3_STAGES
           .filter((stage) => stages.includes(stage.id))
-          .map((stage) => ({ id: stage.id, label: stage.name })),
+          .map((stage) => ({ id: stage.id, label: stage.name }))
+          .filter((stage) => stageOptions.some((option) => option.id === stage.id)),
       },
       grade: {
-        available: false,
+        available: gradeOptions.length > 0,
         reason: "لا توجد بيانات صف منظمة مرتبطة بالفصول؛ لذلك لن يتم الاستنتاج من أسماء الفصول.",
-        options: [] as Array<{ id: string; label: string }>,
+        options: gradeOptions,
       },
     },
     entries: schedule.entries.map((entry) => ({
@@ -540,5 +581,6 @@ export async function getTimetableV3PreviewData(
 
   const loaded = await loadTimetableV2GenerationProblemForSolver(projectId, schoolAccountId);
 
-  return buildScheduleWorkspace(project, schedule, loaded.problem);
+  const mappings = await reconcileTimetableV3ClassMappings(projectId);
+  return buildScheduleWorkspace(project, schedule, loaded.problem, mappings);
 }

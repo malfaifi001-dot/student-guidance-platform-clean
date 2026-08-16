@@ -10,6 +10,8 @@ type SearchParams = Promise<{
   scheduleId?: string;
   mode?: string;
   teacherId?: string;
+  stageId?: string;
+  gradeId?: string;
   print?: string;
 }>;
 
@@ -25,7 +27,7 @@ export default async function TimetableV3PrintPage({
   const access = await requireTimetablePageAccess();
   const { projectId } = await params;
   const query = await searchParams;
-  if (!query.scheduleId || !["full", "teacher"].includes(query.mode ?? "full")) notFound();
+  if (!query.scheduleId || !["full", "stage", "grade", "teacher"].includes(query.mode ?? "full")) notFound();
 
   let data;
   try {
@@ -35,12 +37,18 @@ export default async function TimetableV3PrintPage({
     throw error;
   }
 
-  const mode = query.mode === "teacher" ? "teacher" : "full";
+  const mode = (query.mode === "stage" || query.mode === "grade" || query.mode === "teacher" ? query.mode : "full") as "full" | "stage" | "grade" | "teacher";
+  const scopeClassIds = new Set(data.classes.filter((item) => {
+    if (mode === "stage") return item.classification?.stageId === query.stageId;
+    if (mode === "grade") return item.classification?.gradeId === query.gradeId;
+    return true;
+  }).map((item) => item.id));
+  const classes = data.classes.filter((item) => scopeClassIds.has(item.id));
   const teacher = mode === "teacher" ? data.teachers.find((item) => item.id === query.teacherId) : null;
-  if (mode === "teacher" && !teacher) notFound();
+  const selectedTeachers = mode === "teacher" ? (teacher ? [teacher] : data.teachers) : [];
   const entries = teacher
     ? filterTimetableV3ScheduleEntries(data.entries, { mode: "teacher", teacherId: teacher.id })
-    : filterTimetableV3ScheduleEntries(data.entries, { mode: "full" });
+    : data.entries.filter((entry) => scopeClassIds.has(entry.classId));
   const cell = (classId: string, dayId: string, periodId: string) =>
     entries.find((entry) => entry.classId === classId && entry.dayId === dayId && entry.periodId === periodId);
   const teacherCell = (dayId: string, periodId: string) =>
@@ -60,6 +68,7 @@ export default async function TimetableV3PrintPage({
             .full-schedule th, .full-schedule td { box-sizing: border-box; overflow-wrap: anywhere; word-break: normal; padding: 1.2mm 0.8mm !important; }
             .full-schedule td { height: auto !important; }
             .print-section { break-after: page; page-break-after: always; }
+            .teacher-print-section + .teacher-print-section { break-before: page; page-break-before: always; }
             .print-section:last-of-type { break-after: auto; page-break-after: auto; }
             thead { display: table-header-group; }
             tr { break-inside: avoid; page-break-inside: avoid; }
@@ -71,23 +80,23 @@ export default async function TimetableV3PrintPage({
         <header className="print-header mb-5 border-b-2 border-slate-900 pb-4">
           <div className="flex items-start justify-between gap-6">
             <div>
-              <div className="text-xl font-black">تيتش اكس</div>
+              <div className="text-xl font-black">ØªÙŠØªØ´ Ø§ÙƒØ³</div>
               <div className="mt-1 text-sm font-bold">{data.project.schoolName}</div>
             </div>
             <div className="text-center">
-              <h1 className="text-xl font-black">{teacher ? data.project.name : "الجدول الدراسي الشامل"}</h1>
-              <p className="mt-1 text-sm">{teacher ? `المعلم: ${teacher.name}` : data.project.name}</p>
+              <h1 className="text-xl font-black">{teacher ? data.project.name : "Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ø§Ù„Ø´Ø§Ù…Ù„"}</h1>
+              <p className="mt-1 text-sm">{teacher ? `Ø§Ù„Ù…Ø¹Ù„Ù…: ${teacher.name}` : data.project.name}</p>
             </div>
             <div className="print-meta text-left text-xs leading-6 text-slate-600">
-              <div>النسخة {data.schedule.version}</div>
-              <div>العام الدراسي: {data.project.academicYear}</div>
-              <div>الفصل الدراسي: {data.project.semester}</div>
+              <div>Ø§Ù„Ù†Ø³Ø®Ø© {data.schedule.version}</div>
+              <div>Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ: {data.project.academicYear}</div>
+              <div>Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ: {data.project.semester}</div>
               <div>{new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}</div>
             </div>
           </div>
         </header>
 
-        {mode === "full" ? (
+        {mode !== "teacher" ? (
           <section className="print-section">
             <table className="full-schedule w-full table-fixed border-collapse text-[7px] leading-tight">
               <colgroup>
@@ -98,7 +107,7 @@ export default async function TimetableV3PrintPage({
               </colgroup>
               <thead>
                 <tr>
-                  <th rowSpan={2} className="border border-slate-600 bg-[#1E3A5F] px-1 py-2 font-black text-white">الفصل / الشعبة</th>
+                  <th rowSpan={2} className="border border-slate-600 bg-[#1E3A5F] px-1 py-2 font-black text-white">Ø§Ù„ÙØµÙ„ / Ø§Ù„Ø´Ø¹Ø¨Ø©</th>
                   {data.days.map((day) => (
                     <th key={day.id} colSpan={data.periods.length} className="border border-slate-600 bg-[#1E3A5F] px-1 py-2 text-[8px] font-black text-white">
                       {day.label}
@@ -114,7 +123,7 @@ export default async function TimetableV3PrintPage({
                 </tr>
               </thead>
               <tbody>
-                {data.classes.map((classItem) => (
+                {classes.map((classItem) => (
                   <tr key={classItem.id}>
                     <th className="border border-slate-500 bg-slate-100 px-1 py-2 text-[8px] font-black text-[#1E3A5F]">{classItem.name}</th>
                     {data.days.flatMap((day) => data.periods.map((period) => {
@@ -126,7 +135,7 @@ export default async function TimetableV3PrintPage({
                               <div className="font-bold">{entry.subjectName}</div>
                               <div className="mt-0.5 text-[6.5px] text-slate-600">{entry.teacherName}</div>
                             </>
-                          ) : "—"}
+                          ) : "â€”"}
                         </td>
                       );
                     }))}
@@ -136,25 +145,29 @@ export default async function TimetableV3PrintPage({
             </table>
           </section>
         ) : (
-          <section className="print-section">
-            {teacher?.specialty ? <p className="mb-3 text-sm text-slate-600">التخصص: {teacher.specialty}</p> : null}
-            <table className="w-full table-fixed border-collapse text-xs">
-              <thead><tr><th className="w-24 border border-slate-500 bg-slate-100 p-2">اليوم</th>{data.periods.map((period) => <th key={period.id} className="border border-slate-500 bg-slate-100 p-2">{period.label}</th>)}</tr></thead>
-              <tbody>{data.days.map((day) => (
-                <tr key={day.id}>
-                  <th className="border border-slate-400 bg-slate-50 p-2">{day.label}</th>
-                  {data.periods.map((period) => {
-                    const entry = teacherCell(day.id, period.id);
-                    return <td key={period.id} className="h-16 border border-slate-300 p-2 text-center">{entry ? <><div className="font-bold">{entry.subjectName}</div><div className="mt-1 text-slate-600">{entry.className}</div></> : "—"}</td>;
-                  })}
-                </tr>
-              ))}</tbody>
-            </table>
-          </section>
+          <div>
+            {selectedTeachers.map((teacherItem) => (
+              <section key={teacherItem.id} className="teacher-print-section print-section">
+                {teacherItem.specialty ? <p className="mb-3 text-sm text-slate-600">التخصص: {teacherItem.specialty}</p> : null}
+                <h2 className="mb-3 text-lg font-black">المعلم: {teacherItem.name}</h2>
+                <table className="w-full table-fixed border-collapse text-xs">
+                  <thead><tr><th className="w-24 border border-slate-500 bg-slate-100 p-2">اليوم</th>{data.periods.map((period) => <th key={period.id} className="border border-slate-500 bg-slate-100 p-2">{period.label}</th>)}</tr></thead>
+                  <tbody>{data.days.map((day) => (
+                    <tr key={day.id}>
+                      <th className="border border-slate-400 bg-slate-50 p-2">{day.label}</th>
+                      {data.periods.map((period) => {
+                        const entry = data.entries.find((item) => item.teacherId === teacherItem.id && scopeClassIds.has(item.classId) && item.dayId === day.id && item.periodId === period.id);
+                        return <td key={period.id} className="h-16 border border-slate-300 p-2 text-center">{entry ? <><div className="font-bold">{entry.subjectName}</div><div className="mt-1 text-slate-600">{entry.className}</div></> : "—"}</td>;
+                      })}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </section>
+            ))}
+          </div>
         )}
-
         <footer className="print-footer mt-6 flex items-center justify-between border-t border-slate-300 pt-3 text-[10px] text-slate-500">
-          <span>تم إنشاء الجدول بواسطة تيتش اكس</span>
+          <span>ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„ Ø¨ÙˆØ§Ø³Ø·Ø© ØªÙŠØªØ´ Ø§ÙƒØ³</span>
           <span>{siteUrl}</span>
         </footer>
       </main>

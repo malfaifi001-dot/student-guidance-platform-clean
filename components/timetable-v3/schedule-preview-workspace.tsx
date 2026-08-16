@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { filterTimetableV3ScheduleEntries } from "@/lib/timetable-v3/schedule-view";
 import { timetableV3StatusLabel } from "@/lib/timetable-v3/display-labels";
 
 type Entry = {
@@ -33,7 +32,7 @@ type Workspace = {
   };
   days?: Array<{ id: string; label: string; order: number }>;
   periods?: Array<{ id: string; label: string; order: number }>;
-  classes?: Array<{ id: string; name: string }>;
+  classes?: Array<{ id: string; name: string; classification?: { stageId: string; gradeId: string; gradeName: string } | null }>;
   teachers?: Array<{ id: string; name: string; specialty: string | null }>;
   entries?: Entry[];
   scopes?: {
@@ -56,7 +55,9 @@ export function TimetableV3SchedulePreviewWorkspace({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<PreviewMode>("full");
-  const [teacherId, setTeacherId] = useState(workspace.teachers?.[0]?.id ?? "");
+  const [teacherId, setTeacherId] = useState("ALL");
+  const [stageId, setStageId] = useState(workspace.scopes?.stage.options[0]?.id ?? "");
+  const [gradeId, setGradeId] = useState(workspace.scopes?.grade.options[0]?.id ?? "");
 
   const teacher = useMemo(
     () => workspace.teachers?.find((item) => item.id === teacherId) ?? null,
@@ -85,9 +86,15 @@ export function TimetableV3SchedulePreviewWorkspace({
   const periods = workspace.periods ?? [];
   const classes = workspace.classes ?? [];
   const entries = workspace.entries ?? [];
-  const visibleEntries = mode === "teacher" && teacher
-    ? filterTimetableV3ScheduleEntries(entries, { mode: "teacher", teacherId: teacher.id })
-    : entries;
+  const visibleClassIds = useMemo(() => new Set(classes.filter((item) => {
+    if (mode === "stage") return item.classification?.stageId === stageId;
+    if (mode === "grade") return item.classification?.gradeId === gradeId;
+    return true;
+  }).map((item) => item.id)), [classes, gradeId, mode, stageId]);
+  const scopedClasses = mode === "stage" || mode === "grade"
+    ? classes.filter((item) => visibleClassIds.has(item.id))
+    : classes;
+  const visibleEntries = entries.filter((entry) => visibleClassIds.has(entry.classId));
   const scheduleQuery = new URLSearchParams({ scheduleId: schedule.id }).toString();
 
   return (
@@ -133,16 +140,33 @@ export function TimetableV3SchedulePreviewWorkspace({
 
         {mode === "teacher" ? (
           <select value={teacherId} onChange={(event) => setTeacherId(event.target.value)} className="mt-4 h-11 w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#3478B8]">
+            <option value="ALL">جميع المعلمين</option>
             {(workspace.teachers ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}{item.specialty ? ` — ${item.specialty}` : ""}</option>)}
+          </select>
+        ) : null}
+        {mode === "stage" && workspace.scopes?.stage.available ? (
+          <select value={stageId} onChange={(event) => setStageId(event.target.value)} className="mt-4 h-11 w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#3478B8]">
+            {workspace.scopes.stage.options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        ) : null}
+        {mode === "grade" && workspace.scopes?.grade.available ? (
+          <select value={gradeId} onChange={(event) => setGradeId(event.target.value)} className="mt-4 h-11 w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#3478B8]">
+            {workspace.scopes.grade.options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         ) : null}
       </section>
 
       <div className="mt-5">
-        {mode === "full" ? (
-          <FullSchedule days={days} periods={periods} classes={classes} entries={entries} />
+        {mode === "full" || mode === "stage" || mode === "grade" ? (
+          <FullSchedule days={days} periods={periods} classes={scopedClasses} entries={visibleEntries} />
         ) : mode === "teacher" && teacher ? (
-          <TeacherSchedule teacherName={teacher.name} days={days} periods={periods} entries={visibleEntries} />
+          <TeacherSchedule teacherName={teacher.name} days={days} periods={periods} entries={visibleEntries.filter((item) => item.teacherId === teacher.id)} />
+        ) : mode === "teacher" ? (
+          <div className="space-y-5">
+            {(workspace.teachers ?? []).map((item) => (
+              <TeacherSchedule key={item.id} teacherName={item.name} days={days} periods={periods} entries={visibleEntries.filter((entry) => entry.teacherId === item.id)} />
+            ))}
+          </div>
         ) : null}
       </div>
     </main>

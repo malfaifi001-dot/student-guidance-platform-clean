@@ -2694,6 +2694,8 @@ model TimetableClass {
   project   TimetableProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   name     String
+  stage    String?
+  grade    String?
   isActive Boolean @default(true)
 
   subjects        TimetableClassSubject[]
@@ -2705,6 +2707,8 @@ model TimetableClass {
 
   @@unique([projectId, name])
   @@index([projectId])
+  @@index([stage])
+  @@index([grade])
   @@index([isActive])
 }
 

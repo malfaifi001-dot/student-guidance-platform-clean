@@ -98,9 +98,51 @@ function stableValue(value: unknown): unknown {
   return value;
 }
 
-function sameSnapshot(left: unknown, right: unknown) {
-  return JSON.stringify(stableValue(left)) ===
-    JSON.stringify(stableValue(right));
+function normalizeAssignmentSnapshot(value: unknown) {
+  const source = objectValue(value);
+  return {
+    id: source.id == null ? null : String(source.id),
+    projectId: source.projectId == null ? null : String(source.projectId),
+    teacherId: source.teacherId == null ? null : String(source.teacherId),
+    classId: source.classId == null ? null : String(source.classId),
+    subjectId: source.subjectId == null ? null : String(source.subjectId),
+    assignedLessons: source.assignedLessons == null ? null : Number(source.assignedLessons),
+    singlePeriods: source.singlePeriods == null ? null : Number(source.singlePeriods),
+    doublePeriods: source.doublePeriods == null ? null : Number(source.doublePeriods),
+    fixedSlotsJson: stableValue(source.fixedSlotsJson ?? null),
+  };
+}
+
+function normalizeHistorySnapshot(
+  actionType: TimetableHistoryActionType | string,
+  value: unknown,
+) {
+  if (
+    actionType === TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_CREATED ||
+    actionType === TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_UPDATED ||
+    actionType === TIMETABLE_HISTORY_ACTIONS.ASSIGNMENT_REMOVED
+  ) {
+    return normalizeAssignmentSnapshot(value);
+  }
+
+  if (
+    actionType === TIMETABLE_HISTORY_ACTIONS.CLASSES_UPDATED ||
+    actionType === TIMETABLE_HISTORY_ACTIONS.SUBJECTS_UPDATED ||
+    actionType === TIMETABLE_HISTORY_ACTIONS.TEACHERS_UPDATED
+  ) {
+    return stableValue(normalizeRows(value));
+  }
+
+  return stableValue(value);
+}
+
+function sameSnapshot(
+  actionType: TimetableHistoryActionType | string,
+  left: unknown,
+  right: unknown,
+) {
+  return JSON.stringify(normalizeHistorySnapshot(actionType, left)) ===
+    JSON.stringify(normalizeHistorySnapshot(actionType, right));
 }
 
 function normalizeRows(value: unknown) {
@@ -279,7 +321,7 @@ export async function recordTimetableHistory(
   input: HistoryInput,
   db: TimetableHistoryDb = prisma,
 ) {
-  if (sameSnapshot(input.before, input.after)) {
+  if (sameSnapshot(input.actionType, input.before, input.after)) {
     return null;
   }
 
@@ -600,7 +642,7 @@ export async function undoTimetableHistory(projectId: string, schoolAccountId: s
     });
     if (!entry) throw new Error("HISTORY_EMPTY");
     const current = await getTimetableHistorySnapshot(projectId, entry.actionType as TimetableHistoryActionType, entry.entityId, tx);
-    if (!sameSnapshot(current, entry.afterJson)) throw new Error("HISTORY_CONFLICT");
+    if (!sameSnapshot(entry.actionType, current, entry.afterJson)) throw new Error("HISTORY_CONFLICT");
     await applySnapshot(tx, entry, entry.beforeJson);
     await tx.timetableProjectHistoryEntry.update({ where: { id: entry.id }, data: { state: "UNDONE", revertedAt: new Date(), revertedByUserId: actorUserId } });
     await tx.timetableProjectHistoryEntry.create({
@@ -631,7 +673,7 @@ export async function redoTimetableHistory(projectId: string, schoolAccountId: s
     });
     if (!entry) throw new Error("HISTORY_EMPTY");
     const current = await getTimetableHistorySnapshot(projectId, entry.actionType as TimetableHistoryActionType, entry.entityId, tx);
-    if (!sameSnapshot(current, entry.beforeJson)) throw new Error("HISTORY_CONFLICT");
+    if (!sameSnapshot(entry.actionType, current, entry.beforeJson)) throw new Error("HISTORY_CONFLICT");
     await applySnapshot(tx, entry, entry.afterJson);
     await tx.timetableProjectHistoryEntry.update({ where: { id: entry.id }, data: { state: "ACTIVE", revertedAt: null, revertedByUserId: null } });
     await tx.timetableProjectHistoryEntry.create({

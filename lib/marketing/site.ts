@@ -1,22 +1,15 @@
 export const siteConfig = {
-  name: "Teachix",
-  shortName: "Teachix",
+  name: "تيتش اكس",
+  shortName: "تيتش اكس",
+  englishName: "Teachix",
   description:
     "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها من مكان واحد.",
-  url: "http://localhost:3000",
+  url: "https://teachix.sa",
 
   navigation: [
-    {
-      title: "لمن المنصة؟",
-      href: "/#users",
-    },
-    {
-      title: "لماذا Teachix؟",
-      href: "/#features",
-    },
-    {
-      title: "التقييمات",
-      href: "/#reviews",
-    },
+    { title: "خدمات Teachix", href: "/services" },
+    { title: "مميزات Teachix", href: "/features" },
+    { title: "عن Teachix", href: "/about" },
+    { title: "تواصل معنا", href: "/contact" },
   ],
 };

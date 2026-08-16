@@ -46,6 +46,14 @@ export function MarketingFooter() {
             </h3>
 
             <div className="mt-5 space-y-3 text-sm font-bold text-slate-500">
+              <Link href="/services" className="block hover:text-sky-600">
+                خدمات Teachix
+              </Link>
+
+              <Link href="/features" className="block hover:text-sky-600">
+                مميزات Teachix
+              </Link>
+
               <Link href="/about" className="block hover:text-sky-600">
                 عن المنصة
               </Link>

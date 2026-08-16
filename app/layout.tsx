@@ -27,12 +27,12 @@ export const metadata: Metadata = {
   },
   description:
     "Teachix منصة مدرسية رقمية تساعد مدير المدرسة والمعلم والموجه الطلابي ورائد النشاط على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
-  applicationName: "Teachix",
+  applicationName: "تيتش اكس",
   openGraph: {
     type: "website",
     locale: "ar_SA",
     url: "https://teachix.sa/",
-    siteName: "Teachix",
+    siteName: "تيتش اكس",
     title: "Teachix | منصة مدرسية رقمية متكاملة",
     description:
       "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
       "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
   },
   icons: {
-    icon: "/brand/teachix-icon.svg",
+    icon: "/icon.png",
     shortcut: "/brand/teachix-icon.svg",
-    apple: "/brand/teachix-icon.svg",
+    apple: "/icon.png",
   },
 };
 
