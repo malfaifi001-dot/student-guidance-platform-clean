@@ -468,6 +468,11 @@ const principalLinks: SidebarLinkItem[] = [
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
     icon: FileText,
   },
+  {
+    label: "ملف الإنجاز",
+    href: "/dashboard/principal/portfolio",
+    icon: FolderKanban,
+  },
 ];
 
 const principalTimetableLinks: SidebarLinkItem[] = [
