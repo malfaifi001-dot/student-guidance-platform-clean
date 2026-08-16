@@ -332,6 +332,26 @@ function validateStructuralRules(
     }
   }
 
+  for (const classItem of problem.classes) {
+    const target = classItem.weeklyPeriodTarget;
+    if (!target) {
+      continue;
+    }
+
+    const required = problem.assignments
+      .filter((assignment) => assignment.classId === classItem.id)
+      .reduce((sum, assignment) => sum + assignment.assignedLessons, 0);
+
+    if (required > target) {
+      addIssue(
+        issues,
+        "CLASS_WEEKLY_TARGET_EXCEEDED",
+        `الفصل ${classItem.name} يتجاوز الهدف الأسبوعي المحدد (${target}) بحصص إضافية.`,
+        classItem.id,
+      );
+    }
+  }
+
   const blocks =
     new Map<
       string,

@@ -48,6 +48,8 @@ export type TimetableV2ProjectBlueprint = {
 
   weeklyPeriodTarget: number | null;
 
+  stageWeeklyPeriodTargets: import("./project-setup").TimetableStageWeeklyPeriodTargets;
+
   studyDays: TimetableV2BlueprintDay[];
 
   periods: TimetableV2BlueprintPeriod[];
@@ -182,6 +184,9 @@ export function createTimetableV2ProjectBlueprint(
 
     weeklyPeriodTarget:
       normalizedInput.weeklyPeriodTarget ?? null,
+
+    stageWeeklyPeriodTargets:
+      normalizedInput.stageWeeklyPeriodTargets ?? {},
 
     studyDays,
 

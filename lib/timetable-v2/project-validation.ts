@@ -92,6 +92,36 @@ export function validateTimetableV2ProjectSetup(
     });
   }
 
+  for (const [stageId, target] of Object.entries(
+    input.stageWeeklyPeriodTargets ?? {},
+  )) {
+    if (!isTimetableV2StageId(stageId)) {
+      errors.push({
+        field: "stageWeeklyPeriodTargets",
+        message: `مرحلة غير مدعومة في الهدف الأسبوعي: ${stageId}`,
+      });
+      continue;
+    }
+
+    if (!input.stageIds.includes(stageId)) {
+      errors.push({
+        field: "stageWeeklyPeriodTargets",
+        message: "لا يمكن تحديد هدف لمرحلة غير مختارة.",
+      });
+    }
+
+    if (
+      !Number.isInteger(target) ||
+      target < 1 ||
+      target > 100
+    ) {
+      errors.push({
+        field: "stageWeeklyPeriodTargets",
+        message: "عدد الحصص الأسبوعية لكل مرحلة يجب أن يكون بين 1 و100.",
+      });
+    }
+  }
+
   if (input.studyDays.length === 0) {
     errors.push({
       field: "studyDays",

@@ -13,6 +13,11 @@ import {
 } from "@/lib/prisma";
 
 import {
+  resolveTimetableStageIdForClass,
+  resolveTimetableStageWeeklyPeriodTarget,
+} from "@/lib/timetable-v2/project-setup";
+
+import {
   analyzeTimetableV2Readiness,
 } from "@/lib/timetable-v2/readiness-analysis";
 
@@ -331,6 +336,7 @@ async function loadProblem(
     teachers,
     classes,
     subjects,
+    classSubjects,
     assignments,
     constraints,
   ] = await Promise.all([
@@ -381,6 +387,16 @@ async function loadProblem(
       select: {
         id: true,
         name: true,
+      },
+    }),
+
+    prisma.timetableClassSubject.findMany({
+      where: {
+        projectId,
+      },
+      select: {
+        classId: true,
+        weeklyLessons: true,
       },
     }),
 
@@ -530,6 +546,14 @@ async function loadProblem(
         }),
       );
 
+  const curriculumTotalByClass = new Map<string, number>();
+  for (const row of classSubjects) {
+    curriculumTotalByClass.set(
+      row.classId,
+      (curriculumTotalByClass.get(row.classId) ?? 0) + row.weeklyLessons,
+    );
+  }
+
   const problem:
     GenerationProblem = {
       projectId,
@@ -555,7 +579,29 @@ async function loadProblem(
           }),
         ),
 
-      classes,
+      classes: classes.map((classItem) => {
+        const stageId = resolveTimetableStageIdForClass(
+          project.settingsJson,
+          classItem.id,
+          classItem.name,
+        );
+
+        return {
+          ...classItem,
+          ...(stageId
+            ? {
+                stageId,
+                weeklyPeriodTarget:
+                  resolveTimetableStageWeeklyPeriodTarget({
+                    settingsJson: project.settingsJson,
+                    stageId,
+                    curriculumTotalWeeklyPeriods:
+                      curriculumTotalByClass.get(classItem.id) ?? null,
+                  }),
+              }
+            : {}),
+        };
+      }),
       subjects,
 
       assignments:
@@ -607,6 +653,16 @@ async function loadProblem(
       days,
 
       periods,
+
+      classes:
+        problem.classes
+          .map((classItem) => ({
+            id: classItem.id,
+            stageId: classItem.stageId ?? null,
+            weeklyPeriodTarget:
+              classItem.weeklyPeriodTarget ?? null,
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id)),
 
       teachers:
         problem.teachers

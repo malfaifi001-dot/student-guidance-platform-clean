@@ -35,6 +35,7 @@ export type ProjectDashboardData = {
     stageLabels: string[];
     teacherTarget: number | null;
     weeklyPeriodTarget: number | null;
+    stageWeeklyPeriodTargets: import("@/lib/timetable-v2/project-setup").TimetableStageWeeklyPeriodTargets;
     hasDays: boolean;
     hasTeachingPeriods: boolean;
   };

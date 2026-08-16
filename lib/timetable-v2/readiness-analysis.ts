@@ -4,6 +4,11 @@ import {
   prisma,
 } from "@/lib/prisma";
 
+import {
+  resolveTimetableStageIdForClass,
+  resolveTimetableStageWeeklyPeriodTarget,
+} from "@/lib/timetable-v2/project-setup";
+
 export type TimetableV2ReadinessSeverity =
   | "ERROR"
   | "WARNING"
@@ -263,6 +268,7 @@ export async function analyzeTimetableV2Readiness(
         status: true,
         daysJson: true,
         periodsJson: true,
+        settingsJson: true,
       },
     });
 
@@ -619,6 +625,52 @@ export async function analyzeTimetableV2Readiness(
         row.weeklyLessons,
       0,
     );
+
+  const requiredByClass = new Map<string, number>();
+  for (const row of classSubjects) {
+    requiredByClass.set(
+      row.classId,
+      (requiredByClass.get(row.classId) ?? 0) + row.weeklyLessons,
+    );
+  }
+
+  for (const classItem of classes) {
+    const stageId = resolveTimetableStageIdForClass(
+      project.settingsJson,
+      classItem.id,
+      classItem.name,
+    );
+    if (!stageId) {
+      continue;
+    }
+
+    const target = resolveTimetableStageWeeklyPeriodTarget({
+      settingsJson: project.settingsJson,
+      stageId,
+    });
+    if (target == null) {
+      continue;
+    }
+
+    const required = requiredByClass.get(classItem.id) ?? 0;
+    if (required > target) {
+      issues.push({
+        id: `class-weekly-target-${classItem.id}`,
+        severity: "ERROR",
+        category: "ASSIGNMENTS",
+        code: "CLASS_WEEKLY_TARGET_EXCEEDED",
+        title: `الهدف الأسبوعي للفصل ${classItem.name} متجاوز`,
+        description: `المطلوب ${required} حصة، بينما الهدف المحدد للمرحلة هو ${target} حصة.`,
+        actionLabel: "مراجعة الإسنادات",
+        href: `/dashboard/timetable-v2/${projectId}/assignments`,
+        entityName: classItem.name,
+        meta: {
+          required,
+          target,
+        },
+      });
+    }
+  }
 
   const assignmentTotalByKey =
     new Map<

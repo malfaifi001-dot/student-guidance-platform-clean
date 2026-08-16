@@ -19,6 +19,8 @@ import {
 
 import {
   getTimetableV2Stage,
+  readTimetableLegacyWeeklyPeriodTarget,
+  readTimetableStageWeeklyPeriodTargets,
 } from "@/lib/timetable-v2/project-setup";
 
 import type {
@@ -35,6 +37,9 @@ function readTimetableV2Settings(
   stageIds: string[];
   teacherTarget: number | null;
   weeklyPeriodTarget: number | null;
+  stageWeeklyPeriodTargets: ReturnType<
+    typeof readTimetableStageWeeklyPeriodTargets
+  >;
 } {
   if (
     !value ||
@@ -46,6 +51,7 @@ function readTimetableV2Settings(
       stageIds: [],
       teacherTarget: null,
       weeklyPeriodTarget: null,
+      stageWeeklyPeriodTargets: {},
     };
   }
 
@@ -68,6 +74,7 @@ function readTimetableV2Settings(
       stageIds: [],
       teacherTarget: null,
       weeklyPeriodTarget: null,
+      stageWeeklyPeriodTargets: {},
     };
   }
 
@@ -91,10 +98,10 @@ function readTimetableV2Settings(
         : null,
 
     weeklyPeriodTarget:
-      typeof settings.weeklyPeriodTarget ===
-        "number"
-        ? settings.weeklyPeriodTarget
-        : null,
+      readTimetableLegacyWeeklyPeriodTarget(value),
+
+    stageWeeklyPeriodTargets:
+      readTimetableStageWeeklyPeriodTargets(value),
   };
 }
 
@@ -256,6 +263,9 @@ export async function getTimetableV2ProjectDashboard(
 
       weeklyPeriodTarget:
         settings.weeklyPeriodTarget,
+
+      stageWeeklyPeriodTargets:
+        settings.stageWeeklyPeriodTargets,
 
       hasDays:
         summary.daysCount > 0,

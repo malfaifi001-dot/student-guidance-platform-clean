@@ -15,6 +15,7 @@ import {
   type TimetableV2SemesterId,
   type TimetableV2StageId,
   type TimetableV2StudyDayId,
+  type TimetableStageWeeklyPeriodTargets,
 } from "@/lib/timetable-v2";
 
 import {
@@ -52,6 +53,8 @@ export type CreateTimetableV2ProjectInput = {
   teacherCount: number;
 
   weeklyPeriodTarget?: number | null;
+
+  stageWeeklyPeriodTargets?: TimetableStageWeeklyPeriodTargets;
 
   studyDays: TimetableV2StudyDayId[];
 
@@ -126,6 +129,22 @@ function validateInput(
     throw new Error(
       "INVALID_PERIOD_COUNT",
     );
+  }
+
+  const stageTargets =
+    input.stageWeeklyPeriodTargets ?? {};
+  for (const [stageId, target] of Object.entries(stageTargets)) {
+    if (!input.stageIds.includes(stageId as TimetableV2StageId)) {
+      throw new Error("STAGE_TARGET_STAGE_MISMATCH");
+    }
+
+    if (
+      !Number.isInteger(target) ||
+      target < 1 ||
+      target > 100
+    ) {
+      throw new Error("INVALID_STAGE_WEEKLY_TARGET");
+    }
   }
 
   if (
@@ -625,6 +644,10 @@ export async function createTimetableV2Project(
                     input.weeklyPeriodTarget ??
                     null,
 
+                  stageWeeklyPeriodTargets:
+                    input.stageWeeklyPeriodTargets ??
+                    {},
+
                   studyDays:
                     input.studyDays,
 
@@ -648,6 +671,7 @@ export async function createTimetableV2Project(
       const classPlanMetadata: Array<{
         classId: string;
         className: string;
+        stageId: TimetableV2StageId;
         gradeId: string;
         sectionIndex: number;
         sectionName: string;
@@ -780,6 +804,9 @@ export async function createTimetableV2Project(
 
             className,
 
+            stageId:
+              grade.stageId,
+
             gradeId:
               grade.id,
 
@@ -872,6 +899,10 @@ export async function createTimetableV2Project(
                 weeklyPeriodTarget:
                   input.weeklyPeriodTarget ??
                   null,
+
+                stageWeeklyPeriodTargets:
+                  input.stageWeeklyPeriodTargets ??
+                  {},
 
                 studyDays:
                   input.studyDays,

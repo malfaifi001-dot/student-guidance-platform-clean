@@ -20,6 +20,8 @@ export type GenerationTeacher = {
 export type GenerationClass = {
   id: string;
   name: string;
+  stageId?: import("../project-setup").TimetableV2StageId;
+  weeklyPeriodTarget?: number | null;
 };
 
 export type GenerationSubject = {

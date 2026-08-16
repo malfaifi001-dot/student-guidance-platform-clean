@@ -61,6 +61,17 @@ const requestSchema = z.object({
     .nullable()
     .optional(),
 
+  stageWeeklyPeriodTargets: z
+    .record(
+      z.enum([
+        "ELEMENTARY",
+        "MIDDLE",
+        "HIGH",
+      ]),
+      z.number().int().min(1).max(100),
+    )
+    .optional(),
+
   studyDays: z
     .array(
       z.enum([

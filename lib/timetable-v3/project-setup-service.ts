@@ -9,6 +9,13 @@ import {
 } from "@/lib/prisma";
 
 import {
+  normalizeTimetableStageWeeklyPeriodTargets,
+  readTimetableLegacyWeeklyPeriodTarget,
+  readTimetableStageWeeklyPeriodTargets,
+  type TimetableStageWeeklyPeriodTargets,
+} from "@/lib/timetable-v2/project-setup";
+
+import {
   TIMETABLE_V3_DAY_OPTIONS,
   type TimetableV3Day,
   type TimetableV3DayId,
@@ -620,6 +627,16 @@ export async function getTimetableV3SetupWorkspace(
           project.settingsJson,
           classes.map((item) => item.name),
         ),
+
+      stageWeeklyPeriodTargets:
+        readTimetableStageWeeklyPeriodTargets(
+          project.settingsJson,
+        ),
+
+      weeklyPeriodTarget:
+        readTimetableLegacyWeeklyPeriodTarget(
+          project.settingsJson,
+        ),
     },
 
     days:
@@ -696,6 +713,42 @@ export async function saveTimetableV3Stages(
         timetableV3: {
           ...timetableV3,
           stages: unique,
+        },
+      } as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function saveTimetableV3StageWeeklyPeriodTargets(
+  projectId: string,
+  schoolAccountId: string,
+  targets: TimetableStageWeeklyPeriodTargets,
+) {
+  const project = await requireProject(
+    projectId,
+    schoolAccountId,
+  );
+
+  const normalized = normalizeTimetableStageWeeklyPeriodTargets(targets);
+  const settings = asObject(project.settingsJson);
+  const timetableV3 = asObject(settings.timetableV3);
+  const selectedStages = new Set(
+    normalizeTimetableV3Stages(project.settingsJson),
+  );
+  const scoped = Object.fromEntries(
+    Object.entries(normalized).filter(([stageId]) =>
+      selectedStages.has(stageId as TimetableV3StageId),
+    ),
+  );
+
+  await prisma.timetableProject.update({
+    where: { id: projectId },
+    data: {
+      settingsJson: {
+        ...settings,
+        timetableV3: {
+          ...timetableV3,
+          stageWeeklyPeriodTargets: scoped,
         },
       } as Prisma.InputJsonValue,
     },

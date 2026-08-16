@@ -52,6 +52,10 @@ export type TimetableV3SetupWorkspace = {
     academicYear: string;
     semester: string;
     stages: import("@/lib/timetable-v3/school-setup-catalog").TimetableV3StageId[];
+
+    stageWeeklyPeriodTargets: import("@/lib/timetable-v2/project-setup").TimetableStageWeeklyPeriodTargets;
+
+    weeklyPeriodTarget: number | null;
   };
 
   days: TimetableV3Day[];

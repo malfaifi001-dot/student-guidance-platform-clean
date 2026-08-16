@@ -19,6 +19,7 @@ import {
   saveTimetableV3Subjects,
   saveTimetableV3Teachers,
   saveTimetableV3Stages,
+  saveTimetableV3StageWeeklyPeriodTargets,
 } from "@/lib/timetable-v3/project-setup-service";
 
 const dayId =
@@ -112,6 +113,17 @@ const schema =
           )
             .min(1)
             .max(3),
+
+        stageWeeklyPeriodTargets:
+          z.record(
+            z.enum([
+              "ELEMENTARY",
+              "MIDDLE",
+              "HIGH",
+            ]),
+            z.number().int().min(1).max(100),
+          )
+            .optional(),
       }),
 
       z.object({
@@ -147,6 +159,26 @@ const schema =
           .refine(
             (value) => Object.keys(value).length <= 500,
           ),
+      }),
+
+      z.object({
+        action:
+          z.literal(
+            "SAVE_STAGE_WEEKLY_PERIOD_TARGETS",
+          ),
+
+        stageWeeklyPeriodTargets:
+          z.record(
+            z.enum([
+              "ELEMENTARY",
+              "MIDDLE",
+              "HIGH",
+            ]),
+            z.number().int().min(1).max(100),
+          )
+            .refine(
+              (value) => Object.keys(value).length <= 3,
+            ),
       }),
 
       z.object({
@@ -336,6 +368,13 @@ export async function PATCH(
           access.schoolAccountId!,
           parsed.data.names,
         );
+        if (parsed.data.stageWeeklyPeriodTargets) {
+          await saveTimetableV3StageWeeklyPeriodTargets(
+            projectId,
+            access.schoolAccountId!,
+            parsed.data.stageWeeklyPeriodTargets,
+          );
+        }
         break;
 
       case "SAVE_CLASS_MAPPINGS":
@@ -343,6 +382,14 @@ export async function PATCH(
           projectId,
           access.schoolAccountId!,
           parsed.data.classMappings,
+        );
+        break;
+
+      case "SAVE_STAGE_WEEKLY_PERIOD_TARGETS":
+        await saveTimetableV3StageWeeklyPeriodTargets(
+          projectId,
+          access.schoolAccountId!,
+          parsed.data.stageWeeklyPeriodTargets,
         );
         break;
 

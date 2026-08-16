@@ -34,6 +34,7 @@ import {
   type TimetableV2SemesterId,
   type TimetableV2StageId,
   type TimetableV2StudyDayId,
+  type TimetableStageWeeklyPeriodTargets,
 } from "@/lib/timetable-v2";
 
 import {
@@ -48,6 +49,7 @@ type SetupState = {
   stageIds: TimetableV2StageId[];
   teacherCount: number;
   weeklyPeriodTarget: number | null;
+  stageWeeklyPeriodTargets: TimetableStageWeeklyPeriodTargets;
   studyDays: TimetableV2StudyDayId[];
   periodsPerDay: number;
   grades: TimetableV2GradeSetup[];
@@ -472,6 +474,7 @@ export function TimetableV2ProjectSetupWizard() {
       stageIds: [],
       teacherCount: 1,
       weeklyPeriodTarget: null,
+      stageWeeklyPeriodTargets: {},
       studyDays: [
         ...TIMETABLE_V2_DEFAULT_STUDY_DAYS,
       ],
@@ -1832,6 +1835,8 @@ export function TimetableV2ProjectSetupWizard() {
               state.teacherCount,
             weeklyPeriodTarget:
               state.weeklyPeriodTarget,
+            stageWeeklyPeriodTargets:
+              state.stageWeeklyPeriodTargets,
             studyDays:
               state.studyDays,
             periodsPerDay:
@@ -2764,7 +2769,7 @@ export function TimetableV2ProjectSetupWizard() {
                     />
                   </label>
 
-                  <label className="space-y-2">
+                  <label className="hidden space-y-2">
                     <span className="text-sm font-black text-slate-700">
                       الهدف الأسبوعي
                     </span>
@@ -2807,6 +2812,57 @@ export function TimetableV2ProjectSetupWizard() {
                   </label>
                 </div>
               </section>
+
+              {state.stageIds.length > 0 ? (
+                <section className="border-t border-slate-100 pt-5">
+                  <div className="mb-3 text-sm font-black text-slate-700">
+                    عدد الحصص الأسبوعية لكل مرحلة
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {state.stageIds.map((stageId) => {
+                      const stage = TIMETABLE_V2_STAGES.find(
+                        (item) => item.id === stageId,
+                      );
+
+                      return (
+                        <label
+                          key={stageId}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                        >
+                          <span className="text-xs font-bold text-slate-700">
+                            {stage?.name ?? stageId}
+                          </span>
+                          <span className="flex items-center gap-2 text-xs text-slate-500">
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              placeholder="اختياري"
+                              value={state.stageWeeklyPeriodTargets[stageId] ?? ""}
+                              onChange={(event) => {
+                                const next = {
+                                  ...state.stageWeeklyPeriodTargets,
+                                };
+                                if (!event.target.value) {
+                                  delete next[stageId];
+                                } else {
+                                  next[stageId] = Number(event.target.value);
+                                }
+                                setState((current) => ({
+                                  ...current,
+                                  stageWeeklyPeriodTargets: next,
+                                }));
+                              }}
+                              className="h-10 w-20 rounded-xl border border-slate-200 px-2 text-center text-sm font-black outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-50"
+                            />
+                            حصة
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricCard

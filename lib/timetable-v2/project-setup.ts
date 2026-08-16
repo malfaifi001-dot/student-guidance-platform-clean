@@ -7,6 +7,15 @@ export const TIMETABLE_V2_STAGE_IDS = [
 export type TimetableV2StageId =
   (typeof TIMETABLE_V2_STAGE_IDS)[number];
 
+/**
+ * Weekly instructional targets can differ by educational stage.  This map is
+ * persisted in the project's settings JSON so it remains additive and
+ * backwards compatible with the older project-level target.
+ */
+export type TimetableStageWeeklyPeriodTargets = Partial<
+  Record<TimetableV2StageId, number>
+>;
+
 export const TIMETABLE_V2_STUDY_DAY_IDS = [
   "SUNDAY",
   "MONDAY",
@@ -53,12 +62,178 @@ export type TimetableV2ProjectSetupInput = {
    */
   weeklyPeriodTarget?: number | null;
 
+  stageWeeklyPeriodTargets?: TimetableStageWeeklyPeriodTargets;
+
   studyDays: TimetableV2StudyDayId[];
 
   periodsPerDay: number;
 
   grades: TimetableV2GradeSetup[];
 };
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function validWeeklyTarget(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= 100
+  );
+}
+
+/** Normalize a stage target map read from settings JSON. */
+export function normalizeTimetableStageWeeklyPeriodTargets(
+  value: unknown,
+): TimetableStageWeeklyPeriodTargets {
+  const record = asRecord(value);
+  const normalized: TimetableStageWeeklyPeriodTargets = {};
+
+  for (const stageId of TIMETABLE_V2_STAGE_IDS) {
+    if (validWeeklyTarget(record[stageId])) {
+      normalized[stageId] = record[stageId];
+    }
+  }
+
+  return normalized;
+}
+
+/**
+ * Read stage targets from either V2 or V3 settings.  Keeping this lookup in
+ * one place prevents the two timetable entry points from drifting apart.
+ */
+export function readTimetableStageWeeklyPeriodTargets(
+  settingsJson: unknown,
+): TimetableStageWeeklyPeriodTargets {
+  const root = asRecord(settingsJson);
+  const v2 = asRecord(root.timetableV2);
+  const v3 = asRecord(root.timetableV3);
+
+  const v3Targets = normalizeTimetableStageWeeklyPeriodTargets(
+    v3.stageWeeklyPeriodTargets,
+  );
+  if (Object.keys(v3Targets).length > 0) {
+    return v3Targets;
+  }
+
+  const v2Targets = normalizeTimetableStageWeeklyPeriodTargets(
+    v2.stageWeeklyPeriodTargets,
+  );
+  if (Object.keys(v2Targets).length > 0) {
+    return v2Targets;
+  }
+
+  return normalizeTimetableStageWeeklyPeriodTargets(
+    root.stageWeeklyPeriodTargets,
+  );
+}
+
+export function readTimetableLegacyWeeklyPeriodTarget(
+  settingsJson: unknown,
+): number | null {
+  const root = asRecord(settingsJson);
+  const v3 = asRecord(root.timetableV3);
+  const v2 = asRecord(root.timetableV2);
+
+  for (const candidate of [
+    v3.weeklyPeriodTarget,
+    v2.weeklyPeriodTarget,
+    root.weeklyPeriodTarget,
+  ]) {
+    if (validWeeklyTarget(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolve one class/stage target using the canonical backwards-compatible
+ * order: explicit stage target, legacy project target, curriculum total.
+ */
+export function resolveTimetableStageWeeklyPeriodTarget(options: {
+  stageId: TimetableV2StageId;
+  settingsJson?: unknown;
+  stageWeeklyPeriodTargets?: TimetableStageWeeklyPeriodTargets | null;
+  weeklyPeriodTarget?: number | null;
+  curriculumTotalWeeklyPeriods?: number | null;
+}): number | null {
+  const stageTargets =
+    options.stageWeeklyPeriodTargets ??
+    readTimetableStageWeeklyPeriodTargets(options.settingsJson);
+
+  const stageTarget = stageTargets[options.stageId];
+  if (validWeeklyTarget(stageTarget)) {
+    return stageTarget;
+  }
+
+  const legacyTarget =
+    options.weeklyPeriodTarget ??
+    readTimetableLegacyWeeklyPeriodTarget(options.settingsJson);
+  if (validWeeklyTarget(legacyTarget)) {
+    return legacyTarget;
+  }
+
+  return validWeeklyTarget(options.curriculumTotalWeeklyPeriods)
+    ? options.curriculumTotalWeeklyPeriods
+    : null;
+}
+
+/** Resolve a class's stage from explicit V3/V2 metadata before safe catalog inference. */
+export function resolveTimetableStageIdForClass(
+  settingsJson: unknown,
+  classId: string,
+  className?: string,
+): TimetableV2StageId | null {
+  const root = asRecord(settingsJson);
+  const v3 = asRecord(root.timetableV3);
+  const v3Mapping = asRecord(asRecord(v3.classMappings)[classId]);
+  if (isTimetableV2StageId(String(v3Mapping.stageId ?? ""))) {
+    return v3Mapping.stageId as TimetableV2StageId;
+  }
+
+  const v2 = asRecord(root.timetableV2);
+  const classPlans = Array.isArray(v2.classPlans)
+    ? v2.classPlans
+    : [];
+  const plan = classPlans.find(
+    (item) =>
+      asRecord(item).classId === classId,
+  );
+  const gradeId = asRecord(plan).gradeId;
+  const storedStageId = asRecord(plan).stageId;
+  if (isTimetableV2StageId(String(storedStageId ?? ""))) {
+    return storedStageId as TimetableV2StageId;
+  }
+
+  if (typeof gradeId === "string") {
+    const grade = getTimetableV2Grade(gradeId);
+    if (grade) {
+      return grade.stageId;
+    }
+  }
+
+  if (className) {
+    for (const stage of TIMETABLE_V2_STAGES) {
+      if (
+        stage.grades.some(
+          (grade) =>
+            className === grade.name ||
+            className.startsWith(`${grade.name} `),
+        )
+      ) {
+        return stage.id;
+      }
+    }
+  }
+
+  return null;
+}
 
 export const TIMETABLE_V2_DEFAULT_SECTION_NAMES = [
   "أ",
@@ -267,6 +442,7 @@ export function createTimetableV2DefaultSetup(): TimetableV2ProjectSetupInput {
     stageIds: [],
     teacherCount: 0,
     weeklyPeriodTarget: null,
+    stageWeeklyPeriodTargets: {},
     studyDays: [...TIMETABLE_V2_DEFAULT_STUDY_DAYS],
     periodsPerDay: 7,
     grades: [],

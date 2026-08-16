@@ -1323,6 +1323,50 @@ export function analyzeTimetableV2Feasibility(
         assignments,
       );
 
+    if (
+      classItem.weeklyPeriodTarget != null &&
+      demand > classItem.weeklyPeriodTarget
+    ) {
+      addIssue(
+        issues,
+        {
+          code:
+            "CLASS_WEEKLY_TARGET_EXCEEDED",
+
+          severity:
+            "ERROR",
+
+          category:
+            "CLASS",
+
+          proven:
+            true,
+
+          message:
+            `الفصل «${classItem.name}» يتجاوز الهدف الأسبوعي المحدد (${classItem.weeklyPeriodTarget}) بحصص إضافية.`,
+
+          entityId:
+            classItem.id,
+
+          evidence: {
+            classId:
+              classItem.id,
+
+            required:
+              demand,
+
+            limit:
+              classItem.weeklyPeriodTarget,
+
+            details: {
+              stageId:
+                classItem.stageId ?? null,
+            },
+          },
+        },
+      );
+    }
+
     const available =
       availableSlotsForScope(
         context,

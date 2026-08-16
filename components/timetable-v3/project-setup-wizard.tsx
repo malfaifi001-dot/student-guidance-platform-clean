@@ -20,6 +20,10 @@ import {
   type TimetableV3SetupWorkspace,
 } from "@/lib/timetable-v3/project-setup-types";
 
+import type {
+  TimetableStageWeeklyPeriodTargets,
+} from "@/lib/timetable-v2/project-setup";
+
 import {
   ARABIC_CLASS_SECTION_LETTERS,
   TIMETABLE_V3_STAGES,
@@ -187,6 +191,11 @@ export function TimetableV3ProjectSetupWizard(
   ] = useState<TimetableV3StageId[]>([]);
 
   const [
+    stageWeeklyPeriodTargets,
+    setStageWeeklyPeriodTargets,
+  ] = useState<TimetableStageWeeklyPeriodTargets>({});
+
+  const [
     subjects,
     setSubjects,
   ] = useState<
@@ -256,6 +265,18 @@ export function TimetableV3ProjectSetupWizard(
 
         setStages(
           data.project.stages,
+        );
+
+        setStageWeeklyPeriodTargets(
+          data.project.stageWeeklyPeriodTargets ??
+            (data.project.weeklyPeriodTarget == null
+              ? {}
+              : Object.fromEntries(
+                  data.project.stages.map((stageId) => [
+                    stageId,
+                    data.project.weeklyPeriodTarget,
+                  ]),
+                )),
         );
 
         setSubjects(
@@ -672,6 +693,15 @@ export function TimetableV3ProjectSetupWizard(
 
             stages,
           });
+
+        if (ok) {
+          ok = await save({
+            action:
+              "SAVE_STAGE_WEEKLY_PERIOD_TARGETS",
+
+            stageWeeklyPeriodTargets,
+          });
+        }
         break;
 
       case 3:
@@ -957,6 +987,15 @@ export function TimetableV3ProjectSetupWizard(
                   setClasses
                 }
                 stages={stages}
+
+                stageWeeklyPeriodTargets={
+                  stageWeeklyPeriodTargets
+                }
+
+                onStageWeeklyPeriodTargetsChange={
+                  setStageWeeklyPeriodTargets
+                }
+
                 onStagesChange={setStages}
                 classItems={workspace.classes}
                 classMappings={classMappings}
@@ -2444,6 +2483,13 @@ function ClassesStep(
     stages:
       TimetableV3StageId[];
 
+    stageWeeklyPeriodTargets:
+      TimetableStageWeeklyPeriodTargets;
+
+    onStageWeeklyPeriodTargetsChange: (
+      value: TimetableStageWeeklyPeriodTargets,
+    ) => void;
+
     onStagesChange: (
       value:
         TimetableV3StageId[],
@@ -2949,6 +2995,52 @@ function ClassesStep(
           },
         )}
       </div>
+
+      {selectedStages.length > 0 ? (
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+          <div className="mb-3 text-sm font-bold text-slate-800">
+            عدد الحصص الأسبوعية
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {selectedStages.map((stage) => (
+              <label
+                key={stage.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+              >
+                <span className="text-xs font-semibold text-slate-700">
+                  {stage.name}
+                </span>
+                <span className="flex items-center gap-2 text-xs text-slate-500">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={props.stageWeeklyPeriodTargets[stage.id] ?? ""}
+                    placeholder="اختياري"
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      const next = {
+                        ...props.stageWeeklyPeriodTargets,
+                      };
+
+                      if (!value) {
+                        delete next[stage.id];
+                      } else {
+                        next[stage.id] = Number(value);
+                      }
+
+                      props.onStageWeeklyPeriodTargetsChange(next);
+                    }}
+                    className="h-9 w-20 rounded-lg border border-slate-200 px-2 text-center text-sm font-bold text-slate-800 outline-none focus:border-[#3478B8] focus:ring-2 focus:ring-[#3478B8]/10"
+                  />
+                  حصة
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {props.stages.length === 0 ? (
         <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
