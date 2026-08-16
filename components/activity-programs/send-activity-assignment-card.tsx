@@ -12,6 +12,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type Props = {
   domainSlug: string;
@@ -145,6 +147,10 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
         throw new Error(result.error || "تعذر إنشاء رابط المعلم.");
       }
 
+      trackAnalyticsEvent(ANALYTICS_EVENTS.TEACHER_ASSIGNMENT_CREATED, {
+        activity_domain_slug: domainSlug,
+        status: "sent",
+      });
       setAssignment(result.assignment);
       setTeacherName("");
       setTeacherPhone("");

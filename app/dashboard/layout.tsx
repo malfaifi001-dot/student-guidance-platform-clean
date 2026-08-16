@@ -9,6 +9,8 @@ import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
 import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
+import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authenticated-analytics-identity";
+import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
 
 export const metadata: Metadata = {
   robots: {
@@ -51,9 +53,14 @@ export default async function DashboardLayout({
               }
             : null,
         );
+  const analyticsUserId = getAnalyticsUserId(current.user.id);
 
   return (
     <ThemeProvider>
+      <AuthenticatedAnalyticsIdentity
+        analyticsUserId={analyticsUserId}
+        role={current.user.role}
+      />
       <GuidanceProvider userId={current.user.id} role={current.user.role} gender={current.user.gender} displayName={current.user.officialName || current.user.name}>
       <div
         dir="rtl"

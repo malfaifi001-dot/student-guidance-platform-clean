@@ -3516,6 +3516,14 @@ export function ReportTwoStudioRuntime({
           "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
         errorTitle: "تصدير PDF",
         errorMessage: "تعذر تصدير التقرير. حاول مرة أخرى.",
+        analytics: {
+          eventName: "report_exported",
+          params: {
+            report_type: "report_two",
+            export_format: "pdf",
+            source: "report_studio",
+          },
+        },
       });
 
       return result === "downloaded"

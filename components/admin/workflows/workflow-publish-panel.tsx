@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 import {
   CheckCircle2,
   Eye,
@@ -245,6 +247,10 @@ export function WorkflowPublishPanel({
         throw new Error(data.error || "تعذر نشر Workflow.");
       }
 
+      trackAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_PUBLISHED, {
+        service_slug: serviceSlug,
+        status: "published",
+      });
       setMessage("تم نشر آخر مسودة Workflow وتفعيلها للموجهين.");
       router.refresh();
     } catch (err) {

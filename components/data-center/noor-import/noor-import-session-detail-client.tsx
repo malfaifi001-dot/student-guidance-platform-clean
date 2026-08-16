@@ -7,6 +7,8 @@ import {
   SmartActionFeedbackModal,
   useSmartActionFeedback,
 } from "@/components/ui/smart-action-feedback";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type ImportSession = {
   id: string;
@@ -308,6 +310,21 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
             throw new Error(result.details || result.error || "تعذر اعتماد البيانات.");
           }
 
+          const totalRows = targetSession.totalRows;
+          trackAnalyticsEvent(ANALYTICS_EVENTS.STUDENT_IMPORT_COMPLETED, {
+            source: "noor",
+            result: "committed",
+            row_count_bucket:
+              totalRows > 200
+                ? "201_plus"
+                : totalRows > 50
+                  ? "51_200"
+                  : totalRows > 10
+                    ? "11_50"
+                    : totalRows > 0
+                      ? "1_10"
+                      : "0",
+          });
           setMessage(null);
           await loadSession();
           await loadRows(pagination.page);

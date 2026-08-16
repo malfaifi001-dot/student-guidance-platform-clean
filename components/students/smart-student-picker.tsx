@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, User2 } from "lucide-react";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type Student = {
   id: string;
@@ -113,6 +115,10 @@ export function SmartStudentPicker({
                     setSelectedStudent(student);
                     setQuery(student.fullName);
                     setOpened(false);
+                    trackAnalyticsEvent(ANALYTICS_EVENTS.STUDENT_PICKER_USED, {
+                      source: "smart_student_picker",
+                      result: "selected",
+                    });
                     onChange?.(student);
                   }}
                   className="flex w-full items-start gap-4 border-b border-slate-100 p-5 text-right transition hover:bg-sky-50"

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { timetableV3StatusLabel } from "@/lib/timetable-v3/display-labels";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type Version = {
   id: string;
@@ -63,6 +65,10 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
       if (!response.ok || !payload.success) throw new Error(payload.error ?? "تعذر اعتماد الجدول ونشره.");
       setPublishConfirm(null);
       setFeedback("تم اعتماد الجدول ونشره بنجاح.");
+      trackAnalyticsEvent(ANALYTICS_EVENTS.TIMETABLE_PUBLISHED, {
+        source: "timetable_v3",
+        status: "published",
+      });
       window.location.reload();
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "تعذر اعتماد الجدول ونشره.");
@@ -99,6 +105,13 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
       printUrl: `/print/timetable-v3/${workspace.project.id}?${query.toString()}`,
       blockedTitle: "طباعة الجدول",
       blockedMessage: "افتح معاينة الطباعة ثم اختر الطابعة أو الحفظ كملف.",
+      analytics: {
+        eventName: ANALYTICS_EVENTS.TIMETABLE_PRINTED,
+        params: {
+          source: printMode,
+          export_format: "print",
+        },
+      },
     });
   }
 

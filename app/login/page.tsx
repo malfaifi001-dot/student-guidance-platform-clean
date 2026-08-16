@@ -19,6 +19,8 @@ import {
   LOGIN_IDENTIFIER_ERROR,
   normalizeLoginIdentifier,
 } from "@/lib/auth/login-identifier";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
@@ -36,7 +38,8 @@ export default function LoginPage() {
     setError("");
 
     const normalizedIdentifier = normalizeLoginIdentifier(identifier);
-    if (!classifyLoginIdentifier(normalizedIdentifier)) {
+    const loginIdentifier = classifyLoginIdentifier(normalizedIdentifier);
+    if (!loginIdentifier) {
       setError(LOGIN_IDENTIFIER_ERROR);
       return;
     }
@@ -61,6 +64,9 @@ export default function LoginPage() {
         throw new Error(data.error || "تعذر تسجيل الدخول.");
       }
 
+      trackAnalyticsEvent(ANALYTICS_EVENTS.LOGIN, {
+        method: loginIdentifier.kind === "email" ? "email" : "phone",
+      });
       window.location.href = data.redirectTo || "/dashboard";
     } catch (requestError) {
       setError(

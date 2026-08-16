@@ -24,6 +24,8 @@ import {
   normalizeSaudiMobile,
   SAUDI_MOBILE_ERROR,
 } from "@/lib/auth/login-identifier";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type Gender = "MALE" | "FEMALE";
 
@@ -129,6 +131,12 @@ export default function RegisterPage() {
         throw new Error(data.error || "تعذر إنشاء الحساب.");
       }
 
+      if (accountType) {
+        trackAnalyticsEvent(ANALYTICS_EVENTS.SIGN_UP, {
+          role: accountType,
+          method: "phone",
+        });
+      }
       window.location.href = data.redirectTo || "/dashboard";
     } catch (requestError) {
       setError(

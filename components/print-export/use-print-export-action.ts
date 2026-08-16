@@ -12,6 +12,7 @@ import type {
   PrintExportRunResult,
   PrintExportStatus,
 } from "@/lib/print-export/print-export-types";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 function getPrintExportFallbackUrl(
   payload: unknown,
@@ -71,7 +72,10 @@ export function usePrintExportAction() {
   }, []);
 
   const openFallbackPrintUrl = useCallback(
-    (fallback?: PrintExportFallback | null): PrintExportRunResult => {
+    (
+      fallback?: PrintExportFallback | null,
+      analytics?: PrintExportActionOptions["analytics"],
+    ): PrintExportRunResult => {
       const targetUrl = buildPrintUrl(fallback?.printUrl || "");
 
       if (!targetUrl) {
@@ -106,6 +110,9 @@ export function usePrintExportAction() {
       }
 
       setStatus("success");
+      if (analytics) {
+        trackAnalyticsEvent(analytics.eventName, analytics.params);
+      }
       return "opened";
     },
     [],
@@ -141,6 +148,9 @@ export function usePrintExportAction() {
             const blob = await response.blob();
             await downloadBlobAsFile(blob, options.fileName || "report.pdf");
             setStatus("success");
+            if (options.analytics) {
+              trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
+            }
 
             if (options.successTitle || options.successMessage) {
               setModal({
@@ -173,7 +183,7 @@ export function usePrintExportAction() {
               printUrl: fallbackUrl,
               title: fallbackMeta.title,
               message: fallbackMeta.message,
-            });
+            }, options.analytics);
           }
 
           if (!response.ok) {
@@ -186,7 +196,7 @@ export function usePrintExportAction() {
             printUrl: options.printUrl,
             title: fallbackMeta.title,
             message: fallbackMeta.message,
-          });
+          }, options.analytics);
         }
 
         throw new Error("PRINT_EXPORT_NO_FALLBACK");

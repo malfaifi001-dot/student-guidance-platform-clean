@@ -11,6 +11,11 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import {
+  clearAnalyticsUserIdentity,
+  trackAnalyticsEvent,
+} from "@/lib/analytics/analytics-client";
 
 type AccountUser = {
   id: string;
@@ -241,10 +246,14 @@ export function AccountProfileClient() {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", {
+    const response = await fetch("/api/auth/logout", {
       method: "POST",
     });
 
+    if (response.ok) {
+      trackAnalyticsEvent(ANALYTICS_EVENTS.LOGOUT);
+      clearAnalyticsUserIdentity();
+    }
     window.location.href = "/login";
   }
 

@@ -1,3 +1,5 @@
+import type { AnalyticsEventName } from "@/lib/analytics/analytics-events";
+
 export type PrintExportStatus =
   | "idle"
   | "loading"
@@ -23,6 +25,10 @@ export type PrintExportActionOptions = {
   blockedMessage?: string;
   errorTitle?: string;
   errorMessage?: string;
+  analytics?: {
+    eventName: AnalyticsEventName;
+    params?: import("@/lib/analytics/analytics-types").AnalyticsEventParams;
+  };
 };
 
 export type PrintExportModal = {

@@ -8,6 +8,8 @@ import {
   FormEvent,
   useState,
 } from "react";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 export function TimetableV3NewProjectForm() {
   const router =
@@ -106,6 +108,10 @@ export function TimetableV3NewProjectForm() {
         );
       }
 
+      trackAnalyticsEvent(ANALYTICS_EVENTS.TIMETABLE_PROJECT_CREATED, {
+        source: "timetable_v3",
+        status: "created",
+      });
       router.push(
         `/dashboard/timetable-v3/${data.project.id}/setup`,
       );

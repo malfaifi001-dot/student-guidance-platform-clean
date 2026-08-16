@@ -8,6 +8,11 @@ import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { GuidanceLauncher } from "@/components/guidance/guidance-launcher";
 import { GuidanceVideosLauncher } from "@/components/guidance-videos/guidance-videos-launcher";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import {
+  clearAnalyticsUserIdentity,
+  trackAnalyticsEvent,
+} from "@/lib/analytics/analytics-client";
 import {
   ChevronDown,
   LogOut,
@@ -126,10 +131,14 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
         : "";
 
   async function logout() {
-    await fetch("/api/auth/logout", {
+    const response = await fetch("/api/auth/logout", {
       method: "POST",
     });
 
+    if (response.ok) {
+      trackAnalyticsEvent(ANALYTICS_EVENTS.LOGOUT);
+      clearAnalyticsUserIdentity();
+    }
     window.location.href = "/login";
   }
 

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { readApiResponse } from "@/lib/http/read-api-response";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 type ImportRow = {
   id: string;
@@ -220,6 +222,9 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
       type: "info",
       text: "جاري قراءة ملف بيانات الطلاب وإنشاء جلسة مراجعة...",
     });
+    trackAnalyticsEvent(ANALYTICS_EVENTS.STUDENT_IMPORT_STARTED, {
+      source: "noor",
+    });
 
     try {
       const formData = new FormData();
@@ -247,6 +252,10 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
 
       await loadSessions();
     } catch (error) {
+      trackAnalyticsEvent(ANALYTICS_EVENTS.STUDENT_IMPORT_FAILED, {
+        source: "noor",
+        reason: "unknown",
+      });
       setFeedback({
         type: "error",
         text: error instanceof Error ? error.message : "تعذر رفع الملف.",

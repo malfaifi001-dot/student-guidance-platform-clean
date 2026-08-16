@@ -33,6 +33,8 @@ import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
 import { OPTIONAL_STUDENT_PICKER_LABEL } from "@/lib/workflows/workflow-runtime-copy";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 export type EvidenceItem = {
   id: string;
@@ -1194,6 +1196,18 @@ export function DynamicFormRenderer({
             redirectTo = `${caseDetailsBasePath}/${encodeURIComponent(String(data.caseId))}`;
           }
         }
+      }
+
+      if (type === "submit") {
+        trackAnalyticsEvent(
+          caseId
+            ? ANALYTICS_EVENTS.CASE_UPDATED
+            : ANALYTICS_EVENTS.CASE_CREATED,
+          {
+            source: "dynamic_form",
+            status: "submitted",
+          },
+        );
       }
 
       showFeedback("success", feedbackTitle, feedbackMessage);

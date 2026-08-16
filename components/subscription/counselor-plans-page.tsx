@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CheckCircle2, Loader2, ShieldCheck, X } from "lucide-react";
 import { PlanPaymentModal } from "@/components/payments/plan-payment-modal";
@@ -8,6 +8,8 @@ import {
   formatSubscriptionPeriod,
   getBillingCycleLabel,
 } from "@/lib/subscription/subscription-presentation";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
@@ -160,6 +162,7 @@ export function CounselorPlansPage() {
   const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
+  const plansViewTracked = useRef(false);
 
   async function loadPlans() {
     setLoading(true);
@@ -173,6 +176,13 @@ export function CounselorPlansPage() {
       }
 
       setData(result);
+      if (!plansViewTracked.current) {
+        plansViewTracked.current = true;
+        trackAnalyticsEvent(ANALYTICS_EVENTS.VIEW_ITEM, {
+          feature: "subscription_plans",
+          source: "plans",
+        });
+      }
     } catch (error) {
       setMessage({
         type: "error",
@@ -202,6 +212,9 @@ export function CounselorPlansPage() {
   const selectedPlanIsFree = Boolean(selectedPlan && selectedFinalPrice <= 0);
 
   function selectPlan(plan: CounselorPlan) {
+    trackAnalyticsEvent(ANALYTICS_EVENTS.SELECT_ITEM, {
+      plan_slug: plan.slug,
+    });
     setSelectedPlan(plan);
     setMessage(null);
     setCheckoutError("");
@@ -285,6 +298,10 @@ export function CounselorPlansPage() {
       await loadPlans();
       router.refresh();
       setSelectedPlan(null);
+      trackAnalyticsEvent(ANALYTICS_EVENTS.SUBSCRIPTION_ACTIVATED, {
+        plan_slug: selectedPlan.slug,
+        activation_method: "free",
+      });
       setMessage({ type: "success", text: result.message || "تم تفعيل الباقة بنجاح." });
     } catch (error) {
       setMessage({
@@ -344,6 +361,10 @@ export function CounselorPlansPage() {
         planId: selectedPlan.id,
         billingCycle,
       });
+      trackAnalyticsEvent(ANALYTICS_EVENTS.BEGIN_CHECKOUT, {
+        plan_slug: selectedPlan.slug,
+        source: "plans",
+      });
     } catch (error) {
       setCheckoutError(
         error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء عملية الدفع.",
@@ -385,6 +406,14 @@ export function CounselorPlansPage() {
       setPaymentModalOpen(false);
       setSelectedPlan(null);
       setBankTransfer(emptyBankTransfer);
+      trackAnalyticsEvent(ANALYTICS_EVENTS.BANK_TRANSFER_REQUESTED, {
+        plan_slug: selectedPlan.slug,
+        activation_method: "bank_transfer",
+      });
+      trackAnalyticsEvent(ANALYTICS_EVENTS.SUBSCRIPTION_REQUESTED, {
+        plan_slug: selectedPlan.slug,
+        activation_method: "bank_transfer",
+      });
       setMessage({
         type: "success",
         text: result.message || "تم إرسال طلب التحويل البنكي بنجاح.",
