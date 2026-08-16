@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/timetable-v3/project-setup-types";
 
 import {
+  ARABIC_CLASS_SECTION_LETTERS,
   TIMETABLE_V3_STAGES,
   buildTimetableV3GradeClasses,
   type TimetableV3StageId,
@@ -2443,6 +2445,9 @@ function ClassesStep(
         : [],
   );
 
+  const initialized =
+    useRef(false);
+
   const selectedStages =
     TIMETABLE_V3_STAGES.filter(
       (stage) =>
@@ -2451,14 +2456,52 @@ function ClassesStep(
         ),
     );
 
+  useEffect(() => {
+    if (initialized.current) {
+      return;
+    }
+
+    initialized.current = true;
+
+    const nextCounts: GradeCountMap = {};
+    const generatedNames = new Set<string>();
+
+    for (const stage of selectedStages) {
+      for (const grade of stage.grades) {
+        const generated = buildTimetableV3GradeClasses(
+          grade.name,
+          ARABIC_CLASS_SECTION_LETTERS.length,
+        );
+        const existing = generated.filter((name) =>
+          props.value.includes(name),
+        );
+
+        nextCounts[grade.id] = existing.length;
+        existing.forEach((name) => generatedNames.add(name));
+      }
+    }
+
+    setCounts(nextCounts);
+    setManual(
+      props.value.filter((name) => !generatedNames.has(name)),
+    );
+  }, [props.value, selectedStages]);
+
   function commit(
     nextCounts:
       GradeCountMap,
     nextManual:
       string[],
+    stageIds:
+      TimetableV3StageId[] = props.stages,
   ) {
+    const stagesForCommit =
+      TIMETABLE_V3_STAGES.filter((stage) =>
+        stageIds.includes(stage.id),
+      );
+
     const generated =
-      selectedStages.flatMap(
+      stagesForCommit.flatMap(
         (
           stageItem,
         ) =>
@@ -2487,19 +2530,30 @@ function ClassesStep(
   function toggleStage(
     stageId: TimetableV3StageId,
   ) {
-    props.onStagesChange(
-      props.stages.includes(stageId)
-        ? props.stages.filter(
-            (item) => item !== stageId,
-          )
-        : TIMETABLE_V3_STAGES
-            .map((item) => item.id)
-            .filter(
-              (item) =>
-                item === stageId ||
-                props.stages.includes(item),
-            ),
-    );
+    const removing = props.stages.includes(stageId);
+    const nextStages = removing
+      ? props.stages.filter((item) => item !== stageId)
+      : [...props.stages, stageId];
+    const stageToPreserve =
+      TIMETABLE_V3_STAGES.find((stage) => stage.id === stageId);
+    const preservedGenerated = removing && stageToPreserve
+      ? stageToPreserve.grades.flatMap((grade) =>
+          buildTimetableV3GradeClasses(
+            grade.name,
+            counts[grade.id] ?? 0,
+          ),
+        )
+      : [];
+    const nextManual = uniqueStrings([
+      ...manual,
+      ...preservedGenerated,
+    ]);
+
+    props.onStagesChange(nextStages);
+    if (removing) {
+      setManual(nextManual);
+    }
+    commit(counts, nextManual, nextStages);
   }
 
   function changeCount(
@@ -2513,7 +2567,7 @@ function ClassesStep(
         Math.max(
           0,
           Math.min(
-            10,
+            ARABIC_CLASS_SECTION_LETTERS.length,
             value,
           ),
         ),
@@ -2701,10 +2755,24 @@ function ClassesStep(
                 }
                 className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-4"
               >
-                <div className="font-semibold text-slate-900">
-                  {
-                    grade.name
-                  }
+                <div>
+                  <div className="font-semibold text-slate-900">
+                    {
+                      grade.name
+                    }
+                  </div>
+                  {count > 0 ? (
+                    <div className="mt-1 text-xs font-semibold text-slate-400">
+                      {buildTimetableV3GradeClasses(
+                        grade.name,
+                        count,
+                      )
+                        .map((className) =>
+                          className.slice(grade.name.length + 1),
+                        )
+                        .join("، ")}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2">

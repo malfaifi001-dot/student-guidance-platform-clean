@@ -8,6 +8,10 @@ import {
   prisma,
 } from "@/lib/prisma";
 
+import {
+  normalizeTimetableV3Stages,
+} from "./project-setup-service";
+
 function asObject(
   value: unknown,
 ): Record<string, unknown> {
@@ -255,6 +259,7 @@ export async function getTimetableV3AssignmentsWorkspace(
     teachers,
     classes,
     subjects,
+    classSubjects,
     assignments,
   ] = await Promise.all([
     prisma.timetableTeacher.findMany({
@@ -323,6 +328,23 @@ export async function getTimetableV3AssignmentsWorkspace(
 
         name:
           true,
+      },
+    }),
+
+    prisma.timetableClassSubject.findMany({
+      where: {
+        projectId,
+        class: {
+          isActive: true,
+        },
+        subject: {
+          isActive: true,
+        },
+      },
+      select: {
+        classId: true,
+        subjectId: true,
+        weeklyLessons: true,
       },
     }),
 
@@ -417,6 +439,12 @@ export async function getTimetableV3AssignmentsWorkspace(
 
       semester:
         project.semester,
+
+      stages:
+        normalizeTimetableV3Stages(
+          project.settingsJson,
+          classes.map((item) => item.name),
+        ),
     },
 
     teachers:
@@ -474,6 +502,8 @@ export async function getTimetableV3AssignmentsWorkspace(
             assignment.doublePeriods,
         }),
       ),
+
+    classSubjects,
   };
 }
 

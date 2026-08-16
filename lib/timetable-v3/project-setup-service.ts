@@ -71,22 +71,37 @@ const TIMETABLE_V3_STAGE_IDS =
 
 export function normalizeTimetableV3Stages(
   settingsJson: unknown,
+  classNames: string[] = [],
 ): TimetableV3StageId[] {
   const v3 = asObject(
     asObject(settingsJson).timetableV3,
   );
 
-  const rawStages = Array.isArray(v3.stages)
-    ? v3.stages
-    : typeof v3.stage === "string"
-      ? [v3.stage]
-      : TIMETABLE_V3_STAGE_IDS;
+  const hasStoredStages =
+    (Array.isArray(v3.stages) && v3.stages.length > 0) ||
+    typeof v3.stage === "string";
+
+  const rawStages = hasStoredStages
+    ? Array.isArray(v3.stages)
+      ? v3.stages
+      : [v3.stage]
+    : classNames.length > 0
+      ? TIMETABLE_V3_STAGES.filter((stage) =>
+          stage.grades.some((grade) =>
+            classNames.some(
+              (className) =>
+                className === grade.name ||
+                className.startsWith(`${grade.name} `),
+            ),
+          ),
+        ).map((stage) => stage.id)
+      : [];
 
   const allowed = new Set<string>(
     TIMETABLE_V3_STAGE_IDS,
   );
 
-  return [
+  const normalized = [
     ...new Set(
       rawStages.filter(
         (stage): stage is TimetableV3StageId =>
@@ -94,6 +109,8 @@ export function normalizeTimetableV3Stages(
       ),
     ),
   ];
+
+  return normalized;
 }
 
 function normalizeDays(
@@ -423,15 +440,17 @@ export async function createTimetableV3Project(
         periods as Prisma.InputJsonValue,
 
       settingsJson: {
-        timetableV3: {
-          version:
-            3,
+          timetableV3: {
+            version:
+              3,
 
-          semesterId:
-            input.semester,
+            semesterId:
+              input.semester,
 
-          setupVersion:
-            1,
+            stages: [],
+
+            setupVersion:
+              1,
         },
       } as Prisma.InputJsonValue,
     },
@@ -548,6 +567,7 @@ export async function getTimetableV3SetupWorkspace(
       stages:
         normalizeTimetableV3Stages(
           project.settingsJson,
+          classes.map((item) => item.name),
         ),
     },
 

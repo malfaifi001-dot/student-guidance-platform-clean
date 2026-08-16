@@ -3,8 +3,19 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
+import type {
+  TimetableFeasibilityIssue,
+  TimetableFeasibilityReport,
+} from "@/lib/timetable-v2/feasibility/feasibility-types";
+
+import {
+  TIMETABLE_V3_STAGES,
+  type TimetableV3StageId,
+} from "@/lib/timetable-v3/school-setup-catalog";
 
 type Teacher = {
   id: string;
@@ -42,19 +53,54 @@ type Assignment = {
   doublePeriods: number;
 };
 
+type ClassSubject = {
+  classId: string;
+  subjectId: string;
+  weeklyLessons: number;
+};
+
 type Workspace = {
   project: {
     id: string;
     name: string;
     academicYear: string;
     semester: string;
+    stages?: TimetableV3StageId[];
   };
 
   teachers: Teacher[];
   classes: ClassItem[];
   subjects: Subject[];
+  classSubjects?: ClassSubject[];
   assignments: Assignment[];
 };
+
+type TimetableV3ClassMetadata = {
+  stageId: TimetableV3StageId;
+  gradeId: string;
+};
+
+function resolveTimetableV3ClassMetadata(
+  className: string,
+): TimetableV3ClassMetadata | null {
+  const normalizedName = className.trim();
+
+  for (const stage of TIMETABLE_V3_STAGES) {
+    for (const grade of stage.grades) {
+      if (
+        normalizedName === grade.name ||
+        normalizedName.startsWith(`${grade.name} `)
+      ) {
+        return {
+          stageId: stage.id,
+          gradeId: grade.id,
+        };
+      }
+    }
+  }
+
+  return null;
+}
 
 type Draft = {
   classId: string;
@@ -129,6 +175,43 @@ export function TimetableV3AssignmentsWorkspace(
   ] = useState(
     "",
   );
+
+  const [
+    viewMode,
+    setViewMode,
+  ] = useState<
+    "teacher" |
+    "grid"
+  >(
+    "teacher",
+  );
+
+  const [
+    gridSearch,
+    setGridSearch,
+  ] = useState(
+    "",
+  );
+
+  const [
+    gridTeacherId,
+    setGridTeacherId,
+  ] = useState(
+    "",
+  );
+
+  const teacherWorkspaceRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
+  const [
+    feasibilityReport,
+    setFeasibilityReport,
+  ] = useState<
+    TimetableFeasibilityReport |
+    null
+  >(null);
 
   const [
     selectedTeacherId,
@@ -247,6 +330,42 @@ export function TimetableV3AssignmentsWorkspace(
       props.projectId,
     ],
   );
+
+  useEffect(() => {
+    if (viewMode !== "grid" || !workspace) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void fetch(
+      `/api/dashboard/principal/timetable-v3/projects/${props.projectId}/feasibility`,
+      { cache: "no-store" },
+    )
+      .then(async (response) => {
+        const data = await response.json() as {
+          ok?: boolean;
+          report?: TimetableFeasibilityReport;
+        };
+
+        if (!response.ok || !data.ok || !data.report) {
+          throw new Error("FEASIBILITY_UNAVAILABLE");
+        }
+
+        if (!cancelled) {
+          setFeasibilityReport(data.report);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFeasibilityReport(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.projectId, viewMode, workspace]);
 
   const filteredTeachers =
     useMemo(
@@ -694,7 +813,84 @@ export function TimetableV3AssignmentsWorkspace(
         <div className="h-full w-1/3 rounded-full bg-[#3478B8]" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode("teacher")}
+            className={[
+              "rounded-lg px-3 py-2 text-xs font-bold transition",
+              viewMode === "teacher"
+                ? "bg-[#3478B8] text-white"
+                : "text-slate-600 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            عرض المعلم
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={[
+              "rounded-lg px-3 py-2 text-xs font-bold transition",
+              viewMode === "grid"
+                ? "bg-[#3478B8] text-white"
+                : "text-slate-600 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            عرض شبكي
+          </button>
+        </div>
+
+        {viewMode === "grid" ? (
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-500">
+              <span>المعلم</span>
+              <select
+                value={gridTeacherId}
+                onChange={(event) => setGridTeacherId(event.target.value)}
+                className="h-10 max-w-[190px] rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 outline-none focus:border-[#3478B8]"
+              >
+                <option value="">جميع المعلمين</option>
+                {workspace.teachers.map((teacher) => (
+                  <option key={teacher.id} value={teacher.id}>
+                    {teacher.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <input
+              value={gridSearch}
+              onChange={(event) => setGridSearch(event.target.value)}
+              placeholder="بحث بالمعلم أو الفصل أو المادة"
+              className="h-10 min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#3478B8] focus:ring-4 focus:ring-[#3478B8]/10"
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {viewMode === "grid" ? (
+        <AssignmentsGrid
+          workspace={workspace}
+          search={gridSearch}
+          teacherId={gridTeacherId}
+          feasibilityReport={feasibilityReport}
+          onSelectTeacher={(teacherId) => {
+            setSelectedTeacherId(teacherId);
+            resetDraft();
+            setViewMode("teacher");
+            window.setTimeout(() => {
+              teacherWorkspaceRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }, 0);
+          }}
+        />
+      ) : (
+      <div
+        ref={teacherWorkspaceRef}
+        className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
+      >
         <aside className="rounded-3xl border border-slate-200 bg-white p-4">
           <input
             value={
@@ -1093,7 +1289,498 @@ export function TimetableV3AssignmentsWorkspace(
           )}
         </main>
       </div>
+      )}
     </div>
+  );
+}
+
+function AssignmentsGrid({
+  workspace,
+  search,
+  teacherId,
+  feasibilityReport,
+  onSelectTeacher,
+}: {
+  workspace: Workspace;
+  search: string;
+  teacherId: string;
+  feasibilityReport: TimetableFeasibilityReport | null;
+  onSelectTeacher: (teacherId: string) => void;
+}) {
+  const [stageId, setStageId] = useState<TimetableV3StageId | "">("");
+  const [gradeId, setGradeId] = useState("");
+  const matrixScrollRef = useRef<HTMLDivElement | null>(null);
+  const topScrollRef = useRef<HTMLDivElement | null>(null);
+  const topScrollSpacerRef = useRef<HTMLDivElement | null>(null);
+  const syncingScrollRef = useRef(false);
+  const classSubjects = workspace.classSubjects ?? [];
+  const projectStages = workspace.project.stages ?? [];
+
+  const classMetadata = useMemo(
+    () =>
+      new Map(
+        workspace.classes.map((classItem) => [
+          classItem.id,
+          resolveTimetableV3ClassMetadata(classItem.name),
+        ]),
+      ),
+    [workspace.classes],
+  );
+
+  const stageOptions = useMemo(() => {
+    const projectStageIds = new Set(
+      projectStages.length
+        ? projectStages
+        : workspace.classes
+            .map((classItem) => classMetadata.get(classItem.id)?.stageId)
+            .filter((value): value is TimetableV3StageId => Boolean(value)),
+    );
+
+    return TIMETABLE_V3_STAGES.filter((stage) =>
+      projectStageIds.has(stage.id),
+    );
+  }, [classMetadata, projectStages, workspace.classes]);
+
+  const gradeOptions = useMemo(
+    () =>
+      TIMETABLE_V3_STAGES.filter(
+        (stage) => !stageId || stage.id === stageId,
+      ).flatMap((stage) =>
+        stage.grades.filter((grade) =>
+          workspace.classes.some(
+            (classItem) =>
+              classMetadata.get(classItem.id)?.gradeId === grade.id,
+          ),
+        ),
+      ),
+    [classMetadata, stageId, workspace.classes],
+  );
+
+  useEffect(() => {
+    if (gradeId && !gradeOptions.some((grade) => grade.id === gradeId)) {
+      setGradeId("");
+    }
+  }, [gradeId, gradeOptions]);
+
+  const query = search.trim().toLocaleLowerCase("ar");
+  const matchingAssignments = query
+    ? workspace.assignments.filter((assignment) =>
+        [
+          assignment.teacherName,
+          assignment.className,
+          assignment.subjectName,
+        ].some((value) =>
+          value.toLocaleLowerCase("ar").includes(query),
+        ),
+      )
+    : workspace.assignments;
+
+  const classes = workspace.classes.filter((classItem) => {
+    const metadata = classMetadata.get(classItem.id);
+
+    if (stageId && metadata?.stageId !== stageId) {
+      return false;
+    }
+
+    if (gradeId && metadata?.gradeId !== gradeId) {
+      return false;
+    }
+
+    return (
+      !query ||
+      matchingAssignments.some(
+        (assignment) => assignment.classId === classItem.id,
+      )
+    );
+  });
+
+  const subjects = workspace.subjects.filter((subject) =>
+    !query || matchingAssignments.some(
+      (assignment) => assignment.subjectId === subject.id,
+    ),
+  );
+
+  const assignmentsByCell = new Map<string, Assignment[]>();
+  for (const assignment of matchingAssignments) {
+    const key = `${assignment.classId}:${assignment.subjectId}`;
+    const current = assignmentsByCell.get(key) ?? [];
+    current.push(assignment);
+    assignmentsByCell.set(key, current);
+  }
+
+  const requiredByCell = new Map(
+    classSubjects.map((item) => [
+      `${item.classId}:${item.subjectId}`,
+      item.weeklyLessons,
+    ]),
+  );
+
+  const classIssues = new Map<string, TimetableFeasibilityIssue[]>();
+  const cellIssues = new Map<string, TimetableFeasibilityIssue[]>();
+  for (const issue of feasibilityReport?.issues ?? []) {
+    const classId = issue.evidence.classId;
+    const subjectId = issue.evidence.subjectId;
+    if (classId) {
+      classIssues.set(classId, [
+        ...(classIssues.get(classId) ?? []),
+        issue,
+      ]);
+    }
+    if (classId && subjectId) {
+      const key = `${classId}:${subjectId}`;
+      cellIssues.set(key, [
+        ...(cellIssues.get(key) ?? []),
+        issue,
+      ]);
+    }
+  }
+
+  const selectedTeacher = teacherId
+    ? workspace.teachers.find((teacher) => teacher.id === teacherId)
+    : null;
+  const selectedTeacherRemaining = selectedTeacher
+    ? selectedTeacher.maxWeeklyLoad - selectedTeacher.assignedLoad
+    : null;
+  const incompleteCount = classSubjects.filter((item) => {
+    const assigned = (assignmentsByCell.get(`${item.classId}:${item.subjectId}`) ?? [])
+      .reduce((sum, assignment) => sum + assignment.assignedLessons, 0);
+    return assigned < item.weeklyLessons;
+  }).length;
+  const overCount = classSubjects.filter((item) => {
+    const assigned = (assignmentsByCell.get(`${item.classId}:${item.subjectId}`) ?? [])
+      .reduce((sum, assignment) => sum + assignment.assignedLessons, 0);
+    return assigned > item.weeklyLessons;
+  }).length;
+  const unassignedCount = classSubjects.filter((item) => {
+    const assigned = (assignmentsByCell.get(`${item.classId}:${item.subjectId}`) ?? [])
+      .reduce((sum, assignment) => sum + assignment.assignedLessons, 0);
+    return item.weeklyLessons > 0 && assigned === 0;
+  }).length;
+  const sharedCount = [...assignmentsByCell.values()].filter((cell) => cell.length > 1).length;
+
+  useEffect(() => {
+    const matrix = matrixScrollRef.current;
+    const top = topScrollRef.current;
+    const spacer = topScrollSpacerRef.current;
+
+    if (!matrix || !top || !spacer) {
+      return;
+    }
+
+    const updateTopScrollWidth = () => {
+      spacer.style.width = `${matrix.scrollWidth}px`;
+      top.scrollLeft = matrix.scrollLeft;
+    };
+
+    const handleTopScroll = () => {
+      if (syncingScrollRef.current) {
+        return;
+      }
+
+      syncingScrollRef.current = true;
+      matrix.scrollLeft = top.scrollLeft;
+      syncingScrollRef.current = false;
+    };
+
+    const handleMatrixScroll = () => {
+      if (syncingScrollRef.current) {
+        return;
+      }
+
+      syncingScrollRef.current = true;
+      top.scrollLeft = matrix.scrollLeft;
+      syncingScrollRef.current = false;
+    };
+
+    top.addEventListener("scroll", handleTopScroll, { passive: true });
+    matrix.addEventListener("scroll", handleMatrixScroll, { passive: true });
+    window.addEventListener("resize", updateTopScrollWidth);
+
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateTopScrollWidth);
+    observer?.observe(matrix);
+    const table = matrix.querySelector("table");
+    if (table) {
+      observer?.observe(table);
+    }
+
+    updateTopScrollWidth();
+
+    return () => {
+      top.removeEventListener("scroll", handleTopScroll);
+      matrix.removeEventListener("scroll", handleMatrixScroll);
+      window.removeEventListener("resize", updateTopScrollWidth);
+      observer?.disconnect();
+    };
+  }, [classes.length, gradeId, search, stageId, subjects.length]);
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
+        <div>
+          <h2 className="font-bold text-slate-950">مصفوفة الإسنادات</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            الفصول صفوف والمواد أعمدة
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] font-bold">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+            {matchingAssignments.length} إسناد
+          </span>
+          {incompleteCount > 0 ? (
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">
+              {incompleteCount} غير مكتملة
+            </span>
+          ) : null}
+          {overCount > 0 ? (
+            <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">
+              {overCount} تجاوز
+            </span>
+          ) : null}
+          {unassignedCount > 0 ? (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-500">
+              {unassignedCount} غير مسند
+            </span>
+          ) : null}
+          {sharedCount > 0 ? (
+            <span className="rounded-full bg-violet-50 px-3 py-1 text-violet-700">
+              {sharedCount} مشترك
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {selectedTeacher ? (
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-sky-50/60 px-5 py-3 text-xs font-bold text-slate-600">
+          <span className="text-slate-900">{selectedTeacher.name}</span>
+          <span>
+            المسند {selectedTeacher.assignedLoad} من {selectedTeacher.maxWeeklyLoad}
+          </span>
+          <span className={selectedTeacherRemaining !== null && selectedTeacherRemaining < 0 ? "text-rose-700" : "text-teal-700"}>
+            {selectedTeacherRemaining !== null && selectedTeacherRemaining < 0
+              ? `تجاوز ${Math.abs(selectedTeacherRemaining)}`
+              : selectedTeacherRemaining === 0
+                ? "مكتمل"
+                : `متبقي ${selectedTeacherRemaining}`}
+          </span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-end gap-2 border-b border-slate-100 px-5 py-3">
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-[11px] font-bold text-slate-500 sm:flex-none">
+          <span>المرحلة</span>
+          <select
+            value={stageId}
+            onChange={(event) => setStageId(event.target.value as TimetableV3StageId | "")}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none transition focus:border-[#3478B8] focus:ring-2 focus:ring-[#3478B8]/10"
+          >
+            <option value="">جميع المراحل</option>
+            {stageOptions.map((stage) => (
+              <option key={stage.id} value={stage.id}>
+                {stage.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-[11px] font-bold text-slate-500 sm:flex-none">
+          <span>الصف</span>
+          <select
+            value={gradeId}
+            onChange={(event) => setGradeId(event.target.value)}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none transition focus:border-[#3478B8] focus:ring-2 focus:ring-[#3478B8]/10"
+          >
+            <option value="">جميع الصفوف</option>
+            {gradeOptions.map((grade) => (
+              <option key={grade.id} value={grade.id}>
+                {grade.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {classes.length === 0 || subjects.length === 0 ? (
+        <div className="px-6 py-16 text-center text-sm text-slate-400">
+          لا توجد بيانات مطابقة للعرض الشبكي.
+        </div>
+      ) : (
+        <>
+          <div
+            ref={topScrollRef}
+            className="mx-5 mt-3 overflow-x-auto overflow-y-hidden rounded-lg border border-slate-100 bg-slate-50"
+            aria-label="التمرير الأفقي لمصفوفة الإسنادات"
+          >
+            <div
+              ref={topScrollSpacerRef}
+              className="h-2"
+              style={{ width: "1px" }}
+              aria-hidden="true"
+            />
+          </div>
+
+          <div ref={matrixScrollRef} className="overflow-auto">
+        <table className="min-w-max border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="sticky right-0 top-0 z-30 min-w-48 border-b border-l border-slate-200 bg-slate-950 px-4 py-3 text-right text-xs font-black text-white">
+                الفصل
+              </th>
+              {subjects.map((subject) => (
+                <th
+                  key={subject.id}
+                  className="sticky top-0 z-20 min-w-48 border-b border-l border-slate-200 bg-slate-950 px-3 py-3 text-center text-xs font-black text-white"
+                >
+                  {subject.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {classes.map((classItem) => (
+              <tr key={classItem.id}>
+                <td className="sticky right-0 z-10 border-b border-l border-slate-200 bg-white px-4 py-3 align-top">
+                  <div className="font-black text-slate-900">
+                    {classItem.name}
+                  </div>
+                  {(classIssues.get(classItem.id)?.length ?? 0) > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        {classIssues.get(classItem.id)?.length} تنبيه
+                      </span>
+                    </div>
+                  ) : null}
+                  {(() => {
+                    const capacityIssue = (classIssues.get(classItem.id) ?? []).find(
+                      (issue) =>
+                        issue.code === "CLASS_SLOT_CAPACITY_EXCEEDED" ||
+                        issue.code === "CLASS_FULL_DENSITY",
+                    );
+                    if (!capacityIssue) {
+                      return null;
+                    }
+                    return (
+                      <div className="mt-1 text-[10px] font-bold text-rose-700">
+                        {capacityIssue.code === "CLASS_FULL_DENSITY"
+                          ? "ممتلئ"
+                          : capacityIssue.evidence.required !== undefined && capacityIssue.evidence.capacity !== undefined
+                            ? `تجاوز سعة الفصل +${Math.max(0, capacityIssue.evidence.required - capacityIssue.evidence.capacity)}`
+                            : "تجاوز سعة الفصل"}
+                      </div>
+                    );
+                  })()}
+                </td>
+                {subjects.map((subject) => {
+                  const cell = assignmentsByCell.get(
+                    `${classItem.id}:${subject.id}`,
+                  ) ?? [];
+                  const total = cell.reduce(
+                    (sum, assignment) => sum + assignment.assignedLessons,
+                    0,
+                  );
+                  const required = requiredByCell.get(
+                    `${classItem.id}:${subject.id}`,
+                  );
+                  const delta = required === undefined
+                    ? null
+                    : required - total;
+                  const issues = cellIssues.get(
+                    `${classItem.id}:${subject.id}`,
+                  ) ?? [];
+                  const capacityIssue = issues.find((issue) =>
+                    issue.code === "CLASS_SLOT_CAPACITY_EXCEEDED" ||
+                    issue.code === "CLASS_FULL_DENSITY",
+                  );
+
+                  return (
+                    <td
+                      key={subject.id}
+                      className={[
+                        "min-w-48 border-b border-l border-slate-100 p-2 align-top",
+                        teacherId && cell.some((assignment) => assignment.teacherId === teacherId)
+                          ? "bg-sky-100/80"
+                          : cell.length
+                          ? "bg-sky-50/60"
+                          : "bg-slate-50/60",
+                      ].join(" ")}
+                    >
+                      {cell.length ? (
+                        <div className="space-y-1.5">
+                          {cell.map((assignment) => (
+                            <button
+                              key={assignment.id}
+                              type="button"
+                              onClick={() => onSelectTeacher(assignment.teacherId)}
+                              className={[
+                                "flex w-full items-center justify-between gap-2 rounded-lg border bg-white px-2 py-2 text-right transition hover:border-[#3478B8] hover:bg-sky-50",
+                                teacherId && assignment.teacherId !== teacherId
+                                  ? "border-slate-100 opacity-40"
+                                  : "border-sky-100",
+                              ].join(" ")}
+                              title="فتح عرض المعلم"
+                            >
+                              <span className="max-w-32 truncate text-[11px] font-black text-slate-800">
+                                {assignment.teacherName}
+                              </span>
+                              <span className="shrink-0 text-[10px] font-black text-teal-700">
+                                {assignment.assignedLessons} حصص
+                              </span>
+                            </button>
+                          ))}
+                          {cell.length > 1 ? (
+                            <div className="text-left text-[10px] font-bold text-slate-500">
+                              الإجمالي {total} حصة
+                            </div>
+                          ) : null}
+                          {required !== undefined ? (
+                            <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold">
+                              {delta !== null && delta === 0 ? (
+                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">مكتمل</span>
+                              ) : delta !== null && delta > 0 ? (
+                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">متبقي {delta}</span>
+                              ) : delta !== null ? (
+                                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-700">تجاوز {Math.abs(delta)}</span>
+                              ) : null}
+                              {cell.length > 1 ? (
+                                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">مشترك</span>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {capacityIssue ? (
+                            <span className="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                              {capacityIssue.code === "CLASS_FULL_DENSITY"
+                                ? "ممتلئ"
+                                : capacityIssue.evidence.required !== undefined && capacityIssue.evidence.capacity !== undefined
+                                  ? `تجاوز سعة الفصل +${Math.max(0, capacityIssue.evidence.required - capacityIssue.evidence.capacity)}`
+                                  : "تجاوز سعة الفصل"}
+                            </span>
+                          ) : null}
+                          {issues.some((issue) => issue.proven) && !capacityIssue ? (
+                            <span className="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                              تعارض مؤكد
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="flex min-h-16 flex-col items-center justify-center gap-1 text-center text-slate-300">
+                          <span>—</span>
+                          {required !== undefined && required > 0 ? (
+                            <span className="text-[10px] font-bold text-slate-500">غير مسند</span>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

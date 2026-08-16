@@ -16,7 +16,7 @@ export type TimetableV3StageDefinition = {
   grades: TimetableV3GradeDefinition[];
 };
 
-export const TIMETABLE_V3_SECTION_NAMES = [
+export const ARABIC_CLASS_SECTION_LETTERS = [
   "أ",
   "ب",
   "ج",
@@ -27,7 +27,30 @@ export const TIMETABLE_V3_SECTION_NAMES = [
   "ح",
   "ط",
   "ي",
+  "ك",
+  "ل",
+  "م",
+  "ن",
+  "س",
+  "ع",
+  "ف",
+  "ص",
+  "ق",
+  "ر",
+  "ش",
+  "ت",
+  "ث",
+  "خ",
+  "ذ",
+  "ض",
+  "ظ",
+  "غ",
 ] as const;
+
+// Keep the old export as an alias for existing consumers while centralizing
+// the complete section sequence in one source of truth.
+export const TIMETABLE_V3_SECTION_NAMES =
+  ARABIC_CLASS_SECTION_LETTERS;
 
 export const TIMETABLE_V3_STAGES:
   TimetableV3StageDefinition[] = [
@@ -201,7 +224,10 @@ export function buildTimetableV3GradeClasses(
       length:
         Math.max(
           0,
-          count,
+          Math.min(
+            count,
+            ARABIC_CLASS_SECTION_LETTERS.length,
+          ),
         ),
     },
     (
@@ -209,12 +235,9 @@ export function buildTimetableV3GradeClasses(
       index,
     ) => {
       const section =
-        TIMETABLE_V3_SECTION_NAMES[
+        ARABIC_CLASS_SECTION_LETTERS[
           index
-        ] ??
-        String(
-          index + 1,
-        );
+        ];
 
       return `${gradeName} ${section}`;
     },
