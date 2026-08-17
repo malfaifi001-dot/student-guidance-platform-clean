@@ -133,7 +133,7 @@ export function PublicReportSignatureForm({
           </p>
         </header>
 
-        <div className="overflow-auto rounded-[2rem] bg-slate-200 p-3">
+        <div className="overflow-hidden rounded-[2rem] bg-slate-200 p-3">
           {reportPreview}
         </div>
 

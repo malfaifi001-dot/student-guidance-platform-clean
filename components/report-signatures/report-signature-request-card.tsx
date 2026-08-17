@@ -38,6 +38,15 @@ function storedLinkKey(requestId: string) {
   return `report-signature-link:${requestId}`;
 }
 
+function normalizePrincipalPhone(value: unknown, depth = 0): string {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object" || depth > 2) return "";
+
+  const record = value as Record<string, unknown>;
+  const nested = record.phone ?? record.principalPhone ?? record.mobile ?? record.number ?? record.value;
+  return typeof nested === "string" ? nested : normalizePrincipalPhone(nested, depth + 1);
+}
+
 export function ReportSignatureRequestCard({
   reportId,
   initialRequest,
@@ -50,7 +59,7 @@ export function ReportSignatureRequestCard({
   reportId: string | null;
   initialRequest: ReportSignatureRequestView | null;
   initialPrincipalName?: string;
-  initialPrincipalPhone?: string;
+  initialPrincipalPhone?: unknown;
   ensureReportId?: () => Promise<string | null>;
   triggerClassName?: string;
   triggerLabel?: string;
@@ -60,7 +69,7 @@ export function ReportSignatureRequestCard({
   const [requestReportId, setRequestReportId] = useState(reportId);
   const [open, setOpen] = useState(false);
   const [principalName, setPrincipalName] = useState(initialPrincipalName);
-  const [principalPhone, setPrincipalPhone] = useState(initialPrincipalPhone);
+  const [principalPhone, setPrincipalPhone] = useState(() => normalizePrincipalPhone(initialPrincipalPhone));
   const [publicUrl, setPublicUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -163,6 +172,7 @@ export function ReportSignatureRequestCard({
         loading={busy}
         portal
         showFooter={false}
+        stopOutsideMouseDownPropagation
         onClose={() => {
           if (busy) return;
           setOpen(false);

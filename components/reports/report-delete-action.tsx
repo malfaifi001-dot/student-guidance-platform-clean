@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { ReportDeleteModal } from "@/components/reports/report-delete-modal";
 
@@ -103,23 +104,26 @@ export function ReportDeleteAction({
         {children || <Trash2 className="h-4 w-4" />}
       </button>
 
-      {open ? (
-        <ReportDeleteModal
-          reportTitle={reportTitle}
-          caseTitle={caseTitle}
-          status={reportStatus}
-          loading={loading}
-          error={error}
-          success={success}
-          onCancel={() => {
-            if (!loading) {
-              setOpen(false);
-              setSuccess("");
-            }
-          }}
-          onConfirm={deleteReport}
-        />
-      ) : null}
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <ReportDeleteModal
+              reportTitle={reportTitle}
+              caseTitle={caseTitle}
+              status={reportStatus}
+              loading={loading}
+              error={error}
+              success={success}
+              onCancel={() => {
+                if (!loading) {
+                  setOpen(false);
+                  setSuccess("");
+                }
+              }}
+              onConfirm={deleteReport}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 }

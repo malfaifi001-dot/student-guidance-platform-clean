@@ -405,7 +405,7 @@ function CaseFollowUpCard({
         : null;
 
   const cardClassName = [
-    "flex h-full flex-col rounded-[1.75rem] border p-4 shadow-sm transition hover:shadow-md",
+    "flex h-full min-w-0 max-w-full flex-col rounded-[1.75rem] border p-4 shadow-sm transition hover:shadow-md",
     reportStatus === "APPROVED"
       ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:shadow-emerald-100/60"
       : persistedReportId
@@ -415,8 +415,8 @@ function CaseFollowUpCard({
 
   return (
     <article className={cardClassName}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 max-w-full items-start justify-between gap-3">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           <span
             className={[
               "rounded-full px-3 py-1 text-xs font-black",

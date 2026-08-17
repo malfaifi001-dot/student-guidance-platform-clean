@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { PublicReportSignatureForm } from "@/components/report-signatures/public-report-signature-form";
-import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
 import { getPublicReportSignatureRequest } from "@/lib/report-signatures/report-signature-service";
 import { isReportTwoSignatureSnapshot } from "@/lib/report-signatures/report-two-signature";
 
@@ -56,12 +56,14 @@ export default async function ReportSignaturePage({ params }: Props) {
     <PublicReportSignatureForm
       token={token}
       reportPreview={
-        <ReportTwoActivePreviewRenderer
-          template={request.reportSnapshot.report.template}
-          context={request.reportSnapshot.report.context}
-          previewCase={request.reportSnapshot.report.previewCase}
-          sourcePayload={request.reportSnapshot.report.sourcePayload}
-          variantId={request.reportSnapshot.report.variantId}
+        <ReportTwoPrintDocument
+          snapshot={{
+            template: request.reportSnapshot.report.template,
+            context: request.reportSnapshot.report.context,
+            previewCase: request.reportSnapshot.report.previewCase,
+            sourcePayload: request.reportSnapshot.report.sourcePayload,
+            variantId: request.reportSnapshot.report.variantId,
+          }}
         />
       }
       requesterDisplayName={request.requesterDisplayName}

@@ -35,10 +35,15 @@ export function PortfolioAutoPrint({ enabled }: { enabled: boolean }) {
   const triggeredRef = useRef(false);
 
   useEffect(() => {
-    if (enabled && !triggeredRef.current) {
-      triggeredRef.current = true;
-      void triggerPortfolioPrint();
-    }
+    if (!enabled) return;
+
+    document.documentElement.classList.add("portfolio-print-mode");
+
+    if (triggeredRef.current) return;
+    triggeredRef.current = true;
+    void triggerPortfolioPrint();
+
+    return () => document.documentElement.classList.remove("portfolio-print-mode");
   }, [enabled]);
 
   return null;

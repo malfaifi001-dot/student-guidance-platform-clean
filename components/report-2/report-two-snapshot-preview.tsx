@@ -160,10 +160,12 @@ export function ReportTwoSnapshotPreview({
                       }
                     : undefined
                 }
-                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-3"
               >
                 <Trash2 className="h-4 w-4" />
-                {isApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+                <span className="hidden sm:inline">
+                  {isApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+                </span>
               </ReportDeleteAction>
             </div>
           </div>

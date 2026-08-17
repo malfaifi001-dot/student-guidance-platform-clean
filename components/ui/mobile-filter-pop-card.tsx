@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { MOBILE_LAYER_Z_INDEX } from "@/components/mobile-app/mobile-layer-contract";
 
 type MobileFilterPopCardProps = {
   open: boolean;
@@ -16,12 +17,12 @@ export function MobileFilterPopCard({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/25 p-3 backdrop-blur-[2px] md:hidden" onClick={onClose}>
+    <div className={`fixed inset-0 ${MOBILE_LAYER_Z_INDEX.overlay} flex items-end bg-slate-950/25 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-[2px] md:hidden`} onClick={onClose}>
       <section
         role="dialog"
         aria-modal="true"
         aria-label="الفلاتر"
-        className="w-full rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

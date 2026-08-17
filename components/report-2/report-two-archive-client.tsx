@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye, Trash2 } from "lucide-react";
+import { Download, Eye, Filter, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { MobileFilterPopCard } from "@/components/ui/mobile-filter-pop-card";
 
 type SnapshotItem = {
   id: string;
@@ -74,6 +76,7 @@ export function ReportTwoArchiveClient({
   const [filterService, setFilterService] = useState("");
   const [filterApprovedBy, setFilterApprovedBy] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const services = useMemo(
     () => getUniqueValues(items, "serviceName"),
@@ -146,18 +149,37 @@ export function ReportTwoArchiveClient({
     <div className="space-y-4" dir="rtl">
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_auto_auto_auto]">
+          <div className="flex min-w-0 items-center gap-2 lg:contents">
           <input
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="ابحث باسم التقرير أو الخدمة أو المعتمد"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-emerald-800"
+            className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-emerald-800"
           />
+
+          <button
+            type="button"
+            aria-label="فتح الفلاتر"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => setMobileFiltersOpen(true)}
+            className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-[1.35rem] border text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 lg:hidden ${
+              filterService || filterApprovedBy || sortKey !== "newest"
+                ? "border-sky-300 bg-sky-50 text-sky-700"
+                : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50"
+            }`}
+          >
+            <Filter className="h-4 w-4" />
+            {filterService || filterApprovedBy || sortKey !== "newest" ? (
+              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-600" />
+            ) : null}
+          </button>
+          </div>
 
           <select
             value={filterService}
             onChange={(event) => setFilterService(event.target.value)}
-            className="min-w-[150px] rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-emerald-800"
+            className="hidden min-w-[150px] rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-emerald-800 lg:block"
           >
             <option value="">كل الخدمات</option>
             {services.map((service) => (
@@ -170,7 +192,7 @@ export function ReportTwoArchiveClient({
           <select
             value={filterApprovedBy}
             onChange={(event) => setFilterApprovedBy(event.target.value)}
-            className="min-w-[150px] rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-emerald-800"
+            className="hidden min-w-[150px] rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-emerald-800 lg:block"
           >
             <option value="">اعتمد بواسطة</option>
             {approvedByNames.map((name) => (
@@ -180,7 +202,7 @@ export function ReportTwoArchiveClient({
             ))}
           </select>
 
-          <div className="flex gap-2">
+          <div className="hidden gap-2 lg:flex">
             <select
               value={sortKey}
               onChange={(event) => setSortKey(event.target.value as SortKey)}
@@ -203,6 +225,50 @@ export function ReportTwoArchiveClient({
             ) : null}
           </div>
         </div>
+        <MobileFilterPopCard
+          open={mobileFiltersOpen}
+          onClose={() => setMobileFiltersOpen(false)}
+        >
+          <select
+            value={filterService}
+            onChange={(event) => setFilterService(event.target.value)}
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          >
+            <option value="">كل الخدمات</option>
+            {services.map((service) => (
+              <option key={service} value={service}>{service}</option>
+            ))}
+          </select>
+          <select
+            value={filterApprovedBy}
+            onChange={(event) => setFilterApprovedBy(event.target.value)}
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          >
+            <option value="">اعتمد بواسطة</option>
+            {approvedByNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <select
+            value={sortKey}
+            onChange={(event) => setSortKey(event.target.value as SortKey)}
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          >
+            <option value="newest">الأحدث</option>
+            <option value="oldest">الأقدم</option>
+            <option value="title">العنوان</option>
+            <option value="service">الخدمة</option>
+          </select>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="h-11 rounded-2xl border border-red-200 bg-red-50 px-4 text-xs font-black text-red-700 transition hover:bg-red-100 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
+            >
+              إعادة الفلاتر
+            </button>
+          ) : null}
+        </MobileFilterPopCard>
       </section>
 
       {filtered.length > 0 ? (
@@ -229,7 +295,12 @@ export function ReportTwoArchiveClient({
                   </h2>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2" dir="ltr">
+                <ExpandableActionMenu
+                  menuId={`report-archive:${snapshot.id}`}
+                  className="min-w-0 self-start"
+                  stripClassName="flex-wrap justify-end"
+                  overlayStrip
+                >
                   <Link
                     href={`/dashboard/report-2/snapshots/${snapshot.id}/preview`}
                     aria-label="معاينة التقرير"
@@ -273,7 +344,7 @@ export function ReportTwoArchiveClient({
                   >
                     <Trash2 className="h-4 w-4" />
                   </ReportDeleteAction> : null}
-                </div>
+                </ExpandableActionMenu>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">

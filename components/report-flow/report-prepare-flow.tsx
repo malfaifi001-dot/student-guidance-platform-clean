@@ -441,6 +441,16 @@ export function ReportPrepareFlow({
         dir="rtl"
       >
         <div className="mx-auto max-w-6xl space-y-5">
+          <div className="flex items-center">
+            <Link
+              href={`/dashboard/cases/${payload.caseInfo.id}`}
+              aria-label="العودة إلى الحالة"
+              title="العودة إلى الحالة"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          </div>
           <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -469,14 +479,6 @@ export function ReportPrepareFlow({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/dashboard/cases/${payload.caseInfo.id}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  العودة للحالة
-                </Link>
-
                 <button
                   type="button"
                   onClick={continueToStudio}

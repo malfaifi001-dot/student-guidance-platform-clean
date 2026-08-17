@@ -11,6 +11,7 @@ type ExpandableActionMenuProps = {
   children: ReactNode;
   className?: string;
   stripClassName?: string;
+  overlayStrip?: boolean;
 };
 
 export function ExpandableActionMenu({
@@ -18,6 +19,7 @@ export function ExpandableActionMenu({
   children,
   className = "",
   stripClassName = "",
+  overlayStrip = false,
 }: ExpandableActionMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,13 +66,13 @@ export function ExpandableActionMenu({
   return (
     <div
       ref={menuRef}
-      className={`flex min-w-0 shrink-0 items-center gap-2 ${className}`}
+      className={`flex min-w-0 shrink-0 items-center gap-2 ${overlayStrip ? "relative" : ""} ${className}`}
       dir="ltr"
     >
       <div
-        className={`flex min-w-0 overflow-hidden transition-all duration-200 ease-out ${
+        className={`${overlayStrip ? "absolute left-0 top-0 z-10 flex" : "flex"} min-w-0 overflow-hidden transition-all duration-200 ease-out ${
           open
-            ? "max-w-[24rem] translate-x-0 gap-2 opacity-100"
+            ? `${overlayStrip ? "max-w-[calc(100vw-2rem)]" : "max-w-[24rem]"} translate-x-0 gap-2 opacity-100`
             : "pointer-events-none max-w-0 translate-x-2 gap-0 opacity-0"
         } ${stripClassName}`}
         aria-hidden={!open}

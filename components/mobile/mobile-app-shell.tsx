@@ -67,7 +67,7 @@ function BottomNavigation({
   onUnavailable?: () => void;
 }) {
   return (
-    <nav className="fixed inset-x-0 bottom-3 z-40 mx-auto w-[calc(100%-2rem)] max-w-[390px] rounded-[2rem] bg-white/94 p-2 shadow-[0_12px_28px_rgba(15,23,42,0.10)] ring-1 ring-slate-100 backdrop-blur-2xl dark:bg-slate-900/90 dark:shadow-slate-950/50 dark:ring-white/10">
+    <nav className="fixed inset-x-0 z-40 mx-auto w-[calc(100%-2rem)] max-w-[390px] rounded-[2rem] bg-white/94 p-2 shadow-[0_12px_28px_rgba(15,23,42,0.10)] ring-1 ring-slate-100 backdrop-blur-2xl dark:bg-slate-900/90 dark:shadow-slate-950/50 dark:ring-white/10" style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
       <div className="grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const active = activeSection === item.id;
@@ -127,7 +127,7 @@ export function MobileAppShell({ activeSection, children, disabledSections, onUn
           <AppLogo />
         </header>
 
-        <main className="relative z-10 flex-1 overflow-y-auto px-5 pb-28 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <main className="relative z-10 flex-1 overflow-y-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>
           {children}
         </main>
 

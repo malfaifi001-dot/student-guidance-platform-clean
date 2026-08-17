@@ -495,8 +495,8 @@ if (!form.principalName.trim()) {
 
       const signatureUrl = String(data.signatureUrl || "");
       const whatsappUrl = String(data.whatsappUrl || "");
-      const messageText = `السلام عليكم
-فضلاً اعتماد توقيع ${identityCopy.schoolPrincipalLabel} في منصة التوجيه الطلابي عبر الرابط:
+      const messageText = `السلام عليكم،
+فضلًا اعتماد توقيع ${identityCopy.schoolPrincipalLabel} في منصة تيتش إكس عبر الرابط:
 ${signatureUrl}`;
 
       setPrincipalSignatureLink(signatureUrl);
@@ -564,20 +564,16 @@ ${signatureUrl}`;
         onOpenChange={setSaveConfirmationOpen}
       />
 
-      {feedback ? (
-        <div
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm font-bold leading-7",
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : feedback.type === "warning"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-red-200 bg-red-50 text-red-700",
-          ].join(" ")}
-        >
-          {feedback.message}
-        </div>
-      ) : null}
+      <SmartFeedbackModal
+        open={Boolean(feedback)}
+        type={feedback?.type || "info"}
+        title={feedback?.type === "success" ? "تم بنجاح" : feedback?.type === "warning" ? "تنبيه" : "تعذر تنفيذ العملية"}
+        description={feedback?.message}
+        primaryActionLabel="إغلاق"
+        onOpenChange={(open) => {
+          if (!open) setFeedback(null);
+        }}
+      />
 
       <IdentityReadinessCard readiness={readiness} />
 

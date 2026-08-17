@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { MOBILE_LAYER_Z_INDEX } from "./mobile-layer-contract";
 
 export type MobileFeedbackKind = "success" | "error" | "warning" | "info";
 
@@ -23,7 +24,7 @@ export function MobileFeedbackPopCard({
   onDismiss: () => void;
 }) {
   return (
-    <div className="fixed inset-x-4 top-4 z-50 sm:inset-x-auto sm:right-4 sm:w-96" style={{ marginTop: "env(safe-area-inset-top)" }}>
+    <div className={`fixed inset-x-4 top-4 ${MOBILE_LAYER_Z_INDEX.feedback} sm:inset-x-auto sm:right-4 sm:w-96`} style={{ marginTop: "env(safe-area-inset-top)" }}>
       <section className={`rounded-xl border p-4 shadow-sm ${kindStyles[kind]}`} role={kind === "error" ? "alert" : "status"} aria-live="polite">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">

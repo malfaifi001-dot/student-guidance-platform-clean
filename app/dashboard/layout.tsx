@@ -12,6 +12,7 @@ import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscript
 import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authenticated-analytics-identity";
 import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
 import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-bottom-nav";
+import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
 
 export const metadata: Metadata = {
   robots: {
@@ -66,6 +67,7 @@ export default async function DashboardLayout({
       <div
         dir="rtl"
         className="h-screen overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+        style={MOBILE_LAYER_STYLE}
       >
         <div className="flex h-screen min-w-0">
           <DashboardSidebar
@@ -89,7 +91,7 @@ export default async function DashboardLayout({
               </>
             ) : null}
 
-            <div className="mx-auto w-full min-w-0 max-w-[1680px] px-2.5 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5">
+            <div className={`mx-auto w-full min-w-0 max-w-[1680px] px-2.5 ${MOBILE_BOTTOM_CLEARANCE_CLASS} pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5`}>
               {children}
             </div>
           </main>

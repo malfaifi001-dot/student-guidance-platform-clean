@@ -3,6 +3,7 @@
 import { FolderX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 import { CaseDeleteModal } from "@/components/cases/case-delete-modal";
 
@@ -50,7 +51,21 @@ export function CaseDeleteAction(props: {
       <button type="button" aria-label="حذف الحالة بالكامل" title="حذف الحالة بالكامل" disabled={loading} onClick={() => { setError(""); setSuccess(""); setOpen(true); }} className="grid h-10 w-10 place-items-center rounded-full border border-rose-200 bg-white text-rose-600 shadow-sm transition hover:bg-rose-700 hover:text-white disabled:opacity-50">
         <FolderX className="h-4 w-4" />
       </button>
-      {open ? <CaseDeleteModal {...props} loading={loading} error={error} success={success} onCancel={() => { if (!loading) setOpen(false); }} onConfirm={deleteCase} /> : null}
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <CaseDeleteModal
+              {...props}
+              loading={loading}
+              error={error}
+              success={success}
+              onCancel={() => {
+                if (!loading) setOpen(false);
+              }}
+              onConfirm={deleteCase}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 }

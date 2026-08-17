@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { MOBILE_LAYER_Z_INDEX } from "./mobile-layer-contract";
 
 export type MobileNavigationItem = {
   href: string;
@@ -21,7 +22,7 @@ export function MobileBottomNavigation({
   return (
     <nav
       aria-label="التنقل الرئيسي"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-sm"
+      className={`fixed inset-x-0 bottom-0 ${MOBILE_LAYER_Z_INDEX.navigation} border-t border-slate-200 bg-white/95 backdrop-blur-sm`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto grid min-h-16 w-full max-w-md grid-cols-5 px-2">

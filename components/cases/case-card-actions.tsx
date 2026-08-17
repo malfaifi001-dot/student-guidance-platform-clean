@@ -98,7 +98,7 @@ export function CaseCardActions({
     : disabledIconButtonClass;
 
   return (
-    <ExpandableActionMenu menuId={`case:${caseEntry.id}`}>
+    <ExpandableActionMenu menuId={`case:${caseEntry.id}`} overlayStrip>
       {caseEntry.capabilities.canViewCase ? (
         <Link
           href={`/dashboard/cases/${caseEntry.id}`}

@@ -19,6 +19,7 @@ type SmartActionModalProps = {
   children?: ReactNode;
   portal?: boolean;
   showFooter?: boolean;
+  stopOutsideMouseDownPropagation?: boolean;
   onConfirm?: () => void;
   onClose: () => void;
 };
@@ -70,6 +71,7 @@ export function SmartActionModal({
   children,
   portal = false,
   showFooter = true,
+  stopOutsideMouseDownPropagation = false,
   onConfirm,
   onClose,
 }: SmartActionModalProps) {
@@ -93,6 +95,8 @@ export function SmartActionModal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      onMouseDown={stopOutsideMouseDownPropagation ? (event) => event.stopPropagation() : undefined}
+      onTouchStart={stopOutsideMouseDownPropagation ? (event) => event.stopPropagation() : undefined}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
     >
       <section className="relative flex max-h-[calc(100dvh-24px)] w-[calc(100%-24px)] max-w-[520px] flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-white shadow-2xl shadow-slate-950/25 sm:max-h-[calc(100dvh-48px)]">
