@@ -27,6 +27,16 @@ export type PrincipalServiceDefinition = {
   serviceSlug: string;
 };
 
+export type PrincipalLinkedReport = {
+  id: string;
+  sourceType: "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+  title: string;
+  staffName: string;
+  issuedAt: string;
+  status: string;
+  previewHref: string;
+};
+
 function clean(value: unknown, maxLength: number) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -75,7 +85,7 @@ export async function getPrincipalServicePageData(
   const context = await requirePrincipalServicePageAccess(serviceDefinition);
   const schoolAccountId = context.schoolAccountId as string;
 
-  const [entries, assignments, members] = await Promise.all([
+  const [entries, assignments, members, resourceLinks] = await Promise.all([
     prisma.caseEntry.findMany({
       where: {
         schoolAccountId,
@@ -137,13 +147,84 @@ export async function getPrincipalServicePageData(
         gender: true,
       },
     }),
+    prisma.dashboardResourceLink.findMany({
+      where: {
+        schoolAccountId,
+        targetType: "PRINCIPAL_SERVICE",
+        targetId: context.service.slug,
+        sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] },
+      },
+      select: { sourceType: true, sourceId: true },
+    }),
   ]);
+
+  const guidanceIds = resourceLinks.filter((link) => link.sourceType === "GUIDANCE_REPORT").map((link) => link.sourceId);
+  const snapshotIds = resourceLinks.filter((link) => link.sourceType === "REPORT_SNAPSHOT").map((link) => link.sourceId);
+  const linkedCaseOwners = snapshotIds.length
+    ? await prisma.caseEntry.findMany({
+        where: { schoolAccountId },
+        select: { id: true, createdBy: { select: { name: true, officialName: true } } },
+      })
+    : [];
+  const linkedCaseIds = linkedCaseOwners.map((item) => item.id);
+  const [linkedGuidance, linkedSnapshots, linkedActive] = await Promise.all([
+    guidanceIds.length ? prisma.guidanceReport.findMany({
+      where: { id: { in: guidanceIds }, status: { in: ["GENERATED", "APPROVED", "ARCHIVED"] }, caseEntry: { schoolAccountId } },
+      select: { id: true, title: true, generatedAt: true, approvedAt: true, updatedAt: true, status: true, caseEntry: { select: { createdBy: { select: { name: true, officialName: true } } } } },
+    }) : [],
+    snapshotIds.length ? prisma.reportSnapshot.findMany({
+      where: { id: { in: snapshotIds }, OR: [{ schoolAccountId }, { schoolAccountId: null }], caseEntryId: { in: linkedCaseIds } },
+      select: { id: true, reportTitle: true, approvedAt: true, createdAt: true, serviceSlug: true, caseEntryId: true },
+    }) : [],
+    snapshotIds.length ? prisma.reportTwoActive.findMany({
+      where: { id: { in: snapshotIds }, schoolAccountId, status: "APPROVED", caseEntryId: { in: linkedCaseIds } },
+      select: { id: true, reportTitle: true, approvedAt: true, savedAt: true, caseEntryId: true },
+    }) : [],
+  ]);
+
+  const ownerByCaseId = new Map(linkedCaseOwners.map((item) => [
+    item.id,
+    item.createdBy?.officialName || item.createdBy?.name || "منسوب المدرسة",
+  ]));
+
+  const linkedReports: PrincipalLinkedReport[] = [
+    ...linkedGuidance.map((report) => ({
+      id: report.id,
+      sourceType: "GUIDANCE_REPORT" as const,
+      title: report.title,
+      staffName: report.caseEntry.createdBy?.officialName || report.caseEntry.createdBy?.name || "منسوب المدرسة",
+      issuedAt: (report.generatedAt || report.approvedAt || report.updatedAt).toISOString(),
+      status: report.status,
+      previewHref: `/dashboard/reports/${report.id}/preview`,
+    })),
+    ...linkedSnapshots.map((report) => ({
+      id: report.id,
+      sourceType: "REPORT_SNAPSHOT" as const,
+      title: report.reportTitle,
+      staffName: ownerByCaseId.get(report.caseEntryId) || "منسوب المدرسة",
+      issuedAt: (report.approvedAt || report.createdAt).toISOString(),
+      status: "APPROVED",
+      previewHref: `/dashboard/report-2/snapshots/${report.id}/preview`,
+    })),
+    ...linkedActive
+      .filter((report) => !linkedSnapshots.some((snapshot) => snapshot.id === report.id))
+      .map((report) => ({
+        id: report.id,
+        sourceType: "REPORT_SNAPSHOT" as const,
+        title: report.reportTitle,
+        staffName: ownerByCaseId.get(report.caseEntryId) || "منسوب المدرسة",
+        issuedAt: (report.approvedAt || report.savedAt).toISOString(),
+        status: "APPROVED",
+        previewHref: `/dashboard/report-2/snapshots/${report.id}/preview`,
+      })),
+  ];
 
   return {
     service: context.service,
     entries,
     assignments,
     members,
+    linkedReports,
   };
 }
 

@@ -43,6 +43,19 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   await requireOwnedPortfolio(user, portfolioId);
   const serviceDefinitions = getPortfolioPerformanceElements(user.role);
   const serviceSlugs = serviceDefinitions.map((item) => item.serviceSlug);
+  const principalLinks = user.role === "PRINCIPAL"
+    ? await prisma.dashboardResourceLink.findMany({
+        where: {
+          schoolAccountId: user.schoolAccountId!,
+          targetType: "PRINCIPAL_SERVICE",
+          targetId: { in: serviceSlugs },
+          sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] },
+        },
+        select: { sourceType: true, sourceId: true, targetId: true },
+      })
+    : [];
+  const linkedGuidanceIds = principalLinks.filter((link) => link.sourceType === "GUIDANCE_REPORT").map((link) => link.sourceId);
+  const linkedSnapshotIds = principalLinks.filter((link) => link.sourceType === "REPORT_SNAPSHOT").map((link) => link.sourceId);
   const cases = await prisma.caseEntry.findMany({
     where: { schoolAccountId: user.schoolAccountId!, createdById: user.id, service: { slug: { in: serviceSlugs } } },
     select: { id: true },
@@ -54,7 +67,7 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
     const definition = serviceDefinitions.find((item) => item.key === section.sectionKey);
     if (definition) sectionBySlug.set(definition.serviceSlug, { id: section.id, key: section.sectionKey });
   }
-  const [guidance, active, snapshots, returnedAssignments] = await Promise.all([
+  const [guidance, active, snapshots, returnedAssignments, linkedGuidance, linkedSnapshots, linkedActive] = await Promise.all([
     prisma.guidanceReport.findMany({
       where: { serviceSlug: { in: serviceSlugs }, caseEntry: { schoolAccountId: user.schoolAccountId!, createdById: user.id } },
       include: { caseEntry: { include: { service: true } }, evidenceItems: { where: { visible: true }, orderBy: { sortOrder: "asc" } } },
@@ -93,6 +106,16 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
           take: 200,
         })
       : Promise.resolve([]),
+    linkedGuidanceIds.length ? prisma.guidanceReport.findMany({
+      where: { id: { in: linkedGuidanceIds }, status: { in: ["GENERATED", "APPROVED", "ARCHIVED"] }, caseEntry: { schoolAccountId: user.schoolAccountId! } },
+      include: { caseEntry: { include: { service: true } }, evidenceItems: { where: { visible: true }, orderBy: { sortOrder: "asc" } } },
+    }) : Promise.resolve([]),
+    linkedSnapshotIds.length ? prisma.reportSnapshot.findMany({
+      where: { id: { in: linkedSnapshotIds }, OR: [{ schoolAccountId: user.schoolAccountId! }, { schoolAccountId: null }] },
+    }) : Promise.resolve([]),
+    linkedSnapshotIds.length ? prisma.reportTwoActive.findMany({
+      where: { id: { in: linkedSnapshotIds }, schoolAccountId: user.schoolAccountId!, status: "APPROVED" },
+    }) : Promise.resolve([]),
   ]);
   const results: EligibleReport[] = [];
   for (const report of guidance) {
@@ -113,6 +136,34 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
     const section = report.serviceSlug ? sectionBySlug.get(report.serviceSlug) : null; if (!section) continue;
     const content = normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt.toISOString(), evidence: [] });
     results.push({ sourceId: report.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || report.reportTitle, serviceName: content.serviceName || report.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: report.approvedAt.toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
+  }
+  const linkedPortfolioSources = new Set<string>();
+  for (const link of principalLinks) {
+    const section = sectionBySlug.get(link.targetId);
+    if (!section) continue;
+    const sourceKey = `${link.sourceType}:${link.sourceId}`;
+    if (linkedPortfolioSources.has(sourceKey)) continue;
+    linkedPortfolioSources.add(sourceKey);
+    if (link.sourceType === "GUIDANCE_REPORT") {
+      const report = linkedGuidance.find((item) => item.id === link.sourceId);
+      if (!report) continue;
+      const evidence = report.evidenceItems.map((item) => ({ id: item.id, title: item.caption || item.fileName, url: item.fileUrl || null, type: item.mimeType?.startsWith("image/") ? "IMAGE" : item.mimeType || "FILE" }));
+      const serviceName = report.caseEntry.service.name || report.serviceSlug;
+      const base = normalizePortfolioReportPayload(report.reportDataSnapshot);
+      results.push({ sourceId: report.id, sourceType: "GUIDANCE_REPORT", sectionId: section.id, sectionKey: section.key, title: report.title, serviceName, caseTitle: report.caseEntry.title, status: report.status, generatedAt: (report.generatedAt || report.approvedAt)?.toISOString() || null, createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report/${report.id}/preview`, content: withEvidence(base, { title: report.title, serviceName, issuedAt: report.generatedAt?.toISOString() || null, evidence }) });
+    } else {
+      const report = linkedSnapshots.find((item) => item.id === link.sourceId);
+      const activeReport = linkedActive.find((item) => item.id === link.sourceId);
+      if (!report && !activeReport) continue;
+      if (!report && activeReport) {
+        const content = normalizePortfolioReportPayload(activeReport.sourcePayload) || emptyContent({ title: activeReport.reportTitle, serviceName: activeReport.serviceName || activeReport.serviceSlug || "تقرير", issuedAt: activeReport.approvedAt?.toISOString() || activeReport.savedAt.toISOString(), evidence: [] });
+        results.push({ sourceId: activeReport.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || activeReport.reportTitle, serviceName: content.serviceName || activeReport.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: (activeReport.approvedAt || activeReport.savedAt).toISOString(), createdAt: activeReport.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${activeReport.id}/preview`, content });
+        continue;
+      }
+      if (!report) continue;
+      const content = normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt.toISOString(), evidence: [] });
+      results.push({ sourceId: report.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || report.reportTitle, serviceName: content.serviceName || report.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: report.approvedAt.toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
+    }
   }
   for (const assignment of returnedAssignments) {
     const section = sectionBySlug.get(assignment.originService.slug); if (!section) continue;

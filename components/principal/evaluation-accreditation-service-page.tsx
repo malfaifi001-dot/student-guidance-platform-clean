@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { SendPerformanceAssignmentCard } from "@/components/principal/send-performance-assignment-card";
+import { PrincipalLinkedReportsPanel } from "@/components/principal/principal-linked-reports-panel";
 import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 import type { PrincipalEvaluationAccreditationService } from "@/lib/principal/evaluation-accreditation-services";
 import type { getPrincipalServicePageData } from "@/lib/principal/performance-service";
@@ -157,6 +158,7 @@ export function EvaluationAccreditationServicePage({
           </div>
         ) : <Empty title="لا توجد تقارير مستلمة" text="عندما يرسل المنسوب تقريره سيظهر داخل الخدمة التي صدر منها التكليف." />}
       </Panel>
+      <PrincipalLinkedReportsPanel reports={data.linkedReports} />
     </main>
   );
 }

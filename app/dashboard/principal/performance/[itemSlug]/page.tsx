@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { SendPerformanceAssignmentCard } from "@/components/principal/send-performance-assignment-card";
+import { PrincipalLinkedReportsPanel } from "@/components/principal/principal-linked-reports-panel";
 import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 import { getPrincipalPerformanceItem } from "@/lib/principal/performance-items";
 import { getPrincipalPerformancePageData } from "@/lib/principal/performance-service";
@@ -137,6 +138,7 @@ export default async function PrincipalPerformanceItemPage({ params }: PageProps
           </div>
         ) : <Empty icon={<Inbox className="h-8 w-8" />} title="لا توجد تقارير مستلمة" text="عندما يرسل المنسوب تقريره سيظهر هنا داخل عنصر التقييم نفسه." />}
       </section>
+      <PrincipalLinkedReportsPanel reports={data.linkedReports} />
     </main>
   );
 }

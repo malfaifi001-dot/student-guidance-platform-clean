@@ -195,7 +195,7 @@ function TeacherCard({ teacher }: { teacher: TeacherCardData }) {
   const tone = roleToneClasses[teacher.role];
 
   return (
-    <article className={`rounded-[1.75rem] border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tone.card}`}>
+    <Link href={`/dashboard/principal/teachers/${encodeURIComponent(teacher.id)}`} className={`block rounded-[1.75rem] border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${tone.card}`}>
       <div className="flex items-start gap-4">
         <div aria-hidden="true" className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black ${tone.avatar}`}>{getInitials(teacher.fullName)}</div>
         <div className="min-w-0 flex-1">
@@ -212,7 +212,7 @@ function TeacherCard({ teacher }: { teacher: TeacherCardData }) {
         <Metric icon={FolderOpen} label="الشواهد" value={`${numberFormatter.format(teacher.evidenceCount)} شاهدًا`} />
       </div>
       <p className="mt-4 text-xs font-bold text-slate-400">آخر نشاط: {formatLastActivity(teacher.lastActivityAt)}</p>
-    </article>
+    </Link>
   );
 }
 
