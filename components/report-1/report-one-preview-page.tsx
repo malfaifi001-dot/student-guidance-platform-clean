@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 import { ReportOneTemplatePreview } from "@/components/report-1/editor/report-one-template-preview";
 import type {
@@ -96,12 +97,13 @@ export function ReportOnePreviewPage({
               عرض PDF
             </Link>
 
-            <Link
+            <NativeDownloadLink
               href={`/api/dashboard/report-1/${reportId}/export/pdf`}
+              fileName={`${draft.title || "report-1"}.pdf`}
               className="rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
             >
               تحميل PDF
-            </Link>
+            </NativeDownloadLink>
           </div>
         </section>
       ) : null}

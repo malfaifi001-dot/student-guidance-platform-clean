@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 
 import { BrandLoader } from "@/components/common/brand-loader";
+import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
 
 type GuardianSummonsReportEnginePdfButtonProps = {
   payload: Record<string, unknown>;
@@ -53,17 +54,7 @@ export function GuardianSummonsReportEnginePdfButton({
         throw new Error(data?.error || "تعذر إنشاء ملف PDF.");
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = sanitizePdfFileName(fileName);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      window.URL.revokeObjectURL(url);
+      await downloadResponseAsFile(response, sanitizePdfFileName(fileName));
 
       await onAfterDownload?.();
     } catch (error) {

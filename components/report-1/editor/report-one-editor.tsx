@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import type { SmartReportField, SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import { ReportOneTemplatePreview } from "./report-one-template-preview";
 import { ReportOneControlPanel } from "./report-one-control-panel";
+import { downloadUrlAsFile } from "@/lib/print-export/print-export-download";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 import type {
   ReportOneDocumentDraft,
   ReportOneEditableBlock,
@@ -609,13 +611,19 @@ export function ReportOneEditor({
     window.open(`/dashboard/report-1/${currentReportId}/preview`, "_blank");
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!currentReportId) {
       setMessage("احفظ التقرير أولًا قبل تحميل PDF.");
       return;
     }
 
-    window.location.href = `/api/dashboard/report-1/${currentReportId}/export/pdf`;
+    const url = `/api/dashboard/report-1/${currentReportId}/export/pdf`;
+    if (isNativeCapacitor()) {
+      await downloadUrlAsFile(url, `report-${currentReportId}.pdf`);
+      return;
+    }
+
+    window.location.href = url;
   }
 
   return (

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { getCertificateTypeLabel } from "@/lib/certificates/certificate-types";
+import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
 
 function sanitizeFileName(value: string) {
   return value
@@ -28,6 +31,11 @@ async function downloadPdfFromResponse(response: Response, fileName: string) {
     const json = await response.json();
 
     if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+      if (isNativeCapacitor()) {
+        await savePrintPreviewAsNativePdf(json.previewUrl, fileName);
+        return;
+      }
+
       const previewWindow = window.open(
         json.previewUrl,
         "_blank",
@@ -42,17 +50,7 @@ async function downloadPdfFromResponse(response: Response, fileName: string) {
     }
   }
 
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.URL.revokeObjectURL(url);
+  await downloadResponseAsFile(response, fileName);
 }
 
 export function BatchPdfDownloadButton({

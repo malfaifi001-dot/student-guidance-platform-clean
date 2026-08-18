@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "CANCELED";
 type PaymentMethod = "CARD" | "BANK_TRANSFER" | "MANUAL";
@@ -517,12 +518,13 @@ export function AdminPaymentsDashboard() {
                 تطبيق الفلاتر
               </button>
 
-              <a
+              <NativeDownloadLink
                 href={exportUrl}
+                fileName="payments-export.xlsx"
                 className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/50"
               >
                 تصدير Excel
-              </a>
+              </NativeDownloadLink>
 
               <button
                 type="button"

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type InvoiceRow = {
   id: string;
@@ -273,12 +274,13 @@ export function AdminInvoicesDashboard() {
               إعدادات الفواتير
             </Link>
 
-            <a
+            <NativeDownloadLink
               href={exportUrl}
+              fileName="invoices-export.xlsx"
               className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
             >
               تصدير Excel
-            </a>
+            </NativeDownloadLink>
           </div>
         </div>
       </section>

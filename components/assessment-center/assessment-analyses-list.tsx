@@ -11,6 +11,7 @@ import {
   getGradeBandLabel,
 } from "@/lib/assessment-center/assessment-analysis-summary";
 import { DeleteAssessmentAnalysisButton } from "./delete-assessment-analysis-button";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type AssessmentAnalysisItem = {
   id: string;
@@ -160,21 +161,23 @@ export function AssessmentAnalysesList({
                 مقارنة
               </Link>
 
-              <a
+              <NativeDownloadLink
                 href={`/api/dashboard/assessment-center/${analysis.id}/export?format=excel`}
+                fileName={`${analysis.title}.xlsx`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
-              </a>
+              </NativeDownloadLink>
 
-              <a
+              <NativeDownloadLink
                 href={`/api/dashboard/assessment-center/${analysis.id}/export?format=pdf`}
+                fileName={`${analysis.title}.pdf`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
               >
                 <FileText className="h-4 w-4" />
                 PDF
-              </a>
+              </NativeDownloadLink>
 
               <DeleteAssessmentAnalysisButton
                 analysisId={analysis.id}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
 
 type CertificateStatus = "DRAFT" | "ISSUED" | "PRINTED";
 
@@ -89,8 +90,8 @@ export function AppreciationCertificateStatisticsClient() {
     setRecords([]);
   }
 
-  function exportCsv() {
-    downloadCsv(filteredRecords);
+  async function exportCsv() {
+    await downloadCsv(filteredRecords);
   }
 
   return (
@@ -559,7 +560,7 @@ function formatDate(value?: string) {
   return value.slice(0, 10);
 }
 
-function downloadCsv(records: CertificateRecord[]) {
+async function downloadCsv(records: CertificateRecord[]) {
   const headers = [
     "student",
     "status",
@@ -597,19 +598,10 @@ function downloadCsv(records: CertificateRecord[]) {
     type: "text/csv;charset=utf-8;",
   });
 
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = `appreciation-certificates-statistics-${new Date()
-    .toISOString()
-    .slice(0, 10)}.csv`;
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.URL.revokeObjectURL(url);
+  await downloadBlobAsFile(
+    blob,
+    `appreciation-certificates-statistics-${new Date().toISOString().slice(0, 10)}.csv`,
+  );
 }
 
 function csvCell(value: unknown) {

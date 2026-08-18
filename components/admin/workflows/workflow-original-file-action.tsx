@@ -1,6 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type Props = {
   serviceSlug: string;
@@ -19,12 +20,13 @@ export function WorkflowOriginalFileAction({ serviceSlug, workflowId, hasOrigina
   }
 
   return (
-    <a
+    <NativeDownloadLink
       href={`/api/dashboard/admin/workflows/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(workflowId)}/original-file`}
+      fileName={`${serviceSlug}-${workflowId}.xlsx`}
       className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
     >
       <Download className="h-4 w-4" />
       تحميل ملف Excel
-    </a>
+    </NativeDownloadLink>
   );
 }

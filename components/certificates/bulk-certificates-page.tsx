@@ -17,6 +17,7 @@ import {
   CERTIFICATE_TYPES,
   getCertificateTypeLabel,
 } from "@/lib/certificates/certificate-types";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type PreviewRow = {
   rowNumber: number;
@@ -296,13 +297,14 @@ export function BulkCertificatesPage() {
             </p>
           </div>
 
-          <a
+          <NativeDownloadLink
             href="/api/dashboard/certificates/bulk/template"
+            fileName="certificates-template.xlsx"
             className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
             <Download className="h-4 w-4" />
             تحميل نموذج Excel
-          </a>
+          </NativeDownloadLink>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -533,13 +535,14 @@ export function BulkCertificatesPage() {
               <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
                 حمل النموذج، انسخ الأسماء وسبب التكريم، ثم ارفعه هنا للمعاينة.
               </p>
-              <a
+              <NativeDownloadLink
                 href="/api/dashboard/certificates/bulk/template"
+                fileName="certificates-template.xlsx"
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"
               >
                 <Download className="h-4 w-4" />
                 تحميل النموذج
-              </a>
+              </NativeDownloadLink>
             </div>
           </div>
         </section>

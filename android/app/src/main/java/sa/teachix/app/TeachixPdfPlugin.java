@@ -2,17 +2,13 @@ package sa.teachix.app;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
-import android.os.CancellationSignal;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.print.PrintAttributes;
-import android.print.PrintDocumentAdapter;
-import android.print.PrintDocumentInfo;
+import android.print.pdf.PrintedPdfDocument;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.CookieManager;
@@ -22,8 +18,6 @@ import android.webkit.WebViewClient;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
-
-import androidx.annotation.NonNull;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -58,22 +52,37 @@ public class TeachixPdfPlugin extends Plugin {
     public void savePdf(PluginCall call) {
         String data = call.getString("data");
         String fileName = call.getString("fileName", "report.pdf");
+        saveBytes(call, data, ensureExtension(fileName, ".pdf"), "application/pdf");
+    }
+
+    @PluginMethod
+    public void saveFile(PluginCall call) {
+        String data = call.getString("data");
+        String fileName = call.getString("fileName", "download.bin");
+        String mimeType = call.getString("mimeType", "application/octet-stream");
+        saveBytes(call, data, fileName, mimeType);
+    }
+
+    private void saveBytes(PluginCall call, String data, String requestedName, String mimeType) {
 
         if (data == null || data.trim().isEmpty()) {
-            call.reject("PDF data is missing");
+            call.reject("File data is missing");
             return;
         }
 
+        OutputTarget target = null;
         try {
-            OutputTarget target = createOutputTarget(fileName);
+            target = createOutputTarget(requestedName, mimeType);
             byte[] bytes = Base64.decode(data, Base64.DEFAULT);
             try (OutputStream output = openOutputStream(target)) {
+                if (output == null) throw new IllegalStateException("Unable to open file output");
                 output.write(bytes);
             }
             finishOutputTarget(target);
             resolveSaved(call, target);
         } catch (Exception error) {
-            call.reject("Unable to save PDF", error);
+            if (target != null) deleteOutputTarget(target);
+            call.reject("Unable to save file", error);
         }
     }
 
@@ -99,7 +108,7 @@ public class TeachixPdfPlugin extends Plugin {
     private void renderAuthenticatedPage(PluginCall call, String url, String fileName) {
         final OutputTarget target;
         try {
-            target = createOutputTarget(fileName);
+            target = createOutputTarget(ensureExtension(fileName, ".pdf"), "application/pdf");
         } catch (Exception error) {
             call.reject("Unable to prepare PDF output", error);
             return;
@@ -122,7 +131,11 @@ public class TeachixPdfPlugin extends Plugin {
         cookieManager.flush();
 
         FrameLayout root = getActivity().findViewById(android.R.id.content);
-        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(794, 1123);
+        float density = getContext().getResources().getDisplayMetrics().density;
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+            Math.round(794f * density),
+            Math.round(1123f * density)
+        );
         layoutParams.gravity = Gravity.TOP | Gravity.START;
         layoutParams.leftMargin = -2000;
         layoutParams.topMargin = 0;
@@ -146,72 +159,69 @@ public class TeachixPdfPlugin extends Plugin {
     }
 
     private void writeWebViewPdf(PluginCall call, WebView webView, FrameLayout root, OutputTarget target) {
-        PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(target.fileName);
         PrintAttributes attributes = new PrintAttributes.Builder()
             .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
             .setResolution(new PrintAttributes.Resolution("teachix_pdf", "Teachix PDF", 300, 300))
             .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
             .build();
+        PrintedPdfDocument document = new PrintedPdfDocument(getContext(), attributes);
 
-        adapter.onLayout(null, attributes, null, new PrintDocumentAdapter.LayoutResultCallback() {
-            @Override
-            public void onLayoutFinished(PrintDocumentInfo info, boolean changed) {
-                try {
-                    ParcelFileDescriptor descriptor = openParcelFileDescriptor(target);
-                    adapter.onWrite(
-                        new android.print.PageRange[] { android.print.PageRange.ALL_PAGES },
-                        descriptor,
-                        new CancellationSignal(),
-                        new PrintDocumentAdapter.WriteResultCallback() {
-                            @Override
-                            public void onWriteFinished(android.print.PageRange[] pages) {
-                                closeQuietly(descriptor);
-                                finishOutputTarget(target);
-                                cleanupWebView(webView, root);
-                                resolveSaved(call, target);
-                            }
+        try {
+            float density = getContext().getResources().getDisplayMetrics().density;
+            int pageWidth = document.getPageWidth();
+            int pageHeight = document.getPageHeight();
+            int viewWidth = Math.max(webView.getWidth(), Math.round(794f * density));
+            int contentHeight = Math.max(
+                pageHeight,
+                Math.round(Math.max(1, webView.getContentHeight()) * density)
+            );
 
-                            @Override
-                            public void onWriteFailed(CharSequence error) {
-                                closeQuietly(descriptor);
-                                deleteOutputTarget(target);
-                                cleanupWebView(webView, root);
-                                call.reject(error == null ? "Unable to write PDF" : error.toString());
-                            }
+            webView.measure(
+                View.MeasureSpec.makeMeasureSpec(viewWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(contentHeight, View.MeasureSpec.EXACTLY)
+            );
+            webView.layout(0, 0, viewWidth, contentHeight);
 
-                            @Override
-                            public void onWriteCancelled() {
-                                closeQuietly(descriptor);
-                                deleteOutputTarget(target);
-                                cleanupWebView(webView, root);
-                                call.reject("PDF generation was cancelled");
-                            }
-                        }
-                    );
-                } catch (Exception error) {
-                    deleteOutputTarget(target);
-                    cleanupWebView(webView, root);
-                    call.reject("Unable to open PDF output", error);
-                }
+            float scale = pageWidth / (float) viewWidth;
+            int scaledHeight = Math.round(contentHeight * scale);
+            int pageCount = Math.max(1, (int) Math.ceil(scaledHeight / (double) pageHeight));
+
+            for (int index = 0; index < pageCount; index++) {
+                android.graphics.pdf.PdfDocument.Page page = document.startPage(index);
+                Canvas canvas = page.getCanvas();
+                canvas.save();
+                canvas.clipRect(0, 0, pageWidth, pageHeight);
+                canvas.scale(scale, scale);
+                canvas.translate(0, -(index * pageHeight) / scale);
+                webView.draw(canvas);
+                canvas.restore();
+                document.finishPage(page);
             }
 
-            @Override
-            public void onLayoutFailed(CharSequence error) {
-                deleteOutputTarget(target);
-                cleanupWebView(webView, root);
-                call.reject(error == null ? "Unable to layout PDF" : error.toString());
+            try (OutputStream output = openOutputStream(target)) {
+                document.writeTo(output);
             }
-        }, null);
+            finishOutputTarget(target);
+            resolveSaved(call, target);
+        } catch (Exception error) {
+            deleteOutputTarget(target);
+            call.reject("Unable to generate PDF", error);
+        } finally {
+            document.close();
+            cleanupWebView(webView, root);
+        }
     }
 
-    private OutputTarget createOutputTarget(String requestedName) throws Exception {
+    private OutputTarget createOutputTarget(String requestedName, String mimeType) throws Exception {
         String fileName = sanitizeFileName(requestedName);
         ContentResolver resolver = getContext().getContentResolver();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+            values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType == null || mimeType.trim().isEmpty()
+                ? "application/octet-stream"
+                : mimeType);
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Teachix");
             values.put(MediaStore.MediaColumns.IS_PENDING, 1);
             Uri collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
@@ -230,13 +240,6 @@ public class TeachixPdfPlugin extends Plugin {
     private OutputStream openOutputStream(OutputTarget target) throws Exception {
         if (target.file != null) return new FileOutputStream(target.file, false);
         return getContext().getContentResolver().openOutputStream(target.uri, "w");
-    }
-
-    private ParcelFileDescriptor openParcelFileDescriptor(OutputTarget target) throws Exception {
-        if (target.file != null) {
-            return ParcelFileDescriptor.open(target.file, ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_TRUNCATE | ParcelFileDescriptor.MODE_WRITE_ONLY);
-        }
-        return getContext().getContentResolver().openFileDescriptor(target.uri, "w");
     }
 
     private void finishOutputTarget(OutputTarget target) {
@@ -268,18 +271,17 @@ public class TeachixPdfPlugin extends Plugin {
         webView.destroy();
     }
 
-    private void closeQuietly(ParcelFileDescriptor descriptor) {
-        try {
-            if (descriptor != null) descriptor.close();
-        } catch (Exception ignored) {
-        }
+    private String sanitizeFileName(String requestedName) {
+        String value = requestedName == null ? "download.bin" : requestedName.trim();
+        value = value.replaceAll("[\\\\/:*?\"<>|]+", "-");
+        if (value.isEmpty()) value = "download.bin";
+        return value.length() > 150 ? value.substring(0, 150) : value;
     }
 
-    private String sanitizeFileName(String requestedName) {
-        String value = requestedName == null ? "report.pdf" : requestedName.trim();
-        value = value.replaceAll("[\\\\/:*?\"<>|]+", "-");
-        if (!value.toLowerCase(Locale.ROOT).endsWith(".pdf")) value += ".pdf";
-        return value.length() > 150 ? value.substring(0, 146) + ".pdf" : value;
+    private String ensureExtension(String value, String extension) {
+        String safe = value == null ? "" : value.trim();
+        return safe.toLowerCase(Locale.ROOT).endsWith(extension)
+            ? safe
+            : safe + extension;
     }
 }
-

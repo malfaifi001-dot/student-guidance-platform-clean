@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import type { ReferenceLibraryItemSummary } from "@/lib/reference-library/reference-library-types";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 export function ReferenceLibraryItemCard({
   item,
@@ -191,23 +192,25 @@ function DownloadDialog({
 
         <div className="mt-5 space-y-2">
           {item.hasPdf ? (
-            <a
+            <NativeDownloadLink
               href={`${baseUrl}?variant=pdf&download=1`}
+              fileName={`${item.title}.pdf`}
               className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
             >
               <span>تحميل PDF</span>
               <Download className="h-4 w-4" />
-            </a>
+            </NativeDownloadLink>
           ) : null}
 
           {item.hasDocx ? (
-            <a
+            <NativeDownloadLink
               href={`${baseUrl}?variant=docx&download=1`}
+              fileName={`${item.title}.docx`}
               className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
             >
               <span>تحميل Word</span>
               <Download className="h-4 w-4" />
-            </a>
+            </NativeDownloadLink>
           ) : null}
         </div>
       </div>

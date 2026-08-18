@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
 
 import {
   PortfolioFeedbackPopCard,
@@ -384,7 +385,7 @@ export function AdminAccountingDashboard({
     });
   }
 
-  function exportCsv() {
+  async function exportCsv() {
     const rows = [
       ["العنوان", "المورد", "التصنيف", "قبل الضريبة", "الضريبة", "الإجمالي", "العملة", "الحالة", "تاريخ الفاتورة", "الاستحقاق", "تاريخ السداد", "مصدر الدفع", "دوري"],
       ...data.expenses.map((expense) => [
@@ -406,12 +407,10 @@ export function AdminAccountingDashboard({
     const csv = rows
       .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
       .join("\r\n");
-    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `teachix-expenses-${todayInput()}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    await downloadBlobAsFile(
+      new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
+      `teachix-expenses-${todayInput()}.csv`,
+    );
   }
 
   const maxCategoryTotal = useMemo(

@@ -18,6 +18,7 @@ import {
   CERTIFICATE_TYPES,
   getCertificateTypeLabel,
 } from "@/lib/certificates/certificate-types";
+import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
 
 type CertificateArchiveItem = {
   id: string;
@@ -324,17 +325,7 @@ export function CertificatesArchivePage() {
         }
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
+      await downloadResponseAsFile(response, fileName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تصدير PDF.");
     } finally {
@@ -388,17 +379,7 @@ export function CertificatesArchivePage() {
         }
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
+      await downloadResponseAsFile(response, fileName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تحميل الدفعة.");
     } finally {

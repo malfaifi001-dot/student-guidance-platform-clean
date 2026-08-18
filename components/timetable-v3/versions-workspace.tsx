@@ -7,6 +7,7 @@ import { usePrintExportAction } from "@/components/print-export/use-print-export
 import { timetableV3StatusLabel } from "@/lib/timetable-v3/display-labels";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type Version = {
   id: string;
@@ -213,7 +214,7 @@ export function TimetableV3VersionsWorkspace({ workspace }: { workspace: Workspa
           <button type="button" onClick={printSelected} disabled={!selected || modeUnavailable || (printMode === "teacher" && !teacherId)} className="mt-4 h-11 w-full rounded-xl bg-[#3478B8] px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{printMode === "teacher" ? "طباعة جداول المعلمين" : "طباعة الجدول A3"}</button>
 
           {selected ? (
-            <a href={`/api/dashboard/principal/timetable-v3/projects/${workspace.project.id}/versions/export?${new URLSearchParams({ scheduleId: selected.id }).toString()}`} className="mt-2 flex h-11 w-full items-center justify-center rounded-xl border border-[#C9DFEC] bg-white px-5 text-sm font-bold text-[#3478B8] transition hover:bg-[#F4FAFD]">تصدير Excel</a>
+            <NativeDownloadLink href={`/api/dashboard/principal/timetable-v3/projects/${workspace.project.id}/versions/export?${new URLSearchParams({ scheduleId: selected.id }).toString()}`} fileName={`${workspace.project.name}-timetable.xlsx`} className="mt-2 flex h-11 w-full items-center justify-center rounded-xl border border-[#C9DFEC] bg-white px-5 text-sm font-bold text-[#3478B8] transition hover:bg-[#F4FAFD]">تصدير Excel</NativeDownloadLink>
           ) : null}
         </section>
       </div>

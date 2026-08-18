@@ -1,5 +1,6 @@
 "use client";
 
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Link2, BarChart3, CheckCircle2, ListChecks, MessageCircle } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
+import { downloadUrlAsFile } from "@/lib/print-export/print-export-download";
 
 type OptionCount = {
   label: string;
@@ -209,8 +211,14 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
     setFeedback("تم نسخ رابط الاستبيان.");
   }
 
-  function exportSurveyExcel() {
-    window.location.href = `/api/dashboard/surveys/${surveyId}/export`;
+  async function exportSurveyExcel() {
+    const url = `/api/dashboard/surveys/${surveyId}/export`;
+    if (Capacitor.isNativePlatform()) {
+      await downloadUrlAsFile(url, `survey-${surveyId}.xlsx`);
+      return;
+    }
+
+    window.location.href = url;
   }
 
   function toggleReportQuestion(questionId: string) {

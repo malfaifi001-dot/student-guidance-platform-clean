@@ -12,6 +12,9 @@ import type { SmartReportField, SmartReportPayload } from "@/lib/report-engine/s
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
 import type { ReportFlowPreparation } from "@/lib/report-flow/report-flow-types";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
+import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 type MobileReportA4ViewerPageProps = {
   caseId: string;
@@ -483,15 +486,7 @@ export function MobileReportA4ViewerPage({
 
       if (response.ok && contentType.includes("application/pdf")) {
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-
-        anchor.href = url;
-        anchor.download = `${safeFileName(reportTitle)}.pdf`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
+        await downloadBlobAsFile(blob, `${safeFileName(reportTitle)}.pdf`);
 
         setFeedback({
           open: true,
@@ -509,7 +504,14 @@ export function MobileReportA4ViewerPage({
         data.fallback === "PRINT_PREVIEW" &&
         typeof data.previewUrl === "string"
       ) {
-        window.open(data.previewUrl, "_blank", "noopener,noreferrer");
+        if (isNativeCapacitor()) {
+          await savePrintPreviewAsNativePdf(
+            data.previewUrl,
+            `${safeFileName(reportTitle)}.pdf`,
+          );
+        } else {
+          window.open(data.previewUrl, "_blank", "noopener,noreferrer");
+        }
 
         setFeedback({
           open: true,

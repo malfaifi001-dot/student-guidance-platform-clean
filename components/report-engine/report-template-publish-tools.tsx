@@ -9,6 +9,7 @@ import type {
   ReportTextSnippet,
 } from "@/lib/report-engine/report-template-builder-types";
 import { validateReportTemplateForPublishing } from "@/lib/report-engine/report-template-validation";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
 
 type ReportTemplatePublishToolsProps = {
   template: ReportTemplateBuilderModel;
@@ -183,7 +184,7 @@ export function ReportTemplatePublishTools({
     );
   }
 
-  function exportTemplatePackage() {
+  async function exportTemplatePackage() {
     const packageData: PortableTemplatePackage = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -198,17 +199,8 @@ export function ReportTemplatePublishTools({
       type: "application/json;charset=utf-8",
     });
 
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
     const fileName = buildSafeFileName(template.name);
-
-    anchor.href = url;
-    anchor.download = `${fileName}-${Date.now()}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-
-    URL.revokeObjectURL(url);
+    await downloadBlobAsFile(blob, `${fileName}-${Date.now()}.json`);
 
     openFeedback(
       "success",

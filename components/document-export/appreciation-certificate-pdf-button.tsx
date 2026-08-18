@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
 
 type AppreciationCertificatePdfButtonProps = {
   payload: Record<string, unknown>;
@@ -42,16 +43,10 @@ export function AppreciationCertificatePdfButton({
         throw new Error(data?.error || "تعذر تصدير شهادة الشكر.");
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      await downloadResponseAsFile(
+        response,
+        fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`,
+      );
 
       onAfterDownload?.();
     } catch (error) {

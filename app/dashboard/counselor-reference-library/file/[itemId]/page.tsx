@@ -11,6 +11,7 @@ import {
   getVisibleReferenceLibraryItem,
 } from "@/lib/reference-library/reference-library-public-service";
 import { COUNSELOR_REFERENCE_LIBRARY_SERVICE_SLUG } from "@/lib/reference-library/reference-library-constants";
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
 type PageProps = {
   params: Promise<{
@@ -91,23 +92,25 @@ export default async function CounselorReferenceLibraryFilePage({
             </Link>
 
             {item.allowDownload && item.hasPdf ? (
-              <a
+              <NativeDownloadLink
                 href={`${fileUrl}?variant=pdf&download=1`}
+                fileName={`${item.title}.pdf`}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
               >
                 <Download className="h-4 w-4" />
                 تحميل PDF
-              </a>
+              </NativeDownloadLink>
             ) : null}
 
             {item.allowDownload && item.hasDocx ? (
-              <a
+              <NativeDownloadLink
                 href={`${fileUrl}?variant=docx&download=1`}
+                fileName={`${item.title}.docx`}
                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
               >
                 <Download className="h-4 w-4" />
                 تحميل Word
-              </a>
+              </NativeDownloadLink>
             ) : null}
           </div>
         </div>
