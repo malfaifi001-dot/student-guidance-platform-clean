@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { App } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import {
@@ -13,6 +13,7 @@ import {
   acquireNativeRuntime,
   getNativeDiagnosticPath,
   getNativeDeepLinkRejectionReason,
+  getNativeRouteKind,
   getSafeNativeDeepLinkPath,
   isNativeCapacitor,
   navigateNativeDeepLink,
@@ -21,9 +22,21 @@ import {
 } from "@/lib/native/native-runtime";
 
 export function NativeRuntimeSetup() {
+  const [startupGateActive, setStartupGateActive] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!isNativeCapacitor()) return;
+
+    setStartupGateActive(true);
+    logNativeRuntimeDiagnostic("startup-gate-activated", { coldStart: true });
+  }, []);
+
   useEffect(() => {
     if (!isNativeCapacitor()) return;
-    if (!acquireNativeRuntime()) return;
+    if (!acquireNativeRuntime()) {
+      setStartupGateActive(false);
+      return;
+    }
 
     logNativeRuntimeDiagnostic("native-runtime-mounted", { coldStart: true });
     logNativeRuntimeDiagnostic("cold-start-detected", { coldStart: true });
@@ -43,6 +56,14 @@ export function NativeRuntimeSetup() {
     let removeBackListener: (() => Promise<void>) | null = null;
     let removeUrlListener: (() => Promise<void>) | null = null;
     let removeStateListener: (() => Promise<void>) | null = null;
+
+    const releaseStartupGate = (reason: string) => {
+      setStartupGateActive(false);
+      logNativeRuntimeDiagnostic("startup-gate-released", {
+        reason,
+        coldStart: true,
+      });
+    };
 
     const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
       const pathnameBefore = window.location.pathname;
@@ -182,6 +203,10 @@ export function NativeRuntimeSetup() {
     });
 
     void (async () => {
+      logNativeRuntimeDiagnostic("startup-launch-resolution-start", {
+        coldStart: true,
+      });
+
       const urlHandle = await App.addListener("appUrlOpen", ({ url }) => {
         handleIncomingUrl(url);
       });
@@ -233,12 +258,34 @@ export function NativeRuntimeSetup() {
             pathname: getNativeDiagnosticPath(window.location.pathname),
             coldStart: true,
           });
+          releaseStartupGate("ALREADY_AT_TARGET");
+        } else if (
+          getNativeRouteKind(coldPath) === "DASHBOARD_APP_ROUTE" &&
+          window.location.pathname === "/login"
+        ) {
+          deepLinkHandled = true;
+          lastHandledSafePath = coldPath;
+          pendingStartupPath = null;
+          coldStartNavigationCompleted = true;
+          releaseStartupGate("AUTH_REDIRECT_ALLOWED");
         } else {
+          logNativeRuntimeDiagnostic("startup-gate-held-for-navigation", {
+            reason:
+              getNativeRouteKind(coldPath) === "PUBLIC_TOKEN_ROUTE"
+                ? "PUBLIC_DEEP_LINK"
+                : "DASHBOARD_DEEP_LINK",
+            safePath: getNativeDiagnosticPath(coldPath),
+            coldStart: true,
+          });
           handleIncomingUrl(`https://teachix.sa${coldPath}`, { coldStart: true });
         }
       }
 
       startupResolutionComplete = true;
+      logNativeRuntimeDiagnostic("startup-launch-resolution-complete", {
+        hasLaunchPath: Boolean(coldPath),
+        coldStart: true,
+      });
       logNativeRuntimeDiagnostic("warm-listener-enabled", { coldStart: false });
 
       if (deepLinkHandled) {
@@ -248,6 +295,7 @@ export function NativeRuntimeSetup() {
           coldStart: true,
         });
       } else if (window.location.pathname !== "/dashboard") {
+        releaseStartupGate("NOT_DASHBOARD_ROOT");
         logNativeRuntimeDiagnostic("restore-skipped", {
           reason: "NOT_DASHBOARD_ROOT",
           skipped: true,
@@ -256,9 +304,15 @@ export function NativeRuntimeSetup() {
       } else {
         const lastRoute = readNativeLastRoute();
         if (lastRoute && lastRoute !== window.location.pathname) {
+          logNativeRuntimeDiagnostic("startup-gate-held-for-navigation", {
+            reason: "LAST_ROUTE_RESTORE",
+            safePath: lastRoute,
+            coldStart: true,
+          });
           window.location.replace(lastRoute);
           logNativeRuntimeDiagnostic("last-route-restored", { safePath: lastRoute });
         } else {
+          releaseStartupGate("NO_LAUNCH_URL");
           logNativeRuntimeDiagnostic("restore-skipped", {
             reason: "NO_STORED_ROUTE",
             skipped: true,
@@ -273,6 +327,7 @@ export function NativeRuntimeSetup() {
         context: "launch-url-and-restore",
         coldStart: true,
       });
+      releaseStartupGate("LAUNCH_RESOLUTION_ERROR");
     });
 
     void App.addListener("appStateChange", ({ isActive }) => {
@@ -315,5 +370,22 @@ export function NativeRuntimeSetup() {
     };
   }, []);
 
-  return null;
+  return (
+    <div
+      aria-hidden={!startupGateActive}
+      data-native-startup-gate="true"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#1769FF] transition-opacity duration-150"
+      style={{
+        opacity: startupGateActive ? 1 : 0,
+        pointerEvents: startupGateActive ? "auto" : "none",
+        visibility: startupGateActive ? "visible" : "hidden",
+      }}
+    >
+      <div className="relative h-28 w-28" aria-label="Teachix">
+        <span className="absolute inset-0 rounded-full border-[9px] border-white/95" />
+        <span className="absolute inset-7 rounded-full border-[8px] border-white/95" />
+        <span className="absolute inset-[2.75rem] rounded-full bg-white" />
+      </div>
+    </div>
+  );
 }
