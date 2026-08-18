@@ -27,11 +27,26 @@ export function NativeRuntimeSetup() {
     let deepLinkHandled = false;
 
     const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
+      const pathnameBeforeHandling = window.location.pathname;
       const path = getSafeNativeDeepLinkPath(url);
+      console.info("NATIVE_DEEP_LINK_DEBUG", {
+        event: options?.coldStart ? "cold-start-url-before-handling" : "warm-url-before-handling",
+        pathnameBeforeHandling,
+        safePath: path,
+      });
       if (!path) return false;
 
       deepLinkHandled = true;
+      console.info("NATIVE_DEEP_LINK_DEBUG", {
+        event: "deepLinkHandled-updated",
+        deepLinkHandled,
+        safePath: path,
+      });
       if (options?.coldStart) {
+        console.info("NATIVE_DEEP_LINK_DEBUG", {
+          event: "window.location.replace-called",
+          safePath: path,
+        });
         window.location.replace(path);
       } else {
         navigateNativeDeepLink(path);
@@ -66,11 +81,26 @@ export function NativeRuntimeSetup() {
       }
 
       const launchUrl = await App.getLaunchUrl().catch(() => undefined);
+      const launchSafePath = launchUrl?.url ? getSafeNativeDeepLinkPath(launchUrl.url) : null;
+      console.info("NATIVE_DEEP_LINK_DEBUG", {
+        event: "getLaunchUrl-result",
+        hasUrl: Boolean(launchUrl?.url),
+        safePath: launchSafePath,
+        pathnameBeforeHandling: window.location.pathname,
+      });
       if (!deepLinkHandled && launchUrl?.url) {
         handleIncomingUrl(launchUrl.url, { coldStart: true });
       }
 
-      if (!deepLinkHandled && window.location.pathname === "/dashboard") {
+      const lastRouteRestoreSkipped = deepLinkHandled;
+      console.info("NATIVE_DEEP_LINK_DEBUG", {
+        event: "last-route-restore-decision",
+        deepLinkHandled,
+        lastRouteRestoreSkipped,
+        pathname: window.location.pathname,
+      });
+
+      if (!lastRouteRestoreSkipped && window.location.pathname === "/dashboard") {
         const lastRoute = readNativeLastRoute();
         if (lastRoute && lastRoute !== window.location.pathname) {
           window.location.replace(lastRoute);
