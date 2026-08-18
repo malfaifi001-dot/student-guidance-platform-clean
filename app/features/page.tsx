@@ -51,7 +51,7 @@ const journey = ["إنجاز العمل", "حفظ البيانات", "إضافة
 
 export default function FeaturesPage() {
   return (
-    <div dir="rtl" className="min-h-screen bg-white text-slate-950">
+    <div dir="rtl" className="marketing-public min-h-screen bg-white text-slate-950 transition-colors duration-300 dark:bg-[#07111F] dark:text-slate-100">
       <MarketingNavbar />
 
       <main>

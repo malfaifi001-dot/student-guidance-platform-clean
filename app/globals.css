@@ -156,60 +156,60 @@
    Student Guidance Platform - Dark compatibility
    ============================================================ */
 
-.dark .bg-white {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .bg-white {
   background-color: rgb(15 23 42) !important;
 }
 
-.dark .bg-slate-50 {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .bg-slate-50 {
   background-color: rgb(30 41 59) !important;
 }
 
-.dark .bg-\[\#f5f8fc\],
-.dark .bg-\[\#f7faff\] {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .bg-\[\#f5f8fc\],
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .bg-\[\#f7faff\] {
   background-color: rgb(2 6 23) !important;
 }
 
-.dark .border-slate-100,
-.dark .border-slate-200,
-.dark .border-slate-200\/70 {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .border-slate-100,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .border-slate-200,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .border-slate-200\/70 {
   border-color: rgb(51 65 85) !important;
 }
 
-.dark .text-slate-950,
-.dark .text-slate-900,
-.dark .text-slate-800 {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-950,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-900,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-800 {
   color: rgb(248 250 252) !important;
 }
 
-.dark .text-slate-700,
-.dark .text-slate-600,
-.dark .text-slate-500 {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-700,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-600,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-500 {
   color: rgb(203 213 225) !important;
 }
 
-.dark .text-slate-400 {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) .text-slate-400 {
   color: rgb(148 163 184) !important;
 }
 
-.dark input,
-.dark select,
-.dark textarea {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) input,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) select,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) textarea {
   background-color: rgb(15 23 42) !important;
   color: rgb(248 250 252) !important;
   border-color: rgb(51 65 85) !important;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) input::placeholder,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) textarea::placeholder {
   color: rgb(100 116 139) !important;
 }
 
-.dark table thead {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) table thead {
   background-color: rgb(15 23 42) !important;
 }
 
-.dark tr,
-.dark tbody {
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) tr,
+html.dark:not(:has(.marketing-home)):not(:has(.marketing-register)):not(:has(.marketing-public)):not(:has(.marketing-auth)) tbody {
   border-color: rgb(51 65 85) !important;
 }
 
@@ -221,14 +221,14 @@
 }
 
 .dark .marketing-home {
-  background-color: #07111f !important;
+  background-color: #07111f;
   color: #f7faff;
 }
 
 .dark .marketing-home .bg-white\/90,
 .dark .marketing-home .bg-white\/95,
 .dark .marketing-home .bg-white\/80 {
-  background-color: rgba(13, 27, 46, 0.9) !important;
+  background-color: rgba(13, 27, 46, 0.9);
 }
 
 .dark .marketing-home .bg-sky-50,
@@ -236,7 +236,7 @@
 .dark .marketing-home .bg-blue-50,
 .dark .marketing-home .bg-slate-50\/70,
 .dark .marketing-home .bg-slate-50\/80 {
-  background-color: #102138 !important;
+  background-color: #102138;
 }
 
 .dark .marketing-home .bg-sky-100\/70,
@@ -245,44 +245,134 @@
 .dark .marketing-home .bg-blue-50\/50,
 .dark .marketing-home .bg-\[\#f4f9ff\],
 .dark .marketing-home .bg-\[\#f8fafc\] {
-  background-color: rgba(16, 33, 56, 0.72) !important;
+  background-color: rgba(16, 33, 56, 0.72);
 }
 
 .dark .marketing-home .bg-slate-100,
 .dark .marketing-home .bg-sky-100\/80,
 .dark .marketing-home .bg-blue-100\/70 {
-  background-color: #1a3049 !important;
+  background-color: #1a3049;
 }
 
 .dark .marketing-home .border-sky-100,
 .dark .marketing-home .border-sky-100\/70,
 .dark .marketing-home .border-sky-200\/45,
 .dark .marketing-home .border-slate-100 {
-  border-color: rgba(148, 163, 184, 0.18) !important;
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 .dark .marketing-home .text-slate-950,
 .dark .marketing-home .text-slate-900,
 .dark .marketing-home .text-slate-800 {
-  color: #f7faff !important;
+  color: #f7faff;
 }
 
 .dark .marketing-home .text-slate-700,
 .dark .marketing-home .text-slate-600,
 .dark .marketing-home .text-slate-500 {
-  color: #a9b6c8 !important;
+  color: #a9b6c8;
 }
 
 .dark .marketing-home .text-slate-400 {
-  color: #8091a8 !important;
+  color: #8091a8;
 }
 
 .dark .marketing-home .shadow-sm,
 .dark .marketing-home [class*="shadow-[0_"] {
-  box-shadow: 0 24px 70px -45px rgba(0, 0, 0, 0.72) !important;
+  box-shadow: 0 24px 70px -45px rgba(0, 0, 0, 0.72);
 }
 
 .dark .marketing-home .hover\:bg-slate-50:hover,
 .dark .marketing-home .hover\:bg-sky-50:hover {
-  background-color: #172b45 !important;
+  background-color: #172b45;
+}
+
+/* Shared public marketing surfaces used by the informational and auth pages. */
+.dark .marketing-public,
+.dark .marketing-auth {
+  background-color: #07111f;
+  color: #f7faff;
+}
+
+.dark .marketing-public .bg-white,
+.dark .marketing-public .bg-white\/90,
+.dark .marketing-auth .bg-white {
+  background-color: #0d1b2e;
+}
+
+.dark .marketing-public .bg-slate-50,
+.dark .marketing-public .bg-slate-50\/70,
+.dark .marketing-auth .bg-slate-50 {
+  background-color: #102138;
+}
+
+.dark .marketing-public .bg-sky-50,
+.dark .marketing-public .bg-sky-50\/70,
+.dark .marketing-public .bg-sky-50\/80,
+.dark .marketing-public .bg-sky-50\/60,
+.dark .marketing-auth .bg-sky-50,
+.dark .marketing-auth .bg-sky-50\/60 {
+  background-color: #102138;
+}
+
+.dark .marketing-public .bg-slate-200,
+.dark .marketing-auth .bg-slate-200 {
+  background-color: #263b55;
+}
+
+.dark .marketing-public .text-slate-950,
+.dark .marketing-public .text-slate-900,
+.dark .marketing-public .text-slate-800,
+.dark .marketing-auth .text-slate-950,
+.dark .marketing-auth .text-slate-900,
+.dark .marketing-auth .text-slate-800 {
+  color: #f7faff;
+}
+
+.dark .marketing-public .text-slate-700,
+.dark .marketing-public .text-slate-600,
+.dark .marketing-public .text-slate-500,
+.dark .marketing-auth .text-slate-700,
+.dark .marketing-auth .text-slate-600,
+.dark .marketing-auth .text-slate-500 {
+  color: #a9b6c8;
+}
+
+.dark .marketing-public .text-slate-400,
+.dark .marketing-auth .text-slate-400 {
+  color: #8091a8;
+}
+
+.dark .marketing-public .border-slate-100,
+.dark .marketing-public .border-slate-200,
+.dark .marketing-public .border-sky-100,
+.dark .marketing-auth .border-slate-100,
+.dark .marketing-auth .border-slate-200,
+.dark .marketing-auth .border-sky-100 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .marketing-public .to-white {
+  --tw-gradient-to: #0d1b2e;
+}
+
+.dark .marketing-public .from-sky-50\/80 {
+  --tw-gradient-from: #102138;
+  --tw-gradient-to: rgb(16 33 56 / 0);
+}
+
+.dark .marketing-public .hover\:bg-white:hover,
+.dark .marketing-public .hover\:bg-slate-50:hover,
+.dark .marketing-auth .hover\:bg-slate-50:hover {
+  background-color: #16304f;
+}
+
+.dark .marketing-auth input {
+  background-color: #102138;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f7faff;
+}
+
+.dark .marketing-auth input::placeholder {
+  color: #8091a8;
 }

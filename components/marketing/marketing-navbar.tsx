@@ -40,7 +40,7 @@ export function MarketingNavbar() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-bold text-slate-500 transition hover:text-sky-600"
+              className="text-sm font-bold text-slate-500 transition hover:text-sky-600 dark:text-slate-300"
             >
               {item.title}
             </Link>
@@ -54,7 +54,7 @@ export function MarketingNavbar() {
             <ThemeToggleButton compact />
             <Link
               href="/login"
-              className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
+              className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600 dark:text-slate-200"
             >
               تسجيل الدخول
             </Link>
@@ -107,7 +107,7 @@ export function MarketingNavbar() {
                 <Link
                   href="/login"
                   onClick={closeMenu}
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 dark:border-white/10 dark:text-slate-200"
                 >
                   تسجيل الدخول
                 </Link>

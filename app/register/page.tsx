@@ -154,20 +154,20 @@ export default function RegisterPage() {
       <MarketingNavbar />
       <main
         dir="rtl"
-        className="min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950"
+        className="marketing-auth marketing-register min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950 transition-colors duration-300 dark:bg-[#07111F] dark:text-slate-100"
       >
         <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] lg:grid-cols-[0.95fr_1.05fr] xl:grid-cols-[0.92fr_1.08fr]">
           {/* FORM */}
           <section className="flex min-h-[calc(100svh-72px)] items-center px-5 py-10 sm:px-8 md:px-10 lg:px-8 lg:py-8 xl:px-14 xl:py-12 2xl:px-20">
             <div className="mx-auto w-full max-w-[390px] xl:max-w-[430px]">
               <div>
-                <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-[2rem] xl:text-4xl">
+                <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-slate-100 sm:text-[2rem] xl:text-4xl">
                   ابدأ مع Teachix
                 </h1>
               </div>
 
               {error ? (
-                <div className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                <div className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
                   {error}
                 </div>
               ) : null}
@@ -267,7 +267,7 @@ export default function RegisterPage() {
                 </button>
               </form>
 
-              <div className="mt-7 border-t border-slate-100 pt-7 text-center">
+              <div className="mt-7 border-t border-slate-100 pt-7 text-center dark:border-white/10">
                 <p className="text-sm font-bold text-slate-500">
                   لديك حساب بالفعل؟
                 </p>
@@ -284,24 +284,24 @@ export default function RegisterPage() {
           </section>
 
           {/* REGISTER VISUAL */}
-          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
+          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] dark:border-white/10 dark:bg-[#0D1B2E] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
             <div className="absolute -right-36 top-8 h-[420px] w-[420px] rounded-full bg-sky-100/60 blur-3xl" />
             <div className="absolute -left-40 bottom-8 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
 
             <div className="relative w-full max-w-[610px]">
-              <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-4xl">
+              <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 dark:text-slate-100 xl:text-4xl">
                 كل دور له مساحة عمل تناسبه.
               </h2>
 
               <div className="relative mx-auto mt-8 max-w-[430px] xl:mt-12 xl:max-w-[540px]">
                 <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl" />
 
-                <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] xl:rounded-[34px] xl:p-7">
+                <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-[#102138] dark:shadow-[0_45px_120px_-55px_rgba(0,0,0,0.7)] xl:rounded-[34px] xl:p-7">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                     <div>
                       <TeachixLogo size="sm" />
 
-                      <h3 className="mt-1 text-xl font-black text-slate-950">
+                      <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">
                         اختر مساحتك
                       </h3>
                     </div>
@@ -333,14 +333,14 @@ export default function RegisterPage() {
                     />
                   </div>
 
-                  <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/60 p-5">
+                  <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/60 p-5 dark:border-white/10 dark:bg-[#0D1B2E]">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 dark:bg-[#102138]">
                         <Check className="h-4 w-4" />
                       </div>
 
                       <div>
-                        <p className="text-sm font-black text-slate-950">
+                        <p className="text-sm font-black text-slate-950 dark:text-slate-100">
                           الخدمات تتغير حسب دورك
                         </p>
 
@@ -393,16 +393,16 @@ function RoleCard({
   title: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm">
+    <div className="rounded-[24px] border border-slate-100 bg-slate-50 p-5 dark:border-white/10 dark:bg-[#0D1B2E]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sky-600 shadow-sm dark:bg-[#102138]">
         {icon}
       </div>
 
-      <p className="mt-5 text-sm font-black text-slate-950">
+      <p className="mt-5 text-sm font-black text-slate-950 dark:text-slate-100">
         {title}
       </p>
 
-      <div className="mt-3 h-2 w-16 rounded-full bg-slate-200" />
+      <div className="mt-3 h-2 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
     </div>
   );
 }
@@ -436,7 +436,7 @@ function AuthInput({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-black text-slate-700">
+      <span className="text-sm font-black text-slate-700 dark:text-slate-200">
         {label}
       </span>
 
@@ -451,7 +451,7 @@ function AuthInput({
           autoComplete={autoComplete}
           dir={dir}
           className={[
-            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50",
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50 dark:border-white/10 dark:bg-[#102138] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-900/40",
             trailingAction ? "pl-12" : "",
           ].join(" ")}
           required

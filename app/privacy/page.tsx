@@ -199,7 +199,7 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <div className="marketing-public min-h-screen bg-white text-slate-950 transition-colors duration-300 dark:bg-[#07111F] dark:text-slate-100">
       <MarketingNavbar />
 
       <main>

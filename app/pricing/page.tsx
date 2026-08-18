@@ -18,7 +18,7 @@ export default function PricingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="marketing-public min-h-screen bg-slate-50 transition-colors duration-300 dark:bg-[#07111F]">
       <MarketingNavbar />
       <main className="container-app py-20">
         <h1 className="text-4xl font-black text-slate-900">الخطط والأسعار</h1>

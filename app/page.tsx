@@ -84,7 +84,7 @@ function ReviewCard({
   return (
     <article
       className={[
-        "group flex flex-col border border-slate-200 bg-white transition duration-300",
+        "group flex flex-col border border-slate-200 bg-white transition duration-300 dark:border-white/10 dark:bg-[#0D1B2E]",
         "hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_80px_-50px_rgba(15,23,42,0.35)]",
         mobile
           ? "min-h-[300px] w-[88vw] shrink-0 snap-center rounded-[26px] p-5"
@@ -103,7 +103,7 @@ function ReviewCard({
           </div>
 
           <div className={mobile ? "min-w-0" : undefined}>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-black text-slate-950 dark:text-slate-100">
               {review.name}
             </h3>
 
@@ -127,7 +127,7 @@ function ReviewCard({
         “
       </div>
 
-      <p className="mt-3 flex-1 text-sm font-bold leading-8 text-slate-600 sm:text-[15px]">
+      <p className="mt-3 flex-1 text-sm font-bold leading-8 text-slate-600 dark:text-slate-300 sm:text-[15px]">
         {review.quote}
       </p>
     </article>
@@ -176,7 +176,7 @@ export default function HomePage() {
 
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-[#102138] dark:text-slate-100 dark:hover:bg-[#16304f]"
                 >
                   تسجيل الدخول
                 </Link>
@@ -195,13 +195,13 @@ export default function HomePage() {
             <div className="relative mx-auto hidden w-full md:block md:max-w-[570px] lg:max-w-[540px] xl:max-w-[680px]">
               <div className="absolute inset-10 rounded-[4rem] bg-sky-100/70 blur-3xl" />
 
-              <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_42px_120px_-55px_rgba(15,23,42,0.38)] md:p-5 lg:p-6 xl:rounded-[34px] xl:p-7">
+              <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_42px_120px_-55px_rgba(15,23,42,0.38)] dark:border-white/10 dark:bg-[#0D1B2E] dark:shadow-[0_42px_120px_-55px_rgba(0,0,0,0.7)] md:p-5 lg:p-6 xl:rounded-[34px] xl:p-7">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5">
                   <div>
                     <TeachixLogo size="sm" />
 
-                    <h2 className="mt-1.5 text-xl font-black text-slate-950 xl:text-2xl">
+                    <h2 className="mt-1.5 text-xl font-black text-slate-950 dark:text-slate-100 xl:text-2xl">
                       لجميع منسوبي المدرسة
                     </h2>
                   </div>
@@ -224,7 +224,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#102138]">
                       <div className="flex items-center justify-between gap-3">
                         <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
                           المعلم
@@ -233,7 +233,7 @@ export default function HomePage() {
                         <GraduationCap className="h-4 w-4 text-sky-500" />
                       </div>
 
-                      <p className="mt-4 text-sm font-black text-slate-950">
+                      <p className="mt-4 text-sm font-black text-slate-950 dark:text-slate-100">
                         ملف الإنجاز
                       </p>
 
@@ -242,7 +242,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#102138]">
                       <div className="flex items-center justify-between gap-3">
                         <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700">
                           الموجه الطلابي
@@ -251,7 +251,7 @@ export default function HomePage() {
                         <UsersRound className="h-4 w-4 text-sky-500" />
                       </div>
 
-                      <p className="mt-4 text-sm font-black text-slate-950">
+                      <p className="mt-4 text-sm font-black text-slate-950 dark:text-slate-100">
                         متابعة حالة
                       </p>
 
@@ -264,7 +264,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Principal + Activity leader */}
-                <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-4 xl:p-5">
+                <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-[#102138] xl:p-5">
                   <div>
                     <p className="text-[11px] font-black text-sky-600">
                       الإدارة والنشاط
@@ -276,7 +276,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#0D1B2E]">
                       <div className="flex items-center justify-between gap-3">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-black text-slate-700">
                           مدير المدرسة
@@ -285,7 +285,7 @@ export default function HomePage() {
                         <School className="h-4 w-4 text-sky-500" />
                       </div>
 
-                      <p className="mt-4 text-sm font-black text-slate-950">
+                      <p className="mt-4 text-sm font-black text-slate-950 dark:text-slate-100">
                         الجدول الدراسي
                       </p>
 
@@ -304,7 +304,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#0D1B2E]">
                       <div className="flex items-center justify-between gap-3">
                         <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
                           رائد النشاط
@@ -313,7 +313,7 @@ export default function HomePage() {
                         <Trophy className="h-4 w-4 text-sky-500" />
                       </div>
 
-                      <p className="mt-4 text-sm font-black text-slate-950">
+                      <p className="mt-4 text-sm font-black text-slate-950 dark:text-slate-100">
                         برنامج نشاط
                       </p>
 
@@ -325,14 +325,14 @@ export default function HomePage() {
                 </div>
 
                 {/* Shared result */}
-                <div className="mt-4 flex items-center justify-between gap-4 rounded-[22px] border border-sky-100 bg-white px-4 py-4 shadow-sm xl:px-5">
+                <div className="mt-4 flex items-center justify-between gap-4 rounded-[22px] border border-sky-100 bg-white px-4 py-4 shadow-sm dark:border-white/10 dark:bg-[#102138] xl:px-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
                       <FileCheck2 className="h-4.5 w-4.5" />
                     </div>
 
                     <div>
-                      <p className="text-sm font-black text-slate-950">
+                      <p className="text-sm font-black text-slate-950 dark:text-slate-100">
                         العمل يتحول إلى سجل واضح
                       </p>
 
@@ -361,7 +361,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="features"
-          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
+          className="scroll-mt-24 overflow-hidden border-y border-slate-100 bg-[#f8fafc] px-5 py-16 dark:border-white/10 dark:bg-[#07111F] sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
         >
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-24">
@@ -393,7 +393,7 @@ export default function HomePage() {
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
-                <article className="min-h-[240px] rounded-[28px] border border-sky-100 bg-sky-50/55 p-8 transition duration-300 hover:-translate-y-1 hover:bg-sky-50">
+                <article className="min-h-[240px] rounded-[28px] border border-sky-100 bg-sky-50/55 p-8 transition duration-300 hover:-translate-y-1 hover:bg-sky-50 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <LayoutDashboard className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -406,7 +406,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-cyan-100 bg-cyan-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50/70">
+                <article className="min-h-[240px] rounded-[28px] border border-cyan-100 bg-cyan-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50/70 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <FolderCheck className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -419,7 +419,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-blue-100 bg-blue-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-blue-50/70">
+                <article className="min-h-[240px] rounded-[28px] border border-blue-100 bg-blue-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-blue-50/70 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <FileText className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -432,7 +432,7 @@ export default function HomePage() {
                   </p>
                 </article>
 
-                <article className="min-h-[240px] rounded-[28px] border border-indigo-100 bg-indigo-50/35 p-8 transition duration-300 hover:-translate-y-1 hover:bg-indigo-50/60">
+                <article className="min-h-[240px] rounded-[28px] border border-indigo-100 bg-indigo-50/35 p-8 transition duration-300 hover:-translate-y-1 hover:bg-indigo-50/60 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <ShieldCheck className="h-7 w-7 text-sky-600" />
 
                   <h3 className="mt-9 text-2xl font-black">
@@ -453,7 +453,7 @@ export default function HomePage() {
         ====================================================== */}
         <section
           id="reviews"
-          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-16 sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
+          className="relative scroll-mt-24 overflow-hidden border-y border-sky-100/70 bg-[#f5f9fe] px-5 py-16 dark:border-white/10 dark:bg-[#0D1B2E] sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28 xl:py-40"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -right-52 top-20 h-[420px] w-[420px] rounded-full bg-sky-100/65 blur-3xl" />
@@ -490,14 +490,14 @@ export default function HomePage() {
 
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+                className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100 dark:bg-[#102138] dark:ring-white/10"
               >
                 <ArrowRight className="h-4 w-4" />
               </span>
 
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100"
+                className="pointer-events-none absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sky-600 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.28)] ring-1 ring-sky-100 dark:bg-[#102138] dark:ring-white/10"
               >
                 <ArrowLeft className="h-4 w-4" />
               </span>
@@ -518,7 +518,7 @@ export default function HomePage() {
         {/* =====================================================
             CTA
         ====================================================== */}
-        <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
+        <section className="bg-[#f5f9fe] px-5 pb-20 pt-10 dark:bg-[#0D1B2E] sm:px-8 sm:pb-24 sm:pt-12 lg:px-10 lg:pb-32 lg:pt-16">
           <div className="mx-auto max-w-7xl">
             <div className="relative overflow-hidden rounded-[26px] bg-sky-600 px-5 py-14 text-center text-white shadow-[0_35px_90px_-45px_rgba(2,132,199,0.65)] sm:rounded-[30px] sm:px-8 sm:py-16 md:px-10 lg:py-20 xl:rounded-[32px] xl:py-24">
               <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full border border-white/10" />

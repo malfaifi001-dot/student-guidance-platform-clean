@@ -84,7 +84,7 @@ export default function LoginPage() {
       <MarketingNavbar />
       <main
         dir="rtl"
-        className="min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950"
+        className="marketing-auth min-h-[calc(100svh-72px)] overflow-hidden bg-white text-slate-950 transition-colors duration-300 dark:bg-[#07111F] dark:text-slate-100"
       >
         <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1500px] lg:grid-cols-[0.95fr_1.05fr] xl:grid-cols-[0.92fr_1.08fr]">
           {/* FORM */}
@@ -101,7 +101,7 @@ export default function LoginPage() {
             </div>
 
             {error ? (
-              <div className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              <div className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
                 {error}
               </div>
             ) : null}
@@ -165,7 +165,7 @@ export default function LoginPage() {
           </section>
 
           {/* LOGIN VISUAL */}
-          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#f8fbfe] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
+          <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#f8fbfe] dark:border-white/10 dark:bg-[#0D1B2E] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
           <div className="absolute -right-40 top-8 h-[440px] w-[440px] rounded-full bg-sky-100/60 blur-3xl" />
           <div className="absolute -left-40 bottom-6 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
 
@@ -177,7 +177,7 @@ export default function LoginPage() {
             <div className="relative mx-auto mt-8 max-w-[420px] xl:mt-12 xl:max-w-[520px]">
               <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl" />
 
-              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] xl:rounded-[34px] xl:p-7">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-[#102138] dark:shadow-[0_45px_120px_-55px_rgba(0,0,0,0.7)] xl:rounded-[34px] xl:p-7">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                   <div>
                     <TeachixLogo size="sm" />
@@ -192,9 +192,9 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[26px] bg-slate-50 p-6">
+                <div className="mt-8 rounded-[26px] bg-slate-50 p-6 dark:bg-[#0D1B2E]">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sky-600 shadow-sm">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sky-600 shadow-sm dark:bg-[#102138]">
                       <UserRound className="h-6 w-6" />
                     </div>
 
@@ -203,7 +203,7 @@ export default function LoginPage() {
                       <div className="mt-3 h-2.5 w-20 rounded-full bg-slate-200" />
                     </div>
 
-                    <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700">
+                    <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">
                       نشط
                     </div>
                   </div>
@@ -226,9 +226,9 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/60 p-5">
+                <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/60 p-5 dark:border-white/10 dark:bg-[#0D1B2E]">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-600 dark:bg-[#102138]">
                       <Check className="h-4 w-4" />
                     </div>
 
@@ -261,7 +261,7 @@ function LoginStatus({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-5 py-4">
+    <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-5 py-4 dark:border-white/10 dark:bg-[#102138]">
       <p className="text-sm font-black text-slate-800">
         {title}
       </p>
@@ -308,7 +308,7 @@ function AuthInput({
           placeholder={placeholder}
           autoComplete={autoComplete}
           className={[
-            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50",
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-50 dark:border-white/10 dark:bg-[#102138] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-900/40",
             trailingAction ? "pl-12" : "",
           ].join(" ")}
           required
