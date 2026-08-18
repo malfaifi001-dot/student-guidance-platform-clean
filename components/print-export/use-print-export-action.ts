@@ -13,6 +13,8 @@ import type {
   PrintExportStatus,
 } from "@/lib/print-export/print-export-types";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 function getPrintExportFallbackUrl(
   payload: unknown,
@@ -88,6 +90,17 @@ export function usePrintExportAction() {
             "تعذر فتح معاينة الطباعة. حاول مرة أخرى.",
         });
         return "error";
+      }
+
+      if (isNativeCapacitor()) {
+        void openExternalUrl(targetUrl).catch(() => {
+          setStatus("error");
+        });
+        setStatus("success");
+        if (analytics) {
+          trackAnalyticsEvent(analytics.eventName, analytics.params);
+        }
+        return "opened";
       }
 
       const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Teachix</string>
+    <string name="title_activity_main">Teachix</string>
+    <string name="package_name">sa.teachix.app</string>
+    <string name="custom_url_scheme">sa.teachix.app</string>
+</resources>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
 
 type Plan = {
   id: string;
@@ -68,7 +69,7 @@ export function CheckoutPlanPage({
         throw new Error(payload?.error || "تعذر إنشاء عملية الدفع.");
       }
 
-      window.location.href = payload.checkoutUrl;
+      await openExternalUrl(payload.checkoutUrl, { sameWindow: true });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء عملية الدفع."

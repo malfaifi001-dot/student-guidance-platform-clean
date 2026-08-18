@@ -10,6 +10,14 @@
         "postinstall": "prisma generate"
     },
     "dependencies": {
+        "@capacitor/android": "^8.5.0",
+        "@capacitor/browser": "^8.0.4",
+        "@capacitor/camera": "^8.2.2",
+        "@capacitor/cli": "^8.5.0",
+        "@capacitor/core": "^8.5.0",
+        "@capacitor/filesystem": "^8.1.2",
+        "@capacitor/share": "^8.0.1",
+        "@capacitor/status-bar": "^8.0.3",
         "@hookform/resolvers": "^5.4.0",
         "@next/third-parties": "^16.2.6",
         "@prisma/adapter-better-sqlite3": "^7.8.0",

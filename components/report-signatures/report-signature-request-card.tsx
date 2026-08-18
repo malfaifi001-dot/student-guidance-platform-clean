@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
 
 export type ReportSignatureRequestView = {
   id: string;
@@ -137,7 +138,7 @@ export function ReportSignatureRequestCard({
     const phone = whatsappPhone(principalPhone);
     if (!phone || !publicUrl) return;
     const text = `السلام عليكم ${principalName || "مدير المدرسة"}\nفضلًا راجع التقرير ووقّعه عبر الرابط الآمن التالي:\n${publicUrl}`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    void openExternalUrl(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
   }
 
   function openModal() {

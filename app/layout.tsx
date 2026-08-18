@@ -3,6 +3,7 @@ import { Cairo } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { NativeRuntimeSetup } from "@/components/capacitor/native-runtime-setup";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 import "./globals.css";
 
@@ -81,6 +82,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider>
           <ServiceWorkerRegister />
+          <NativeRuntimeSetup />
           {children}
         </ThemeProvider>
       </body>

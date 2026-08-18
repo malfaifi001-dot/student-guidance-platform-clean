@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
 import { MAX_EVIDENCE_FILES, MAX_EVIDENCE_FILES_MESSAGE } from "@/lib/evidence/evidence-limits";
 
@@ -27,9 +29,14 @@ export function EvidenceUploadCard({
   onUploadError,
 }: EvidenceUploadCardProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [nativeCameraAvailable, setNativeCameraAvailable] = useState(false);
   const uploadActiveRef = useRef(false);
   const remainingCapacity = Math.max(0, MAX_EVIDENCE_FILES - existingEvidenceCount);
   const uploadDisabled = isUploading || remainingCapacity === 0;
+
+  useEffect(() => {
+    setNativeCameraAvailable(Capacitor.isNativePlatform());
+  }, []);
 
   async function uploadFiles(files: FileList) {
     if (uploadActiveRef.current) return;
@@ -88,6 +95,36 @@ export function EvidenceUploadCard({
     }
   }
 
+  async function captureNativeImage() {
+    if (uploadDisabled || !Capacitor.isNativePlatform()) return;
+
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        source: CameraSource.Prompt,
+        resultType: CameraResultType.Uri,
+        allowEditing: false,
+      });
+      const source = photo.webPath || photo.path;
+      if (!source) return;
+
+      const response = await fetch(source);
+      const blob = await response.blob();
+      const file = new File(
+        [blob],
+        `teachix-evidence-${Date.now()}.jpg`,
+        { type: blob.type || "image/jpeg" },
+      );
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      await uploadFiles(dataTransfer.files);
+    } catch (error) {
+      if ((error as { message?: string })?.message !== "User cancelled photos app") {
+        onUploadError?.("تعذر فتح الكاميرا أو اختيار الصورة.");
+      }
+    }
+  }
+
   return (
     <>
       <label
@@ -129,6 +166,16 @@ export function EvidenceUploadCard({
           }}
         />
       </label>
+      {nativeCameraAvailable ? (
+        <button
+          type="button"
+          onClick={() => void captureNativeImage()}
+          disabled={uploadDisabled}
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-2xl border border-sky-200 px-5 text-sm font-bold text-sky-700 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/40"
+        >
+          التقاط صورة أو اختيارها
+        </button>
+      ) : null}
       <OperationProgressPopCard
         open={isUploading}
         title="جاري رفع الشواهد"

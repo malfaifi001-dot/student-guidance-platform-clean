@@ -1,8 +1,12 @@
+import { downloadBlobAsNativeFile } from "@/lib/native/native-download";
+
 export async function downloadBlobAsFile(
   blob: Blob,
   fileName: string,
 ): Promise<void> {
   const safeFileName = fileName.trim() || "report.pdf";
+  if (await downloadBlobAsNativeFile(blob, safeFileName)) return;
+
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
 

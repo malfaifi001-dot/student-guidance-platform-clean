@@ -3,6 +3,7 @@
 import { Check, CreditCard, Landmark, Loader2, X } from "lucide-react";
 import { MoyasarCheckoutForm } from "./moyasar-checkout-form";
 import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
 
 type PaymentTransactionSummary = {
   id: string;
@@ -82,11 +83,7 @@ export function PlanPaymentModal({
       "أرجو إرسال رابط الدفع عبر Tabby.",
     ].join("\n");
 
-    window.open(
-      `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    void openExternalUrl(`${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`);
   }
 
   return (
