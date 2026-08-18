@@ -22,6 +22,7 @@ export function NativeRuntimeSetup() {
 
     logNativeRuntimeDiagnostic("native-runtime-mounted", { coldStart: true });
     logNativeRuntimeDiagnostic("cold-start-detected", { coldStart: true });
+    logNativeRuntimeDiagnostic("cold-start-resolution-start", { coldStart: true });
 
     if (window.location.pathname === "/login") {
       clearNativeLastRoute();
@@ -29,10 +30,14 @@ export function NativeRuntimeSetup() {
 
     const routeTracker = createNativeRouteTracker();
     let disposed = false;
+    let startupResolutionComplete = false;
+    let pendingStartupPath: string | null = null;
+    let lastHandledSafePath: string | null = null;
+    let coldStartNavigationCompleted = false;
+    let deepLinkHandled = false;
     let removeBackListener: (() => Promise<void>) | null = null;
     let removeUrlListener: (() => Promise<void>) | null = null;
     let removeStateListener: (() => Promise<void>) | null = null;
-    let deepLinkHandled = false;
 
     const getDeepLinkRejectionReason = (url: string) => {
       try {
@@ -60,13 +65,6 @@ export function NativeRuntimeSetup() {
         });
       }
 
-      if (!options?.coldStart) {
-        logNativeRuntimeDiagnostic("warm-app-url-received", {
-          safePath,
-          coldStart: false,
-        });
-      }
-
       logNativeRuntimeDiagnostic("deep-link-parsed", {
         safePath,
         pathnameBefore,
@@ -83,6 +81,36 @@ export function NativeRuntimeSetup() {
         return false;
       }
 
+      if (!options?.coldStart && !startupResolutionComplete) {
+        pendingStartupPath = safePath;
+        logNativeRuntimeDiagnostic("warm-app-url-received", {
+          safePath,
+          coldStart: true,
+        });
+        logNativeRuntimeDiagnostic("cold-start-app-url-suppressed", {
+          safePath,
+          coldStart: true,
+        });
+        return true;
+      }
+
+      if (lastHandledSafePath === safePath) {
+        logNativeRuntimeDiagnostic("duplicate-deep-link-skipped", {
+          safePath,
+          coldStart: Boolean(options?.coldStart),
+        });
+        return true;
+      }
+
+      if (!options?.coldStart) {
+        logNativeRuntimeDiagnostic("warm-app-url-received", {
+          safePath,
+          coldStart: false,
+        });
+      }
+
+      lastHandledSafePath = safePath;
+      pendingStartupPath = null;
       deepLinkHandled = true;
       logNativeRuntimeDiagnostic("deep-link-navigation-start", {
         safePath,
@@ -92,7 +120,12 @@ export function NativeRuntimeSetup() {
 
       try {
         if (options?.coldStart) {
+          coldStartNavigationCompleted = true;
           window.location.replace(safePath);
+          logNativeRuntimeDiagnostic("cold-start-launch-url-handled", {
+            safePath,
+            coldStart: true,
+          });
         } else {
           navigateNativeDeepLink(safePath);
         }
@@ -117,9 +150,7 @@ export function NativeRuntimeSetup() {
 
     void App.addListener("backButton", () => {
       const meaningfulInternalHistory = routeTracker.canGoBack();
-      logNativeRuntimeDiagnostic("back-button-received", {
-        meaningfulInternalHistory,
-      });
+      logNativeRuntimeDiagnostic("back-button-received", { meaningfulInternalHistory });
 
       try {
         if (meaningfulInternalHistory) {
@@ -130,9 +161,7 @@ export function NativeRuntimeSetup() {
           return;
         }
 
-        logNativeRuntimeDiagnostic("back-at-root", {
-          meaningfulInternalHistory: false,
-        });
+        logNativeRuntimeDiagnostic("back-at-root", { meaningfulInternalHistory: false });
         logNativeRuntimeDiagnostic("app-exit-requested", {
           reason: "NO_INTERNAL_HISTORY",
         });
@@ -169,7 +198,7 @@ export function NativeRuntimeSetup() {
         removeUrlListener = () => urlHandle.remove();
       }
 
-      let launchUrl;
+      let launchUrl: Awaited<ReturnType<typeof App.getLaunchUrl>>;
       try {
         launchUrl = await App.getLaunchUrl();
       } catch (error) {
@@ -179,6 +208,7 @@ export function NativeRuntimeSetup() {
           context: "getLaunchUrl",
           coldStart: true,
         });
+        launchUrl = undefined;
       }
 
       const launchSafePath = launchUrl?.url ? getSafeNativeDeepLinkPath(launchUrl.url) : null;
@@ -192,23 +222,32 @@ export function NativeRuntimeSetup() {
         logNativeRuntimeDiagnostic("launch-url-missing", { coldStart: true });
       }
 
-      if (!deepLinkHandled && launchUrl?.url) {
-        handleIncomingUrl(launchUrl.url, { coldStart: true });
+      const coldPath = launchSafePath || pendingStartupPath;
+      if (coldPath && !coldStartNavigationCompleted) {
+        handleIncomingUrl(`https://teachix.sa${coldPath}`, { coldStart: true });
       }
 
-      const lastRouteRestoreSkipped = deepLinkHandled;
-      logNativeRuntimeDiagnostic("restore-skipped", {
-        reason: lastRouteRestoreSkipped ? "DEEP_LINK_HAS_PRIORITY" : "NOT_DASHBOARD_ROOT",
-        skipped: lastRouteRestoreSkipped,
-        coldStart: true,
-      });
+      startupResolutionComplete = true;
+      logNativeRuntimeDiagnostic("warm-listener-enabled", { coldStart: false });
 
-      if (!lastRouteRestoreSkipped && window.location.pathname === "/dashboard") {
+      if (deepLinkHandled) {
+        logNativeRuntimeDiagnostic("restore-skipped", {
+          reason: "DEEP_LINK_HAS_PRIORITY",
+          skipped: true,
+          coldStart: true,
+        });
+      } else if (window.location.pathname !== "/dashboard") {
+        logNativeRuntimeDiagnostic("restore-skipped", {
+          reason: "NOT_DASHBOARD_ROOT",
+          skipped: true,
+          coldStart: true,
+        });
+      } else {
         const lastRoute = readNativeLastRoute();
         if (lastRoute && lastRoute !== window.location.pathname) {
           window.location.replace(lastRoute);
           logNativeRuntimeDiagnostic("last-route-restored", { safePath: lastRoute });
-        } else if (!lastRoute) {
+        } else {
           logNativeRuntimeDiagnostic("restore-skipped", {
             reason: "NO_STORED_ROUTE",
             skipped: true,
