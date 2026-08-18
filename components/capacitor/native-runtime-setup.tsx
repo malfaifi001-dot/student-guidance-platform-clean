@@ -26,12 +26,16 @@ export function NativeRuntimeSetup() {
     let removeUrlListener: (() => Promise<void>) | null = null;
     let deepLinkHandled = false;
 
-    const handleIncomingUrl = (url: string) => {
+    const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
       const path = getSafeNativeDeepLinkPath(url);
       if (!path) return false;
 
       deepLinkHandled = true;
-      navigateNativeDeepLink(path);
+      if (options?.coldStart) {
+        window.location.replace(path);
+      } else {
+        navigateNativeDeepLink(path);
+      }
       return true;
     };
 
@@ -63,7 +67,7 @@ export function NativeRuntimeSetup() {
 
       const launchUrl = await App.getLaunchUrl().catch(() => undefined);
       if (!deepLinkHandled && launchUrl?.url) {
-        handleIncomingUrl(launchUrl.url);
+        handleIncomingUrl(launchUrl.url, { coldStart: true });
       }
 
       if (!deepLinkHandled && window.location.pathname === "/dashboard") {
