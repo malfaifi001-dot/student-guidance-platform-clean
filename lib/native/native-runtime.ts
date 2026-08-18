@@ -10,6 +10,23 @@ function isAllowedNativeRoute(pathname: string): boolean {
   return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 }
 
+export function getSafeNativeDeepLinkPath(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "teachix.sa" ||
+      !isAllowedNativeRoute(url.pathname)
+    ) {
+      return null;
+    }
+
+    return url.pathname;
+  } catch {
+    return null;
+  }
+}
+
 export function getSafeNativeRoute(value: string): string | null {
   if (typeof window === "undefined") return null;
 
@@ -58,6 +75,26 @@ export function clearNativeLastRoute(): void {
   } catch {
     // Ignore storage failures; authentication remains server-side.
   }
+}
+
+export function navigateNativeDeepLink(pathname: string): boolean {
+  if (typeof window === "undefined") return false;
+
+  const safePath = getSafeNativeRoute(pathname);
+  if (!safePath) return false;
+
+  if (window.location.pathname === safePath) {
+    persistNativeRoute(safePath);
+    return true;
+  }
+
+  if (window.location.pathname === "/login") {
+    window.location.assign(safePath);
+  } else {
+    window.history.pushState(window.history.state, "", safePath);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+  return true;
 }
 
 export function createNativeRouteTracker() {

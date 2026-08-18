@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "sa.teachix.app",
+      "sha256_cert_fingerprints": [
+        "8C:71:C2:55:54:47:B9:4A:F9:70:34:92:99:2D:B6:97:D5:01:6A:9F:DA:9D:AC:F5:C8:D2:39:B1:50:52:0E:92"
+      ]
+    }
+  }
+]
