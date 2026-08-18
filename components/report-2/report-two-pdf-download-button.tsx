@@ -4,8 +4,8 @@ import { type ReactNode, useCallback, useRef, useState } from "react";
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
 import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
-import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
 
 type SnapshotInfo = {
   caseEntryId: string;
@@ -75,10 +75,10 @@ export function ReportTwoPdfDownloadButton({
     previewUrl?: string;
   } | null>(null);
 
-  const openPreviewWindow = useCallback((previewUrl: string) => {
+  const openPreviewWindow = useCallback((previewUrl: string, fileName = "report.pdf") => {
     if (isNativeCapacitor()) {
-      void openExternalUrl(previewUrl)
-        .then(() => setFallbackState(null))
+      void savePrintPreviewAsNativePdf(previewUrl, fileName)
+        .then(() => setFallbackState({ message: "تم حفظ ملف PDF على الجهاز." }))
         .catch(() => {
           setFallbackState({
             message:
@@ -179,7 +179,10 @@ export function ReportTwoPdfDownloadButton({
       ) {
         downloadActiveRef.current = false;
         setLoading(false);
-        openPreviewWindow(data.previewUrl);
+        openPreviewWindow(
+          data.previewUrl,
+          `${formatFileName(snapshot.reportTitle)}.pdf`,
+        );
         return;
       }
 

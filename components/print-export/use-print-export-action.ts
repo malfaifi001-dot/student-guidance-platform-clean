@@ -13,8 +13,8 @@ import type {
   PrintExportStatus,
 } from "@/lib/print-export/print-export-types";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
-import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
 
 function getPrintExportFallbackUrl(
   payload: unknown,
@@ -74,10 +74,10 @@ export function usePrintExportAction() {
   }, []);
 
   const openFallbackPrintUrl = useCallback(
-    (
+    async (
       fallback?: PrintExportFallback | null,
       analytics?: PrintExportActionOptions["analytics"],
-    ): PrintExportRunResult => {
+    ): Promise<PrintExportRunResult> => {
       const targetUrl = buildPrintUrl(fallback?.printUrl || "");
 
       if (!targetUrl) {
@@ -93,14 +93,30 @@ export function usePrintExportAction() {
       }
 
       if (isNativeCapacitor()) {
-        void openExternalUrl(targetUrl).catch(() => {
+        try {
+          await savePrintPreviewAsNativePdf(
+            targetUrl,
+            fallback?.fileName || "report.pdf",
+          );
+          setStatus("success");
+          setModal({
+            status: "success",
+            title: "تم حفظ ملف PDF",
+            message: "تم إنشاء ملف PDF وحفظه في مجلد التنزيلات على الجهاز.",
+          });
+        } catch {
           setStatus("error");
-        });
-        setStatus("success");
+          setModal({
+            status: "error",
+            title: fallback?.title || "تصدير PDF",
+            message: "تعذر إنشاء ملف PDF محليًا. حاول مرة أخرى.",
+          });
+          return "error";
+        }
         if (analytics) {
           trackAnalyticsEvent(analytics.eventName, analytics.params);
         }
-        return "opened";
+        return "downloaded";
       }
 
       const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -113,9 +129,10 @@ export function usePrintExportAction() {
           message:
             fallback?.message ||
             "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة.",
-          fallback: {
-            printUrl: targetUrl,
-            title: fallback?.title,
+            fallback: {
+              printUrl: targetUrl,
+              fileName: fallback?.fileName,
+              title: fallback?.title,
             message: fallback?.message,
           },
         });
@@ -194,6 +211,7 @@ export function usePrintExportAction() {
           if (fallbackUrl) {
             return openFallbackPrintUrl({
               printUrl: fallbackUrl,
+              fileName: options.fileName,
               title: fallbackMeta.title,
               message: fallbackMeta.message,
             }, options.analytics);
@@ -207,6 +225,7 @@ export function usePrintExportAction() {
         if (options.printUrl) {
           return openFallbackPrintUrl({
             printUrl: options.printUrl,
+            fileName: options.fileName,
             title: fallbackMeta.title,
             message: fallbackMeta.message,
           }, options.analytics);
