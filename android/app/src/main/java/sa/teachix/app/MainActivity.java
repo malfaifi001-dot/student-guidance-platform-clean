@@ -25,19 +25,19 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         flushCookies();
         super.onPause();
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         flushCookies();
         super.onStop();
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         flushCookies();
         super.onDestroy();
     }

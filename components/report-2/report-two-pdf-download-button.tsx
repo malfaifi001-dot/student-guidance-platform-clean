@@ -3,6 +3,9 @@
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 type SnapshotInfo = {
   caseEntryId: string;
@@ -73,6 +76,19 @@ export function ReportTwoPdfDownloadButton({
   } | null>(null);
 
   const openPreviewWindow = useCallback((previewUrl: string) => {
+    if (isNativeCapacitor()) {
+      void openExternalUrl(previewUrl)
+        .then(() => setFallbackState(null))
+        .catch(() => {
+          setFallbackState({
+            message:
+              "تعذر فتح معاينة الطباعة داخل التطبيق. حاول مرة أخرى.",
+            previewUrl,
+          });
+        });
+      return null;
+    }
+
     const popup = window.open(previewUrl, "_blank", "noopener,noreferrer");
 
     if (popup) {
@@ -135,15 +151,10 @@ export function ReportTwoPdfDownloadButton({
 
       if (contentType.includes("application/pdf")) {
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-
-        a.href = url;
-        a.download = `${formatFileName(snapshot.reportTitle)}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        await downloadBlobAsFile(
+          blob,
+          `${formatFileName(snapshot.reportTitle)}.pdf`,
+        );
         downloadActiveRef.current = false;
         setLoading(false);
         return;

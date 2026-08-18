@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Teachix',
   webDir: 'www',
   server: {
-    url: 'https://teachix.sa',
+    url: 'https://teachix.sa/dashboard',
     cleartext: false,
     allowNavigation: ['https://teachix.sa'],
   },
