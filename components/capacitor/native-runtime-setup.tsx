@@ -381,10 +381,25 @@ export function NativeRuntimeSetup() {
         visibility: startupGateActive ? "visible" : "hidden",
       }}
     >
-      <div className="relative h-28 w-28" aria-label="Teachix">
-        <span className="absolute inset-0 rounded-full border-[9px] border-white/95" />
-        <span className="absolute inset-7 rounded-full border-[8px] border-white/95" />
-        <span className="absolute inset-[2.75rem] rounded-full bg-white" />
+      <div className="flex flex-col items-center" aria-label="Teachix">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 108 108"
+          className="h-28 w-28"
+          fill="none"
+        >
+          <path
+            d="M54 12a42 42 0 1 0 0 84 42 42 0 1 0 0-84Zm0 12a30 30 0 1 1 0 60 30 30 0 1 1 0-60Zm0 12a18 18 0 1 0 0 36 18 18 0 1 0 0-36Zm0 10a8 8 0 1 1 0 16 8 8 0 1 1 0-16Z"
+            fill="white"
+            fillRule="evenodd"
+          />
+        </svg>
+        <p
+          dir="auto"
+          className="mt-5 whitespace-nowrap text-center font-sans text-base font-semibold tracking-wide text-white"
+        >
+          Teachix | الأسهل والأشمل
+        </p>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 800,
       launchAutoHide: true,
         backgroundColor: '#1769FF',
-      androidSplashResourceName: 'splash',
+      androidSplashResourceName: 'splash_icon',
       androidScaleType: 'CENTER_INSIDE',
       showSpinner: false,
       splashFullScreen: false,
