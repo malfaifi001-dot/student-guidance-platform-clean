@@ -2,6 +2,17 @@ import { Capacitor } from "@capacitor/core";
 
 type NativeDiagnosticPayload = Record<string, unknown>;
 
+function getSafeDiagnosticPath(pathname: string): string {
+  const tokenizedPrefixes = [
+    "/school-signature/",
+    "/report-signature/",
+    "/survey/",
+    "/teacher/activity-assignment/",
+  ];
+  const tokenizedPrefix = tokenizedPrefixes.find((prefix) => pathname.startsWith(prefix));
+  return tokenizedPrefix ? `${tokenizedPrefix}[token]` : pathname;
+}
+
 export function logNativeRuntimeDiagnostic(
   event: string,
   payload: NativeDiagnosticPayload = {},
@@ -12,7 +23,8 @@ export function logNativeRuntimeDiagnostic(
     event,
     timestamp: new Date().toISOString(),
     platform: Capacitor.getPlatform(),
-    pathname: typeof window === "undefined" ? undefined : window.location.pathname,
+    pathname:
+      typeof window === "undefined" ? undefined : getSafeDiagnosticPath(window.location.pathname),
     isNative: true,
     ...payload,
   };
