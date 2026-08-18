@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#3478B8",
 };
 
 export const metadata: Metadata = {
@@ -28,6 +30,11 @@ export const metadata: Metadata = {
   description:
     "Teachix منصة مدرسية رقمية تساعد مدير المدرسة والمعلم والموجه الطلابي ورائد النشاط على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
   applicationName: "تيتش اكس",
+  appleWebApp: {
+    capable: true,
+    title: "Teachix",
+    statusBarStyle: "default",
+  },
   openGraph: {
     type: "website",
     locale: "ar_SA",
@@ -44,9 +51,18 @@ export const metadata: Metadata = {
       "منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال وتوثيقها ومتابعتها وإصدار التقارير من مكان واحد.",
   },
   icons: {
-    icon: "/icon.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
     shortcut: "/brand/teachix-icon.svg",
-    apple: "/icon.png",
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
 };
 
@@ -63,7 +79,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ServiceWorkerRegister />
+          {children}
+        </ThemeProvider>
       </body>
 
       <GoogleAnalytics gaId="G-7NPFWYDTJP" />
