@@ -4,6 +4,7 @@ import { requirePortfolioApiUser, portfolioApiError } from "@/lib/portfolio/port
 import { createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
 import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
+import { getRequestOrigin } from "@/lib/http/request-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ snap
     const { snapshotId } = await params;
     const snapshot = await getPortfolioSnapshot(user, snapshotId);
     const token = await createPortfolioExportToken(snapshot.document);
-    const previewUrl = `${new URL(request.url).origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
+    const previewUrl = `${getRequestOrigin(request)}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
       stage: "export-route",
       previewUrl,

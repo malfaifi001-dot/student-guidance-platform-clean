@@ -5,6 +5,7 @@ import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 import { createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
+import { getRequestOrigin } from "@/lib/http/request-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ port
 
     const { ok: _ok, routes: _routes, ...document } = workspace;
     const token = await createPortfolioExportToken(document as PortfolioPrintData);
-    const previewUrl = `${new URL(request.url).origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
+    const previewUrl = `${getRequestOrigin(request)}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
       stage: "export-route",
       previewUrl,

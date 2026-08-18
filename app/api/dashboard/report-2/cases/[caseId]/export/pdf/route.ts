@@ -15,6 +15,7 @@ import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-gua
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
+import { getRequestOrigin } from "@/lib/http/request-origin";
 
 export const runtime = "nodejs";
 
@@ -41,20 +42,6 @@ function safeDownloadFileName(value: unknown) {
     .slice(0, 150);
 
   return name.endsWith(".pdf") ? name : `${name || "report"}.pdf`;
-}
-
-function getRequestOrigin(request: Request) {
-  const url = new URL(request.url);
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    url.host;
-  const proto =
-    request.headers.get("x-forwarded-proto") ||
-    url.protocol.replace(":", "") ||
-    "http";
-
-  return `${proto}://${host}`;
 }
 
 function getPdfContentDisposition(fileName: string) {
