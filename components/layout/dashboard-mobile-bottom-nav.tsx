@@ -54,6 +54,7 @@ export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps
   return (
     <nav
       aria-label="التنقل الرئيسي للهاتف"
+      data-mobile-bottom-nav="true"
       className={`fixed inset-x-3 bottom-3 ${MOBILE_LAYER_Z_INDEX.navigation} mx-auto max-w-md rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-1.5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90 dark:shadow-[0_12px_30px_rgba(2,6,23,0.4)] md:hidden`}
       style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}
     >

@@ -10,17 +10,20 @@ import {
 import {
   clearNativeLastRoute,
   createNativeRouteTracker,
+  acquireNativeRuntime,
   getNativeDiagnosticPath,
   getNativeDeepLinkRejectionReason,
   getSafeNativeDeepLinkPath,
   isNativeCapacitor,
   navigateNativeDeepLink,
   readNativeLastRoute,
+  releaseNativeRuntime,
 } from "@/lib/native/native-runtime";
 
 export function NativeRuntimeSetup() {
   useEffect(() => {
     if (!isNativeCapacitor()) return;
+    if (!acquireNativeRuntime()) return;
 
     logNativeRuntimeDiagnostic("native-runtime-mounted", { coldStart: true });
     logNativeRuntimeDiagnostic("cold-start-detected", { coldStart: true });
@@ -308,6 +311,7 @@ export function NativeRuntimeSetup() {
       if (removeBackListener) void removeBackListener();
       if (removeUrlListener) void removeUrlListener();
       if (removeStateListener) void removeStateListener();
+      releaseNativeRuntime();
     };
   }, []);
 

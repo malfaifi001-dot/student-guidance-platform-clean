@@ -3,6 +3,13 @@ apply plugin: 'com.android.application'
 android {
     namespace = "sa.teachix.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    def releaseKeystorePath = System.getenv("TEACHIX_ANDROID_KEYSTORE_PATH")
+    def releaseKeystorePassword = System.getenv("TEACHIX_ANDROID_KEYSTORE_PASSWORD")
+    def releaseKeyAlias = System.getenv("TEACHIX_ANDROID_KEY_ALIAS")
+    def releaseKeyPassword = System.getenv("TEACHIX_ANDROID_KEY_PASSWORD")
+    def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword]
+        .every { value -> value != null && !value.trim().isEmpty() }
+
     defaultConfig {
         applicationId "sa.teachix.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -16,10 +23,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

@@ -1,4 +1,10 @@
 @import "tailwindcss";
+
+@media (max-height: 520px) and (pointer: coarse) {
+  [data-mobile-bottom-nav="true"] {
+    display: none;
+  }
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

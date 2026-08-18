@@ -66,16 +66,16 @@ export default async function DashboardLayout({
       <GuidanceProvider userId={current.user.id} role={current.user.role} gender={current.user.gender} displayName={current.user.officialName || current.user.name}>
       <div
         dir="rtl"
-        className="h-screen overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+        className="h-[100dvh] overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
         style={MOBILE_LAYER_STYLE}
       >
-        <div className="flex h-screen min-w-0">
+        <div className="flex h-[100dvh] min-w-0">
           <DashboardSidebar
             user={current.user}
             subscription={subscriptionPresentation}
           />
 
-          <main className="h-screen w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+          <main className="h-[100dvh] w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
             <DashboardHeader
               user={current.user}
               subscription={subscriptionPresentation}

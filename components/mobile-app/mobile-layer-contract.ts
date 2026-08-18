@@ -17,7 +17,7 @@ export const MOBILE_LAYER_STYLE: CSSProperties & Record<
   | "--mobile-bottom-clearance",
   string
 > = {
-  "--mobile-bottom-nav-height": "5.5rem",
+  "--mobile-bottom-nav-height": "4rem",
   "--mobile-bottom-nav-offset": "0.75rem",
   "--mobile-bottom-safe-area": "env(safe-area-inset-bottom)",
   "--mobile-bottom-clearance":

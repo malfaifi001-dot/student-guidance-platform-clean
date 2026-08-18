@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.print.PrintAttributes;
 import android.print.pdf.PrintedPdfDocument;
 import android.provider.MediaStore;
@@ -29,6 +31,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @CapacitorPlugin(name = "TeachixPdf")
 public class TeachixPdfPlugin extends Plugin {
@@ -102,7 +105,12 @@ public class TeachixPdfPlugin extends Plugin {
     private boolean isAllowedTeachixUrl(String value) {
         if (value == null || value.trim().isEmpty()) return false;
         Uri uri = Uri.parse(value);
-        return "https".equalsIgnoreCase(uri.getScheme()) && TEACHIX_HOST.equalsIgnoreCase(uri.getHost());
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !TEACHIX_HOST.equalsIgnoreCase(uri.getHost())) {
+            return false;
+        }
+        return !path.equals("/api") && !path.startsWith("/api/") &&
+            !path.equals("/login") && !path.startsWith("/_next/");
     }
 
     private void renderAuthenticatedPage(PluginCall call, String url, String fileName) {
@@ -141,24 +149,53 @@ public class TeachixPdfPlugin extends Plugin {
         layoutParams.topMargin = 0;
         root.addView(webView, layoutParams);
 
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        AtomicBoolean completed = new AtomicBoolean(false);
+        Runnable timeout = () -> {
+            if (completed.compareAndSet(false, true)) {
+                cleanupWebView(webView, root);
+                deleteOutputTarget(target);
+                call.reject("Timed out while loading the authenticated print view");
+            }
+        };
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String finishedUrl) {
-                view.postDelayed(() -> writeWebViewPdf(call, view, root, target), 700);
+                if (completed.get()) return;
+                view.postDelayed(() -> {
+                    if (completed.compareAndSet(false, true)) {
+                        writeWebViewPdf(call, view, root, target, timeoutHandler, timeout);
+                    }
+                }, 700);
             }
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                cleanupWebView(view, root);
-                deleteOutputTarget(target);
-                call.reject("Unable to load the authenticated print view");
+                if (completed.compareAndSet(false, true)) {
+                    timeoutHandler.removeCallbacks(timeout);
+                    cleanupWebView(view, root);
+                    deleteOutputTarget(target);
+                    call.reject("Unable to load the authenticated print view");
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceResponse response) {
+                if (request.isForMainFrame() && response.getStatusCode() >= 400 && completed.compareAndSet(false, true)) {
+                    timeoutHandler.removeCallbacks(timeout);
+                    cleanupWebView(view, root);
+                    deleteOutputTarget(target);
+                    call.reject("Unable to load the authenticated print view");
+                }
             }
         });
 
         webView.loadUrl(url);
+        timeoutHandler.postDelayed(timeout, 30_000);
     }
 
-    private void writeWebViewPdf(PluginCall call, WebView webView, FrameLayout root, OutputTarget target) {
+    private void writeWebViewPdf(PluginCall call, WebView webView, FrameLayout root, OutputTarget target, Handler timeoutHandler, Runnable timeout) {
         PrintAttributes attributes = new PrintAttributes.Builder()
             .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
             .setResolution(new PrintAttributes.Resolution("teachix_pdf", "Teachix PDF", 300, 300))
@@ -207,6 +244,7 @@ public class TeachixPdfPlugin extends Plugin {
             deleteOutputTarget(target);
             call.reject("Unable to generate PDF", error);
         } finally {
+            timeoutHandler.removeCallbacks(timeout);
             document.close();
             cleanupWebView(webView, root);
         }

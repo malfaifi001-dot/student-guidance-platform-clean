@@ -2,6 +2,23 @@ import { Capacitor } from "@capacitor/core";
 
 type NativeDiagnosticPayload = Record<string, unknown>;
 
+const VERBOSE_EVENTS = new Set([
+  "native-runtime-mounted",
+  "cold-start-detected",
+  "cold-start-resolution-start",
+  "deep-link-parsed",
+  "deep-link-navigation-complete-attempt",
+  "warm-listener-enabled",
+  "app-resumed",
+  "app-paused",
+  "last-route-read",
+  "last-route-valid",
+  "last-route-rejected",
+  "back-button-received",
+  "back-navigation-history",
+  "back-at-root",
+]);
+
 function getSafeDiagnosticPath(pathname: string): string {
   const tokenizedPrefixes = [
     "/school-signature/",
@@ -18,6 +35,7 @@ export function logNativeRuntimeDiagnostic(
   payload: NativeDiagnosticPayload = {},
 ): void {
   if (!Capacitor.isNativePlatform()) return;
+  if (VERBOSE_EVENTS.has(event) && process.env.NEXT_PUBLIC_NATIVE_DIAGNOSTICS !== "true") return;
 
   const entry = {
     event,

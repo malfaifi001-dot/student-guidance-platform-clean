@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { getNativeRouteKind, navigateNativeDeepLink } from "@/lib/native/native-runtime";
 
 const TEACHIX_HOSTNAMES = new Set(["teachix.sa", "www.teachix.sa"]);
 
@@ -15,7 +16,12 @@ function isNativeAppUrl(url: URL): boolean {
 export async function openExternalUrl(url: string, options?: { sameWindow?: boolean }): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const target = new URL(url, window.location.origin);
+  let target: URL;
+  try {
+    target = new URL(url, window.location.origin);
+  } catch {
+    return;
+  }
   const native = Capacitor.isNativePlatform();
 
   if (!native) {
@@ -28,12 +34,19 @@ export async function openExternalUrl(url: string, options?: { sameWindow?: bool
     return;
   }
 
-  if (isTeachixUrl(target)) {
-    window.location.href = target.toString();
+  if (isTeachixUrl(target) && target.hostname.toLowerCase() === "teachix.sa") {
+    const routeKind = getNativeRouteKind(target.pathname);
+    if (routeKind === "TECHNICAL_DENIED_ROUTE" || routeKind === "INVALID_ROUTE") return;
+    navigateNativeDeepLink(target.pathname);
     return;
   }
 
   if (isNativeAppUrl(target) && (target.protocol === "mailto:" || target.protocol === "tel:")) {
+    window.location.href = target.toString();
+    return;
+  }
+
+  if (target.hostname.toLowerCase() === "wa.me" || target.hostname.toLowerCase().endsWith(".whatsapp.com")) {
     window.location.href = target.toString();
     return;
   }
@@ -44,5 +57,5 @@ export async function openExternalUrl(url: string, options?: { sameWindow?: bool
     return;
   }
 
-  window.location.href = target.toString();
+  return;
 }

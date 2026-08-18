@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { NativeRuntimeSetup } from "@/components/capacitor/native-runtime-setup";
 import { NativeDownloadFeedbackHost } from "@/components/downloads/native-download-feedback-host";
+import { OfflineStatusBanner } from "@/components/network/offline-status-banner";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 import "./globals.css";
 
@@ -85,6 +86,7 @@ export default function RootLayout({
           <ServiceWorkerRegister />
           <NativeRuntimeSetup />
           <NativeDownloadFeedbackHost />
+          <OfflineStatusBanner />
           {children}
         </ThemeProvider>
       </body>

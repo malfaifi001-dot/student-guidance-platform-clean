@@ -6,6 +6,18 @@ import {
 
 export const NATIVE_LAST_ROUTE_STORAGE_KEY = "teachix_native_last_route";
 
+let nativeRuntimeActive = false;
+
+export function acquireNativeRuntime(): boolean {
+  if (nativeRuntimeActive) return false;
+  nativeRuntimeActive = true;
+  return true;
+}
+
+export function releaseNativeRuntime(): void {
+  nativeRuntimeActive = false;
+}
+
 const TECHNICAL_ROUTE_PREFIXES = [
   "/api",
   "/portfolio-export-preview/",
