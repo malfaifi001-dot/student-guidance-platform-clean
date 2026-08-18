@@ -4,7 +4,6 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
-import { ThemeProvider } from "@/components/theme/theme-provider";
 import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
@@ -58,7 +57,7 @@ export default async function DashboardLayout({
   const analyticsUserId = getAnalyticsUserId(current.user.id);
 
   return (
-    <ThemeProvider>
+    <>
       <AuthenticatedAnalyticsIdentity
         analyticsUserId={analyticsUserId}
         role={current.user.role}
@@ -99,6 +98,6 @@ export default async function DashboardLayout({
       </div>
       </GuidanceProvider>
       <DashboardMobileBottomNav role={current.user.role} />
-    </ThemeProvider>
+    </>
   );
 }

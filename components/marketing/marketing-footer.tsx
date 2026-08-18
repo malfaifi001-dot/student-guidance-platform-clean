@@ -4,7 +4,7 @@ import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-slate-100 bg-white">
+    <footer className="border-t border-slate-100 bg-white transition-colors duration-300 dark:border-slate-800 dark:bg-[#0D1B2E]">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
           <div className="max-w-md">

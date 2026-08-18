@@ -136,7 +136,7 @@ function ReviewCard({
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen overflow-x-clip bg-white text-slate-950">
+    <div className="marketing-home min-h-screen overflow-x-clip bg-white text-slate-950 transition-colors duration-300 dark:bg-[#07111F] dark:text-slate-100">
       <TeachixStructuredData />
       <MarketingNavbar />
 

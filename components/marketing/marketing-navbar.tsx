@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 import { TeachixLogo } from "@/components/brand/teachix-logo";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { siteConfig } from "@/lib/marketing/site";
 
 export function MarketingNavbar() {
@@ -16,7 +17,7 @@ export function MarketingNavbar() {
   const closeMenu = () => setIsOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800 dark:bg-[#07111F]/95">
       <div
         className={[
           "mx-auto min-h-[72px] max-w-7xl items-center gap-4 px-5 sm:px-8 lg:px-10",
@@ -50,6 +51,7 @@ export function MarketingNavbar() {
           <div className="hidden xl:block" aria-hidden="true" />
         ) : (
           <div className="hidden items-center gap-3 xl:flex">
+            <ThemeToggleButton compact />
             <Link
               href="/login"
               className="px-4 py-3 text-sm font-black text-slate-600 transition hover:text-sky-600"
@@ -66,10 +68,12 @@ export function MarketingNavbar() {
           </div>
         )}
 
-        <button
+        <div className="flex items-center gap-2 xl:hidden">
+          <ThemeToggleButton compact />
+          <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 xl:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-sky-200 hover:text-sky-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           aria-label={isOpen ? "إغلاق القائمة" : "فتح القائمة"}
           aria-expanded={isOpen}
         >
@@ -78,11 +82,12 @@ export function MarketingNavbar() {
           ) : (
             <Menu className="h-5 w-5" />
           )}
-        </button>
+          </button>
+        </div>
       </div>
 
       {isOpen ? (
-        <div className="border-t border-slate-100 bg-white xl:hidden">
+        <div className="border-t border-slate-100 bg-white transition-colors xl:hidden dark:border-slate-800 dark:bg-slate-950">
           <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
             <nav className="flex flex-col gap-1">
               {siteConfig.navigation.map((item) => (
@@ -90,7 +95,7 @@ export function MarketingNavbar() {
                   key={item.href}
                   href={item.href}
                   onClick={closeMenu}
-                  className="rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-sky-600"
+                  className="rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-sky-600 dark:hover:bg-slate-900"
                 >
                   {item.title}
                 </Link>
@@ -98,7 +103,7 @@ export function MarketingNavbar() {
             </nav>
 
             {!isAuthPage ? (
-              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5">
+              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
                 <Link
                   href="/login"
                   onClick={closeMenu}
