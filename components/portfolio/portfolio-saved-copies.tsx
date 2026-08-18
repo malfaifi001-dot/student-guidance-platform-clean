@@ -4,6 +4,7 @@ import { Download, ExternalLink, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
 
@@ -86,14 +87,13 @@ export function PortfolioSavedCopies({
                   >
                     <ExternalLink className="h-4 w-4" /> عرض النسخة
                   </Link>
-                  <Link
-                    href={`${snapshotBasePath}/${snapshot.id}?print=1`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <NativeDownloadLink
+                    href={`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`}
+                    fileName={`${snapshot.name}.pdf`}
                     className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
                   >
                     <Download className="h-4 w-4" /> تحميل
-                  </Link>
+                  </NativeDownloadLink>
                 </div>
               </article>
             );

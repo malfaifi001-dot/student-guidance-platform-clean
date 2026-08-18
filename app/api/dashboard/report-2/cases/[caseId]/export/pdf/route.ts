@@ -57,12 +57,6 @@ function getRequestOrigin(request: Request) {
   return `${proto}://${host}`;
 }
 
-function isLocalRequestOrigin(origin: string) {
-  const hostname = new URL(origin).hostname.toLowerCase();
-
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-}
-
 function getPdfContentDisposition(fileName: string) {
   const asciiFallback = fileName
     .normalize("NFKD")
@@ -292,8 +286,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   cleanupStaleSnapshots().catch(() => null);
 
-  if (!isLocalRequestOrigin(origin)) {
-    try {
+  try {
       const pdfRenderUrl = `${previewUrl}?pdf=1`;
 
       console.log("REPORT_TWO_PDF_RENDER_URL", {
@@ -301,10 +294,14 @@ export async function POST(request: Request, context: RouteContext) {
       });
 
       const pdfBytes = await generatePdfFromUrlWithCloudflare({
+        request,
         url: pdfRenderUrl,
+        waitForSelector: ".pdf-report-page",
       });
-      const pdfBody = new ArrayBuffer(pdfBytes.byteLength);
-      new Uint8Array(pdfBody).set(pdfBytes);
+      const pdfBody = pdfBytes.buffer.slice(
+        pdfBytes.byteOffset,
+        pdfBytes.byteOffset + pdfBytes.byteLength,
+      ) as ArrayBuffer;
 
       return new Response(pdfBody, {
         status: 200,
@@ -314,20 +311,14 @@ export async function POST(request: Request, context: RouteContext) {
           "Cache-Control": "private, no-store",
         },
       });
-    } catch (error) {
-      console.error("Report 2 Cloudflare PDF generation failed; using print preview fallback.", {
-        message: error instanceof Error ? error.message : "Unknown Cloudflare PDF error",
-      });
-    }
+  } catch (error) {
+    console.error("Report 2 local PDF generation failed.", {
+      message: error instanceof Error ? error.message : "Unknown local PDF error",
+    });
   }
 
   return NextResponse.json(
-    {
-      fallback: "PRINT_PREVIEW",
-      previewUrl: `${previewUrl}?print=1`,
-      fileName,
-      message: "Opening the finalized report in browser print preview.",
-    },
-    { status: 200 },
+    { error: "تعذر إنشاء ملف PDF حقيقي لهذا التقرير. حاول مرة أخرى." },
+    { status: 503 },
   );
 }

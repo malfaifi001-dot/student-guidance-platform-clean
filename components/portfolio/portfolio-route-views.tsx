@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
 import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
-import { PortfolioAutoPrint, PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
+import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
 import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
@@ -54,7 +54,11 @@ export async function PortfolioPrintRoute({ searchParams, sharedRoute }: { searc
   const { current, workspace } = await portfolioPageContext(searchParams, sharedRoute);
   return (
     <main dir="rtl">
-      <PortfolioPrintActions backHref={getPortfolioRoutes(current.user.role).base} />
+      <PortfolioPrintActions
+        backHref={getPortfolioRoutes(current.user.role).base}
+        downloadHref={`/api/dashboard/portfolio/${encodeURIComponent(workspace.portfolio.id)}/export/pdf`}
+        fileName={`${workspace.portfolio.title || "ملف الإنجاز"}.pdf`}
+      />
       <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
     </main>
   );
@@ -66,7 +70,7 @@ export async function PortfolioSnapshotRoute({
   sharedRoute,
 }: {
   params: Promise<{ snapshotId: string }>;
-  searchParams: Promise<{ print?: string | string[] }>;
+  searchParams: Promise<{ print?: string | string[]; pdf?: string | string[] }>;
   sharedRoute?: boolean;
 }) {
   const current = await requireDashboardUser();
@@ -74,14 +78,13 @@ export async function PortfolioSnapshotRoute({
   enforceSharedRouteRole(current.user.role, sharedRoute);
   const { snapshotId } = await params;
   const query = await searchParams;
-  const printValue = Array.isArray(query.print) ? query.print[0] : query.print;
+  const pdfValue = Array.isArray(query.pdf) ? query.pdf[0] : query.pdf;
   const snapshot = await getPortfolioSnapshot(current.user, snapshotId);
   const routes = getPortfolioRoutes(current.user.role);
   const document = <PortfolioPrintDocument data={snapshot.document} />;
 
   return (
     <main dir="rtl" className="portfolio-snapshot-route">
-      <PortfolioAutoPrint enabled={printValue === "1"} />
       <style>{`
         @media print {
           html.portfolio-print-mode,
@@ -127,7 +130,7 @@ export async function PortfolioSnapshotRoute({
           </div>
         </div>
       </div>
-      {printValue === "1" ? document : (
+      {pdfValue === "1" ? document : (
         <div className="mx-auto w-full min-w-0 max-w-[900px] overflow-hidden">
           <PortfolioPreviewFit>{document}</PortfolioPreviewFit>
         </div>

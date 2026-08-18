@@ -5,8 +5,12 @@ const PDF_SIGNATURE = "%PDF-";
 
 export async function generatePdfFromUrlWithCloudflare({
   url,
+  request,
+  waitForSelector = ".pdf-report-page",
 }: {
   url: string;
+  request?: Request;
+  waitForSelector?: string;
 }): Promise<Uint8Array> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
@@ -21,6 +25,22 @@ export async function generatePdfFromUrlWithCloudflare({
     CLOUDFLARE_PDF_TIMEOUT_MS,
   );
 
+  const sessionCookie = request?.headers.get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("student_guidance_session="));
+  const cookies = sessionCookie
+    ? [{
+        name: "student_guidance_session",
+        value: sessionCookie.slice("student_guidance_session=".length),
+        url,
+        path: "/",
+        httpOnly: true,
+        secure: url.startsWith("https://"),
+        sameSite: "Lax" as const,
+      }]
+    : undefined;
+
   try {
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/pdf`,
@@ -32,12 +52,13 @@ export async function generatePdfFromUrlWithCloudflare({
         },
         body: JSON.stringify({
           url,
+          ...(cookies ? { cookies } : {}),
           gotoOptions: {
             waitUntil: "networkidle2",
             timeout: 45_000,
           },
           waitForSelector: {
-            selector: ".pdf-report-page",
+            selector: waitForSelector,
             timeout: 45_000,
             visible: true,
           },

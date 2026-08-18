@@ -1,78 +1,24 @@
 "use client";
 
-import { ArrowRight, Printer } from "lucide-react";
+import { ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 
-function waitForImages() {
-  return Promise.all(
-    Array.from(document.images).map(
-      (image) =>
-        new Promise<void>((resolve) => {
-          if (image.complete) {
-            resolve();
-            return;
-          }
+import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 
-          image.addEventListener("load", () => resolve(), { once: true });
-          image.addEventListener("error", () => resolve(), { once: true });
-        }),
-    ),
-  );
-}
-
-async function waitForPrintAssets() {
-  await document.fonts.ready;
-  await waitForImages();
-}
-
-async function triggerPortfolioPrint() {
-  await waitForPrintAssets();
-  window.setTimeout(() => window.print(), 500);
-}
-
-export function PortfolioAutoPrint({ enabled }: { enabled: boolean }) {
-  const triggeredRef = useRef(false);
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    document.documentElement.classList.add("portfolio-print-mode");
-
-    if (triggeredRef.current) return;
-    triggeredRef.current = true;
-    void triggerPortfolioPrint();
-
-    return () => document.documentElement.classList.remove("portfolio-print-mode");
-  }, [enabled]);
-
-  return null;
-}
-
-export function PortfolioPrintActions({ backHref = "/dashboard/teacher/portfolio" }: { backHref?: string }) {
-  async function print() {
-    await triggerPortfolioPrint();
-  }
-
+export function PortfolioPrintActions({
+  backHref = "/dashboard/teacher/portfolio",
+  downloadHref,
+  fileName = "portfolio.pdf",
+}: { backHref?: string; downloadHref: string; fileName?: string }) {
   return (
     <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-        >
-          <ArrowRight className="h-4 w-4" />
-          رجوع
+        <Link href={backHref} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+          <ArrowRight className="h-4 w-4" /> رجوع
         </Link>
-
-        <button
-          type="button"
-          onClick={() => void print()}
-          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
-        >
-          <Printer className="h-4 w-4" />
-          طباعة أو حفظ PDF
-        </button>
+        <NativeDownloadLink href={downloadHref} fileName={fileName} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition hover:bg-slate-800">
+          <Download className="h-4 w-4" /> تحميل PDF
+        </NativeDownloadLink>
       </div>
     </div>
   );
