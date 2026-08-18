@@ -224,7 +224,24 @@ export function NativeRuntimeSetup() {
 
       const coldPath = launchSafePath || pendingStartupPath;
       if (coldPath && !coldStartNavigationCompleted) {
-        handleIncomingUrl(`https://teachix.sa${coldPath}`, { coldStart: true });
+        if (window.location.pathname === coldPath) {
+          deepLinkHandled = true;
+          lastHandledSafePath = coldPath;
+          pendingStartupPath = null;
+          coldStartNavigationCompleted = true;
+          logNativeRuntimeDiagnostic("cold-start-already-at-target", {
+            safePath: coldPath,
+            pathname: window.location.pathname,
+            coldStart: true,
+          });
+          logNativeRuntimeDiagnostic("cold-start-launch-complete", {
+            safePath: coldPath,
+            pathname: window.location.pathname,
+            coldStart: true,
+          });
+        } else {
+          handleIncomingUrl(`https://teachix.sa${coldPath}`, { coldStart: true });
+        }
       }
 
       startupResolutionComplete = true;
