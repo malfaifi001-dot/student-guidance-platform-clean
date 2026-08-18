@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { requirePortfolioApiUser, portfolioApiError } from "@/lib/portfolio/portfolio-api";
 import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
-import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
+import { createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
+import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ port
       return NextResponse.json({ ok: false, error: "ملف الإنجاز غير متاح." }, { status: 404 });
     }
 
-    const origin = new URL(request.url).origin;
-    const printPath = getPortfolioRoutes(user.role).print;
-    const previewUrl = `${origin}${printPath}?portfolioId=${encodeURIComponent(portfolioId)}&pdf=1`;
+    const { ok: _ok, routes: _routes, ...document } = workspace;
+    const token = await createPortfolioExportToken(document as PortfolioPrintData);
+    const previewUrl = `${new URL(request.url).origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     const pdf = await generatePdfFromUrlWithCloudflare({
-      request,
       url: previewUrl,
       waitForSelector: ".portfolio-page, .portfolio-report-page",
     });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requirePortfolioApiUser, portfolioApiError } from "@/lib/portfolio/portfolio-api";
-import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
+import { createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
 import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 
@@ -28,11 +28,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ snap
     const user = await requirePortfolioApiUser();
     const { snapshotId } = await params;
     const snapshot = await getPortfolioSnapshot(user, snapshotId);
-    const origin = new URL(request.url).origin;
-    const snapshotPath = `${getPortfolioRoutes(user.role).snapshots}/${encodeURIComponent(snapshotId)}`;
-    const previewUrl = `${origin}${snapshotPath}?pdf=1`;
+    const token = await createPortfolioExportToken(snapshot.document);
+    const previewUrl = `${new URL(request.url).origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     const pdf = await generatePdfFromUrlWithCloudflare({
-      request,
       url: previewUrl,
       waitForSelector: ".portfolio-page, .portfolio-report-page",
     });
