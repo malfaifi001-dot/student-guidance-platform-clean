@@ -36,9 +36,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ port
     const { ok: _ok, routes: _routes, ...document } = workspace;
     const token = await createPortfolioExportToken(document as PortfolioPrintData);
     const previewUrl = `${new URL(request.url).origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
+    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+      stage: "export-route",
+      previewUrl,
+    });
     const pdf = await generatePdfFromUrlWithCloudflare({
       url: previewUrl,
       waitForSelector: ".portfolio-page, .portfolio-report-page",
+      debugLabel: "portfolio",
     });
 
     return responseWithPdf(pdf, pdfFileName(workspace.portfolio.title));
