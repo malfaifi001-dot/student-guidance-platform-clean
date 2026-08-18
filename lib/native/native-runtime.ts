@@ -1,4 +1,8 @@
 import { Capacitor } from "@capacitor/core";
+import {
+  logNativeRuntimeDiagnostic,
+  safeDiagnosticMessage,
+} from "@/lib/native/native-runtime-diagnostics";
 
 export const NATIVE_LAST_ROUTE_STORAGE_KEY = "teachix_native_last_route";
 
@@ -46,8 +50,24 @@ export function readNativeLastRoute(): string | null {
   if (typeof window === "undefined") return null;
 
   try {
-    return getSafeNativeRoute(window.localStorage.getItem(NATIVE_LAST_ROUTE_STORAGE_KEY) || "");
-  } catch {
+    const storedRoute = window.localStorage.getItem(NATIVE_LAST_ROUTE_STORAGE_KEY);
+    logNativeRuntimeDiagnostic("last-route-read", { hasStoredRoute: Boolean(storedRoute) });
+    if (!storedRoute) {
+      logNativeRuntimeDiagnostic("last-route-rejected", { reason: "NO_STORED_ROUTE" });
+      return null;
+    }
+
+    const safeRoute = getSafeNativeRoute(storedRoute);
+    logNativeRuntimeDiagnostic(safeRoute ? "last-route-valid" : "last-route-rejected", {
+      ...(safeRoute ? { safePath: safeRoute } : { reason: "INVALID_ROUTE" }),
+    });
+    return safeRoute;
+  } catch (error) {
+    logNativeRuntimeDiagnostic("native-runtime-error", {
+      errorCode: "NATIVE_LAST_ROUTE_READ_ERROR",
+      message: safeDiagnosticMessage(error),
+      context: "readNativeLastRoute",
+    });
     return null;
   }
 }
@@ -61,9 +81,14 @@ export function persistNativeRoute(value = window.location.pathname): void {
       window.localStorage.setItem(NATIVE_LAST_ROUTE_STORAGE_KEY, safeRoute);
     } else if (window.location.pathname === "/login") {
       window.localStorage.removeItem(NATIVE_LAST_ROUTE_STORAGE_KEY);
+      logNativeRuntimeDiagnostic("last-route-cleared", { reason: "LOGIN_ROUTE" });
     }
   } catch {
-    // Native route persistence is a convenience and must never affect navigation.
+    logNativeRuntimeDiagnostic("native-runtime-error", {
+      errorCode: "NATIVE_LAST_ROUTE_WRITE_ERROR",
+      message: "Unable to persist native route",
+      context: "persistNativeRoute",
+    });
   }
 }
 
@@ -72,8 +97,13 @@ export function clearNativeLastRoute(): void {
 
   try {
     window.localStorage.removeItem(NATIVE_LAST_ROUTE_STORAGE_KEY);
+    logNativeRuntimeDiagnostic("last-route-cleared", { reason: "EXPLICIT_CLEAR" });
   } catch {
-    // Ignore storage failures; authentication remains server-side.
+    logNativeRuntimeDiagnostic("native-runtime-error", {
+      errorCode: "NATIVE_LAST_ROUTE_WRITE_ERROR",
+      message: "Unable to clear native route",
+      context: "clearNativeLastRoute",
+    });
   }
 }
 
