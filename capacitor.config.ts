@@ -9,6 +9,18 @@ const config: CapacitorConfig = {
     cleartext: false,
     allowNavigation: ['https://teachix.sa'],
   },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 800,
+      launchAutoHide: true,
+        backgroundColor: '#1769FF',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_INSIDE',
+      showSpinner: false,
+      splashFullScreen: false,
+      splashImmersive: false,
+    },
+  },
 };
 
 export default config;

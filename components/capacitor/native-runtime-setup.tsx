@@ -10,6 +10,8 @@ import {
 import {
   clearNativeLastRoute,
   createNativeRouteTracker,
+  getNativeDiagnosticPath,
+  getNativeDeepLinkRejectionReason,
   getSafeNativeDeepLinkPath,
   isNativeCapacitor,
   navigateNativeDeepLink,
@@ -39,17 +41,6 @@ export function NativeRuntimeSetup() {
     let removeUrlListener: (() => Promise<void>) | null = null;
     let removeStateListener: (() => Promise<void>) | null = null;
 
-    const getDeepLinkRejectionReason = (url: string) => {
-      try {
-        const parsed = new URL(url);
-        return parsed.protocol !== "https:" || parsed.hostname !== "teachix.sa"
-          ? "EXTERNAL_ROUTE"
-          : "INVALID_ROUTE";
-      } catch {
-        return "INVALID_ROUTE";
-      }
-    };
-
     const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
       const pathnameBefore = window.location.pathname;
       let safePath: string | null = null;
@@ -66,8 +57,8 @@ export function NativeRuntimeSetup() {
       }
 
       logNativeRuntimeDiagnostic("deep-link-parsed", {
-        safePath,
-        pathnameBefore,
+        safePath: safePath ? getNativeDiagnosticPath(safePath) : null,
+        pathnameBefore: getNativeDiagnosticPath(pathnameBefore),
         allowed: Boolean(safePath),
         coldStart: Boolean(options?.coldStart),
       });
@@ -75,7 +66,7 @@ export function NativeRuntimeSetup() {
       if (!safePath) {
         logNativeRuntimeDiagnostic("deep-link-rejected", {
           allowed: false,
-          rejectionReason: getDeepLinkRejectionReason(url),
+          rejectionReason: getNativeDeepLinkRejectionReason(url),
           coldStart: Boolean(options?.coldStart),
         });
         return false;
@@ -84,11 +75,11 @@ export function NativeRuntimeSetup() {
       if (!options?.coldStart && !startupResolutionComplete) {
         pendingStartupPath = safePath;
         logNativeRuntimeDiagnostic("warm-app-url-received", {
-          safePath,
+          safePath: getNativeDiagnosticPath(safePath),
           coldStart: true,
         });
         logNativeRuntimeDiagnostic("cold-start-app-url-suppressed", {
-          safePath,
+          safePath: getNativeDiagnosticPath(safePath),
           coldStart: true,
         });
         return true;
@@ -96,7 +87,7 @@ export function NativeRuntimeSetup() {
 
       if (lastHandledSafePath === safePath) {
         logNativeRuntimeDiagnostic("duplicate-deep-link-skipped", {
-          safePath,
+          safePath: getNativeDiagnosticPath(safePath),
           coldStart: Boolean(options?.coldStart),
         });
         return true;
@@ -104,7 +95,7 @@ export function NativeRuntimeSetup() {
 
       if (!options?.coldStart) {
         logNativeRuntimeDiagnostic("warm-app-url-received", {
-          safePath,
+          safePath: getNativeDiagnosticPath(safePath),
           coldStart: false,
         });
       }
@@ -113,8 +104,8 @@ export function NativeRuntimeSetup() {
       pendingStartupPath = null;
       deepLinkHandled = true;
       logNativeRuntimeDiagnostic("deep-link-navigation-start", {
-        safePath,
-        pathnameBefore,
+        safePath: getNativeDiagnosticPath(safePath),
+        pathnameBefore: getNativeDiagnosticPath(pathnameBefore),
         coldStart: Boolean(options?.coldStart),
       });
 
@@ -123,7 +114,7 @@ export function NativeRuntimeSetup() {
           coldStartNavigationCompleted = true;
           window.location.replace(safePath);
           logNativeRuntimeDiagnostic("cold-start-launch-url-handled", {
-            safePath,
+            safePath: getNativeDiagnosticPath(safePath),
             coldStart: true,
           });
         } else {
@@ -131,8 +122,8 @@ export function NativeRuntimeSetup() {
         }
 
         logNativeRuntimeDiagnostic("deep-link-navigation-complete-attempt", {
-          safePath,
-          pathnameAfter: window.location.pathname,
+          safePath: getNativeDiagnosticPath(safePath),
+          pathnameAfter: getNativeDiagnosticPath(window.location.pathname),
           coldStart: Boolean(options?.coldStart),
         });
       } catch (error) {
@@ -140,7 +131,7 @@ export function NativeRuntimeSetup() {
           errorCode: "NATIVE_DEEP_LINK_NAVIGATION_ERROR",
           message: safeDiagnosticMessage(error),
           context: options?.coldStart ? "cold-start" : "warm-app-url",
-          safePath,
+          safePath: getNativeDiagnosticPath(safePath),
           coldStart: Boolean(options?.coldStart),
         });
       }
@@ -214,7 +205,7 @@ export function NativeRuntimeSetup() {
       const launchSafePath = launchUrl?.url ? getSafeNativeDeepLinkPath(launchUrl.url) : null;
       if (launchUrl?.url) {
         logNativeRuntimeDiagnostic("launch-url-received", {
-          safePath: launchSafePath,
+          safePath: launchSafePath ? getNativeDiagnosticPath(launchSafePath) : null,
           allowed: Boolean(launchSafePath),
           coldStart: true,
         });
@@ -230,13 +221,13 @@ export function NativeRuntimeSetup() {
           pendingStartupPath = null;
           coldStartNavigationCompleted = true;
           logNativeRuntimeDiagnostic("cold-start-already-at-target", {
-            safePath: coldPath,
-            pathname: window.location.pathname,
+            safePath: getNativeDiagnosticPath(coldPath),
+            pathname: getNativeDiagnosticPath(window.location.pathname),
             coldStart: true,
           });
           logNativeRuntimeDiagnostic("cold-start-launch-complete", {
-            safePath: coldPath,
-            pathname: window.location.pathname,
+            safePath: getNativeDiagnosticPath(coldPath),
+            pathname: getNativeDiagnosticPath(window.location.pathname),
             coldStart: true,
           });
         } else {

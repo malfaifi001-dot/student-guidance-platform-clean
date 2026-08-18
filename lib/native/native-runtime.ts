@@ -6,12 +6,57 @@ import {
 
 export const NATIVE_LAST_ROUTE_STORAGE_KEY = "teachix_native_last_route";
 
+const TECHNICAL_ROUTE_PREFIXES = [
+  "/api",
+  "/portfolio-export-preview/",
+  "/report-2-export-preview/",
+  "/pdf-preview/",
+  "/print/",
+];
+
 export function isNativeCapacitor(): boolean {
   return Capacitor.isNativePlatform();
 }
 
+function isTechnicalNativeRoute(pathname: string): boolean {
+  return TECHNICAL_ROUTE_PREFIXES.some((prefix) => {
+    if (prefix === "/api") return pathname === "/api" || pathname.startsWith("/api/");
+    return pathname === prefix.slice(0, -1) || pathname.startsWith(prefix);
+  });
+}
+
 function isAllowedNativeRoute(pathname: string): boolean {
+  return pathname.startsWith("/") && !pathname.startsWith("//") && !isTechnicalNativeRoute(pathname);
+}
+
+function isPersistableNativeRoute(pathname: string): boolean {
   return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+}
+
+export function getNativeDeepLinkRejectionReason(value: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return "UNSAFE_SCHEME";
+    if (url.hostname !== "teachix.sa") return "EXTERNAL_ORIGIN";
+    if (isTechnicalNativeRoute(url.pathname)) return "TECHNICAL_ROUTE_DENIED";
+    return "INVALID_ROUTE";
+  } catch {
+    return "INVALID_ROUTE";
+  }
+}
+
+export function getNativeDiagnosticPath(pathname: string): string {
+  const tokenizedPrefixes = [
+    "/school-signature/",
+    "/report-signature/",
+    "/survey/",
+    "/teacher/activity-assignment/",
+  ];
+
+  const tokenizedPrefix = tokenizedPrefixes.find((prefix) => pathname.startsWith(prefix));
+  if (tokenizedPrefix) return `${tokenizedPrefix}[token]`;
+
+  return pathname;
 }
 
 export function getSafeNativeDeepLinkPath(value: string): string | null {
@@ -32,6 +77,21 @@ export function getSafeNativeDeepLinkPath(value: string): string | null {
 }
 
 export function getSafeNativeRoute(value: string): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin || !isPersistableNativeRoute(url.pathname)) {
+      return null;
+    }
+
+    return url.pathname;
+  } catch {
+    return null;
+  }
+}
+
+export function getSafeNativeNavigationPath(value: string): string | null {
   if (typeof window === "undefined") return null;
 
   try {
@@ -110,7 +170,7 @@ export function clearNativeLastRoute(): void {
 export function navigateNativeDeepLink(pathname: string): boolean {
   if (typeof window === "undefined") return false;
 
-  const safePath = getSafeNativeRoute(pathname);
+  const safePath = getSafeNativeNavigationPath(pathname);
   if (!safePath) return false;
 
   if (window.location.pathname === safePath) {
@@ -137,11 +197,11 @@ export function createNativeRouteTracker() {
 
   const originalPushState = window.history.pushState.bind(window.history);
   const originalReplaceState = window.history.replaceState.bind(window.history);
-  const routes = [getSafeNativeRoute(window.location.pathname) || "/dashboard"];
+  const routes = [getSafeNativeNavigationPath(window.location.pathname) || "/dashboard"];
   let currentIndex = 0;
 
   const recordPush = () => {
-    const route = getSafeNativeRoute(window.location.pathname);
+    const route = getSafeNativeNavigationPath(window.location.pathname);
     if (!route) return;
 
     routes.splice(currentIndex + 1);
@@ -151,7 +211,7 @@ export function createNativeRouteTracker() {
   };
 
   const recordReplace = () => {
-    const route = getSafeNativeRoute(window.location.pathname);
+    const route = getSafeNativeNavigationPath(window.location.pathname);
     if (!route) return;
 
     routes[currentIndex] = route;
@@ -159,7 +219,7 @@ export function createNativeRouteTracker() {
   };
 
   const handlePopState = () => {
-    const route = getSafeNativeRoute(window.location.pathname);
+    const route = getSafeNativeNavigationPath(window.location.pathname);
     if (!route) return;
 
     const existingIndex = routes.lastIndexOf(route);
