@@ -14,6 +14,20 @@ const TECHNICAL_ROUTE_PREFIXES = [
   "/print/",
 ];
 
+const PUBLIC_TOKEN_ROUTE_PREFIXES = [
+  "/school-signature/",
+  "/survey/",
+  "/teacher/activity-assignment/",
+  "/report-signature/",
+];
+
+export type NativeRouteKind =
+  | "DASHBOARD_APP_ROUTE"
+  | "PUBLIC_TOKEN_ROUTE"
+  | "PUBLIC_PAGE"
+  | "TECHNICAL_DENIED_ROUTE"
+  | "INVALID_ROUTE";
+
 export function isNativeCapacitor(): boolean {
   return Capacitor.isNativePlatform();
 }
@@ -25,8 +39,29 @@ function isTechnicalNativeRoute(pathname: string): boolean {
   });
 }
 
+export function getNativeRouteKind(pathname: string): NativeRouteKind {
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
+    return "INVALID_ROUTE";
+  }
+
+  if (isTechnicalNativeRoute(pathname)) {
+    return "TECHNICAL_DENIED_ROUTE";
+  }
+
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    return "DASHBOARD_APP_ROUTE";
+  }
+
+  if (PUBLIC_TOKEN_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return "PUBLIC_TOKEN_ROUTE";
+  }
+
+  return "PUBLIC_PAGE";
+}
+
 function isAllowedNativeRoute(pathname: string): boolean {
-  return pathname.startsWith("/") && !pathname.startsWith("//") && !isTechnicalNativeRoute(pathname);
+  return getNativeRouteKind(pathname) !== "TECHNICAL_DENIED_ROUTE" &&
+    getNativeRouteKind(pathname) !== "INVALID_ROUTE";
 }
 
 function isPersistableNativeRoute(pathname: string): boolean {
@@ -38,7 +73,9 @@ export function getNativeDeepLinkRejectionReason(value: string): string {
     const url = new URL(value);
     if (url.protocol !== "https:") return "UNSAFE_SCHEME";
     if (url.hostname !== "teachix.sa") return "EXTERNAL_ORIGIN";
-    if (isTechnicalNativeRoute(url.pathname)) return "TECHNICAL_ROUTE_DENIED";
+    if (getNativeRouteKind(url.pathname) === "TECHNICAL_DENIED_ROUTE") {
+      return "TECHNICAL_ROUTE_DENIED";
+    }
     return "INVALID_ROUTE";
   } catch {
     return "INVALID_ROUTE";
@@ -46,14 +83,7 @@ export function getNativeDeepLinkRejectionReason(value: string): string {
 }
 
 export function getNativeDiagnosticPath(pathname: string): string {
-  const tokenizedPrefixes = [
-    "/school-signature/",
-    "/report-signature/",
-    "/survey/",
-    "/teacher/activity-assignment/",
-  ];
-
-  const tokenizedPrefix = tokenizedPrefixes.find((prefix) => pathname.startsWith(prefix));
+  const tokenizedPrefix = PUBLIC_TOKEN_ROUTE_PREFIXES.find((prefix) => pathname.startsWith(prefix));
   if (tokenizedPrefix) return `${tokenizedPrefix}[token]`;
 
   return pathname;
@@ -175,6 +205,17 @@ export function navigateNativeDeepLink(pathname: string): boolean {
 
   if (window.location.pathname === safePath) {
     persistNativeRoute(safePath);
+    return true;
+  }
+
+  const routeKind = getNativeRouteKind(safePath);
+  if (routeKind === "PUBLIC_TOKEN_ROUTE") {
+    logNativeRuntimeDiagnostic("public-token-route-full-navigation", {
+      routeKind,
+      safeRouteLabel: getNativeDiagnosticPath(safePath),
+      coldStart: false,
+    });
+    window.location.assign(safePath);
     return true;
   }
 
