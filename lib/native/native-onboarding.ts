@@ -2,8 +2,10 @@ import { Capacitor } from "@capacitor/core";
 
 export const NATIVE_ONBOARDING_COMPLETED_KEY = "teachix_native_onboarding_completed";
 export const NATIVE_STARTUP_READY_EVENT = "teachix:native-startup-ready";
+export const NATIVE_ONBOARDING_REVIEW_EVENT = "teachix:native-onboarding-review";
 
 let startupDecision: { deepLinkHandled: boolean } | null = null;
+let nativeOnboardingReviewOpen = false;
 
 export function hasCompletedNativeOnboarding(): boolean {
   if (!Capacitor.isNativePlatform() || typeof window === "undefined") return false;
@@ -38,4 +40,24 @@ export function publishNativeStartupReady(deepLinkHandled: boolean): void {
 
 export function getNativeStartupDecision(): { deepLinkHandled: boolean } | null {
   return startupDecision;
+}
+
+export function openNativeOnboardingReview(returnPath: "/login" | "/register"): void {
+  if (!Capacitor.isNativePlatform() || typeof window === "undefined") return;
+  nativeOnboardingReviewOpen = true;
+  window.dispatchEvent(new CustomEvent(NATIVE_ONBOARDING_REVIEW_EVENT, {
+    detail: { action: "open", returnPath },
+  }));
+}
+
+export function closeNativeOnboardingReview(): void {
+  if (!Capacitor.isNativePlatform() || typeof window === "undefined") return;
+  nativeOnboardingReviewOpen = false;
+  window.dispatchEvent(new CustomEvent(NATIVE_ONBOARDING_REVIEW_EVENT, {
+    detail: { action: "close" },
+  }));
+}
+
+export function isNativeOnboardingReviewOpen(): boolean {
+  return nativeOnboardingReviewOpen;
 }

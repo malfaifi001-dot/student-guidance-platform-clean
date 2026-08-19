@@ -1,11 +1,12 @@
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 type NativeAuthBrandProps = {
-  title: string;
+  title?: string;
+  hideTitle?: boolean;
   description: string;
 };
 
-export function NativeAuthBrand({ title, description }: NativeAuthBrandProps) {
+export function NativeAuthBrand({ title, hideTitle = false, description }: NativeAuthBrandProps) {
   return (
     <header className="text-center">
       <div className="mx-auto flex w-fit items-center gap-2.5 text-[#1769FF] dark:text-white">
@@ -14,10 +15,12 @@ export function NativeAuthBrand({ title, description }: NativeAuthBrandProps) {
           Teachix
         </span>
       </div>
-      <h1 className="mt-8 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">
-        {title}
-      </h1>
-      <p className="mx-auto mt-3 max-w-sm text-sm font-medium leading-7 text-slate-500 dark:text-slate-300">
+      {title && !hideTitle ? (
+        <h1 className="mt-5 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">
+          {title}
+        </h1>
+      ) : null}
+      <p className={`${title && !hideTitle ? "mt-2" : "mt-4"} mx-auto max-w-sm text-sm font-medium leading-6 text-slate-500 dark:text-slate-300`}>
         {description}
       </p>
     </header>

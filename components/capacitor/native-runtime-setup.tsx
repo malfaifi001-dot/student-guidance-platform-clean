@@ -20,7 +20,11 @@ import {
   readNativeLastRoute,
   releaseNativeRuntime,
 } from "@/lib/native/native-runtime";
-import { publishNativeStartupReady } from "@/lib/native/native-onboarding";
+import {
+  closeNativeOnboardingReview,
+  isNativeOnboardingReviewOpen,
+  publishNativeStartupReady,
+} from "@/lib/native/native-onboarding";
 
 export function NativeRuntimeSetup() {
   const [startupGateActive, setStartupGateActive] = useState(false);
@@ -165,6 +169,11 @@ export function NativeRuntimeSetup() {
     };
 
     void App.addListener("backButton", () => {
+      if (isNativeOnboardingReviewOpen()) {
+        closeNativeOnboardingReview();
+        return;
+      }
+
       const meaningfulInternalHistory = routeTracker.canGoBack();
       logNativeRuntimeDiagnostic("back-button-received", { meaningfulInternalHistory });
 

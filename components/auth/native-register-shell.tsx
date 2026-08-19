@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
 import { NativeAuthBrand } from "@/components/auth/native-auth-brand";
+import { openNativeOnboardingReview } from "@/lib/native/native-onboarding";
 
 type Gender = "MALE" | "FEMALE";
 
@@ -71,9 +72,10 @@ export function NativeRegisterShell({
           paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
         }}
       >
-        <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-5 py-8 sm:px-8">
+        <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-start px-5 py-6 sm:px-8 sm:py-8">
           <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-7">
             <NativeAuthBrand
+              hideTitle
               title="إنشاء حساب"
               description="أنشئ حسابك في Teachix وابدأ بتنظيم أعمالك بسهولة."
             />
@@ -84,7 +86,7 @@ export function NativeRegisterShell({
               </div>
             ) : null}
 
-            <form onSubmit={onOpenPreferences} className="mt-7 space-y-3.5">
+            <form onSubmit={onOpenPreferences} className="mt-6 space-y-3.5">
               <NativeInput id="native-register-name" label="الاسم الكامل" value={name} onChange={onNameChange} autoComplete="name" />
               <NativeInput id="native-register-phone" label="رقم الجوال" type="tel" value={phone} onChange={onPhoneChange} placeholder="05XXXXXXXX" inputMode="numeric" maxLength={10} autoComplete="tel" dir="ltr" />
               <NativeInput
@@ -97,7 +99,7 @@ export function NativeRegisterShell({
                 dir="ltr"
                 trailingAction={{ label: passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور", onClick: onPasswordVisibilityChange, icon: passwordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" /> }}
               />
-              <p className="px-1 text-xs font-bold text-slate-400">8 أحرف على الأقل</p>
+              <p className="-mt-1 px-1 text-[13px] font-semibold leading-5 text-slate-400">8 أحرف على الأقل</p>
               <NativeInput
                 id="native-register-confirm-password"
                 label="تأكيد كلمة المرور"
@@ -109,23 +111,30 @@ export function NativeRegisterShell({
                 trailingAction={{ label: confirmPasswordVisible ? "إخفاء التأكيد" : "إظهار التأكيد", onClick: onConfirmPasswordVisibilityChange, icon: confirmPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" /> }}
               />
 
-              <label className="flex items-start gap-3 px-1 text-xs font-bold leading-6 text-slate-500 dark:text-slate-300">
-                <input type="checkbox" checked={acceptedTerms} onChange={(event) => onAcceptedTermsChange(event.target.checked)} className="mt-1 h-5 w-5 rounded border-slate-300 text-[#1769FF] focus:ring-[#1769FF]" />
+              <label className="flex min-h-11 items-start gap-3 px-1 text-sm font-semibold leading-5 text-slate-500 dark:text-slate-300">
+                <input type="checkbox" checked={acceptedTerms} onChange={(event) => onAcceptedTermsChange(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-[#1769FF] focus:ring-[#1769FF]" />
                 <span>
                   أوافق على <Link href="/terms" className="text-[#1769FF] underline-offset-2 hover:underline">الشروط والأحكام</Link> و<Link href="/privacy" className="text-[#1769FF] underline-offset-2 hover:underline"> سياسة الاستخدام</Link>
                 </span>
               </label>
 
-              <button type="submit" className="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700">
+              <button type="submit" className="mt-1 inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-base font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700">
                 متابعة إنشاء الحساب <ArrowLeft className="h-4 w-4" />
               </button>
             </form>
 
-            <div className="mt-8 border-t border-slate-100 pt-6 text-center dark:border-white/10">
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">لديك حساب بالفعل؟</p>
-              <Link href="/login" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-black text-[#1769FF]">
+            <div className="mt-5 border-t border-slate-100 pt-4 text-center dark:border-white/10">
+              <p className="hidden">لديك حساب بالفعل؟</p>
+              <Link href="/login" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
                 تسجيل الدخول <ArrowLeft className="h-4 w-4" />
               </Link>
+              <button
+                type="button"
+                onClick={() => openNativeOnboardingReview("/register")}
+                className="mt-2.5 inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
+              >
+                استعراض مميزات Teachix
+              </button>
             </div>
           </div>
         </div>
@@ -162,12 +171,12 @@ type NativeInputProps = {
 
 function NativeInput({ id, label, value, onChange, type = "text", placeholder, inputMode, maxLength, autoComplete, dir = "auto", trailingAction }: NativeInputProps) {
   return (
-    <label className="block text-sm font-black text-slate-700 dark:text-slate-200" htmlFor={id}>
+    <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor={id}>
       {label}
       <span className="relative mt-2 block">
         <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} autoComplete={autoComplete} dir={dir} className={["min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500", trailingAction ? "pl-14" : ""].join(" ")} />
         {trailingAction ? (
-          <button type="button" onClick={trailingAction.onClick} aria-label={trailingAction.label} className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/70 dark:hover:bg-white/10 dark:hover:text-white">
+          <button type="button" onClick={trailingAction.onClick} aria-label={trailingAction.label} className="absolute left-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/70 dark:hover:bg-white/10 dark:hover:text-white">
             {trailingAction.icon}
           </button>
         ) : null}

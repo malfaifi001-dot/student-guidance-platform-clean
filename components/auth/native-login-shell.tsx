@@ -3,6 +3,7 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 import { BrandLoader } from "@/components/common/brand-loader";
 import { NativeAuthBrand } from "@/components/auth/native-auth-brand";
+import { openNativeOnboardingReview } from "@/lib/native/native-onboarding";
 
 type NativeLoginShellProps = {
   identifier: string;
@@ -39,6 +40,7 @@ export function NativeLoginShell({
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-5 py-8 sm:px-8">
         <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-7">
           <NativeAuthBrand
+            hideTitle
             title="تسجيل الدخول"
             description="مرحبًا بعودتك، سجّل الدخول للمتابعة إلى حسابك."
           />
@@ -53,21 +55,22 @@ export function NativeLoginShell({
           ) : null}
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
-            <label className="block text-sm font-black text-slate-700 dark:text-slate-200" htmlFor="native-login-identifier">
+            <label className="sr-only" htmlFor="native-login-identifier">
               البريد الإلكتروني أو رقم الجوال
               <input
                 id="native-login-identifier"
                 type="text"
                 value={identifier}
                 onChange={(event) => onIdentifierChange(event.target.value)}
-                placeholder="example@email.com أو 05XXXXXXXX"
+                placeholder="البريد الإلكتروني أو رقم الجوال"
+                aria-label="البريد الإلكتروني أو رقم الجوال"
                 autoComplete="username"
                 dir="auto"
                 className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
               />
             </label>
 
-            <label className="block text-sm font-black text-slate-700 dark:text-slate-200" htmlFor="native-login-password">
+            <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor="native-login-password">
               كلمة المرور
               <span className="relative mt-2 block">
                 <input
@@ -83,7 +86,7 @@ export function NativeLoginShell({
                   type="button"
                   onClick={onPasswordVisibilityChange}
                   aria-label={passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                  className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="absolute left-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
                 >
                   {passwordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -99,18 +102,25 @@ export function NativeLoginShell({
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-base font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? <BrandLoader variant="button" size="xs" label="جاري الدخول..." /> : "تسجيل الدخول"}
               {!loading ? <ArrowLeft className="h-4 w-4" /> : null}
             </button>
           </form>
 
-          <div className="mt-8 border-t border-slate-100 pt-6 text-center dark:border-white/10">
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">ليس لديك حساب؟</p>
-            <Link href="/register" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-black text-[#1769FF]">
+          <div className="mt-5 border-t border-slate-100 pt-4 text-center dark:border-white/10">
+            <p className="hidden">ليس لديك حساب؟</p>
+            <Link href="/register" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
               إنشاء حساب <ArrowLeft className="h-4 w-4" />
             </Link>
+            <button
+              type="button"
+              onClick={() => openNativeOnboardingReview("/login")}
+              className="mt-2.5 inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
+            >
+              استعراض مميزات Teachix
+            </button>
           </div>
         </div>
       </div>

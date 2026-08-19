@@ -15,8 +15,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   completeNativeOnboarding,
+  closeNativeOnboardingReview,
   getNativeStartupDecision,
   hasCompletedNativeOnboarding,
+  NATIVE_ONBOARDING_REVIEW_EVENT,
   NATIVE_STARTUP_READY_EVENT,
 } from "@/lib/native/native-onboarding";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
@@ -130,11 +132,28 @@ function isDeepLinkStartupEvent(event: Event): boolean {
 export function NativeOnboardingShell() {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
+  const [mode, setMode] = useState<"startup" | "review">("startup");
   const [slideIndex, setSlideIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isNativeCapacitor()) return;
+
+    const onReviewRequest = (event: Event) => {
+      const detail = (event as CustomEvent<{ action?: "open" | "close" }>).detail;
+      if (detail?.action === "open") {
+        setMode("review");
+        setSlideIndex(0);
+        setVisible(true);
+        logNativeRuntimeDiagnostic("native-onboarding-review-opened", { coldStart: false });
+      } else if (detail?.action === "close") {
+        setVisible(false);
+        setMode("startup");
+        logNativeRuntimeDiagnostic("native-onboarding-review-closed", { coldStart: false });
+      }
+    };
+
+    window.addEventListener(NATIVE_ONBOARDING_REVIEW_EVENT, onReviewRequest);
 
     const decide = (deepLinkHandled: boolean) => {
       if (deepLinkHandled) {
@@ -160,7 +179,10 @@ export function NativeOnboardingShell() {
     const startupDecision = getNativeStartupDecision();
     if (startupDecision) decide(startupDecision.deepLinkHandled);
 
-    return () => window.removeEventListener(NATIVE_STARTUP_READY_EVENT, onStartupReady);
+    return () => {
+      window.removeEventListener(NATIVE_STARTUP_READY_EVENT, onStartupReady);
+      window.removeEventListener(NATIVE_ONBOARDING_REVIEW_EVENT, onReviewRequest);
+    };
   }, []);
 
   if (!visible || !isNativeCapacitor()) return null;
@@ -179,6 +201,11 @@ export function NativeOnboardingShell() {
   };
 
   const completeAndNavigate = (path?: "/login" | "/register") => {
+    if (mode === "review") {
+      closeNativeOnboardingReview();
+      return;
+    }
+
     completeNativeOnboarding();
     setVisible(false);
     logNativeRuntimeDiagnostic("native-onboarding-completed", { coldStart: true });
@@ -186,6 +213,11 @@ export function NativeOnboardingShell() {
   };
 
   const skip = () => {
+    if (mode === "review") {
+      closeNativeOnboardingReview();
+      return;
+    }
+
     completeNativeOnboarding();
     setVisible(false);
     logNativeRuntimeDiagnostic("native-onboarding-skipped", { coldStart: true });
@@ -213,10 +245,19 @@ export function NativeOnboardingShell() {
     >
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col px-5 py-4">
         <div className="flex min-h-10 items-center justify-start">
+          {mode === "review" ? (
+            <button
+              type="button"
+              onClick={() => closeNativeOnboardingReview()}
+              className="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10"
+            >
+              إغلاق
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={skip}
-            className="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10"
+            className={`min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 ${mode === "review" ? "hidden" : ""}`}
           >
             تخطي
           </button>
@@ -250,17 +291,26 @@ export function NativeOnboardingShell() {
 
           {isLast ? (
             <div className="grid gap-3">
+              {mode === "review" ? (
+                <button
+                  type="button"
+                  onClick={() => closeNativeOnboardingReview()}
+                  className="min-h-12 rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
+                >
+                  العودة
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => completeAndNavigate("/login")}
-                className="min-h-12 rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
+                className={`min-h-12 rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F] ${mode === "review" ? "hidden" : ""}`}
               >
                 تسجيل الدخول
               </button>
               <button
                 type="button"
                 onClick={() => completeAndNavigate("/register")}
-                className="min-h-12 rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-black text-[#1769FF] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:border-white/15 dark:bg-[#102138] dark:text-blue-200 dark:hover:bg-[#17304e]"
+                className={`min-h-12 rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-black text-[#1769FF] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:border-white/15 dark:bg-[#102138] dark:text-blue-200 dark:hover:bg-[#17304e] ${mode === "review" ? "hidden" : ""}`}
               >
                 إنشاء حساب
               </button>
