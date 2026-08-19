@@ -16,19 +16,23 @@ import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { BrandLoader } from "@/components/common/brand-loader";
 import { NativeLoginShell } from "@/components/auth/native-login-shell";
 import {
+  AuthPresentationPending,
+  useAuthPresentation,
+} from "@/components/auth/auth-presentation-gate";
+import {
   classifyLoginIdentifier,
   LOGIN_IDENTIFIER_ERROR,
   normalizeLoginIdentifier,
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
-import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
 }
 
 export default function LoginPage() {
+  const presentation = useAuthPresentation();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -81,7 +85,11 @@ export default function LoginPage() {
     }
   }
 
-  if (isNativeCapacitor()) {
+  if (presentation === "unknown") {
+    return <AuthPresentationPending />;
+  }
+
+  if (presentation === "native") {
     return (
       <NativeLoginShell
         identifier={identifier}

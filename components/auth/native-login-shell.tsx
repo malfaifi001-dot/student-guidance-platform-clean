@@ -37,7 +37,7 @@ export function NativeLoginShell({
       }}
     >
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-5 py-8 sm:px-8">
-        <div className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-8">
+        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-7">
           <NativeAuthBrand
             title="تسجيل الدخول"
             description="مرحبًا بعودتك، سجّل الدخول للمتابعة إلى حسابك."
@@ -52,7 +52,7 @@ export function NativeLoginShell({
             </div>
           ) : null}
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+          <form onSubmit={onSubmit} className="mt-7 space-y-4">
             <label className="block text-sm font-black text-slate-700 dark:text-slate-200" htmlFor="native-login-identifier">
               البريد الإلكتروني أو رقم الجوال
               <input
@@ -63,7 +63,7 @@ export function NativeLoginShell({
                 placeholder="example@email.com أو 05XXXXXXXX"
                 autoComplete="username"
                 dir="auto"
-                className="mt-2 min-h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
+                className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
               />
             </label>
 
@@ -77,7 +77,7 @@ export function NativeLoginShell({
                   onChange={(event) => onPasswordChange(event.target.value)}
                   autoComplete="current-password"
                   dir="ltr"
-                  className="min-h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-14 text-base font-semibold text-slate-950 outline-none transition focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-14 text-base font-semibold text-slate-950 outline-none transition focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white"
                 />
                 <button
                   type="button"
@@ -99,7 +99,7 @@ export function NativeLoginShell({
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? <BrandLoader variant="button" size="xs" label="جاري الدخول..." /> : "تسجيل الدخول"}
               {!loading ? <ArrowLeft className="h-4 w-4" /> : null}

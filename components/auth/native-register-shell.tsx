@@ -72,7 +72,7 @@ export function NativeRegisterShell({
         }}
       >
         <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-5 py-8 sm:px-8">
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-8">
+          <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-7">
             <NativeAuthBrand
               title="إنشاء حساب"
               description="أنشئ حسابك في Teachix وابدأ بتنظيم أعمالك بسهولة."
@@ -84,7 +84,7 @@ export function NativeRegisterShell({
               </div>
             ) : null}
 
-            <form onSubmit={onOpenPreferences} className="mt-8 space-y-4">
+            <form onSubmit={onOpenPreferences} className="mt-7 space-y-3.5">
               <NativeInput id="native-register-name" label="الاسم الكامل" value={name} onChange={onNameChange} autoComplete="name" />
               <NativeInput id="native-register-phone" label="رقم الجوال" type="tel" value={phone} onChange={onPhoneChange} placeholder="05XXXXXXXX" inputMode="numeric" maxLength={10} autoComplete="tel" dir="ltr" />
               <NativeInput
@@ -116,7 +116,7 @@ export function NativeRegisterShell({
                 </span>
               </label>
 
-              <button type="submit" className="mt-2 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700">
+              <button type="submit" className="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-sm font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700">
                 متابعة إنشاء الحساب <ArrowLeft className="h-4 w-4" />
               </button>
             </form>
@@ -165,7 +165,7 @@ function NativeInput({ id, label, value, onChange, type = "text", placeholder, i
     <label className="block text-sm font-black text-slate-700 dark:text-slate-200" htmlFor={id}>
       {label}
       <span className="relative mt-2 block">
-        <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} autoComplete={autoComplete} dir={dir} className={["min-h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500", trailingAction ? "pl-14" : ""].join(" ")} />
+        <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} autoComplete={autoComplete} dir={dir} className={["min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500", trailingAction ? "pl-14" : ""].join(" ")} />
         {trailingAction ? (
           <button type="button" onClick={trailingAction.onClick} aria-label={trailingAction.label} className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/70 dark:hover:bg-white/10 dark:hover:text-white">
             {trailingAction.icon}

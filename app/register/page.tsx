@@ -21,13 +21,16 @@ import { RegisterPreferencesPopCard } from "@/components/auth/register-preferenc
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
 import { NativeRegisterShell } from "@/components/auth/native-register-shell";
 import {
+  AuthPresentationPending,
+  useAuthPresentation,
+} from "@/components/auth/auth-presentation-gate";
+import {
   isValidSaudiMobile,
   normalizeSaudiMobile,
   SAUDI_MOBILE_ERROR,
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
-import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 type Gender = "MALE" | "FEMALE";
 
@@ -36,6 +39,7 @@ async function readJson(response: Response) {
 }
 
 export default function RegisterPage() {
+  const presentation = useAuthPresentation();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -151,7 +155,11 @@ export default function RegisterPage() {
     }
   }
 
-  if (isNativeCapacitor()) {
+  if (presentation === "unknown") {
+    return <AuthPresentationPending />;
+  }
+
+  if (presentation === "native") {
     return (
       <NativeRegisterShell
         name={name}
