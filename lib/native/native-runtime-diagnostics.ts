@@ -17,6 +17,7 @@ const VERBOSE_EVENTS = new Set([
   "back-button-received",
   "back-navigation-history",
   "back-at-root",
+  "native-onboarding-slide-changed",
 ]);
 
 function getSafeDiagnosticPath(pathname: string): string {

@@ -20,6 +20,7 @@ import {
   readNativeLastRoute,
   releaseNativeRuntime,
 } from "@/lib/native/native-runtime";
+import { publishNativeStartupReady } from "@/lib/native/native-onboarding";
 
 export function NativeRuntimeSetup() {
   const [startupGateActive, setStartupGateActive] = useState(false);
@@ -289,6 +290,7 @@ export function NativeRuntimeSetup() {
       logNativeRuntimeDiagnostic("warm-listener-enabled", { coldStart: false });
 
       if (deepLinkHandled) {
+        publishNativeStartupReady(true);
         logNativeRuntimeDiagnostic("restore-skipped", {
           reason: "DEEP_LINK_HAS_PRIORITY",
           skipped: true,
@@ -296,6 +298,7 @@ export function NativeRuntimeSetup() {
         });
       } else if (window.location.pathname !== "/dashboard") {
         releaseStartupGate("NOT_DASHBOARD_ROOT");
+        publishNativeStartupReady(false);
         logNativeRuntimeDiagnostic("restore-skipped", {
           reason: "NOT_DASHBOARD_ROOT",
           skipped: true,
@@ -313,6 +316,7 @@ export function NativeRuntimeSetup() {
           logNativeRuntimeDiagnostic("last-route-restored", { safePath: lastRoute });
         } else {
           releaseStartupGate("NO_LAUNCH_URL");
+          publishNativeStartupReady(false);
           logNativeRuntimeDiagnostic("restore-skipped", {
             reason: "NO_STORED_ROUTE",
             skipped: true,
