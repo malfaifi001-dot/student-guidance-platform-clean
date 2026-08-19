@@ -63,7 +63,7 @@ export function NativeLoginShell({
             type="button"
             onClick={() => openNativeOnboardingReview("/login")}
             aria-label="استعراض مميزات Teachix"
-            className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-[#1769FF] transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
+            className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-sky-600 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-600/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
           >
             <CircleAlert className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -93,7 +93,7 @@ export function NativeLoginShell({
                 onChange={(event) => onIdentifierChange(event.target.value)}
                 autoComplete="username"
                 dir="auto"
-                className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
+                className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-600 focus:ring-4 focus:ring-sky-600/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
               />
             </label>
 
@@ -107,7 +107,7 @@ export function NativeLoginShell({
                   onChange={(event) => onPasswordChange(event.target.value)}
                   autoComplete="current-password"
                   dir="ltr"
-                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-14 text-base font-semibold text-slate-950 outline-none transition focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white"
+                  className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-14 text-base font-semibold text-slate-950 outline-none transition focus:border-sky-600 focus:ring-4 focus:ring-sky-600/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white"
                 />
                 <button
                   type="button"
@@ -124,10 +124,10 @@ export function NativeLoginShell({
               <button
                 type="button"
                 onClick={openLoginSupport}
-                aria-label="نسيت كلمة المرور؟ تواصل مع الدعم عبر واتساب"
-                className="inline-flex min-h-10 items-center rounded-xl px-2 text-sm font-bold text-[#1769FF] underline-offset-4 transition hover:bg-blue-50 hover:underline focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:hover:bg-white/10"
+                aria-label="نسيت كلمة المرور؟ التواصل مع الدعم عبر واتساب"
+                className="inline-flex min-h-10 items-center rounded-xl px-2 text-sm font-semibold text-sky-600 underline-offset-4 transition hover:bg-sky-50 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-600/30 dark:hover:bg-white/10"
               >
-                نسيت كلمة المرور؟ تواصل مع الدعم
+                نسيت كلمة المرور؟
               </button>
               {supportError ? (
                 <p role="alert" className="text-sm font-bold leading-6 text-red-600 dark:text-red-300">
@@ -139,7 +139,7 @@ export function NativeLoginShell({
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-base font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-6 text-base font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? <BrandLoader variant="button" size="xs" label="جاري الدخول..." /> : "تسجيل الدخول"}
               {!loading ? <ArrowLeft className="h-4 w-4" /> : null}
@@ -148,7 +148,7 @@ export function NativeLoginShell({
 
           <div className="mt-5 border-t border-slate-100 pt-4 text-center dark:border-white/10">
             <p className="hidden">ليس لديك حساب؟</p>
-            <Link href="/register" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
+            <Link href="/register" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-sky-600">
               إنشاء حساب <ArrowLeft className="h-4 w-4" />
             </Link>
           </div>

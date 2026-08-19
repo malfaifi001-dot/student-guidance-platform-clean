@@ -78,7 +78,7 @@ export function NativeRegisterShell({
               type="button"
               onClick={() => openNativeOnboardingReview("/register")}
               aria-label="استعراض مميزات Teachix"
-              className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-[#1769FF] transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
+              className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-sky-600 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-600/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
             >
               <CircleAlert className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -120,21 +120,21 @@ export function NativeRegisterShell({
                 trailingAction={{ label: confirmPasswordVisible ? "إخفاء التأكيد" : "إظهار التأكيد", onClick: onConfirmPasswordVisibilityChange, icon: confirmPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" /> }}
               />
 
-              <label className="flex min-h-11 items-start gap-3 px-1 text-sm font-semibold leading-5 text-slate-500 dark:text-slate-300">
-                <input type="checkbox" checked={acceptedTerms} onChange={(event) => onAcceptedTermsChange(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-[#1769FF] focus:ring-[#1769FF]" />
+              <label className="flex min-h-11 items-start gap-3 px-1 text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-300">
+                <input type="checkbox" checked={acceptedTerms} onChange={(event) => onAcceptedTermsChange(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-600" />
                 <span>
-                  أوافق على <Link href="/terms" className="text-[#1769FF] underline-offset-2 hover:underline">الشروط والأحكام</Link> و<Link href="/privacy" className="text-[#1769FF] underline-offset-2 hover:underline"> سياسة الاستخدام</Link>
+                  أوافق على <Link href="/terms" className="text-sky-600 underline-offset-2 hover:underline">الشروط والأحكام</Link> و<Link href="/privacy" className="text-sky-600 underline-offset-2 hover:underline"> سياسة الاستخدام</Link>
                 </span>
               </label>
 
-              <button type="submit" className="mt-1 inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1769FF] px-6 text-base font-black text-white shadow-lg shadow-[#1769FF]/20 transition hover:bg-blue-700">
+              <button type="submit" className="mt-1 inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-6 text-base font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700">
                 متابعة إنشاء الحساب <ArrowLeft className="h-4 w-4" />
               </button>
             </form>
 
             <div className="mt-5 border-t border-slate-100 pt-4 text-center dark:border-white/10">
               <p className="hidden">لديك حساب بالفعل؟</p>
-              <Link href="/login" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
+              <Link href="/login" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-sky-600">
                 تسجيل الدخول <ArrowLeft className="h-4 w-4" />
               </Link>
             </div>
@@ -176,7 +176,7 @@ function NativeInput({ id, label, value, onChange, type = "text", placeholder, i
     <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor={id}>
       {label}
       <span className="relative mt-2 block">
-        <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} autoComplete={autoComplete} dir={dir} className={["min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500", trailingAction ? "pl-14" : ""].join(" ")} />
+        <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} autoComplete={autoComplete} dir={dir} className={["min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-600 focus:ring-4 focus:ring-sky-600/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500", trailingAction ? "pl-14" : ""].join(" ")} />
         {trailingAction ? (
           <button type="button" onClick={trailingAction.onClick} aria-label={trailingAction.label} className="absolute left-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-200/70 dark:hover:bg-white/10 dark:hover:text-white">
             {trailingAction.icon}

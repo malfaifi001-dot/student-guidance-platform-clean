@@ -85,10 +85,10 @@ function Illustration({ kind }: { kind: Slide["visual"] }) {
           <div className="mt-2 h-3 w-1/2 rounded-full bg-slate-100 dark:bg-slate-800" />
         </div>
         <div className="absolute bottom-7 left-3 rounded-2xl border border-blue-100 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#0D1B2E]">
-          <FileText className="h-8 w-8 text-[#1769FF]" />
+          <FileText className="h-8 w-8 text-sky-600" />
         </div>
         <div className="absolute right-3 top-2 rounded-2xl border border-blue-100 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#0D1B2E]">
-          <LayoutDashboard className="h-8 w-8 text-[#1769FF]" />
+          <LayoutDashboard className="h-8 w-8 text-sky-600" />
         </div>
       </div>
     );
@@ -98,7 +98,7 @@ function Illustration({ kind }: { kind: Slide["visual"] }) {
 
   return (
     <div className="relative mx-auto flex h-64 w-full max-w-sm items-center justify-center" aria-hidden="true">
-      <div className="z-10 grid h-24 w-24 place-items-center rounded-[2rem] bg-[#1769FF] shadow-2xl shadow-blue-950/25">
+      <div className="z-10 grid h-24 w-24 place-items-center rounded-[2rem] bg-sky-600 shadow-2xl shadow-sky-950/25">
         <div className="h-12 w-12 rounded-full border-[5px] border-white/95" />
       </div>
       {cards.map(({ label, icon: Icon }, index) => {
@@ -115,7 +115,7 @@ function Illustration({ kind }: { kind: Slide["visual"] }) {
             key={label}
             className={`absolute ${positions[index]} flex items-center gap-2 rounded-2xl border border-blue-100 bg-white px-3 py-2 shadow-lg dark:border-white/10 dark:bg-[#102138]`}
           >
-            <Icon className="h-4 w-4 shrink-0 text-[#1769FF]" />
+            <Icon className="h-4 w-4 shrink-0 text-sky-600" />
             <span className="text-[11px] font-black text-slate-700 dark:text-slate-200">{label}</span>
           </div>
         );
@@ -249,7 +249,7 @@ export function NativeOnboardingShell() {
             <button
               type="button"
               onClick={() => closeNativeOnboardingReview()}
-              className="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10"
+              className="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 dark:text-slate-400 dark:hover:bg-white/10"
             >
               إغلاق
             </button>
@@ -257,7 +257,7 @@ export function NativeOnboardingShell() {
           <button
             type="button"
             onClick={skip}
-            className={`min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 ${mode === "review" ? "hidden" : ""}`}
+            className={`min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 dark:text-slate-400 dark:hover:bg-white/10 ${mode === "review" ? "hidden" : ""}`}
           >
             تخطي
           </button>
@@ -284,7 +284,7 @@ export function NativeOnboardingShell() {
                 onClick={() => goToSlide(index)}
                 aria-label={`الانتقال إلى الشريحة ${index + 1}`}
                 aria-current={index === slideIndex ? "step" : undefined}
-                className={`h-2.5 rounded-full transition-all duration-200 ${index === slideIndex ? "w-8 bg-[#1769FF]" : "w-2.5 bg-slate-300 dark:bg-slate-700"}`}
+                className={`h-2.5 rounded-full transition-all duration-200 ${index === slideIndex ? "w-8 bg-sky-600" : "w-2.5 bg-slate-300 dark:bg-slate-700"}`}
               />
             ))}
           </div>
@@ -295,7 +295,7 @@ export function NativeOnboardingShell() {
                 <button
                   type="button"
                   onClick={() => closeNativeOnboardingReview()}
-                  className="min-h-12 rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
+                  className="min-h-12 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
                 >
                   العودة
                 </button>
@@ -303,14 +303,14 @@ export function NativeOnboardingShell() {
               <button
                 type="button"
                 onClick={() => completeAndNavigate("/login")}
-                className={`min-h-12 rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F] ${mode === "review" ? "hidden" : ""}`}
+                className={`min-h-12 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 dark:ring-offset-[#07111F] ${mode === "review" ? "hidden" : ""}`}
               >
                 تسجيل الدخول
               </button>
               <button
                 type="button"
                 onClick={() => completeAndNavigate("/register")}
-                className={`min-h-12 rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-black text-[#1769FF] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] dark:border-white/15 dark:bg-[#102138] dark:text-blue-200 dark:hover:bg-[#17304e] ${mode === "review" ? "hidden" : ""}`}
+                className={`min-h-12 rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-black text-sky-600 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 dark:border-white/15 dark:bg-[#102138] dark:text-blue-200 dark:hover:bg-[#17304e] ${mode === "review" ? "hidden" : ""}`}
               >
                 إنشاء حساب
               </button>
@@ -319,7 +319,7 @@ export function NativeOnboardingShell() {
             <button
               type="button"
               onClick={() => goToSlide(slideIndex + 1)}
-              className="min-h-12 w-full rounded-2xl bg-[#1769FF] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1769FF] focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
+              className="min-h-12 w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
             >
               التالي
             </button>

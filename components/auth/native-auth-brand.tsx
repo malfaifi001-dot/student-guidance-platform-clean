@@ -9,8 +9,8 @@ type NativeAuthBrandProps = {
 export function NativeAuthBrand({ title, hideTitle = false, description }: NativeAuthBrandProps) {
   return (
     <header className="text-center">
-      <div className="mx-auto flex w-fit items-center gap-2.5 text-[#1769FF] dark:text-white">
-        <TeachixLogo iconOnly size="md" className="!w-10 text-[#1769FF] dark:text-white" />
+      <div className="mx-auto flex w-fit items-center gap-2.5 text-sky-600 dark:text-white">
+        <TeachixLogo iconOnly size="md" className="!w-10 text-sky-600 dark:text-white" />
         <span className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
           Teachix
         </span>
