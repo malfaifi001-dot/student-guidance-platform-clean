@@ -244,26 +244,7 @@ export function NativeOnboardingShell() {
       }}
     >
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col px-5 py-4">
-        <div className="flex min-h-10 items-center justify-start">
-          {mode === "review" ? (
-            <button
-              type="button"
-              onClick={() => closeNativeOnboardingReview()}
-              className="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 dark:text-slate-400 dark:hover:bg-white/10"
-            >
-              إغلاق
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={skip}
-            className={`min-h-11 rounded-xl px-3 text-sm font-black text-slate-500 transition hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 dark:text-slate-400 dark:hover:bg-white/10 ${mode === "review" ? "hidden" : ""}`}
-          >
-            تخطي
-          </button>
-        </div>
-
-        <div className="flex flex-1 flex-col justify-center py-4">
+        <div className="flex flex-1 -translate-y-[30%] flex-col justify-center py-4">
           <div className="transition-opacity duration-200" key={slide.visual}>
             <Illustration kind={slide.visual} />
             <div className="mx-auto mt-2 max-w-md text-center">
