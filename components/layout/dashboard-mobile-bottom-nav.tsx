@@ -68,14 +68,14 @@ export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-center text-[12px] leading-4 transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1769FF] ${
+              className={`flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-center text-[12px] leading-4 transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-600 ${
                 active
-                  ? "font-semibold text-[#1769FF]"
-                  : "font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                  ? "font-semibold text-sky-600"
+                  : "font-normal text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300"
               }`}
             >
               <span className="grid h-6 w-6 place-items-center" aria-hidden="true">
-                <Icon className="h-6 w-6" />
+                <Icon className="h-6 w-6" strokeWidth={active ? 2 : 1.75} />
               </span>
               <span className="max-w-full truncate">{item.label}</span>
             </Link>
