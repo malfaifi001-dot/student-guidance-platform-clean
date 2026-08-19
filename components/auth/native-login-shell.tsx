@@ -55,8 +55,7 @@ export function NativeLoginShell({
           ) : null}
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
-            <label className="sr-only" htmlFor="native-login-identifier">
-              البريد الإلكتروني أو رقم الجوال
+            <div>
               <input
                 id="native-login-identifier"
                 type="text"
@@ -68,7 +67,7 @@ export function NativeLoginShell({
                 dir="auto"
                 className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
               />
-            </label>
+            </div>
 
             <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor="native-login-password">
               كلمة المرور

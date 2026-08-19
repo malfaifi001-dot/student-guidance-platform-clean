@@ -55,10 +55,10 @@ export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps
     <nav
       aria-label="التنقل الرئيسي للهاتف"
       data-mobile-bottom-nav="true"
-      className={`fixed inset-x-3 bottom-3 ${MOBILE_LAYER_Z_INDEX.navigation} mx-auto max-w-md rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-1.5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/90 dark:shadow-[0_12px_30px_rgba(2,6,23,0.4)] md:hidden`}
-      style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}
+      className={`fixed left-1/2 bottom-0 ${MOBILE_LAYER_Z_INDEX.navigation} h-16 w-[calc(100%-44px)] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-[32px] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.08)] dark:bg-[#102138] dark:shadow-[0_8px_28px_rgba(2,6,23,0.32)] md:hidden`}
+      style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="mx-auto grid min-h-16 w-full grid-cols-4 gap-1 px-0.5">
+      <div className="grid h-16 w-full grid-cols-4">
         {items.map((item) => {
           const active = isActivePath(pathname, item);
           const Icon = item.icon;
@@ -68,16 +68,16 @@ export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-center text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3478B8] ${
+              className={`flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-center text-[12px] leading-4 transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1769FF] ${
                 active
-                  ? "bg-sky-50 text-[#3478B8] dark:bg-sky-950/70 dark:text-sky-300"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                  ? "font-semibold text-[#1769FF]"
+                  : "font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               }`}
             >
-              <span className={`grid h-7 w-7 place-items-center rounded-xl ${active ? "bg-sky-100 dark:bg-sky-900/80" : "bg-transparent"}`} aria-hidden="true">
-                <Icon className="h-5 w-5" />
+              <span className="grid h-6 w-6 place-items-center" aria-hidden="true">
+                <Icon className="h-6 w-6" />
               </span>
-              <span>{item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}
