@@ -244,7 +244,7 @@ export function NativeOnboardingShell() {
       }}
     >
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col px-5 py-4">
-        <div className="flex flex-1 -translate-y-[30%] flex-col justify-center py-4">
+        <div className="flex flex-1 -translate-y-6 flex-col justify-center py-4">
           <div className="transition-opacity duration-200" key={slide.visual}>
             <Illustration kind={slide.visual} />
             <div className="mx-auto mt-2 max-w-md text-center">
@@ -256,7 +256,7 @@ export function NativeOnboardingShell() {
           </div>
         </div>
 
-        <div className="space-y-5 pb-2">
+        <div className="space-y-5 pb-8">
           <div className="flex justify-center gap-2" aria-label={`الشريحة ${slideIndex + 1} من ${slides.length}`}>
             {slides.map((item, index) => (
               <button
@@ -278,7 +278,7 @@ export function NativeOnboardingShell() {
                   onClick={() => closeNativeOnboardingReview()}
                   className="min-h-12 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 dark:ring-offset-[#07111F]"
                 >
-                  العودة
+                  ابدأ الآن
                 </button>
               ) : null}
               <button

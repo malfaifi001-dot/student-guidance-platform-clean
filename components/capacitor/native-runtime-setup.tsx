@@ -364,7 +364,7 @@ export function NativeRuntimeSetup() {
     const applyStatusBar = () => {
       const isDark = document.documentElement.classList.contains("dark");
       void StatusBar.setOverlaysWebView({ overlay: false });
-      void StatusBar.setBackgroundColor({ color: isDark ? "#07111F" : "#FFFFFF" });
+      void StatusBar.setBackgroundColor({ color: isDark ? "#07111F" : "#F8FAFC" });
       void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
     };
 

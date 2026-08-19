@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="teachix_splash_blue">#1769FF</color>
+    <color name="teachix_light_surface">#F8FAFC</color>
+    <color name="teachix_dark_surface">#07111F</color>
 </resources>
