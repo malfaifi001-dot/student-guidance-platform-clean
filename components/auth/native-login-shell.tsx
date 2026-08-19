@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, CircleAlert, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 import { BrandLoader } from "@/components/common/brand-loader";
 import { NativeAuthBrand } from "@/components/auth/native-auth-brand";
+import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { openNativeOnboardingReview } from "@/lib/native/native-onboarding";
+
+const NATIVE_LOGIN_SUPPORT_MESSAGE =
+  "السلام عليكم، أحتاج مساعدة في استعادة الوصول إلى حساب Teachix.";
 
 type NativeLoginShellProps = {
   identifier: string;
@@ -28,6 +34,20 @@ export function NativeLoginShell({
   onPasswordVisibilityChange,
   onSubmit,
 }: NativeLoginShellProps) {
+  const [supportError, setSupportError] = useState("");
+
+  async function openLoginSupport() {
+    setSupportError("");
+
+    try {
+      await openExternalUrl(
+        `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(NATIVE_LOGIN_SUPPORT_MESSAGE)}`,
+      );
+    } catch {
+      setSupportError("تعذر فتح واتساب. حاول مرة أخرى أو تواصل مع دعم Teachix.");
+    }
+  }
+
   return (
     <main
       dir="rtl"
@@ -38,7 +58,16 @@ export function NativeLoginShell({
       }}
     >
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-5 py-8 sm:px-8">
-        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-6">
+        <div className="relative rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-6">
+          <button
+            type="button"
+            onClick={() => openNativeOnboardingReview("/login")}
+            aria-label="استعراض مميزات Teachix"
+            className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-[#1769FF] transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
+          >
+            <CircleAlert className="h-5 w-5" aria-hidden="true" />
+          </button>
+
           <NativeAuthBrand
             hideTitle
             title="تسجيل الدخول"
@@ -55,19 +84,18 @@ export function NativeLoginShell({
           ) : null}
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
-            <div>
+            <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor="native-login-identifier">
+              رقم الجوال
               <input
                 id="native-login-identifier"
                 type="text"
                 value={identifier}
                 onChange={(event) => onIdentifierChange(event.target.value)}
-                placeholder="البريد الإلكتروني أو رقم الجوال"
-                aria-label="البريد الإلكتروني أو رقم الجوال"
                 autoComplete="username"
                 dir="auto"
                 className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#1769FF] focus:ring-4 focus:ring-[#1769FF]/10 dark:border-white/10 dark:bg-[#0D1B2E] dark:text-white dark:placeholder:text-slate-500"
               />
-            </div>
+            </label>
 
             <label className="block text-[14px] font-semibold leading-5 text-slate-700 dark:text-slate-200" htmlFor="native-login-password">
               كلمة المرور
@@ -92,10 +120,20 @@ export function NativeLoginShell({
               </span>
             </label>
 
-            <div className="flex items-center justify-start">
-              <Link href="/forgot-password" className="text-sm font-bold text-[#1769FF] underline-offset-4 hover:underline">
-                نسيت كلمة المرور؟
-              </Link>
+            <div className="flex flex-col items-start gap-2">
+              <button
+                type="button"
+                onClick={openLoginSupport}
+                aria-label="نسيت كلمة المرور؟ تواصل مع الدعم عبر واتساب"
+                className="inline-flex min-h-10 items-center rounded-xl px-2 text-sm font-bold text-[#1769FF] underline-offset-4 transition hover:bg-blue-50 hover:underline focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:hover:bg-white/10"
+              >
+                نسيت كلمة المرور؟ تواصل مع الدعم
+              </button>
+              {supportError ? (
+                <p role="alert" className="text-sm font-bold leading-6 text-red-600 dark:text-red-300">
+                  {supportError}
+                </p>
+              ) : null}
             </div>
 
             <button
@@ -113,13 +151,6 @@ export function NativeLoginShell({
             <Link href="/register" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
               إنشاء حساب <ArrowLeft className="h-4 w-4" />
             </Link>
-            <button
-              type="button"
-              onClick={() => openNativeOnboardingReview("/login")}
-              className="mt-2.5 inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
-            >
-              استعراض مميزات Teachix
-            </button>
           </div>
         </div>
       </div>

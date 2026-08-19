@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, CircleAlert, Eye, EyeOff } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
@@ -73,7 +73,16 @@ export function NativeRegisterShell({
         }}
       >
         <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-start px-5 py-6 sm:px-8 sm:py-8">
-          <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-6">
+          <div className="relative rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#102138] sm:p-6">
+            <button
+              type="button"
+              onClick={() => openNativeOnboardingReview("/register")}
+              aria-label="استعراض مميزات Teachix"
+              className="absolute left-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-[#1769FF] transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#1769FF]/30 dark:border-white/15 dark:text-blue-200 dark:hover:bg-white/10"
+            >
+              <CircleAlert className="h-5 w-5" aria-hidden="true" />
+            </button>
+
             <NativeAuthBrand
               hideTitle
               title="إنشاء حساب"
@@ -128,13 +137,6 @@ export function NativeRegisterShell({
               <Link href="/login" className="mt-0 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#1769FF]">
                 تسجيل الدخول <ArrowLeft className="h-4 w-4" />
               </Link>
-              <button
-                type="button"
-                onClick={() => openNativeOnboardingReview("/register")}
-                className="mt-2.5 inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#1769FF] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
-              >
-                استعراض مميزات Teachix
-              </button>
             </div>
           </div>
         </div>
