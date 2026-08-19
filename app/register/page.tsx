@@ -19,6 +19,7 @@ import { TeachixLogo } from "@/components/brand/teachix-logo";
 
 import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 import type { AccountType } from "@/components/auth/register-preferences-pop-card";
+import { NativeRegisterShell } from "@/components/auth/native-register-shell";
 import {
   isValidSaudiMobile,
   normalizeSaudiMobile,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 type Gender = "MALE" | "FEMALE";
 
@@ -147,6 +149,51 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isNativeCapacitor()) {
+    return (
+      <NativeRegisterShell
+        name={name}
+        phone={phone}
+        password={password}
+        confirmPassword={confirmPassword}
+        gender={gender}
+        accountType={accountType}
+        preferencesOpen={preferencesOpen}
+        passwordVisible={passwordVisible}
+        confirmPasswordVisible={confirmPasswordVisible}
+        error={error}
+        loading={loading}
+        acceptedTerms={acceptedTerms}
+        onNameChange={setName}
+        onPhoneChange={setPhone}
+        onPasswordChange={setPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onPasswordVisibilityChange={() => setPasswordVisible((current) => !current)}
+        onConfirmPasswordVisibilityChange={() => setConfirmPasswordVisible((current) => !current)}
+        onAcceptedTermsChange={(value) => {
+          setAcceptedTerms(value);
+          setError("");
+        }}
+        onOpenPreferences={openPreferences}
+        onClosePreferences={() => {
+          if (!loading) {
+            setPreferencesOpen(false);
+          }
+        }}
+        onSelectGender={(value) => {
+          setGender(value);
+          setAccountType(null);
+          setError("");
+        }}
+        onSelectRole={(value) => {
+          setAccountType(value);
+          setError("");
+        }}
+        onConfirmRegistration={submitRegistration}
+      />
+    );
   }
 
   return (

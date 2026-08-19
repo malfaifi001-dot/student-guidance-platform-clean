@@ -14,6 +14,7 @@ import { useState } from "react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { BrandLoader } from "@/components/common/brand-loader";
+import { NativeLoginShell } from "@/components/auth/native-login-shell";
 import {
   classifyLoginIdentifier,
   LOGIN_IDENTIFIER_ERROR,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
@@ -77,6 +79,22 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isNativeCapacitor()) {
+    return (
+      <NativeLoginShell
+        identifier={identifier}
+        password={password}
+        passwordVisible={passwordVisible}
+        error={error}
+        loading={loading}
+        onIdentifierChange={setIdentifier}
+        onPasswordChange={setPassword}
+        onPasswordVisibilityChange={() => setPasswordVisible((current) => !current)}
+        onSubmit={submit}
+      />
+    );
   }
 
   return (
