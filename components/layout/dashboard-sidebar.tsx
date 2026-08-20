@@ -367,6 +367,11 @@ const teacherServiceLinks: SidebarLinkItem[] = [
     icon: FileCheck2,
   },
   {
+    label: "توزيع المنهج",
+    href: "/dashboard/teacher/curriculum-distribution",
+    icon: BookOpen,
+  },
+  {
     label: "التقويم والتنبيهات",
     href: "/dashboard/teacher/calendar",
     icon: CalendarDays,

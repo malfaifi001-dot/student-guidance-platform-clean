@@ -280,6 +280,111 @@ model SchoolAccount {
   reportSignatureRequests      ReportSignatureRequest[]
 }
 
+// Imported, platform-owned curriculum catalog. This data is not school-scoped.
+model CurriculumStage {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  name        String
+  parentId    String?
+  parent      CurriculumStage? @relation("CurriculumStageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    CurriculumStage[] @relation("CurriculumStageHierarchy")
+  sortOrder   Int @default(0)
+  tracks      CurriculumTrack[]
+  grades      CurriculumGrade[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([parentId, sortOrder])
+}
+
+model CurriculumTrack {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  name        String
+  stageId     String
+  stage       CurriculumStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  grades      CurriculumGrade[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([stageId, name])
+  @@index([stageId])
+}
+
+model CurriculumGrade {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  name        String
+  stageId     String
+  stage       CurriculumStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  trackId     String?
+  track       CurriculumTrack? @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  semesters   CurriculumSemester[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([stageId, trackId, name])
+  @@index([stageId, trackId])
+}
+
+model CurriculumSemester {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  name        String
+  gradeId     String
+  grade       CurriculumGrade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subjects   CurriculumSubject[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([gradeId, name])
+  @@index([gradeId])
+}
+
+model CurriculumSubject {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  name        String
+  isExtra     Boolean @default(false)
+  semesterId  String
+  semester    CurriculumSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  weeks       CurriculumWeek[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([semesterId, name])
+  @@index([semesterId])
+}
+
+model CurriculumWeek {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  sequence    Int
+  subjectId   String
+  subject     CurriculumSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  lessons     CurriculumLesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([subjectId, sequence])
+  @@index([subjectId, sequence])
+}
+
+model CurriculumLesson {
+  id          String @id @default(cuid())
+  sourceKey   String @unique @db.VarChar(191)
+  text        String @db.Text
+  unit        String?
+  lesson     String?
+  weekId      String
+  week        CurriculumWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([weekId])
+}
+
 model User {
   id              String         @id @default(cuid())
   schoolAccountId String?
@@ -307,6 +412,7 @@ model User {
 
   cases                       CaseEntry[]
   sessions                    UserSession[]
+  pushDevices                 PushDevice[]
   calendarReminders           CalendarReminder[]
   createdActivityAssignments  ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
   createdInternalAssignments  InternalAssignment[] @relation("InternalAssignmentsCreatedBy")
@@ -382,6 +488,24 @@ model UserSession {
   @@index([tokenId])
   @@index([isActive])
   @@index([expiresAt])
+}
+
+model PushDevice {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String    @unique @db.VarChar(64)
+  encryptedToken String    @db.Text
+  platform       String    @db.VarChar(20)
+  packageName    String    @db.VarChar(100)
+  enabled        Boolean   @default(true)
+  revokedAt      DateTime?
+  lastSeenAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, enabled])
+  @@index([userId, platform, packageName])
 }
 
 model SchoolProfile {

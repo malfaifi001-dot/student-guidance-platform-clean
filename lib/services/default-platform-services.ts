@@ -5,6 +5,11 @@ import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/eva
 
 export const DEFAULT_PLATFORM_SERVICES = [
   {
+    slug: "curriculum-distribution",
+    name: "توزيع المنهج",
+    description: "استعراض توزيع الوحدات والدروس للمعلمين.",
+  },
+  {
     slug: ACTIVITY_PROGRAM_PARENT_SERVICE.slug,
     name: ACTIVITY_PROGRAM_PARENT_SERVICE.title,
     description: ACTIVITY_PROGRAM_PARENT_SERVICE.description,

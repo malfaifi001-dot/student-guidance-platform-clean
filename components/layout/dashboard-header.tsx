@@ -14,6 +14,11 @@ import {
   trackAnalyticsEvent,
 } from "@/lib/analytics/analytics-client";
 import {
+  initializeNativePushNotifications,
+  revokeCurrentNativePushDevice,
+} from "@/lib/native/native-push";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import {
   ChevronDown,
   LogOut,
   Menu,
@@ -54,6 +59,11 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!isNativeCapacitor()) return;
+    void initializeNativePushNotifications();
+  }, []);
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -131,6 +141,7 @@ export function DashboardHeader({ user, subscription }: DashboardHeaderProps) {
         : "";
 
   async function logout() {
+    await revokeCurrentNativePushDevice();
     const response = await fetch("/api/auth/logout", {
       method: "POST",
     });

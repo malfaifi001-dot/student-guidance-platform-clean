@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { App } from "@capacitor/app";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import {
   logNativeRuntimeDiagnostic,
@@ -61,6 +62,7 @@ export function NativeRuntimeSetup() {
     let removeBackListener: (() => Promise<void>) | null = null;
     let removeUrlListener: (() => Promise<void>) | null = null;
     let removeStateListener: (() => Promise<void>) | null = null;
+    let removePushActionListener: (() => Promise<void>) | null = null;
 
     const releaseStartupGate = (reason: string) => {
       setStartupGateActive(false);
@@ -167,6 +169,39 @@ export function NativeRuntimeSetup() {
 
       return true;
     };
+
+    void PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
+      const route = notification.data?.route;
+      const url =
+        typeof route === "string"
+          ? route.startsWith("/")
+            ? `https://teachix.sa${route}`
+            : route
+          : "";
+      const accepted = handleIncomingUrl(url);
+
+      logNativeRuntimeDiagnostic("push-notification-opened", {
+        hasRoute: typeof route === "string" && route.length > 0,
+        accepted,
+      });
+
+      if (!accepted) {
+        logNativeRuntimeDiagnostic("push-route-rejected", {
+          reason: "UNSAFE_OR_MISSING_ROUTE",
+        });
+        handleIncomingUrl("https://teachix.sa/dashboard");
+      }
+    }).then((handle) => {
+      if (disposed) {
+        void handle.remove();
+      } else {
+        removePushActionListener = () => handle.remove();
+      }
+    }).catch(() => {
+      logNativeRuntimeDiagnostic("push-route-rejected", {
+        reason: "ACTION_LISTENER_FAILED",
+      });
+    });
 
     void App.addListener("backButton", () => {
       if (isNativeOnboardingReviewOpen()) {
@@ -379,6 +414,7 @@ export function NativeRuntimeSetup() {
       if (removeBackListener) void removeBackListener();
       if (removeUrlListener) void removeUrlListener();
       if (removeStateListener) void removeStateListener();
+      if (removePushActionListener) void removePushActionListener();
       releaseNativeRuntime();
     };
   }, []);

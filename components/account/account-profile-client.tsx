@@ -16,6 +16,7 @@ import {
   clearAnalyticsUserIdentity,
   trackAnalyticsEvent,
 } from "@/lib/analytics/analytics-client";
+import { revokeCurrentNativePushDevice } from "@/lib/native/native-push";
 
 type AccountUser = {
   id: string;
@@ -246,6 +247,7 @@ export function AccountProfileClient() {
   }
 
   async function logout() {
+    await revokeCurrentNativePushDevice();
     const response = await fetch("/api/auth/logout", {
       method: "POST",
     });

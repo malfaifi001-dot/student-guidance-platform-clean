@@ -231,6 +231,13 @@ export const workflowUploadServices: AppService[] =
 
 export const standaloneServices: AppService[] = [
   {
+    slug: "curriculum-distribution",
+    title: "توزيع المنهج",
+    description: "استعراض توزيع الوحدات والدروس للمعلمين.",
+    href: "/dashboard/teacher/curriculum-distribution",
+    kind: "standalone",
+  },
+  {
     slug: "counselor-reference-library",
     title: "مكتبة الموجه الطلابي",
     description:
