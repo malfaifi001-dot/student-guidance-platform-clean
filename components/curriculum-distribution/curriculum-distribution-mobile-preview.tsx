@@ -18,9 +18,12 @@ export function CurriculumDistributionMobilePreview({
   onClose: () => void;
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const frameReadyRef = useRef(false);
   const [scale, setScale] = useState(1);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const [previewReady, setPreviewReady] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +46,22 @@ export function CurriculumDistributionMobilePreview({
       window.removeEventListener("resize", updateScale);
     };
   }, [open]);
+
+  useEffect(() => {
+    frameReadyRef.current = false;
+    setPreviewReady(false);
+    setPreviewError("");
+
+    if (!open || !previewUrl) return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (!frameReadyRef.current) {
+        setPreviewError("تعذر تحميل مستند المعاينة. حاول إغلاق النافذة وفتحها مرة أخرى.");
+      }
+    }, 15000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [open, previewUrl]);
 
   if (!open) return null;
 
@@ -69,7 +88,7 @@ export function CurriculumDistributionMobilePreview({
       onClick={onClose}
     >
       <section
-        className="flex max-h-[94vh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30"
+        className="flex max-h-[94vh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
         aria-label="معاينة توزيع المنهج"
       >
@@ -95,10 +114,39 @@ export function CurriculumDistributionMobilePreview({
             className="relative mx-auto overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
             style={{ height: `${A4_LANDSCAPE_HEIGHT * scale}px` }}
           >
+            {!previewReady && !previewError ? (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white text-center text-sm font-black text-slate-600">
+                <Loader2 className="h-7 w-7 animate-spin text-sky-600" aria-hidden="true" />
+                <span>جارٍ تحميل المعاينة...</span>
+              </div>
+            ) : null}
+            {previewError ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white px-5 text-center text-sm font-bold text-rose-700" role="alert">
+                {previewError}
+              </div>
+            ) : null}
             <iframe
+              key={previewUrl}
               title="معاينة تقرير توزيع المنهج"
               src={previewUrl}
               className="absolute left-1/2 top-0 block border-0 bg-white"
+              onLoad={(event) => {
+                const reportDocument = event.currentTarget.contentDocument;
+                const hasReport = Boolean(reportDocument?.querySelector(".curriculum-print-paper"));
+
+                if (!hasReport) {
+                  frameReadyRef.current = true;
+                  setPreviewError("تعذر العثور على مستند توزيع المنهج في المعاينة.");
+                  return;
+                }
+
+                frameReadyRef.current = true;
+                setPreviewReady(true);
+              }}
+              onError={() => {
+                frameReadyRef.current = true;
+                setPreviewError("تعذر تحميل مستند المعاينة. حاول مرة أخرى.");
+              }}
               style={{
                 width: `${A4_LANDSCAPE_WIDTH}px`,
                 height: `${A4_LANDSCAPE_HEIGHT}px`,
@@ -123,7 +171,7 @@ export function CurriculumDistributionMobilePreview({
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60"
             >
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {downloading ? "جارٍ تجهيز التحميل..." : "تحميل PDF"}
+              {downloading ? "جارٍ تجهيز التحميل..." : "تحميل / طباعة"}
             </button>
             <button
               type="button"
