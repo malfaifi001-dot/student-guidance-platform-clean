@@ -32,6 +32,7 @@ export function PublicCurriculumDistributionTool({ campaignRef = "" }: { campaig
         apiPath="/api/public/curriculum-distribution"
         printPath="/free/curriculum-distribution/studio"
         exportPath="/api/public/curriculum-distribution/export/pdf"
+        downloadFileName="Teachix | الأسهل والأشمل.pdf"
         previewPath="/print/curriculum-distribution"
         publicPreview
         campaignRef={campaignRef}

@@ -16,6 +16,7 @@ type CurriculumDistributionShellProps = {
   apiPath?: string;
   printPath?: string;
   exportPath?: string;
+  downloadFileName?: string;
   previewPath?: string;
   publicPreview?: boolean;
   campaignRef?: string;
@@ -57,6 +58,7 @@ export function CurriculumDistributionShell({
   apiPath = "/api/dashboard/curriculum-distribution",
   printPath = "/print/curriculum-distribution",
   exportPath,
+  downloadFileName = "curriculum-distribution.pdf",
   previewPath,
   publicPreview = false,
   campaignRef,
@@ -121,10 +123,10 @@ export function CurriculumDistributionShell({
       body: exportPath ? {
         subjectId: distribution.subject.id,
         semesterId: distribution.semester.id,
-        fileName: "curriculum-distribution.pdf",
+        fileName: downloadFileName,
       } : undefined,
       printUrl: getPrintUrl(),
-      fileName: "curriculum-distribution.pdf",
+      fileName: downloadFileName,
       blockedTitle: "معاينة الطباعة",
       blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة.",
     });
