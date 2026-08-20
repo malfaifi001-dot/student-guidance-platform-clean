@@ -1,0 +1,34 @@
+workflows:
+  ios-simulator:
+    name: Teachix iOS Simulator
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 22.14.0
+      xcode: 16.4
+    scripts:
+      - name: Install JavaScript dependencies
+        script: npm ci --no-audit --no-fund
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Resolve Swift package dependencies
+        script: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+      - name: Build unsigned iOS Simulator application
+        script: >-
+          xcodebuild -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/ios-simulator
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          CODE_SIGN_IDENTITY=''
+      - name: Package Appetize artifact
+        script: >-
+          mkdir -p build-artifacts &&
+          ditto -c -k --sequesterRsrc --keepParent
+          build/ios-simulator/Build/Products/Debug-iphonesimulator/App.app
+          build-artifacts/Teachix-iOS-Simulator.zip
+    artifacts:
+      - build-artifacts/Teachix-iOS-Simulator.zip

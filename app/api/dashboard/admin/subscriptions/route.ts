@@ -112,6 +112,11 @@ export async function GET() {
                   educationDepartment: true,
                 },
               },
+              users: {
+                where: { isActive: true },
+                select: { id: true, name: true, officialName: true, email: true, role: true, createdAt: true },
+                orderBy: { createdAt: "asc" },
+              },
             },
           },
           plan: true,
@@ -150,7 +155,29 @@ export async function GET() {
       ...row,
       schoolAccount: {
         id: row.schoolAccount.id,
-        name: row.schoolAccount.name,
+        name: primaryUser ? `${primaryUser.officialName || primaryUser.name || primaryUser.email} — ${ACCOUNT_ROLE_LABELS[primaryUser.role] || primaryUser.role}` : "مستخدم غير محدد",
+        accountName: row.schoolAccount.name,
+        schoolName: row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
+        primaryUser: primaryUser
+          ? { id: primaryUser.id, name: primaryUser.name, officialName: primaryUser.officialName, email: primaryUser.email, role: primaryUser.role }
+          : null,
+        additionalUserCount: Math.max(users.length - (primaryUser ? 1 : 0), 0),
+      },
+    };
+  });
+
+  const subscriptionsForAdmin = subscriptions.map((row) => {
+    const users = row.schoolAccount.users;
+    const primaryUser = pickPrimaryAccountUser(users);
+
+    return {
+      ...row,
+      schoolAccount: {
+        id: row.schoolAccount.id,
+        name: primaryUser
+          ? `${primaryUser.officialName || primaryUser.name || primaryUser.email} — ${ACCOUNT_ROLE_LABELS[primaryUser.role] || primaryUser.role}`
+          : "مستخدم غير محدد",
+        accountName: row.schoolAccount.name,
         schoolName: row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
         primaryUser: primaryUser
           ? { id: primaryUser.id, name: primaryUser.name, officialName: primaryUser.officialName, email: primaryUser.email, role: primaryUser.role }
@@ -165,9 +192,16 @@ export async function GET() {
     plans,
     services,
     schools,
-    subscriptions,
+    subscriptions: subscriptionsForAdmin,
     serviceAccess: serviceAccessForAdmin,
   });
+}
+
+const ACCOUNT_USER_ROLE_PRIORITY = ["SCHOOL_OWNER", "PRINCIPAL", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER", "STAFF", "ADMIN"] as const;
+const ACCOUNT_ROLE_LABELS: Record<string, string> = { SCHOOL_OWNER: "مالك المدرسة", PRINCIPAL: "مدير المدرسة", COUNSELOR: "الموجه الطلابي", ACTIVITY_LEADER: "رائد النشاط", TEACHER: "المعلم", STAFF: "الموظف", ADMIN: "المشرف" };
+
+function pickPrimaryAccountUser<T extends { role: string }>(users: T[]) {
+  return ACCOUNT_USER_ROLE_PRIORITY.map((role) => users.find((user) => user.role === role)).find(Boolean) || users[0] || null;
 }
 
 export async function POST(request: Request) {
