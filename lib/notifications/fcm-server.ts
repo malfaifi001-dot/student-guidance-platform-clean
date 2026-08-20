@@ -12,15 +12,6 @@ import {
 import { getSafePushRoute } from "@/lib/notifications/push-routing";
 import { isSafePushPayload, type TeachixPushPayload } from "@/lib/notifications/push-types";
 
-function getFirebaseApp() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
-  if (!projectId || !clientEmail || !privateKey) return null;
-  return getApps()[0] || initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-}
-
 type FirebaseHealthDiagnostic = {
   category: "INVALID_CREDENTIAL" | "INVALID_PRIVATE_KEY" | "INVALID_PROJECT" | "AUTH_ERROR" | "UNKNOWN_FIREBASE_ERROR";
   firebaseCode?: string;
@@ -39,9 +30,34 @@ export type FirebasePrivateKeyDiagnostic = {
   nodeCryptoParse: boolean;
 };
 
-function getFirebasePrivateKeyDiagnostic(): FirebasePrivateKeyDiagnostic {
-  const raw = process.env.FIREBASE_PRIVATE_KEY || "";
-  const normalized = raw.replace(/\\n/g, "\n");
+type FirebasePrivateKeySource = "BASE64" | "PEM" | "NONE";
+
+type ResolvedFirebasePrivateKey = {
+  source: FirebasePrivateKeySource;
+  value?: string;
+  diagnostic: FirebasePrivateKeyDiagnostic;
+  failureCode?: "MISSING_PRIVATE_KEY" | "INVALID_PRIVATE_KEY_BASE64" | "INVALID_PRIVATE_KEY";
+};
+
+function removeMatchingOuterQuotes(value: string): string {
+  if (value.length >= 2 && (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  )) {
+    return value.slice(1, -1).trim();
+  }
+  return value;
+}
+
+function normalizePrivateKey(value: string): string {
+  return removeMatchingOuterQuotes(value.trim())
+    .replace(/\r\n?/g, "\n")
+    .replace(/\\\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\(?=\n)/g, "");
+}
+
+function getPrivateKeyDiagnostic(raw: string, normalized: string): FirebasePrivateKeyDiagnostic {
   const trimmedNormalized = normalized.trim();
   const hasOuterQuotes = raw.length >= 2 && (
     (raw.startsWith('"') && raw.endsWith('"')) ||
@@ -51,7 +67,7 @@ function getFirebasePrivateKeyDiagnostic(): FirebasePrivateKeyDiagnostic {
   let nodeCryptoParse = false;
   if (normalized) {
     try {
-      createPrivateKey({ key: normalized, format: "pem", type: "pkcs8" });
+      createPrivateKey({ key: normalized, format: "pem" });
       nodeCryptoParse = true;
     } catch {
       nodeCryptoParse = false;
@@ -69,6 +85,71 @@ function getFirebasePrivateKeyDiagnostic(): FirebasePrivateKeyDiagnostic {
     normalizationChanged: raw !== normalized,
     nodeCryptoParse,
   };
+}
+
+function isStructurallyValidPrivateKey(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized.startsWith("-----BEGIN PRIVATE KEY-----") || !normalized.endsWith("-----END PRIVATE KEY-----")) {
+    return false;
+  }
+
+  try {
+    createPrivateKey({ key: normalized, format: "pem" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function decodeBase64PrivateKey(rawBase64: string): string | null {
+  const value = removeMatchingOuterQuotes(rawBase64.trim());
+  if (!value || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return null;
+
+  const decoded = Buffer.from(value, "base64").toString("utf8");
+  const normalized = normalizePrivateKey(decoded);
+  return isStructurallyValidPrivateKey(normalized) ? normalized : null;
+}
+
+function resolveFirebasePrivateKey(): ResolvedFirebasePrivateKey {
+  const base64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+  if (base64) {
+    const decoded = decodeBase64PrivateKey(base64);
+    if (decoded) {
+      return {
+        source: "BASE64",
+        value: decoded,
+        diagnostic: getPrivateKeyDiagnostic(base64, decoded),
+      };
+    }
+  }
+
+  const rawPem = process.env.FIREBASE_PRIVATE_KEY || "";
+  const normalizedPem = normalizePrivateKey(rawPem);
+  if (isStructurallyValidPrivateKey(normalizedPem)) {
+    return {
+      source: "PEM",
+      value: normalizedPem,
+      diagnostic: getPrivateKeyDiagnostic(rawPem, normalizedPem),
+    };
+  }
+
+  return {
+    source: "NONE",
+    diagnostic: getPrivateKeyDiagnostic(rawPem, normalizedPem),
+    failureCode: base64
+      ? "INVALID_PRIVATE_KEY_BASE64"
+      : rawPem
+        ? "INVALID_PRIVATE_KEY"
+        : "MISSING_PRIVATE_KEY",
+  };
+}
+
+function getFirebaseApp(privateKey = resolveFirebasePrivateKey().value) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+  if (!projectId || !clientEmail || !privateKey) return null;
+  return getApps()[0] || initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 }
 
 function getFirebaseHealthDiagnostic(error: unknown): FirebaseHealthDiagnostic {
@@ -99,7 +180,7 @@ export function isFirebasePushConfigured(): boolean {
   return Boolean(
     process.env.FIREBASE_PROJECT_ID &&
       process.env.FIREBASE_CLIENT_EMAIL &&
-      process.env.FIREBASE_PRIVATE_KEY,
+      resolveFirebasePrivateKey().value,
   );
 }
 
@@ -108,9 +189,11 @@ export function getFirebaseAdminHealth(): {
     firebaseProjectId: boolean;
     firebaseClientEmail: boolean;
     firebasePrivateKey: boolean;
+    firebasePrivateKeyBase64: boolean;
   };
   firebaseAdmin: boolean;
   firebaseMessaging: boolean;
+  privateKeySource: FirebasePrivateKeySource;
   privateKeyDiagnostic: FirebasePrivateKeyDiagnostic;
   error?: { code: string; message: string; diagnostic?: FirebaseHealthDiagnostic };
 } {
@@ -118,29 +201,38 @@ export function getFirebaseAdminHealth(): {
     firebaseProjectId: Boolean(process.env.FIREBASE_PROJECT_ID),
     firebaseClientEmail: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
     firebasePrivateKey: Boolean(process.env.FIREBASE_PRIVATE_KEY),
+    firebasePrivateKeyBase64: Boolean(process.env.FIREBASE_PRIVATE_KEY_BASE64),
   };
-  const privateKeyDiagnostic = getFirebasePrivateKeyDiagnostic();
+  const resolvedPrivateKey = resolveFirebasePrivateKey();
+  const privateKeyDiagnostic = resolvedPrivateKey.diagnostic;
 
-  if (!isFirebasePushConfigured()) {
+  if (!environment.firebaseProjectId || !environment.firebaseClientEmail || !resolvedPrivateKey.value) {
+    const code = !environment.firebaseProjectId
+      ? "MISSING_FIREBASE_PROJECT_ID"
+      : !environment.firebaseClientEmail
+        ? "MISSING_FIREBASE_CLIENT_EMAIL"
+        : resolvedPrivateKey.failureCode || "INVALID_PRIVATE_KEY";
     return {
       environment,
       firebaseAdmin: false,
       firebaseMessaging: false,
+      privateKeySource: resolvedPrivateKey.source,
       privateKeyDiagnostic,
       error: {
-        code: "FIREBASE_CONFIG_MISSING",
+        code,
         message: "Firebase Admin configuration is incomplete",
       },
     };
   }
 
   try {
-    const app = getFirebaseApp();
+    const app = getFirebaseApp(resolvedPrivateKey.value);
     if (!app) {
       return {
         environment,
         firebaseAdmin: false,
         firebaseMessaging: false,
+        privateKeySource: resolvedPrivateKey.source,
         privateKeyDiagnostic,
         error: {
           code: "FIREBASE_ADMIN_UNAVAILABLE",
@@ -154,6 +246,7 @@ export function getFirebaseAdminHealth(): {
       environment,
       firebaseAdmin: true,
       firebaseMessaging: true,
+      privateKeySource: resolvedPrivateKey.source,
       privateKeyDiagnostic,
     };
   } catch (error) {
@@ -161,6 +254,7 @@ export function getFirebaseAdminHealth(): {
       environment,
       firebaseAdmin: false,
       firebaseMessaging: false,
+      privateKeySource: resolvedPrivateKey.source,
       privateKeyDiagnostic,
       error: {
         code: "FIREBASE_ADMIN_INITIALIZATION_FAILED",

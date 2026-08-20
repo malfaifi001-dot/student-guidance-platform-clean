@@ -21,9 +21,10 @@ export async function GET() {
         ...firebase.environment,
         pushTokenEncryptionKey: pushEncryption,
       },
+      privateKeySource: firebase.privateKeySource,
+      privateKeyDiagnostic: firebase.privateKeyDiagnostic,
       firebaseAdmin: firebase.firebaseAdmin,
       firebaseMessaging: firebase.firebaseMessaging,
-      privateKeyDiagnostic: firebase.privateKeyDiagnostic,
       pushEncryption,
       ...(firebase.error
         ? {
