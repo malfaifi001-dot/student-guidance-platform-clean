@@ -102,17 +102,20 @@ export default async function CurriculumDistributionStandalonePrintPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const current = await requireServiceAccessForCurrentUser("curriculum-distribution");
-  if (current.user.role !== "TEACHER" && current.user.role !== "ADMIN") redirect("/dashboard");
-
   const query: PrintSearchParams = await (searchParams ?? Promise.resolve({} as PrintSearchParams));
+  const publicMode = firstValue(query.public) === "1";
+  const current = publicMode
+    ? null
+    : await requireServiceAccessForCurrentUser("curriculum-distribution");
+  if (current && current.user.role !== "TEACHER" && current.user.role !== "ADMIN") redirect("/dashboard");
+
   const subjectId = firstValue(query.subjectId);
   const semesterId = firstValue(query.semesterId);
   const distribution = subjectId && semesterId ? await getDistribution(subjectId, semesterId) : null;
   if (!distribution) notFound();
 
-  const profile = current.user.schoolAccount?.profile;
-  const schoolName = profile?.schoolName || current.user.schoolAccount?.name || "";
+  const profile = current?.user.schoolAccount?.profile;
+  const schoolName = profile?.schoolName || current?.user.schoolAccount?.name || "";
 
   return (
     <>
@@ -124,8 +127,8 @@ export default async function CurriculumDistributionStandalonePrintPage({
         educationOffice={profile?.educationOffice}
         academicYear={profile?.academicYear}
         logoUrl={profile?.logoUrl}
-        teacherName={current.user.officialName || current.user.name}
-        teacherSignatureUrl={current.user.signatureUrl}
+        teacherName={current?.user.officialName || current?.user.name || ""}
+        teacherSignatureUrl={current?.user.signatureUrl}
         principalName={profile?.principalName}
         principalSignatureUrl={profile?.principalSignatureUrl}
       />

@@ -31,5 +31,9 @@ export type AnalyticsEventParams = Readonly<
     activation_method: "free" | "online" | "bank_transfer" | "other";
     intervention_target_type: string;
     reason: "validation" | "network" | "permission" | "unknown";
+    campaign_ref: string;
+    curriculum_stage_id: string;
+    curriculum_grade_id: string;
+    curriculum_subject_id: string;
   }>
 >;

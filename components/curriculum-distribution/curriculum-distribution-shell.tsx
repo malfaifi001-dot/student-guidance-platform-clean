@@ -12,17 +12,55 @@ import type { CurriculumDistribution, CurriculumOption } from "@/lib/curriculum-
 type Choice = CurriculumOption & { isExtra?: boolean };
 type Options = { stages: Choice[]; childStages: Choice[]; tracks: Choice[]; grades: Choice[]; semesters: Choice[]; subjects: Choice[] };
 type SelectionField = { key: string; label: string; value: Choice | null; choices: Choice[]; onChange: (value: Choice | null) => void | Promise<void> };
+type CurriculumDistributionShellProps = {
+  apiPath?: string;
+  printPath?: string;
+  previewPath?: string;
+  publicPreview?: boolean;
+  campaignRef?: string;
+  onPublicEvent?: (event: "VIEW" | "PREVIEW" | "DOWNLOAD") => void;
+  onDownloadComplete?: () => void;
+};
 const emptyOptions: Options = { stages: [], childStages: [], tracks: [], grades: [], semesters: [], subjects: [] };
 
-async function loadOptions(kind: string, params: Record<string, string>) {
+function buildApiUrl(apiPath: string, query: URLSearchParams) {
+  const url = new URL(apiPath, window.location.origin);
+  url.search = query.toString();
+  return url.toString();
+}
+
+async function loadOptions(apiPath: string, kind: string, params: Record<string, string>) {
   const query = new URLSearchParams({ kind, ...params });
-  const response = await fetch(`/api/dashboard/curriculum-distribution?${query}`);
-  const json = await response.json();
+  const url = buildApiUrl(apiPath, query);
+  let response: Response;
+  try {
+    response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+  } catch {
+    try {
+      response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+    } catch {
+      throw new Error("تعذر تحميل خيارات توزيع المنهج. حاول مرة أخرى.");
+    }
+  }
+  let json: { data?: Choice[]; error?: string };
+  try {
+    json = await response.json() as { data?: Choice[]; error?: string };
+  } catch {
+    throw new Error("تعذر تحميل خيارات توزيع المنهج. حاول مرة أخرى.");
+  }
   if (!response.ok) throw new Error(json.error || "تعذر تحميل البيانات");
   return json.data as Choice[];
 }
 
-export function CurriculumDistributionShell() {
+export function CurriculumDistributionShell({
+  apiPath = "/api/dashboard/curriculum-distribution",
+  printPath = "/print/curriculum-distribution",
+  previewPath,
+  publicPreview = false,
+  campaignRef,
+  onPublicEvent,
+  onDownloadComplete,
+}: CurriculumDistributionShellProps = {}) {
   const [stage, setStage] = useState<Choice | null>(null);
   const [childStage, setChildStage] = useState<Choice | null>(null);
   const [track, setTrack] = useState<Choice | null>(null);
@@ -39,12 +77,37 @@ export function CurriculumDistributionShell() {
 
   function getPrintUrl() {
     if (!distribution) return "";
-    return `/print/curriculum-distribution?stageId=${distribution.stage.id}&gradeId=${distribution.grade.id}&semesterId=${distribution.semester.id}&subjectId=${distribution.subject.id}`;
+    const query = new URLSearchParams({
+      stageId: distribution.stage.id,
+      gradeId: distribution.grade.id,
+      semesterId: distribution.semester.id,
+      subjectId: distribution.subject.id,
+      ...(campaignRef ? { ref: campaignRef } : {}),
+    });
+    if (printPath === "/print/curriculum-distribution") return `${printPath}?${query}`;
+    query.set("variant", "curriculum-distribution");
+    query.set("mode", "print");
+    query.set("print", "1");
+    return `${printPath}?${query}`;
   }
 
   function getPreviewUrl() {
-    const printUrl = getPrintUrl();
-    return printUrl ? `${printUrl}&preview=1` : "";
+    if (!distribution) return "";
+    const query = new URLSearchParams({
+      stageId: distribution.stage.id,
+      gradeId: distribution.grade.id,
+      semesterId: distribution.semester.id,
+      subjectId: distribution.subject.id,
+      ...(campaignRef ? { ref: campaignRef } : {}),
+    });
+    if (!previewPath) {
+      const printUrl = getPrintUrl();
+      return printUrl ? `${printUrl}&preview=1` : "";
+    }
+    query.set("variant", "curriculum-distribution");
+    query.set("mode", "preview");
+    if (publicPreview) query.set("public", "1");
+    return `${previewPath}?${query}`;
   }
 
   async function printDistribution() {
@@ -57,22 +120,28 @@ export function CurriculumDistributionShell() {
       blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة.",
     });
 
-    return result !== "error";
+    const successful = result !== "error";
+    if (successful) {
+      onPublicEvent?.("DOWNLOAD");
+      onDownloadComplete?.();
+    }
+    return successful;
   }
 
   function openDistributionPreview() {
     if (!distribution) return;
+    onPublicEvent?.("PREVIEW");
     setMobilePreviewOpen(true);
   }
 
   useEffect(() => {
     const version = ++requestVersion.current;
-    loadOptions("stages", {}).then((data) => {
+    loadOptions(apiPath, "stages", {}).then((data) => {
       if (version === requestVersion.current) setOptions((old) => ({ ...old, stages: data }));
     }).catch((reason: unknown) => {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل المراحل");
     });
-  }, []);
+  }, [apiPath]);
 
   function resetBelowStage() {
     setChildStage(null); setTrack(null); setGrade(null); setSemester(null); setSubject(null); setDistribution(null);
@@ -85,15 +154,15 @@ export function CurriculumDistributionShell() {
     if (!nextStage) return;
     setLoading(true);
     try {
-      const tracks = await loadOptions("tracks", { stageId: nextStage.id });
+      const tracks = await loadOptions(apiPath, "tracks", { stageId: nextStage.id });
       if (version !== requestVersion.current) return;
       setOptions((old) => ({ ...old, tracks }));
       if (tracks.length) return;
-      const childStages = await loadOptions("child-stages", { parentId: nextStage.id });
+      const childStages = await loadOptions(apiPath, "child-stages", { parentId: nextStage.id });
       if (version !== requestVersion.current) return;
       setOptions((old) => ({ ...old, childStages }));
       if (childStages.length) return;
-      const grades = await loadOptions("grades", { stageId: nextStage.id });
+      const grades = await loadOptions(apiPath, "grades", { stageId: nextStage.id });
       if (version === requestVersion.current) setOptions((old) => ({ ...old, grades }));
     } catch (reason: unknown) {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل المرحلة");
@@ -107,7 +176,7 @@ export function CurriculumDistributionShell() {
     if (!nextTrack || !stage) return;
     setLoading(true);
     try {
-      const grades = await loadOptions("grades", { stageId: stage.id, trackId: nextTrack.id });
+      const grades = await loadOptions(apiPath, "grades", { stageId: stage.id, trackId: nextTrack.id });
       if (version === requestVersion.current) setOptions((old) => ({ ...old, grades }));
     } catch (reason: unknown) {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل الصفوف");
@@ -121,7 +190,7 @@ export function CurriculumDistributionShell() {
     if (!nextChildStage) return;
     setLoading(true);
     try {
-      const grades = await loadOptions("grades", { stageId: nextChildStage.id });
+      const grades = await loadOptions(apiPath, "grades", { stageId: nextChildStage.id });
       if (version === requestVersion.current) setOptions((old) => ({ ...old, grades }));
     } catch (reason: unknown) {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل الصفوف");
@@ -135,7 +204,7 @@ export function CurriculumDistributionShell() {
     if (!nextGrade) return;
     setLoading(true);
     try {
-      const semesters = await loadOptions("semesters", { gradeId: nextGrade.id });
+      const semesters = await loadOptions(apiPath, "semesters", { gradeId: nextGrade.id });
       if (version === requestVersion.current) setOptions((old) => ({ ...old, semesters }));
     } catch (reason: unknown) {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل الفصول");
@@ -148,7 +217,7 @@ export function CurriculumDistributionShell() {
     if (!nextSemester) return;
     setLoading(true);
     try {
-      const subjects = await loadOptions("subjects", { semesterId: nextSemester.id });
+      const subjects = await loadOptions(apiPath, "subjects", { semesterId: nextSemester.id });
       if (version === requestVersion.current) setOptions((old) => ({ ...old, subjects }));
     } catch (reason: unknown) {
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل المواد");
@@ -160,11 +229,34 @@ export function CurriculumDistributionShell() {
     const version = ++requestVersion.current;
     setLoading(true); setError("");
     try {
-      const response = await fetch(`/api/dashboard/curriculum-distribution?kind=distribution&subjectId=${encodeURIComponent(subject.id)}&semesterId=${encodeURIComponent(semester.id)}`);
-      const json = await response.json();
+      const query = new URLSearchParams({
+        kind: "distribution",
+        subjectId: subject.id,
+        semesterId: semester.id,
+      });
+      let response: Response;
+      try {
+        response = await fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" });
+      } catch {
+        try {
+          response = await fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" });
+        } catch {
+          throw new Error("تعذر تحميل توزيع المنهج. حاول مرة أخرى.");
+        }
+      }
+      let json: { distribution?: CurriculumDistribution; error?: string };
+      try {
+        json = await response.json() as { distribution?: CurriculumDistribution; error?: string };
+      } catch {
+        throw new Error("تعذر تحميل توزيع المنهج. حاول مرة أخرى.");
+      }
       if (!response.ok) throw new Error(json.error || "تعذر تحميل التوزيع");
       if (version === requestVersion.current) setDistribution(json.distribution as CurriculumDistribution);
     } catch (reason: unknown) {
+      if (version === requestVersion.current && reason instanceof Error && reason.message === "Failed to fetch") {
+        setError("تعذر تحميل توزيع المنهج. حاول مرة أخرى.");
+        return;
+      }
       if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : "تعذر تحميل التوزيع");
     } finally { if (version === requestVersion.current) setLoading(false); }
   }
@@ -184,7 +276,7 @@ export function CurriculumDistributionShell() {
   ];
 
   return (
-    <div dir="rtl" className="space-y-5">
+    <div dir="rtl" className="curriculum-distribution-shell space-y-5">
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-4">
           <div><h2 className="text-lg font-black text-slate-950">اختيارات العرض</h2><p className="mt-1 text-xs font-bold text-slate-500">حدد المسار الأكاديمي لعرض الوحدات والدروس المناسبة.</p></div>

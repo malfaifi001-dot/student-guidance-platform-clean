@@ -183,6 +183,9 @@ export default function HomePage() {
               </div>
 
               <nav aria-label="روابط Teachix العامة" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500">
+                <Link href="/free/curriculum-distribution" className="font-black text-sky-700 transition hover:text-sky-600">
+                  حمّل توزيع منهجك مجانًا
+                </Link>
                 <Link href="/services" className="transition hover:text-sky-600">خدمات Teachix</Link>
                 <Link href="/features" className="transition hover:text-sky-600">مميزات Teachix</Link>
                 <Link href="/about" className="transition hover:text-sky-600">عن Teachix</Link>

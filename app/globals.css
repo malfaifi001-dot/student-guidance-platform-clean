@@ -8,6 +8,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Curriculum Distribution uses a custom chevron so RTL text has clear space
+   on the left side of every select field. */
+.curriculum-distribution-shell select + svg {
+  inset-inline-start: auto !important;
+  inset-inline-end: 0.75rem !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

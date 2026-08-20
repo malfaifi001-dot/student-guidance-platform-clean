@@ -54,6 +54,10 @@ export const ANALYTICS_EVENTS = {
   WORKFLOW_PUBLISHED: "workflow_published",
   REPORT_TEMPLATE_PUBLISHED: "report_template_published",
   SUBSCRIPTION_PLAN_UPDATED: "subscription_plan_updated",
+  CURRICULUM_DISTRIBUTION_VIEW: "curriculum_distribution_view",
+  CURRICULUM_DISTRIBUTION_PREVIEW: "curriculum_distribution_preview",
+  CURRICULUM_DISTRIBUTION_DOWNLOAD: "curriculum_distribution_download",
+  CURRICULUM_DISTRIBUTION_CTA_CLICK: "curriculum_distribution_cta_click",
 } as const;
 
 export type AnalyticsEventName =

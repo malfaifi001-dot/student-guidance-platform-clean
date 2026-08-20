@@ -37,6 +37,10 @@ const SAFE_PARAMETER_KEYS = new Set<keyof AnalyticsEventParams>([
   "activation_method",
   "intervention_target_type",
   "reason",
+  "campaign_ref",
+  "curriculum_stage_id",
+  "curriculum_grade_id",
+  "curriculum_subject_id",
 ]);
 
 let lastIdentitySignature: string | null = null;

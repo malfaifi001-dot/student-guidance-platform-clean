@@ -1,10 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { TouchEvent, TouchList, WheelEvent } from "react";
 import { Download, Loader2, Minus, Plus, X } from "lucide-react";
 
 const A4_LANDSCAPE_WIDTH = 1122;
 const A4_LANDSCAPE_HEIGHT = 794;
+const MIN_ZOOM_PERCENT = 30;
+const MAX_ZOOM_PERCENT = 200;
+
+type PinchState = {
+  startDistance: number;
+  startZoom: number;
+};
+
+type DragState = {
+  startX: number;
+  startY: number;
+  startPanX: number;
+  startPanY: number;
+};
+
+function getTouchDistance(touches: TouchList) {
+  const first = touches[0];
+  const second = touches[1];
+  return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+}
 
 export function CurriculumDistributionMobilePreview({
   open,
@@ -19,9 +40,12 @@ export function CurriculumDistributionMobilePreview({
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const frameReadyRef = useRef(false);
+  const pinchRef = useRef<PinchState | null>(null);
+  const dragRef = useRef<DragState | null>(null);
   const [fitScale, setFitScale] = useState(1);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [fitMode, setFitMode] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [previewReady, setPreviewReady] = useState(false);
@@ -35,7 +59,10 @@ export function CurriculumDistributionMobilePreview({
       if (!frame) return;
 
       const availableWidth = Math.max(280, frame.clientWidth - 16);
-      setFitScale(Math.min(1, Number((availableWidth / A4_LANDSCAPE_WIDTH).toFixed(4))));
+      const availableHeight = Math.max(220, frame.clientHeight - 16);
+      const widthScale = availableWidth / A4_LANDSCAPE_WIDTH;
+      const heightScale = availableHeight / A4_LANDSCAPE_HEIGHT;
+      setFitScale(Math.min(1, Number(Math.min(widthScale, heightScale).toFixed(4))));
     };
 
     updateScale();
@@ -53,6 +80,9 @@ export function CurriculumDistributionMobilePreview({
     if (!open) return;
     setZoomPercent(100);
     setFitMode(window.innerWidth < 640);
+    setPan({ x: 0, y: 0 });
+    pinchRef.current = null;
+    dragRef.current = null;
   }, [open]);
 
   useEffect(() => {
@@ -76,13 +106,109 @@ export function CurriculumDistributionMobilePreview({
   const scale = fitMode ? fitScale : zoomPercent / 100;
   const displayedZoom = fitMode ? Math.round(fitScale * 100) : zoomPercent;
 
+  function getPanBounds(nextScale = scale) {
+    const viewport = frameRef.current;
+    if (!viewport) return { x: 0, y: 0 };
+
+    return {
+      x: Math.max(0, (A4_LANDSCAPE_WIDTH * nextScale - viewport.clientWidth) / 2),
+      y: Math.max(0, (A4_LANDSCAPE_HEIGHT * nextScale - viewport.clientHeight) / 2),
+    };
+  }
+
+  function clampPan(nextPan: { x: number; y: number }, nextScale = scale) {
+    const bounds = getPanBounds(nextScale);
+    return {
+      x: Math.min(bounds.x, Math.max(-bounds.x, nextPan.x)),
+      y: Math.min(bounds.y, Math.max(-bounds.y, nextPan.y)),
+    };
+  }
+
   function changeZoom(nextZoom: number) {
+    const clampedZoom = Math.min(MAX_ZOOM_PERCENT, Math.max(MIN_ZOOM_PERCENT, nextZoom));
     setFitMode(false);
-    setZoomPercent(Math.min(200, Math.max(50, nextZoom)));
+    setZoomPercent(clampedZoom);
+    setPan((currentPan) => clampPan(currentPan, clampedZoom / 100));
   }
 
   function fitPreview() {
     setFitMode(true);
+    setPan({ x: 0, y: 0 });
+  }
+
+  function startPinch(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 2) return;
+    event.preventDefault();
+    pinchRef.current = {
+      startDistance: getTouchDistance(event.touches),
+      startZoom: displayedZoom,
+    };
+    dragRef.current = null;
+  }
+
+  function startDrag(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 1 || pinchRef.current) return;
+    const touch = event.touches[0];
+    dragRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startPanX: pan.x,
+      startPanY: pan.y,
+    };
+  }
+
+  function movePinch(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 2) return;
+    event.preventDefault();
+
+    const pinch = pinchRef.current || {
+      startDistance: getTouchDistance(event.touches),
+      startZoom: displayedZoom,
+    };
+    pinchRef.current = pinch;
+
+    const distance = getTouchDistance(event.touches);
+    if (!pinch.startDistance || !distance) return;
+    setFitMode(false);
+    const nextZoom = Math.min(
+      MAX_ZOOM_PERCENT,
+      Math.max(MIN_ZOOM_PERCENT, Math.round(pinch.startZoom * (distance / pinch.startDistance))),
+    );
+    setZoomPercent(nextZoom);
+    setPan((currentPan) => clampPan(currentPan, nextZoom / 100));
+  }
+
+  function moveDrag(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 1 || !dragRef.current || pinchRef.current) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+    const drag = dragRef.current;
+    setPan(clampPan({
+      x: drag.startPanX + touch.clientX - drag.startX,
+      y: drag.startPanY + touch.clientY - drag.startY,
+    }));
+  }
+
+  function movePreview(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length === 2) {
+      movePinch(event);
+      return;
+    }
+    moveDrag(event);
+  }
+
+  function endPinch(event: TouchEvent<HTMLDivElement>) {
+    if (event.touches.length < 2) pinchRef.current = null;
+    if (event.touches.length === 0) dragRef.current = null;
+  }
+
+  function panWithWheel(event: WheelEvent<HTMLDivElement>) {
+    if (!pan.x && !pan.y && scale <= fitScale) return;
+    event.preventDefault();
+    setPan((currentPan) => clampPan({
+      x: currentPan.x - event.deltaX,
+      y: currentPan.y - event.deltaY,
+    }));
   }
 
   async function download() {
@@ -108,7 +234,7 @@ export function CurriculumDistributionMobilePreview({
       onClick={onClose}
     >
       <section
-        className="flex max-h-[94vh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:max-w-[1200px]"
+        className="flex h-[94vh] max-h-[94vh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
         aria-label="معاينة توزيع المنهج"
       >
@@ -121,9 +247,9 @@ export function CurriculumDistributionMobilePreview({
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5" dir="ltr" aria-label="zoom controls">
-              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) - 10)} disabled={!fitMode && zoomPercent <= 50} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) - 10)} disabled={!fitMode && zoomPercent <= MIN_ZOOM_PERCENT} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
               <span className="min-w-[3.2rem] text-center text-[11px] font-black tabular-nums text-slate-700">{displayedZoom}%</span>
-              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) + 10)} disabled={!fitMode && zoomPercent >= 200} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) + 10)} disabled={!fitMode && zoomPercent >= MAX_ZOOM_PERCENT} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={fitPreview} className="h-7 rounded-lg px-1.5 text-[10px] font-black text-slate-600 transition hover:bg-white hover:text-sky-700" aria-label="Fit preview">Fit</button>
             </div>
           <button
@@ -137,10 +263,27 @@ export function CurriculumDistributionMobilePreview({
           </div>
         </header>
 
-        <div ref={frameRef} className="min-h-0 flex-1 overflow-auto bg-slate-100 p-2.5 sm:p-3">
+        <div
+          ref={frameRef}
+          className="relative min-h-[220px] flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:p-3"
+          onTouchStart={(event) => {
+            startPinch(event);
+            startDrag(event);
+          }}
+          onTouchMove={movePreview}
+          onTouchEnd={endPinch}
+          onTouchCancel={endPinch}
+          onWheel={panWithWheel}
+          style={{ touchAction: "none" }}
+        >
           <div
-            className="relative mx-auto overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
-            style={{ height: `${A4_LANDSCAPE_HEIGHT * scale}px` }}
+            className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
+            style={{
+              width: `${A4_LANDSCAPE_WIDTH}px`,
+              height: `${A4_LANDSCAPE_HEIGHT}px`,
+              transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${scale})`,
+              transformOrigin: "center center",
+            }}
           >
             {!previewReady && !previewError ? (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white text-center text-sm font-black text-slate-600">
@@ -157,7 +300,7 @@ export function CurriculumDistributionMobilePreview({
               key={previewUrl}
               title="معاينة تقرير توزيع المنهج"
               src={previewUrl}
-              className="absolute left-1/2 top-0 block border-0 bg-white"
+              className="absolute inset-0 block border-0 bg-white"
               onLoad={(event) => {
                 const reportDocument = event.currentTarget.contentDocument;
                 const hasReport = Boolean(reportDocument?.querySelector(".curriculum-print-paper"));
@@ -178,8 +321,7 @@ export function CurriculumDistributionMobilePreview({
               style={{
                 width: `${A4_LANDSCAPE_WIDTH}px`,
                 height: `${A4_LANDSCAPE_HEIGHT}px`,
-                transform: `translateX(-50%) scale(${scale})`,
-                transformOrigin: "top center",
+                pointerEvents: "none",
               }}
             />
           </div>
