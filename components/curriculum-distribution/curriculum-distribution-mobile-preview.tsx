@@ -234,11 +234,11 @@ export function CurriculumDistributionMobilePreview({
       onClick={onClose}
     >
       <section
-        className="flex h-[94vh] max-h-[94vh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:max-w-[1200px]"
+        className="flex h-[80dvh] max-h-[80dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
         aria-label="معاينة توزيع المنهج"
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 sm:px-5 sm:py-3.5">
           <div className="min-w-0">
             <h2 className="text-base font-black text-slate-950">معاينة توزيع المنهج</h2>
             <p className="mt-0.5 text-[11px] font-bold text-slate-500">
@@ -265,7 +265,7 @@ export function CurriculumDistributionMobilePreview({
 
         <div
           ref={frameRef}
-          className="relative min-h-[220px] flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:p-3"
+          className="relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3"
           onTouchStart={(event) => {
             startPinch(event);
             startDrag(event);
@@ -327,7 +327,7 @@ export function CurriculumDistributionMobilePreview({
           </div>
         </div>
 
-        <footer className="shrink-0 border-t border-slate-100 bg-white p-3 sm:p-4">
+        <footer className="shrink-0 border-t border-slate-100 bg-white p-2.5 sm:p-4">
           {error ? (
             <p className="mb-2 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs font-bold text-rose-700">
               {error}
