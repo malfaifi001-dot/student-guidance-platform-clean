@@ -125,6 +125,12 @@ export async function GET() {
             select: {
               id: true,
               name: true,
+              profile: { select: { schoolName: true } },
+              users: {
+                where: { isActive: true },
+                select: { id: true, name: true, officialName: true, email: true, role: true, createdAt: true },
+                orderBy: { createdAt: "asc" },
+              },
             },
           },
         },
@@ -134,13 +140,33 @@ export async function GET() {
       }),
     ]);
 
+  const serviceAccessForAdmin = serviceAccess.map((row) => {
+    const users = row.schoolAccount.users;
+    const primaryUser = ["SCHOOL_OWNER", "PRINCIPAL", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER", "STAFF", "ADMIN"]
+      .map((role) => users.find((user) => user.role === role))
+      .find(Boolean) || users[0] || null;
+
+    return {
+      ...row,
+      schoolAccount: {
+        id: row.schoolAccount.id,
+        name: row.schoolAccount.name,
+        schoolName: row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
+        primaryUser: primaryUser
+          ? { id: primaryUser.id, name: primaryUser.name, officialName: primaryUser.officialName, email: primaryUser.email, role: primaryUser.role }
+          : null,
+        additionalUserCount: Math.max(users.length - (primaryUser ? 1 : 0), 0),
+      },
+    };
+  });
+
   return NextResponse.json({
     defaultFreePlan,
     plans,
     services,
     schools,
     subscriptions,
-    serviceAccess,
+    serviceAccess: serviceAccessForAdmin,
   });
 }
 
