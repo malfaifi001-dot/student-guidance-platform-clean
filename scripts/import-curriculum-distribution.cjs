@@ -1,4 +1,6 @@
-require("dotenv/config");
+try {
+  require("dotenv/config");
+} catch {}
 const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
