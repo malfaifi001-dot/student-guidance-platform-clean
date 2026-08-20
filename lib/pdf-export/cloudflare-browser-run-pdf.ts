@@ -8,11 +8,13 @@ export async function generatePdfFromUrlWithCloudflare({
   request,
   waitForSelector = ".pdf-report-page",
   debugLabel,
+  landscape = false,
 }: {
   url: string;
   request?: Request;
   waitForSelector?: string;
   debugLabel?: "portfolio";
+  landscape?: boolean;
 }): Promise<Uint8Array> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
@@ -57,7 +59,7 @@ export async function generatePdfFromUrlWithCloudflare({
     },
     pdfOptions: {
       format: "a4",
-      landscape: false,
+      landscape,
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,

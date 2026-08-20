@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpenCheck, ChevronDown, Loader2, Printer, Search } from "lucide-react";
+import { BookOpenCheck, ChevronDown, Eye, Loader2, Printer, Search } from "lucide-react";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
 import { CurriculumWeekCard } from "@/components/curriculum-distribution/curriculum-week-card";
 import { getCurriculumCalendarItems } from "@/lib/curriculum-distribution/calendar";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
 import type { CurriculumDistribution, CurriculumOption } from "@/lib/curriculum-distribution/types";
 
 type Choice = CurriculumOption & { isExtra?: boolean };
@@ -32,8 +34,45 @@ export function CurriculumDistributionShell() {
   const [distribution, setDistribution] = useState<CurriculumDistribution | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const requestVersion = useRef(0);
   const print = usePrintExportAction();
+
+  function getPrintUrl() {
+    if (!distribution) return "";
+    return `/print/curriculum-distribution?stageId=${distribution.stage.id}&gradeId=${distribution.grade.id}&semesterId=${distribution.semester.id}&subjectId=${distribution.subject.id}`;
+  }
+
+  async function downloadDistributionPdf() {
+    if (!distribution) return false;
+
+    const result = await print.runPrintExport({
+      exportUrl: "/api/dashboard/curriculum-distribution/export/pdf",
+      method: "POST",
+      body: {
+        subjectId: distribution.subject.id,
+        semesterId: distribution.semester.id,
+        fileName: "curriculum-distribution.pdf",
+      },
+      printUrl: getPrintUrl(),
+      fileName: "curriculum-distribution.pdf",
+      blockedTitle: "معاينة الطباعة",
+      blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة.",
+    });
+
+    return result === "downloaded";
+  }
+
+  function openDistributionPreview() {
+    if (!distribution) return;
+
+    if (isNativeCapacitor()) {
+      setMobilePreviewOpen(true);
+      return;
+    }
+
+    void downloadDistributionPdf();
+  }
 
   useEffect(() => {
     const version = ++requestVersion.current;
@@ -164,10 +203,16 @@ export function CurriculumDistributionShell() {
           {fields.map((field) => <label key={field.key} className="min-w-0 space-y-2"><span className="block text-xs font-black text-slate-600">{field.label}</span><span className="relative block"><select disabled={loading} value={field.value?.id || ""} onChange={(event) => { const value = field.choices.find((item) => item.id === event.target.value) || null; void field.onChange(value); }} className="min-h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 pe-10 text-sm font-black text-slate-800 outline-none transition hover:border-sky-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-wait disabled:opacity-60"><option value="">اختر {field.label}</option>{field.choices.map((item) => <option key={item.id} value={item.id}>{item.name}{item.isExtra ? " (إضافية)" : ""}</option>)}</select><ChevronDown className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /></span></label>)}
         </div>
         {error ? <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p> : null}
-        <div className="mt-5 flex flex-col items-stretch justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center"><p className="text-sm font-bold text-slate-500">{subject ? "أصبحت الخطة جاهزة للعرض." : "أكمل الاختيارات لعرض التوزيع."}</p><div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><button disabled={!subject || loading} onClick={showDistribution} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? "جارٍ التحميل" : "عرض التوزيع"}</button>{distribution ? <button disabled={print.status === "loading"} onClick={() => void print.runPrintExport({ printUrl: `/print/curriculum-distribution?stageId=${distribution.stage.id}&gradeId=${distribution.grade.id}&semesterId=${distribution.semester.id}&subjectId=${distribution.subject.id}`, blockedTitle: "معاينة الطباعة", blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة.", fileName: "curriculum-distribution.pdf" })} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:cursor-wait disabled:opacity-60 sm:w-auto"><Printer className="h-4 w-4" />معاينة وتحميل</button> : null}</div></div>
+        <div className="mt-5 flex flex-col items-stretch justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center"><p className="text-sm font-bold text-slate-500">{subject ? "أصبحت الخطة جاهزة للعرض." : "أكمل الاختيارات لعرض التوزيع."}</p><div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><button disabled={!subject || loading} onClick={showDistribution} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? "جارٍ التحميل" : "عرض التوزيع"}</button>{distribution ? <button disabled={print.status === "loading"} onClick={openDistributionPreview} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:cursor-wait disabled:opacity-60">{isNativeCapacitor() ? <Eye className="h-4 w-4" /> : <Printer className="h-4 w-4" />}معاينة وتحميل</button> : null}</div></div>
       </section>
       {distribution ? <DistributionView distribution={distribution} /> : <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/70 px-5 py-7 text-center"><BookOpenCheck className="mx-auto h-7 w-7 text-sky-500" /><p className="mt-2 text-sm font-black text-slate-600">{subject ? "جاهز لعرض توزيع المنهج." : "اختر المادة لعرض توزيع المنهج."}</p></div>}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
+      <CurriculumDistributionMobilePreview
+        open={mobilePreviewOpen}
+        previewUrl={getPrintUrl()}
+        onDownload={downloadDistributionPdf}
+        onClose={() => setMobilePreviewOpen(false)}
+      />
     </div>
   );
 }
