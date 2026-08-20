@@ -572,6 +572,7 @@ model PushCampaign {
   startedAt             DateTime?
   completedAt           DateTime?
   canceledAt            DateTime?
+  processingStartedAt   DateTime?
   estimatedUserCount    Int                @default(0)
   estimatedDeviceCount  Int                @default(0)
   sentCount             Int                @default(0)
@@ -582,6 +583,7 @@ model PushCampaign {
   createdById           String
   createdBy             User               @relation("PushCampaignCreator", fields: [createdById], references: [id])
   deliveries            PushDelivery[]
+  automaticEvent        PushAutomaticEvent?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
@@ -606,6 +608,8 @@ model PushDelivery {
   openedAt          DateTime?
   openedRoute       String?            @db.VarChar(255)
   retryCount        Int                @default(0)
+  lastRetryAt       DateTime?
+  nextRetryAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -628,10 +632,13 @@ model PushAutomaticRule {
   route           String          @db.VarChar(255)
   lastTriggeredAt DateTime?
   totalSends      Int             @default(0)
+  lastResult      String?         @db.VarChar(120)
+  lastErrorCode   String?         @db.VarChar(120)
   createdById     String?
   createdBy       User?           @relation("PushAutomaticRuleCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  events          PushAutomaticEvent[]
 
   @@index([enabled, triggerKey])
 }
@@ -643,6 +650,7 @@ model PushTemplate {
   body        String              @db.Text
   route       String              @db.VarChar(255)
   type        PushCampaignType    @default(MANUAL)
+  category    String?             @db.VarChar(80)
   enabled     Boolean             @default(true)
   createdById String
   createdBy   User                @relation("PushTemplateCreator", fields: [createdById], references: [id])
@@ -650,6 +658,18 @@ model PushTemplate {
   updatedAt   DateTime            @updatedAt
 
   @@index([enabled, createdAt])
+}
+
+model PushAutomaticEvent {
+  id         String             @id @default(cuid())
+  ruleId     String
+  rule       PushAutomaticRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  eventKey   String             @unique @db.VarChar(191)
+  campaignId String?            @unique
+  campaign   PushCampaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime           @default(now())
+
+  @@index([ruleId, createdAt])
 }
 
 model SchoolProfile {

@@ -269,6 +269,7 @@ export async function logReportCreatedEvent(input: {
     void dispatchAutomaticPushEvent({
       triggerKey: "report-ready",
       actorUserId: actor.userId,
+      sourceRecordId: input.reportId,
       variables: { serviceName: input.serviceSlug || "التقرير" },
     }).catch(() => undefined);
   }

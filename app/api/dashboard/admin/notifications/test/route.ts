@@ -2,17 +2,18 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { sendPushToDevice } from "@/lib/notifications/fcm-server";
-import { getMostRecentlyActiveEnabledAndroidPushDevice } from "@/lib/notifications/push-device-service";
+import { getEnabledAndroidPushDeviceById, getMostRecentlyActiveEnabledAndroidPushDevice } from "@/lib/notifications/push-device-service";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   const adminError = await requireAdminApi();
   if (adminError) return adminError;
 
   let device: Awaited<ReturnType<typeof getMostRecentlyActiveEnabledAndroidPushDevice>>;
   try {
-    device = await getMostRecentlyActiveEnabledAndroidPushDevice();
+    const body = await request.json().catch(() => null) as { deviceId?: unknown } | null;
+    device = typeof body?.deviceId === "string" ? await getEnabledAndroidPushDeviceById(body.deviceId) : await getMostRecentlyActiveEnabledAndroidPushDevice();
   } catch {
     return NextResponse.json(
       { ok: false, error: { code: "PUSH_TEST_DATABASE_FAILED" } },

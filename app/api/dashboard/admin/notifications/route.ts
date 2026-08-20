@@ -17,10 +17,12 @@ const SAFE_INPUT_ERRORS = new Set([
   "INVALID_PUSH_TITLE", "INVALID_PUSH_BODY", "INVALID_PUSH_ROUTE", "MISSING_SCHEDULE_DATE", "INVALID_SCHEDULE_DATE", "RECURRING_REQUIRES_SCHEDULE", "RECURRENCE_REQUIRES_FREQUENCY",
 ]);
 
-export async function GET() {
+export async function GET(request: Request) {
   const adminError = await requireAdminApi();
   if (adminError) return adminError;
-  const [overview, campaigns, rules] = await Promise.all([getPushOverview(), listPushCampaigns(), getAutomaticRules()]);
+  const url = new URL(request.url);
+  const page = Number(url.searchParams.get("page") || "1");
+  const [overview, campaigns, rules] = await Promise.all([getPushOverview(), listPushCampaigns({ page: Number.isFinite(page) ? page : 1 }), getAutomaticRules()]);
   return NextResponse.json({ overview, campaigns, rules });
 }
 
