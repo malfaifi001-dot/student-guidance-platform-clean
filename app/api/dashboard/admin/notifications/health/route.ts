@@ -23,6 +23,7 @@ export async function GET() {
       },
       firebaseAdmin: firebase.firebaseAdmin,
       firebaseMessaging: firebase.firebaseMessaging,
+      privateKeyDiagnostic: firebase.privateKeyDiagnostic,
       pushEncryption,
       ...(firebase.error
         ? {

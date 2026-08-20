@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createPrivateKey } from "node:crypto";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging, type BatchResponse, type MulticastMessage } from "firebase-admin/messaging";
 import {
@@ -25,6 +26,50 @@ type FirebaseHealthDiagnostic = {
   firebaseCode?: string;
   errorName?: string;
 };
+
+export type FirebasePrivateKeyDiagnostic = {
+  rawLength: number;
+  normalizedLength: number;
+  startsWithBeginMarker: boolean;
+  endsWithEndMarker: boolean;
+  containsLiteralBackslashN: boolean;
+  containsActualNewline: boolean;
+  hasOuterQuotes: boolean;
+  normalizationChanged: boolean;
+  nodeCryptoParse: boolean;
+};
+
+function getFirebasePrivateKeyDiagnostic(): FirebasePrivateKeyDiagnostic {
+  const raw = process.env.FIREBASE_PRIVATE_KEY || "";
+  const normalized = raw.replace(/\\n/g, "\n");
+  const trimmedNormalized = normalized.trim();
+  const hasOuterQuotes = raw.length >= 2 && (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  );
+
+  let nodeCryptoParse = false;
+  if (normalized) {
+    try {
+      createPrivateKey({ key: normalized, format: "pem", type: "pkcs8" });
+      nodeCryptoParse = true;
+    } catch {
+      nodeCryptoParse = false;
+    }
+  }
+
+  return {
+    rawLength: raw.length,
+    normalizedLength: normalized.length,
+    startsWithBeginMarker: trimmedNormalized.startsWith("-----BEGIN PRIVATE KEY-----"),
+    endsWithEndMarker: trimmedNormalized.endsWith("-----END PRIVATE KEY-----"),
+    containsLiteralBackslashN: raw.includes("\\n"),
+    containsActualNewline: raw.includes("\n") || raw.includes("\r"),
+    hasOuterQuotes,
+    normalizationChanged: raw !== normalized,
+    nodeCryptoParse,
+  };
+}
 
 function getFirebaseHealthDiagnostic(error: unknown): FirebaseHealthDiagnostic {
   const candidate = error && typeof error === "object" ? error as { code?: unknown; name?: unknown; message?: unknown } : {};
@@ -66,6 +111,7 @@ export function getFirebaseAdminHealth(): {
   };
   firebaseAdmin: boolean;
   firebaseMessaging: boolean;
+  privateKeyDiagnostic: FirebasePrivateKeyDiagnostic;
   error?: { code: string; message: string; diagnostic?: FirebaseHealthDiagnostic };
 } {
   const environment = {
@@ -73,12 +119,14 @@ export function getFirebaseAdminHealth(): {
     firebaseClientEmail: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
     firebasePrivateKey: Boolean(process.env.FIREBASE_PRIVATE_KEY),
   };
+  const privateKeyDiagnostic = getFirebasePrivateKeyDiagnostic();
 
   if (!isFirebasePushConfigured()) {
     return {
       environment,
       firebaseAdmin: false,
       firebaseMessaging: false,
+      privateKeyDiagnostic,
       error: {
         code: "FIREBASE_CONFIG_MISSING",
         message: "Firebase Admin configuration is incomplete",
@@ -93,6 +141,7 @@ export function getFirebaseAdminHealth(): {
         environment,
         firebaseAdmin: false,
         firebaseMessaging: false,
+        privateKeyDiagnostic,
         error: {
           code: "FIREBASE_ADMIN_UNAVAILABLE",
           message: "Firebase Admin could not be initialized",
@@ -105,12 +154,14 @@ export function getFirebaseAdminHealth(): {
       environment,
       firebaseAdmin: true,
       firebaseMessaging: true,
+      privateKeyDiagnostic,
     };
   } catch (error) {
     return {
       environment,
       firebaseAdmin: false,
       firebaseMessaging: false,
+      privateKeyDiagnostic,
       error: {
         code: "FIREBASE_ADMIN_INITIALIZATION_FAILED",
         message: "Firebase Admin initialization failed",
