@@ -16,6 +16,45 @@ enum UserRole {
   STAFF
 }
 
+enum PushCampaignType {
+  MANUAL
+  SCHEDULED
+  RECURRING
+  AUTOMATIC
+  SYSTEM_TEST
+}
+
+enum PushCampaignStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  SENT
+  PARTIALLY_FAILED
+  FAILED
+  CANCELED
+}
+
+enum PushAudienceType {
+  ALL_USERS
+  ROLE
+  USER
+  USERS
+  SCHOOL
+}
+
+enum PushDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PushRecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  WEEKDAYS
+}
+
 enum GuidanceVideoSourceType {
   UPLOAD
   YOUTUBE
@@ -413,6 +452,10 @@ model User {
   cases                       CaseEntry[]
   sessions                    UserSession[]
   pushDevices                 PushDevice[]
+  pushCampaignsCreated        PushCampaign[]         @relation("PushCampaignCreator")
+  pushTemplatesCreated        PushTemplate[]         @relation("PushTemplateCreator")
+  pushAutomaticRulesCreated   PushAutomaticRule[]    @relation("PushAutomaticRuleCreator")
+  pushDeliveries               PushDelivery[]
   calendarReminders           CalendarReminder[]
   createdActivityAssignments  ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
   createdInternalAssignments  InternalAssignment[] @relation("InternalAssignmentsCreatedBy")
@@ -503,9 +546,110 @@ model PushDevice {
   lastSeenAt     DateTime  @default(now())
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  deliveries     PushDelivery[]
 
   @@index([userId, enabled])
   @@index([userId, platform, packageName])
+}
+
+model PushCampaign {
+  id                    String             @id @default(cuid())
+  name                  String?
+  title                 String             @db.VarChar(120)
+  body                  String             @db.Text
+  route                 String             @db.VarChar(255)
+  type                  PushCampaignType
+  status                PushCampaignStatus @default(DRAFT)
+  audienceType          PushAudienceType
+  audienceConfig        Json
+  internalNote          String?            @db.Text
+  scheduledAt           DateTime?
+  timezone              String?            @db.VarChar(80)
+  recurrenceFrequency   PushRecurrenceFrequency?
+  recurrenceDays        Json?
+  recurrenceEndAt       DateTime?
+  recurrenceActive      Boolean            @default(false)
+  startedAt             DateTime?
+  completedAt           DateTime?
+  canceledAt            DateTime?
+  estimatedUserCount    Int                @default(0)
+  estimatedDeviceCount  Int                @default(0)
+  sentCount             Int                @default(0)
+  successCount          Int                @default(0)
+  failureCount          Int                @default(0)
+  openedCount           Int                @default(0)
+  lastErrorCode         String?            @db.VarChar(120)
+  createdById           String
+  createdBy             User               @relation("PushCampaignCreator", fields: [createdById], references: [id])
+  deliveries            PushDelivery[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([type, createdAt])
+  @@index([createdById, createdAt])
+}
+
+model PushDelivery {
+  id                String             @id @default(cuid())
+  campaignId        String
+  campaign          PushCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId          String
+  device            PushDevice          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  status            PushDeliveryStatus @default(PENDING)
+  attemptedAt       DateTime?
+  firebaseMessageId String?            @db.VarChar(255)
+  errorCode         String?            @db.VarChar(120)
+  invalidToken      Boolean            @default(false)
+  openedAt          DateTime?
+  openedRoute       String?            @db.VarChar(255)
+  retryCount        Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@unique([campaignId, deviceId])
+  @@index([campaignId, status])
+  @@index([userId, createdAt])
+  @@index([deviceId, createdAt])
+}
+
+model PushAutomaticRule {
+  id              String          @id @default(cuid())
+  triggerKey      String          @unique @db.VarChar(120)
+  name            String          @db.VarChar(160)
+  description     String?         @db.Text
+  enabled         Boolean         @default(false)
+  audienceType    PushAudienceType
+  audienceConfig  Json
+  titleTemplate   String          @db.VarChar(120)
+  bodyTemplate    String          @db.Text
+  route           String          @db.VarChar(255)
+  lastTriggeredAt DateTime?
+  totalSends      Int             @default(0)
+  createdById     String?
+  createdBy       User?           @relation("PushAutomaticRuleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([enabled, triggerKey])
+}
+
+model PushTemplate {
+  id          String              @id @default(cuid())
+  name        String              @unique @db.VarChar(160)
+  title       String              @db.VarChar(120)
+  body        String              @db.Text
+  route       String              @db.VarChar(255)
+  type        PushCampaignType    @default(MANUAL)
+  enabled     Boolean             @default(true)
+  createdById String
+  createdBy   User                @relation("PushTemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([enabled, createdAt])
 }
 
 model SchoolProfile {

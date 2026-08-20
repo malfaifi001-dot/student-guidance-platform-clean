@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logPlatformActivity } from "@/lib/admin/activity-log";
+import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
 
 export async function getRequestActivityMeta() {
   const headerStore = await headers();
@@ -263,6 +264,14 @@ export async function logReportCreatedEvent(input: {
     },
     ...meta,
   });
+
+  if (actor.userId) {
+    void dispatchAutomaticPushEvent({
+      triggerKey: "report-ready",
+      actorUserId: actor.userId,
+      variables: { serviceName: input.serviceSlug || "التقرير" },
+    }).catch(() => undefined);
+  }
 }
 
 export async function logReportExportedEvent(input: {
@@ -312,4 +321,5 @@ export async function logAuthLoginEvent(input: {
     },
     ...meta,
   });
+
 }

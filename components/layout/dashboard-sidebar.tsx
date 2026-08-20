@@ -17,6 +17,7 @@ import {
   Activity,
   Award,
   BarChart3,
+  BellRing,
   BookOpen,
   BriefcaseBusiness,
   CalendarDays,
@@ -544,6 +545,11 @@ const adminMainLinks: SidebarLinkItem[] = [
     label: "صحة النظام",
     href: "/dashboard/admin/system-health",
     icon: Activity,
+  },
+  {
+    label: "الإشعارات والبوش",
+    href: "/dashboard/admin/notifications",
+    icon: BellRing,
   },
   {
     label: "المستخدمين",

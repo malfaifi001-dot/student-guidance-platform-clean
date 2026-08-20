@@ -172,6 +172,14 @@ export function NativeRuntimeSetup() {
 
     void PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
       const route = notification.data?.route;
+      const campaignId = notification.data?.campaignId;
+      if (typeof campaignId === "string" && campaignId.length > 0 && typeof route === "string") {
+        void fetch("/api/dashboard/notifications/open", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaignId, route }),
+        }).catch(() => undefined);
+      }
       const url =
         typeof route === "string"
           ? route.startsWith("/")

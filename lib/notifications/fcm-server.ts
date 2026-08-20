@@ -278,6 +278,7 @@ function buildMessage(tokens: string[], payload: TeachixPushPayload): MulticastM
       route,
       type: payload.type,
       ...(payload.recordId ? { recordId: payload.recordId } : {}),
+      ...(payload.campaignId ? { campaignId: payload.campaignId } : {}),
     },
     android: {
       notification: { channelId: "teachix_default", sound: "default" },
@@ -326,19 +327,49 @@ export async function sendPushToDevice(
   device: { tokenHash: string; encryptedToken: string },
   payload: TeachixPushPayload,
 ): Promise<{ success: boolean; invalidToken: boolean; messageId?: string }> {
-  const token = decryptPushToken(device.encryptedToken);
-  const result = await sendChunk([token], payload);
-  const response = result.responses[0];
-  const firebaseCode = response?.error?.code || "";
-  const invalidToken = firebaseCode.includes("registration-token-not-registered") || firebaseCode.includes("invalid-registration-token");
+  const result = await sendPushToDeviceBatch([{ id: "single", ...device }], payload);
+  const first = result[0];
+  if (!first) throw new Error("Push device send did not return a result");
+  return { success: first.success, invalidToken: first.invalidToken, ...(first.messageId ? { messageId: first.messageId } : {}) };
+}
 
-  if (invalidToken) {
-    await disablePushDevicesByTokenHashes([hashPushToken(token)]);
+export async function sendPushToDeviceBatch(
+  devices: Array<{ id: string; tokenHash: string; encryptedToken: string }>,
+  payload: TeachixPushPayload,
+): Promise<Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string }>> {
+  const results: Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string }> = [];
+
+  for (let offset = 0; offset < devices.length; offset += 500) {
+    const chunk = devices.slice(offset, offset + 500);
+    const validDevices: Array<{ id: string; tokenHash: string; token: string }> = [];
+
+    for (const device of chunk) {
+      try {
+        validDevices.push({ id: device.id, tokenHash: device.tokenHash, token: decryptPushToken(device.encryptedToken) });
+      } catch {
+        results.push({ id: device.id, success: false, invalidToken: false, errorCode: "TOKEN_DECRYPTION_FAILED" });
+      }
+    }
+
+    if (validDevices.length === 0) continue;
+    const response = await sendChunk(validDevices.map((device) => device.token), payload);
+    const invalidHashes: string[] = [];
+
+    response.responses.forEach((item, index) => {
+      const device = validDevices[index];
+      const code = item.error?.code || "";
+      const invalidToken = code.includes("registration-token-not-registered") || code.includes("invalid-registration-token");
+      if (invalidToken) invalidHashes.push(hashPushToken(device.token));
+      results.push({
+        id: device.id,
+        success: Boolean(item.success),
+        invalidToken,
+        ...(item.messageId ? { messageId: item.messageId } : {}),
+        ...(!item.success && code ? { errorCode: code.slice(0, 120) } : {}),
+      });
+    });
+    await disablePushDevicesByTokenHashes(invalidHashes);
   }
 
-  return {
-    success: Boolean(response?.success),
-    invalidToken,
-    ...(response?.messageId ? { messageId: response.messageId } : {}),
-  };
+  return results;
 }

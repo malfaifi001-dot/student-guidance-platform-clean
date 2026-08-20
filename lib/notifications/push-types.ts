@@ -16,6 +16,7 @@ export type TeachixPushPayload = {
   route: string;
   type: PushNotificationType;
   recordId?: string;
+  campaignId?: string;
 };
 
 export function isPushNotificationType(value: unknown): value is PushNotificationType {
