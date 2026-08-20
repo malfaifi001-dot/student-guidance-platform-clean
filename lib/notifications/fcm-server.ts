@@ -28,6 +28,67 @@ export function isFirebasePushConfigured(): boolean {
   );
 }
 
+export function getFirebaseAdminHealth(): {
+  environment: {
+    firebaseProjectId: boolean;
+    firebaseClientEmail: boolean;
+    firebasePrivateKey: boolean;
+  };
+  firebaseAdmin: boolean;
+  firebaseMessaging: boolean;
+  error?: { code: string; message: string };
+} {
+  const environment = {
+    firebaseProjectId: Boolean(process.env.FIREBASE_PROJECT_ID),
+    firebaseClientEmail: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
+    firebasePrivateKey: Boolean(process.env.FIREBASE_PRIVATE_KEY),
+  };
+
+  if (!isFirebasePushConfigured()) {
+    return {
+      environment,
+      firebaseAdmin: false,
+      firebaseMessaging: false,
+      error: {
+        code: "FIREBASE_CONFIG_MISSING",
+        message: "Firebase Admin configuration is incomplete",
+      },
+    };
+  }
+
+  try {
+    const app = getFirebaseApp();
+    if (!app) {
+      return {
+        environment,
+        firebaseAdmin: false,
+        firebaseMessaging: false,
+        error: {
+          code: "FIREBASE_ADMIN_UNAVAILABLE",
+          message: "Firebase Admin could not be initialized",
+        },
+      };
+    }
+
+    getMessaging(app);
+    return {
+      environment,
+      firebaseAdmin: true,
+      firebaseMessaging: true,
+    };
+  } catch {
+    return {
+      environment,
+      firebaseAdmin: false,
+      firebaseMessaging: false,
+      error: {
+        code: "FIREBASE_ADMIN_INITIALIZATION_FAILED",
+        message: "Firebase Admin initialization failed",
+      },
+    };
+  }
+}
+
 function buildMessage(tokens: string[], payload: TeachixPushPayload): MulticastMessage {
   const route = getSafePushRoute(payload.route);
   if (!route || !isSafePushPayload({ ...payload, route })) {

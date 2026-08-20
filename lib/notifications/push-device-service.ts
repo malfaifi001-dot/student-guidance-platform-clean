@@ -24,6 +24,15 @@ function getEncryptionKey(): Buffer {
   return key;
 }
 
+export function isPushTokenEncryptionConfigured(): boolean {
+  try {
+    getEncryptionKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function hashPushToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
