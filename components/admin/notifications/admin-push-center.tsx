@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PushAnalyticsPanel, PushCampaignHistoryActions, PushTemplatesPanel } from "@/components/admin/notifications/push-center-extra-panels";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { PushCenterFeedbackModal, type PushCenterFeedback } from "@/components/admin/notifications/push-center-feedback";
 import { BellRing, CheckCircle2, Clock3, MonitorSmartphone, RefreshCw, Send, ShieldCheck, Smartphone, Users, XCircle } from "lucide-react";
 
 type Tab = "overview" | "create" | "campaigns" | "scheduled" | "automatic" | "templates" | "analytics" | "devices";
@@ -41,7 +42,11 @@ export function AdminPushCenter() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [confirming, setConfirming] = useState(false);
+  const [feedback, setFeedback] = useState<PushCenterFeedback | null>(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirming, setConfirmingState] = useState(false);
+  const setConfirming = (value: boolean) => { if (value) setConfirmModalOpen(true); else setConfirmingState(false); };
+  const [pendingDevice, setPendingDevice] = useState<{ id: string; name: string } | null>(null);
   const [pendingRule, setPendingRule] = useState<{ id: string; enabled: boolean; name: string } | null>(null);
   const [form, setForm] = useState({ title: "", body: "", route: "/dashboard", audienceType: "ALL_USERS" as Audience, role: "TEACHER", userId: "", sendNow: true, scheduledAt: "", recurrenceFrequency: "" });
 
@@ -71,16 +76,33 @@ export function AdminPushCenter() {
 
   async function createCampaign() {
     setSaving(true); setMessage("");
-    const response = await fetch("/api/dashboard/admin/notifications", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...form, scheduledAt: form.sendNow ? null : new Date(form.scheduledAt).toISOString(), recurrenceFrequency: form.recurrenceFrequency || null, role: form.audienceType === "ROLE" ? form.role : undefined, userId: form.audienceType === "USER" ? form.userId : undefined }) });
-    const result = await response.json().catch(() => null);
-    setSaving(false);
-    setMessage(response.ok ? "تم حفظ الحملة وإرسالها حسب الخيار المحدد." : `تعذر إنشاء الحملة: ${result?.error?.code || "خطأ غير متوقع"}`);
-    if (response.ok) { setConfirming(false); setForm((current) => ({ ...current, title: "", body: "" })); await load(); setTab("campaigns"); }
+    try {
+      const response = await fetch("/api/dashboard/admin/notifications", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...form, scheduledAt: form.sendNow ? null : new Date(form.scheduledAt).toISOString(), recurrenceFrequency: form.recurrenceFrequency || null, role: form.audienceType === "ROLE" ? form.role : undefined, userId: form.audienceType === "USER" ? form.userId : undefined }) });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error?.code || "REQUEST_FAILED");
+      setConfirming(false); setConfirmModalOpen(false); setForm((current) => ({ ...current, title: "", body: "" })); await load(); setTab("campaigns");
+      setFeedback({ variant: "success", title: "تم حفظ الحملة", description: "تم تنفيذ الحملة أو حفظ جدولها حسب الخيار المحدد." });
+    } catch {
+      setFeedback({ variant: "error", title: "تعذر إنشاء الحملة", description: "حدث خطأ آمن أثناء تنفيذ الطلب. راجع البيانات وحاول مرة أخرى." });
+    } finally { setSaving(false); }
   }
 
   async function revokeDevice(id: string) {
-    const response = await fetch("/api/dashboard/admin/notifications/devices", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceId: id }) });
-    if (response.ok) { setMessage("تم تعطيل الجهاز."); await load(); }
+    const device = devices.find((item) => String(item.id) === id);
+    setPendingDevice({ id, name: String(device?.userName || device?.userId || device?.packageName || "الجهاز المحدد") });
+  }
+
+  async function applyDeviceRevoke() {
+    if (!pendingDevice) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/dashboard/admin/notifications/devices", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceId: pendingDevice.id }) });
+      if (!response.ok) throw new Error("REQUEST_FAILED");
+      setPendingDevice(null); await load();
+      setFeedback({ variant: "success", title: "تم تعطيل الجهاز", description: "لن يستقبل هذا الجهاز إشعارات Push جديدة حتى يُسجّل من جديد." });
+    } catch {
+      setFeedback({ variant: "error", title: "تعذر تعطيل الجهاز", description: "تعذر تحديث حالة الجهاز. حاول مرة أخرى." });
+    } finally { setSaving(false); }
   }
 
   async function toggleRule(ruleId: string, enabled: boolean) {
@@ -90,9 +112,15 @@ export function AdminPushCenter() {
 
   async function applyRuleToggle() {
     if (!pendingRule) return;
-    const response = await fetch("/api/dashboard/admin/notifications/rules", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ruleId: pendingRule.id, enabled: pendingRule.enabled }) });
-    setPendingRule(null);
-    if (response.ok) await load();
+    setSaving(true);
+    try {
+      const response = await fetch("/api/dashboard/admin/notifications/rules", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ruleId: pendingRule.id, enabled: pendingRule.enabled }) });
+      if (!response.ok) throw new Error("REQUEST_FAILED");
+      setPendingRule(null); await load();
+      setFeedback({ variant: "success", title: pendingRule.enabled ? "تم تفعيل القاعدة" : "تم إيقاف القاعدة" });
+    } catch {
+      setFeedback({ variant: "error", title: "تعذر تحديث القاعدة", description: "تعذر حفظ حالة الإشعار التلقائي." });
+    } finally { setSaving(false); }
   }
 
   return <div dir="rtl" className="space-y-6">
@@ -100,7 +128,7 @@ export function AdminPushCenter() {
       <div className="flex flex-wrap items-start justify-between gap-5"><div><span className="text-xs font-black text-sky-200">مركز الإدارة · الاتصالات</span><h1 className="mt-2 text-3xl font-black tracking-tight">الإشعارات والبوش</h1><p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-300">أدر حملات الإشعارات، جدولة الإرسال، الأجهزة، وإحصاءات التفاعل من مساحة واحدة آمنة.</p></div><div className="rounded-2xl border border-white/10 bg-white/10 p-4"><BellRing className="h-8 w-8 text-sky-200" /></div></div>
     </header>
     <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabLabels.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-black transition ${tab === item.id ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{item.label}</button>)}</nav>
-    {message ? <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">{message}</div> : null}
+    {message ? <div className="sr-only" aria-live="polite">{message}</div> : null}
     {loading ? <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-16 text-sm font-black text-slate-500"><RefreshCw className="me-2 h-5 w-5 animate-spin" />جارٍ تحميل مركز الإشعارات...</div> : null}
     {!loading && tab === "overview" ? <section className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Metric label="إجمالي الحملات" value={overview.campaigns || 0} icon={Send} /><Metric label="حملات مرسلة" value={overview.sent || 0} icon={CheckCircle2} tone="emerald" /><Metric label="حملات مجدولة" value={overview.scheduled || 0} icon={Clock3} tone="amber" /><Metric label="الأجهزة النشطة" value={overview.activeDevices || 0} icon={Smartphone} tone="violet" /><Metric label="الإرسالات المقبولة" value={overview.successes || 0} icon={CheckCircle2} tone="emerald" /><Metric label="الإرسالات الفاشلة" value={overview.failures || 0} icon={XCircle} tone="rose" /><Metric label="فتح الإشعارات" value={overview.opened || 0} icon={BellRing} /><Metric label="معدل النجاح" value={overview.successRate || 0} icon={ShieldCheck} tone="teal" /></div><div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]"><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-black text-slate-900">حالة Firebase</h2><div className="mt-4 grid gap-3 sm:grid-cols-3">{[["Firebase Admin", health?.firebaseAdmin], ["Firebase Messaging", health?.firebaseMessaging], ["تشفير الأجهزة", health?.pushEncryption]].map(([label, value]) => <div key={String(label)} className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-700">{value ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <XCircle className="h-4 w-4 text-rose-600" />}{String(label)}</div>)}</div></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-black text-slate-900">تعريف القياس</h2><p className="mt-3 text-sm leading-7 text-slate-500">نجاح الإرسال يعني قبول FCM للرسالة. أما فتح الإشعار فيُحسب فقط عند تسجيل حدث فتح موثوق من جلسة المستخدم.</p></div></div></section> : null}
     {!loading && tab === "create" ? <section className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]"><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-slate-900">إنشاء حملة Push</h2><div className="mt-5 grid gap-4"><label className="space-y-2"><span className="text-xs font-black text-slate-600">عنوان الإشعار</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={120} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-500" placeholder="عنوان مختصر وواضح" /></label><label className="space-y-2"><span className="text-xs font-black text-slate-600">نص الإشعار</span><textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} maxLength={500} rows={4} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold outline-none focus:border-sky-500" placeholder="اكتب الرسالة هنا" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2"><span className="text-xs font-black text-slate-600">الجمهور</span><select value={form.audienceType} onChange={(e) => setForm({ ...form, audienceType: e.target.value as Audience })} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold"><option value="ALL_USERS">جميع المستخدمين</option><option value="ROLE">حسب الدور</option><option value="USER">مستخدم محدد</option></select></label>{form.audienceType === "ROLE" ? <label className="space-y-2"><span className="text-xs font-black text-slate-600">الدور</span><select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold">{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label> : null}{form.audienceType === "USER" ? <label className="space-y-2"><span className="text-xs font-black text-slate-600">معرف المستخدم</span><input value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold" /></label> : null}</div><label className="space-y-2"><span className="text-xs font-black text-slate-600">المسار الداخلي</span><input value={form.route} onChange={(e) => setForm({ ...form, route: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold" /></label><div className="flex flex-wrap items-center gap-4 rounded-xl bg-slate-50 p-4"><label className="flex items-center gap-2 text-sm font-black"><input type="checkbox" checked={form.sendNow} onChange={(e) => setForm({ ...form, sendNow: e.target.checked })} /> إرسال الآن</label>{!form.sendNow ? <input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm" /> : null}<select value={form.recurrenceFrequency} onChange={(e) => setForm({ ...form, recurrenceFrequency: e.target.value, sendNow: e.target.value ? false : form.sendNow })} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm"><option value="">بدون تكرار</option><option value="DAILY">يومي</option><option value="WEEKLY">أسبوعي</option><option value="MONTHLY">شهري</option><option value="WEEKDAYS">أيام العمل</option></select></div>{confirming ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-black text-amber-900">راجع الرسالة والجمهور قبل الإرسال: {estimateText}</p><div className="mt-3 flex gap-2"><button type="button" disabled={saving} onClick={() => void createCampaign()} className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white">تأكيد وتنفيذ</button><button type="button" onClick={() => setConfirming(false)} className="rounded-xl bg-white px-4 py-2 text-xs font-black text-slate-700">إلغاء</button></div></div> : <button type="button" disabled={saving} onClick={() => setConfirming(true)} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-black text-white shadow-lg shadow-sky-100 disabled:opacity-60"><Send className="h-4 w-4" />{form.sendNow ? "مراجعة وإرسال الحملة" : "مراجعة وحفظ الجدولة"}</button>}</div></div><div className="space-y-4"><div className="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm"><p className="text-xs font-bold text-sky-200">معاينة تقريبية</p><div className="mt-4 rounded-2xl bg-white p-4 text-slate-900"><div className="flex items-center gap-2"><div className="rounded-lg bg-sky-100 p-2"><BellRing className="h-4 w-4 text-sky-700" /></div><div><strong className="block text-sm">Teachix</strong><span className="text-[10px] text-slate-400">الآن</span></div></div><strong className="mt-4 block text-sm">{form.title || "عنوان الإشعار"}</strong><p className="mt-1 text-xs leading-6 text-slate-600">{form.body || "سيظهر نص الإشعار هنا."}</p></div></div><div className="rounded-2xl border border-sky-100 bg-sky-50 p-5"><p className="text-xs font-black text-sky-700">الجمهور المتوقع</p><p className="mt-2 text-sm font-black text-sky-950">{estimateText}</p><p className="mt-2 text-xs leading-6 text-sky-800">يتم الإرسال فقط إلى الأجهزة النشطة والمفعلة، ولا يتم كشف رموز FCM.</p></div></div></section> : null}
@@ -110,7 +138,10 @@ export function AdminPushCenter() {
     {!loading && tab === "analytics" ? <PushAnalyticsPanel /> : null}
     {!loading && tab === "automatic" ? <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-slate-900">الإشعارات التلقائية</h2><p className="mt-1 text-sm leading-7 text-slate-500">هذه قواعد معرفة مسبقًا، وتبقى متوقفة حتى يربطها حدث آمن من النظام. لا يتم تنفيذ كود مخصص من لوحة الإدارة.</p><div className="mt-5 grid gap-3">{(data?.rules || []).map((rule) => <div key={String(rule.id)} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-4"><div><strong className="block text-sm font-black text-slate-900">{String(rule.name)}</strong><p className="mt-1 text-xs text-slate-500">{String(rule.description || "")}</p><span className="mt-2 inline-block text-[11px] font-bold text-slate-400">{String(rule.triggerKey)}</span></div><button type="button" onClick={() => void toggleRule(String(rule.id), !Boolean(rule.enabled))} className={`rounded-xl px-4 py-2 text-xs font-black ${rule.enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{rule.enabled ? "مفعلة" : "متوقفة"}</button></div>)}</div></section> : null}
     {!loading && tab === "devices" ? <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-slate-900">الأجهزة المسجلة</h2><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[680px] text-right text-sm"><thead><tr className="border-b border-slate-100 text-xs text-slate-500"><th className="p-3">المستخدم</th><th className="p-3">الدور</th><th className="p-3">المنصة</th><th className="p-3">آخر نشاط</th><th className="p-3">الحالة</th><th className="p-3">إجراء</th></tr></thead><tbody>{devices.map((device) => { const user = device.user as { name?: string; role?: string } | undefined; return <tr key={String(device.id)} className="border-b border-slate-50"><td className="p-3 font-bold">{user?.name || "-"}</td><td className="p-3">{roleLabels[user?.role || ""] || user?.role}</td><td className="p-3">{String(device.platform)} · {String(device.packageName)}</td><td className="p-3 text-xs text-slate-500">{new Date(String(device.lastSeenAt)).toLocaleString("ar-SA")}</td><td className="p-3">{device.enabled ? <span className="text-emerald-600">نشط</span> : <span className="text-slate-400">معطل</span>}</td><td className="p-3"><button type="button" disabled={!device.enabled} onClick={() => void revokeDevice(String(device.id))} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 disabled:opacity-40">تعطيل</button></td></tr>; })}</tbody></table></div></section> : null}
-    <SmartActionModal open={Boolean(pendingRule)} title={pendingRule?.enabled ? "تفعيل الإشعار التلقائي؟" : "إيقاف الإشعار التلقائي؟"} description={pendingRule ? `القاعدة: ${pendingRule.name}. ${pendingRule.enabled ? "سيبدأ النظام باستخدامها عند وقوع الحدث." : "لن تُنشأ حملات جديدة من هذه القاعدة."}` : undefined} variant="warning" confirmLabel={pendingRule?.enabled ? "تفعيل القاعدة" : "إيقاف القاعدة"} cancelLabel="إلغاء" onConfirm={() => void applyRuleToggle()} onClose={() => setPendingRule(null)} />
+    <SmartActionModal open={confirmModalOpen} title="تأكيد تنفيذ الإشعار" description={`راجع الرسالة والجمهور قبل المتابعة: ${estimateText}. المسار: ${form.route}. ${form.sendNow ? "سيتم الإرسال الآن." : "سيتم حفظ الحملة للموعد المحدد."}`} variant="warning" confirmLabel={form.sendNow ? "إرسال الإشعار" : "حفظ الجدولة"} cancelLabel="إلغاء" loading={saving} onConfirm={() => void createCampaign()} onClose={() => !saving && setConfirmModalOpen(false)} />
+    <SmartActionModal open={Boolean(pendingDevice)} title="تعطيل الجهاز؟" description={pendingDevice ? `الجهاز: ${pendingDevice.name}. لن يستقبل إشعارات Push جديدة بعد تعطيله.` : undefined} variant="danger" confirmLabel="تعطيل الجهاز" cancelLabel="إلغاء" loading={saving} onConfirm={() => void applyDeviceRevoke()} onClose={() => !saving && setPendingDevice(null)} />
+    <SmartActionModal open={Boolean(pendingRule)} title={pendingRule?.enabled ? "تفعيل الإشعار التلقائي؟" : "إيقاف الإشعار التلقائي؟"} description={pendingRule ? `القاعدة: ${pendingRule.name}. ${pendingRule.enabled ? "سيبدأ النظام باستخدامها عند وقوع الحدث." : "لن تُنشأ حملات جديدة من هذه القاعدة."}` : undefined} variant="warning" confirmLabel={pendingRule?.enabled ? "تفعيل القاعدة" : "إيقاف القاعدة"} cancelLabel="إلغاء" loading={saving} onConfirm={() => void applyRuleToggle()} onClose={() => !saving && setPendingRule(null)} />
+    <PushCenterFeedbackModal feedback={feedback} onClose={() => setFeedback(null)} />
     {tab === "campaigns" ? <PushCampaignHistoryActions campaigns={(Array.isArray(data?.campaigns) ? data.campaigns : data?.campaigns.items || [])} onChanged={() => void load()} /> : null}
   </div>;
 }
