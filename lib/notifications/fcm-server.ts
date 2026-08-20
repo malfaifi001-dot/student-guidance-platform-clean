@@ -321,3 +321,24 @@ export async function sendPushToUsers(
 
   return { successCount, failureCount };
 }
+
+export async function sendPushToDevice(
+  device: { tokenHash: string; encryptedToken: string },
+  payload: TeachixPushPayload,
+): Promise<{ success: boolean; invalidToken: boolean; messageId?: string }> {
+  const token = decryptPushToken(device.encryptedToken);
+  const result = await sendChunk([token], payload);
+  const response = result.responses[0];
+  const firebaseCode = response?.error?.code || "";
+  const invalidToken = firebaseCode.includes("registration-token-not-registered") || firebaseCode.includes("invalid-registration-token");
+
+  if (invalidToken) {
+    await disablePushDevicesByTokenHashes([hashPushToken(token)]);
+  }
+
+  return {
+    success: Boolean(response?.success),
+    invalidToken,
+    ...(response?.messageId ? { messageId: response.messageId } : {}),
+  };
+}

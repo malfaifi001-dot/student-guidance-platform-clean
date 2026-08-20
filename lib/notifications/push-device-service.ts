@@ -117,6 +117,27 @@ export async function getEnabledPushDevicesForUsers(userIds: string[]) {
   });
 }
 
+export async function getMostRecentlyActiveEnabledAndroidPushDevice() {
+  return prisma.pushDevice.findFirst({
+    where: {
+      platform: "android",
+      packageName: "sa.teachix.app",
+      enabled: true,
+      revokedAt: null,
+    },
+    orderBy: [{ lastSeenAt: "desc" }, { updatedAt: "desc" }],
+    select: {
+      id: true,
+      userId: true,
+      tokenHash: true,
+      encryptedToken: true,
+      platform: true,
+      packageName: true,
+      lastSeenAt: true,
+    },
+  });
+}
+
 export async function disablePushDevicesByTokenHashes(tokenHashes: string[]): Promise<void> {
   if (tokenHashes.length === 0) return;
 
