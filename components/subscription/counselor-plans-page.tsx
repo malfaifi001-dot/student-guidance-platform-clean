@@ -19,6 +19,7 @@ type CounselorPlan = {
   slug: string;
   priceMonthly: number;
   priceYearly: number;
+  commercialType?: "TERM" | "YEAR" | null;
   durationDays: number;
   maxStudents: string;
   maxUsers: string;
@@ -216,6 +217,7 @@ export function CounselorPlansPage() {
       plan_slug: plan.slug,
     });
     setSelectedPlan(plan);
+    setBillingCycle(plan.commercialType === "YEAR" ? "yearly" : "monthly");
     setMessage(null);
     setCheckoutError("");
     setCheckoutTransaction(null);
@@ -499,7 +501,7 @@ export function CounselorPlansPage() {
           ) : null}
 
           <div className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1" aria-label="دورة الفوترة">
-            {(["monthly", "yearly"] as const).map((cycle) => (
+            {(["monthly", "yearly"] as const).filter((cycle) => !selectedPlan?.commercialType || (selectedPlan.commercialType === "YEAR" ? cycle === "yearly" : cycle === "monthly")).map((cycle) => (
               <button
                 key={cycle}
                 type="button"

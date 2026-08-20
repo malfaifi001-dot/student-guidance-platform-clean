@@ -3,15 +3,47 @@ import type { SubscriptionStatus } from "@prisma/client";
 import type { PlanAudience } from "./plan-audience";
 import {
   getActivityProgramsBillingServiceSlug,
-  getActivityProgramsBillingServiceSlugs,
 } from "@/lib/activity-programs/activity-program-catalog";
+import {
+  getPlanCommercialType,
+  getPlanDurationMode,
+  getPlanFixedEndDate,
+  getPlanServiceSlugs,
+  resolvePlanBillingCycle,
+  type CommercialPlanType,
+  type PlanBillingCycle,
+  type PlanDurationMode,
+  type PlanFeatureLike,
+} from "./plan-metadata";
+
+export {
+  getPlanCommercialType,
+  getPlanDurationMode,
+  getPlanFixedEndDate,
+  getPlanServiceSlugs,
+  resolvePlanBillingCycle,
+} from "./plan-metadata";
+export type { CommercialPlanType, PlanBillingCycle, PlanDurationMode, PlanFeatureLike } from "./plan-metadata";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
-type PlanFeatureLike = {
-  key: string;
-  value: string | null;
-};
+export function resolvePlanSubscriptionPeriod(input: {
+  features: PlanFeatureLike[];
+  days?: number;
+  startsAt?: Date;
+}) {
+  const startsAt = input.startsAt || new Date();
+  const mode = getPlanDurationMode(input.features);
+  if (mode === "FIXED_END_DATE") {
+    const endsAt = getPlanFixedEndDate(input.features);
+    if (!endsAt) throw new Error("FIXED_END_DATE_PLAN_CONFIGURATION_INVALID");
+    if (endsAt.getTime() <= startsAt.getTime()) throw new Error("FIXED_END_DATE_PLAN_EXPIRED");
+    return { startsAt, endsAt, durationMode: mode, durationDays: null };
+  }
+  const configuredDays = Number(getPlanFeatureValue(input.features, "durationDays", "30"));
+  const durationDays = input.days && input.days > 0 ? input.days : configuredDays > 0 ? configuredDays : 30;
+  return { startsAt, endsAt: addDays(startsAt, durationDays), durationMode: mode, durationDays };
+}
 
 export function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -49,15 +81,6 @@ export function getPlanFeatureValue(
   fallback = "0"
 ) {
   return features.find((feature) => feature.key === key)?.value || fallback;
-}
-
-export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
-  return getActivityProgramsBillingServiceSlugs(
-    features
-      .filter((feature) => feature.key.startsWith("service:"))
-      .filter((feature) => feature.value === "enabled")
-      .map((feature) => feature.key.replace("service:", "").trim()),
-  );
 }
 
 export function getPlanAudienceFromFeatures(
@@ -161,6 +184,52 @@ export async function syncSchoolServicesFromPlan(input: {
   };
 }
 
+export async function syncPlanEntitlementsForSubscribers(input: {
+  planId: string;
+  previousServiceSlugs: string[];
+  nextServiceSlugs: string[];
+}) {
+  const previous = new Set(input.previousServiceSlugs);
+  const next = new Set(input.nextServiceSlugs);
+  const addedSlugs = [...next].filter((slug) => !previous.has(slug));
+  const removedSlugs = [...previous].filter((slug) => !next.has(slug));
+  if (!addedSlugs.length && !removedSlugs.length) return { affectedSubscribers: 0, addedSlugs, removedSlugs };
+
+  const subscriptions = await prisma.subscription.findMany({
+    where: { planId: input.planId },
+    select: { schoolAccountId: true },
+  });
+  const services = await prisma.service.findMany({
+    where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+    select: { id: true, slug: true },
+  });
+  const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+
+  await prisma.$transaction(async (tx) => {
+    for (const subscription of subscriptions) {
+      for (const slug of addedSlugs) {
+        const serviceId = serviceBySlug.get(slug);
+        if (!serviceId) continue;
+        await tx.serviceAccess.upsert({
+          where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+          update: { isEnabled: true, isPaid: true },
+          create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+        });
+      }
+      for (const slug of removedSlugs) {
+        const serviceId = serviceBySlug.get(slug);
+        if (!serviceId) continue;
+        // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+        await tx.serviceAccess.updateMany({
+          where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+          data: { isEnabled: false, isPaid: false },
+        });
+      }
+    }
+  });
+  return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+}
+
 export async function assignPlanToSchool(input: {
   schoolAccountId: string;
   planId: string;
@@ -196,13 +265,12 @@ export async function assignPlanToSchool(input: {
     },
   });
 
-  const durationDays =
-    input.days && input.days > 0
-      ? input.days
-      : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
-
-  const now = new Date();
-  const endsAt = addDays(now, durationDays);
+  const period = resolvePlanSubscriptionPeriod({
+    features: plan.features,
+    days: input.days,
+  });
+  const now = period.startsAt;
+  const endsAt = period.endsAt;
 
   const subscription = await prisma.subscription.upsert({
     where: {

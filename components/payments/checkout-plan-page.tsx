@@ -10,6 +10,7 @@ type Plan = {
   slug: string;
   priceMonthly: number;
   priceYearly: number;
+  commercialType?: "TERM" | "YEAR" | null;
   isActive: boolean;
 };
 
@@ -36,7 +37,7 @@ export function CheckoutPlanPage({
   providers: Provider[];
   userHasSchoolAccount: boolean;
 }) {
-  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">(plan.commercialType === "YEAR" ? "YEARLY" : "MONTHLY");
   const [providerSlug, setProviderSlug] = useState(providers[0]?.slug || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -112,7 +113,7 @@ export function CheckoutPlanPage({
           </h2>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <button
+            {plan.commercialType !== "YEAR" ? <button
               type="button"
               onClick={() => setBillingCycle("MONTHLY")}
               className={
@@ -127,9 +128,9 @@ export function CheckoutPlanPage({
               <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
                 {formatAmount(plan.priceMonthly)}
               </p>
-            </button>
+            </button> : null}
 
-            <button
+            {plan.commercialType !== "TERM" ? <button
               type="button"
               onClick={() => setBillingCycle("YEARLY")}
               className={
@@ -144,7 +145,7 @@ export function CheckoutPlanPage({
               <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-200">
                 {formatAmount(plan.priceYearly)}
               </p>
-            </button>
+            </button> : null}
           </div>
 
           <label className="mt-5 block">

@@ -15,6 +15,10 @@ import {
   getPlanServiceSlugs,
   getRemainingDays,
   isSubscriptionUsable,
+  getPlanCommercialType,
+  getPlanDurationMode,
+  getPlanFixedEndDate,
+  resolvePlanBillingCycle,
 } from "@/lib/subscription/subscription-service";
 import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 import {
@@ -107,6 +111,9 @@ export async function GET() {
       maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
       maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
       targetAudience: audience,
+      commercialType: getPlanCommercialType(plan.features),
+      durationMode: getPlanDurationMode(plan.features),
+      fixedEndDate: getPlanFixedEndDate(plan.features),
       services: planServices.map((service) => ({
         id: service.id,
         slug: service.slug,
@@ -156,7 +163,7 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
 
   const planId = String(payload?.planId || "").trim();
-  const billingCycle = String(payload?.billingCycle || "monthly").trim();
+  const requestedBillingCycle = String(payload?.billingCycle || "monthly").trim();
   const senderName = String(payload?.senderName || "").trim();
   const phone = String(payload?.phone || "").trim();
   const receiptUrl = String(payload?.receiptUrl || "").trim();
@@ -194,6 +201,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const billingCycle = resolvePlanBillingCycle(plan.features, requestedBillingCycle === "yearly" ? "YEARLY" : "MONTHLY");
+
   if (plan.slug === DEFAULT_FREE_PLAN_SLUG) {
     return NextResponse.json(
       {
@@ -217,12 +226,12 @@ export async function POST(request: Request) {
   }
 
   const durationDays =
-    billingCycle === "yearly"
+    billingCycle === "YEARLY"
       ? 365
       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
   const originalAmount =
-    billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+    billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
   let amount = originalAmount;
   let couponQuote: Awaited<ReturnType<typeof getCouponQuote>> | null = null;
 
@@ -231,7 +240,7 @@ export async function POST(request: Request) {
       couponQuote = await getCouponQuote({
         code: couponCode,
         planId: plan.id,
-        billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        billingCycle,
         schoolAccountId: current.user.schoolAccountId,
       });
       amount = couponQuote.finalAmount;
@@ -257,7 +266,7 @@ export async function POST(request: Request) {
       await redeemCoupon({
         code: couponQuote.couponCode,
         planId: plan.id,
-        billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        billingCycle,
         schoolAccountId: current.user.schoolAccountId,
         subscriptionId: subscription.id,
       });
@@ -291,7 +300,7 @@ export async function POST(request: Request) {
       planId: plan.id,
       durationDays,
       requesterUserId: current.user.id,
-      billingCycle,
+      billingCycle: billingCycle === "YEARLY" ? "yearly" : "monthly",
       couponCode: couponQuote?.couponCode || null,
       originalAmount,
       discountAmount: couponQuote?.discountAmount || 0,

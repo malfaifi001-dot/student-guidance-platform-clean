@@ -3,6 +3,7 @@ import { CheckoutPlanPage } from "@/components/payments/checkout-plan-page";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+import { getPlanCommercialType } from "@/lib/subscription/subscription-service";
 
 type PageProps = {
   params: Promise<{
@@ -58,7 +59,7 @@ export default async function CheckoutPlanRoutePage({ params }: PageProps) {
 
   return (
     <CheckoutPlanPage
-      plan={plan}
+      plan={{ ...plan, commercialType: getPlanCommercialType(plan.features) }}
       providers={providers}
       userHasSchoolAccount={Boolean(current.user.schoolAccountId)}
     />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import {
   getDefaultFreePlanConfig,
@@ -10,6 +11,8 @@ import {
 import {
   assignPlanToSchool,
   getPlanFeatureValue,
+  getPlanServiceSlugs,
+  syncPlanEntitlementsForSubscribers,
 } from "@/lib/subscription/subscription-service";
 import {
   getDefaultVisibleRolesForAudience,
@@ -68,6 +71,7 @@ export async function GET() {
       }),
 
       prisma.service.findMany({
+        where: { status: "ACTIVE" },
         orderBy: {
           name: "asc",
         },
@@ -201,6 +205,10 @@ export async function POST(request: Request) {
     const slug = slugify(rawSlug || name);
     const priceMonthly = Number(payload?.priceMonthly || 0);
     const priceYearly = Number(payload?.priceYearly || 0);
+    const commercialType = String(payload?.commercialType || "TERM").trim() === "YEAR" ? "YEAR" : "TERM";
+    const durationMode = String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE" ? "FIXED_END_DATE" : "DAYS";
+    const fixedEndDate = String(payload?.fixedEndDate || "").trim();
+    const termLabel = String(payload?.termLabel || "").trim();
     const durationDays = Number(payload?.durationDays || 30);
     const maxStudents = Number(payload?.maxStudents || 0);
     const maxUsers = Number(payload?.maxUsers || 0);
@@ -222,6 +230,10 @@ export async function POST(request: Request) {
     const isPublic =
       typeof payload?.isPublic === "boolean" ? payload.isPublic : true;
     const isArchived = Boolean(payload?.isArchived);
+    if (commercialType === "TERM" && priceMonthly <= 0) return NextResponse.json({ error: "سعر باقة الفصل مطلوب." }, { status: 400 });
+    if (commercialType === "YEAR" && priceYearly <= 0) return NextResponse.json({ error: "سعر الباقة السنوية مطلوب." }, { status: 400 });
+    if (durationMode === "DAYS" && (!Number.isInteger(durationDays) || durationDays <= 0)) return NextResponse.json({ error: "أدخل مدة صحيحة بالأيام." }, { status: 400 });
+    if (durationMode === "FIXED_END_DATE" && (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) || new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())) return NextResponse.json({ error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا." }, { status: 400 });
 
     if (!Number.isFinite(priceMonthly) || !Number.isFinite(priceYearly) || priceMonthly < 0 || priceYearly < 0) {
       return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
@@ -280,6 +292,10 @@ export async function POST(request: Request) {
               label: "مدة الاشتراك بالأيام",
               value: String(durationDays > 0 ? durationDays : 30),
             },
+            { key: "commercialType", label: "نوع العرض التجاري", value: commercialType },
+            { key: "durationMode", label: "نمط المدة", value: durationMode },
+            ...(durationMode === "FIXED_END_DATE" ? [{ key: "fixedEndDate", label: "تاريخ الانتهاء الثابت", value: fixedEndDate }] : []),
+            ...(termLabel ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }] : []),
             {
               key: "maxStudents",
               label: "حد الطلاب",
@@ -319,6 +335,10 @@ export async function POST(request: Request) {
     const name = String(payload?.name || "").trim();
     const priceMonthly = Number(payload?.priceMonthly);
     const priceYearly = Number(payload?.priceYearly);
+    const commercialType = String(payload?.commercialType || "").trim();
+    const durationMode = String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE" ? "FIXED_END_DATE" : "DAYS";
+    const fixedEndDate = String(payload?.fixedEndDate || "").trim();
+    const termLabel = String(payload?.termLabel || "").trim();
     const durationDays = Number(payload?.durationDays || 30);
     const maxStudents = Number(payload?.maxStudents || 0);
     const maxUsers = Number(payload?.maxUsers || 0);
@@ -336,9 +356,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
     }
     if (!visibleRoles) return NextResponse.json({ error: "الأدوار المحددة للباقة غير صالحة." }, { status: 400 });
+    if (commercialType && commercialType !== "TERM" && commercialType !== "YEAR") return NextResponse.json({ error: "نوع الباقة غير صالح." }, { status: 400 });
+    if (commercialType === "TERM" && priceMonthly <= 0) return NextResponse.json({ error: "سعر باقة الفصل مطلوب." }, { status: 400 });
+    if (commercialType === "YEAR" && priceYearly <= 0) return NextResponse.json({ error: "سعر الباقة السنوية مطلوب." }, { status: 400 });
+    if (durationMode === "DAYS" && (!Number.isInteger(durationDays) || durationDays <= 0)) return NextResponse.json({ error: "أدخل مدة صحيحة بالأيام." }, { status: 400 });
+    if (durationMode === "FIXED_END_DATE" && (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) || new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())) return NextResponse.json({ error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا." }, { status: 400 });
 
     const [existingPlan, knownServices] = await Promise.all([
-      prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true, isArchived: true } }),
+      prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true, isArchived: true, features: true } }),
       prisma.service.findMany({ select: { slug: true } }),
     ]);
     if (!existingPlan) return NextResponse.json({ error: "الباقة غير موجودة." }, { status: 404 });
@@ -349,11 +374,17 @@ export async function POST(request: Request) {
     if (enabledServiceSlugs.some((serviceSlug) => !knownServiceSlugs.has(serviceSlug))) {
       return NextResponse.json({ error: "تتضمن الباقة خدمة غير معروفة." }, { status: 400 });
     }
+    const previousServiceSlugs = getPlanServiceSlugs(existingPlan.features);
+    const applyToCurrentSubscribers = Boolean(payload?.applyToCurrentSubscribers);
 
-    const managedKeys = ["targetAudience", "durationDays", "maxStudents", "maxUsers", "maxReports"];
+    const managedKeys = ["targetAudience", "durationDays", "commercialType", "durationMode", "fixedEndDate", "termLabel", "maxStudents", "maxUsers", "maxReports"];
     const featureData = [
       { key: "targetAudience", label: "الجمهور المستهدف", value: targetAudience },
       { key: "durationDays", label: "مدة الاشتراك بالأيام", value: String(durationDays > 0 ? durationDays : 30) },
+      ...(commercialType === "TERM" || commercialType === "YEAR" ? [{ key: "commercialType", label: "نوع العرض التجاري", value: commercialType }] : []),
+      { key: "durationMode", label: "نمط المدة", value: durationMode },
+      ...(durationMode === "FIXED_END_DATE" && /^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) ? [{ key: "fixedEndDate", label: "تاريخ الانتهاء الثابت", value: fixedEndDate }] : []),
+      ...(termLabel ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }] : []),
       { key: "maxStudents", label: "حد الطلاب", value: String(maxStudents > 0 ? maxStudents : 0) },
       { key: "maxUsers", label: "حد المستخدمين", value: String(maxUsers > 0 ? maxUsers : 0) },
       { key: "maxReports", label: "حد التقارير", value: String(maxReports > 0 ? maxReports : 0) },
@@ -379,7 +410,13 @@ export async function POST(request: Request) {
       });
     });
 
-    return NextResponse.json({ message: "تم تحديث الباقة.", plan });
+    const serviceChange = applyToCurrentSubscribers
+      ? await syncPlanEntitlementsForSubscribers({ planId, previousServiceSlugs, nextServiceSlugs: enabledServiceSlugs })
+      : { affectedSubscribers: 0, addedSlugs: enabledServiceSlugs.filter((slug) => !previousServiceSlugs.includes(slug)), removedSlugs: previousServiceSlugs.filter((slug) => !enabledServiceSlugs.includes(slug)) };
+    if (serviceChange.addedSlugs.length || serviceChange.removedSlugs.length) {
+      await logAdminActivity({ actorUserId: current.user.id, category: "SUBSCRIPTION", action: "PLAN_ENTITLEMENTS_UPDATED", severity: "SUCCESS", title: "تحديث خدمات الباقة", details: { planId, planName: plan.name, addedServices: serviceChange.addedSlugs, removedServices: serviceChange.removedSlugs, affectedSubscribers: serviceChange.affectedSubscribers, appliedToCurrentSubscribers: applyToCurrentSubscribers } });
+    }
+    return NextResponse.json({ message: "تم تحديث الباقة.", plan, serviceChange: { ...serviceChange, appliedToCurrentSubscribers: applyToCurrentSubscribers } });
   }
 
   if (action === "archive-plan" || action === "restore-plan") {

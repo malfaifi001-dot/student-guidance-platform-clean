@@ -8,6 +8,7 @@ import { logAdminActivity } from "@/lib/admin/activity-log";
 import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
 import { prisma } from "@/lib/prisma";
 import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+import { resolvePlanBillingCycle, resolvePlanSubscriptionPeriod } from "@/lib/subscription/subscription-service";
 import {
   getCouponQuote,
   redeemCoupon,
@@ -61,19 +62,6 @@ function getCheckoutAmount(plan: {
   return billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
 }
 
-function getEndsAt(billingCycle: BillingCycle) {
-  const now = new Date();
-  const endsAt = new Date(now);
-
-  if (billingCycle === "YEARLY") {
-    endsAt.setFullYear(endsAt.getFullYear() + 1);
-  } else {
-    endsAt.setDate(endsAt.getDate() + 30);
-  }
-
-  return endsAt;
-}
-
 function buildInternalCheckoutUrl(transactionId: string) {
   return `/dashboard/checkout/transactions/${transactionId}`;
 }
@@ -95,7 +83,7 @@ export function getWebhookSecret(configJson: unknown) {
 }
 
 export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
-  const billingCycle = normalizeBillingCycle(input.billingCycle);
+  let billingCycle = normalizeBillingCycle(input.billingCycle);
 
   const [plan, provider, requesterUser] = await Promise.all([
     prisma.plan.findUnique({
@@ -143,6 +131,8 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
   if (!provider || !provider.isActive) {
     throw new ElectronicPaymentError("مزود الدفع غير متاح حاليًا.", 404);
   }
+
+  billingCycle = resolvePlanBillingCycle(plan.features, billingCycle);
 
   if (!requesterUser || requesterUser.schoolAccountId !== input.schoolAccountId) {
     throw new ElectronicPaymentError("لا يمكن إنشاء عملية الدفع لهذا الحساب.", 403);
@@ -309,8 +299,17 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
     }
   }
 
-  const startsAt = new Date();
-  const endsAt = getEndsAt(billingCycle);
+  const paidPlan = await prisma.plan.findUnique({ where: { id: planId }, select: { features: true } });
+  if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
+  try {
+    period = resolvePlanSubscriptionPeriod({ features: paidPlan.features, startsAt: new Date(), days: billingCycle === "YEARLY" ? 365 : 30 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "FIXED_END_DATE_PLAN_EXPIRED") throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
+    throw new ElectronicPaymentError("إعداد مدة الباقة غير صالح.", 409);
+  }
+  const startsAt = period.startsAt;
+  const endsAt = period.endsAt;
 
   const paidTransaction = await prisma.$transaction(async (tx) => {
     const subscription = await tx.subscription.upsert({
