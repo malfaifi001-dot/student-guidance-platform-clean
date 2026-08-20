@@ -25,9 +25,6 @@ export default async function PublicCurriculumDistributionPage({
         <header className="mx-auto mb-8 max-w-3xl text-center">
           <p className="text-sm font-black text-sky-600">أداة مجانية من Teachix</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">حمّل توزيع منهجك مجانًا</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm font-bold leading-8 text-slate-500 sm:text-base">
-            اختر المرحلة والصف والمادة واحصل على توزيع جاهز للمعاينة والطباعة، دون تسجيل دخول.
-          </p>
         </header>
         <PublicCurriculumDistributionTool campaignRef={campaignRef} />
       </main>

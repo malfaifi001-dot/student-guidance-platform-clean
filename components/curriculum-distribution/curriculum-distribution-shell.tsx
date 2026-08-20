@@ -15,6 +15,7 @@ type SelectionField = { key: string; label: string; value: Choice | null; choice
 type CurriculumDistributionShellProps = {
   apiPath?: string;
   printPath?: string;
+  exportPath?: string;
   previewPath?: string;
   publicPreview?: boolean;
   campaignRef?: string;
@@ -55,6 +56,7 @@ async function loadOptions(apiPath: string, kind: string, params: Record<string,
 export function CurriculumDistributionShell({
   apiPath = "/api/dashboard/curriculum-distribution",
   printPath = "/print/curriculum-distribution",
+  exportPath,
   previewPath,
   publicPreview = false,
   campaignRef,
@@ -114,6 +116,13 @@ export function CurriculumDistributionShell({
     if (!distribution) return false;
 
     const result = await print.runPrintExport({
+      exportUrl: exportPath,
+      method: exportPath ? "POST" : undefined,
+      body: exportPath ? {
+        subjectId: distribution.subject.id,
+        semesterId: distribution.semester.id,
+        fileName: "curriculum-distribution.pdf",
+      } : undefined,
       printUrl: getPrintUrl(),
       fileName: "curriculum-distribution.pdf",
       blockedTitle: "معاينة الطباعة",
@@ -279,7 +288,6 @@ export function CurriculumDistributionShell({
     <div dir="rtl" className="curriculum-distribution-shell space-y-5">
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-4">
-          <div><h2 className="text-lg font-black text-slate-950">اختيارات العرض</h2><p className="mt-1 text-xs font-bold text-slate-500">حدد المسار الأكاديمي لعرض الوحدات والدروس المناسبة.</p></div>
           {loading ? <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700"><Loader2 className="h-3.5 w-3.5 animate-spin" />جارٍ تحميل الخيارات</span> : null}
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

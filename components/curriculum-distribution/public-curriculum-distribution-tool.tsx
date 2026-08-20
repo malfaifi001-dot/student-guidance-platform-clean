@@ -31,6 +31,7 @@ export function PublicCurriculumDistributionTool({ campaignRef = "" }: { campaig
       <CurriculumDistributionShell
         apiPath="/api/public/curriculum-distribution"
         printPath="/free/curriculum-distribution/studio"
+        exportPath="/api/public/curriculum-distribution/export/pdf"
         previewPath="/print/curriculum-distribution"
         publicPreview
         campaignRef={campaignRef}
@@ -50,18 +51,18 @@ export function PublicCurriculumDistributionTool({ campaignRef = "" }: { campaig
             <CheckCircle2 className="h-5 w-5" />
             اشتراك المعلم السنوي بـ 19 ريال فقط
           </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Link
               href={`/register${campaignRef ? `?ref=${encodeURIComponent(campaignRef)}` : ""}`}
               onClick={() => trackAnalyticsEvent(ANALYTICS_EVENTS.CURRICULUM_DISTRIBUTION_CTA_CLICK, campaignRef ? { campaign_ref: campaignRef } : undefined)}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 text-sm font-black text-white transition hover:bg-sky-700"
+              className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-sky-600 px-4 py-3 text-center text-sm font-black leading-none text-white transition hover:bg-sky-700 sm:w-auto sm:flex-1"
             >
               اشترك الآن <ArrowLeft className="h-4 w-4" />
             </Link>
             <button
               type="button"
               onClick={() => setCtaOpen(false)}
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600"
+              className="min-h-12 w-full shrink-0 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black leading-none text-slate-600 sm:w-auto"
             >
               لاحقًا
             </button>
