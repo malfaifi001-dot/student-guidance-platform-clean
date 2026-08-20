@@ -23,7 +23,7 @@ function getErrorMessage(error: unknown) {
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ requestId: string }> }
+  context: { params: Promise<{ requestId: string }> },
 ) {
   let step = "START";
   let resolvedRequestId: string | null = null;
@@ -62,7 +62,7 @@ export async function POST(
     if (!transferRequest) {
       return NextResponse.json(
         { error: "طلب التحويل غير موجود.", step },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -78,7 +78,7 @@ export async function POST(
             ipAddress: device.ipAddress,
             userAgent: device.userAgent,
             source: "BANK_TRANSFER_APPROVE_ALREADY_PAID_RECOVERY",
-          }
+          },
         );
 
         return NextResponse.json({
@@ -99,7 +99,7 @@ export async function POST(
           requestId: transferRequest.id,
           currentStatus: transferRequest.status,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -111,7 +111,7 @@ export async function POST(
           step,
           requestId: transferRequest.id,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -124,7 +124,7 @@ export async function POST(
           step,
           requestId: transferRequest.id,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +146,7 @@ export async function POST(
           requestId: transferRequest.id,
           planId: transferRequest.planId,
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -156,7 +156,8 @@ export async function POST(
         ? days
         : transferRequest.durationDays && transferRequest.durationDays > 0
           ? transferRequest.durationDays
-          : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
+          : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) ||
+            30;
 
     step = "ASSIGN_PLAN_TO_SCHOOL";
     if (transferRequest.couponCode) {
@@ -164,12 +165,28 @@ export async function POST(
       const quote = await getCouponQuote({
         code: transferRequest.couponCode,
         planId: plan.id,
-        billingCycle: transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        billingCycle:
+          transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
         schoolAccountId: transferRequest.schoolAccountId,
       });
       if (quote.finalAmount !== transferRequest.amount) {
         return NextResponse.json(
           { error: "تغيرت صلاحية أو قيمة الكوبون. أعد إنشاء طلب الاشتراك." },
+          { status: 409 },
+        );
+      }
+    } else if (transferRequest.promotionId) {
+      // The request amount is a historical snapshot. Do not re-resolve the
+      // current promotion here: an admin may have changed or expired it after
+      // the bank-transfer request was created.
+      const originalAmount =
+        transferRequest.originalAmount ?? transferRequest.amount;
+      const discountAmount = transferRequest.discountAmount ?? 0;
+      if (originalAmount - discountAmount !== transferRequest.amount) {
+        return NextResponse.json(
+          {
+            error: "بيانات مبلغ طلب التحويل غير متسقة. أعد إنشاء الطلب.",
+          },
           { status: 409 },
         );
       }
@@ -190,7 +207,8 @@ export async function POST(
       await redeemCoupon({
         code: transferRequest.couponCode,
         planId: plan.id,
-        billingCycle: transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        billingCycle:
+          transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
         schoolAccountId: transferRequest.schoolAccountId,
         subscriptionId: subscription.id,
       });
@@ -221,7 +239,7 @@ export async function POST(
         ipAddress: device.ipAddress,
         userAgent: device.userAgent,
         source: "BANK_TRANSFER_APPROVAL",
-      }
+      },
     );
 
     if (!paymentResult.transaction) {
@@ -233,7 +251,7 @@ export async function POST(
           requestId: transferRequest.id,
           skippedReason: paymentResult.skippedReason,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -281,7 +299,7 @@ export async function POST(
         requestId: resolvedRequestId,
         details: getErrorMessage(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

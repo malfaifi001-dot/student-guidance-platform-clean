@@ -25,11 +25,24 @@ type CounselorPlan = {
   maxUsers: string;
   maxReports: string;
   targetAudience: string;
+  serviceAccessMode?: "ALL_SERVICES" | "CUSTOM_SERVICES";
   services: Array<{
     id: string;
     slug: string;
     name: string;
   }>;
+  pricing?: {
+    originalAmount: number;
+    finalAmount: number;
+    discountAmount: number;
+    promotionId: string | null;
+    promotionName: string | null;
+    pricingReason:
+      | "BASE_PRICE"
+      | "AUTOMATIC_PROMOTION"
+      | "MANUAL_OFFER"
+      | "COUPON";
+  };
 };
 
 type PlansPayload = {
@@ -122,7 +135,8 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
   if (reason === "service-not-in-plan") {
     return {
       title: "اختر باقة تشمل الخدمة المطلوبة",
-      message: "الخدمة غير مشمولة في اشتراكك الحالي. اختر باقة مناسبة للمتابعة.",
+      message:
+        "الخدمة غير مشمولة في اشتراكك الحالي. اختر باقة مناسبة للمتابعة.",
       serviceSlug,
       actionLabel: "عرض الباقات",
     };
@@ -131,7 +145,8 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
   if (reason === "activation-required") {
     return {
       title: "يلزم تفعيل باقة",
-      message: "اختر الباقة المناسبة ثم أكمل التفعيل أو الدفع للوصول إلى الخدمة.",
+      message:
+        "اختر الباقة المناسبة ثم أكمل التفعيل أو الدفع للوصول إلى الخدمة.",
       serviceSlug,
       actionLabel: "اختيار باقة",
     };
@@ -151,10 +166,12 @@ export function CounselorPlansPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [bankTransfer, setBankTransfer] = useState<BankTransferFields>(emptyBankTransfer);
+  const [bankTransfer, setBankTransfer] =
+    useState<BankTransferFields>(emptyBankTransfer);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"online" | "bank">("online");
-  const [checkoutTransaction, setCheckoutTransaction] = useState<CheckoutTransaction | null>(null);
+  const [checkoutTransaction, setCheckoutTransaction] =
+    useState<CheckoutTransaction | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [submittingBankTransfer, setSubmittingBankTransfer] = useState(false);
@@ -169,7 +186,9 @@ export function CounselorPlansPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/dashboard/plans", { cache: "no-store" });
+      const response = await fetch("/api/dashboard/plans", {
+        cache: "no-store",
+      });
       const result = await readApiResponse(response);
 
       if (!response.ok) {
@@ -202,12 +221,18 @@ export function CounselorPlansPage() {
   }, []);
 
   const visiblePlans = useMemo(
-    () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+    () =>
+      (data?.plans || []).filter(
+        (plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG,
+      ),
     [data?.plans],
   );
 
   const selectedPrice = selectedPlan
-    ? getPlanPrice(selectedPlan, billingCycle)
+    ? selectedPlan.pricing?.pricingReason === "AUTOMATIC_PROMOTION" ||
+      selectedPlan.pricing?.pricingReason === "MANUAL_OFFER"
+      ? selectedPlan.pricing.finalAmount
+      : getPlanPrice(selectedPlan, billingCycle)
     : 0;
   const selectedFinalPrice = couponQuote?.finalAmount ?? selectedPrice;
   const selectedPlanIsFree = Boolean(selectedPlan && selectedFinalPrice <= 0);
@@ -246,26 +271,33 @@ export function CounselorPlansPage() {
     setCouponError("");
     setCheckoutTransaction(null);
     try {
-      const response = await fetch("/api/dashboard/promotions/validate-coupon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: selectedPlan.id,
-          billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
-          couponCode,
-        }),
-      });
+      const response = await fetch(
+        "/api/dashboard/promotions/validate-coupon",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: selectedPlan.id,
+            billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+            couponCode,
+          }),
+        },
+      );
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || "الكوبون غير صالح.");
       setCouponQuote(result.quote as CouponQuote);
-      const appliedCouponCode = String(result.quote?.couponCode || couponCode).toUpperCase();
+      const appliedCouponCode = String(
+        result.quote?.couponCode || couponCode,
+      ).toUpperCase();
       setCouponCode(appliedCouponCode);
       if (paymentModalOpen && Number(result.quote?.finalAmount) > 0) {
         await openOnlineCheckout(appliedCouponCode);
       }
     } catch (error) {
       setCouponQuote(null);
-      setCouponError(error instanceof Error ? error.message : "الكوبون غير صالح.");
+      setCouponError(
+        error instanceof Error ? error.message : "الكوبون غير صالح.",
+      );
     } finally {
       setCouponLoading(false);
     }
@@ -304,7 +336,10 @@ export function CounselorPlansPage() {
         plan_slug: selectedPlan.slug,
         activation_method: "free",
       });
-      setMessage({ type: "success", text: result.message || "تم تفعيل الباقة بنجاح." });
+      setMessage({
+        type: "success",
+        text: result.message || "تم تفعيل الباقة بنجاح.",
+      });
     } catch (error) {
       setMessage({
         type: "error",
@@ -369,7 +404,9 @@ export function CounselorPlansPage() {
       });
     } catch (error) {
       setCheckoutError(
-        error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء عملية الدفع.",
+        error instanceof Error
+          ? error.message
+          : "حدث خطأ أثناء إنشاء عملية الدفع.",
       );
     } finally {
       setCheckoutLoading(false);
@@ -434,7 +471,9 @@ export function CounselorPlansPage() {
       <main className="grid min-h-[50vh] place-items-center" dir="rtl">
         <div className="text-center">
           <Loader2 className="mx-auto h-7 w-7 animate-spin text-emerald-600" />
-          <p className="mt-3 text-sm font-black text-slate-500">جارٍ تحميل الباقات...</p>
+          <p className="mt-3 text-sm font-black text-slate-500">
+            جارٍ تحميل الباقات...
+          </p>
         </div>
       </main>
     );
@@ -444,22 +483,39 @@ export function CounselorPlansPage() {
     <main className="space-y-6" dir="rtl">
       {entryNotice ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-          <section className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl" role="dialog" aria-modal="true">
+          <section
+            className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black text-emerald-700">تنبيه الاشتراك</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">{entryNotice.title}</h2>
+                <p className="text-xs font-black text-emerald-700">
+                  تنبيه الاشتراك
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                  {entryNotice.title}
+                </h2>
               </div>
-              <button type="button" onClick={() => setEntryNotice(null)} className="grid h-10 w-10 place-items-center rounded-full bg-slate-50 text-slate-500" aria-label="إغلاق">
+              <button
+                type="button"
+                onClick={() => setEntryNotice(null)}
+                className="grid h-10 w-10 place-items-center rounded-full bg-slate-50 text-slate-500"
+                aria-label="إغلاق"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="mt-4 text-sm font-bold leading-7 text-slate-600">{entryNotice.message}</p>
+            <p className="mt-4 text-sm font-bold leading-7 text-slate-600">
+              {entryNotice.message}
+            </p>
             <button
               type="button"
               onClick={() => {
                 setEntryNotice(null);
-                document.getElementById("plans-list")?.scrollIntoView({ behavior: "smooth" });
+                document
+                  .getElementById("plans-list")
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className="mt-5 w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"
             >
@@ -470,19 +526,23 @@ export function CounselorPlansPage() {
       ) : null}
 
       {message ? (
-        <div className={[
-          "rounded-2xl border px-4 py-3 text-sm font-bold",
-          message.type === "success"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : "border-rose-200 bg-rose-50 text-rose-700",
-        ].join(" ")}>
+        <div
+          className={[
+            "rounded-2xl border px-4 py-3 text-sm font-bold",
+            message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700",
+          ].join(" ")}
+        >
           {message.text}
         </div>
       ) : null}
 
       <header className="flex flex-col gap-4 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-950">اختر الباقة المناسبة</h1>
+          <h1 className="text-2xl font-black text-slate-950">
+            اختر الباقة المناسبة
+          </h1>
           <p className="mt-2 text-sm font-bold text-slate-500">
             اختر خطتك ثم راجع السعر وانتقل مباشرة إلى الدفع الآمن.
           </p>
@@ -500,33 +560,53 @@ export function CounselorPlansPage() {
             </div>
           ) : null}
 
-          <div className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1" aria-label="دورة الفوترة">
-            {(["monthly", "yearly"] as const).filter((cycle) => !selectedPlan?.commercialType || (selectedPlan.commercialType === "YEAR" ? cycle === "yearly" : cycle === "monthly")).map((cycle) => (
-              <button
-                key={cycle}
-                type="button"
-                onClick={() => changeBillingCycle(cycle)}
-                className={[
-                  "rounded-xl px-5 py-2 text-sm font-black transition",
-                  billingCycle === cycle
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800",
-                ].join(" ")}
-              >
-                {getBillingLabel(cycle)}
-              </button>
-            ))}
+          <div
+            className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1"
+            aria-label="دورة الفوترة"
+          >
+            {(["monthly", "yearly"] as const)
+              .filter(
+                (cycle) =>
+                  !selectedPlan?.commercialType ||
+                  (selectedPlan.commercialType === "YEAR"
+                    ? cycle === "yearly"
+                    : cycle === "monthly"),
+              )
+              .map((cycle) => (
+                <button
+                  key={cycle}
+                  type="button"
+                  onClick={() => changeBillingCycle(cycle)}
+                  className={[
+                    "rounded-xl px-5 py-2 text-sm font-black transition",
+                    billingCycle === cycle
+                      ? "bg-white text-slate-950 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800",
+                  ].join(" ")}
+                >
+                  {getBillingLabel(cycle)}
+                </button>
+              ))}
           </div>
         </div>
       </header>
 
-      <section id="plans-list" className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section
+        id="plans-list"
+        className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
         {visiblePlans.map((plan) => {
           const selected = selectedPlan?.id === plan.id;
           const active = Boolean(
             data?.subscription?.usable && data.subscription.planId === plan.id,
           );
           const price = getPlanPrice(plan, billingCycle);
+          const automaticPricing =
+            plan.pricing &&
+            (plan.pricing.pricingReason === "AUTOMATIC_PROMOTION" ||
+              plan.pricing.pricingReason === "MANUAL_OFFER")
+              ? plan.pricing
+              : null;
 
           return (
             <article
@@ -537,11 +617,13 @@ export function CounselorPlansPage() {
                   ? "border-emerald-400 bg-emerald-50/30 shadow-sm"
                   : selected
                     ? "border-sky-300 bg-sky-50/30 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300",
+                    : "border-slate-200 hover:border-slate-300",
               ].join(" ")}
             >
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-xl font-black text-slate-950">{plan.name}</h2>
+                <h2 className="text-xl font-black text-slate-950">
+                  {plan.name}
+                </h2>
                 {active ? (
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
                     الباقة المفعلة
@@ -552,12 +634,31 @@ export function CounselorPlansPage() {
               </div>
 
               <div className="mt-5 flex items-end gap-2">
-                <strong className="text-4xl font-black text-slate-950">{formatPrice(price)}</strong>
-                <span className="pb-1 text-sm font-bold text-slate-500">ريال / {getBillingLabel(billingCycle)}</span>
+                {automaticPricing ? (
+                  <span className="relative text-lg font-black text-slate-400">
+                    {formatPrice(automaticPricing.originalAmount)} ريال
+                    <span className="absolute inset-x-0 top-1/2 h-px bg-rose-400" />
+                  </span>
+                ) : null}
+                <strong className="text-4xl font-black text-slate-950">
+                  {formatPrice(automaticPricing?.finalAmount ?? price)}
+                </strong>
+                <span className="pb-1 text-sm font-bold text-slate-500">
+                  ريال / {getBillingLabel(billingCycle)}
+                </span>
               </div>
+              {automaticPricing?.promotionName ? (
+                <span className="mt-2 inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                  {automaticPricing.promotionName}
+                </span>
+              ) : null}
 
               <div className="mt-6 flex flex-1 flex-col gap-2 text-sm font-bold text-slate-600">
-                {plan.services.length > 0 ? (
+                {plan.serviceAccessMode === "ALL_SERVICES" ? (
+                  <p className="font-black text-sky-700">شامل جميع الخدمات</p>
+                ) : null}
+                {plan.serviceAccessMode !== "ALL_SERVICES" &&
+                plan.services.length > 0 ? (
                   <>
                     {plan.services.slice(0, 4).map((service) => (
                       <div key={service.id} className="flex items-start gap-2">
@@ -571,7 +672,7 @@ export function CounselorPlansPage() {
                       </p>
                     ) : null}
                   </>
-                ) : (
+                ) : plan.serviceAccessMode === "ALL_SERVICES" ? null : (
                   <div className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
                     <span>مزايا الباقة حسب إعداد الاشتراك</span>
@@ -589,7 +690,7 @@ export function CounselorPlansPage() {
                     ? "cursor-default bg-emerald-100 text-emerald-700"
                     : selected
                       ? "bg-sky-700 text-white"
-                    : "bg-slate-950 text-white hover:bg-slate-800",
+                      : "bg-slate-950 text-white hover:bg-slate-800",
                 ].join(" ")}
               >
                 {active ? "الباقة الحالية" : "اختيار الباقة"}
@@ -615,10 +716,15 @@ export function CounselorPlansPage() {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-emerald-700">الباقة المختارة</p>
-              <h2 className="mt-1 text-lg font-black text-slate-950">{selectedPlan.name}</h2>
+              <p className="text-xs font-black text-emerald-700">
+                الباقة المختارة
+              </p>
+              <h2 className="mt-1 text-lg font-black text-slate-950">
+                {selectedPlan.name}
+              </h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
-                {getBillingLabel(billingCycle)} · {formatPrice(selectedPrice)} ريال
+                {getBillingLabel(billingCycle)} · {formatPrice(selectedPrice)}{" "}
+                ريال
               </p>
             </div>
           </div>
@@ -626,11 +732,19 @@ export function CounselorPlansPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={selectedPlanIsFree ? () => void activateFreePlan() : () => void openOnlineCheckout()}
+              onClick={
+                selectedPlanIsFree
+                  ? () => void activateFreePlan()
+                  : () => void openOnlineCheckout()
+              }
               disabled={activatingFreePlan || checkoutLoading}
               className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
             >
-              {activatingFreePlan || checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {activatingFreePlan || checkoutLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
               {selectedPlanIsFree ? "تفعيل الباقة الآن" : "المتابعة للدفع"}
             </button>
             <button
@@ -662,7 +776,9 @@ export function CounselorPlansPage() {
           isSubmittingBankTransfer={submittingBankTransfer}
           errorMessage={checkoutError}
           bankTransfer={bankTransfer}
-          onBankTransferChange={(patch) => setBankTransfer((current) => ({ ...current, ...patch }))}
+          onBankTransferChange={(patch) =>
+            setBankTransfer((current) => ({ ...current, ...patch }))
+          }
           onSwitchMode={(mode) => {
             setPaymentMode(mode);
             setCheckoutError("");

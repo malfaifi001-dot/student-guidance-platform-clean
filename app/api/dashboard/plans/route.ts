@@ -26,6 +26,7 @@ import {
   getCouponQuote,
   redeemCoupon,
 } from "@/lib/promotions/coupon-service";
+import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -37,7 +38,7 @@ export async function GET() {
       },
       {
         status: 401,
-      }
+      },
     );
   }
 
@@ -87,53 +88,73 @@ export async function GET() {
   const role = current.user.role;
   const visiblePlans = plans.filter(
     (plan) =>
-      plan.slug !== DEFAULT_FREE_PLAN_SLUG && isPlanSelfServiceVisible(plan, role),
+      plan.slug !== DEFAULT_FREE_PLAN_SLUG &&
+      isPlanSelfServiceVisible(plan, role),
   );
 
-  const mappedPlans = visiblePlans.map((plan) => {
-    const serviceSlugs = getRoleEligiblePlanServiceSlugs(
-      role,
-      getPlanServiceSlugs(plan.features),
-    );
-    const planServices = services.filter((service) =>
-      serviceSlugs.includes(service.slug)
-    );
-    const audience = getPlanAudience(plan.features);
+  const mappedPlans = await Promise.all(
+    visiblePlans.map(async (plan) => {
+      const serviceSlugs = getRoleEligiblePlanServiceSlugs(
+        role,
+        getPlanServiceSlugs(plan.features),
+      );
+      const planServices = services.filter((service) =>
+        serviceSlugs.includes(service.slug),
+      );
+      const audience = getPlanAudience(plan.features);
+      const billingCycle = resolvePlanBillingCycle(plan.features, "MONTHLY");
+      const pricing = await getAutomaticPlanPricing({
+        planId: plan.id,
+        plan,
+        billingCycle,
+      });
 
-    return {
-      id: plan.id,
-      name: plan.name,
-      slug: plan.slug,
-      priceMonthly: plan.priceMonthly,
-      priceYearly: plan.priceYearly,
-      durationDays: Number(getPlanFeatureValue(plan.features, "durationDays", "30")),
-      maxStudents: getPlanFeatureValue(plan.features, "maxStudents", "0"),
-      maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
-      maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
-      targetAudience: audience,
-      commercialType: getPlanCommercialType(plan.features),
-      durationMode: getPlanDurationMode(plan.features),
-      fixedEndDate: getPlanFixedEndDate(plan.features),
-      services: planServices.map((service) => ({
-        id: service.id,
-        slug: service.slug,
-        name: service.name,
-      })),
-    };
-  });
+      return {
+        id: plan.id,
+        name: plan.name,
+        slug: plan.slug,
+        priceMonthly: plan.priceMonthly,
+        priceYearly: plan.priceYearly,
+        durationDays: Number(
+          getPlanFeatureValue(plan.features, "durationDays", "30"),
+        ),
+        maxStudents: getPlanFeatureValue(plan.features, "maxStudents", "0"),
+        maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
+        maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
+        targetAudience: audience,
+        serviceAccessMode: getPlanFeatureValue(
+          plan.features,
+          "serviceAccessMode",
+          "CUSTOM_SERVICES",
+        ),
+        commercialType: getPlanCommercialType(plan.features),
+        durationMode: getPlanDurationMode(plan.features),
+        fixedEndDate: getPlanFixedEndDate(plan.features),
+        pricing,
+        services: planServices.map((service) => ({
+          id: service.id,
+          slug: service.slug,
+          name: service.name,
+        })),
+      };
+    }),
+  );
 
   return NextResponse.json({
     plans: mappedPlans,
     subscription: subscription
-        ? {
-            status: subscription.status,
-            planId: subscription.planId,
-            planName: subscription.plan.name,
-            planSlug: subscription.plan.slug,
-            startsAt: subscription.startsAt,
-            endsAt: subscription.endsAt,
-            remainingDays: getRemainingDays(subscription.endsAt),
-            usable: isSubscriptionUsable(subscription.status, subscription.endsAt),
+      ? {
+          status: subscription.status,
+          planId: subscription.planId,
+          planName: subscription.plan.name,
+          planSlug: subscription.plan.slug,
+          startsAt: subscription.startsAt,
+          endsAt: subscription.endsAt,
+          remainingDays: getRemainingDays(subscription.endsAt),
+          usable: isSubscriptionUsable(
+            subscription.status,
+            subscription.endsAt,
+          ),
         }
       : null,
   });
@@ -149,7 +170,7 @@ export async function POST(request: Request) {
       },
       {
         status: 401,
-      }
+      },
     );
   }
 
@@ -163,7 +184,9 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
 
   const planId = String(payload?.planId || "").trim();
-  const requestedBillingCycle = String(payload?.billingCycle || "monthly").trim();
+  const requestedBillingCycle = String(
+    payload?.billingCycle || "monthly",
+  ).trim();
   const senderName = String(payload?.senderName || "").trim();
   const phone = String(payload?.phone || "").trim();
   const receiptUrl = String(payload?.receiptUrl || "").trim();
@@ -177,7 +200,7 @@ export async function POST(request: Request) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -197,11 +220,14 @@ export async function POST(request: Request) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
-  const billingCycle = resolvePlanBillingCycle(plan.features, requestedBillingCycle === "yearly" ? "YEARLY" : "MONTHLY");
+  const billingCycle = resolvePlanBillingCycle(
+    plan.features,
+    requestedBillingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+  );
 
   if (plan.slug === DEFAULT_FREE_PLAN_SLUG) {
     return NextResponse.json(
@@ -210,7 +236,7 @@ export async function POST(request: Request) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -221,7 +247,7 @@ export async function POST(request: Request) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -234,6 +260,13 @@ export async function POST(request: Request) {
     billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
   let amount = originalAmount;
   let couponQuote: Awaited<ReturnType<typeof getCouponQuote>> | null = null;
+  const automaticPricing = couponCode
+    ? null
+    : await getAutomaticPlanPricing({
+        planId: plan.id,
+        plan,
+        billingCycle,
+      });
 
   if (couponCode) {
     try {
@@ -246,10 +279,15 @@ export async function POST(request: Request) {
       amount = couponQuote.finalAmount;
     } catch (error) {
       if (error instanceof CouponValidationError) {
-        return NextResponse.json({ error: error.message }, { status: error.status });
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
       }
       throw error;
     }
+  } else {
+    amount = automaticPricing?.finalAmount ?? originalAmount;
   }
 
   if (amount <= 0) {
@@ -285,7 +323,7 @@ export async function POST(request: Request) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -302,8 +340,10 @@ export async function POST(request: Request) {
       requesterUserId: current.user.id,
       billingCycle: billingCycle === "YEARLY" ? "yearly" : "monthly",
       couponCode: couponQuote?.couponCode || null,
+      promotionId: automaticPricing?.promotionId || null,
       originalAmount,
-      discountAmount: couponQuote?.discountAmount || 0,
+      discountAmount:
+        couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
       adminNote: [
         `طلب باقة: ${plan.name}`,
         `نوع الاشتراك: ${getSubscriptionPeriodLabel(billingCycle)}`,
@@ -315,18 +355,17 @@ export async function POST(request: Request) {
     },
   });
 
-  
-    // audit-log:plan-order-created
-    await logPlanOrderCreatedEvent({
-      userId: current.user.id,
-      schoolAccountId: current.user.schoolAccountId,
-      planId: plan.id,
-      planName: plan.name,
-      billingCycle,
-      amount,
-    });
+  // audit-log:plan-order-created
+  await logPlanOrderCreatedEvent({
+    userId: current.user.id,
+    schoolAccountId: current.user.schoolAccountId,
+    planId: plan.id,
+    planName: plan.name,
+    billingCycle,
+    amount,
+  });
 
-return NextResponse.json({
+  return NextResponse.json({
     message:
       "تم إرسال طلب الاشتراك. بعد مراجعة التحويل من الأدمن سيتم تفعيل الباقة تلقائيًا.",
   });

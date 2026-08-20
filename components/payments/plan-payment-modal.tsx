@@ -20,6 +20,7 @@ type BankTransferFields = {
 };
 
 type CouponSummary = {
+  couponCode: string;
   promotionName: string;
   discountType: "PERCENTAGE" | "FIXED_AMOUNT";
   discountValue: number;
@@ -140,7 +141,7 @@ export function PlanPaymentModal({
             {couponError ? <p className="mt-2 text-xs font-bold text-rose-100">{couponError}</p> : null}
             {coupon ? (
               <div className="mt-3 rounded-2xl bg-white/15 p-3 text-xs font-bold text-sky-50">
-                <p className="font-black text-white">تم تطبيق الكوبون · {coupon.promotionName}</p>
+                <p className="font-black text-white">الكود المطبق: {coupon.couponCode}</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
                   <span>السعر قبل الخصم</span>
                   <span>{coupon.originalAmount.toLocaleString("ar-SA")} ريال</span>

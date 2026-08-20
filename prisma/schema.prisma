@@ -1286,6 +1286,7 @@ model Promotion {
   startsAt        DateTime?
   endsAt          DateTime?
   isActive        Boolean               @default(true)
+  isAutomatic     Boolean               @default(false)
   totalUsageLimit Int?
   perAccountLimit Int?
   createdById     String?
@@ -1454,6 +1455,7 @@ model BankTransferRequest {
   requesterUserId String?
   billingCycle    String?
   couponCode      String?
+  promotionId     String?
   originalAmount  Int?
   discountAmount  Int?
 

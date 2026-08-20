@@ -57,109 +57,182 @@ export async function GET() {
     STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
   );
 
-  const [defaultFreePlan, plans, services, schools, subscriptions, serviceAccess] =
-    await Promise.all([
-      getDefaultFreePlanConfig(),
+  const [
+    defaultFreePlan,
+    plans,
+    automaticPromotions,
+    services,
+    schools,
+    subscriptions,
+    serviceAccess,
+  ] = await Promise.all([
+    getDefaultFreePlanConfig(),
 
-      prisma.plan.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          features: true,
-        },
-      }),
-
-      prisma.service.findMany({
-        where: { status: "ACTIVE" },
-        orderBy: {
-          name: "asc",
-        },
-      }),
-
-      prisma.schoolAccount.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          isActive: true,
-          profile: {
-            select: {
-              schoolName: true,
-              educationDepartment: true,
-            },
-          },
-        },
-      }),
-
-      prisma.subscription.findMany({
-        orderBy: {
-          updatedAt: "desc",
-        },
-        include: {
-          schoolAccount: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              isActive: true,
-              profile: {
-                select: {
-                  schoolName: true,
-                  educationDepartment: true,
-                },
-              },
-              users: {
-                where: { isActive: true },
-                select: { id: true, name: true, officialName: true, email: true, role: true, createdAt: true },
-                orderBy: { createdAt: "asc" },
-              },
-            },
-          },
-          plan: true,
-        },
-      }),
-
-      prisma.serviceAccess.findMany({
-        include: {
-          service: true,
-          schoolAccount: {
-            select: {
-              id: true,
-              name: true,
-              profile: { select: { schoolName: true } },
-              users: {
-                where: { isActive: true },
-                select: { id: true, name: true, officialName: true, email: true, role: true, createdAt: true },
-                orderBy: { createdAt: "asc" },
+    prisma.plan.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        features: true,
+        promotions: {
+          where: { promotion: { is: { isAutomatic: true } } },
+          select: {
+            promotion: {
+              select: {
+                id: true,
+                name: true,
+                isAutomatic: true,
+                isActive: true,
+                discountType: true,
+                discountValue: true,
+                startsAt: true,
+                endsAt: true,
               },
             },
           },
         },
-        orderBy: {
-          updatedAt: "desc",
+      },
+    }),
+
+    prisma.promotion.findMany({
+      where: { isAutomatic: true, isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        isAutomatic: true,
+        isActive: true,
+        discountType: true,
+        discountValue: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    }),
+
+    prisma.service.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+
+    prisma.schoolAccount.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        profile: {
+          select: {
+            schoolName: true,
+            educationDepartment: true,
+          },
         },
-      }),
-    ]);
+      },
+    }),
+
+    prisma.subscription.findMany({
+      orderBy: {
+        updatedAt: "desc",
+      },
+      include: {
+        schoolAccount: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            isActive: true,
+            profile: {
+              select: {
+                schoolName: true,
+                educationDepartment: true,
+              },
+            },
+            users: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                name: true,
+                officialName: true,
+                email: true,
+                role: true,
+                createdAt: true,
+              },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        },
+        plan: true,
+      },
+    }),
+
+    prisma.serviceAccess.findMany({
+      include: {
+        service: true,
+        schoolAccount: {
+          select: {
+            id: true,
+            name: true,
+            profile: { select: { schoolName: true } },
+            users: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                name: true,
+                officialName: true,
+                email: true,
+                role: true,
+                createdAt: true,
+              },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+  ]);
 
   const serviceAccessForAdmin = serviceAccess.map((row) => {
     const users = row.schoolAccount.users;
-    const primaryUser = ["SCHOOL_OWNER", "PRINCIPAL", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER", "STAFF", "ADMIN"]
-      .map((role) => users.find((user) => user.role === role))
-      .find(Boolean) || users[0] || null;
+    const primaryUser =
+      [
+        "SCHOOL_OWNER",
+        "PRINCIPAL",
+        "COUNSELOR",
+        "ACTIVITY_LEADER",
+        "TEACHER",
+        "STAFF",
+        "ADMIN",
+      ]
+        .map((role) => users.find((user) => user.role === role))
+        .find(Boolean) ||
+      users[0] ||
+      null;
 
     return {
       ...row,
       schoolAccount: {
         id: row.schoolAccount.id,
-        name: primaryUser ? `${primaryUser.officialName || primaryUser.name || primaryUser.email} — ${ACCOUNT_ROLE_LABELS[primaryUser.role] || primaryUser.role}` : "مستخدم غير محدد",
+        name: primaryUser
+          ? `${primaryUser.officialName || primaryUser.name || primaryUser.email} — ${ACCOUNT_ROLE_LABELS[primaryUser.role] || primaryUser.role}`
+          : "مستخدم غير محدد",
         accountName: row.schoolAccount.name,
-        schoolName: row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
+        schoolName:
+          row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
         primaryUser: primaryUser
-          ? { id: primaryUser.id, name: primaryUser.name, officialName: primaryUser.officialName, email: primaryUser.email, role: primaryUser.role }
+          ? {
+              id: primaryUser.id,
+              name: primaryUser.name,
+              officialName: primaryUser.officialName,
+              email: primaryUser.email,
+              role: primaryUser.role,
+            }
           : null,
         additionalUserCount: Math.max(users.length - (primaryUser ? 1 : 0), 0),
       },
@@ -178,9 +251,16 @@ export async function GET() {
           ? `${primaryUser.officialName || primaryUser.name || primaryUser.email} — ${ACCOUNT_ROLE_LABELS[primaryUser.role] || primaryUser.role}`
           : "مستخدم غير محدد",
         accountName: row.schoolAccount.name,
-        schoolName: row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
+        schoolName:
+          row.schoolAccount.profile?.schoolName || row.schoolAccount.name,
         primaryUser: primaryUser
-          ? { id: primaryUser.id, name: primaryUser.name, officialName: primaryUser.officialName, email: primaryUser.email, role: primaryUser.role }
+          ? {
+              id: primaryUser.id,
+              name: primaryUser.name,
+              officialName: primaryUser.officialName,
+              email: primaryUser.email,
+              role: primaryUser.role,
+            }
           : null,
         additionalUserCount: Math.max(users.length - (primaryUser ? 1 : 0), 0),
       },
@@ -190,6 +270,7 @@ export async function GET() {
   return NextResponse.json({
     defaultFreePlan,
     plans,
+    automaticPromotions,
     services,
     schools,
     subscriptions: subscriptionsForAdmin,
@@ -197,11 +278,33 @@ export async function GET() {
   });
 }
 
-const ACCOUNT_USER_ROLE_PRIORITY = ["SCHOOL_OWNER", "PRINCIPAL", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER", "STAFF", "ADMIN"] as const;
-const ACCOUNT_ROLE_LABELS: Record<string, string> = { SCHOOL_OWNER: "مالك المدرسة", PRINCIPAL: "مدير المدرسة", COUNSELOR: "الموجه الطلابي", ACTIVITY_LEADER: "رائد النشاط", TEACHER: "المعلم", STAFF: "الموظف", ADMIN: "المشرف" };
+const ACCOUNT_USER_ROLE_PRIORITY = [
+  "SCHOOL_OWNER",
+  "PRINCIPAL",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "TEACHER",
+  "STAFF",
+  "ADMIN",
+] as const;
+const ACCOUNT_ROLE_LABELS: Record<string, string> = {
+  SCHOOL_OWNER: "مالك المدرسة",
+  PRINCIPAL: "مدير المدرسة",
+  COUNSELOR: "الموجه الطلابي",
+  ACTIVITY_LEADER: "رائد النشاط",
+  TEACHER: "المعلم",
+  STAFF: "الموظف",
+  ADMIN: "المشرف",
+};
 
 function pickPrimaryAccountUser<T extends { role: string }>(users: T[]) {
-  return ACCOUNT_USER_ROLE_PRIORITY.map((role) => users.find((user) => user.role === role)).find(Boolean) || users[0] || null;
+  return (
+    ACCOUNT_USER_ROLE_PRIORITY.map((role) =>
+      users.find((user) => user.role === role),
+    ).find(Boolean) ||
+    users[0] ||
+    null
+  );
 }
 
 export async function POST(request: Request) {
@@ -237,7 +340,6 @@ export async function POST(request: Request) {
         ? payload.enabledServiceSlugs.map(String)
         : [],
     );
-
     if (durationDays <= 0) {
       return NextResponse.json(
         { error: "اكتب مدة صحيحة للباقة بالأيام." },
@@ -265,8 +367,14 @@ export async function POST(request: Request) {
     const slug = slugify(rawSlug || name);
     const priceMonthly = Number(payload?.priceMonthly || 0);
     const priceYearly = Number(payload?.priceYearly || 0);
-    const commercialType = String(payload?.commercialType || "TERM").trim() === "YEAR" ? "YEAR" : "TERM";
-    const durationMode = String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE" ? "FIXED_END_DATE" : "DAYS";
+    const commercialType =
+      String(payload?.commercialType || "TERM").trim() === "YEAR"
+        ? "YEAR"
+        : "TERM";
+    const durationMode =
+      String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE"
+        ? "FIXED_END_DATE"
+        : "DAYS";
     const fixedEndDate = String(payload?.fixedEndDate || "").trim();
     const termLabel = String(payload?.termLabel || "").trim();
     const durationDays = Number(payload?.durationDays || 30);
@@ -278,6 +386,11 @@ export async function POST(request: Request) {
         ? payload.enabledServiceSlugs.map(String)
         : [],
     );
+    const serviceAccessMode =
+      String(payload?.serviceAccessMode || "CUSTOM_SERVICES").trim() ===
+      "ALL_SERVICES"
+        ? "ALL_SERVICES"
+        : "CUSTOM_SERVICES";
 
     const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
     const targetAudience: PlanAudience =
@@ -290,19 +403,87 @@ export async function POST(request: Request) {
     const isPublic =
       typeof payload?.isPublic === "boolean" ? payload.isPublic : true;
     const isArchived = Boolean(payload?.isArchived);
-    if (commercialType === "TERM" && priceMonthly <= 0) return NextResponse.json({ error: "سعر باقة الفصل مطلوب." }, { status: 400 });
-    if (commercialType === "YEAR" && priceYearly <= 0) return NextResponse.json({ error: "سعر الباقة السنوية مطلوب." }, { status: 400 });
-    if (durationMode === "DAYS" && (!Number.isInteger(durationDays) || durationDays <= 0)) return NextResponse.json({ error: "أدخل مدة صحيحة بالأيام." }, { status: 400 });
-    if (durationMode === "FIXED_END_DATE" && (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) || new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())) return NextResponse.json({ error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا." }, { status: 400 });
+    const offerEnabled = Boolean(payload?.offerEnabled);
+    const offerName = String(payload?.offerName || "").trim();
+    const offerPrice = Number(payload?.offerPrice);
+    if (commercialType === "TERM" && priceMonthly <= 0)
+      return NextResponse.json(
+        { error: "سعر باقة الفصل مطلوب." },
+        { status: 400 },
+      );
+    if (commercialType === "YEAR" && priceYearly <= 0)
+      return NextResponse.json(
+        { error: "سعر الباقة السنوية مطلوب." },
+        { status: 400 },
+      );
+    const basePrice = commercialType === "YEAR" ? priceYearly : priceMonthly;
+    if (offerEnabled) {
+      if (!offerName) {
+        return NextResponse.json(
+          { error: "اسم العرض مطلوب عند تفعيل العرض على الباقة." },
+          { status: 400 },
+        );
+      }
+      if (!Number.isFinite(offerPrice) || offerPrice < 0) {
+        return NextResponse.json(
+          { error: "سعر العرض يجب أن يكون رقمًا صحيحًا غير سالب." },
+          { status: 400 },
+        );
+      }
+      if (offerPrice >= basePrice) {
+        return NextResponse.json(
+          { error: "سعر العرض يجب أن يكون أقل من السعر الأساسي." },
+          { status: 400 },
+        );
+      }
+    }
+    if (
+      durationMode === "DAYS" &&
+      (!Number.isInteger(durationDays) || durationDays <= 0)
+    )
+      return NextResponse.json(
+        { error: "أدخل مدة صحيحة بالأيام." },
+        { status: 400 },
+      );
+    if (
+      durationMode === "FIXED_END_DATE" &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) ||
+        new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())
+    )
+      return NextResponse.json(
+        {
+          error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا.",
+        },
+        { status: 400 },
+      );
 
-    if (!Number.isFinite(priceMonthly) || !Number.isFinite(priceYearly) || priceMonthly < 0 || priceYearly < 0) {
-      return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
+    if (
+      !Number.isFinite(priceMonthly) ||
+      !Number.isFinite(priceYearly) ||
+      priceMonthly < 0 ||
+      priceYearly < 0
+    ) {
+      return NextResponse.json(
+        { error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." },
+        { status: 400 },
+      );
     }
 
-    const knownServices = await prisma.service.findMany({ select: { slug: true } });
-    const knownServiceSlugs = new Set(knownServices.map((service) => service.slug));
-    if (enabledServiceSlugs.some((serviceSlug) => !knownServiceSlugs.has(serviceSlug))) {
-      return NextResponse.json({ error: "تتضمن الباقة خدمة غير معروفة." }, { status: 400 });
+    const knownServices = await prisma.service.findMany({
+      select: { slug: true },
+    });
+    const knownServiceSlugs = new Set(
+      knownServices.map((service) => service.slug),
+    );
+    if (
+      enabledServiceSlugs.some(
+        (serviceSlug) => !knownServiceSlugs.has(serviceSlug),
+      )
+    ) {
+      return NextResponse.json(
+        { error: "تتضمن الباقة خدمة غير معروفة." },
+        { status: 400 },
+      );
     }
 
     if (!name) {
@@ -343,6 +524,30 @@ export async function POST(request: Request) {
         features: {
           create: [
             {
+              key: "serviceAccessMode",
+              label: "Service access mode",
+              value: serviceAccessMode,
+            },
+            {
+              key: "manualOfferEnabled",
+              label: "يوجد عرض على الباقة",
+              value: String(offerEnabled),
+            },
+            ...(offerEnabled
+              ? [
+                  {
+                    key: "manualOfferName",
+                    label: "اسم العرض",
+                    value: offerName,
+                  },
+                  {
+                    key: "manualOfferPrice",
+                    label: "السعر بعد العرض",
+                    value: String(Math.trunc(offerPrice)),
+                  },
+                ]
+              : []),
+            {
               key: "targetAudience",
               label: "الجمهور المستهدف",
               value: targetAudience,
@@ -352,10 +557,24 @@ export async function POST(request: Request) {
               label: "مدة الاشتراك بالأيام",
               value: String(durationDays > 0 ? durationDays : 30),
             },
-            { key: "commercialType", label: "نوع العرض التجاري", value: commercialType },
+            {
+              key: "commercialType",
+              label: "نوع العرض التجاري",
+              value: commercialType,
+            },
             { key: "durationMode", label: "نمط المدة", value: durationMode },
-            ...(durationMode === "FIXED_END_DATE" ? [{ key: "fixedEndDate", label: "تاريخ الانتهاء الثابت", value: fixedEndDate }] : []),
-            ...(termLabel ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }] : []),
+            ...(durationMode === "FIXED_END_DATE"
+              ? [
+                  {
+                    key: "fixedEndDate",
+                    label: "تاريخ الانتهاء الثابت",
+                    value: fixedEndDate,
+                  },
+                ]
+              : []),
+            ...(termLabel
+              ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }]
+              : []),
             {
               key: "maxStudents",
               label: "حد الطلاب",
@@ -396,74 +615,273 @@ export async function POST(request: Request) {
     const priceMonthly = Number(payload?.priceMonthly);
     const priceYearly = Number(payload?.priceYearly);
     const commercialType = String(payload?.commercialType || "").trim();
-    const durationMode = String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE" ? "FIXED_END_DATE" : "DAYS";
+    const durationMode =
+      String(payload?.durationMode || "DAYS").trim() === "FIXED_END_DATE"
+        ? "FIXED_END_DATE"
+        : "DAYS";
     const fixedEndDate = String(payload?.fixedEndDate || "").trim();
     const termLabel = String(payload?.termLabel || "").trim();
     const durationDays = Number(payload?.durationDays || 30);
     const maxStudents = Number(payload?.maxStudents || 0);
     const maxUsers = Number(payload?.maxUsers || 0);
     const maxReports = Number(payload?.maxReports || 0);
+    const offerEnabled = Boolean(payload?.offerEnabled);
+    const offerName = String(payload?.offerName || "").trim();
+    const offerPrice = Number(payload?.offerPrice);
     const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
-    const targetAudience: PlanAudience = targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY" ? targetAudienceRaw : "ALL";
+    const targetAudience: PlanAudience =
+      targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY"
+        ? targetAudienceRaw
+        : "ALL";
     const visibleRoles = normalizePlanVisibleRoles(payload?.visibleRoles);
     const enabledServiceSlugs = getActivityProgramsBillingServiceSlugs(
-      Array.isArray(payload?.enabledServiceSlugs) ? payload.enabledServiceSlugs.map(String) : [],
+      Array.isArray(payload?.enabledServiceSlugs)
+        ? payload.enabledServiceSlugs.map(String)
+        : [],
     );
+    const serviceAccessMode =
+      String(payload?.serviceAccessMode || "CUSTOM_SERVICES").trim() ===
+      "ALL_SERVICES"
+        ? "ALL_SERVICES"
+        : "CUSTOM_SERVICES";
 
-    if (!planId) return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
-    if (!name) return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
-    if (!Number.isFinite(priceMonthly) || !Number.isFinite(priceYearly) || priceMonthly < 0 || priceYearly < 0) {
-      return NextResponse.json({ error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." }, { status: 400 });
+    if (!planId)
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    if (!name)
+      return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
+    if (
+      !Number.isFinite(priceMonthly) ||
+      !Number.isFinite(priceYearly) ||
+      priceMonthly < 0 ||
+      priceYearly < 0
+    ) {
+      return NextResponse.json(
+        { error: "يجب أن تكون أسعار الباقة أرقامًا صحيحة غير سالبة." },
+        { status: 400 },
+      );
     }
-    if (!visibleRoles) return NextResponse.json({ error: "الأدوار المحددة للباقة غير صالحة." }, { status: 400 });
-    if (commercialType && commercialType !== "TERM" && commercialType !== "YEAR") return NextResponse.json({ error: "نوع الباقة غير صالح." }, { status: 400 });
-    if (commercialType === "TERM" && priceMonthly <= 0) return NextResponse.json({ error: "سعر باقة الفصل مطلوب." }, { status: 400 });
-    if (commercialType === "YEAR" && priceYearly <= 0) return NextResponse.json({ error: "سعر الباقة السنوية مطلوب." }, { status: 400 });
-    if (durationMode === "DAYS" && (!Number.isInteger(durationDays) || durationDays <= 0)) return NextResponse.json({ error: "أدخل مدة صحيحة بالأيام." }, { status: 400 });
-    if (durationMode === "FIXED_END_DATE" && (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) || new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())) return NextResponse.json({ error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا." }, { status: 400 });
+    if (!visibleRoles)
+      return NextResponse.json(
+        { error: "الأدوار المحددة للباقة غير صالحة." },
+        { status: 400 },
+      );
+    if (
+      commercialType &&
+      commercialType !== "TERM" &&
+      commercialType !== "YEAR"
+    )
+      return NextResponse.json(
+        { error: "نوع الباقة غير صالح." },
+        { status: 400 },
+      );
+    if (commercialType === "TERM" && priceMonthly <= 0)
+      return NextResponse.json(
+        { error: "سعر باقة الفصل مطلوب." },
+        { status: 400 },
+      );
+    if (commercialType === "YEAR" && priceYearly <= 0)
+      return NextResponse.json(
+        { error: "سعر الباقة السنوية مطلوب." },
+        { status: 400 },
+      );
+    const basePrice = commercialType === "YEAR" ? priceYearly : priceMonthly;
+    if (offerEnabled) {
+      if (!offerName) {
+        return NextResponse.json(
+          { error: "اسم العرض مطلوب عند تفعيل العرض على الباقة." },
+          { status: 400 },
+        );
+      }
+      if (!Number.isFinite(offerPrice) || offerPrice < 0) {
+        return NextResponse.json(
+          { error: "سعر العرض يجب أن يكون رقمًا صحيحًا غير سالب." },
+          { status: 400 },
+        );
+      }
+      if (offerPrice >= basePrice) {
+        return NextResponse.json(
+          { error: "سعر العرض يجب أن يكون أقل من السعر الأساسي." },
+          { status: 400 },
+        );
+      }
+    }
+    if (
+      durationMode === "DAYS" &&
+      (!Number.isInteger(durationDays) || durationDays <= 0)
+    )
+      return NextResponse.json(
+        { error: "أدخل مدة صحيحة بالأيام." },
+        { status: 400 },
+      );
+    if (
+      durationMode === "FIXED_END_DATE" &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) ||
+        new Date(`${fixedEndDate}T23:59:59.999Z`).getTime() <= Date.now())
+    )
+      return NextResponse.json(
+        {
+          error: "تاريخ الانتهاء الثابت يجب أن يكون تاريخًا مستقبليًا صحيحًا.",
+        },
+        { status: 400 },
+      );
 
     const [existingPlan, knownServices] = await Promise.all([
-      prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true, isArchived: true, features: true } }),
+      prisma.plan.findUnique({
+        where: { id: planId },
+        select: { id: true, slug: true, isArchived: true, features: true },
+      }),
       prisma.service.findMany({ select: { slug: true } }),
     ]);
-    if (!existingPlan) return NextResponse.json({ error: "الباقة غير موجودة." }, { status: 404 });
+    if (!existingPlan)
+      return NextResponse.json(
+        { error: "الباقة غير موجودة." },
+        { status: 404 },
+      );
     if (existingPlan.slug === "default-free-auto") {
-      return NextResponse.json({ error: "تُدار الباقة التلقائية من صفحتها المخصصة." }, { status: 400 });
+      return NextResponse.json(
+        { error: "تُدار الباقة التلقائية من صفحتها المخصصة." },
+        { status: 400 },
+      );
     }
-    const knownServiceSlugs = new Set(knownServices.map((service) => service.slug));
-    if (enabledServiceSlugs.some((serviceSlug) => !knownServiceSlugs.has(serviceSlug))) {
-      return NextResponse.json({ error: "تتضمن الباقة خدمة غير معروفة." }, { status: 400 });
+    const knownServiceSlugs = new Set(
+      knownServices.map((service) => service.slug),
+    );
+    if (
+      enabledServiceSlugs.some(
+        (serviceSlug) => !knownServiceSlugs.has(serviceSlug),
+      )
+    ) {
+      return NextResponse.json(
+        { error: "تتضمن الباقة خدمة غير معروفة." },
+        { status: 400 },
+      );
     }
     const previousServiceSlugs = getPlanServiceSlugs(existingPlan.features);
-    const applyToCurrentSubscribers = Boolean(payload?.applyToCurrentSubscribers);
+    const applyToCurrentSubscribers = Boolean(
+      payload?.applyToCurrentSubscribers,
+    );
 
-    const managedKeys = ["targetAudience", "durationDays", "commercialType", "durationMode", "fixedEndDate", "termLabel", "maxStudents", "maxUsers", "maxReports"];
+    const managedKeys = [
+      "targetAudience",
+      "durationDays",
+      "commercialType",
+      "durationMode",
+      "fixedEndDate",
+      "termLabel",
+      "maxStudents",
+      "maxUsers",
+      "maxReports",
+      "manualOfferEnabled",
+      "manualOfferName",
+      "manualOfferPrice",
+    ];
     const featureData = [
-      { key: "targetAudience", label: "الجمهور المستهدف", value: targetAudience },
-      { key: "durationDays", label: "مدة الاشتراك بالأيام", value: String(durationDays > 0 ? durationDays : 30) },
-      ...(commercialType === "TERM" || commercialType === "YEAR" ? [{ key: "commercialType", label: "نوع العرض التجاري", value: commercialType }] : []),
+      {
+        key: "serviceAccessMode",
+        label: "Service access mode",
+        value: serviceAccessMode,
+      },
+      {
+        key: "manualOfferEnabled",
+        label: "يوجد عرض على الباقة",
+        value: String(offerEnabled),
+      },
+      ...(offerEnabled
+        ? [
+            {
+              key: "manualOfferName",
+              label: "اسم العرض",
+              value: offerName,
+            },
+            {
+              key: "manualOfferPrice",
+              label: "السعر بعد العرض",
+              value: String(Math.trunc(offerPrice)),
+            },
+          ]
+        : []),
+      {
+        key: "targetAudience",
+        label: "الجمهور المستهدف",
+        value: targetAudience,
+      },
+      {
+        key: "durationDays",
+        label: "مدة الاشتراك بالأيام",
+        value: String(durationDays > 0 ? durationDays : 30),
+      },
+      ...(commercialType === "TERM" || commercialType === "YEAR"
+        ? [
+            {
+              key: "commercialType",
+              label: "نوع العرض التجاري",
+              value: commercialType,
+            },
+          ]
+        : []),
       { key: "durationMode", label: "نمط المدة", value: durationMode },
-      ...(durationMode === "FIXED_END_DATE" && /^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate) ? [{ key: "fixedEndDate", label: "تاريخ الانتهاء الثابت", value: fixedEndDate }] : []),
-      ...(termLabel ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }] : []),
-      { key: "maxStudents", label: "حد الطلاب", value: String(maxStudents > 0 ? maxStudents : 0) },
-      { key: "maxUsers", label: "حد المستخدمين", value: String(maxUsers > 0 ? maxUsers : 0) },
-      { key: "maxReports", label: "حد التقارير", value: String(maxReports > 0 ? maxReports : 0) },
-      ...enabledServiceSlugs.map((serviceSlug) => ({ key: `service:${serviceSlug}`, label: `خدمة: ${serviceSlug}`, value: "enabled" })),
+      ...(durationMode === "FIXED_END_DATE" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(fixedEndDate)
+        ? [
+            {
+              key: "fixedEndDate",
+              label: "تاريخ الانتهاء الثابت",
+              value: fixedEndDate,
+            },
+          ]
+        : []),
+      ...(termLabel
+        ? [{ key: "termLabel", label: "وسم الفصل", value: termLabel }]
+        : []),
+      {
+        key: "maxStudents",
+        label: "حد الطلاب",
+        value: String(maxStudents > 0 ? maxStudents : 0),
+      },
+      {
+        key: "maxUsers",
+        label: "حد المستخدمين",
+        value: String(maxUsers > 0 ? maxUsers : 0),
+      },
+      {
+        key: "maxReports",
+        label: "حد التقارير",
+        value: String(maxReports > 0 ? maxReports : 0),
+      },
+      ...enabledServiceSlugs.map((serviceSlug) => ({
+        key: `service:${serviceSlug}`,
+        label: `خدمة: ${serviceSlug}`,
+        value: "enabled",
+      })),
     ];
 
     const plan = await prisma.$transaction(async (transaction) => {
       await transaction.planFeature.deleteMany({
-        where: { planId, OR: [{ key: { in: managedKeys } }, { key: { startsWith: "service:" } }] },
+        where: {
+          planId,
+          OR: [
+            { key: { in: managedKeys } },
+            { key: { startsWith: "service:" } },
+          ],
+        },
       });
-      await transaction.planFeature.createMany({ data: featureData.map((feature) => ({ ...feature, planId })) });
+      await transaction.planFeature.createMany({
+        data: featureData.map((feature) => ({ ...feature, planId })),
+      });
       return transaction.plan.update({
         where: { id: planId },
         data: {
           name,
           priceMonthly,
           priceYearly,
-          isActive: typeof payload?.isActive === "boolean" ? payload.isActive : undefined,
-          isPublic: typeof payload?.isPublic === "boolean" ? payload.isPublic : undefined,
+          isActive:
+            typeof payload?.isActive === "boolean"
+              ? payload.isActive
+              : undefined,
+          isPublic:
+            typeof payload?.isPublic === "boolean"
+              ? payload.isPublic
+              : undefined,
           visibleRoles,
         },
         include: { features: true },
@@ -471,23 +889,75 @@ export async function POST(request: Request) {
     });
 
     const serviceChange = applyToCurrentSubscribers
-      ? await syncPlanEntitlementsForSubscribers({ planId, previousServiceSlugs, nextServiceSlugs: enabledServiceSlugs })
-      : { affectedSubscribers: 0, addedSlugs: enabledServiceSlugs.filter((slug) => !previousServiceSlugs.includes(slug)), removedSlugs: previousServiceSlugs.filter((slug) => !enabledServiceSlugs.includes(slug)) };
+      ? await syncPlanEntitlementsForSubscribers({
+          planId,
+          previousServiceSlugs,
+          nextServiceSlugs: enabledServiceSlugs,
+        })
+      : {
+          affectedSubscribers: 0,
+          addedSlugs: enabledServiceSlugs.filter(
+            (slug) => !previousServiceSlugs.includes(slug),
+          ),
+          removedSlugs: previousServiceSlugs.filter(
+            (slug) => !enabledServiceSlugs.includes(slug),
+          ),
+        };
     if (serviceChange.addedSlugs.length || serviceChange.removedSlugs.length) {
-      await logAdminActivity({ actorUserId: current.user.id, category: "SUBSCRIPTION", action: "PLAN_ENTITLEMENTS_UPDATED", severity: "SUCCESS", title: "تحديث خدمات الباقة", details: { planId, planName: plan.name, addedServices: serviceChange.addedSlugs, removedServices: serviceChange.removedSlugs, affectedSubscribers: serviceChange.affectedSubscribers, appliedToCurrentSubscribers: applyToCurrentSubscribers } });
+      await logAdminActivity({
+        actorUserId: current.user.id,
+        category: "SUBSCRIPTION",
+        action: "PLAN_ENTITLEMENTS_UPDATED",
+        severity: "SUCCESS",
+        title: "تحديث خدمات الباقة",
+        details: {
+          planId,
+          planName: plan.name,
+          addedServices: serviceChange.addedSlugs,
+          removedServices: serviceChange.removedSlugs,
+          affectedSubscribers: serviceChange.affectedSubscribers,
+          appliedToCurrentSubscribers: applyToCurrentSubscribers,
+        },
+      });
     }
-    return NextResponse.json({ message: "تم تحديث الباقة.", plan, serviceChange: { ...serviceChange, appliedToCurrentSubscribers: applyToCurrentSubscribers } });
+    return NextResponse.json({
+      message: "تم تحديث الباقة.",
+      plan,
+      serviceChange: {
+        ...serviceChange,
+        appliedToCurrentSubscribers: applyToCurrentSubscribers,
+      },
+    });
   }
 
   if (action === "archive-plan" || action === "restore-plan") {
     const planId = String(payload?.planId || "").trim();
-    if (!planId) return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
-    const plan = await prisma.plan.findUnique({ where: { id: planId }, select: { id: true, slug: true } });
-    if (!plan) return NextResponse.json({ error: "الباقة غير موجودة." }, { status: 404 });
-    if (plan.slug === "default-free-auto") return NextResponse.json({ error: "لا يمكن أرشفة الباقة التلقائية من هنا." }, { status: 400 });
+    if (!planId)
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    const plan = await prisma.plan.findUnique({
+      where: { id: planId },
+      select: { id: true, slug: true },
+    });
+    if (!plan)
+      return NextResponse.json(
+        { error: "الباقة غير موجودة." },
+        { status: 404 },
+      );
+    if (plan.slug === "default-free-auto")
+      return NextResponse.json(
+        { error: "لا يمكن أرشفة الباقة التلقائية من هنا." },
+        { status: 400 },
+      );
     const isArchived = action === "archive-plan";
-    const updated = await prisma.plan.update({ where: { id: planId }, data: { isArchived }, include: { features: true } });
-    return NextResponse.json({ message: isArchived ? "تمت أرشفة الباقة." : "تمت استعادة الباقة.", plan: updated });
+    const updated = await prisma.plan.update({
+      where: { id: planId },
+      data: { isArchived },
+      include: { features: true },
+    });
+    return NextResponse.json({
+      message: isArchived ? "تمت أرشفة الباقة." : "تمت استعادة الباقة.",
+      plan: updated,
+    });
   }
 
   if (action === "toggle-plan") {
@@ -561,11 +1031,7 @@ export async function POST(request: Request) {
     const planId = String(payload?.planId || "").trim();
     const days = Number(payload?.days || 0);
     const status = String(payload?.status || "ACTIVE") as
-      | "TRIAL"
-      | "ACTIVE"
-      | "PAST_DUE"
-      | "CANCELED"
-      | "EXPIRED";
+      "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
 
     if (!schoolAccountId || !planId) {
       return NextResponse.json(
@@ -606,7 +1072,12 @@ export async function POST(request: Request) {
       reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
     });
 
-    void dispatchAutomaticPushEvent({ triggerKey: "subscription-activated", actorUserId: current.user.id, sourceRecordId: subscription.id, variables: { serviceName: plan.name } }).catch(() => undefined);
+    void dispatchAutomaticPushEvent({
+      triggerKey: "subscription-activated",
+      actorUserId: current.user.id,
+      sourceRecordId: subscription.id,
+      variables: { serviceName: plan.name },
+    }).catch(() => undefined);
 
     return NextResponse.json({
       message: "تم إسناد الباقة وتفعيل الخدمات المصاحبة.",
@@ -649,7 +1120,12 @@ export async function POST(request: Request) {
       },
     });
 
-    void dispatchAutomaticPushEvent({ triggerKey: "subscription-activated", actorUserId: current.user.id, sourceRecordId: subscription.id, variables: { serviceName: "Teachix" } }).catch(() => undefined);
+    void dispatchAutomaticPushEvent({
+      triggerKey: "subscription-activated",
+      actorUserId: current.user.id,
+      sourceRecordId: subscription.id,
+      variables: { serviceName: "Teachix" },
+    }).catch(() => undefined);
 
     await prisma.manualActivation.create({
       data: {

@@ -8,12 +8,16 @@ import { logAdminActivity } from "@/lib/admin/activity-log";
 import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
 import { prisma } from "@/lib/prisma";
 import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
-import { resolvePlanBillingCycle, resolvePlanSubscriptionPeriod } from "@/lib/subscription/subscription-service";
+import {
+  resolvePlanBillingCycle,
+  resolvePlanSubscriptionPeriod,
+} from "@/lib/subscription/subscription-service";
 import {
   getCouponQuote,
   redeemCoupon,
   redeemCouponWithClient,
 } from "@/lib/promotions/coupon-service";
+import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
 
 export class ElectronicPaymentError extends Error {
   status: number;
@@ -48,17 +52,24 @@ function asJson(value: unknown): Prisma.InputJsonValue {
 }
 
 function getObject(value: unknown) {
-  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function normalizeBillingCycle(value: unknown): BillingCycle {
-  return String(value || "MONTHLY").toUpperCase() === "YEARLY" ? "YEARLY" : "MONTHLY";
+  return String(value || "MONTHLY").toUpperCase() === "YEARLY"
+    ? "YEARLY"
+    : "MONTHLY";
 }
 
-function getCheckoutAmount(plan: {
-  priceMonthly: number;
-  priceYearly: number;
-}, billingCycle: BillingCycle) {
+function getCheckoutAmount(
+  plan: {
+    priceMonthly: number;
+    priceYearly: number;
+  },
+  billingCycle: BillingCycle,
+) {
   return billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
 }
 
@@ -124,7 +135,11 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
     }),
   ]);
 
-  if (!plan || !requesterUser || !isPlanSelfServiceVisible(plan, requesterUser.role)) {
+  if (
+    !plan ||
+    !requesterUser ||
+    !isPlanSelfServiceVisible(plan, requesterUser.role)
+  ) {
     throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
   }
 
@@ -134,8 +149,14 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
 
   billingCycle = resolvePlanBillingCycle(plan.features, billingCycle);
 
-  if (!requesterUser || requesterUser.schoolAccountId !== input.schoolAccountId) {
-    throw new ElectronicPaymentError("لا يمكن إنشاء عملية الدفع لهذا الحساب.", 403);
+  if (
+    !requesterUser ||
+    requesterUser.schoolAccountId !== input.schoolAccountId
+  ) {
+    throw new ElectronicPaymentError(
+      "لا يمكن إنشاء عملية الدفع لهذا الحساب.",
+      403,
+    );
   }
 
   const originalAmount = getCheckoutAmount(plan, billingCycle);
@@ -147,7 +168,15 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         schoolAccountId: input.schoolAccountId,
       })
     : null;
-  const amount = couponQuote?.finalAmount ?? originalAmount;
+  const automaticPricing = input.couponCode
+    ? null
+    : await getAutomaticPlanPricing({
+        planId: plan.id,
+        plan,
+        billingCycle,
+      });
+  const amount =
+    couponQuote?.finalAmount ?? automaticPricing?.finalAmount ?? originalAmount;
 
   if (!amount || amount <= 0) {
     throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
@@ -173,8 +202,10 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         requesterJobTitle: requesterUser.jobTitle,
         providerSlug: provider.slug,
         couponCode: couponQuote?.couponCode || null,
+        promotionId: automaticPricing?.promotionId || null,
         originalAmount,
-        discountAmount: couponQuote?.discountAmount || 0,
+        discountAmount:
+          couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
         finalAmount: amount,
         createdAt: new Date().toISOString(),
       }),
@@ -220,7 +251,7 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
     ? `${publicConfig.checkoutBaseUrl}${
         publicConfig.checkoutBaseUrl.includes("?") ? "&" : "?"
       }transactionId=${encodeURIComponent(updatedTransaction.id)}&externalRef=${encodeURIComponent(
-        externalRef
+        externalRef,
       )}&amount=${encodeURIComponent(String(amount))}&currency=SAR`
     : buildInternalCheckoutUrl(updatedTransaction.id);
 
@@ -230,7 +261,9 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
   };
 }
 
-export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyInput) {
+export async function applyPaidElectronicPaymentTransaction(
+  input: WebhookApplyInput,
+) {
   const transaction = await prisma.paymentTransaction.findFirst({
     where: {
       OR: [
@@ -250,13 +283,21 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
   if (transaction.status === PaymentStatus.PAID) {
     const paidMetadata = getObject(transaction.metadataJson);
     const paidCouponCode =
-      typeof paidMetadata.couponCode === "string" ? paidMetadata.couponCode : null;
-    const paidPlanId = typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+      typeof paidMetadata.couponCode === "string"
+        ? paidMetadata.couponCode
+        : null;
+    const paidPlanId =
+      typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
     const paidSchoolAccountId =
       typeof paidMetadata.schoolAccountId === "string"
         ? paidMetadata.schoolAccountId
         : null;
-    if (paidCouponCode && paidPlanId && paidSchoolAccountId && transaction.subscriptionId) {
+    if (
+      paidCouponCode &&
+      paidPlanId &&
+      paidSchoolAccountId &&
+      transaction.subscriptionId
+    ) {
       await redeemCoupon({
         code: paidCouponCode,
         planId: paidPlanId,
@@ -276,13 +317,20 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
   const metadata = getObject(transaction.metadataJson);
   const planId = typeof metadata.planId === "string" ? metadata.planId : null;
   const schoolAccountId =
-    typeof metadata.schoolAccountId === "string" ? metadata.schoolAccountId : null;
+    typeof metadata.schoolAccountId === "string"
+      ? metadata.schoolAccountId
+      : null;
   const billingCycle = normalizeBillingCycle(metadata.billingCycle);
   const requesterUserId =
-    typeof metadata.requesterUserId === "string" ? metadata.requesterUserId : null;
+    typeof metadata.requesterUserId === "string"
+      ? metadata.requesterUserId
+      : null;
 
   if (!planId || !schoolAccountId) {
-    throw new ElectronicPaymentError("بيانات عملية الدفع غير مكتملة للتفعيل.", 409);
+    throw new ElectronicPaymentError(
+      "بيانات عملية الدفع غير مكتملة للتفعيل.",
+      409,
+    );
   }
 
   const couponCodeForPayment =
@@ -299,13 +347,24 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
     }
   }
 
-  const paidPlan = await prisma.plan.findUnique({ where: { id: planId }, select: { features: true } });
+  const paidPlan = await prisma.plan.findUnique({
+    where: { id: planId },
+    select: { features: true },
+  });
   if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
   let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
   try {
-    period = resolvePlanSubscriptionPeriod({ features: paidPlan.features, startsAt: new Date(), days: billingCycle === "YEARLY" ? 365 : 30 });
+    period = resolvePlanSubscriptionPeriod({
+      features: paidPlan.features,
+      startsAt: new Date(),
+      days: billingCycle === "YEARLY" ? 365 : 30,
+    });
   } catch (error) {
-    if (error instanceof Error && error.message === "FIXED_END_DATE_PLAN_EXPIRED") throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
+    if (
+      error instanceof Error &&
+      error.message === "FIXED_END_DATE_PLAN_EXPIRED"
+    )
+      throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
     throw new ElectronicPaymentError("إعداد مدة الباقة غير صالح.", 409);
   }
   const startsAt = period.startsAt;
@@ -373,7 +432,7 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
 
   await getOrCreateInvoiceForPaymentTransaction(
     paidTransaction.id,
-    requesterUserId || null
+    requesterUserId || null,
   );
 
   if (couponCodeForPayment) {
@@ -384,7 +443,11 @@ export async function applyPaidElectronicPaymentTransaction(input: WebhookApplyI
       action: "COUPON_REDEEMED",
       severity: "SUCCESS",
       title: "استخدام كوبون خصم بعد نجاح الدفع",
-      details: { couponCode: couponCodeForPayment, planId, transactionId: paidTransaction.id },
+      details: {
+        couponCode: couponCodeForPayment,
+        planId,
+        transactionId: paidTransaction.id,
+      },
     });
   }
 
@@ -435,7 +498,10 @@ export async function applyFailedElectronicPaymentTransaction(input: {
   }
 
   if (transaction.status === PaymentStatus.PAID) {
-    throw new ElectronicPaymentError("لا يمكن تغيير عملية مدفوعة إلى فاشلة أو ملغاة.", 409);
+    throw new ElectronicPaymentError(
+      "لا يمكن تغيير عملية مدفوعة إلى فاشلة أو ملغاة.",
+      409,
+    );
   }
 
   const metadata = getObject(transaction.metadataJson);
@@ -460,9 +526,13 @@ export async function applyFailedElectronicPaymentTransaction(input: {
 
   await logAdminActivity({
     actorUserId:
-      typeof metadata.requesterUserId === "string" ? metadata.requesterUserId : null,
+      typeof metadata.requesterUserId === "string"
+        ? metadata.requesterUserId
+        : null,
     schoolAccountId:
-      typeof metadata.schoolAccountId === "string" ? metadata.schoolAccountId : null,
+      typeof metadata.schoolAccountId === "string"
+        ? metadata.schoolAccountId
+        : null,
     category: "PAYMENT",
     action:
       input.status === "CANCELED"

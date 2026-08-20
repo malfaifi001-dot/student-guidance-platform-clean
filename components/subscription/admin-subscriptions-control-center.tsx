@@ -1,28 +1,157 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { Archive, Check, ChevronDown, Crown, Loader2, Pencil, Plus, Search, ShieldCheck, X } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
+import {
+  Archive,
+  Check,
+  ChevronDown,
+  Crown,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
-import { getPlanAudience, getPlanAudienceLabel, getPlanVisibilityRoles, OPERATIONAL_PLAN_ROLES, type PlanAudience, type PlanVisibleRole } from "@/lib/subscription/plan-audience";
-import { getPlanCommercialType, getPlanDurationMode, getPlanFixedEndDate, getPlanServiceSlugs, type CommercialPlanType, type PlanDurationMode } from "@/lib/subscription/plan-metadata";
+import { PlanPricingCard } from "@/components/subscription/plan-pricing-card";
+import { quoteManualPlanOffer } from "@/lib/promotions/pricing-core";
+import {
+  getPlanAudience,
+  getPlanAudienceLabel,
+  getPlanVisibilityRoles,
+  OPERATIONAL_PLAN_ROLES,
+  type PlanAudience,
+  type PlanVisibleRole,
+} from "@/lib/subscription/plan-audience";
+import {
+  getPlanCommercialType,
+  getPlanDurationMode,
+  getPlanFixedEndDate,
+  getPlanServiceSlugs,
+  type CommercialPlanType,
+  type PlanDurationMode,
+} from "@/lib/subscription/plan-metadata";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 type Tab = "plans" | "subscriptions" | "access" | "archived";
-type Service = { id: string; slug: string; name: string; description?: string | null; status: string };
-type Feature = { id?: string; key: string; label: string; value: string | null };
-type Plan = { id: string; name: string; slug: string; priceMonthly: number; priceYearly: number; isActive: boolean; isPublic: boolean; isArchived: boolean; visibleRoles: unknown; features: Feature[] };
-type PrimaryUser = { id: string; name: string; officialName: string | null; email: string; role: string } | null;
-type CenterData = { plans: Plan[]; services: Service[]; subscriptions: Array<Record<string, any>>; serviceAccess: Array<Record<string, any>> };
-type PlanForm = { id: string; name: string; slug: string; commercialType: CommercialPlanType | "LEGACY"; termLabel: string; price: string; legacyMonthly: string; legacyYearly: string; durationMode: PlanDurationMode; durationDays: string; fixedEndDate: string; maxStudents: string; maxUsers: string; maxReports: string; audience: PlanAudience; visibleRoles: PlanVisibleRole[]; services: string[]; isActive: boolean; isPublic: boolean };
+type Service = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  status: string;
+};
+type Feature = {
+  id?: string;
+  key: string;
+  label: string;
+  value: string | null;
+};
+type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+  priceMonthly: number;
+  priceYearly: number;
+  isActive: boolean;
+  isPublic: boolean;
+  isArchived: boolean;
+  visibleRoles: unknown;
+  features: Feature[];
+};
+type PrimaryUser = {
+  id: string;
+  name: string;
+  officialName: string | null;
+  email: string;
+  role: string;
+} | null;
+type CenterData = {
+  plans: Plan[];
+  services: Service[];
+  subscriptions: Array<Record<string, any>>;
+  serviceAccess: Array<Record<string, any>>;
+};
+type PlanForm = {
+  id: string;
+  name: string;
+  slug: string;
+  commercialType: CommercialPlanType | "LEGACY";
+  termLabel: string;
+  price: string;
+  legacyMonthly: string;
+  legacyYearly: string;
+  durationMode: PlanDurationMode;
+  durationDays: string;
+  fixedEndDate: string;
+  maxStudents: string;
+  maxUsers: string;
+  maxReports: string;
+  audience: PlanAudience;
+  visibleRoles: PlanVisibleRole[];
+  services: string[];
+  isActive: boolean;
+  isPublic: boolean;
+  offerEnabled: boolean;
+  offerName: string;
+  offerPrice: string;
+};
 type Feedback = { type: "success" | "error" | "info"; text: string };
 
-function featureValue(plan: Plan, key: string, fallback = "") { return plan.features.find((feature) => feature.key === key)?.value || fallback; }
-function roleLabel(role: string) { return ({ COUNSELOR: "الموجه الطلابي", ACTIVITY_LEADER: "رائد النشاط", TEACHER: "المعلم", PRINCIPAL: "مدير المدرسة", SCHOOL_OWNER: "مالك المدرسة", STAFF: "الموظف", ADMIN: "المشرف" } as Record<string, string>)[role] || role; }
-function formatMoney(value: number) { return `${Number(value || 0).toLocaleString("ar-SA")} ريال`; }
-function parseJsonResponse(response: Response) { return response.text().then((text) => { try { return text ? JSON.parse(text) : {}; } catch { return {}; } }); }
-function getPlanType(plan: Plan) { return getPlanCommercialType(plan.features); }
-function getDurationLabel(plan: Plan) { const mode = getPlanDurationMode(plan.features); if (mode === "FIXED_END_DATE") { const value = getPlanFixedEndDate(plan.features); return value ? `حتى ${value.toLocaleDateString("en-CA")}` : "تاريخ ثابت غير صالح"; } return `${featureValue(plan, "durationDays", "30")} يوم`; }
+function featureValue(plan: Plan, key: string, fallback = "") {
+  return (
+    plan.features.find((feature) => feature.key === key)?.value || fallback
+  );
+}
+function roleLabel(role: string) {
+  return (
+    (
+      {
+        COUNSELOR: "الموجه الطلابي",
+        ACTIVITY_LEADER: "رائد النشاط",
+        TEACHER: "المعلم",
+        PRINCIPAL: "مدير المدرسة",
+        SCHOOL_OWNER: "مالك المدرسة",
+        STAFF: "الموظف",
+        ADMIN: "المشرف",
+      } as Record<string, string>
+    )[role] || role
+  );
+}
+function formatMoney(value: number) {
+  return `${Number(value || 0).toLocaleString("ar-SA")} ريال`;
+}
+function parseJsonResponse(response: Response) {
+  return response.text().then((text) => {
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return {};
+    }
+  });
+}
+function getPlanType(plan: Plan) {
+  return getPlanCommercialType(plan.features);
+}
+function getDurationLabel(plan: Plan) {
+  const mode = getPlanDurationMode(plan.features);
+  if (mode === "FIXED_END_DATE") {
+    const value = getPlanFixedEndDate(plan.features);
+    return value
+      ? `حتى ${value.toLocaleDateString("en-CA")}`
+      : "تاريخ ثابت غير صالح";
+  }
+  return `${featureValue(plan, "durationDays", "30")} يوم`;
+}
 
 export function AdminSubscriptionsControlCenter() {
   const [data, setData] = useState<CenterData | null>(null);
@@ -39,78 +168,1276 @@ export function AdminSubscriptionsControlCenter() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch("/api/dashboard/admin/subscriptions", { cache: "no-store" });
+      const response = await fetch("/api/dashboard/admin/subscriptions", {
+        cache: "no-store",
+      });
       const result = await parseJsonResponse(response);
-      if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "تعذر تحميل مركز الباقات.");
-      setData({ plans: Array.isArray(result.plans) ? result.plans : [], services: Array.isArray(result.services) ? result.services : [], subscriptions: Array.isArray(result.subscriptions) ? result.subscriptions : [], serviceAccess: Array.isArray(result.serviceAccess) ? result.serviceAccess : [] });
-    } catch (error) { setFeedback({ type: "error", text: error instanceof Error ? error.message : "تعذر تحميل مركز الباقات." }); }
-    finally { setLoading(false); }
+      if (!response.ok)
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "تعذر تحميل مركز الباقات.",
+        );
+      setData({
+        plans: Array.isArray(result.plans) ? result.plans : [],
+        services: Array.isArray(result.services) ? result.services : [],
+        subscriptions: Array.isArray(result.subscriptions)
+          ? result.subscriptions
+          : [],
+        serviceAccess: Array.isArray(result.serviceAccess)
+          ? result.serviceAccess
+          : [],
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text:
+          error instanceof Error ? error.message : "تعذر تحميل مركز الباقات.",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
-  const plans = useMemo(() => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG), [data]);
+  const plans = useMemo(
+    () =>
+      (data?.plans || []).filter(
+        (plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG,
+      ),
+    [data],
+  );
   const currentPlans = plans.filter((plan) => !plan.isArchived);
   const archivedPlans = plans.filter((plan) => plan.isArchived);
-  const visibleServices = useMemo(() => (data?.services || []).filter((service) => service.name.toLowerCase().includes(serviceSearch.toLowerCase()) || service.slug.toLowerCase().includes(serviceSearch.toLowerCase())), [data?.services, serviceSearch]);
+  const visibleServices = useMemo(
+    () =>
+      (data?.services || []).filter(
+        (service) =>
+          service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+          service.slug.toLowerCase().includes(serviceSearch.toLowerCase()),
+      ),
+    [data?.services, serviceSearch],
+  );
   const editingPlan = plans.find((plan) => plan.id === form.id) || null;
-  const originalServices = editingPlan ? getPlanServiceSlugs(editingPlan.features) : [];
-  const addedServices = form.services.filter((slug) => !originalServices.includes(slug));
-  const removedServices = originalServices.filter((slug) => !form.services.includes(slug));
+  const originalServices = editingPlan
+    ? getPlanServiceSlugs(editingPlan.features)
+    : [];
+  const addedServices = form.services.filter(
+    (slug) => !originalServices.includes(slug),
+  );
+  const removedServices = originalServices.filter(
+    (slug) => !form.services.includes(slug),
+  );
 
-  function startCreate() { setApplyToSubscribers(false); setServiceSearch(""); setForm(emptyForm()); setEditorOpen(true); }
+  function startCreate() {
+    setApplyToSubscribers(false);
+    setServiceSearch("");
+    setForm(emptyForm());
+    setEditorOpen(true);
+  }
   function startEdit(plan: Plan) {
     const type = getPlanType(plan);
     const fixed = getPlanFixedEndDate(plan.features);
-    setApplyToSubscribers(false); setServiceSearch("");
-    setForm({ id: plan.id, name: plan.name, slug: plan.slug, commercialType: type || "LEGACY", termLabel: featureValue(plan, "termLabel"), price: String(type === "YEAR" ? plan.priceYearly : plan.priceMonthly), legacyMonthly: String(plan.priceMonthly), legacyYearly: String(plan.priceYearly), durationMode: getPlanDurationMode(plan.features), durationDays: featureValue(plan, "durationDays", "30"), fixedEndDate: fixed ? fixed.toLocaleDateString("en-CA") : featureValue(plan, "fixedEndDate"), maxStudents: featureValue(plan, "maxStudents", "0"), maxUsers: featureValue(plan, "maxUsers", "0"), maxReports: featureValue(plan, "maxReports", "0"), audience: getPlanAudience(plan.features), visibleRoles: getPlanVisibilityRoles(plan), services: getPlanServiceSlugs(plan.features), isActive: plan.isActive, isPublic: plan.isPublic });
+    setApplyToSubscribers(false);
+    setServiceSearch("");
+    setForm({
+      id: plan.id,
+      name: plan.name,
+      slug: plan.slug,
+      commercialType: type || "LEGACY",
+      termLabel: featureValue(plan, "termLabel"),
+      price: String(type === "YEAR" ? plan.priceYearly : plan.priceMonthly),
+      legacyMonthly: String(plan.priceMonthly),
+      legacyYearly: String(plan.priceYearly),
+      durationMode: getPlanDurationMode(plan.features),
+      durationDays: featureValue(plan, "durationDays", "30"),
+      fixedEndDate: fixed
+        ? fixed.toLocaleDateString("en-CA")
+        : featureValue(plan, "fixedEndDate"),
+      maxStudents: featureValue(plan, "maxStudents", "0"),
+      maxUsers: featureValue(plan, "maxUsers", "0"),
+      maxReports: featureValue(plan, "maxReports", "0"),
+      audience: getPlanAudience(plan.features),
+      visibleRoles: getPlanVisibilityRoles(plan),
+      services: getPlanServiceSlugs(plan.features),
+      isActive: plan.isActive,
+      isPublic: plan.isPublic,
+      offerEnabled: featureValue(plan, "manualOfferEnabled") === "true",
+      offerName: featureValue(plan, "manualOfferName"),
+      offerPrice: featureValue(plan, "manualOfferPrice"),
+    });
     setEditorOpen(true);
   }
-  function toggleService(slug: string) { setForm((current) => ({ ...current, services: current.services.includes(slug) ? current.services.filter((item) => item !== slug) : [...current.services, slug] })); }
-  function toggleRole(role: PlanVisibleRole) { setForm((current) => ({ ...current, visibleRoles: current.visibleRoles.includes(role) ? current.visibleRoles.filter((item) => item !== role) : [...current.visibleRoles, role] })); }
+  function toggleService(slug: string) {
+    setForm((current) => ({
+      ...current,
+      services: current.services.includes(slug)
+        ? current.services.filter((item) => item !== slug)
+        : [...current.services, slug],
+    }));
+  }
+  function toggleRole(role: PlanVisibleRole) {
+    setForm((current) => ({
+      ...current,
+      visibleRoles: current.visibleRoles.includes(role)
+        ? current.visibleRoles.filter((item) => item !== role)
+        : [...current.visibleRoles, role],
+    }));
+  }
   async function savePlan() {
-    if (!form.name.trim() || !form.slug.trim()) { setFeedback({ type: "error", text: "اسم الباقة ومعرفها مطلوبان." }); return; }
-    if (form.durationMode === "DAYS" && (!Number.isInteger(Number(form.durationDays)) || Number(form.durationDays) <= 0)) { setFeedback({ type: "error", text: "أدخل مدة صحيحة بالأيام." }); return; }
-    if (form.durationMode === "FIXED_END_DATE" && !form.fixedEndDate) { setFeedback({ type: "error", text: "اختر تاريخ انتهاء ثابتًا." }); return; }
+    if (!form.name.trim() || !form.slug.trim()) {
+      setFeedback({ type: "error", text: "اسم الباقة ومعرفها مطلوبان." });
+      return;
+    }
+    if (
+      form.durationMode === "DAYS" &&
+      (!Number.isInteger(Number(form.durationDays)) ||
+        Number(form.durationDays) <= 0)
+    ) {
+      setFeedback({ type: "error", text: "أدخل مدة صحيحة بالأيام." });
+      return;
+    }
+    if (form.durationMode === "FIXED_END_DATE" && !form.fixedEndDate) {
+      setFeedback({ type: "error", text: "اختر تاريخ انتهاء ثابتًا." });
+      return;
+    }
     setWorking(true);
     try {
       const legacy = form.commercialType === "LEGACY";
-      const payload = { action: form.id ? "update-plan" : "create-plan", planId: form.id || undefined, name: form.name, slug: form.slug, commercialType: legacy ? undefined : form.commercialType, termLabel: form.termLabel, priceMonthly: legacy ? form.legacyMonthly : form.commercialType === "TERM" ? form.price : "0", priceYearly: legacy ? form.legacyYearly : form.commercialType === "YEAR" ? form.price : "0", durationDays: form.durationDays, durationMode: form.durationMode, fixedEndDate: form.fixedEndDate, maxStudents: form.maxStudents, maxUsers: form.maxUsers, maxReports: form.maxReports, targetAudience: form.audience, visibleRoles: form.visibleRoles, enabledServiceSlugs: form.services, isActive: form.isActive, isPublic: form.isPublic, applyToCurrentSubscribers: applyToSubscribers };
-      const response = await fetch("/api/dashboard/admin/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const payload = {
+        action: form.id ? "update-plan" : "create-plan",
+        planId: form.id || undefined,
+        name: form.name,
+        slug: form.slug,
+        commercialType: legacy ? undefined : form.commercialType,
+        termLabel: form.termLabel,
+        priceMonthly: legacy
+          ? form.legacyMonthly
+          : form.commercialType === "TERM"
+            ? form.price
+            : "0",
+        priceYearly: legacy
+          ? form.legacyYearly
+          : form.commercialType === "YEAR"
+            ? form.price
+            : "0",
+        durationDays: form.durationDays,
+        durationMode: form.durationMode,
+        fixedEndDate: form.fixedEndDate,
+        maxStudents: form.maxStudents,
+        maxUsers: form.maxUsers,
+        maxReports: form.maxReports,
+        targetAudience: form.audience,
+        visibleRoles: form.visibleRoles,
+        enabledServiceSlugs: form.services,
+        isActive: form.isActive,
+        isPublic: form.isPublic,
+        offerEnabled: form.offerEnabled,
+        offerName: form.offerName,
+        offerPrice: form.offerPrice,
+        serviceAccessMode:
+          data?.services.length && form.services.length === data.services.length
+            ? "ALL_SERVICES"
+            : "CUSTOM_SERVICES",
+        applyToCurrentSubscribers: applyToSubscribers,
+      };
+      const response = await fetch("/api/dashboard/admin/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       const result = await parseJsonResponse(response);
-      if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "تعذر حفظ الباقة.");
-      setEditorOpen(false); setFeedback({ type: "success", text: applyToSubscribers && (addedServices.length || removedServices.length) ? `تم حفظ الباقة وتحديث خدمات ${result.serviceChange?.affectedSubscribers || 0} مشترك.` : "تم حفظ الباقة بنجاح." }); await load();
-    } catch (error) { setFeedback({ type: "error", text: error instanceof Error ? error.message : "تعذر حفظ الباقة." }); }
-    finally { setWorking(false); }
+      if (!response.ok)
+        throw new Error(
+          typeof result.error === "string" ? result.error : "تعذر حفظ الباقة.",
+        );
+      setEditorOpen(false);
+      setFeedback({
+        type: "success",
+        text:
+          applyToSubscribers && (addedServices.length || removedServices.length)
+            ? `تم حفظ الباقة وتحديث خدمات ${result.serviceChange?.affectedSubscribers || 0} مشترك.`
+            : "تم حفظ الباقة بنجاح.",
+      });
+      await load();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر حفظ الباقة.",
+      });
+    } finally {
+      setWorking(false);
+    }
   }
-  async function runAction(payload: Record<string, unknown>, successText: string) {
+  async function runAction(
+    payload: Record<string, unknown>,
+    successText: string,
+  ) {
     setWorking(true);
-    try { const response = await fetch("/api/dashboard/admin/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const result = await parseJsonResponse(response); if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "تعذر تنفيذ العملية."); setFeedback({ type: "success", text: successText }); await load(); }
-    catch (error) { setFeedback({ type: "error", text: error instanceof Error ? error.message : "تعذر تنفيذ العملية." }); }
-    finally { setWorking(false); }
+    try {
+      const response = await fetch("/api/dashboard/admin/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await parseJsonResponse(response);
+      if (!response.ok)
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "تعذر تنفيذ العملية.",
+        );
+      setFeedback({ type: "success", text: successText });
+      await load();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر تنفيذ العملية.",
+      });
+    } finally {
+      setWorking(false);
+    }
   }
-  if (loading) return <main className="grid min-h-[50vh] place-items-center"><div className="flex items-center gap-3 rounded-3xl border bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm"><Loader2 className="h-5 w-5 animate-spin text-sky-600" />جاري تحميل مركز الباقات...</div></main>;
+  if (loading)
+    return (
+      <main className="grid min-h-[50vh] place-items-center">
+        <div className="flex items-center gap-3 rounded-3xl border bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+          جاري تحميل مركز الباقات...
+        </div>
+      </main>
+    );
 
-  const tabs: Array<[Tab, string]> = [["plans", "الباقات"], ["subscriptions", "الاشتراكات النشطة"], ["access", "صلاحيات الخدمات"], ["archived", `الباقات المؤرشفة (${archivedPlans.length})`]];
-  return <main dir="rtl" className="space-y-5">
-    <header className="rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black text-sky-700"><Crown className="h-4 w-4" /> مركز إدارة المنتجات</span><h1 className="mt-3 text-3xl font-black text-slate-950">إدارة الباقات والاشتراكات</h1><p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-600">أنشئ عروضًا تجارية واضحة، حدّد خدماتها، وراجع المشتركين والصلاحيات من مساحة واحدة.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={startCreate} className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100"><Plus className="h-4 w-4" /> إنشاء باقة</button><Link href="/dashboard/admin/subscriptions/default-free" className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"><ShieldCheck className="h-4 w-4" /> الباقة المجانية</Link></div></div></header>
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="إجمالي الباقات" value={plans.length} /><Stat label="الباقات النشطة" value={currentPlans.filter((plan) => plan.isActive).length} /><Stat label="الباقات المؤرشفة" value={archivedPlans.length} /><Stat label="الاشتراكات النشطة" value={data?.subscriptions.filter((item) => item.status === "ACTIVE" || item.status === "TRIAL").length || 0} /></section>
-    <nav className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map(([id, label]) => <button key={id} type="button" onClick={() => setTab(id)} className={`rounded-xl px-4 py-2.5 text-sm font-black ${tab === id ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{label}</button>)}</nav>
-    {feedback ? <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${feedback.type === "success" ? "border-emerald-100 bg-emerald-50 text-emerald-800" : feedback.type === "error" ? "border-rose-100 bg-rose-50 text-rose-800" : "border-sky-100 bg-sky-50 text-sky-800"}`}>{feedback.text}<button type="button" onClick={() => setFeedback(null)} className="float-left text-xs font-black">إغلاق</button></div> : null}
-    {tab === "plans" ? <PlanList plans={currentPlans} subscriptions={data?.subscriptions || []} onCreate={startCreate} onEdit={startEdit} onToggle={(plan) => void runAction({ action: "toggle-plan", planId: plan.id, isActive: !plan.isActive }, plan.isActive ? "تم إيقاف الباقة." : "تم تفعيل الباقة.")} onArchive={setArchiveCandidate} /> : null}
-    {tab === "archived" ? <PlanList plans={archivedPlans} subscriptions={data?.subscriptions || []} archived onEdit={startEdit} onRestore={(plan) => void runAction({ action: "restore-plan", planId: plan.id }, "تمت استعادة الباقة.")} /> : null}
-    {tab === "subscriptions" ? <SubscriptionTable subscriptions={data?.subscriptions || []} plans={plans} onAction={runAction} working={working} /> : null}
-    {tab === "access" ? <AccessTable rows={data?.serviceAccess || []} /> : null}
-    <SmartActionModal open={Boolean(archiveCandidate)} title="أرشفة الباقة؟" description={archiveCandidate ? `سيتم إخفاء «${archiveCandidate.name}» من العروض الجديدة مع الحفاظ على الاشتراكات والمدفوعات التاريخية.` : undefined} variant="warning" confirmLabel="أرشفة الباقة" cancelLabel="إلغاء" loading={working} onConfirm={() => { if (archiveCandidate) { setArchiveCandidate(null); void runAction({ action: "archive-plan", planId: archiveCandidate.id }, "تمت أرشفة الباقة."); } }} onClose={() => !working && setArchiveCandidate(null)} />
-    {editorOpen ? <PlanEditor form={form} setForm={setForm} services={visibleServices} selected={new Set(form.services)} search={serviceSearch} setSearch={setServiceSearch} toggleService={toggleService} toggleRole={toggleRole} added={addedServices} removed={removedServices} apply={applyToSubscribers} setApply={setApplyToSubscribers} editing={Boolean(form.id)} onSave={() => void savePlan()} onClose={() => !working && setEditorOpen(false)} working={working} /> : null}
-  </main>;
+  const tabs: Array<[Tab, string]> = [
+    ["plans", "الباقات"],
+    ["subscriptions", "الاشتراكات النشطة"],
+    ["access", "صلاحيات الخدمات"],
+    ["archived", `الباقات المؤرشفة (${archivedPlans.length})`],
+  ];
+  return (
+    <main dir="rtl" className="space-y-5">
+      <header className="rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black text-sky-700">
+              <Crown className="h-4 w-4" /> مركز إدارة المنتجات
+            </span>
+            <h1 className="mt-3 text-3xl font-black text-slate-950">
+              إدارة الباقات والاشتراكات
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-600">
+              أنشئ عروضًا تجارية واضحة، حدّد خدماتها، وراجع المشتركين والصلاحيات
+              من مساحة واحدة.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={startCreate}
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100"
+            >
+              <Plus className="h-4 w-4" /> إنشاء باقة
+            </button>
+            <Link
+              href="/dashboard/admin/subscriptions/default-free"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
+            >
+              <ShieldCheck className="h-4 w-4" /> الباقة المجانية
+            </Link>
+          </div>
+        </div>
+      </header>
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="إجمالي الباقات" value={plans.length} />
+        <Stat
+          label="الباقات النشطة"
+          value={currentPlans.filter((plan) => plan.isActive).length}
+        />
+        <Stat label="الباقات المؤرشفة" value={archivedPlans.length} />
+        <Stat
+          label="الاشتراكات النشطة"
+          value={
+            data?.subscriptions.filter(
+              (item) => item.status === "ACTIVE" || item.status === "TRIAL",
+            ).length || 0
+          }
+        />
+      </section>
+      <nav className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        {tabs.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`rounded-xl px-4 py-2.5 text-sm font-black ${tab === id ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {feedback ? (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm font-bold ${feedback.type === "success" ? "border-emerald-100 bg-emerald-50 text-emerald-800" : feedback.type === "error" ? "border-rose-100 bg-rose-50 text-rose-800" : "border-sky-100 bg-sky-50 text-sky-800"}`}
+        >
+          {feedback.text}
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="float-left text-xs font-black"
+          >
+            إغلاق
+          </button>
+        </div>
+      ) : null}
+      {tab === "plans" ? (
+        <PlanList
+          plans={currentPlans}
+          subscriptions={data?.subscriptions || []}
+          onCreate={startCreate}
+          onEdit={startEdit}
+          onToggle={(plan) =>
+            void runAction(
+              {
+                action: "toggle-plan",
+                planId: plan.id,
+                isActive: !plan.isActive,
+              },
+              plan.isActive ? "تم إيقاف الباقة." : "تم تفعيل الباقة.",
+            )
+          }
+          onArchive={setArchiveCandidate}
+        />
+      ) : null}
+      {tab === "archived" ? (
+        <PlanList
+          plans={archivedPlans}
+          subscriptions={data?.subscriptions || []}
+          archived
+          onEdit={startEdit}
+          onRestore={(plan) =>
+            void runAction(
+              { action: "restore-plan", planId: plan.id },
+              "تمت استعادة الباقة.",
+            )
+          }
+        />
+      ) : null}
+      {tab === "subscriptions" ? (
+        <SubscriptionTable
+          subscriptions={data?.subscriptions || []}
+          plans={plans}
+          onAction={runAction}
+          working={working}
+        />
+      ) : null}
+      {tab === "access" ? (
+        <AccessTable rows={data?.serviceAccess || []} />
+      ) : null}
+      <SmartActionModal
+        open={Boolean(archiveCandidate)}
+        title="أرشفة الباقة؟"
+        description={
+          archiveCandidate
+            ? `سيتم إخفاء «${archiveCandidate.name}» من العروض الجديدة مع الحفاظ على الاشتراكات والمدفوعات التاريخية.`
+            : undefined
+        }
+        variant="warning"
+        confirmLabel="أرشفة الباقة"
+        cancelLabel="إلغاء"
+        loading={working}
+        onConfirm={() => {
+          if (archiveCandidate) {
+            setArchiveCandidate(null);
+            void runAction(
+              { action: "archive-plan", planId: archiveCandidate.id },
+              "تمت أرشفة الباقة.",
+            );
+          }
+        }}
+        onClose={() => !working && setArchiveCandidate(null)}
+      />
+      {editorOpen ? (
+        <PlanEditor
+          form={form}
+          setForm={setForm}
+          services={visibleServices}
+          selected={new Set(form.services)}
+          search={serviceSearch}
+          setSearch={setServiceSearch}
+          toggleService={toggleService}
+          toggleRole={toggleRole}
+          added={addedServices}
+          removed={removedServices}
+          apply={applyToSubscribers}
+          setApply={setApplyToSubscribers}
+          editing={Boolean(form.id)}
+          onSave={() => void savePlan()}
+          onClose={() => !working && setEditorOpen(false)}
+          working={working}
+        />
+      ) : null}
+    </main>
+  );
 }
 
-function emptyForm(): PlanForm { return { id: "", name: "", slug: "", commercialType: "TERM", termLabel: "", price: "", legacyMonthly: "", legacyYearly: "", durationMode: "DAYS", durationDays: "30", fixedEndDate: "", maxStudents: "0", maxUsers: "0", maxReports: "0", audience: "ALL", visibleRoles: [...OPERATIONAL_PLAN_ROLES], services: [], isActive: true, isPublic: true }; }
-function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm"><strong className="block text-2xl font-black text-slate-950">{value.toLocaleString("ar-SA")}</strong><span className="mt-1 block text-xs font-black text-slate-500">{label}</span></div>; }
-function PlanList({ plans, subscriptions, archived = false, onCreate, onEdit, onToggle, onArchive, onRestore }: { plans: Plan[]; subscriptions: Array<Record<string, any>>; archived?: boolean; onCreate?: () => void; onEdit: (plan: Plan) => void; onToggle?: (plan: Plan) => void; onArchive?: (plan: Plan) => void; onRestore?: (plan: Plan) => void }) { return <section className="space-y-4"><div className="flex items-center justify-between"><div><h2 className="text-xl font-black">{archived ? "الباقات المؤرشفة" : "الباقات التجارية"}</h2><p className="mt-1 text-xs font-bold text-slate-500">{archived ? "استعد الباقة عند الحاجة دون حذف سجلاتها." : "تظهر هنا الباقات غير المؤرشفة فقط."}</p></div>{onCreate ? <button type="button" onClick={onCreate} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black"><Plus className="ml-1 inline h-4 w-4" /> باقة جديدة</button> : null}</div><div className="grid gap-4 lg:grid-cols-2">{plans.map((plan) => <PlanCard key={plan.id} plan={plan} archived={archived} subscriberCount={subscriptions.filter((item) => item.planId === plan.id && (item.status === "ACTIVE" || item.status === "TRIAL")).length} onEdit={() => onEdit(plan)} onToggle={onToggle ? () => onToggle(plan) : undefined} onArchive={onArchive ? () => onArchive(plan) : undefined} onRestore={onRestore ? () => onRestore(plan) : undefined} />)}</div>{!plans.length ? <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">لا توجد باقات في هذا القسم.</div> : null}</section>; }
-function PlanCard({ plan, archived, subscriberCount, onEdit, onToggle, onArchive, onRestore }: { plan: Plan; archived: boolean; subscriberCount: number; onEdit: () => void; onToggle?: () => void; onArchive?: () => void; onRestore?: () => void }) { const type = getPlanType(plan); const services = getPlanServiceSlugs(plan.features); const cardState = archived || plan.isArchived ? "border-slate-300 bg-slate-50/80" : plan.isActive ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"; return <article className={`rounded-2xl border p-5 shadow-sm ${cardState}`}><div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-black text-slate-950">{plan.name}</h3><p className="mt-1 text-xs font-bold text-slate-400">{plan.slug}</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${archived || plan.isArchived ? "bg-slate-200 text-slate-600" : plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{archived || plan.isArchived ? "مؤرشفة" : plan.isActive ? "نشطة" : "متوقفة"}</span></div><div className="mt-4 grid grid-cols-2 gap-2 text-sm"><Info label="النوع" value={type === "YEAR" ? "سنوية" : type === "TERM" ? "فصلية" : "قديمة"} /><Info label="السعر" value={type === "YEAR" ? formatMoney(plan.priceYearly) : type === "TERM" ? formatMoney(plan.priceMonthly) : `${formatMoney(plan.priceMonthly)} / ${formatMoney(plan.priceYearly)}`} /><Info label="المدة" value={getDurationLabel(plan)} /><Info label="الخدمات" value={`${services.length} خدمة`} /><Info label="الجمهور" value={getPlanAudienceLabel(getPlanAudience(plan.features))} /><Info label="المشتركون" value={String(subscriberCount)} /></div><div className="mt-4 flex flex-wrap gap-2 text-xs font-black"><span className="rounded-full bg-white/80 px-3 py-1.5">{plan.isPublic ? "عامة" : "خاصة"}</span><span className="rounded-full bg-white/80 px-3 py-1.5">{getPlanVisibilityRoles(plan).map(roleLabel).join("، ")}</span></div><div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={onEdit} className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"><Pencil className="h-4 w-4" /> تعديل</button>{onToggle ? <button type="button" onClick={onToggle} className="rounded-xl bg-white/80 px-3 py-2 text-xs font-black">{plan.isActive ? "إيقاف" : "تفعيل"}</button> : null}{onArchive ? <button type="button" onClick={onArchive} className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"><Archive className="h-4 w-4" /> أرشفة</button> : null}{onRestore ? <button type="button" onClick={onRestore} className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-700">استعادة الباقة</button> : null}</div></article>; }
-function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-white/70 p-2"><span className="block text-[10px] font-bold text-slate-400">{label}</span><strong className="mt-1 block text-xs font-black text-slate-800">{value}</strong></div>; }
+function emptyForm(): PlanForm {
+  return {
+    id: "",
+    name: "",
+    slug: "",
+    commercialType: "TERM",
+    termLabel: "",
+    price: "",
+    legacyMonthly: "",
+    legacyYearly: "",
+    durationMode: "DAYS",
+    durationDays: "30",
+    fixedEndDate: "",
+    maxStudents: "0",
+    maxUsers: "0",
+    maxReports: "0",
+    audience: "ALL",
+    visibleRoles: [...OPERATIONAL_PLAN_ROLES],
+    services: [],
+    isActive: true,
+    isPublic: true,
+    offerEnabled: false,
+    offerName: "",
+    offerPrice: "",
+  };
+}
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+      <strong className="block text-2xl font-black text-slate-950">
+        {value.toLocaleString("ar-SA")}
+      </strong>
+      <span className="mt-1 block text-xs font-black text-slate-500">
+        {label}
+      </span>
+    </div>
+  );
+}
+function PlanList({
+  plans,
+  subscriptions,
+  archived = false,
+  onCreate,
+  onEdit,
+  onToggle,
+  onArchive,
+  onRestore,
+}: {
+  plans: Plan[];
+  subscriptions: Array<Record<string, any>>;
+  archived?: boolean;
+  onCreate?: () => void;
+  onEdit: (plan: Plan) => void;
+  onToggle?: (plan: Plan) => void;
+  onArchive?: (plan: Plan) => void;
+  onRestore?: (plan: Plan) => void;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-black">
+            {archived ? "الباقات المؤرشفة" : "الباقات التجارية"}
+          </h2>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            {archived
+              ? "استعد الباقة عند الحاجة دون حذف سجلاتها."
+              : "تظهر هنا الباقات غير المؤرشفة فقط."}
+          </p>
+        </div>
+        {onCreate ? (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black"
+          >
+            <Plus className="ml-1 inline h-4 w-4" /> باقة جديدة
+          </button>
+        ) : null}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            archived={archived}
+            subscriberCount={
+              subscriptions.filter(
+                (item) =>
+                  item.planId === plan.id &&
+                  (item.status === "ACTIVE" || item.status === "TRIAL"),
+              ).length
+            }
+            onEdit={() => onEdit(plan)}
+            onToggle={onToggle ? () => onToggle(plan) : undefined}
+            onArchive={onArchive ? () => onArchive(plan) : undefined}
+            onRestore={onRestore ? () => onRestore(plan) : undefined}
+          />
+        ))}
+      </div>
+      {!plans.length ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
+          لا توجد باقات في هذا القسم.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+function PlanCard({
+  plan,
+  archived,
+  subscriberCount,
+  onEdit,
+  onToggle,
+  onArchive,
+  onRestore,
+}: {
+  plan: Plan;
+  archived: boolean;
+  subscriberCount: number;
+  onEdit: () => void;
+  onToggle?: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+}) {
+  const type = getPlanType(plan);
+  const services = getPlanServiceSlugs(plan.features);
+  const allServices =
+    featureValue(plan, "serviceAccessMode") === "ALL_SERVICES";
+  const basePrice = type === "YEAR" ? plan.priceYearly : plan.priceMonthly;
+  const planPricing = quoteManualPlanOffer({
+    originalAmount: basePrice,
+    offer: {
+      enabled: featureValue(plan, "manualOfferEnabled") === "true",
+      name: featureValue(plan, "manualOfferName"),
+      price: Number(featureValue(plan, "manualOfferPrice", "0")),
+    },
+  });
+  const priceLabel =
+    planPricing.pricingReason === "MANUAL_OFFER"
+      ? `${formatMoney(planPricing.originalAmount)} ← ${formatMoney(planPricing.finalAmount)} — ${planPricing.promotionName}`
+      : formatMoney(basePrice);
+  const cardState =
+    archived || plan.isArchived
+      ? "border-slate-300 bg-slate-50/80"
+      : plan.isActive
+        ? "border-emerald-200 bg-emerald-50/40"
+        : "border-slate-200 bg-white";
+  return (
+    <article className={`rounded-2xl border p-5 shadow-sm ${cardState}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-black text-slate-950">{plan.name}</h3>
+          <p className="mt-1 text-xs font-bold text-slate-400">{plan.slug}</p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-black ${archived || plan.isArchived ? "bg-slate-200 text-slate-600" : plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+        >
+          {archived || plan.isArchived
+            ? "مؤرشفة"
+            : plan.isActive
+              ? "نشطة"
+              : "متوقفة"}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <Info
+          label="النوع"
+          value={
+            type === "YEAR" ? "سنوية" : type === "TERM" ? "فصلية" : "قديمة"
+          }
+        />
+        <Info
+          label="السعر"
+          value={priceLabel}
+        />
+        <Info label="المدة" value={getDurationLabel(plan)} />
+        <Info
+          label="الخدمات"
+          value={allServices ? "شامل جميع الخدمات" : `${services.length} خدمة`}
+        />
+        <Info
+          label="الجمهور"
+          value={getPlanAudienceLabel(getPlanAudience(plan.features))}
+        />
+        <Info label="المشتركون" value={String(subscriberCount)} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
+        <span className="rounded-full bg-white/80 px-3 py-1.5">
+          {plan.isPublic ? "عامة" : "خاصة"}
+        </span>
+        <span className="rounded-full bg-white/80 px-3 py-1.5">
+          {getPlanVisibilityRoles(plan).map(roleLabel).join("، ")}
+        </span>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+        >
+          <Pencil className="h-4 w-4" /> تعديل
+        </button>
+        {onToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-xl bg-white/80 px-3 py-2 text-xs font-black"
+          >
+            {plan.isActive ? "إيقاف" : "تفعيل"}
+          </button>
+        ) : null}
+        {onArchive ? (
+          <button
+            type="button"
+            onClick={onArchive}
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"
+          >
+            <Archive className="h-4 w-4" /> أرشفة
+          </button>
+        ) : null}
+        {onRestore ? (
+          <button
+            type="button"
+            onClick={onRestore}
+            className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-700"
+          >
+            استعادة الباقة
+          </button>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/70 p-2">
+      <span className="block text-[10px] font-bold text-slate-400">
+        {label}
+      </span>
+      <strong className="mt-1 block text-xs font-black text-slate-800">
+        {value}
+      </strong>
+    </div>
+  );
+}
 
-function PlanEditor({ form, setForm, services, selected, search, setSearch, toggleService, toggleRole, added, removed, apply, setApply, editing, onSave, onClose, working }: { form: PlanForm; setForm: Dispatch<SetStateAction<PlanForm>>; services: Service[]; selected: Set<string>; search: string; setSearch: (value: string) => void; toggleService: (slug: string) => void; toggleRole: (role: PlanVisibleRole) => void; added: string[]; removed: string[]; apply: boolean; setApply: (value: boolean) => void; editing: boolean; onSave: () => void; onClose: () => void; working: boolean }) { const field = (label: string, child: ReactNode) => <label><span className="mb-2 block text-xs font-black text-slate-500">{label}</span>{child}</label>; return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/40 p-3 backdrop-blur-sm sm:p-6"><section dir="rtl" className="mx-auto max-w-5xl rounded-3xl bg-white shadow-2xl"><div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-5"><div><h2 className="text-xl font-black">{editing ? "تعديل الباقة" : "إنشاء باقة"}</h2><p className="mt-1 text-xs font-bold text-slate-500">{editing ? "سيبقى معرّف الباقة وسجل المدفوعات كما هو." : "اختر نوع العرض التجاري قبل الحفظ."}</p></div><button type="button" onClick={onClose} className="rounded-xl bg-slate-100 p-2"><X className="h-5 w-5" /></button></div><div className="grid gap-5 p-5 lg:grid-cols-[1fr_1.25fr]"><div className="space-y-4">{field("اسم الباقة", <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" />)}{field("المعرّف", <input value={form.slug} disabled={editing} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="input disabled:bg-slate-100" />)}<div className="grid gap-3 sm:grid-cols-2">{field("نوع العرض", <select value={form.commercialType} onChange={(e) => setForm({ ...form, commercialType: e.target.value as PlanForm["commercialType"] })} className="input"><option value="TERM">باقة فصلية</option><option value="YEAR">باقة سنوية</option>{editing && form.commercialType === "LEGACY" ? <option value="LEGACY">باقة قديمة (توافق)</option> : null}</select>)}{field("وسم اختياري", <input value={form.termLabel} onChange={(e) => setForm({ ...form, termLabel: e.target.value })} className="input" placeholder="الفصل الأول" />)}</div>{form.commercialType === "LEGACY" ? <div className="grid gap-3 sm:grid-cols-2">{field("السعر الشهري القديم", <input value={form.legacyMonthly} onChange={(e) => setForm({ ...form, legacyMonthly: e.target.value })} className="input" />)}{field("السعر السنوي القديم", <input value={form.legacyYearly} onChange={(e) => setForm({ ...form, legacyYearly: e.target.value })} className="input" />)}</div> : field(form.commercialType === "YEAR" ? "السعر السنوي" : "سعر الفصل", <input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input" inputMode="numeric" />)}{field("نمط المدة", <select value={form.durationMode} onChange={(e) => setForm({ ...form, durationMode: e.target.value as PlanDurationMode })} className="input"><option value="DAYS">عدد الأيام</option><option value="FIXED_END_DATE">تاريخ انتهاء ثابت</option></select>)}{form.durationMode === "DAYS" ? field("عدد الأيام", <input value={form.durationDays} onChange={(e) => setForm({ ...form, durationDays: e.target.value })} className="input" inputMode="numeric" />) : field("تاريخ الانتهاء", <input type="date" value={form.fixedEndDate} onChange={(e) => setForm({ ...form, fixedEndDate: e.target.value })} className="input" />)}{field("الجمهور", <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as PlanAudience })} className="input"><option value="ALL">الجميع</option><option value="GUIDANCE">الموجهون</option><option value="ACTIVITY">رواد النشاط</option></select>)}<div><p className="mb-2 text-xs font-black text-slate-500">الأدوار الظاهرة</p><div className="grid grid-cols-2 gap-2">{OPERATIONAL_PLAN_ROLES.map((role) => <button key={role} type="button" onClick={() => toggleRole(role)} className={`rounded-xl border p-2 text-xs font-black ${form.visibleRoles.includes(role) ? "border-sky-200 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-400"}`}>{form.visibleRoles.includes(role) ? <Check className="ml-1 inline h-3 w-3" /> : null}{roleLabel(role)}</button>)}</div></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setForm({ ...form, isActive: !form.isActive })} className={`rounded-full px-3 py-1.5 text-xs font-black ${form.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{form.isActive ? "نشطة" : "متوقفة"}</button><button type="button" onClick={() => setForm({ ...form, isPublic: !form.isPublic })} className={`rounded-full px-3 py-1.5 text-xs font-black ${form.isPublic ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-500"}`}>{form.isPublic ? "عامة" : "خاصة"}</button></div></div><div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black">خدمات الباقة</h3><p className="mt-1 text-xs font-bold text-slate-500">{form.services.length} خدمة محددة من {services.length} خدمة متاحة</p></div><div className="flex gap-2"><button type="button" onClick={() => setForm({ ...form, services: services.map((service) => service.slug) })} className="rounded-lg bg-white px-3 py-1.5 text-xs font-black">تحديد الظاهرة</button><button type="button" onClick={() => setForm({ ...form, services: [] })} className="rounded-lg bg-white px-3 py-1.5 text-xs font-black">مسح</button></div></div><label className="relative mt-4 block"><Search className="absolute right-3 top-3 h-4 w-4 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-10" placeholder="ابحث باسم الخدمة أو slug" /></label><div className="mt-3 max-h-[430px] space-y-2 overflow-y-auto">{services.map((service) => <button key={service.id} type="button" onClick={() => toggleService(service.slug)} className={`flex w-full items-center justify-between rounded-xl border p-3 text-right ${selected.has(service.slug) ? "border-sky-200 bg-sky-50" : "border-slate-200 bg-white"}`}><span><strong className="block text-sm font-black">{service.name}</strong><small className="text-[10px] font-bold text-slate-400">{service.slug}</small></span>{selected.has(service.slug) ? <Check className="h-5 w-5 text-sky-600" /> : <ChevronDown className="h-4 w-4 text-slate-300" />}</button>)}</div>{editing && (added.length || removed.length) ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900"><p>التغيير: أضيفت {added.length} وأزيلت {removed.length}.</p><label className="mt-2 flex items-start gap-2"><input type="checkbox" checked={apply} onChange={(e) => setApply(e.target.checked)} /><span>طبّق التغيير على المشتركين الحاليين لهذه الباقة. ستبقى المدفوعات والتواريخ كما هي.</span></label></div> : null}</div></div><div className="flex flex-col-reverse gap-2 border-t bg-white p-5 sm:flex-row"><button type="button" disabled={working} onClick={onClose} className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black">إلغاء</button><button type="button" disabled={working} onClick={onSave} className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-black text-white">{working ? "جاري الحفظ..." : "حفظ الباقة"}</button></div></section><style jsx>{`.input{height:3rem;width:100%;border-radius:1rem;border:1px solid rgb(226 232 240);background:rgb(248 250 252);padding:0 1rem;font-size:.875rem;font-weight:700;outline:none}.input:focus{border-color:rgb(186 230 253);box-shadow:0 0 0 4px rgb(240 249 255)}`}</style></div>; }
-function SubscriptionTable({ subscriptions, plans, onAction, working }: { subscriptions: Array<Record<string, any>>; plans: Plan[]; onAction: (payload: Record<string, unknown>, success: string) => void; working: boolean }) { return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black">الاشتراكات النشطة</h2><p className="mt-1 text-xs font-bold text-slate-500">إدارة الاشتراك لا تغيّر سجل المدفوعات.</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead><tr className="border-b text-xs text-slate-500"><th className="p-3">الحساب</th><th className="p-3">الباقة</th><th className="p-3">الحالة</th><th className="p-3">الانتهاء</th><th className="p-3">إجراء</th></tr></thead><tbody>{subscriptions.filter((item) => item.status === "ACTIVE" || item.status === "TRIAL").map((item) => <tr key={item.id} className="border-b border-slate-50"><td className="p-3 font-bold">{item.schoolAccount?.name || item.schoolAccountId}</td><td className="p-3">{item.plan?.name || plans.find((plan) => plan.id === item.planId)?.name || item.planId}</td><td className="p-3">{item.status}</td><td className="p-3">{item.endsAt ? new Date(item.endsAt).toLocaleDateString("en-CA") : "-"}</td><td className="p-3"><button type="button" disabled={working} onClick={() => onAction({ action: "extend-subscription", subscriptionId: item.id, days: 30 }, "تم تمديد الاشتراك 30 يومًا.")} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700">تمديد 30 يومًا</button></td></tr>)}</tbody></table></div></section>; }
-function AccessTable({ rows }: { rows: Array<Record<string, any>> }) { return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black">صلاحيات الخدمات</h2><p className="mt-1 text-xs font-bold text-slate-500">المستخدم هو الهوية الأساسية، واسم المدرسة يظهر كسياق ثانوي.</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead><tr className="border-b text-xs text-slate-500"><th className="p-3">المستخدم</th><th className="p-3">المدرسة</th><th className="p-3">الخدمة</th><th className="p-3">الحالة</th><th className="p-3">مصدر مدفوع</th></tr></thead><tbody>{rows.map((row) => { const user = row.schoolAccount?.primaryUser as PrimaryUser; return <tr key={row.id} className="border-b border-slate-50"><td className="p-3"><strong className="block font-black">{user ? user.officialName || user.name || user.email : row.schoolAccount?.name || row.schoolAccountId}</strong>{user ? <span className="text-xs font-bold text-slate-500">{roleLabel(user.role)}{row.schoolAccount.additionalUserCount ? ` · +${row.schoolAccount.additionalUserCount} مستخدمين` : ""}</span> : null}</td><td className="p-3 text-xs font-bold text-slate-500">{row.schoolAccount?.schoolName || row.schoolAccount?.name || "-"}</td><td className="p-3">{row.service?.name || row.service?.slug || row.serviceId}</td><td className="p-3">{row.isEnabled ? "مفعلة" : "معطلة"}</td><td className="p-3">{row.isPaid ? "نعم" : "لا"}</td></tr>; })}</tbody></table></div></section>; }
+function PlanEditor({
+  form,
+  setForm,
+  services,
+  selected,
+  search,
+  setSearch,
+  toggleService,
+  toggleRole,
+  added,
+  removed,
+  apply,
+  setApply,
+  editing,
+  onSave,
+  onClose,
+  working,
+}: {
+  form: PlanForm;
+  setForm: Dispatch<SetStateAction<PlanForm>>;
+  services: Service[];
+  selected: Set<string>;
+  search: string;
+  setSearch: (value: string) => void;
+  toggleService: (slug: string) => void;
+  toggleRole: (role: PlanVisibleRole) => void;
+  added: string[];
+  removed: string[];
+  apply: boolean;
+  setApply: (value: boolean) => void;
+  editing: boolean;
+  onSave: () => void;
+  onClose: () => void;
+  working: boolean;
+}) {
+  const originalPrice =
+    Number(
+      form.commercialType === "LEGACY" ? form.legacyMonthly : form.price,
+    ) || 0;
+  const pricing = quoteManualPlanOffer({
+    originalAmount: originalPrice,
+    offer: {
+      enabled: form.offerEnabled,
+      name: form.offerName,
+      price: Number(form.offerPrice) || 0,
+    },
+  });
+  const allServices = services.length > 0 && selected.size === services.length;
+  const field = (label: string, child: ReactNode) => (
+    <label>
+      <span className="mb-2 block text-xs font-black text-slate-500">
+        {label}
+      </span>
+      {child}
+    </label>
+  );
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/40 p-3 backdrop-blur-sm sm:p-6">
+      <section
+        dir="rtl"
+        className="mx-auto max-w-5xl rounded-3xl bg-white shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-5">
+          <div>
+            <h2 className="text-xl font-black">
+              {editing ? "تعديل الباقة" : "إنشاء باقة"}
+            </h2>
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              {editing
+                ? "سيبقى معرّف الباقة وسجل المدفوعات كما هو."
+                : "اختر نوع العرض التجاري قبل الحفظ."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl bg-slate-100 p-2"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_1.25fr]">
+          <div className="space-y-4">
+            {field(
+              "اسم الباقة",
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="input"
+              />,
+            )}
+            {field(
+              "المعرّف",
+              <input
+                value={form.slug}
+                disabled={editing}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                className="input disabled:bg-slate-100"
+              />,
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {field(
+                "نوع العرض",
+                <select
+                  value={form.commercialType}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      commercialType: e.target
+                        .value as PlanForm["commercialType"],
+                    })
+                  }
+                  className="input"
+                >
+                  <option value="TERM">باقة فصلية</option>
+                  <option value="YEAR">باقة سنوية</option>
+                  {editing && form.commercialType === "LEGACY" ? (
+                    <option value="LEGACY">باقة قديمة (توافق)</option>
+                  ) : null}
+                </select>,
+              )}
+              {field(
+                "وسم اختياري",
+                <input
+                  value={form.termLabel}
+                  onChange={(e) =>
+                    setForm({ ...form, termLabel: e.target.value })
+                  }
+                  className="input"
+                  placeholder="الفصل الأول"
+                />,
+              )}
+            </div>
+            {form.commercialType === "LEGACY" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {field(
+                  "السعر الشهري القديم",
+                  <input
+                    value={form.legacyMonthly}
+                    onChange={(e) =>
+                      setForm({ ...form, legacyMonthly: e.target.value })
+                    }
+                    className="input"
+                  />,
+                )}
+                {field(
+                  "السعر السنوي القديم",
+                  <input
+                    value={form.legacyYearly}
+                    onChange={(e) =>
+                      setForm({ ...form, legacyYearly: e.target.value })
+                    }
+                    className="input"
+                  />,
+                )}
+              </div>
+            ) : (
+              field(
+                form.commercialType === "YEAR" ? "السعر السنوي" : "سعر الفصل",
+                <input
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  className="input"
+                  inputMode="numeric"
+                />,
+              )
+            )}
+            <section className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+              <h3 className="text-sm font-black text-slate-950">
+                التسعير والعرض
+              </h3>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                اضبط العرض التجاري الخاص بهذه الباقة. الكوبونات المنفصلة تبقى
+                ضمن نظام الكوبونات ولا تحتاج إلى ربطها بالباقة هنا.
+              </p>
+              <label className="mt-4 flex items-center gap-3 text-sm font-black text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={form.offerEnabled}
+                  onChange={(event) =>
+                    setForm({ ...form, offerEnabled: event.target.checked })
+                  }
+                  className="h-4 w-4 accent-sky-600"
+                />
+                يوجد عرض على الباقة
+              </label>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {field(
+                  "السعر الأساسي",
+                  <input
+                    value={originalPrice || ""}
+                    readOnly
+                    className="input bg-white/70"
+                    aria-label="السعر الأساسي"
+                  />,
+                )}
+                {form.offerEnabled ? (
+                  <>
+                    {field(
+                      "اسم العرض",
+                      <input
+                        value={form.offerName}
+                        onChange={(event) =>
+                          setForm({ ...form, offerName: event.target.value })
+                        }
+                        className="input"
+                        placeholder="عرض الافتتاح"
+                      />,
+                    )}
+                    {field(
+                      "السعر بعد العرض",
+                      <input
+                        value={form.offerPrice}
+                        onChange={(event) =>
+                          setForm({ ...form, offerPrice: event.target.value })
+                        }
+                        className="input"
+                        inputMode="numeric"
+                        placeholder="299"
+                      />,
+                    )}
+                  </>
+                ) : null}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs font-black text-slate-600">
+                <span>
+                  السعر الأساسي: {originalPrice.toLocaleString("ar-SA")} ريال
+                </span>
+                {pricing.pricingReason === "MANUAL_OFFER" ? (
+                  <span className="text-emerald-700">
+                    السعر بعد العرض:{" "}
+                    {pricing.finalAmount.toLocaleString("ar-SA")} ريال
+                  </span>
+                ) : null}
+              </div>
+            </section>
+            {field(
+              "نمط المدة",
+              <select
+                value={form.durationMode}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    durationMode: e.target.value as PlanDurationMode,
+                  })
+                }
+                className="input"
+              >
+                <option value="DAYS">عدد الأيام</option>
+                <option value="FIXED_END_DATE">تاريخ انتهاء ثابت</option>
+              </select>,
+            )}
+            {form.durationMode === "DAYS"
+              ? field(
+                  "عدد الأيام",
+                  <input
+                    value={form.durationDays}
+                    onChange={(e) =>
+                      setForm({ ...form, durationDays: e.target.value })
+                    }
+                    className="input"
+                    inputMode="numeric"
+                  />,
+                )
+              : field(
+                  "تاريخ الانتهاء",
+                  <input
+                    type="date"
+                    value={form.fixedEndDate}
+                    onChange={(e) =>
+                      setForm({ ...form, fixedEndDate: e.target.value })
+                    }
+                    className="input"
+                  />,
+                )}
+            {field(
+              "الجمهور",
+              <select
+                value={form.audience}
+                onChange={(e) =>
+                  setForm({ ...form, audience: e.target.value as PlanAudience })
+                }
+                className="input"
+              >
+                <option value="ALL">الجميع</option>
+                <option value="GUIDANCE">الموجهون</option>
+                <option value="ACTIVITY">رواد النشاط</option>
+              </select>,
+            )}
+            <div>
+              <p className="mb-2 text-xs font-black text-slate-500">
+                الأدوار الظاهرة
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {OPERATIONAL_PLAN_ROLES.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => toggleRole(role)}
+                    className={`rounded-xl border p-2 text-xs font-black ${form.visibleRoles.includes(role) ? "border-sky-200 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-400"}`}
+                  >
+                    {form.visibleRoles.includes(role) ? (
+                      <Check className="ml-1 inline h-3 w-3" />
+                    ) : null}
+                    {roleLabel(role)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, isActive: !form.isActive })}
+                className={`rounded-full px-3 py-1.5 text-xs font-black ${form.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+              >
+                {form.isActive ? "نشطة" : "متوقفة"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, isPublic: !form.isPublic })}
+                className={`rounded-full px-3 py-1.5 text-xs font-black ${form.isPublic ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-500"}`}
+              >
+                {form.isPublic ? "عامة" : "خاصة"}
+              </button>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black">خدمات الباقة</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  {form.services.length} خدمة محددة من {services.length} خدمة
+                  متاحة
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      services: services.map((service) => service.slug),
+                    })
+                  }
+                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-black"
+                >
+                  تحديد الظاهرة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, services: [] })}
+                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-black"
+                >
+                  مسح
+                </button>
+              </div>
+            </div>
+            <label className="relative mt-4 block">
+              <Search className="absolute right-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input pr-10"
+                placeholder="ابحث باسم الخدمة أو slug"
+              />
+            </label>
+            <div className="mt-3 max-h-[430px] space-y-2 overflow-y-auto">
+              {services.map((service) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => toggleService(service.slug)}
+                  className={`flex w-full items-center justify-between rounded-xl border p-3 text-right ${selected.has(service.slug) ? "border-sky-200 bg-sky-50" : "border-slate-200 bg-white"}`}
+                >
+                  <span>
+                    <strong className="block text-sm font-black">
+                      {service.name}
+                    </strong>
+                    <small className="text-[10px] font-bold text-slate-400">
+                      {service.slug}
+                    </small>
+                  </span>
+                  {selected.has(service.slug) ? (
+                    <Check className="h-5 w-5 text-sky-600" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-slate-300" />
+                  )}
+                </button>
+              ))}
+            </div>
+            {editing && (added.length || removed.length) ? (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900">
+                <p>
+                  التغيير: أضيفت {added.length} وأزيلت {removed.length}.
+                </p>
+                <label className="mt-2 flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={apply}
+                    onChange={(e) => setApply(e.target.checked)}
+                  />
+                  <span>
+                    طبّق التغيير على المشتركين الحاليين لهذه الباقة. ستبقى
+                    المدفوعات والتواريخ كما هي.
+                  </span>
+                </label>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <section className="border-t border-slate-100 bg-slate-50/60 p-5">
+          <h3 className="mb-3 text-sm font-black text-slate-950">
+            معاينة الباقة
+          </h3>
+          <div className="max-w-md">
+            <PlanPricingCard
+              data={{
+                name: form.name,
+                typeLabel:
+                  form.commercialType === "YEAR" ? "باقة سنوية" : "باقة فصلية",
+                termLabel: form.termLabel,
+                originalPrice,
+                finalPrice: pricing.finalAmount,
+                promotionName: pricing.promotionName,
+                durationLabel:
+                  form.durationMode === "DAYS"
+                    ? `${form.durationDays || 0} يوم`
+                    : `حتى ${form.fixedEndDate || "—"}`,
+                audienceLabel:
+                  form.audience === "GUIDANCE"
+                    ? "الموجهون"
+                    : form.audience === "ACTIVITY"
+                      ? "رواد النشاط"
+                      : "الجميع",
+                services: Array.from(selected),
+                allServices,
+              }}
+            />
+          </div>
+        </section>
+        <div className="flex flex-col-reverse gap-2 border-t bg-white p-5 sm:flex-row">
+          <button
+            type="button"
+            disabled={working}
+            onClick={onClose}
+            className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            disabled={working}
+            onClick={onSave}
+            className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-black text-white"
+          >
+            {working ? "جاري الحفظ..." : "حفظ الباقة"}
+          </button>
+        </div>
+      </section>
+      <style jsx>{`
+        .input {
+          height: 3rem;
+          width: 100%;
+          border-radius: 1rem;
+          border: 1px solid rgb(226 232 240);
+          background: rgb(248 250 252);
+          padding: 0 1rem;
+          font-size: 0.875rem;
+          font-weight: 700;
+          outline: none;
+        }
+        .input:focus {
+          border-color: rgb(186 230 253);
+          box-shadow: 0 0 0 4px rgb(240 249 255);
+        }
+      `}</style>
+    </div>
+  );
+}
+function SubscriptionTable({
+  subscriptions,
+  plans,
+  onAction,
+  working,
+}: {
+  subscriptions: Array<Record<string, any>>;
+  plans: Plan[];
+  onAction: (payload: Record<string, unknown>, success: string) => void;
+  working: boolean;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-black">الاشتراكات النشطة</h2>
+      <p className="mt-1 text-xs font-bold text-slate-500">
+        إدارة الاشتراك لا تغيّر سجل المدفوعات.
+      </p>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-right text-sm">
+          <thead>
+            <tr className="border-b text-xs text-slate-500">
+              <th className="p-3">الحساب</th>
+              <th className="p-3">الباقة</th>
+              <th className="p-3">الحالة</th>
+              <th className="p-3">الانتهاء</th>
+              <th className="p-3">إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {subscriptions
+              .filter(
+                (item) => item.status === "ACTIVE" || item.status === "TRIAL",
+              )
+              .map((item) => (
+                <tr key={item.id} className="border-b border-slate-50">
+                  <td className="p-3 font-bold">
+                    {item.schoolAccount?.name || item.schoolAccountId}
+                  </td>
+                  <td className="p-3">
+                    {item.plan?.name ||
+                      plans.find((plan) => plan.id === item.planId)?.name ||
+                      item.planId}
+                  </td>
+                  <td className="p-3">{item.status}</td>
+                  <td className="p-3">
+                    {item.endsAt
+                      ? new Date(item.endsAt).toLocaleDateString("en-CA")
+                      : "-"}
+                  </td>
+                  <td className="p-3">
+                    <button
+                      type="button"
+                      disabled={working}
+                      onClick={() =>
+                        onAction(
+                          {
+                            action: "extend-subscription",
+                            subscriptionId: item.id,
+                            days: 30,
+                          },
+                          "تم تمديد الاشتراك 30 يومًا.",
+                        )
+                      }
+                      className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+                    >
+                      تمديد 30 يومًا
+                    </button>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+function AccessTable({ rows }: { rows: Array<Record<string, any>> }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-black">صلاحيات الخدمات</h2>
+      <p className="mt-1 text-xs font-bold text-slate-500">
+        المستخدم هو الهوية الأساسية، واسم المدرسة يظهر كسياق ثانوي.
+      </p>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-right text-sm">
+          <thead>
+            <tr className="border-b text-xs text-slate-500">
+              <th className="p-3">المستخدم</th>
+              <th className="p-3">المدرسة</th>
+              <th className="p-3">الخدمة</th>
+              <th className="p-3">الحالة</th>
+              <th className="p-3">مصدر مدفوع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const user = row.schoolAccount?.primaryUser as PrimaryUser;
+              return (
+                <tr key={row.id} className="border-b border-slate-50">
+                  <td className="p-3">
+                    <strong className="block font-black">
+                      {user
+                        ? user.officialName || user.name || user.email
+                        : row.schoolAccount?.name || row.schoolAccountId}
+                    </strong>
+                    {user ? (
+                      <span className="text-xs font-bold text-slate-500">
+                        {roleLabel(user.role)}
+                        {row.schoolAccount.additionalUserCount
+                          ? ` · +${row.schoolAccount.additionalUserCount} مستخدمين`
+                          : ""}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="p-3 text-xs font-bold text-slate-500">
+                    {row.schoolAccount?.schoolName ||
+                      row.schoolAccount?.name ||
+                      "-"}
+                  </td>
+                  <td className="p-3">
+                    {row.service?.name || row.service?.slug || row.serviceId}
+                  </td>
+                  <td className="p-3">{row.isEnabled ? "مفعلة" : "معطلة"}</td>
+                  <td className="p-3">{row.isPaid ? "نعم" : "لا"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}

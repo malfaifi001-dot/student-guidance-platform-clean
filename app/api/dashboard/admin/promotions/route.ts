@@ -85,6 +85,7 @@ export async function POST(request: Request) {
       const discountValue = Number(body?.discountValue || 0);
       const startsAt = optionalDate(body?.startsAt);
       const endsAt = optionalDate(body?.endsAt);
+      const isAutomatic = body?.isAutomatic === true;
       const planIds: string[] = Array.isArray(body?.planIds)
         ? [...new Set<string>(body.planIds.map((value: unknown) => String(value)).filter(Boolean))]
         : [];
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
           discountValue,
           startsAt,
           endsAt,
+          isAutomatic,
           isActive: body?.isActive !== false,
           totalUsageLimit: optionalPositiveInt(body?.totalUsageLimit),
           perAccountLimit: optionalPositiveInt(body?.perAccountLimit),
@@ -158,6 +160,7 @@ export async function POST(request: Request) {
       const discountValue = Number(body?.discountValue || 0);
       const startsAt = optionalDate(body?.startsAt);
       const endsAt = optionalDate(body?.endsAt);
+      const isAutomatic = body?.isAutomatic === true;
       const planIds: string[] = Array.isArray(body?.planIds)
         ? [...new Set<string>(body.planIds.map((value: unknown) => String(value)).filter(Boolean))]
         : [];
@@ -178,6 +181,7 @@ export async function POST(request: Request) {
             discountValue,
             startsAt,
             endsAt,
+            isAutomatic,
             totalUsageLimit: optionalPositiveInt(body?.totalUsageLimit),
             perAccountLimit: optionalPositiveInt(body?.perAccountLimit),
             isActive: body?.isActive !== false,
