@@ -19,6 +19,7 @@ import {
 import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
 import { ensureDashboardWorkflowService } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
+import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
 
 function slugify(input: string) {
   return input
@@ -508,6 +509,8 @@ export async function POST(request: Request) {
       reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
     });
 
+    void dispatchAutomaticPushEvent({ triggerKey: "subscription-activated", actorUserId: current.user.id, sourceRecordId: subscription.id, variables: { serviceName: plan.name } }).catch(() => undefined);
+
     return NextResponse.json({
       message: "تم إسناد الباقة وتفعيل الخدمات المصاحبة.",
       subscription,
@@ -548,6 +551,8 @@ export async function POST(request: Request) {
         endsAt,
       },
     });
+
+    void dispatchAutomaticPushEvent({ triggerKey: "subscription-activated", actorUserId: current.user.id, sourceRecordId: subscription.id, variables: { serviceName: "Teachix" } }).catch(() => undefined);
 
     await prisma.manualActivation.create({
       data: {

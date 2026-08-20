@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PushAnalyticsPanel, PushTemplatesPanel, PushTestPanel } from "@/components/admin/notifications/push-center-extra-panels";
+import { PushAnalyticsPanel, PushCampaignHistoryActions, PushTemplatesPanel } from "@/components/admin/notifications/push-center-extra-panels";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { BellRing, CheckCircle2, Clock3, MonitorSmartphone, RefreshCw, Send, ShieldCheck, Smartphone, Users, XCircle } from "lucide-react";
 
 type Tab = "overview" | "create" | "campaigns" | "scheduled" | "automatic" | "templates" | "analytics" | "devices";
@@ -41,6 +42,7 @@ export function AdminPushCenter() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [pendingRule, setPendingRule] = useState<{ id: string; enabled: boolean; name: string } | null>(null);
   const [form, setForm] = useState({ title: "", body: "", route: "/dashboard", audienceType: "ALL_USERS" as Audience, role: "TEACHER", userId: "", sendNow: true, scheduledAt: "", recurrenceFrequency: "" });
 
   async function load() {
@@ -82,7 +84,14 @@ export function AdminPushCenter() {
   }
 
   async function toggleRule(ruleId: string, enabled: boolean) {
-    const response = await fetch("/api/dashboard/admin/notifications/rules", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ruleId, enabled }) });
+    const rule = data?.rules.find((item) => String(item.id) === ruleId);
+    setPendingRule({ id: ruleId, enabled, name: String(rule?.name || "قاعدة الإشعار") });
+  }
+
+  async function applyRuleToggle() {
+    if (!pendingRule) return;
+    const response = await fetch("/api/dashboard/admin/notifications/rules", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ruleId: pendingRule.id, enabled: pendingRule.enabled }) });
+    setPendingRule(null);
     if (response.ok) await load();
   }
 
@@ -101,5 +110,7 @@ export function AdminPushCenter() {
     {!loading && tab === "analytics" ? <PushAnalyticsPanel /> : null}
     {!loading && tab === "automatic" ? <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-slate-900">الإشعارات التلقائية</h2><p className="mt-1 text-sm leading-7 text-slate-500">هذه قواعد معرفة مسبقًا، وتبقى متوقفة حتى يربطها حدث آمن من النظام. لا يتم تنفيذ كود مخصص من لوحة الإدارة.</p><div className="mt-5 grid gap-3">{(data?.rules || []).map((rule) => <div key={String(rule.id)} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-4"><div><strong className="block text-sm font-black text-slate-900">{String(rule.name)}</strong><p className="mt-1 text-xs text-slate-500">{String(rule.description || "")}</p><span className="mt-2 inline-block text-[11px] font-bold text-slate-400">{String(rule.triggerKey)}</span></div><button type="button" onClick={() => void toggleRule(String(rule.id), !Boolean(rule.enabled))} className={`rounded-xl px-4 py-2 text-xs font-black ${rule.enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{rule.enabled ? "مفعلة" : "متوقفة"}</button></div>)}</div></section> : null}
     {!loading && tab === "devices" ? <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-slate-900">الأجهزة المسجلة</h2><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[680px] text-right text-sm"><thead><tr className="border-b border-slate-100 text-xs text-slate-500"><th className="p-3">المستخدم</th><th className="p-3">الدور</th><th className="p-3">المنصة</th><th className="p-3">آخر نشاط</th><th className="p-3">الحالة</th><th className="p-3">إجراء</th></tr></thead><tbody>{devices.map((device) => { const user = device.user as { name?: string; role?: string } | undefined; return <tr key={String(device.id)} className="border-b border-slate-50"><td className="p-3 font-bold">{user?.name || "-"}</td><td className="p-3">{roleLabels[user?.role || ""] || user?.role}</td><td className="p-3">{String(device.platform)} · {String(device.packageName)}</td><td className="p-3 text-xs text-slate-500">{new Date(String(device.lastSeenAt)).toLocaleString("ar-SA")}</td><td className="p-3">{device.enabled ? <span className="text-emerald-600">نشط</span> : <span className="text-slate-400">معطل</span>}</td><td className="p-3"><button type="button" disabled={!device.enabled} onClick={() => void revokeDevice(String(device.id))} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 disabled:opacity-40">تعطيل</button></td></tr>; })}</tbody></table></div></section> : null}
+    <SmartActionModal open={Boolean(pendingRule)} title={pendingRule?.enabled ? "تفعيل الإشعار التلقائي؟" : "إيقاف الإشعار التلقائي؟"} description={pendingRule ? `القاعدة: ${pendingRule.name}. ${pendingRule.enabled ? "سيبدأ النظام باستخدامها عند وقوع الحدث." : "لن تُنشأ حملات جديدة من هذه القاعدة."}` : undefined} variant="warning" confirmLabel={pendingRule?.enabled ? "تفعيل القاعدة" : "إيقاف القاعدة"} cancelLabel="إلغاء" onConfirm={() => void applyRuleToggle()} onClose={() => setPendingRule(null)} />
+    {tab === "campaigns" ? <PushCampaignHistoryActions campaigns={(Array.isArray(data?.campaigns) ? data.campaigns : data?.campaigns.items || [])} onChanged={() => void load()} /> : null}
   </div>;
 }

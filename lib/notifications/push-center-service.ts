@@ -1,10 +1,11 @@
 import {
   Prisma,
-  PushAudienceType,
   PushCampaignStatus,
   PushCampaignType,
+  PushAudienceType,
   PushDeliveryStatus,
   PushRecurrenceFrequency,
+  SubscriptionStatus,
   UserRole,
 } from "@prisma/client";
 
@@ -39,6 +40,7 @@ export type PushAudienceInput = {
 
 export type CreatePushCampaignInput = PushAudienceInput & {
   campaignType?: PushCampaignType;
+  templateId?: string;
   name?: string;
   title: string;
   body: string;
@@ -130,7 +132,8 @@ export async function getPushAudienceEstimate(input: PushAudienceInput) {
 }
 
 export async function createPushCampaign(input: CreatePushCampaignInput, createdById: string) {
-  const message = validateMessage(input);
+  const template = input.templateId ? await prisma.pushTemplate.findFirst({ where: { id: input.templateId, enabled: true }, select: { title: true, body: true, route: true } }) : null;
+  const message = validateMessage({ title: template?.title || input.title, body: template?.body || input.body, route: template?.route || input.route });
   const audience = normalizeAudience(input);
   const isRecurring = Boolean(input.recurrenceFrequency);
   const scheduledAt = input.sendNow ? null : parseFutureDate(input.scheduledAt, true);
@@ -253,6 +256,7 @@ export async function executePushCampaign(campaignId: string, actorUserId?: stri
 }
 
 export async function runPushScheduler() {
+  await runSubscriptionPushEvents();
   const now = new Date();
   await prisma.pushCampaign.updateMany({ where: { status: PushCampaignStatus.PROCESSING, processingStartedAt: { lt: new Date(now.getTime() - 15 * 60_000) } }, data: { status: PushCampaignStatus.SCHEDULED, lastErrorCode: "PROCESSING_LEASE_EXPIRED" } });
   const candidates = await prisma.pushCampaign.findMany({ where: { OR: [{ status: PushCampaignStatus.SCHEDULED, scheduledAt: { lte: now } }, { status: PushCampaignStatus.PARTIALLY_FAILED, deliveries: { some: { nextRetryAt: { lte: now }, retryCount: { lt: MAX_DELIVERY_RETRIES } } } }] }, orderBy: { scheduledAt: "asc" }, take: 20, select: { id: true, status: true } });
@@ -263,6 +267,20 @@ export async function runPushScheduler() {
     try { results.push(await executePushCampaign(candidate.id)); } catch { await prisma.pushCampaign.update({ where: { id: candidate.id }, data: { status: PushCampaignStatus.FAILED, lastErrorCode: "SCHEDULER_EXECUTION_FAILED", completedAt: new Date() } }); }
   }
   return results;
+}
+
+async function runSubscriptionPushEvents() {
+  const actor = await prisma.user.findFirst({ where: { role: UserRole.ADMIN, isActive: true }, select: { id: true } });
+  if (!actor) return;
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 3 * 86_400_000);
+  const subscriptions = await prisma.subscription.findMany({ where: { endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, schoolAccountId: true, endsAt: true } });
+  for (const subscription of subscriptions) {
+    if (!subscription.endsAt) continue;
+    const triggerKey = subscription.endsAt <= now ? "subscription-expired" : "subscription-expiring";
+    const eventDate = subscription.endsAt.toISOString().slice(0, 10);
+    await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
+  }
 }
 
 export async function getPushOverview() {
@@ -340,6 +358,11 @@ export async function dispatchAutomaticPushEvent(input: { triggerKey: string; ac
 }
 
 const AUTOMATIC_RULE_CATALOG = [
+  { triggerKey: "activity-assignment-returned", name: "إرجاع تكليف نشاط", description: "تنبيه عند إرجاع التكليف للمعلم.", titleTemplate: "تم إرجاع التكليف", bodyTemplate: "تم إرجاع تكليف {{assignmentTitle}} للمراجعة.", route: "/dashboard/activity-leader/assignments" },
+  { triggerKey: "activity-assignment-approved", name: "اعتماد تكليف نشاط", description: "تنبيه عند اعتماد التكليف.", titleTemplate: "تم اعتماد التكليف", bodyTemplate: "تم اعتماد تكليف {{assignmentTitle}}.", route: "/dashboard/activity-leader/assignments" },
+  { triggerKey: "survey-receiving-opened", name: "فتح استقبال الاستبيان", description: "تنبيه عند بدء استقبال الردود.", titleTemplate: "بدأ استقبال الاستبيان", bodyTemplate: "يمكنك الآن المشاركة في استبيان {{surveyTitle}}.", route: "/dashboard/surveys" },
+  { triggerKey: "subscription-activated", name: "تفعيل الاشتراك", description: "تنبيه عند تفعيل اشتراك الحساب.", titleTemplate: "تم تفعيل الاشتراك", bodyTemplate: "تم تفعيل اشتراك Teachix بنجاح.", route: "/dashboard/subscription" },
+  { triggerKey: "subscription-expired", name: "انتهاء الاشتراك", description: "تنبيه عند انتهاء الاشتراك.", titleTemplate: "انتهى الاشتراك", bodyTemplate: "انتهى اشتراك Teachix ويحتاج إلى التجديد.", route: "/dashboard/subscription" },
   { triggerKey: "survey-published", name: "نشر استبيان", description: "تنبيه عند نشر استبيان جديد.", titleTemplate: "استبيان جديد", bodyTemplate: "تم نشر استبيان جديد.", route: "/dashboard/surveys" },
   { triggerKey: "activity-assignment-created", name: "إنشاء تكليف نشاط", description: "تنبيه عند إنشاء تكليف نشاط جديد.", titleTemplate: "تكليف نشاط جديد", bodyTemplate: "لديك تكليف نشاط جديد.", route: "/dashboard/activity-leader/assignments" },
   { triggerKey: "report-ready", name: "جاهزية تقرير", description: "تنبيه عند جاهزية تقرير.", titleTemplate: "التقرير جاهز", bodyTemplate: "أصبح التقرير جاهزًا للمراجعة.", route: "/dashboard/reports" },
@@ -361,6 +384,14 @@ export async function toggleAutomaticRule(ruleId: string, enabled: boolean, acto
   return rule;
 }
 
+export async function updateAutomaticRule(ruleId: string, input: { titleTemplate?: string; bodyTemplate?: string; route?: string; enabled?: boolean }, actorUserId: string) {
+  const route = input.route ? getSafePushRoute(input.route) : undefined;
+  if (input.route && !route) throw new Error("INVALID_PUSH_ROUTE");
+  const data = { ...(input.titleTemplate !== undefined ? { titleTemplate: input.titleTemplate.trim().slice(0, 120) } : {}), ...(input.bodyTemplate !== undefined ? { bodyTemplate: input.bodyTemplate.trim().slice(0, 500) } : {}), ...(route ? { route } : {}), ...(typeof input.enabled === "boolean" ? { enabled: input.enabled, createdById: actorUserId } : {}) };
+  if (!Object.keys(data).length) throw new Error("INVALID_RULE_INPUT");
+  return prisma.pushAutomaticRule.update({ where: { id: ruleId }, data });
+}
+
 export async function cancelPushCampaign(campaignId: string, actorUserId: string) {
   const result = await prisma.pushCampaign.updateMany({ where: { id: campaignId, status: PushCampaignStatus.SCHEDULED }, data: { status: PushCampaignStatus.CANCELED, canceledAt: new Date(), recurrenceActive: false } });
   if (result.count) await logAdminActivity({ actorUserId, category: "SYSTEM", action: "push-campaign-canceled", severity: "WARNING", title: "Push campaign canceled", details: { campaignId } });
@@ -379,6 +410,14 @@ export async function resendPushCampaign(campaignId: string, actorUserId: string
   const source = await prisma.pushCampaign.findUnique({ where: { id: campaignId } });
   if (!source) throw new Error("CAMPAIGN_NOT_FOUND");
   return createPushCampaign({ title: source.title, body: source.body, route: source.route, campaignType: PushCampaignType.MANUAL, sendNow: true, audienceType: source.audienceType, ...(source.audienceConfig as Record<string, unknown>) }, actorUserId);
+}
+
+export async function setRecurringCampaignActive(campaignId: string, active: boolean, actorUserId: string) {
+  const campaign = await prisma.pushCampaign.findUnique({ where: { id: campaignId }, select: { type: true, status: true } });
+  if (!campaign || campaign.type !== PushCampaignType.RECURRING || campaign.status === PushCampaignStatus.PROCESSING) throw new Error("CAMPAIGN_NOT_RECURRING");
+  const updated = await prisma.pushCampaign.update({ where: { id: campaignId }, data: { recurrenceActive: active, status: PushCampaignStatus.SCHEDULED, canceledAt: null } });
+  await logAdminActivity({ actorUserId, category: "SYSTEM", action: active ? "push-recurring-enabled" : "push-recurring-disabled", severity: "INFO", title: "Recurring push changed", details: { campaignId, active } });
+  return updated;
 }
 
 export async function listPushTemplates() {
@@ -405,23 +444,39 @@ export async function updatePushTemplate(id: string, input: { name?: string; tit
 }
 
 export async function deletePushTemplate(id: string) {
+  const template = await prisma.pushTemplate.findUnique({ where: { id }, select: { enabled: true } });
+  if (!template) throw new Error("TEMPLATE_NOT_FOUND");
+  if (template.enabled) throw new Error("TEMPLATE_MUST_BE_DISABLED");
   await prisma.pushTemplate.delete({ where: { id } });
   return true;
 }
 
-export async function getPushAnalytics(input: { from?: Date; to?: Date; type?: PushCampaignType; status?: PushCampaignStatus } = {}) {
+export async function getPushAnalytics(input: { from?: Date; to?: Date; type?: PushCampaignType; status?: PushCampaignStatus; audienceType?: PushAudienceType; role?: UserRole } = {}) {
   const to = input.to || new Date();
   const from = input.from || new Date(to.getTime() - 30 * 86_400_000);
-  const campaignWhere: Prisma.PushCampaignWhereInput = { createdAt: { gte: from, lte: to }, ...(input.type ? { type: input.type } : {}), ...(input.status ? { status: input.status } : {}) };
+  const campaignWhere: Prisma.PushCampaignWhereInput = { createdAt: { gte: from, lte: to }, ...(input.type ? { type: input.type } : {}), ...(input.status ? { status: input.status } : {}), ...(input.audienceType ? { audienceType: input.audienceType } : {}), ...(input.role ? { audienceConfig: { path: "role", equals: input.role } } : {}) };
   const deliveryWhere: Prisma.PushDeliveryWhereInput = { createdAt: { gte: from, lte: to }, campaign: campaignWhere };
-  const [campaigns, success, failed, opened, byType, byError] = await Promise.all([
+  const [campaigns, success, failed, invalid, opened, targeted, byType, byError, topOpen, topFailure, deviceTotal, deviceActive, deviceAndroid, trendRows] = await Promise.all([
     prisma.pushCampaign.count({ where: campaignWhere }),
     prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.SUCCESS } }),
     prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.FAILED } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, invalidToken: true } }),
     prisma.pushDelivery.count({ where: { ...deliveryWhere, openedAt: { not: null } } }),
+    prisma.pushCampaign.aggregate({ where: campaignWhere, _sum: { estimatedUserCount: true, estimatedDeviceCount: true } }),
     prisma.pushCampaign.groupBy({ by: ["type"], where: campaignWhere, _count: { _all: true }, _sum: { successCount: true, failureCount: true } }),
     prisma.pushDelivery.groupBy({ by: ["errorCode"], where: { ...deliveryWhere, status: PushDeliveryStatus.FAILED }, _count: { _all: true }, orderBy: { _count: { errorCode: "desc" } }, take: 10 }),
+    prisma.pushCampaign.findMany({ where: campaignWhere, orderBy: { openedCount: "desc" }, take: 5, select: { id: true, title: true, openedCount: true, successCount: true } }),
+    prisma.pushCampaign.findMany({ where: campaignWhere, orderBy: { failureCount: "desc" }, take: 5, select: { id: true, title: true, failureCount: true, sentCount: true } }),
+    prisma.pushDevice.count(),
+    prisma.pushDevice.count({ where: ACTIVE_DEVICE_WHERE }),
+    prisma.pushDevice.count({ where: { ...ACTIVE_DEVICE_WHERE, platform: "android" } }),
+    prisma.pushDelivery.findMany({ where: deliveryWhere, select: { createdAt: true, status: true, openedAt: true }, take: 10000, orderBy: { createdAt: "asc" } }),
   ]);
   const attempts = success + failed;
-  return { from, to, campaigns, accepted: success, failed, opened, successRate: attempts ? Math.round(success / attempts * 100) : 0, openRate: success ? Math.round(opened / success * 100) : 0, byType, byError };
+  const buckets = new Map<string, { accepted: number; failed: number; opened: number }>();
+  for (const row of trendRows) { const key = row.createdAt.toISOString().slice(0, 10); const bucket = buckets.get(key) || { accepted: 0, failed: 0, opened: 0 }; if (row.status === PushDeliveryStatus.SUCCESS) bucket.accepted += 1; if (row.status === PushDeliveryStatus.FAILED) bucket.failed += 1; if (row.openedAt) bucket.opened += 1; buckets.set(key, bucket); }
+  const staleCutoff = new Date(Date.now() - 30 * 86_400_000);
+  const staleDevices = await prisma.pushDevice.count({ where: { ...ACTIVE_DEVICE_WHERE, lastSeenAt: { lt: staleCutoff } } });
+  const averageOpenRate = topOpen.length ? Math.round(topOpen.reduce((sum, item) => sum + (item.successCount ? item.openedCount / item.successCount * 100 : 0), 0) / topOpen.length) : 0;
+  return { from, to, campaigns, targetedUsers: targeted._sum.estimatedUserCount || 0, targetedDevices: targeted._sum.estimatedDeviceCount || 0, accepted: success, failed, invalid, opened, successRate: attempts ? Math.round(success / attempts * 100) : 0, failureRate: attempts ? Math.round(failed / attempts * 100) : 0, openRate: success ? Math.round(opened / success * 100) : 0, averageOpenRate, byType, byError, topOpen, topFailure, devices: { total: deviceTotal, active: deviceActive, disabled: deviceTotal - deviceActive, android: deviceAndroid, stale: staleDevices }, trend: [...buckets.entries()].map(([date, values]) => ({ date, ...values })) };
 }

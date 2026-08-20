@@ -7,6 +7,7 @@ import {
   surveyUpdateDraftPayloadSchema,
 } from "@/lib/surveys/survey-api-schemas";
 import { prepareSurveyQuestionForPersistence } from "@/lib/surveys/survey-config";
+import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
 
 type RouteContext = {
   params: Promise<{
@@ -260,6 +261,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         closedAt: null,
       },
     });
+
+    if (survey.createdById) {
+      void dispatchAutomaticPushEvent({ triggerKey: "survey-published", actorUserId: survey.createdById, sourceRecordId: survey.id, variables: { surveyTitle: survey.title } }).catch(() => undefined);
+      if (!survey.opensAt || survey.opensAt <= new Date()) void dispatchAutomaticPushEvent({ triggerKey: "survey-receiving-opened", actorUserId: survey.createdById, sourceRecordId: survey.id, variables: { surveyTitle: survey.title } }).catch(() => undefined);
+    }
 
     return NextResponse.json({
       message: "تم نشر الاستبيان.",

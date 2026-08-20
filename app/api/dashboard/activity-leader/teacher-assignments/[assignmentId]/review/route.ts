@@ -6,6 +6,7 @@ import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
 
 type RouteContext = {
   params: Promise<{
@@ -147,6 +148,8 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
 
+    void dispatchAutomaticPushEvent({ triggerKey: "activity-assignment-returned", actorUserId: authResult.user.id, sourceRecordId: assignment.id, variables: { assignmentTitle: assignment.domainTitle } }).catch(() => undefined);
+
     return NextResponse.json({
       success: true,
       message: "تم تعديل بيانات النشاط بنجاح.",
@@ -173,6 +176,8 @@ export async function POST(request: Request, context: RouteContext) {
         returnedReason: reason,
       },
     });
+
+    void dispatchAutomaticPushEvent({ triggerKey: "activity-assignment-approved", actorUserId: authResult.user.id, sourceRecordId: assignment.id, variables: { assignmentTitle: assignment.domainTitle } }).catch(() => undefined);
 
     return NextResponse.json({
       success: true,
@@ -259,6 +264,8 @@ export async function POST(request: Request, context: RouteContext) {
       caseEntryId: result.id,
     },
   });
+
+  void dispatchAutomaticPushEvent({ triggerKey: "activity-assignment-approved", actorUserId: authResult.user.id, sourceRecordId: assignment.id, variables: { assignmentTitle: assignment.domainTitle } }).catch(() => undefined);
 
   return NextResponse.json({
     success: true,

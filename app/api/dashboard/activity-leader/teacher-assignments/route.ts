@@ -10,6 +10,7 @@ import {
 import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
+import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
 
@@ -320,6 +321,8 @@ export async function POST(request: Request) {
       },
     },
   });
+
+  void dispatchAutomaticPushEvent({ triggerKey: "activity-assignment-created", actorUserId: authResult.user.id, sourceRecordId: assignment.id, variables: { assignmentTitle: assignment.domainTitle, serviceName: assignment.domainTitle } }).catch(() => undefined);
 
   const origin = getOrigin(request);
   const publicUrl = buildTeacherAssignmentPublicUrl(origin, assignment.token);
