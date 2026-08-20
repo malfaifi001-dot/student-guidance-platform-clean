@@ -20,6 +20,36 @@ function getFirebaseApp() {
   return getApps()[0] || initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 }
 
+type FirebaseHealthDiagnostic = {
+  category: "INVALID_CREDENTIAL" | "INVALID_PRIVATE_KEY" | "INVALID_PROJECT" | "AUTH_ERROR" | "UNKNOWN_FIREBASE_ERROR";
+  firebaseCode?: string;
+  errorName?: string;
+};
+
+function getFirebaseHealthDiagnostic(error: unknown): FirebaseHealthDiagnostic {
+  const candidate = error && typeof error === "object" ? error as { code?: unknown; name?: unknown; message?: unknown } : {};
+  const firebaseCode = typeof candidate.code === "string" && /^[a-z0-9._/-]{1,120}$/i.test(candidate.code)
+    ? candidate.code
+    : undefined;
+  const errorName = typeof candidate.name === "string" && /^[a-z0-9._-]{1,120}$/i.test(candidate.name)
+    ? candidate.name
+    : undefined;
+  const searchable = `${firebaseCode || ""} ${errorName || ""} ${typeof candidate.message === "string" ? candidate.message : ""}`.toLowerCase();
+
+  let category: FirebaseHealthDiagnostic["category"] = "UNKNOWN_FIREBASE_ERROR";
+  if (searchable.includes("private key") || searchable.includes("private_key") || searchable.includes("invalid pem")) {
+    category = "INVALID_PRIVATE_KEY";
+  } else if (searchable.includes("project") || searchable.includes("project-id") || searchable.includes("project_id")) {
+    category = "INVALID_PROJECT";
+  } else if (searchable.includes("auth") || searchable.includes("unauthenticated") || searchable.includes("permission-denied")) {
+    category = "AUTH_ERROR";
+  } else if (searchable.includes("credential")) {
+    category = "INVALID_CREDENTIAL";
+  }
+
+  return { category, ...(firebaseCode ? { firebaseCode } : {}), ...(errorName ? { errorName } : {}) };
+}
+
 export function isFirebasePushConfigured(): boolean {
   return Boolean(
     process.env.FIREBASE_PROJECT_ID &&
@@ -36,7 +66,7 @@ export function getFirebaseAdminHealth(): {
   };
   firebaseAdmin: boolean;
   firebaseMessaging: boolean;
-  error?: { code: string; message: string };
+  error?: { code: string; message: string; diagnostic?: FirebaseHealthDiagnostic };
 } {
   const environment = {
     firebaseProjectId: Boolean(process.env.FIREBASE_PROJECT_ID),
@@ -76,7 +106,7 @@ export function getFirebaseAdminHealth(): {
       firebaseAdmin: true,
       firebaseMessaging: true,
     };
-  } catch {
+  } catch (error) {
     return {
       environment,
       firebaseAdmin: false,
@@ -84,6 +114,7 @@ export function getFirebaseAdminHealth(): {
       error: {
         code: "FIREBASE_ADMIN_INITIALIZATION_FAILED",
         message: "Firebase Admin initialization failed",
+        diagnostic: getFirebaseHealthDiagnostic(error),
       },
     };
   }

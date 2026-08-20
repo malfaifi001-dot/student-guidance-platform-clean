@@ -24,7 +24,15 @@ export async function GET() {
       firebaseAdmin: firebase.firebaseAdmin,
       firebaseMessaging: firebase.firebaseMessaging,
       pushEncryption,
-      ...(firebase.error ? { error: firebase.error } : {}),
+      ...(firebase.error
+        ? {
+            error: {
+              code: firebase.error.code,
+              message: firebase.error.message,
+              ...(firebase.error.diagnostic ? { diagnostic: firebase.error.diagnostic } : {}),
+            },
+          }
+        : {}),
     },
     { status: ok ? 200 : 503 },
   );

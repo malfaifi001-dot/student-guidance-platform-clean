@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Loader2, X } from "lucide-react";
+import { Download, Loader2, Minus, Plus, X } from "lucide-react";
 
 const A4_LANDSCAPE_WIDTH = 1122;
 const A4_LANDSCAPE_HEIGHT = 794;
@@ -19,7 +19,9 @@ export function CurriculumDistributionMobilePreview({
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const frameReadyRef = useRef(false);
-  const [scale, setScale] = useState(1);
+  const [fitScale, setFitScale] = useState(1);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [fitMode, setFitMode] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [previewReady, setPreviewReady] = useState(false);
@@ -33,7 +35,7 @@ export function CurriculumDistributionMobilePreview({
       if (!frame) return;
 
       const availableWidth = Math.max(280, frame.clientWidth - 16);
-      setScale(Math.min(1, Number((availableWidth / A4_LANDSCAPE_WIDTH).toFixed(4))));
+      setFitScale(Math.min(1, Number((availableWidth / A4_LANDSCAPE_WIDTH).toFixed(4))));
     };
 
     updateScale();
@@ -45,6 +47,12 @@ export function CurriculumDistributionMobilePreview({
       observer.disconnect();
       window.removeEventListener("resize", updateScale);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setZoomPercent(100);
+    setFitMode(window.innerWidth < 640);
   }, [open]);
 
   useEffect(() => {
@@ -64,6 +72,18 @@ export function CurriculumDistributionMobilePreview({
   }, [open, previewUrl]);
 
   if (!open) return null;
+
+  const scale = fitMode ? fitScale : zoomPercent / 100;
+  const displayedZoom = fitMode ? Math.round(fitScale * 100) : zoomPercent;
+
+  function changeZoom(nextZoom: number) {
+    setFitMode(false);
+    setZoomPercent(Math.min(200, Math.max(50, nextZoom)));
+  }
+
+  function fitPreview() {
+    setFitMode(true);
+  }
 
   async function download() {
     if (downloading) return;
@@ -93,12 +113,19 @@ export function CurriculumDistributionMobilePreview({
         aria-label="معاينة توزيع المنهج"
       >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-base font-black text-slate-950">معاينة توزيع المنهج</h2>
             <p className="mt-0.5 text-[11px] font-bold text-slate-500">
               راجع التقرير قبل تحميله على جهازك.
             </p>
           </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5" dir="ltr" aria-label="zoom controls">
+              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) - 10)} disabled={!fitMode && zoomPercent <= 50} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+              <span className="min-w-[3.2rem] text-center text-[11px] font-black tabular-nums text-slate-700">{displayedZoom}%</span>
+              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) + 10)} disabled={!fitMode && zoomPercent >= 200} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={fitPreview} className="h-7 rounded-lg px-1.5 text-[10px] font-black text-slate-600 transition hover:bg-white hover:text-sky-700" aria-label="Fit preview">Fit</button>
+            </div>
           <button
             type="button"
             onClick={onClose}
@@ -107,9 +134,10 @@ export function CurriculumDistributionMobilePreview({
           >
             <X className="h-5 w-5" />
           </button>
+          </div>
         </header>
 
-        <div ref={frameRef} className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-2.5 sm:p-3">
+        <div ref={frameRef} className="min-h-0 flex-1 overflow-auto bg-slate-100 p-2.5 sm:p-3">
           <div
             className="relative mx-auto overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
             style={{ height: `${A4_LANDSCAPE_HEIGHT * scale}px` }}
