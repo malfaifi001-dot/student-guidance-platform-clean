@@ -24,15 +24,17 @@ export function buildMembershipInvitationMessage(name: string | null | undefined
 
   const message = `${greeting}
 
-يسعدنا في TeachX منحك عضوية مجانية لمدة فصل دراسي كامل.
+يسعدنا في Teachix منحك عضوية مجانية لمدة فصل دراسي كامل.
 
 كوبون التفعيل: Welcome
 
 كما خصصنا لك 4 عضويات مجانية لمدة فصل دراسي لإهدائها لمن ترغب من الزملاء والزميلات، وجميعها تُفعّل بنفس الكوبون: Welcome
 
-نتمنى لك تجربة مميزة مع TeachX.
+نتمنى لك تجربة مميزة مع Teachix.
 
-فريق TeachX`;
+ملاحظة: الكود صالح لمدة 10 أيام فقط للتفعيل
+
+فريق Teachix`;
 
   return message;
 }
