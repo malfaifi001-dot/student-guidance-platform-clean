@@ -3,7 +3,7 @@ import {
   getVisibleReferenceLibraryItem,
   listVisibleReferenceLibraryItems,
 } from "@/lib/reference-library/reference-library-public-service";
-import type { PublicReferenceLibraryItem } from "@/lib/reference-library/reference-library-types";
+import type { PublicReferenceLibraryDownloadVariant, PublicReferenceLibraryItem } from "@/lib/reference-library/reference-library-types";
 
 const publicCounselorViewer = buildReferenceLibraryViewer({
   id: "public-counselor-reference-library",
@@ -11,19 +11,42 @@ const publicCounselorViewer = buildReferenceLibraryViewer({
   schoolAccountId: null,
 });
 
-function toPublicSummary(item: {
+type PublicSourceItem = {
   id: string;
   parentId: string | null;
   title: string;
   description: string | null;
   itemType: "FOLDER" | "FILE";
   allowDownload: boolean;
+  originalFileName?: string | null;
+  storageKey?: string | null;
+  originalStorageKey?: string | null;
+  mimeType?: string | null;
+  fileExtension?: string | null;
+  sizeBytes?: number | null;
+  pdfFileName?: string | null;
   pdfStorageKey?: string | null;
+  pdfMimeType?: string | null;
+  pdfSizeBytes?: number | null;
+  docxFileName?: string | null;
   docxStorageKey?: string | null;
+  docxMimeType?: string | null;
+  docxSizeBytes?: number | null;
+  previewStorageKey?: string | null;
+  previewMimeType?: string | null;
+  previewSizeBytes?: number | null;
   pdfCoverApplied: boolean;
+  updatedAt: Date;
   childrenCount?: number;
   _count?: { children: number };
-}): PublicReferenceLibraryItem {
+};
+
+function toPublicSummary(item: PublicSourceItem): PublicReferenceLibraryItem {
+  const downloadVariants: PublicReferenceLibraryDownloadVariant[] = [];
+  if (item.pdfStorageKey) downloadVariants.push("PDF");
+  if (item.docxStorageKey) downloadVariants.push("DOCX");
+  if ((item.storageKey || item.originalStorageKey) && !downloadVariants.length) downloadVariants.push("ORIGINAL");
+
   return {
     id: item.id,
     parentId: item.parentId,
@@ -35,7 +58,21 @@ function toPublicSummary(item: {
     hasDocx: Boolean(item.docxStorageKey),
     pdfCoverApplied: item.pdfCoverApplied,
     childrenCount: item.childrenCount ?? item._count?.children ?? 0,
+    fileName: item.originalFileName || item.pdfFileName || item.docxFileName || null,
+    mimeType: item.mimeType || item.pdfMimeType || item.docxMimeType || null,
+    fileExtension: item.fileExtension || null,
+    sizeBytes: item.sizeBytes ?? item.pdfSizeBytes ?? item.docxSizeBytes ?? null,
+    updatedAt: item.updatedAt.toISOString(),
+    previewAvailable: Boolean(item.pdfStorageKey),
+    downloadVariants,
   };
+}
+
+async function getPublicDetailedItem(itemId: string) {
+  return getVisibleReferenceLibraryItem({
+    itemId,
+    viewer: publicCounselorViewer,
+  });
 }
 
 export async function listAnonymousReferenceLibraryItems(input: { parentId: string | null; search?: string | null }) {
@@ -45,15 +82,14 @@ export async function listAnonymousReferenceLibraryItems(input: { parentId: stri
     viewer: publicCounselorViewer,
   });
 
-  return items?.map(toPublicSummary) ?? null;
+  if (items === null) return null;
+
+  const detailedItems = await Promise.all(items.map((item) => getPublicDetailedItem(item.id)));
+  return items.map((item, index) => toPublicSummary(detailedItems[index] || item as PublicSourceItem));
 }
 
 export async function getAnonymousReferenceLibraryItem(itemId: string) {
-  const item = await getVisibleReferenceLibraryItem({
-    itemId,
-    viewer: publicCounselorViewer,
-  });
-
+  const item = await getPublicDetailedItem(itemId);
   if (!item) return null;
 
   if (item.itemType === "FOLDER") {
@@ -62,6 +98,12 @@ export async function getAnonymousReferenceLibraryItem(itemId: string) {
 
   return {
     ...toPublicSummary(item),
+    originalFileName: item.originalFileName,
+    storageKey: item.storageKey,
+    originalStorageKey: item.originalStorageKey,
+    mimeType: item.mimeType,
+    fileExtension: item.fileExtension,
+    sizeBytes: item.sizeBytes,
     pdfStorageKey: item.pdfStorageKey,
     pdfFileName: item.pdfFileName,
     pdfMimeType: item.pdfMimeType,
@@ -70,7 +112,22 @@ export async function getAnonymousReferenceLibraryItem(itemId: string) {
     docxFileName: item.docxFileName,
     docxMimeType: item.docxMimeType,
     docxSizeBytes: item.docxSizeBytes,
+    previewStorageKey: item.previewStorageKey,
+    previewMimeType: item.previewMimeType,
+    previewSizeBytes: item.previewSizeBytes,
   };
+}
+
+export async function getAnonymousReferenceLibraryFolder(input: { itemId: string; search?: string | null }) {
+  const folder = await getAnonymousReferenceLibraryItem(input.itemId);
+  if (!folder || folder.itemType !== "FOLDER") return null;
+
+  const items = await listAnonymousReferenceLibraryItems({
+    parentId: folder.id,
+    search: input.search,
+  });
+
+  return { folder, items: items || [] };
 }
 
 export async function buildAnonymousReferenceLibraryBreadcrumbs(itemId: string | null) {

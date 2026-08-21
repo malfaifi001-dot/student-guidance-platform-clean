@@ -56,9 +56,18 @@ export type PublicReferenceLibraryItem = {
   hasDocx: boolean;
   pdfCoverApplied: boolean;
   childrenCount: number;
+  fileName: string | null;
+  mimeType: string | null;
+  fileExtension: string | null;
+  sizeBytes: number | null;
+  updatedAt: string;
+  previewAvailable: boolean;
+  downloadVariants: PublicReferenceLibraryDownloadVariant[];
 };
 
 export type ReferenceLibraryFileVariant = "PDF" | "DOCX";
+
+export type PublicReferenceLibraryDownloadVariant = "PDF" | "DOCX" | "ORIGINAL";
 
 export type ReferenceLibraryViewer = {
   id: string;

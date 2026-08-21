@@ -114,23 +114,31 @@ export function PublicReferenceLibraryShell({
 function PublicReferenceLibraryItem({ item, onOpenFolder, onPreview }: { item: PublicReferenceLibraryItem; onOpenFolder: (item: PublicReferenceLibraryItem) => void; onPreview: (item: PublicReferenceLibraryItem) => void }) {
   const isFolder = item.itemType === "FOLDER";
   const fileUrl = `/api/public/counselor-reference-library/${encodeURIComponent(item.id)}/download`;
+  const primaryVariant = (item.downloadVariants[0] || "ORIGINAL").toLowerCase();
 
   return (
     <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
       <div className="flex items-start gap-4">
         <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">{isFolder ? <FolderOpen className="h-6 w-6" /> : <FileText className="h-6 w-6" />}</div>
         <div className="min-w-0 flex-1">
-          <span className="text-[11px] font-black text-sky-700">{isFolder ? "مجلد" : item.hasPdf ? "PDF" : "ملف"}</span>
+          <span className="text-[11px] font-black text-sky-700">{isFolder ? "مجلد" : item.fileExtension?.toUpperCase() || (item.hasPdf ? "PDF" : item.hasDocx ? "Word" : "ملف")}</span>
           <h2 className="mt-1 line-clamp-2 text-lg font-black leading-8 text-slate-950">{item.title}</h2>
           {item.description ? <p className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-slate-500">{item.description}</p> : null}
+          {!isFolder && (item.sizeBytes || item.mimeType) ? <p className="mt-2 text-xs font-bold text-slate-400">{item.mimeType || "ملف"}{item.sizeBytes ? ` · ${formatFileSize(item.sizeBytes)}` : ""}</p> : null}
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
         {isFolder ? <button type="button" onClick={() => onOpenFolder(item)} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"><FolderOpen className="h-4 w-4" />فتح</button> : item.hasPdf ? <button type="button" onClick={() => onPreview(item)} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"><Eye className="h-4 w-4" />معاينة</button> : null}
-        {!isFolder && item.allowDownload && (item.hasPdf || item.hasDocx) ? <a href={`${fileUrl}?variant=${item.hasPdf ? "pdf" : "docx"}&download=1`} className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" />تحميل</a> : null}
+        {!isFolder && item.allowDownload && item.downloadVariants.length ? <a href={`${fileUrl}?variant=${primaryVariant}&download=1`} className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" />تحميل</a> : null}
       </div>
     </article>
   );
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} بايت`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} كيلوبايت`;
+  return `${(size / 1024 / 1024).toFixed(1)} ميجابايت`;
 }
 
 function PublicReferencePreview({ item, onClose }: { item: PublicReferenceLibraryItem; onClose: () => void }) {
