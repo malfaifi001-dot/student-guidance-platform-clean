@@ -34,6 +34,7 @@ export const curriculumDocumentIdentityStyles = `
 .curriculum-print-signature span { min-height: 3.5mm; font-weight: 800; }
 .curriculum-print-signature-image { display: block; width: auto; max-width: 64mm; height: 16mm; max-height: 16mm; object-fit: contain; object-position: center; }
 .curriculum-print-signature small { color: #526168; font-size: 6.3pt; }
+.curriculum-print-signature-line { display: block; width: 100%; min-width: 100%; white-space: nowrap; text-align: center; }
 .curriculum-print-footer-line { height: 1.7mm; width: 100%; background: linear-gradient(to left, #35bc70, #25ada4, #188dc4); }
 @media print { .curriculum-print-header { min-height: 22mm; padding-top: 2mm; padding-bottom: 2.5mm; } .curriculum-print-footer { padding-top: 1.5mm; } .curriculum-print-signature-row { width: 150mm; max-width: 100%; margin-inline: auto; grid-template-columns: 1fr 1fr; gap: 12mm; padding-bottom: 3.5mm; } }
 `;
@@ -78,12 +79,12 @@ export function CurriculumDocumentFooter({
         <div className="curriculum-print-signature">
           <strong>{primaryRoleLabel}</strong>
           <span>{primaryName || ""}</span>
-          {primarySignatureUrl ? <img className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} /> : <small>التوقيع: ____________________</small>}
+          {primarySignatureUrl ? <img className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
         </div>
         <div className="curriculum-print-signature">
           <strong>مدير المدرسة</strong>
           <span>{principalName || ""}</span>
-          {principalSignatureUrl ? <img className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" /> : <small>التوقيع: ____________________</small>}
+          {principalSignatureUrl ? <img className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
         </div>
       </div>
       <div className="curriculum-print-footer-line" aria-hidden="true" />

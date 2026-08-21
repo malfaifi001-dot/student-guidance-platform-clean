@@ -562,6 +562,11 @@ const adminMainLinks: SidebarLinkItem[] = [
     icon: Users,
   },
   {
+    label: "واتساب المستخدمين",
+    href: "/dashboard/admin/user-whatsapp",
+    icon: MessageCircle,
+  },
+  {
     label: "سجل العمليات",
     href: "/dashboard/admin/activity",
     icon: Activity,

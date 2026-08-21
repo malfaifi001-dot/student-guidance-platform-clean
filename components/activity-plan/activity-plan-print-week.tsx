@@ -48,7 +48,7 @@ export function ActivityPlanPrintWeek({
         <strong>مجالات النشاط</strong>
         {programKeys.map((key) => {
           const program = getActivityPlanProgramByKey(key);
-          return <span key={key} className={`activity-plan-print-legend-item ${program?.printColorClass || ""}`}>{program?.title}</span>;
+          return <span key={key} className={`activity-plan-print-legend-item ${program?.printColorClass || ""}`} style={program ? { backgroundColor: program.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{program?.title}</span>;
         })}
       </section>
 
@@ -79,7 +79,8 @@ export function ActivityPlanPrintWeek({
                   const entry = entryBySlot.get(`${day.dayOfWeek}-${period}`);
                   const program = entry ? getActivityPlanProgramByKey(entry.programKey) : null;
                   const value = rowIndex === 0 ? program?.title || "" : rowIndex === 1 ? entry?.gradeLabel || "" : entry?.teacherName || "";
-                  return <td key={`${rowLabel}-${period}`} className={rowIndex === 0 && program ? `activity-plan-program-cell ${program.printColorClass}` : ""}>{value}</td>;
+                  const isProgramCell = rowIndex === 0 && Boolean(program);
+                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={isProgramCell && program ? { backgroundColor: program.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</td>;
                 })}
               </tr>
             ));
