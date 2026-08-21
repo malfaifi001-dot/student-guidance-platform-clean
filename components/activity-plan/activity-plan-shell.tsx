@@ -1,0 +1,203 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, Eye, Plus, Trash2 } from "lucide-react";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
+import {
+  ACTIVITY_PLAN_PROGRAM_OPTIONS,
+  getActivityPlanProgramByKey,
+} from "@/lib/activity-plan/activity-plan-programs";
+import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
+
+type Program = { id: string; key?: string; title: string };
+type Entry = {
+  id: string;
+  dayOfWeek: number;
+  periodNumber: number;
+  date: string;
+  gradeLabel: string;
+  teacherName: string;
+  program: Program;
+};
+type DateItem = { dayOfWeek: number; label: string; date: string };
+type Cell = { dayOfWeek: number; periodNumber: number; date: string };
+
+function formatDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return year && month && day ? `${day}/${month}` : value;
+}
+
+export function ActivityPlanShell() {
+  const [week, setWeek] = useState(1);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [dates, setDates] = useState<DateItem[]>([]);
+  const [grades, setGrades] = useState<string[]>([]);
+  const [teachers, setTeachers] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeCell, setActiveCell] = useState<Cell | null>(null);
+  const [editing, setEditing] = useState<Entry | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const print = usePrintExportAction();
+
+  const loadWeek = async (nextWeek: number) => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/dashboard/activity-plan?week=${nextWeek}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "تعذر تحميل الخطة.");
+      setEntries(payload.entries || []);
+      setDates(payload.dates || []);
+      setGrades(payload.suggestions?.grades || []);
+      setTeachers(payload.suggestions?.teachers || []);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر تحميل الخطة.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void loadWeek(week); }, [week]);
+
+  const entryByCell = useMemo(
+    () => new Map(entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry])),
+    [entries],
+  );
+  const currentDate = dates[0]?.date && dates[dates.length - 1]?.date
+    ? `${formatDate(dates[0].date)} — ${formatDate(dates[dates.length - 1].date)}`
+    : "";
+
+  async function printActivityPlan() {
+    const result = await print.runPrintExport({
+      exportUrl: "/api/dashboard/activity-plan/export/pdf",
+      method: "POST",
+      body: { fileName: "student-activity-plan.pdf" },
+      printUrl: "/print/activity-plan?print=1",
+      fileName: "student-activity-plan.pdf",
+      blockedTitle: "معاينة خطة النشاط الطلابي",
+      blockedMessage: "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح مستند الطباعة.",
+    });
+    return result !== "error";
+  }
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-900 via-sky-800 to-cyan-700 p-6 text-white shadow-xl md:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <span className="text-sm font-black text-cyan-200">رائد النشاط</span>
+            <h1 className="mt-2 text-3xl font-black md:text-4xl">خطة النشاط الطلابي</h1>
+            <p className="mt-3 text-sm font-bold leading-7 text-sky-100">نظّم برامج النشاط في شبكة أسبوعية واضحة.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-3xl bg-white/10 px-5 py-4 text-center ring-1 ring-white/15">
+              <p className="text-xs font-bold text-cyan-100">الأسبوع الحالي</p>
+              <strong className="mt-1 block text-2xl font-black">الأسبوع {week} من 20</strong>
+              {currentDate ? <span className="mt-1 block text-xs font-bold text-sky-100">{currentDate}</span> : null}
+            </div>
+            <button type="button" onClick={() => setPreviewOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-sky-900 shadow-lg shadow-sky-950/20 transition hover:bg-cyan-50"><Eye className="h-4 w-4" />معاينة</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+        <div className="flex justify-center">
+          <div className="flex max-w-full gap-2 overflow-x-auto pb-1" aria-label="اختيار الأسبوع">
+            {Array.from({ length: 20 }, (_, index) => index + 1).map((item) => (
+              <button type="button" key={item} onClick={() => setWeek(item)} className={item === week ? "h-10 min-w-10 rounded-2xl bg-sky-700 px-3 text-sm font-black text-white shadow-lg shadow-sky-100" : "h-10 min-w-10 rounded-2xl bg-slate-50 px-3 text-sm font-black text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}>{item}</button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-700">{error}</div> : null}
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-sm md:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div><h2 className="text-xl font-black text-slate-950">الجدول الأسبوعي</h2><p className="mt-1 text-xs font-bold text-slate-500">الأيام صفوف والحصص أعمدة. اضغط للإضافة أو التعديل.</p></div>
+          <CalendarDays className="h-6 w-6 text-sky-600" />
+        </div>
+        <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200 [scrollbar-width:thin]" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div className="min-w-[1220px]">
+            <div className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))] bg-slate-50" dir="rtl">
+              <div className="border-b border-l border-slate-200 p-4 text-sm font-black text-slate-500">اليوم / الحصص</div>
+              {ACTIVITY_PLAN_PERIODS.map((period) => <div key={period} className="border-b border-l border-slate-200 p-4 text-center text-sm font-black text-slate-700">{getPeriodLabel(period)}</div>)}
+            </div>
+            {dates.map((day) => (
+              <div key={day.dayOfWeek} className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))]" dir="rtl">
+                <div className="flex min-h-[148px] flex-col justify-center border-b border-l border-slate-200 bg-slate-50 p-3 text-center">
+                  <span className="text-sm font-black text-slate-900">{day.label}</span><span className="mt-1 text-xs font-bold text-sky-700">{formatDate(day.date)}</span>
+                </div>
+                {ACTIVITY_PLAN_PERIODS.map((period) => {
+                  const entry = entryByCell.get(`${day.dayOfWeek}-${period}`);
+                  const colorClass = entry?.program.key ? getActivityPlanProgramByKey(entry.program.key)?.colorClass : "";
+                  return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[148px] border-b border-l border-slate-200 bg-white p-3 text-right transition hover:bg-sky-50/50">
+                    {entry ? <div className={`h-full rounded-2xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="line-clamp-2 text-sm font-black leading-6">{entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100">اضغط للتعديل</span></div> : <span className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700"><Plus className="h-6 w-6" /><span className="text-xs font-black">إضافة</span></span>}
+                  </button>;
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        {loading ? <p className="py-4 text-center text-xs font-black text-slate-400">جارٍ تحميل خطة الأسبوع...</p> : null}
+      </section>
+
+      <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
+      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl="/print/activity-plan?preview=1" onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
+      <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
+    </main>
+  );
+}
+
+function ActivityPlanCellModal({ week, cell, entry, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {
+  const [programKey, setProgramKey] = useState(entry?.program.key || "");
+  const [gradeLabel, setGradeLabel] = useState(entry?.gradeLabel || "");
+  const [teacherName, setTeacherName] = useState(entry?.teacherName || "");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState("");
+  if (!cell) return null;
+
+  const save = async () => {
+    setSaving(true); setError("");
+    try {
+      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, programId: programKey, gradeLabel, teacherName }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "تعذر حفظ الإدخال.");
+      onSaved(payload.entry);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر حفظ الإدخال."); } finally { setSaving(false); }
+  };
+
+  const remove = async () => {
+    if (!entry) return;
+    setDeleting(true); setError("");
+    try {
+      const response = await fetch("/api/dashboard/activity-plan", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry.id }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "تعذر حذف الإدخال.");
+      onDeleted(entry.id);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر حذف الإدخال."); } finally { setDeleting(false); }
+  };
+
+  return <SmartActionModal open title={entry ? "تعديل نشاط الخلية" : "إضافة نشاط للخلية"} description={`${formatDate(cell.date)} · الحصة ${cell.periodNumber}`} portal onClose={onClose} showFooter={false}>
+    <div className="space-y-4">
+      <label className="block text-sm font-black text-slate-700">البرنامج<select value={programKey} onChange={(event) => setProgramKey(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر البرنامج</option>{ACTIVITY_PLAN_PROGRAM_OPTIONS.map((program) => <option key={program.key} value={program.key}>{program.title}</option>)}</select></label>
+      <SuggestionInput label="الصف" value={gradeLabel} onChange={setGradeLabel} suggestions={grades} placeholder="مثال: الثالث متوسط" />
+      <SuggestionInput label="اسم المعلم" value={teacherName} onChange={setTeacherName} suggestions={teachers} placeholder="اكتب اسم المعلم" />
+      {error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}
+      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programKey || !gradeLabel.trim() || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>
+      {entry ? <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving || deleting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 text-sm font-black text-rose-700 ring-1 ring-rose-100"><Trash2 className="h-4 w-4" />حذف الإدخال</button> : null}
+    </div>
+    <SmartActionModal open={confirmDelete} title="تأكيد حذف الإدخال" description="سيتم إزالة النشاط من هذه الخلية فقط." variant="danger" confirmLabel="حذف الإدخال" loading={deleting} portal onClose={() => setConfirmDelete(false)} onConfirm={() => void remove()} />
+  </SmartActionModal>;
+}
+
+function SuggestionInput({ label, value, onChange, suggestions, placeholder }: { label: string; value: string; onChange: (value: string) => void; suggestions: string[]; placeholder: string }) {
+  const visible = suggestions.filter((item) => item.includes(value.trim())).slice(0, 6);
+  return <div><label className="mb-2 block text-sm font-black text-slate-700">{label}</label><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-right text-sm font-bold outline-none focus:border-sky-500" />{value.trim() && visible.length ? <div className="mt-2 flex flex-wrap gap-2">{visible.map((item) => <button type="button" key={item} onClick={() => onChange(item)} className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 ring-1 ring-slate-200">{item}</button>)}</div> : null}</div>;
+}

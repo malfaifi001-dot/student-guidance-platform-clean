@@ -45,6 +45,19 @@ export type ReferenceLibraryItemSummary = {
   updatedAt: Date;
 };
 
+export type PublicReferenceLibraryItem = {
+  id: string;
+  parentId: string | null;
+  title: string;
+  description: string | null;
+  itemType: ReferenceLibraryItemType;
+  allowDownload: boolean;
+  hasPdf: boolean;
+  hasDocx: boolean;
+  pdfCoverApplied: boolean;
+  childrenCount: number;
+};
+
 export type ReferenceLibraryFileVariant = "PDF" | "DOCX";
 
 export type ReferenceLibraryViewer = {

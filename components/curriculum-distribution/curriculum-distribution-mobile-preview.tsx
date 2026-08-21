@@ -32,11 +32,19 @@ export function CurriculumDistributionMobilePreview({
   previewUrl,
   onDownload,
   onClose,
+  title = "معاينة توزيع المنهج",
+  subtitle = "راجع التقرير قبل تحميله على جهازك.",
+  documentSelector = ".curriculum-print-paper",
+  allowDocumentScroll = false,
 }: {
   open: boolean;
   previewUrl: string;
   onDownload: () => Promise<boolean>;
   onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  documentSelector?: string;
+  allowDocumentScroll?: boolean;
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const frameReadyRef = useRef(false);
@@ -240,9 +248,9 @@ export function CurriculumDistributionMobilePreview({
       >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 sm:px-5 sm:py-3.5">
           <div className="min-w-0">
-            <h2 className="text-base font-black text-slate-950">معاينة توزيع المنهج</h2>
+            <h2 className="text-base font-black text-slate-950">{title}</h2>
             <p className="mt-0.5 text-[11px] font-bold text-slate-500">
-              راجع التقرير قبل تحميله على جهازك.
+              {subtitle}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -303,7 +311,7 @@ export function CurriculumDistributionMobilePreview({
               className="absolute inset-0 block border-0 bg-white"
               onLoad={(event) => {
                 const reportDocument = event.currentTarget.contentDocument;
-                const hasReport = Boolean(reportDocument?.querySelector(".curriculum-print-paper"));
+                const hasReport = Boolean(reportDocument?.querySelector(documentSelector));
 
                 if (!hasReport) {
                   frameReadyRef.current = true;
@@ -321,7 +329,7 @@ export function CurriculumDistributionMobilePreview({
               style={{
                 width: `${A4_LANDSCAPE_WIDTH}px`,
                 height: `${A4_LANDSCAPE_HEIGHT}px`,
-                pointerEvents: "none",
+                pointerEvents: allowDocumentScroll ? "auto" : "none",
               }}
             />
           </div>

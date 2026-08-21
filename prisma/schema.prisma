@@ -299,15 +299,15 @@ model SchoolAccount {
   resultsAnalyses              ResultsAnalysis[]
   assessmentAnalyses           AssessmentAnalysis[]
   calendarReminders            CalendarReminder[]
-  activityAssignments          ActivityAssignment[]          @relation("ActivityAssignmentsBySchool")
-  internalAssignments          InternalAssignment[]          @relation("InternalAssignmentsBySchool")
-  surveys                      Survey[]                      @relation("SurveysBySchool")
-  surveyResponses              SurveyResponse[]              @relation("SurveyResponsesBySchool")
-  createdAt                    DateTime                      @default(now())
-  updatedAt                    DateTime                      @updatedAt
+  activityAssignments          ActivityAssignment[]           @relation("ActivityAssignmentsBySchool")
+  internalAssignments          InternalAssignment[]           @relation("InternalAssignmentsBySchool")
+  surveys                      Survey[]                       @relation("SurveysBySchool")
+  surveyResponses              SurveyResponse[]               @relation("SurveyResponsesBySchool")
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
   achievementPortfolios        AchievementPortfolio[]
   portfolioSnapshots           PortfolioSnapshot[]
-  referenceLibraryItems        ReferenceLibraryItem[]        @relation("ReferenceLibrarySchool")
+  referenceLibraryItems        ReferenceLibraryItem[]         @relation("ReferenceLibrarySchool")
   timetableProjects            TimetableProject[]
   timetableProjectHistory      TimetableProjectHistoryEntry[]
   timetableDailyAbsences       TimetableDailyAbsence[]
@@ -317,109 +317,110 @@ model SchoolAccount {
   timetableCurriculumTemplates TimetableCurriculumTemplate[]
   couponRedemptions            CouponRedemption[]
   reportSignatureRequests      ReportSignatureRequest[]
+  activityPlanEntries          ActivityPlanEntry[]
 }
 
 // Imported, platform-owned curriculum catalog. This data is not school-scoped.
 model CurriculumStage {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  name        String
-  parentId    String?
-  parent      CurriculumStage? @relation("CurriculumStageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children    CurriculumStage[] @relation("CurriculumStageHierarchy")
-  sortOrder   Int @default(0)
-  tracks      CurriculumTrack[]
-  grades      CurriculumGrade[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String            @id @default(cuid())
+  sourceKey String            @unique @db.VarChar(191)
+  name      String
+  parentId  String?
+  parent    CurriculumStage?  @relation("CurriculumStageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  CurriculumStage[] @relation("CurriculumStageHierarchy")
+  sortOrder Int               @default(0)
+  tracks    CurriculumTrack[]
+  grades    CurriculumGrade[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@index([name])
   @@index([parentId, sortOrder])
 }
 
 model CurriculumTrack {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  name        String
-  stageId     String
-  stage       CurriculumStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  grades      CurriculumGrade[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String            @id @default(cuid())
+  sourceKey String            @unique @db.VarChar(191)
+  name      String
+  stageId   String
+  stage     CurriculumStage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  grades    CurriculumGrade[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@unique([stageId, name])
   @@index([stageId])
 }
 
 model CurriculumGrade {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  name        String
-  stageId     String
-  stage       CurriculumStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  trackId     String?
-  track       CurriculumTrack? @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  semesters   CurriculumSemester[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String               @id @default(cuid())
+  sourceKey String               @unique @db.VarChar(191)
+  name      String
+  stageId   String
+  stage     CurriculumStage      @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  trackId   String?
+  track     CurriculumTrack?     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  semesters CurriculumSemester[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   @@unique([stageId, trackId, name])
   @@index([stageId, trackId])
 }
 
 model CurriculumSemester {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  name        String
-  gradeId     String
-  grade       CurriculumGrade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  subjects   CurriculumSubject[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String              @id @default(cuid())
+  sourceKey String              @unique @db.VarChar(191)
+  name      String
+  gradeId   String
+  grade     CurriculumGrade     @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subjects  CurriculumSubject[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
 
   @@unique([gradeId, name])
   @@index([gradeId])
 }
 
 model CurriculumSubject {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  name        String
-  isExtra     Boolean @default(false)
-  semesterId  String
-  semester    CurriculumSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  weeks       CurriculumWeek[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String             @id @default(cuid())
+  sourceKey  String             @unique @db.VarChar(191)
+  name       String
+  isExtra    Boolean            @default(false)
+  semesterId String
+  semester   CurriculumSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  weeks      CurriculumWeek[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   @@unique([semesterId, name])
   @@index([semesterId])
 }
 
 model CurriculumWeek {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  sequence    Int
-  subjectId   String
-  subject     CurriculumSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  lessons     CurriculumLesson[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String             @id @default(cuid())
+  sourceKey String             @unique @db.VarChar(191)
+  sequence  Int
+  subjectId String
+  subject   CurriculumSubject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  lessons   CurriculumLesson[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   @@unique([subjectId, sequence])
   @@index([subjectId, sequence])
 }
 
 model CurriculumLesson {
-  id          String @id @default(cuid())
-  sourceKey   String @unique @db.VarChar(191)
-  text        String @db.Text
-  unit        String?
-  lesson     String?
-  weekId      String
-  week        CurriculumWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String         @id @default(cuid())
+  sourceKey String         @unique @db.VarChar(191)
+  text      String         @db.Text
+  unit      String?
+  lesson    String?
+  weekId    String
+  week      CurriculumWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@index([weekId])
 }
@@ -452,26 +453,27 @@ model User {
   cases                       CaseEntry[]
   sessions                    UserSession[]
   pushDevices                 PushDevice[]
-  pushCampaignsCreated        PushCampaign[]         @relation("PushCampaignCreator")
-  pushTemplatesCreated        PushTemplate[]         @relation("PushTemplateCreator")
-  pushAutomaticRulesCreated   PushAutomaticRule[]    @relation("PushAutomaticRuleCreator")
-  pushDeliveries               PushDelivery[]
+  pushCampaignsCreated        PushCampaign[]       @relation("PushCampaignCreator")
+  pushTemplatesCreated        PushTemplate[]       @relation("PushTemplateCreator")
+  pushAutomaticRulesCreated   PushAutomaticRule[]  @relation("PushAutomaticRuleCreator")
+  pushDeliveries              PushDelivery[]
   calendarReminders           CalendarReminder[]
   createdActivityAssignments  ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
   createdInternalAssignments  InternalAssignment[] @relation("InternalAssignmentsCreatedBy")
   receivedInternalAssignments InternalAssignment[] @relation("InternalAssignmentsAssignedTo")
   createdSurveys              Survey[]             @relation("SurveysCreatedBy")
+  activityPlanEntries         ActivityPlanEntry[]
 
-  createdAt                     DateTime                   @default(now())
-  updatedAt                     DateTime                   @updatedAt
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
   caseEvidences                 CaseEvidence[]
   createdReportTemplates        ReportTemplate[]
-  achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
-  portfolioSnapshots            PortfolioSnapshot[]        @relation("PortfolioSnapshotOwner")
-  createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
-  referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
-  createdGuidanceVideos         GuidanceVideo[]            @relation("GuidanceVideoCreatedBy")
-  createdTimetableProjects      TimetableProject[]         @relation("TimetableProjectCreator")
+  achievementPortfolios         AchievementPortfolio[]         @relation("AchievementPortfolioOwner")
+  portfolioSnapshots            PortfolioSnapshot[]            @relation("PortfolioSnapshotOwner")
+  createdReferenceLibraryItems  ReferenceLibraryItem[]         @relation("ReferenceLibraryCreatedBy")
+  referenceLibraryAudienceRules ReferenceLibraryAudience[]     @relation("ReferenceLibraryAudienceUser")
+  createdGuidanceVideos         GuidanceVideo[]                @relation("GuidanceVideoCreatedBy")
+  createdTimetableProjects      TimetableProject[]             @relation("TimetableProjectCreator")
   timetableHistoryEntries       TimetableProjectHistoryEntry[] @relation("TimetableHistoryActor")
   timetableHistoryReversions    TimetableProjectHistoryEntry[] @relation("TimetableHistoryReverter")
   timetableTeacherProfiles      TimetableTeacher[]
@@ -534,18 +536,18 @@ model UserSession {
 }
 
 model PushDevice {
-  id             String    @id @default(cuid())
+  id             String         @id @default(cuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash      String    @unique @db.VarChar(64)
-  encryptedToken String    @db.Text
-  platform       String    @db.VarChar(20)
-  packageName    String    @db.VarChar(100)
-  enabled        Boolean   @default(true)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String         @unique @db.VarChar(64)
+  encryptedToken String         @db.Text
+  platform       String         @db.VarChar(20)
+  packageName    String         @db.VarChar(100)
+  enabled        Boolean        @default(true)
   revokedAt      DateTime?
-  lastSeenAt     DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  lastSeenAt     DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   deliveries     PushDelivery[]
 
   @@index([userId, enabled])
@@ -553,39 +555,39 @@ model PushDevice {
 }
 
 model PushCampaign {
-  id                    String             @id @default(cuid())
-  name                  String?
-  title                 String             @db.VarChar(120)
-  body                  String             @db.Text
-  route                 String             @db.VarChar(255)
-  type                  PushCampaignType
-  status                PushCampaignStatus @default(DRAFT)
-  audienceType          PushAudienceType
-  audienceConfig        Json
-  internalNote          String?            @db.Text
-  scheduledAt           DateTime?
-  timezone              String?            @db.VarChar(80)
-  recurrenceFrequency   PushRecurrenceFrequency?
-  recurrenceDays        Json?
-  recurrenceEndAt       DateTime?
-  recurrenceActive      Boolean            @default(false)
-  startedAt             DateTime?
-  completedAt           DateTime?
-  canceledAt            DateTime?
-  processingStartedAt   DateTime?
-  estimatedUserCount    Int                @default(0)
-  estimatedDeviceCount  Int                @default(0)
-  sentCount             Int                @default(0)
-  successCount          Int                @default(0)
-  failureCount          Int                @default(0)
-  openedCount           Int                @default(0)
-  lastErrorCode         String?            @db.VarChar(120)
-  createdById           String
-  createdBy             User               @relation("PushCampaignCreator", fields: [createdById], references: [id])
-  deliveries            PushDelivery[]
-  automaticEvent        PushAutomaticEvent?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  id                   String                   @id @default(cuid())
+  name                 String?
+  title                String                   @db.VarChar(120)
+  body                 String                   @db.Text
+  route                String                   @db.VarChar(255)
+  type                 PushCampaignType
+  status               PushCampaignStatus       @default(DRAFT)
+  audienceType         PushAudienceType
+  audienceConfig       Json
+  internalNote         String?                  @db.Text
+  scheduledAt          DateTime?
+  timezone             String?                  @db.VarChar(80)
+  recurrenceFrequency  PushRecurrenceFrequency?
+  recurrenceDays       Json?
+  recurrenceEndAt      DateTime?
+  recurrenceActive     Boolean                  @default(false)
+  startedAt            DateTime?
+  completedAt          DateTime?
+  canceledAt           DateTime?
+  processingStartedAt  DateTime?
+  estimatedUserCount   Int                      @default(0)
+  estimatedDeviceCount Int                      @default(0)
+  sentCount            Int                      @default(0)
+  successCount         Int                      @default(0)
+  failureCount         Int                      @default(0)
+  openedCount          Int                      @default(0)
+  lastErrorCode        String?                  @db.VarChar(120)
+  createdById          String
+  createdBy            User                     @relation("PushCampaignCreator", fields: [createdById], references: [id])
+  deliveries           PushDelivery[]
+  automaticEvent       PushAutomaticEvent?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@index([status, scheduledAt])
   @@index([type, createdAt])
@@ -599,7 +601,7 @@ model PushDelivery {
   userId            String
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   deviceId          String
-  device            PushDevice          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device            PushDevice         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   status            PushDeliveryStatus @default(PENDING)
   attemptedAt       DateTime?
   firebaseMessageId String?            @db.VarChar(255)
@@ -620,54 +622,54 @@ model PushDelivery {
 }
 
 model PushAutomaticRule {
-  id              String          @id @default(cuid())
-  triggerKey      String          @unique @db.VarChar(120)
-  name            String          @db.VarChar(160)
-  description     String?         @db.Text
-  enabled         Boolean         @default(false)
+  id              String               @id @default(cuid())
+  triggerKey      String               @unique @db.VarChar(120)
+  name            String               @db.VarChar(160)
+  description     String?              @db.Text
+  enabled         Boolean              @default(false)
   audienceType    PushAudienceType
   audienceConfig  Json
-  titleTemplate   String          @db.VarChar(120)
-  bodyTemplate    String          @db.Text
-  route           String          @db.VarChar(255)
+  titleTemplate   String               @db.VarChar(120)
+  bodyTemplate    String               @db.Text
+  route           String               @db.VarChar(255)
   lastTriggeredAt DateTime?
-  totalSends      Int             @default(0)
-  lastResult      String?         @db.VarChar(120)
-  lastErrorCode   String?         @db.VarChar(120)
+  totalSends      Int                  @default(0)
+  lastResult      String?              @db.VarChar(120)
+  lastErrorCode   String?              @db.VarChar(120)
   createdById     String?
-  createdBy       User?           @relation("PushAutomaticRuleCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdBy       User?                @relation("PushAutomaticRuleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
   events          PushAutomaticEvent[]
 
   @@index([enabled, triggerKey])
 }
 
 model PushTemplate {
-  id          String              @id @default(cuid())
-  name        String              @unique @db.VarChar(160)
-  title       String              @db.VarChar(120)
-  body        String              @db.Text
-  route       String              @db.VarChar(255)
-  type        PushCampaignType    @default(MANUAL)
-  category    String?             @db.VarChar(80)
-  enabled     Boolean             @default(true)
+  id          String           @id @default(cuid())
+  name        String           @unique @db.VarChar(160)
+  title       String           @db.VarChar(120)
+  body        String           @db.Text
+  route       String           @db.VarChar(255)
+  type        PushCampaignType @default(MANUAL)
+  category    String?          @db.VarChar(80)
+  enabled     Boolean          @default(true)
   createdById String
-  createdBy   User                @relation("PushTemplateCreator", fields: [createdById], references: [id])
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdBy   User             @relation("PushTemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([enabled, createdAt])
 }
 
 model PushAutomaticEvent {
-  id         String             @id @default(cuid())
+  id         String            @id @default(cuid())
   ruleId     String
   rule       PushAutomaticRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  eventKey   String             @unique @db.VarChar(191)
-  campaignId String?            @unique
-  campaign   PushCampaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  createdAt  DateTime           @default(now())
+  eventKey   String            @unique @db.VarChar(191)
+  campaignId String?           @unique
+  campaign   PushCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime          @default(now())
 
   @@index([ruleId, createdAt])
 }
@@ -996,10 +998,11 @@ model CaseEntry {
   status      CaseStatus @default(DRAFT)
   submittedAt DateTime?
 
-  values             CaseValue[]
-  evidences          Evidence[]
-  calendarReminders  CalendarReminder[]
-  activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  values              CaseValue[]
+  evidences           Evidence[]
+  calendarReminders   CalendarReminder[]
+  activityAssignment  ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  activityPlanEntries ActivityPlanEntry[]
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -1111,6 +1114,33 @@ model ActivityAssignment {
   @@index([status])
   @@index([dueDate])
   @@index([createdAt])
+}
+
+model ActivityPlanEntry {
+  id                 String        @id @default(cuid())
+  schoolAccountId    String
+  schoolAccount      SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  createdById        String
+  createdBy          User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  programKey         String?
+  programCaseEntryId String?
+  programCaseEntry   CaseEntry?    @relation(fields: [programCaseEntryId], references: [id], onDelete: Restrict)
+
+  weekNumber   Int
+  dayOfWeek    Int
+  periodNumber Int
+  date         DateTime
+  gradeLabel   String   @db.VarChar(191)
+  teacherName  String   @db.VarChar(191)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, weekNumber, dayOfWeek, periodNumber])
+  @@index([schoolAccountId, weekNumber])
+  @@index([programCaseEntryId])
+  @@index([programKey])
+  @@index([createdById])
 }
 
 model InternalAssignment {
@@ -2901,10 +2931,10 @@ model TimetableProject {
   supervisionDuties TimetableSupervisionDuty[]
   constraints       TimetableConstraint[]
 
-  schedules TimetableSchedule[]
+  schedules      TimetableSchedule[]
   historyEntries TimetableProjectHistoryEntry[]
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
 
   @@index([schoolAccountId])
   @@index([createdById])
@@ -2922,22 +2952,22 @@ model TimetableProjectHistoryEntry {
   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
   actorUserId String?
-  actorUser   User? @relation("TimetableHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorUser   User?   @relation("TimetableHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   revertedByUserId String?
-  revertedByUser   User? @relation("TimetableHistoryReverter", fields: [revertedByUserId], references: [id], onDelete: SetNull)
+  revertedByUser   User?   @relation("TimetableHistoryReverter", fields: [revertedByUserId], references: [id], onDelete: SetNull)
 
-  actionType  String
-  entityType  String?
-  entityId    String?
-  state       String @default("ACTIVE")
+  actionType String
+  entityType String?
+  entityId   String?
+  state      String  @default("ACTIVE")
 
-  beforeJson  Json?
-  afterJson   Json?
+  beforeJson   Json?
+  afterJson    Json?
   metadataJson Json?
 
   revertedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([projectId, createdAt])
   @@index([projectId, state, createdAt])

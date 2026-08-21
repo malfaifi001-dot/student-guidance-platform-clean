@@ -2,8 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { ACTIVITY_PROGRAM_PARENT_SERVICE } from "@/lib/activity-programs/activity-program-catalog";
 import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/performance-items";
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
+import { STUDENT_ACTIVITY_PLAN_SERVICE } from "@/lib/activity-plan/activity-plan-service";
 
 export const DEFAULT_PLATFORM_SERVICES = [
+  {
+    slug: STUDENT_ACTIVITY_PLAN_SERVICE.slug,
+    name: STUDENT_ACTIVITY_PLAN_SERVICE.title,
+    description: STUDENT_ACTIVITY_PLAN_SERVICE.description,
+  },
   {
     slug: "curriculum-distribution",
     name: "توزيع المنهج",

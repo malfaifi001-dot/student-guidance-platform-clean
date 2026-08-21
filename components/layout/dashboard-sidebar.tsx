@@ -303,6 +303,11 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
 
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
   {
+    label: "خطة النشاط الطلابي",
+    href: "/dashboard/activity-leader/activity-plan",
+    icon: CalendarDays,
+  },
+  {
     label: "متابعة أنشطة المعلمين",
     href: "/dashboard/activity-leader/teacher-assignments",
     icon: Send,
