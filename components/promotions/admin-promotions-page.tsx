@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Tag } from "lucide-react";
+import { Plus, Tag, Trash2 } from "lucide-react";
 
 import { BrandLoader } from "@/components/common/brand-loader";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 type Plan = { id: string; name: string; slug: string };
 type Coupon = {
@@ -41,6 +42,10 @@ type Redemption = {
   plan: { name: string };
   schoolAccount: { name: string };
 };
+
+type DeleteTarget =
+  | { kind: "promotion"; id: string; label: string }
+  | { kind: "coupon"; id: string; label: string };
 
 async function readResponse(response: Response) {
   const text = await response.text();
@@ -81,6 +86,7 @@ export function AdminPromotionsPage() {
     "active" | "coupons" | "scheduled" | "expired" | "archived"
   >("active");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   async function load() {
     const response = await fetch("/api/dashboard/admin/promotions", {
@@ -92,22 +98,41 @@ export function AdminPromotionsPage() {
   }
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function action(payload: Record<string, unknown>) {
     setBusy(true);
     setMessage("");
-    const response = await fetch("/api/dashboard/admin/promotions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const result = await readResponse(response);
-    setMessage(result.message || result.error || "تعذر تنفيذ العملية.");
-    if (response.ok) await load();
-    setBusy(false);
-    return response.ok;
+    try {
+      const response = await fetch("/api/dashboard/admin/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await readResponse(response);
+      setMessage(result.message || result.error || "تعذر تنفيذ العملية.");
+      if (response.ok) await load();
+      return response.ok;
+    } catch {
+      setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const ok = await action(
+      deleteTarget.kind === "promotion"
+        ? { action: "delete-promotion", promotionId: deleteTarget.id }
+        : { action: "delete-coupon", couponId: deleteTarget.id },
+    );
+    if (ok) setDeleteTarget(null);
   }
 
   const stats = useMemo(() => {
@@ -451,6 +476,21 @@ export function AdminPromotionsPage() {
                 >
                   {promotion.isActive ? "إيقاف" : "تفعيل"}
                 </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    setDeleteTarget({
+                      kind: "promotion",
+                      id: promotion.id,
+                      label: promotion.name,
+                    })
+                  }
+                  className="inline-flex items-center gap-1 rounded-xl border border-rose-200 px-4 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  حذف
+                </button>
               </div>
             </div>
             <div className="mt-4 border-t border-slate-100 pt-4">
@@ -531,21 +571,39 @@ export function AdminPromotionsPage() {
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {promotion.coupons.map((coupon) => (
-                  <button
-                    key={coupon.id}
-                    disabled={busy}
-                    onClick={() =>
-                      void action({
-                        action: "toggle-coupon",
-                        couponId: coupon.id,
-                        isActive: !coupon.isActive,
-                      })
-                    }
-                    className={`rounded-xl border px-3 py-2 text-xs font-black ${coupon.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-400"}`}
-                    dir="ltr"
-                  >
-                    {coupon.code} · {coupon._count.redemptions}
-                  </button>
+                  <div key={coupon.id} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void action({
+                          action: "toggle-coupon",
+                          couponId: coupon.id,
+                          isActive: !coupon.isActive,
+                        })
+                      }
+                      className={`rounded-lg px-2 py-1 text-xs font-black ${coupon.isActive ? "bg-emerald-50 text-emerald-700" : "text-slate-400"}`}
+                      dir="ltr"
+                    >
+                      {coupon.code} · {coupon._count.redemptions}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        setDeleteTarget({
+                          kind: "coupon",
+                          id: coupon.id,
+                          label: coupon.code,
+                        })
+                      }
+                      className="grid h-8 w-8 place-items-center rounded-lg text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                      aria-label={`حذف الكوبون ${coupon.code}`}
+                      title="حذف"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -598,6 +656,22 @@ export function AdminPromotionsPage() {
           </table>
         </div>
       </section>
+
+      <SmartActionModal
+        open={Boolean(deleteTarget)}
+        title="تأكيد الحذف"
+        description={
+          deleteTarget
+            ? `هل أنت متأكد من حذف ${deleteTarget.kind === "promotion" ? "العرض" : "الكوبون"} «${deleteTarget.label}»؟ سيتم حذف العنصر نهائيًا إذا لم يكن له سجل استخدام.`
+            : undefined
+        }
+        variant="danger"
+        confirmLabel="حذف"
+        loading={busy}
+        portal
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </main>
   );
 }

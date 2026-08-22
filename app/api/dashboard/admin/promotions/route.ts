@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logAdminActivity } from "@/lib/admin/activity-log";
@@ -211,9 +212,81 @@ export async function POST(request: Request) {
       return NextResponse.json({ coupon, message: "تم تحديث حالة الكوبون." });
     }
 
+    if (action === "delete-promotion") {
+      const promotionId = String(body?.promotionId || "").trim();
+      if (!promotionId) {
+        return NextResponse.json({ error: "معرّف العرض غير صالح." }, { status: 400 });
+      }
+
+      const promotion = await prisma.promotion.findUnique({
+        where: { id: promotionId },
+        select: { name: true, _count: { select: { redemptions: true } } },
+      });
+
+      if (!promotion) {
+        return NextResponse.json({ error: "العرض غير موجود." }, { status: 404 });
+      }
+      if (promotion._count.redemptions > 0) {
+        return NextResponse.json(
+          { error: "لا يمكن حذف هذا العرض لأنه مرتبط بسجل استخدام. يمكنك إيقافه بدلًا من حذفه." },
+          { status: 409 },
+        );
+      }
+
+      await prisma.promotion.delete({ where: { id: promotionId } });
+      await logAdminActivity({
+        actorUserId: current.user.id,
+        category: "SUBSCRIPTION",
+        action: "PROMOTION_DELETED",
+        severity: "SUCCESS",
+        title: "حذف عرض اشتراك",
+        details: { promotionId, name: promotion.name },
+      });
+      return NextResponse.json({ message: "تم حذف العرض بنجاح." });
+    }
+
+    if (action === "delete-coupon") {
+      const couponId = String(body?.couponId || "").trim();
+      if (!couponId) {
+        return NextResponse.json({ error: "معرّف الكوبون غير صالح." }, { status: 400 });
+      }
+
+      const coupon = await prisma.coupon.findUnique({
+        where: { id: couponId },
+        select: { code: true, _count: { select: { redemptions: true } } },
+      });
+
+      if (!coupon) {
+        return NextResponse.json({ error: "الكوبون غير موجود." }, { status: 404 });
+      }
+      if (coupon._count.redemptions > 0) {
+        return NextResponse.json(
+          { error: "لا يمكن حذف هذا الكوبون لأنه مرتبط بسجل استخدام. يمكنك إيقافه بدلًا من حذفه." },
+          { status: 409 },
+        );
+      }
+
+      await prisma.coupon.delete({ where: { id: couponId } });
+      await logAdminActivity({
+        actorUserId: current.user.id,
+        category: "SUBSCRIPTION",
+        action: "COUPON_DELETED",
+        severity: "SUCCESS",
+        title: "حذف كوبون خصم",
+        details: { couponId, code: coupon.code },
+      });
+      return NextResponse.json({ message: "تم حذف الكوبون بنجاح." });
+    }
+
     return NextResponse.json({ error: "إجراء غير مدعوم." }, { status: 400 });
   } catch (error) {
     console.error("admin promotion action failed", error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return NextResponse.json(
+        { error: "لا يمكن حذف هذا العنصر لأنه مرتبط بسجل استخدام أو بيانات تاريخية." },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ error: "تعذر حفظ بيانات العرض أو الكوبون." }, { status: 500 });
   }
 }
