@@ -179,6 +179,7 @@ export function classifyServiceSlug(
   if (slug === "custom-report") return "guidance";
   if (slug === "assessment-center") return "guidance";
   if (slug === "activity-programs") return "activity";
+  if (slug === "school-activity-team") return "activity";
   if (slug.startsWith("activity-programs-")) return "activity";
   if (isActivityProgramDomainServiceSlug(slug)) return "activity";
   return "guidance";

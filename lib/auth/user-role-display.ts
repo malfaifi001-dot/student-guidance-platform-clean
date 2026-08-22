@@ -36,6 +36,10 @@ export function getArabicSignatureTitle(input: UserRoleDisplayInput) {
   return `توقيع ${getArabicUserRoleLabel(input)}`;
 }
 
+export function getArabicActivitySupervisorLabel(gender: string | null | undefined) {
+  return String(gender || "").trim().toUpperCase() === "FEMALE" ? "المشرفة" : "المشرف";
+}
+
 export function getArabicUserRoleIdentityCopy(input: UserRoleDisplayInput) {
   const roleLabel = getArabicUserRoleLabel(input);
   const isPrincipal = String(input.role || "").trim().toUpperCase() === "PRINCIPAL";

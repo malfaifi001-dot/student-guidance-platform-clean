@@ -277,7 +277,7 @@ function DesignBlock({
   if (block.kind === "hero-title") {
     return (
       <section className={getBlockShellClass(implementation, "hero", "text-center")}>
-        <p
+        {block.showServiceName !== false ? <p
           className={["text-sm font-black", accent.subtleTextClass].join(" ")}
           style={{
             fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
@@ -285,7 +285,7 @@ function DesignBlock({
           }}
         >
           {context["service.name"]}
-        </p>
+        </p> : null}
         <h1
           className="mx-auto max-w-[145mm] font-black text-slate-950"
           style={{
@@ -432,6 +432,9 @@ function DesignBlock({
     const stripedRows = Boolean(tableSettings.stripedRows);
     const colorTheme = tableSettings.colorTheme || "light-gray";
     const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
+    const cellImages = Array.isArray((tableBlock as any).cellImages)
+      ? (tableBlock as any).cellImages
+      : [];
 
     const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
       "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
@@ -505,7 +508,16 @@ function DesignBlock({
                         lineHeight: "calc(1.5rem * var(--report-narrative-density-scale, 1))",
                       }}
                     >
-                      {String(row?.[columnIndex] || "—")}
+                      {cellImages[rowIndex]?.[columnIndex] ? (
+                        <img
+                          src={String(cellImages[rowIndex][columnIndex])}
+                          alt="توقيع المشرف"
+                          className="mx-auto max-w-full object-contain"
+                          style={{ maxHeight: "12mm", filter: "contrast(1.25) brightness(0.72)" }}
+                        />
+                      ) : (
+                        String(row?.[columnIndex] || "—")
+                      )}
                     </td>
                   ))}
                 </tr>

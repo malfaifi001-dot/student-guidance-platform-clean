@@ -1,4 +1,5 @@
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
+import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 
 export type WorkspaceRole = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
 
@@ -111,6 +112,13 @@ export const counselorWorkspaceModules: WorkspaceModule[] = [
 ];
 
 export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
+  {
+    title: SCHOOL_ACTIVITY_TEAM_SERVICE.title,
+    description: SCHOOL_ACTIVITY_TEAM_SERVICE.description,
+    href: SCHOOL_ACTIVITY_TEAM_SERVICE.href,
+    icon: "assignments",
+    status: "available",
+  },
   {
     title: "تكليفاتي",
     description: "تكليفات إدارة المدرسة واختيار تقرير نشاط موجود لإرساله.",

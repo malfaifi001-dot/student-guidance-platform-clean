@@ -5,6 +5,8 @@ import {
   verifySessionToken,
 } from "@/lib/auth/session";
 
+const SESSION_LAST_SEEN_UPDATE_INTERVAL_MS = 60_000;
+
 export async function getCurrentSessionUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -49,14 +51,24 @@ export async function getCurrentSessionUser() {
     return null;
   }
 
-  await prisma.userSession.update({
-    where: {
-      id: session.id,
-    },
-    data: {
-      lastSeenAt: new Date(),
-    },
-  });
+  const now = new Date();
+  const lastSeenBefore = new Date(
+    now.getTime() - SESSION_LAST_SEEN_UPDATE_INTERVAL_MS,
+  );
+
+  if (session.lastSeenAt < lastSeenBefore) {
+    await prisma.userSession.updateMany({
+      where: {
+        id: session.id,
+        lastSeenAt: {
+          lt: lastSeenBefore,
+        },
+      },
+      data: {
+        lastSeenAt: now,
+      },
+    });
+  }
 
   return {
     session,

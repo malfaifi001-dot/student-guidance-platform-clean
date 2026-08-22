@@ -6,6 +6,8 @@ import { Download, Loader2, Minus, Plus, X } from "lucide-react";
 
 const A4_LANDSCAPE_WIDTH = 1122;
 const A4_LANDSCAPE_HEIGHT = 794;
+const A4_PORTRAIT_WIDTH = 794;
+const A4_PORTRAIT_HEIGHT = 1122;
 const MIN_ZOOM_PERCENT = 30;
 const MAX_ZOOM_PERCENT = 200;
 
@@ -35,7 +37,9 @@ export function CurriculumDistributionMobilePreview({
   title = "معاينة توزيع المنهج",
   subtitle = "راجع التقرير قبل تحميله على جهازك.",
   documentSelector = ".curriculum-print-paper",
+  documentLabel = "توزيع المنهج",
   allowDocumentScroll = false,
+  documentOrientation = "landscape",
 }: {
   open: boolean;
   previewUrl: string;
@@ -44,8 +48,12 @@ export function CurriculumDistributionMobilePreview({
   title?: string;
   subtitle?: string;
   documentSelector?: string;
+  documentLabel?: string;
   allowDocumentScroll?: boolean;
+  documentOrientation?: "landscape" | "portrait";
 }) {
+  const documentWidth = documentOrientation === "portrait" ? A4_PORTRAIT_WIDTH : A4_LANDSCAPE_WIDTH;
+  const documentHeight = documentOrientation === "portrait" ? A4_PORTRAIT_HEIGHT : A4_LANDSCAPE_HEIGHT;
   const frameRef = useRef<HTMLDivElement | null>(null);
   const frameReadyRef = useRef(false);
   const pinchRef = useRef<PinchState | null>(null);
@@ -68,8 +76,8 @@ export function CurriculumDistributionMobilePreview({
 
       const availableWidth = Math.max(280, frame.clientWidth - 16);
       const availableHeight = Math.max(220, frame.clientHeight - 16);
-      const widthScale = availableWidth / A4_LANDSCAPE_WIDTH;
-      const heightScale = availableHeight / A4_LANDSCAPE_HEIGHT;
+      const widthScale = availableWidth / documentWidth;
+      const heightScale = availableHeight / documentHeight;
       setFitScale(Math.min(1, Number(Math.min(widthScale, heightScale).toFixed(4))));
     };
 
@@ -82,7 +90,7 @@ export function CurriculumDistributionMobilePreview({
       observer.disconnect();
       window.removeEventListener("resize", updateScale);
     };
-  }, [open]);
+  }, [documentHeight, documentWidth, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -119,8 +127,8 @@ export function CurriculumDistributionMobilePreview({
     if (!viewport) return { x: 0, y: 0 };
 
     return {
-      x: Math.max(0, (A4_LANDSCAPE_WIDTH * nextScale - viewport.clientWidth) / 2),
-      y: Math.max(0, (A4_LANDSCAPE_HEIGHT * nextScale - viewport.clientHeight) / 2),
+      x: Math.max(0, (documentWidth * nextScale - viewport.clientWidth) / 2),
+      y: Math.max(0, (documentHeight * nextScale - viewport.clientHeight) / 2),
     };
   }
 
@@ -244,7 +252,7 @@ export function CurriculumDistributionMobilePreview({
       <section
         className="flex h-[80dvh] max-h-[80dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
-        aria-label="معاينة توزيع المنهج"
+        aria-label={`معاينة ${documentLabel}`}
       >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 sm:px-5 sm:py-3.5">
           <div className="min-w-0">
@@ -287,8 +295,8 @@ export function CurriculumDistributionMobilePreview({
           <div
             className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
             style={{
-              width: `${A4_LANDSCAPE_WIDTH}px`,
-              height: `${A4_LANDSCAPE_HEIGHT}px`,
+              width: `${documentWidth}px`,
+              height: `${documentHeight}px`,
               transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${scale})`,
               transformOrigin: "center center",
             }}
@@ -306,29 +314,47 @@ export function CurriculumDistributionMobilePreview({
             ) : null}
             <iframe
               key={previewUrl}
-              title="معاينة تقرير توزيع المنهج"
+              title={`معاينة تقرير ${documentLabel}`}
               src={previewUrl}
               className="absolute inset-0 block border-0 bg-white"
               onLoad={(event) => {
                 const reportDocument = event.currentTarget.contentDocument;
-                const hasReport = Boolean(reportDocument?.querySelector(documentSelector));
-
-                if (!hasReport) {
+                if (!reportDocument) {
                   frameReadyRef.current = true;
-                  setPreviewError("تعذر العثور على مستند توزيع المنهج في المعاينة.");
+                  setPreviewError(`تعذر العثور على مستند ${documentLabel} في المعاينة.`);
                   return;
                 }
 
-                frameReadyRef.current = true;
-                setPreviewReady(true);
+                let attempts = 0;
+                const waitForDocument = () => {
+                  if (frameReadyRef.current) return;
+
+                  const hasReport = Boolean(reportDocument.querySelector(documentSelector));
+                  if (hasReport) {
+                    frameReadyRef.current = true;
+                    setPreviewReady(true);
+                    return;
+                  }
+
+                  attempts += 1;
+                  if (attempts < 150) {
+                    window.setTimeout(waitForDocument, 100);
+                    return;
+                  }
+
+                  frameReadyRef.current = true;
+                  setPreviewError(`تعذر العثور على مستند ${documentLabel} في المعاينة.`);
+                };
+
+                waitForDocument();
               }}
               onError={() => {
                 frameReadyRef.current = true;
                 setPreviewError("تعذر تحميل مستند المعاينة. حاول مرة أخرى.");
               }}
               style={{
-                width: `${A4_LANDSCAPE_WIDTH}px`,
-                height: `${A4_LANDSCAPE_HEIGHT}px`,
+                width: `${documentWidth}px`,
+                height: `${documentHeight}px`,
                 pointerEvents: allowDocumentScroll ? "auto" : "none",
               }}
             />

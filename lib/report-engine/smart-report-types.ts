@@ -181,6 +181,7 @@ export type SmartReportTable = {
   title: string;
   columns: SmartReportTableColumn[];
   rows: SmartReportTableRow[];
+  preserveEmptyColumnKeys?: string[];
   settings?: {
     repeatHeader?: boolean;
     compact?: boolean;

@@ -10,6 +10,7 @@ import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitio
 import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 
@@ -247,11 +248,6 @@ const counselorAccountLinks: SidebarLinkItem[] = [
 
 const activityLeaderImportantLinks: SidebarLinkItem[] = [
   {
-    label: "تكليفاتي",
-    href: "/dashboard/activity-leader/assignments",
-    icon: ClipboardCheck,
-  },
-  {
     label: "الرئيسية",
     href: "/dashboard/activity-leader",
     icon: Home,
@@ -274,6 +270,16 @@ const activityLeaderImportantLinks: SidebarLinkItem[] = [
 ];
 
 const activityProgramDomainLinks: SidebarLinkItem[] = [
+  {
+    label: SCHOOL_ACTIVITY_TEAM_SERVICE.title,
+    href: SCHOOL_ACTIVITY_TEAM_SERVICE.href,
+    icon: UsersRound,
+  },
+  {
+    label: "خطة النشاط الطلابي",
+    href: "/dashboard/activity-leader/activity-plan",
+    icon: CalendarDays,
+  },
   ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
     label: domain.title,
     href: `/dashboard/activity-leader/programs/${domain.slug}`,
@@ -303,9 +309,9 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
 
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
   {
-    label: "خطة النشاط الطلابي",
-    href: "/dashboard/activity-leader/activity-plan",
-    icon: CalendarDays,
+    label: "تكليفاتي",
+    href: "/dashboard/activity-leader/assignments",
+    icon: ClipboardCheck,
   },
   {
     label: "متابعة أنشطة المعلمين",
@@ -1112,7 +1118,7 @@ function ActivityLeaderSidebar({
         title="الأنشطة"
         defaultOpen={pathname.startsWith(
           "/dashboard/activity-leader/programs",
-        )}
+        ) || pathname.startsWith("/dashboard/activity-leader/activity-team") || pathname.startsWith("/dashboard/activity-leader/activity-plan")}
         collapsed={collapsed}
       >
         {activityProgramDomainLinks.map((item) => (

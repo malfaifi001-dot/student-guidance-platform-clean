@@ -64,7 +64,11 @@ export function getStudentDataTableTitle(
 }
 
 export function normalizeSmartReportTablePresentation(table: SmartReportTable) {
+  const preservedColumnKeys = new Set(
+    (table.preserveEmptyColumnKeys || []).map(normalizeKey),
+  );
   const columns = table.columns.filter((column) =>
+    preservedColumnKeys.has(normalizeKey(column.key)) ||
     table.rows.some((row) =>
       hasMeaningfulStructuredTableValue(row.cells[column.key]),
     ),
@@ -92,14 +96,23 @@ export function normalizeStructuredTableBlockPresentation<T extends Record<strin
   const columns = Array.isArray(block.columns) ? block.columns : [];
   const rows = Array.isArray(block.rows) ? block.rows : [];
   const columnWidths = Array.isArray(block.columnWidths) ? block.columnWidths : [];
+  const preservedColumnIndexes = new Set(
+    Array.isArray(block.preserveEmptyColumnIndexes)
+      ? block.preserveEmptyColumnIndexes
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value) && value >= 0)
+      : [],
+  );
   const retainedIndexes = columns
     .map((_, index) => index)
-    .filter((index) =>
-      rows.some((row) =>
-        hasMeaningfulStructuredTableValue(
-          Array.isArray(row) ? row[index] : undefined,
+    .filter(
+      (index) =>
+        preservedColumnIndexes.has(index) ||
+        rows.some((row) =>
+          hasMeaningfulStructuredTableValue(
+            Array.isArray(row) ? row[index] : undefined,
+          ),
         ),
-      ),
     );
   const studentTable = isStudentDataTable(block);
   const rowMetadata = Array.isArray(block.rowMetadata) ? block.rowMetadata : [];

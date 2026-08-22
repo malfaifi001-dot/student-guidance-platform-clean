@@ -290,6 +290,7 @@ model SchoolAccount {
   users                 User[]
 
   profile                      SchoolProfile?
+  activityTeam                 SchoolActivityTeam?
   students                     Student[]
   guardians                    Guardian[]
   staff                        StaffMember[]
@@ -706,6 +707,33 @@ model SchoolProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SchoolActivityTeam {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  assignments     Json
+  supervisorSignatures SchoolActivityTeamSupervisorSignature[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model SchoolActivityTeamSupervisorSignature {
+  id             String           @id @default(cuid())
+  activityTeamId String
+  activityTeam   SchoolActivityTeam @relation(fields: [activityTeamId], references: [id], onDelete: Cascade)
+  supervisorName String           @db.VarChar(160)
+  fieldKeys      Json
+  signatureUrl   String           @db.Text
+  signedAt       DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([activityTeamId, supervisorName], map: "ActivityTeamSign_uq")
+  @@index([activityTeamId, signedAt], map: "ATS_time_idx")
 }
 
 model Guardian {
