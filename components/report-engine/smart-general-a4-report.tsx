@@ -3,6 +3,7 @@ import type {
   SmartReportPayload,
   ReportEvidenceConfig,
 } from "@/lib/report-engine/smart-report-types";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 type SmartGeneralA4ReportProps = {
   payload: SmartReportPayload;
@@ -290,10 +291,10 @@ export function SmartGeneralA4Report({ payload }: SmartGeneralA4ReportProps) {
               </p>
 
               {signature.imageUrl ? (
-                <img
+                <SignatureImage
                   src={signature.imageUrl}
                   alt={signature.signerName || signature.label}
-                  className="h-10 max-w-full object-contain"
+                  className="h-10"
                 />
               ) : (
                 <p className="text-slate-400">............................</p>

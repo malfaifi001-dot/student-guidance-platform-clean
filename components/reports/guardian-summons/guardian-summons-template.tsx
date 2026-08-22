@@ -1,3 +1,5 @@
+import { SignatureImage } from "@/components/signatures/signature-image";
+
 export type GuardianSummonsReasonItem = {
   id: string;
   label: string;
@@ -156,7 +158,7 @@ function SignatureBlock({
       <div className="signature-image-slot">
         {signatureUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SignatureImage
             src={signatureUrl}
             alt={`توقيع ${title}`}
             className="signature-image"

@@ -17,21 +17,17 @@ import {
 } from "@/lib/settings/school-signature-file-storage";
 import {
   getSchoolActivityTeamById,
+  isCurrentSupervisorSignature,
+  isCurrentSupervisorSignatureForField,
   type SchoolActivityTeamSupervisorSignature,
 } from "@/lib/activity-team/activity-team-service";
 import { buildSchoolActivityTeamReportSnapshot } from "@/lib/activity-team/activity-team-report";
+import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 
 const ACTIVITY_TEAM_SIGNATURE_KIND = "ACTIVITY_TEAM";
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function parseSignatureDataUrl(dataUrl: string) {
-  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(clean(dataUrl));
-  if (!match) return null;
-  const buffer = Buffer.from(match[1], "base64");
-  return buffer.length >= 200 && buffer.length <= 2_000_000 ? buffer : null;
 }
 
 function snapshotTeamId(snapshot: unknown) {
@@ -153,10 +149,25 @@ export async function getPublicActivityTeamSignature(token: string) {
     const supervisorName = clean(name);
     if (!supervisorName) continue;
     const existing = optionByName.get(supervisorName);
+    const fieldKeys = [...(existing?.fieldKeys || []), fieldKey];
     optionByName.set(supervisorName, {
       name: supervisorName,
-      fieldKeys: [...(existing?.fieldKeys || []), fieldKey],
-      signed: Boolean(existing?.signed || team.signatures.some((item) => item.supervisorName === supervisorName)),
+      fieldKeys,
+      signed: Boolean(
+        existing?.signed ||
+          team.signatures.some(
+            (item) =>
+              item.supervisorName === supervisorName &&
+              isCurrentSupervisorSignature(item, assignments) &&
+              fieldKeys.some((currentFieldKey) =>
+                isCurrentSupervisorSignatureForField(
+                  item,
+                  assignments,
+                  currentFieldKey,
+                ),
+              ),
+          ),
+      ),
     });
   }
   const options = Array.from(optionByName.values());
@@ -206,11 +217,24 @@ export async function signActivityTeamSupervisor(input: {
     .filter(([, name]) => name === supervisorName)
     .map(([fieldKey]) => fieldKey);
   if (!supervisorName || !fieldKeys.length) return { ok: false as const, code: "INELIGIBLE" as const };
-  if (team.signatures.some((signature) => signature.supervisorName === supervisorName)) {
+  if (
+    team.signatures.some(
+      (signature) =>
+        signature.supervisorName === supervisorName &&
+        isCurrentSupervisorSignature(signature, team.assignments) &&
+        fieldKeys.some((fieldKey) =>
+          isCurrentSupervisorSignatureForField(
+            signature,
+            team.assignments,
+            fieldKey,
+          ),
+        ),
+    )
+  ) {
     return { ok: false as const, code: "ALREADY_SIGNED" as const };
   }
 
-  const signature = parseSignatureDataUrl(input.dataUrl);
+  const signature = await processSignatureDataUrl(input.dataUrl);
   if (!signature) return { ok: false as const, code: "INVALID_SIGNATURE" as const };
 
   const fileName = `activity-team-supervisor-${team.id}-${crypto.randomBytes(12).toString("hex")}.png`;

@@ -9,6 +9,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 import type { ReportBlock } from "@/lib/report-engine/report-block-types";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
@@ -540,7 +541,7 @@ function ApprovalGrid({ data }: { data: ActivityExecutionCardReportData }) {
           <span>مدير المدرسة</span>
 
           {data.approvals.principalSignatureUrl ? (
-            <img
+            <SignatureImage
               src={data.approvals.principalSignatureUrl}
               alt={`توقيع ${data.approvals.principalName || "مدير المدرسة"}`}
             />
@@ -560,7 +561,7 @@ function ApprovalGrid({ data }: { data: ActivityExecutionCardReportData }) {
         <span>توقيع المعلم المنفذ</span>
 
         {data.approvals.teacherSignatureUrl ? (
-          <img
+          <SignatureImage
             src={data.approvals.teacherSignatureUrl}
             alt={`توقيع ${data.approvals.teacherSignedName}`}
           />

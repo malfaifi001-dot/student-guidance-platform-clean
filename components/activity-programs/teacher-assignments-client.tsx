@@ -16,6 +16,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 type FieldOption = {
   id: string;
@@ -727,10 +728,10 @@ function ReviewModal({
 
               {assignment.teacherSignatureUrl ? (
                 <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <img
+                  <SignatureImage
                     src={assignment.teacherSignatureUrl}
                     alt={`توقيع ${assignment.teacherSignedName || assignment.teacherName}`}
-                    className="h-24 max-w-full object-contain"
+                    className="h-24"
                   />
 
                   <p className="mt-3 text-xs font-black text-slate-500">

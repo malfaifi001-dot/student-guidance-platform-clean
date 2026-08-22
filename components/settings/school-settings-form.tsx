@@ -15,6 +15,7 @@ import {
 } from "@/lib/auth/user-role-display";
 import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { SignatureImage } from "@/components/signatures/signature-image";
 import {
   SAUDI_CITIES,
   SAUDI_CITY_OTHER_OPTION,
@@ -902,10 +903,10 @@ function SchoolSignaturesCard({
 
           <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
             {form.currentUserSignatureUrl ? (
-              <img
+              <SignatureImage
                 src={form.currentUserSignatureUrl}
                 alt={signatureTitle}
-                className="max-h-20 max-w-full object-contain"
+                className="max-h-20"
               />
             ) : (
               <span className="text-xs font-black text-slate-400">
@@ -955,10 +956,10 @@ function SchoolSignaturesCard({
 
           <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
             {form.principalSignatureUrl ? (
-              <img
+              <SignatureImage
                 src={form.principalSignatureUrl}
                 alt={`توقيع ${identityCopy.schoolPrincipalLabel}`}
-                className="max-h-20 max-w-full object-contain"
+                className="max-h-20"
               />
             ) : (
               <span className="text-xs font-black text-slate-400">

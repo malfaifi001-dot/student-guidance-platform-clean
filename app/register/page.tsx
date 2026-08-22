@@ -268,7 +268,7 @@ export default function RegisterPage() {
                   }}
                 />
 
-                <p className="-mt-1 px-1 text-[11px] font-bold text-slate-400">
+                <p className="-mt-1 px-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">
                   8 أحرف على الأقل
                 </p>
 
@@ -291,7 +291,7 @@ export default function RegisterPage() {
                   }}
                 />
 
-                <label className="flex items-start gap-2 px-1 text-xs font-bold leading-6 text-slate-500">
+                <label className="flex items-start gap-2 px-1 text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">
                   <input
                     type="checkbox"
                     checked={acceptedTerms}
@@ -299,15 +299,15 @@ export default function RegisterPage() {
                       setAcceptedTerms(event.target.checked);
                       setError("");
                     }}
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900"
                   />
                   <span>
                     أوافق على{" "}
-                    <Link href="/terms" className="text-sky-700 underline-offset-2 hover:underline">
+                    <Link href="/terms" className="text-sky-700 underline-offset-2 hover:underline dark:text-sky-300">
                       الشروط والأحكام
                     </Link>{" "}
                     و
-                    <Link href="/privacy" className="text-sky-700 underline-offset-2 hover:underline">
+                    <Link href="/privacy" className="text-sky-700 underline-offset-2 hover:underline dark:text-sky-300">
                       سياسة الاستخدام
                     </Link>
                   </span>
@@ -323,7 +323,7 @@ export default function RegisterPage() {
               </form>
 
               <div className="mt-7 border-t border-slate-100 pt-7 text-center dark:border-white/10">
-                <p className="text-sm font-bold text-slate-500">
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
                   لديك حساب بالفعل؟
                 </p>
 
@@ -340,8 +340,8 @@ export default function RegisterPage() {
 
           {/* REGISTER VISUAL */}
           <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#eef6ff] dark:border-white/10 dark:bg-[#0D1B2E] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
-            <div className="absolute -right-36 top-8 h-[420px] w-[420px] rounded-full bg-sky-100/60 blur-3xl" />
-            <div className="absolute -left-40 bottom-8 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
+            <div className="absolute -right-36 top-8 h-[420px] w-[420px] rounded-full bg-sky-100/60 blur-3xl dark:bg-sky-500/10" />
+            <div className="absolute -left-40 bottom-8 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl dark:bg-blue-500/10" />
 
             <div className="relative w-full max-w-[610px]">
               <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 dark:text-slate-100 xl:text-4xl">
@@ -349,10 +349,10 @@ export default function RegisterPage() {
               </h2>
 
               <div className="relative mx-auto mt-8 max-w-[430px] xl:mt-12 xl:max-w-[540px]">
-                <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl" />
+                <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl dark:bg-sky-500/10" />
 
                 <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-[#102138] dark:shadow-[0_45px_120px_-55px_rgba(0,0,0,0.7)] xl:rounded-[34px] xl:p-7">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-6 dark:border-white/10">
                     <div>
                       <TeachixLogo size="sm" />
 
@@ -361,7 +361,7 @@ export default function RegisterPage() {
                       </h3>
                     </div>
 
-                    <div className="rounded-full bg-sky-50 px-4 py-2 text-xs font-black text-sky-700">
+                    <div className="rounded-full bg-sky-50 px-4 py-2 text-xs font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                       خطوة واحدة
                     </div>
                   </div>
@@ -399,7 +399,7 @@ export default function RegisterPage() {
                           الخدمات تتغير حسب دورك
                         </p>
 
-                        <p className="mt-1 text-xs font-bold text-slate-400">
+                        <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
                           وتظهر لك الأدوات التي تحتاجها فقط
                         </p>
                       </div>
@@ -517,7 +517,7 @@ function AuthInput({
             type="button"
             onClick={trailingAction.onClick}
             aria-label={trailingAction.label}
-            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-600"
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-600 dark:text-slate-500"
           >
             {trailingAction.icon}
           </button>

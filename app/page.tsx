@@ -98,7 +98,7 @@ function ReviewCard({
     >
       <div className="flex items-center justify-between gap-4">
         <div className={mobile ? "flex min-w-0 items-center gap-3" : "flex items-center gap-3"}>
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-50 text-base font-black text-sky-700 ring-1 ring-sky-100">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-50 text-base font-black text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/10 dark:ring-sky-400/20 dark:text-sky-300">
             {review.initials}
           </div>
 
@@ -107,7 +107,7 @@ function ReviewCard({
               {review.name}
             </h3>
 
-            <p className="mt-1 text-xs font-bold text-slate-400">
+            <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
               {review.role}
             </p>
           </div>
@@ -146,21 +146,21 @@ export default function HomePage() {
         ====================================================== */}
         <section className="relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -right-72 top-10 h-[620px] w-[620px] rounded-full bg-sky-50/80 blur-3xl" />
-            <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl" />
+            <div className="absolute -right-72 top-10 h-[620px] w-[620px] rounded-full bg-sky-50/80 blur-3xl dark:bg-sky-500/10" />
+            <div className="absolute -left-72 top-60 h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-3xl dark:bg-blue-500/10" />
           </div>
 
           <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-14 pt-8 sm:px-8 sm:pb-16 sm:pt-10 md:gap-12 md:pb-20 md:pt-12 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-12 lg:px-10 lg:pb-20 lg:pt-12 xl:min-h-[800px] xl:gap-16 xl:pb-28 xl:pt-16">
             <div className="max-w-3xl">
-              <h1 className="text-[2rem] font-black leading-[1.18] tracking-[-0.04em] text-slate-950 min-[430px]:text-[2.2rem] sm:text-[2.65rem] md:text-[2.9rem] lg:text-[3.15rem] xl:text-[3.8rem]">
+              <h1 className="text-[2rem] font-black leading-[1.18] tracking-[-0.04em] text-slate-950 dark:text-slate-100 min-[430px]:text-[2.2rem] sm:text-[2.65rem] md:text-[2.9rem] lg:text-[3.15rem] xl:text-[3.8rem]">
                 أعمالك اليومية،
                 <span className="mt-2 block text-sky-600">
                   أسرع وأسهل من مكان واحد.
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500 sm:mt-8 sm:text-xl sm:leading-9">
-                <span className="font-bold text-slate-950">Teachix</span>{" "}
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-500 dark:text-slate-400 sm:mt-8 sm:text-xl sm:leading-9">
+                <span className="font-bold text-slate-950 dark:text-slate-100">Teachix</span>{" "}
                 تجمع مهام فريق المدرسة، وتساعد على إنجازها، توثيقها،
                 متابعتها، وإصدار تقاريرها ضمن تجربة عربية بسيطة وواضحة.
               </p>
@@ -182,8 +182,8 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <nav aria-label="روابط Teachix العامة" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500">
-                <Link href="/free/curriculum-distribution" className="font-black text-sky-700 transition hover:text-sky-600">
+              <nav aria-label="روابط Teachix العامة" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                <Link href="/free/curriculum-distribution" className="font-black text-sky-700 transition hover:text-sky-600 dark:text-sky-300">
                   حمّل توزيع منهجك مجانًا
                 </Link>
                 <Link href="/services" className="transition hover:text-sky-600">خدمات Teachix</Link>
@@ -196,11 +196,11 @@ export default function HomePage() {
             </div>
 
             <div className="relative mx-auto hidden w-full md:block md:max-w-[570px] lg:max-w-[540px] xl:max-w-[680px]">
-              <div className="absolute inset-10 rounded-[4rem] bg-sky-100/70 blur-3xl" />
+              <div className="absolute inset-10 rounded-[4rem] bg-sky-100/70 blur-3xl dark:bg-sky-500/10" />
 
               <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_42px_120px_-55px_rgba(15,23,42,0.38)] dark:border-white/10 dark:bg-[#0D1B2E] dark:shadow-[0_42px_120px_-55px_rgba(0,0,0,0.7)] md:p-5 lg:p-6 xl:rounded-[34px] xl:p-7">
                 {/* Header */}
-                <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5">
+                <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5 dark:border-white/10">
                   <div>
                     <TeachixLogo size="sm" />
 
@@ -209,19 +209,19 @@ export default function HomePage() {
                     </h2>
                   </div>
 
-                  <div className="rounded-full bg-sky-50 px-4 py-2 text-[11px] font-black text-sky-700">
+                  <div className="rounded-full bg-sky-50 px-4 py-2 text-[11px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                     أربع تجارب، مساحة واحدة
                   </div>
                 </div>
 
                 {/* Teacher + Counselor */}
-                <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/55 p-4 xl:p-5">
+                <div className="mt-5 rounded-[24px] border border-sky-100 bg-sky-50/55 p-4 dark:border-white/10 dark:bg-[#102138] xl:p-5">
                   <div>
                     <p className="text-[11px] font-black text-sky-600">
                       التعليم والإرشاد
                     </p>
 
-                    <p className="mt-1 text-sm font-black text-slate-950">
+                    <p className="mt-1 text-sm font-black text-slate-950 dark:text-slate-100">
                       إنجاز العمل ومتابعة الطالب
                     </p>
                   </div>
@@ -229,7 +229,7 @@ export default function HomePage() {
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#102138]">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
+                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                           المعلم
                         </span>
 
@@ -240,14 +240,14 @@ export default function HomePage() {
                         ملف الإنجاز
                       </p>
 
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                         <div className="h-full w-[86%] rounded-full bg-sky-500" />
                       </div>
                     </div>
 
                     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#102138]">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700">
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
                           الموجه الطلابي
                         </span>
 
@@ -260,7 +260,7 @@ export default function HomePage() {
 
                       <div className="mt-3 flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                        <div className="h-2 flex-1 rounded-full bg-slate-100" />
+                        <div className="h-2 flex-1 rounded-full bg-slate-100 dark:bg-slate-700" />
                       </div>
                     </div>
                   </div>
@@ -273,7 +273,7 @@ export default function HomePage() {
                       الإدارة والنشاط
                     </p>
 
-                    <p className="mt-1 text-sm font-black text-slate-950">
+                    <p className="mt-1 text-sm font-black text-slate-950 dark:text-slate-100">
                       تنظيم اليوم وتنفيذ البرامج
                     </p>
                   </div>
@@ -281,7 +281,7 @@ export default function HomePage() {
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#0D1B2E]">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-black text-slate-700">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-black text-slate-700 dark:bg-slate-700 dark:text-slate-200">
                           مدير المدرسة
                         </span>
 
@@ -300,7 +300,7 @@ export default function HomePage() {
                               "h-3 rounded",
                               index === 3 || index === 7
                                 ? "bg-sky-200"
-                                : "bg-slate-100",
+                                : "bg-slate-100 dark:bg-slate-700",
                             ].join(" ")}
                           />
                         ))}
@@ -309,7 +309,7 @@ export default function HomePage() {
 
                     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#0D1B2E]">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700">
+                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[9px] font-black text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                           رائد النشاط
                         </span>
 
@@ -320,7 +320,7 @@ export default function HomePage() {
                         برنامج نشاط
                       </p>
 
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                         <div className="h-full w-[72%] rounded-full bg-sky-500" />
                       </div>
                     </div>
@@ -339,13 +339,13 @@ export default function HomePage() {
                         العمل يتحول إلى سجل واضح
                       </p>
 
-                      <p className="mt-1 text-[11px] font-bold text-slate-400">
+                      <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">
                         متابعة · توثيق · تقارير
                       </p>
                     </div>
                   </div>
 
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                     جاهز
                   </span>
                 </div>
@@ -373,14 +373,14 @@ export default function HomePage() {
                   لماذا Teachix؟
                 </p>
 
-                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-7xl">
+                <h2 className="mt-5 text-4xl font-black leading-[1.12] tracking-[-0.045em] text-slate-950 dark:text-slate-100 sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-7xl">
                   أقل تشتت.
-                  <span className="block text-slate-400">
+                  <span className="block text-slate-400 dark:text-slate-500">
                     عمل أوضح.
                   </span>
                 </h2>
 
-                <p className="mt-8 max-w-xl text-lg leading-9 text-slate-500">
+                <p className="mt-8 max-w-xl text-lg leading-9 text-slate-500 dark:text-slate-400">
                   بدل أن تتوزع الأعمال بين الملفات والنماذج والرسائل، تجمع
                   Teachix دورة العمل داخل تجربة واحدة واضحة من البداية حتى
                   التقرير النهائي.
@@ -399,11 +399,11 @@ export default function HomePage() {
                 <article className="min-h-[240px] rounded-[28px] border border-sky-100 bg-sky-50/55 p-8 transition duration-300 hover:-translate-y-1 hover:bg-sky-50 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <LayoutDashboard className="h-7 w-7 text-sky-600" />
 
-                  <h3 className="mt-9 text-2xl font-black">
+                  <h3 className="mt-9 text-2xl font-black text-slate-950 dark:text-slate-100">
                     كل العمل في مكان واحد
                   </h3>
 
-                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                  <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400">
                     أعمال المدرسة محفوظة داخل مساحة واضحة بدل التنقل بين أدوات
                     منفصلة.
                   </p>
@@ -412,11 +412,11 @@ export default function HomePage() {
                 <article className="min-h-[240px] rounded-[28px] border border-cyan-100 bg-cyan-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50/70 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <FolderCheck className="h-7 w-7 text-sky-600" />
 
-                  <h3 className="mt-9 text-2xl font-black">
+                  <h3 className="mt-9 text-2xl font-black text-slate-950 dark:text-slate-100">
                     توثيق منظم
                   </h3>
 
-                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                  <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400">
                     الشواهد والمرفقات والملفات مرتبطة مباشرة بالعمل الذي تم
                     إنجازه.
                   </p>
@@ -425,11 +425,11 @@ export default function HomePage() {
                 <article className="min-h-[240px] rounded-[28px] border border-blue-100 bg-blue-50/40 p-8 transition duration-300 hover:-translate-y-1 hover:bg-blue-50/70 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <FileText className="h-7 w-7 text-sky-600" />
 
-                  <h3 className="mt-9 text-2xl font-black">
+                  <h3 className="mt-9 text-2xl font-black text-slate-950 dark:text-slate-100">
                     تقارير جاهزة
                   </h3>
 
-                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                  <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400">
                     التقرير امتداد للعمل المنجز، دون الحاجة لإعادة كتابة نفس
                     البيانات.
                   </p>
@@ -438,11 +438,11 @@ export default function HomePage() {
                 <article className="min-h-[240px] rounded-[28px] border border-indigo-100 bg-indigo-50/35 p-8 transition duration-300 hover:-translate-y-1 hover:bg-indigo-50/60 dark:border-white/10 dark:bg-[#102138] dark:hover:bg-[#16304f]">
                   <ShieldCheck className="h-7 w-7 text-sky-600" />
 
-                  <h3 className="mt-9 text-2xl font-black">
+                  <h3 className="mt-9 text-2xl font-black text-slate-950 dark:text-slate-100">
                     تجربة لكل دور
                   </h3>
 
-                  <p className="mt-4 text-sm leading-8 text-slate-500">
+                  <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400">
                     كل مستخدم يرى الخدمات والإجراءات المرتبطة بصلاحياته فقط.
                   </p>
                 </article>
@@ -469,7 +469,7 @@ export default function HomePage() {
                 تجارب المستخدمين
               </p>
 
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
+              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 dark:text-slate-100 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
                 العمل أسهل عندما تكون الأدوات واضحة.
               </h2>
 

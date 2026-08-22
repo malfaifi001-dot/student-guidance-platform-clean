@@ -4,6 +4,7 @@ import {
   getSchoolSignaturePublicUrl,
   writeSchoolSignatureFile,
 } from "@/lib/settings/school-signature-file-storage";
+import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 
 export const runtime = "nodejs";
 
@@ -17,19 +18,8 @@ async function savePrincipalSignature(input: {
   schoolAccountId: string;
   dataUrl: string;
 }) {
-  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(
-    String(input.dataUrl || "").trim(),
-  );
-
-  if (!match) {
-    return "";
-  }
-
-  const buffer = Buffer.from(match[1], "base64");
-
-  if (buffer.length < 200 || buffer.length > 2_000_000) {
-    return "";
-  }
+  const buffer = await processSignatureDataUrl(input.dataUrl);
+  if (!buffer) return "";
 
   const fileName = `principal-signature-${Date.now()}.png`;
 

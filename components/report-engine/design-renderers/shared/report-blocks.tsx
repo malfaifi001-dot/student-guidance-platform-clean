@@ -12,6 +12,7 @@ import { EvidenceBlock } from "./report-evidence";
 import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report-primitives";
 import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
 import { DesignValueGrid } from "./report-values";
+import { SignatureImage } from "@/components/signatures/signature-image";
 import styles from "./a4-design-page.module.css";
 
 export function A4DesignPage({
@@ -509,10 +510,11 @@ function DesignBlock({
                       }}
                     >
                       {cellImages[rowIndex]?.[columnIndex] ? (
-                        <img
+                        <SignatureImage
                           src={String(cellImages[rowIndex][columnIndex])}
                           alt="توقيع المشرف"
-                          className="mx-auto max-w-full object-contain"
+                          className="mx-auto"
+                          maxHeight="12mm"
                           style={{ maxHeight: "12mm", filter: "contrast(1.25) brightness(0.72)" }}
                         />
                       ) : (
@@ -663,16 +665,13 @@ function DesignBlock({
                 style={{ height: "var(--report-signature-image-height, 10mm)" }}
               >
                 {signature.imageUrl ? (
-                  <img
+                  <SignatureImage
                     src={signature.imageUrl}
                     alt={signature.label}
-                    className="report-design-signature-image max-w-[42mm] object-contain"
+                    className="report-design-signature-image max-w-[42mm]"
                     style={{
                       maxHeight: "var(--report-signature-image-height, 10mm)",
                       background: "#ffffff",
-                      objectFit: "contain",
-                      mixBlendMode: "normal",
-                      filter: "none",
                     }}
                   />
                 ) : (

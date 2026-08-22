@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
+import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 
 export const runtime = "nodejs";
 
@@ -37,25 +38,8 @@ async function saveTeacherSignature(input: {
   assignmentId: string;
   dataUrl: string;
 }) {
-  const dataUrl = String(input.dataUrl || "").trim();
-
-  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
-
-  if (!match) {
-    return "";
-  }
-
-  const base64 = match[1];
-
-  if (base64.length > 2_000_000) {
-    return "";
-  }
-
-  const buffer = Buffer.from(base64, "base64");
-
-  if (buffer.length < 200) {
-    return "";
-  }
+  const buffer = await processSignatureDataUrl(input.dataUrl);
+  if (!buffer) return "";
 
   const fileName = `teacher-signature-${Date.now()}.png`;
   return writeDurableUpload("activity-assignments", input.assignmentId, fileName, new Uint8Array(buffer));

@@ -17,6 +17,26 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
+export function isCurrentSupervisorSignatureForField(
+  signature: Pick<SchoolActivityTeamSupervisorSignature, "supervisorName" | "fieldKeys">,
+  assignments: SchoolActivityTeamAssignments,
+  fieldKey: string,
+) {
+  return (
+    signature.fieldKeys.some((currentFieldKey) => currentFieldKey === fieldKey) &&
+    clean(assignments[fieldKey]) === clean(signature.supervisorName)
+  );
+}
+
+export function isCurrentSupervisorSignature(
+  signature: Pick<SchoolActivityTeamSupervisorSignature, "supervisorName" | "fieldKeys">,
+  assignments: SchoolActivityTeamAssignments,
+) {
+  return signature.fieldKeys.some((fieldKey) =>
+    isCurrentSupervisorSignatureForField(signature, assignments, fieldKey),
+  );
+}
+
 function normalizeAssignments(value: unknown): SchoolActivityTeamAssignments {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
@@ -65,10 +85,11 @@ function normalizeAssignmentsDocument(
   assignments: SchoolActivityTeamAssignments,
   signatures: ReturnType<typeof normalizeStoredSignatures>,
 ) {
-  const eligibleNames = new Set(Object.values(assignments).filter(Boolean));
   return {
     assignments,
-    signatures: signatures.filter((signature) => eligibleNames.has(signature.supervisorName)),
+    signatures: signatures.filter((signature) =>
+      isCurrentSupervisorSignature(signature, assignments),
+    ),
   };
 }
 

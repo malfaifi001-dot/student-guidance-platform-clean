@@ -8,6 +8,7 @@ import {
   getSchoolSignaturePublicUrl,
   writeSchoolSignatureFile,
 } from "@/lib/settings/school-signature-file-storage";
+import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 
 export const REPORT_SIGNATURE_TTL_DAYS = 30;
 
@@ -121,17 +122,6 @@ export async function getPublicReportSignatureRequest(token: string) {
   };
 }
 
-function parseSignatureDataUrl(dataUrl: string) {
-  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(
-    String(dataUrl || "").trim(),
-  );
-
-  if (!match) return null;
-
-  const buffer = Buffer.from(match[1], "base64");
-  return buffer.length >= 200 && buffer.length <= 2_000_000 ? buffer : null;
-}
-
 export async function signReportSignatureRequest(input: {
   token: string;
   dataUrl: string;
@@ -159,7 +149,7 @@ export async function signReportSignatureRequest(input: {
     return { ok: false as const, code: status as string };
   }
 
-  const signature = parseSignatureDataUrl(input.dataUrl);
+  const signature = await processSignatureDataUrl(input.dataUrl);
   if (!signature) return { ok: false as const, code: "INVALID_SIGNATURE" as const };
 
   const fileName = `report-principal-signature-${request.id}-${crypto.randomBytes(12).toString("hex")}.png`;

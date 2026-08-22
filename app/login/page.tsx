@@ -121,7 +121,7 @@ export default function LoginPage() {
                 تسجيل الدخول
               </p>
 
-              <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-[2rem] xl:mt-4 xl:text-4xl">
+              <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-slate-100 sm:text-[2rem] xl:mt-4 xl:text-4xl">
                 مرحبًا بعودتك
               </h1>
             </div>
@@ -174,8 +174,8 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 border-t border-slate-100 pt-7 text-center">
-              <p className="text-sm font-bold text-slate-500">
+            <div className="mt-8 border-t border-slate-100 pt-7 text-center dark:border-white/10">
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
                 ليس لديك حساب؟
               </p>
 
@@ -192,28 +192,28 @@ export default function LoginPage() {
 
           {/* LOGIN VISUAL */}
           <aside className="relative hidden overflow-hidden border-r border-slate-100 bg-[#f8fbfe] dark:border-white/10 dark:bg-[#0D1B2E] lg:flex lg:min-h-[calc(100svh-72px)] lg:items-center lg:justify-center lg:px-6 xl:px-12 2xl:px-20">
-          <div className="absolute -right-40 top-8 h-[440px] w-[440px] rounded-full bg-sky-100/60 blur-3xl" />
-          <div className="absolute -left-40 bottom-6 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl" />
+          <div className="absolute -right-40 top-8 h-[440px] w-[440px] rounded-full bg-sky-100/60 blur-3xl dark:bg-sky-500/10" />
+          <div className="absolute -left-40 bottom-6 h-[360px] w-[360px] rounded-full bg-blue-50 blur-3xl dark:bg-blue-500/10" />
 
           <div className="relative w-full max-w-[610px]">
-            <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 xl:text-4xl">
+            <h2 className="max-w-xl text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 dark:text-slate-100 xl:text-4xl">
               أعمالك جاهزة عندما تعود.
             </h2>
 
             <div className="relative mx-auto mt-8 max-w-[420px] xl:mt-12 xl:max-w-[520px]">
-              <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl" />
+              <div className="absolute inset-8 rounded-[3rem] bg-sky-100/70 blur-3xl dark:bg-sky-500/10" />
 
               <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_45px_120px_-55px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-[#102138] dark:shadow-[0_45px_120px_-55px_rgba(0,0,0,0.7)] xl:rounded-[34px] xl:p-7">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-6 dark:border-white/10">
                   <div>
                     <TeachixLogo size="sm" />
 
-                    <h3 className="mt-1 text-xl font-black text-slate-950">
+                    <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">
                       حسابك
                     </h3>
                   </div>
 
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
                     <LockKeyhole className="h-5 w-5" />
                   </div>
                 </div>
@@ -225,8 +225,8 @@ export default function LoginPage() {
                     </div>
 
                     <div className="flex-1">
-                      <div className="h-3 w-28 rounded-full bg-slate-900" />
-                      <div className="mt-3 h-2.5 w-20 rounded-full bg-slate-200" />
+                      <div className="h-3 w-28 rounded-full bg-slate-900 dark:bg-slate-200" />
+                      <div className="mt-3 h-2.5 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
                     </div>
 
                     <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">
@@ -259,11 +259,11 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                      <p className="text-sm font-black text-slate-950">
+                      <p className="text-sm font-black text-slate-950 dark:text-slate-100">
                         مساحة العمل جاهزة
                       </p>
 
-                      <p className="mt-1 text-xs font-bold text-slate-400">
+                      <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
                         ادخل وتابع مباشرة
                       </p>
                     </div>
@@ -288,7 +288,7 @@ function LoginStatus({
 }) {
   return (
     <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-5 py-4 dark:border-white/10 dark:bg-[#102138]">
-      <p className="text-sm font-black text-slate-800">
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-200">
         {title}
       </p>
 
@@ -322,7 +322,7 @@ function AuthInput({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-black text-slate-700">
+      <span className="text-sm font-black text-slate-700 dark:text-slate-200">
         {label}
       </span>
 
@@ -345,7 +345,7 @@ function AuthInput({
             type="button"
             onClick={trailingAction.onClick}
             aria-label={trailingAction.label}
-            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-600"
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-600 dark:text-slate-500"
           >
             {trailingAction.icon}
           </button>

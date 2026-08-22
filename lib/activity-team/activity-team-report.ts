@@ -12,6 +12,7 @@ import type {
 import { SCHOOL_ACTIVITY_TEAM_FIELDS } from "@/lib/activity-team/activity-team-config";
 import { getArabicActivitySupervisorLabel, getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 import { getReportLanguageModeFromUserGender } from "@/lib/report-engine/report-language-mode";
+import { isCurrentSupervisorSignatureForField } from "@/lib/activity-team/activity-team-service";
 
 type ActivityTeamReportInput = {
   assignments: Record<string, string>;
@@ -60,9 +61,12 @@ export function buildSchoolActivityTeamReportSnapshot(
     },
   ];
   const supervisorSignatureByFieldKey = new Map(
-    (input.supervisorSignatures || []).flatMap((signature) =>
-      signature.fieldKeys.map((fieldKey) => [fieldKey, signature] as const),
-    ),
+    SCHOOL_ACTIVITY_TEAM_FIELDS.flatMap((field) => {
+      const signature = (input.supervisorSignatures || []).find((candidate) =>
+        isCurrentSupervisorSignatureForField(candidate, input.assignments, field.key),
+      );
+      return signature ? [[field.key, signature] as const] : [];
+    }),
   );
 
   const payload: SmartReportPayload = {
@@ -173,7 +177,7 @@ export function buildSchoolActivityTeamReportSnapshot(
           cellImages: reportTable.rows.map((row) =>
             reportTable.columns.map((column) =>
               column.key === "signature"
-                ? clean(supervisorSignatureByFieldKey.get(row.id)?.signatureUrl)
+                ? clean(supervisorSignatureByFieldKey.get(row.id as (typeof SCHOOL_ACTIVITY_TEAM_FIELDS)[number]["key"])?.signatureUrl)
                 : "",
             ),
           ),

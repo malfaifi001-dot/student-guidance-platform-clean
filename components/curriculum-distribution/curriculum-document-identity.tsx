@@ -1,4 +1,5 @@
 import { getDesignLogoSrc } from "@/components/report-engine/design-renderers/shared/report-logo";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 type DocumentHeaderProps = {
   title: string;
@@ -79,12 +80,12 @@ export function CurriculumDocumentFooter({
         <div className="curriculum-print-signature">
           <strong>{primaryRoleLabel}</strong>
           <span>{primaryName || ""}</span>
-          {primarySignatureUrl ? <img className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+          {primarySignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
         </div>
         <div className="curriculum-print-signature">
           <strong>مدير المدرسة</strong>
           <span>{principalName || ""}</span>
-          {principalSignatureUrl ? <img className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+          {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
         </div>
       </div>
       <div className="curriculum-print-footer-line" aria-hidden="true" />

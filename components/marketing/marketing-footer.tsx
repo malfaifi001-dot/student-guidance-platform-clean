@@ -10,18 +10,18 @@ export function MarketingFooter() {
           <div className="max-w-md">
             <TeachixLogo />
 
-            <p className="mt-5 text-sm leading-7 text-slate-500">
+            <p className="mt-5 text-sm leading-7 text-slate-500 dark:text-slate-400">
               منصة مدرسية رقمية تساعد فريق المدرسة على إنجاز الأعمال،
               توثيقها، متابعتها، وإصدار تقاريرها من مكان واحد.
             </p>
           </div>
 
           <div>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-black text-slate-950 dark:text-white">
               المنصة
             </h3>
 
-            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500">
+            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500 dark:text-slate-400">
               <Link href="/#users" className="block hover:text-sky-600">
                 لمن المنصة؟
               </Link>
@@ -41,11 +41,11 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-black text-slate-950 dark:text-white">
               معلومات
             </h3>
 
-            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500">
+            <div className="mt-5 space-y-3 text-sm font-bold text-slate-500 dark:text-slate-400">
               <Link href="/services" className="block hover:text-sky-600">
                 خدمات Teachix
               </Link>
