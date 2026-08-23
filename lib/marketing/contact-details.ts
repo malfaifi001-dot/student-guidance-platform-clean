@@ -3,3 +3,12 @@ export const TEACHIX_WHATSAPP_DISPLAY_NUMBER = "0550932995";
 export const TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER = "966550932995";
 export const TEACHIX_WHATSAPP_URL =
   `https://wa.me/${TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER}`;
+
+export const TEACHIX_SUPPORT_WHATSAPP_MESSAGE =
+  "السلام عليكم، أحتاج مساعدة من خدمة العملاء.";
+
+export function buildTeachixSupportWhatsAppUrl(
+  message = TEACHIX_SUPPORT_WHATSAPP_MESSAGE,
+) {
+  return `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
+}

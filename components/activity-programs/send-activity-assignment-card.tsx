@@ -4,16 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
-  Copy,
   ExternalLink,
   Loader2,
-  MessageCircle,
   Send,
   UserRound,
   X,
 } from "lucide-react";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { ActivityAssignmentActions } from "@/components/activity-programs/activity-assignment-actions";
 
 type Props = {
   domainSlug: string;
@@ -31,6 +30,7 @@ type AssignmentSummary = {
   submittedAt: string | null;
   publicUrl: string;
   whatsappUrl: string;
+  caseEntryId?: string | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -65,7 +65,6 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
   const [assignment, setAssignment] = useState<AssignmentSummary | null>(null);
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -114,12 +113,6 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
   async function openExistingAssignments() {
     setTab("existing");
     await loadAssignments();
-  }
-
-  async function copyLink(value: string, id: string) {
-    await navigator.clipboard.writeText(value);
-    setCopied(id);
-    window.setTimeout(() => setCopied(""), 1800);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -314,15 +307,12 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
                       <div className="mt-3 break-all rounded-2xl bg-white px-4 py-3 text-left text-xs font-bold text-slate-600" dir="ltr">
                         {assignment.publicUrl}
                       </div>
-                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                        <a href={assignment.whatsappUrl} target="_blank" rel="noreferrer" className="action-primary">
-                          <MessageCircle className="h-4 w-4" />
-                          إرسال عبر واتساب
-                        </a>
-                        <button type="button" onClick={() => copyLink(assignment.publicUrl, assignment.id)} className="action-secondary">
-                          <Copy className="h-4 w-4" />
-                          {copied === assignment.id ? "تم النسخ" : "نسخ الرابط"}
-                        </button>
+                      <div className="mt-4 border-t border-emerald-100 pt-4">
+                        <ActivityAssignmentActions
+                          assignment={assignment}
+                          onDeleted={() => setAssignment(null)}
+                          onFeedback={setError}
+                        />
                       </div>
                     </div>
                   ) : null}
@@ -362,16 +352,14 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
                         </div>
                         <span className="text-xs font-black text-slate-400">{item.domainTitle}</span>
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                        <a href={item.publicUrl} target="_blank" rel="noreferrer" className="action-secondary">
-                          <ExternalLink className="h-4 w-4" /> فتح الرابط
-                        </a>
-                        <a href={item.whatsappUrl} target="_blank" rel="noreferrer" className="action-primary">
-                          <MessageCircle className="h-4 w-4" /> واتساب
-                        </a>
-                        <button type="button" onClick={() => copyLink(item.publicUrl, item.id)} className="action-secondary">
-                          <Copy className="h-4 w-4" /> {copied === item.id ? "تم النسخ" : "نسخ"}
-                        </button>
+                      <div className="mt-4 border-t border-slate-100 pt-4">
+                        <ActivityAssignmentActions
+                          assignment={item}
+                          onDeleted={(assignmentId) =>
+                            setAssignments((current) => current.filter((candidate) => candidate.id !== assignmentId))
+                          }
+                          onFeedback={setError}
+                        />
                       </div>
                     </article>
                   )) : null}
@@ -390,11 +378,6 @@ export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
       <style jsx>{`
         .input { width: 100%; border-radius: 1rem; border: 1px solid rgb(226 232 240); background: white; color: rgb(51 65 85); padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 700; outline: none; transition: 150ms; }
         .input:focus { border-color: rgb(125 211 252); box-shadow: 0 0 0 4px rgb(240 249 255); }
-        .action-primary, .action-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 1rem; padding: 0.625rem 1rem; font-size: 0.75rem; font-weight: 900; transition: 150ms; }
-        .action-primary { background: rgb(5 150 105); color: white; }
-        .action-primary:hover { background: rgb(4 120 87); }
-        .action-secondary { border: 1px solid rgb(226 232 240); background: white; color: rgb(51 65 85); }
-        .action-secondary:hover { background: rgb(248 250 252); }
       `}</style>
     </>
   );

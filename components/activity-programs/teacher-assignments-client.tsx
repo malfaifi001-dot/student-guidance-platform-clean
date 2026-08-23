@@ -5,21 +5,17 @@ import Link from "next/link";
 import {
   CheckCircle2,
   Clock3,
-  Copy,
-  ExternalLink,
   Eye,
   FileText,
   ImageIcon,
-  MessageCircle,
   PencilLine,
   RefreshCw,
   RotateCcw,
   Save,
-  Trash2,
   X,
 } from "lucide-react";
+import { ActivityAssignmentActions } from "@/components/activity-programs/activity-assignment-actions";
 import { SignatureImage } from "@/components/signatures/signature-image";
-import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 type FieldOption = {
   id: string;
@@ -286,8 +282,6 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
   const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
   const [returnReason, setReturnReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Assignment | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const stats = useMemo(() => {
     return {
@@ -312,38 +306,6 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
       }
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function copy(value: string) {
-    await navigator.clipboard.writeText(value);
-    setFeedback("تم نسخ الرابط.");
-    window.setTimeout(() => setFeedback(""), 2200);
-  }
-
-  async function deleteAssignment() {
-    if (!deleteTarget || deleting) return;
-
-    setDeleting(true);
-    setFeedback("");
-
-    try {
-      const response = await fetch(
-        `/api/dashboard/activity-leader/teacher-assignments/${deleteTarget.id}`,
-        { method: "DELETE" },
-      );
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        setFeedback(result.error || "تعذر حذف التكليف.");
-        return;
-      }
-
-      setAssignments((current) => current.filter((item) => item.id !== deleteTarget.id));
-      setDeleteTarget(null);
-      setFeedback(result.message || "تم حذف التكليف بنجاح.");
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -464,7 +426,6 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
         {assignments.map((assignment) => {
           const canReview = assignment.status === "SUBMITTED" && !assignment.caseEntryId;
           const canEdit = !assignment.caseEntryId && assignment.status !== "APPROVED";
-          const canDelete = !assignment.caseEntryId && assignment.status !== "APPROVED";
           const hasSubmission = Object.keys(assignment.submittedValues || {}).length > 0;
           const displayTitle = getDisplayTitle(assignment);
 
@@ -530,32 +491,23 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                     <button
                       type="button"
                       onClick={() => openModal(assignment, "view")}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                      عرض
-                    </button>
-                  ) : (
-                    <a
-                      href={assignment.publicUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="فتح الرابط"
-                      aria-label="فتح الرابط"
+                      title="عرض النشاط"
+                      aria-label="عرض النشاط"
                       className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  ) : null}
 
                   {canReview ? (
                     <button
                       type="button"
                       onClick={() => openModal(assignment, "return")}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-black text-amber-800 transition hover:bg-amber-100"
+                      title="إرجاع للمعلم"
+                      aria-label="إرجاع للمعلم"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-100"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      إرجاع
                     </button>
                   ) : null}
 
@@ -563,10 +515,11 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                     <button
                       type="button"
                       onClick={() => openModal(assignment, "edit")}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                      title="تعديل النشاط"
+                      aria-label="تعديل النشاط"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
                     >
                       <PencilLine className="h-4 w-4" />
-                      تعديل
                     </button>
                   ) : null}
 
@@ -574,63 +527,34 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                     <button
                       type="button"
                       onClick={() => reviewAssignment(assignment.id, "APPROVE")}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
+                      title="اعتماد النشاط"
+                      aria-label="اعتماد النشاط"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-700 text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100"
                     >
                       <CheckCircle2 className="h-4 w-4" />
-                      اعتماد
                     </button>
-                  ) : null}
-
-                  {!assignment.caseEntryId && assignment.status !== "SUBMITTED" ? (
-                    <>
-                      <a
-                        href={assignment.whatsappUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="واتساب"
-                        aria-label="فتح واتساب"
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </a>
-
-                      <button
-                        type="button"
-                        onClick={() => copy(assignment.publicUrl)}
-                        title="نسخ الرابط"
-                        aria-label="نسخ الرابط"
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </>
                   ) : null}
 
                   {assignment.caseEntryId ? (
                     <Link
                       href={`/dashboard/cases/${assignment.caseEntryId}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-800"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-700 text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
+                      title="فتح الحالة"
+                      aria-label="فتح الحالة"
                     >
                       <FileText className="h-4 w-4" />
-                      الحالة
                     </Link>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (canDelete) {
-                        setDeleteTarget(assignment);
-                      } else {
-                        setFeedback("لا يمكن حذف التكليف بعد اعتماده أو ربطه بحالة رسمية.");
-                      }
-                    }}
-                    title="حذف التكليف"
-                    aria-label="حذف التكليف"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <ActivityAssignmentActions
+                    assignment={assignment}
+                    showOpenLink={!hasSubmission}
+                    showShareActions={!assignment.caseEntryId && assignment.status !== "SUBMITTED"}
+                    onDeleted={(assignmentId) =>
+                      setAssignments((current) => current.filter((item) => item.id !== assignmentId))
+                    }
+                    onFeedback={setFeedback}
+                  />
                   </div>
                 </div>
               </div>
@@ -664,18 +588,6 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
         />
       ) : null}
 
-      <SmartActionModal
-        open={Boolean(deleteTarget)}
-        title="حذف التكليف"
-        description="هل أنت متأكد من حذف هذا التكليف؟ لا يمكن التراجع عن هذا الإجراء."
-        variant="danger"
-        confirmLabel="حذف"
-        cancelLabel="إلغاء"
-        loading={deleting}
-        portal
-        onClose={() => !deleting && setDeleteTarget(null)}
-        onConfirm={() => void deleteAssignment()}
-      />
     </main>
   );
 }

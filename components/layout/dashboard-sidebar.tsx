@@ -240,6 +240,11 @@ const counselorAccountLinks: SidebarLinkItem[] = [
     href: "/dashboard/settings/school",
     icon: School,
   },
+  {
+    label: "الدعم والمساعدة",
+    href: "/dashboard/support",
+    icon: MessageCircle,
+  },
 ];
 
 /* ============================================================
@@ -351,6 +356,11 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
     href: "/dashboard/settings/school",
     icon: School,
   },
+  {
+    label: "الدعم والمساعدة",
+    href: "/dashboard/support",
+    icon: MessageCircle,
+  },
 ];
 
 /* ============================================================
@@ -460,6 +470,11 @@ const teacherAccountLinks: SidebarLinkItem[] = [
     href: "/dashboard/settings/school",
     icon: School,
   },
+  {
+    label: "الدعم والمساعدة",
+    href: "/dashboard/support",
+    icon: MessageCircle,
+  },
 ];
 
 /* ============================================================
@@ -539,6 +554,11 @@ const principalAccountLinks: SidebarLinkItem[] = [
     label: "إعدادات المدرسة",
     href: "/dashboard/settings/school",
     icon: School,
+  },
+  {
+    label: "الدعم والمساعدة",
+    href: "/dashboard/support",
+    icon: MessageCircle,
   },
 ];
 
@@ -1153,7 +1173,8 @@ function ActivityLeaderSidebar({
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
-          pathname.startsWith("/dashboard/settings")
+          pathname.startsWith("/dashboard/settings") ||
+          pathname.startsWith("/dashboard/support")
         }
         collapsed={collapsed}
       >
@@ -1249,7 +1270,8 @@ function CounselorSidebar({
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
-          pathname.startsWith("/dashboard/settings")
+          pathname.startsWith("/dashboard/settings") ||
+          pathname.startsWith("/dashboard/support")
         }
         collapsed={collapsed}
       >
@@ -1345,7 +1367,8 @@ function TeacherSidebar({
         defaultOpen={
           pathname.startsWith("/dashboard/subscription") ||
           pathname.startsWith("/dashboard/account") ||
-          pathname.startsWith("/dashboard/settings")
+          pathname.startsWith("/dashboard/settings") ||
+          pathname.startsWith("/dashboard/support")
         }
         collapsed={collapsed}
       >
@@ -1444,7 +1467,8 @@ function PrincipalSidebar({
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
-          pathname.startsWith("/dashboard/settings")
+          pathname.startsWith("/dashboard/settings") ||
+          pathname.startsWith("/dashboard/support")
         }
         collapsed={collapsed}
       >

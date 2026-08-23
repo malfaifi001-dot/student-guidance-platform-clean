@@ -12,6 +12,7 @@ import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authentic
 import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
 import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-bottom-nav";
 import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
+import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
 
 export const metadata: Metadata = {
   robots: {
@@ -94,6 +95,8 @@ export default async function DashboardLayout({
             <div className={`mx-auto w-full min-w-0 max-w-[1680px] px-2.5 ${MOBILE_BOTTOM_CLEARANCE_CLASS} pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5`}>
               {children}
             </div>
+
+            <FloatingWhatsAppSupport />
           </main>
         </div>
       </div>
