@@ -75,7 +75,7 @@ function MoePage({
       <main className="moe24-page-body">{children}</main>
 
       <footer className="moe24-page-footer">
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix | الاسهل والاشمل</span>
         <span>{sectionLabel}</span>
         <PageNumber />
       </footer>

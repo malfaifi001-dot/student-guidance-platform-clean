@@ -85,6 +85,24 @@ export async function GET() {
     }),
   ]);
 
+  const paidInvoiceTransaction = subscription
+    ? await prisma.paymentTransaction.findFirst({
+        where: {
+          subscriptionId: subscription.id,
+          status: "PAID",
+          invoice: {
+            isNot: null,
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        select: {
+          id: true,
+        },
+      })
+    : null;
+
   const role = current.user.role;
   const visiblePlans = plans.filter(
     (plan) =>
@@ -155,6 +173,7 @@ export async function GET() {
             subscription.status,
             subscription.endsAt,
           ),
+          invoiceTransactionId: paidInvoiceTransaction?.id || null,
         }
       : null,
   });

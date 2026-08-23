@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
 
       return redirectTo(
         request,
-        `/dashboard/checkout/transactions/${transaction.id}?payment=success`
+        `/dashboard/plans?payment=success&transactionId=${encodeURIComponent(transaction.id)}`
       );
     }
 
@@ -200,13 +200,13 @@ export async function GET(request: NextRequest) {
 
       return redirectTo(
         request,
-        `/dashboard/checkout/transactions/${transaction.id}?payment=failed`
+        `/dashboard/plans?payment=failed&transactionId=${encodeURIComponent(transaction.id)}`
       );
     }
 
     return redirectTo(
       request,
-      `/dashboard/checkout/transactions/${transaction.id}?payment=pending`
+      `/dashboard/plans?payment=pending&transactionId=${encodeURIComponent(transaction.id)}`
     );
   } catch (error) {
     if (

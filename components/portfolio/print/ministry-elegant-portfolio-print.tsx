@@ -92,7 +92,7 @@ function PageShell({
       <PortfolioPageWave />
 
       <div className="portfolio-page-footer">
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix | الاسهل والاشمل</span>
         <span>{pageLabel}</span>
       </div>
     </section>
@@ -1910,7 +1910,7 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
               visionLogoSrc="/uploads/school-logos/VISION2030.png"
               tone="light"
             />
-            <div className="portfolio-title-pill">منصة التوجيه الطلابي</div>
+            <div className="portfolio-title-pill">Teachix | الاسهل والاشمل</div>
             <h1 className="portfolio-main-title">{data.portfolio.title}</h1>
             <p className="portfolio-subtitle">
               {data.owner.jobTitle} · {data.portfolio.term}

@@ -58,7 +58,7 @@ function HorizonPage({
       <main className="hzn-body">{children}</main>
 
       <footer className="hzn-footer">
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix | الاسهل والاشمل</span>
         <span>{sectionLabel}</span>
         <HorizonPageNumber />
       </footer>

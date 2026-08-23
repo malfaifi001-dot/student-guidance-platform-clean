@@ -59,7 +59,7 @@ function AtlasPage({
       <main className="atlas-body">{children}</main>
 
       <footer className="atlas-footer">
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix | الاسهل والاشمل</span>
         <span>{sectionLabel}</span>
         <PageNumber />
       </footer>

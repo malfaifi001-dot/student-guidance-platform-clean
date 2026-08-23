@@ -48,6 +48,9 @@ export function PlanPaymentModal({
   onCouponCodeChange,
   onApplyCoupon,
   onRemoveCoupon,
+  isFreeActivation = false,
+  isActivatingFreePlan = false,
+  onActivateFreePlan,
   onClose,
 }: {
   planName: string;
@@ -69,6 +72,9 @@ export function PlanPaymentModal({
   onCouponCodeChange: (value: string) => void;
   onApplyCoupon: () => void;
   onRemoveCoupon: () => void;
+  isFreeActivation?: boolean;
+  isActivatingFreePlan?: boolean;
+  onActivateFreePlan?: () => void;
   onClose: () => void;
 }) {
   const hasDiscount = Boolean(
@@ -128,7 +134,7 @@ export function PlanPaymentModal({
                 className="h-11 min-w-0 flex-1 rounded-2xl border border-white/30 bg-white px-3 text-sm font-black uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-200 focus:ring-2 focus:ring-cyan-200/40 disabled:bg-sky-50"
               />
               {coupon ? (
-                <button type="button" onClick={onRemoveCoupon} className="h-11 shrink-0 rounded-2xl border border-white/30 bg-white/15 px-4 text-xs font-black text-white transition hover:bg-white/25">
+                <button type="button" onClick={onRemoveCoupon} disabled={couponLoading || isActivatingFreePlan} className="h-11 shrink-0 rounded-2xl border border-white/30 bg-white/15 px-4 text-xs font-black text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60">
                   إزالة
                 </button>
               ) : (
@@ -200,7 +206,35 @@ export function PlanPaymentModal({
             </div>
           ) : null}
 
-          {mode === "online" ? (
+          {isFreeActivation ? (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+              {isActivatingFreePlan ? (
+                <>
+                  <Loader2 className="mx-auto h-7 w-7 animate-spin text-emerald-600" />
+                  <p className="mt-3 text-sm font-black text-emerald-800">
+                    جاري تفعيل الباقة والتحقق من الكوبون...
+                  </p>
+                </>
+              ) : errorMessage ? (
+                <>
+                  <p className="text-sm font-black text-rose-700">تعذر تفعيل الباقة.</p>
+                  {onActivateFreePlan ? (
+                    <button
+                      type="button"
+                      onClick={onActivateFreePlan}
+                      className="mt-4 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-sm font-black text-emerald-800">
+                  تم التحقق من الكوبون. جاري تفعيل الباقة...
+                </p>
+              )}
+            </div>
+          ) : mode === "online" ? (
             <>
               {isCreatingTransaction ? (
                 <div className="mt-6 grid min-h-48 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-center">

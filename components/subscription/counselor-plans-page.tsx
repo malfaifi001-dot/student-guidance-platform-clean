@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, Loader2, ShieldCheck, X } from "lucide-react";
+import { Check, CheckCircle2, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { PlanPaymentModal } from "@/components/payments/plan-payment-modal";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import {
+  TeachixInvoiceDocument,
+  type TeachixInvoiceData,
+} from "@/components/payments/teachix-invoice-document";
 import {
   formatSubscriptionPeriod,
   getBillingCycleLabel,
@@ -56,6 +61,7 @@ type PlansPayload = {
     endsAt: string | null;
     remainingDays: number | null;
     usable: boolean;
+    invoiceTransactionId: string | null;
   } | null;
 };
 
@@ -85,6 +91,13 @@ type CheckoutTransaction = {
   publicKey: string;
   planId: string;
   billingCycle: BillingCycle;
+};
+
+type PaymentReturnFeedback = {
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  description: string;
+  transactionId?: string;
 };
 
 type BankTransferFields = {
@@ -180,6 +193,13 @@ export function CounselorPlansPage() {
   const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
+  const [paymentReturnFeedback, setPaymentReturnFeedback] =
+    useState<PaymentReturnFeedback | null>(null);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [invoicePreviewData, setInvoicePreviewData] =
+    useState<TeachixInvoiceData | null>(null);
+  const [invoicePreviewLoading, setInvoicePreviewLoading] = useState(false);
+  const [invoicePreviewError, setInvoicePreviewError] = useState("");
   const plansViewTracked = useRef(false);
 
   async function loadPlans() {
@@ -213,11 +233,126 @@ export function CounselorPlansPage() {
     }
   }
 
+  async function openInvoicePreview(transactionId: string) {
+    setInvoicePreviewOpen(true);
+    setInvoicePreviewLoading(true);
+    setInvoicePreviewError("");
+    setInvoicePreviewData(null);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/payments/${encodeURIComponent(transactionId)}/invoice`,
+        { cache: "no-store" },
+      );
+      const result = await readApiResponse(response);
+
+      if (!response.ok || !result.ok || !result.invoice || !result.transaction) {
+        throw new Error(result.error || "تعذر تحميل الفاتورة.");
+      }
+
+      setInvoicePreviewData({
+        invoice: result.invoice,
+        transaction: result.transaction,
+      });
+    } catch (error) {
+      setInvoicePreviewError(
+        error instanceof Error ? error.message : "تعذر تحميل الفاتورة.",
+      );
+    } finally {
+      setInvoicePreviewLoading(false);
+    }
+  }
+
   useEffect(() => {
     // Hydrate URL-only notice state after the client mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEntryNotice(getEntryNoticeFromUrl());
-    void loadPlans();
+
+    async function hydratePaymentReturn() {
+      const params = new URLSearchParams(window.location.search);
+      const payment = params.get("payment");
+      const transactionId = params.get("transactionId");
+
+      if (payment === "success" && transactionId) {
+        try {
+          const response = await fetch(
+            `/api/dashboard/payments/${encodeURIComponent(transactionId)}/invoice`,
+            { cache: "no-store" },
+          );
+          const result = await readApiResponse(response);
+
+          if (!response.ok || !result.ok || !result.invoice) {
+            throw new Error(result.error || "تعذر التحقق من الفاتورة.");
+          }
+
+          const invoice = result.invoice as {
+            invoiceNumber?: string;
+            amounts?: { totalAmount?: number; currency?: string };
+            buyer?: { schoolName?: string };
+          };
+          const transaction = result.transaction as {
+            method?: string;
+          };
+
+          await loadPlans();
+          setPaymentReturnFeedback({
+            type: "success",
+            title: "تم الدفع وتفعيل الباقة بنجاح",
+            description: [
+              invoice.buyer?.schoolName,
+              invoice.invoiceNumber
+                ? `رقم الفاتورة: ${invoice.invoiceNumber}`
+                : null,
+              invoice.amounts?.totalAmount !== undefined
+                ? `المبلغ: ${formatPrice(invoice.amounts.totalAmount)} ${invoice.amounts.currency || "ريال"}`
+                : null,
+              transaction.method ? `طريقة الدفع: ${transaction.method}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            transactionId,
+          });
+        } catch (error) {
+          setPaymentReturnFeedback({
+            type: "error",
+            title: "تعذر تأكيد عملية الدفع",
+            description:
+              error instanceof Error
+                ? error.message
+                : "تحقق من حالة العملية أو حاول تحديث الصفحة.",
+          });
+        }
+      } else {
+        void loadPlans();
+        if (payment === "failed" || payment === "canceled") {
+          setPaymentReturnFeedback({
+            type: "error",
+            title: "لم تكتمل عملية الدفع",
+            description: "لم يتم تفعيل الباقة. يمكنك المحاولة مرة أخرى من صفحة الباقات.",
+          });
+        } else if (payment === "pending") {
+          setPaymentReturnFeedback({
+            type: "info",
+            title: "عملية الدفع قيد المعالجة",
+            description: "ستظهر حالة الباقة بعد تأكيد العملية من مزود الدفع.",
+          });
+        } else if (payment && payment !== "success") {
+          setPaymentReturnFeedback({
+            type: "error",
+            title: "تعذر إتمام عملية الدفع",
+            description: "تعذر التحقق من مرجع العملية. حاول بدء الدفع مرة أخرى.",
+          });
+        }
+      }
+
+      if (payment) {
+        router.replace("/dashboard/plans", { scroll: false });
+      }
+    }
+
+    void hydratePaymentReturn();
+    // The plans page intentionally hydrates URL state once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visiblePlans = useMemo(
@@ -270,6 +405,7 @@ export function CounselorPlansPage() {
     setCouponLoading(true);
     setCouponError("");
     setCheckoutTransaction(null);
+    let couponValidated = false;
     try {
       const response = await fetch(
         "/api/dashboard/promotions/validate-coupon",
@@ -285,16 +421,20 @@ export function CounselorPlansPage() {
       );
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || "الكوبون غير صالح.");
-      setCouponQuote(result.quote as CouponQuote);
+      const quote = result.quote as CouponQuote;
+      setCouponQuote(quote);
+      couponValidated = true;
       const appliedCouponCode = String(
-        result.quote?.couponCode || couponCode,
+        quote?.couponCode || couponCode,
       ).toUpperCase();
       setCouponCode(appliedCouponCode);
-      if (paymentModalOpen && Number(result.quote?.finalAmount) > 0) {
+      if (Number(quote?.finalAmount) <= 0) {
+        await activateFreePlan(appliedCouponCode);
+      } else if (paymentModalOpen) {
         await openOnlineCheckout(appliedCouponCode);
       }
     } catch (error) {
-      setCouponQuote(null);
+      if (!couponValidated) setCouponQuote(null);
       setCouponError(
         error instanceof Error ? error.message : "الكوبون غير صالح.",
       );
@@ -303,11 +443,16 @@ export function CounselorPlansPage() {
     }
   }
 
-  async function activateFreePlan() {
-    if (!selectedPlan || !selectedPlanIsFree) return;
+  async function activateFreePlan(couponCodeOverride?: string) {
+    if (!selectedPlan) return;
+
+    const activationCouponCode =
+      couponCodeOverride || couponQuote?.couponCode || "";
+    if (!activationCouponCode && !selectedPlanIsFree) return;
 
     setActivatingFreePlan(true);
     setMessage(null);
+    setCheckoutError("");
 
     try {
       const response = await fetch("/api/dashboard/plans", {
@@ -320,7 +465,7 @@ export function CounselorPlansPage() {
           phone: "",
           receiptUrl: "",
           note: "",
-          couponCode: couponQuote?.couponCode || "",
+          couponCode: activationCouponCode,
         }),
       });
       const result = await readApiResponse(response);
@@ -331,6 +476,11 @@ export function CounselorPlansPage() {
 
       await loadPlans();
       router.refresh();
+      setPaymentModalOpen(false);
+      setCheckoutTransaction(null);
+      setCouponQuote(null);
+      setCouponCode("");
+      setCouponError("");
       setSelectedPlan(null);
       trackAnalyticsEvent(ANALYTICS_EVENTS.SUBSCRIPTION_ACTIVATED, {
         plan_slug: selectedPlan.slug,
@@ -338,13 +488,15 @@ export function CounselorPlansPage() {
       });
       setMessage({
         type: "success",
-        text: result.message || "تم تفعيل الباقة بنجاح.",
+        text: activationCouponCode
+          ? "تم تطبيق الكوبون وتفعيل الباقة بنجاح."
+          : result.message || "تم تفعيل الباقة بنجاح.",
       });
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "تعذر تفعيل الباقة.",
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : "تعذر تفعيل الباقة.";
+      setCheckoutError(errorMessage);
+      setMessage({ type: "error", text: errorMessage });
     } finally {
       setActivatingFreePlan(false);
     }
@@ -682,18 +834,42 @@ export function CounselorPlansPage() {
 
               <button
                 type="button"
-                onClick={() => selectPlan(plan)}
-                disabled={active}
+                onClick={() => {
+                  if (active && data?.subscription?.invoiceTransactionId) {
+                    void openInvoicePreview(
+                      data.subscription.invoiceTransactionId,
+                    );
+                    return;
+                  }
+
+                  if (!active) {
+                    selectPlan(plan);
+                  }
+                }}
+                disabled={active && !data?.subscription?.invoiceTransactionId}
                 className={[
                   "mt-4 h-11 rounded-2xl text-sm font-black transition",
                   active
-                    ? "cursor-default bg-emerald-100 text-emerald-700"
+                    ? data?.subscription?.invoiceTransactionId
+                      ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                      : "cursor-default bg-emerald-100 text-emerald-700"
                     : selected
                       ? "bg-sky-700 text-white"
                       : "bg-slate-950 text-white hover:bg-slate-800",
                 ].join(" ")}
               >
-                {active ? "الباقة الحالية" : "اختيار الباقة"}
+                {active ? (
+                  data?.subscription?.invoiceTransactionId ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      الفاتورة
+                    </span>
+                  ) : (
+                    "الباقة الحالية"
+                  )
+                ) : (
+                  "اختيار الباقة"
+                )}
               </button>
             </article>
           );
@@ -737,7 +913,7 @@ export function CounselorPlansPage() {
                   ? () => void activateFreePlan()
                   : () => void openOnlineCheckout()
               }
-              disabled={activatingFreePlan || checkoutLoading}
+              disabled={activatingFreePlan || checkoutLoading || couponLoading}
               className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
             >
               {activatingFreePlan || checkoutLoading ? (
@@ -761,7 +937,7 @@ export function CounselorPlansPage() {
         </section>
       ) : null}
 
-      {paymentModalOpen && selectedPlan && !selectedPlanIsFree ? (
+      {paymentModalOpen && selectedPlan ? (
         <PlanPaymentModal
           planName={selectedPlan.name}
           billingLabel={getBillingLabel(billingCycle)}
@@ -799,9 +975,84 @@ export function CounselorPlansPage() {
             setCheckoutTransaction(null);
             if (paymentMode === "online") void openOnlineCheckout("");
           }}
+          isFreeActivation={selectedPlanIsFree}
+          isActivatingFreePlan={activatingFreePlan}
+          onActivateFreePlan={() => void activateFreePlan()}
           onClose={() => setPaymentModalOpen(false)}
         />
       ) : null}
+
+      {invoicePreviewOpen ? (
+        <div
+          className="fixed inset-0 z-[998] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="معاينة الفاتورة"
+          dir="rtl"
+        >
+          <section className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-slate-100 shadow-2xl">
+            <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-7">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">معاينة الفاتورة</h2>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  فاتورة Teachix الخاصة بالاشتراك الحالي
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setInvoicePreviewOpen(false);
+                  setInvoicePreviewData(null);
+                  setInvoicePreviewError("");
+                }}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                إغلاق
+              </button>
+            </header>
+
+            <div className="min-h-0 overflow-y-auto p-3 sm:p-6">
+              {invoicePreviewData ? (
+                <TeachixInvoiceDocument data={invoicePreviewData} />
+              ) : invoicePreviewLoading ? (
+                <div className="grid min-h-80 place-items-center rounded-3xl bg-white">
+                  <Loader2 className="h-8 w-8 animate-spin text-sky-700" />
+                </div>
+              ) : (
+                <div className="grid min-h-80 place-items-center rounded-3xl bg-white p-8 text-center">
+                  <p className="font-black text-rose-700">
+                    {invoicePreviewError || "تعذر تحميل الفاتورة."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      <SmartFeedbackModal
+        open={Boolean(paymentReturnFeedback)}
+        type={paymentReturnFeedback?.type || "info"}
+        title={paymentReturnFeedback?.title || "حالة الدفع"}
+        description={paymentReturnFeedback?.description || ""}
+        primaryActionLabel={
+          paymentReturnFeedback?.transactionId
+            ? "معاينة الفاتورة"
+            : "حسنًا"
+        }
+        secondaryActionLabel={paymentReturnFeedback?.transactionId ? "إغلاق" : undefined}
+        onPrimaryAction={() => {
+          const transactionId = paymentReturnFeedback?.transactionId;
+          setPaymentReturnFeedback(null);
+          if (transactionId) {
+            router.push(
+              `/dashboard/payments/invoices/${encodeURIComponent(transactionId)}`,
+            );
+          }
+        }}
+        onSecondaryAction={() => setPaymentReturnFeedback(null)}
+        onClose={() => setPaymentReturnFeedback(null)}
+      />
     </main>
   );
 }

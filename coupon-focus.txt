@@ -1,0 +1,599 @@
+
+============================================================
+FILE: components\subscription\counselor-plans-page.tsx
+LINES: 230 - 410
+============================================================
+ 230: 
+ 231:   const selectedPrice = selectedPlan
+ 232:     ? selectedPlan.pricing?.pricingReason === "AUTOMATIC_PROMOTION" ||
+ 233:       selectedPlan.pricing?.pricingReason === "MANUAL_OFFER"
+ 234:       ? selectedPlan.pricing.finalAmount
+ 235:       : getPlanPrice(selectedPlan, billingCycle)
+ 236:     : 0;
+ 237:   const selectedFinalPrice = couponQuote?.finalAmount ?? selectedPrice;
+ 238:   const selectedPlanIsFree = Boolean(selectedPlan && selectedFinalPrice <= 0);
+ 239: 
+ 240:   function selectPlan(plan: CounselorPlan) {
+ 241:     trackAnalyticsEvent(ANALYTICS_EVENTS.SELECT_ITEM, {
+ 242:       plan_slug: plan.slug,
+ 243:     });
+ 244:     setSelectedPlan(plan);
+ 245:     setBillingCycle(plan.commercialType === "YEAR" ? "yearly" : "monthly");
+ 246:     setMessage(null);
+ 247:     setCheckoutError("");
+ 248:     setCheckoutTransaction(null);
+ 249:     setPaymentMode("online");
+ 250:     setCouponCode("");
+ 251:     setCouponQuote(null);
+ 252:     setCouponError("");
+ 253:     document.getElementById("selected-plan-summary")?.scrollIntoView({
+ 254:       behavior: "smooth",
+ 255:       block: "nearest",
+ 256:     });
+ 257:   }
+ 258: 
+ 259:   function changeBillingCycle(nextCycle: BillingCycle) {
+ 260:     setBillingCycle(nextCycle);
+ 261:     setCheckoutTransaction(null);
+ 262:     setCheckoutError("");
+ 263:     setCouponCode("");
+ 264:     setCouponQuote(null);
+ 265:     setCouponError("");
+ 266:   }
+ 267: 
+ 268:   async function applyCoupon() {
+ 269:     if (!selectedPlan) return;
+ 270:     setCouponLoading(true);
+ 271:     setCouponError("");
+ 272:     setCheckoutTransaction(null);
+ 273:     try {
+ 274:       const response = await fetch(
+ 275:         "/api/dashboard/promotions/validate-coupon",
+ 276:         {
+ 277:           method: "POST",
+ 278:           headers: { "Content-Type": "application/json" },
+ 279:           body: JSON.stringify({
+ 280:             planId: selectedPlan.id,
+ 281:             billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+ 282:             couponCode,
+ 283:           }),
+ 284:         },
+ 285:       );
+ 286:       const result = await readApiResponse(response);
+ 287:       if (!response.ok) throw new Error(result.error || "الكوبون غير صالح.");
+ 288:       setCouponQuote(result.quote as CouponQuote);
+ 289:       const appliedCouponCode = String(
+ 290:         result.quote?.couponCode || couponCode,
+ 291:       ).toUpperCase();
+ 292:       setCouponCode(appliedCouponCode);
+ 293:       if (paymentModalOpen && Number(result.quote?.finalAmount) > 0) {
+ 294:         await openOnlineCheckout(appliedCouponCode);
+ 295:       }
+ 296:     } catch (error) {
+ 297:       setCouponQuote(null);
+ 298:       setCouponError(
+ 299:         error instanceof Error ? error.message : "الكوبون غير صالح.",
+ 300:       );
+ 301:     } finally {
+ 302:       setCouponLoading(false);
+ 303:     }
+ 304:   }
+ 305: 
+ 306:   async function activateFreePlan() {
+ 307:     if (!selectedPlan || !selectedPlanIsFree) return;
+ 308: 
+ 309:     setActivatingFreePlan(true);
+ 310:     setMessage(null);
+ 311: 
+ 312:     try {
+ 313:       const response = await fetch("/api/dashboard/plans", {
+ 314:         method: "POST",
+ 315:         headers: { "Content-Type": "application/json" },
+ 316:         body: JSON.stringify({
+ 317:           planId: selectedPlan.id,
+ 318:           billingCycle,
+ 319:           senderName: "",
+ 320:           phone: "",
+ 321:           receiptUrl: "",
+ 322:           note: "",
+ 323:           couponCode: couponQuote?.couponCode || "",
+ 324:         }),
+ 325:       });
+ 326:       const result = await readApiResponse(response);
+ 327: 
+ 328:       if (!response.ok) {
+ 329:         throw new Error(result.error || "تعذر تفعيل الباقة.");
+ 330:       }
+ 331: 
+ 332:       await loadPlans();
+ 333:       router.refresh();
+ 334:       setSelectedPlan(null);
+ 335:       trackAnalyticsEvent(ANALYTICS_EVENTS.SUBSCRIPTION_ACTIVATED, {
+ 336:         plan_slug: selectedPlan.slug,
+ 337:         activation_method: "free",
+ 338:       });
+ 339:       setMessage({
+ 340:         type: "success",
+ 341:         text: result.message || "تم تفعيل الباقة بنجاح.",
+ 342:       });
+ 343:     } catch (error) {
+ 344:       setMessage({
+ 345:         type: "error",
+ 346:         text: error instanceof Error ? error.message : "تعذر تفعيل الباقة.",
+ 347:       });
+ 348:     } finally {
+ 349:       setActivatingFreePlan(false);
+ 350:     }
+ 351:   }
+ 352: 
+ 353:   async function openOnlineCheckout(couponCodeOverride?: string) {
+ 354:     if (!selectedPlan || selectedPlanIsFree) return;
+ 355: 
+ 356:     setPaymentModalOpen(true);
+ 357:     setPaymentMode("online");
+ 358:     setCheckoutError("");
+ 359: 
+ 360:     if (
+ 361:       couponCodeOverride === undefined &&
+ 362:       checkoutTransaction?.planId === selectedPlan.id &&
+ 363:       checkoutTransaction.billingCycle === billingCycle
+ 364:     ) {
+ 365:       return;
+ 366:     }
+ 367: 
+ 368:     setCheckoutLoading(true);
+ 369: 
+ 370:     try {
+ 371:       const response = await fetch("/api/payments/checkout", {
+ 372:         method: "POST",
+ 373:         headers: { "Content-Type": "application/json" },
+ 374:         body: JSON.stringify({
+ 375:           planId: selectedPlan.id,
+ 376:           billingCycle: billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+ 377:           providerSlug: "moyasar",
+ 378:           couponCode: couponCodeOverride ?? couponQuote?.couponCode ?? "",
+ 379:         }),
+ 380:       });
+ 381:       const result = await readApiResponse(response);
+ 382: 
+ 383:       if (!response.ok) {
+ 384:         throw new Error(result.error || "تعذر إنشاء عملية الدفع.");
+ 385:       }
+ 386: 
+ 387:       const publicKey = String(result.paymentConfig?.publicKey || "");
+ 388: 
+ 389:       if (!result.transaction?.id || !publicKey) {
+ 390:         throw new Error("بوابة Moyasar غير مهيأة للدفع حاليًا.");
+ 391:       }
+ 392: 
+ 393:       setCheckoutTransaction({
+ 394:         id: String(result.transaction.id),
+ 395:         amount: Number(result.transaction.amount || selectedPrice),
+ 396:         currency: String(result.transaction.currency || "SAR"),
+ 397:         publicKey,
+ 398:         planId: selectedPlan.id,
+ 399:         billingCycle,
+ 400:       });
+ 401:       trackAnalyticsEvent(ANALYTICS_EVENTS.BEGIN_CHECKOUT, {
+ 402:         plan_slug: selectedPlan.slug,
+ 403:         source: "plans",
+ 404:       });
+ 405:     } catch (error) {
+ 406:       setCheckoutError(
+ 407:         error instanceof Error
+ 408:           ? error.message
+ 409:           : "حدث خطأ أثناء إنشاء عملية الدفع.",
+ 410:       );
+
+============================================================
+FILE: components\subscription\counselor-plans-page.tsx
+LINES: 720 - 815
+============================================================
+ 720:                 الباقة المختارة
+ 721:               </p>
+ 722:               <h2 className="mt-1 text-lg font-black text-slate-950">
+ 723:                 {selectedPlan.name}
+ 724:               </h2>
+ 725:               <p className="mt-1 text-sm font-bold text-slate-500">
+ 726:                 {getBillingLabel(billingCycle)} · {formatPrice(selectedPrice)}{" "}
+ 727:                 ريال
+ 728:               </p>
+ 729:             </div>
+ 730:           </div>
+ 731: 
+ 732:           <div className="flex flex-wrap items-center gap-3">
+ 733:             <button
+ 734:               type="button"
+ 735:               onClick={
+ 736:                 selectedPlanIsFree
+ 737:                   ? () => void activateFreePlan()
+ 738:                   : () => void openOnlineCheckout()
+ 739:               }
+ 740:               disabled={activatingFreePlan || checkoutLoading}
+ 741:               className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+ 742:             >
+ 743:               {activatingFreePlan || checkoutLoading ? (
+ 744:                 <Loader2 className="h-4 w-4 animate-spin" />
+ 745:               ) : (
+ 746:                 <ShieldCheck className="h-4 w-4" />
+ 747:               )}
+ 748:               {selectedPlanIsFree ? "تفعيل الباقة الآن" : "المتابعة للدفع"}
+ 749:             </button>
+ 750:             <button
+ 751:               type="button"
+ 752:               onClick={() => {
+ 753:                 setSelectedPlan(null);
+ 754:                 setCheckoutTransaction(null);
+ 755:               }}
+ 756:               className="px-3 py-2 text-sm font-black text-slate-500 transition hover:text-slate-900"
+ 757:             >
+ 758:               تغيير الباقة
+ 759:             </button>
+ 760:           </div>
+ 761:         </section>
+ 762:       ) : null}
+ 763: 
+ 764:       {paymentModalOpen && selectedPlan && !selectedPlanIsFree ? (
+ 765:         <PlanPaymentModal
+ 766:           planName={selectedPlan.name}
+ 767:           billingLabel={getBillingLabel(billingCycle)}
+ 768:           total={selectedFinalPrice}
+ 769:           couponCode={couponCode}
+ 770:           coupon={couponQuote}
+ 771:           couponLoading={couponLoading}
+ 772:           couponError={couponError}
+ 773:           transaction={checkoutTransaction}
+ 774:           mode={paymentMode}
+ 775:           isCreatingTransaction={checkoutLoading}
+ 776:           isSubmittingBankTransfer={submittingBankTransfer}
+ 777:           errorMessage={checkoutError}
+ 778:           bankTransfer={bankTransfer}
+ 779:           onBankTransferChange={(patch) =>
+ 780:             setBankTransfer((current) => ({ ...current, ...patch }))
+ 781:           }
+ 782:           onSwitchMode={(mode) => {
+ 783:             setPaymentMode(mode);
+ 784:             setCheckoutError("");
+ 785:             if (mode === "online" && !checkoutTransaction) {
+ 786:               void openOnlineCheckout();
+ 787:             }
+ 788:           }}
+ 789:           onSubmitBankTransfer={() => void submitBankTransfer()}
+ 790:           onCouponCodeChange={(value) => {
+ 791:             setCouponCode(value);
+ 792:             setCouponError("");
+ 793:           }}
+ 794:           onApplyCoupon={() => void applyCoupon()}
+ 795:           onRemoveCoupon={() => {
+ 796:             setCouponQuote(null);
+ 797:             setCouponCode("");
+ 798:             setCouponError("");
+ 799:             setCheckoutTransaction(null);
+ 800:             if (paymentMode === "online") void openOnlineCheckout("");
+ 801:           }}
+ 802:           onClose={() => setPaymentModalOpen(false)}
+ 803:         />
+ 804:       ) : null}
+ 805:     </main>
+ 806:   );
+ 807: }
+
+============================================================
+FILE: app\api\dashboard\plans\route.ts
+LINES: 180 - 365
+============================================================
+ 180:       { status: 403 },
+ 181:     );
+ 182:   }
+ 183: 
+ 184:   const payload = await request.json().catch(() => null);
+ 185: 
+ 186:   const planId = String(payload?.planId || "").trim();
+ 187:   const requestedBillingCycle = String(
+ 188:     payload?.billingCycle || "monthly",
+ 189:   ).trim();
+ 190:   const senderName = String(payload?.senderName || "").trim();
+ 191:   const phone = String(payload?.phone || "").trim();
+ 192:   const receiptUrl = String(payload?.receiptUrl || "").trim();
+ 193:   const note = String(payload?.note || "").trim();
+ 194:   const couponCode = String(payload?.couponCode || "").trim();
+ 195: 
+ 196:   if (!planId) {
+ 197:     return NextResponse.json(
+ 198:       {
+ 199:         error: "اختر الباقة أولًا.",
+ 200:       },
+ 201:       {
+ 202:         status: 400,
+ 203:       },
+ 204:     );
+ 205:   }
+ 206: 
+ 207:   const plan = await prisma.plan.findUnique({
+ 208:     where: {
+ 209:       id: planId,
+ 210:     },
+ 211:     include: {
+ 212:       features: true,
+ 213:     },
+ 214:   });
+ 215: 
+ 216:   if (!plan) {
+ 217:     return NextResponse.json(
+ 218:       {
+ 219:         error: "الباقة غير متاحة حاليًا.",
+ 220:       },
+ 221:       {
+ 222:         status: 400,
+ 223:       },
+ 224:     );
+ 225:   }
+ 226: 
+ 227:   const billingCycle = resolvePlanBillingCycle(
+ 228:     plan.features,
+ 229:     requestedBillingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+ 230:   );
+ 231: 
+ 232:   if (plan.slug === DEFAULT_FREE_PLAN_SLUG) {
+ 233:     return NextResponse.json(
+ 234:       {
+ 235:         error: "هذه الباقة تُدار تلقائيًا من النظام.",
+ 236:       },
+ 237:       {
+ 238:         status: 400,
+ 239:       },
+ 240:     );
+ 241:   }
+ 242: 
+ 243:   if (!isPlanSelfServiceVisible(plan, current.user.role)) {
+ 244:     return NextResponse.json(
+ 245:       {
+ 246:         error: "الباقة غير متاحة حاليًا.",
+ 247:       },
+ 248:       {
+ 249:         status: 400,
+ 250:       },
+ 251:     );
+ 252:   }
+ 253: 
+ 254:   const durationDays =
+ 255:     billingCycle === "YEARLY"
+ 256:       ? 365
+ 257:       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
+ 258: 
+ 259:   const originalAmount =
+ 260:     billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
+ 261:   let amount = originalAmount;
+ 262:   let couponQuote: Awaited<ReturnType<typeof getCouponQuote>> | null = null;
+ 263:   const automaticPricing = couponCode
+ 264:     ? null
+ 265:     : await getAutomaticPlanPricing({
+ 266:         planId: plan.id,
+ 267:         plan,
+ 268:         billingCycle,
+ 269:       });
+ 270: 
+ 271:   if (couponCode) {
+ 272:     try {
+ 273:       couponQuote = await getCouponQuote({
+ 274:         code: couponCode,
+ 275:         planId: plan.id,
+ 276:         billingCycle,
+ 277:         schoolAccountId: current.user.schoolAccountId,
+ 278:       });
+ 279:       amount = couponQuote.finalAmount;
+ 280:     } catch (error) {
+ 281:       if (error instanceof CouponValidationError) {
+ 282:         return NextResponse.json(
+ 283:           { error: error.message },
+ 284:           { status: error.status },
+ 285:         );
+ 286:       }
+ 287:       throw error;
+ 288:     }
+ 289:   } else {
+ 290:     amount = automaticPricing?.finalAmount ?? originalAmount;
+ 291:   }
+ 292: 
+ 293:   if (amount <= 0) {
+ 294:     const subscription = await assignPlanToSchool({
+ 295:       schoolAccountId: current.user.schoolAccountId,
+ 296:       planId: plan.id,
+ 297:       days: durationDays,
+ 298:       status: "ACTIVE",
+ 299:       activatedById: current.user.id,
+ 300:       reason: `تفعيل باقة مجانية: ${plan.name}`,
+ 301:     });
+ 302: 
+ 303:     if (couponQuote) {
+ 304:       await redeemCoupon({
+ 305:         code: couponQuote.couponCode,
+ 306:         planId: plan.id,
+ 307:         billingCycle,
+ 308:         schoolAccountId: current.user.schoolAccountId,
+ 309:         subscriptionId: subscription.id,
+ 310:       });
+ 311:     }
+ 312: 
+ 313:     return NextResponse.json({
+ 314:       message: "تم تفعيل الباقة مباشرة.",
+ 315:       activated: true,
+ 316:     });
+ 317:   }
+ 318: 
+ 319:   if (!senderName) {
+ 320:     return NextResponse.json(
+ 321:       {
+ 322:         error: "اكتب اسم المحوّل.",
+ 323:       },
+ 324:       {
+ 325:         status: 400,
+ 326:       },
+ 327:     );
+ 328:   }
+ 329: 
+ 330:   await prisma.bankTransferRequest.create({
+ 331:     data: {
+ 332:       schoolAccountId: current.user.schoolAccountId,
+ 333:       amount,
+ 334:       currency: "SAR",
+ 335:       senderName,
+ 336:       receiptUrl: receiptUrl || null,
+ 337:       status: "PENDING",
+ 338:       planId: plan.id,
+ 339:       durationDays,
+ 340:       requesterUserId: current.user.id,
+ 341:       billingCycle: billingCycle === "YEARLY" ? "yearly" : "monthly",
+ 342:       couponCode: couponQuote?.couponCode || null,
+ 343:       promotionId: automaticPricing?.promotionId || null,
+ 344:       originalAmount,
+ 345:       discountAmount:
+ 346:         couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
+ 347:       adminNote: [
+ 348:         `طلب باقة: ${plan.name}`,
+ 349:         `نوع الاشتراك: ${getSubscriptionPeriodLabel(billingCycle)}`,
+ 350:         phone ? `جوال: ${phone}` : "",
+ 351:         note ? `ملاحظة: ${note}` : "",
+ 352:       ]
+ 353:         .filter(Boolean)
+ 354:         .join(" | "),
+ 355:     },
+ 356:   });
+ 357: 
+ 358:   // audit-log:plan-order-created
+ 359:   await logPlanOrderCreatedEvent({
+ 360:     userId: current.user.id,
+ 361:     schoolAccountId: current.user.schoolAccountId,
+ 362:     planId: plan.id,
+ 363:     planName: plan.name,
+ 364:     billingCycle,
+ 365:     amount,
+
+============================================================
+FILE: lib\payments\electronic-payments.ts
+LINES: 150 - 225
+============================================================
+ 150:   billingCycle = resolvePlanBillingCycle(plan.features, billingCycle);
+ 151: 
+ 152:   if (
+ 153:     !requesterUser ||
+ 154:     requesterUser.schoolAccountId !== input.schoolAccountId
+ 155:   ) {
+ 156:     throw new ElectronicPaymentError(
+ 157:       "لا يمكن إنشاء عملية الدفع لهذا الحساب.",
+ 158:       403,
+ 159:     );
+ 160:   }
+ 161: 
+ 162:   const originalAmount = getCheckoutAmount(plan, billingCycle);
+ 163:   const couponQuote = input.couponCode
+ 164:     ? await getCouponQuote({
+ 165:         code: input.couponCode,
+ 166:         planId: plan.id,
+ 167:         billingCycle,
+ 168:         schoolAccountId: input.schoolAccountId,
+ 169:       })
+ 170:     : null;
+ 171:   const automaticPricing = input.couponCode
+ 172:     ? null
+ 173:     : await getAutomaticPlanPricing({
+ 174:         planId: plan.id,
+ 175:         plan,
+ 176:         billingCycle,
+ 177:       });
+ 178:   const amount =
+ 179:     couponQuote?.finalAmount ?? automaticPricing?.finalAmount ?? originalAmount;
+ 180: 
+ 181:   if (!amount || amount <= 0) {
+ 182:     throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
+ 183:   }
+ 184: 
+ 185:   const transaction = await prisma.paymentTransaction.create({
+ 186:     data: {
+ 187:       providerId: provider.id,
+ 188:       amount,
+ 189:       currency: "SAR",
+ 190:       method: PaymentMethod.CARD,
+ 191:       status: PaymentStatus.PENDING,
+ 192:       metadataJson: asJson({
+ 193:         source: "CHECKOUT",
+ 194:         planId: plan.id,
+ 195:         planSlug: plan.slug,
+ 196:         planName: plan.name,
+ 197:         billingCycle,
+ 198:         schoolAccountId: input.schoolAccountId,
+ 199:         requesterUserId: requesterUser.id,
+ 200:         requesterName: requesterUser.officialName || requesterUser.name,
+ 201:         requesterEmail: requesterUser.email,
+ 202:         requesterJobTitle: requesterUser.jobTitle,
+ 203:         providerSlug: provider.slug,
+ 204:         couponCode: couponQuote?.couponCode || null,
+ 205:         promotionId: automaticPricing?.promotionId || null,
+ 206:         originalAmount,
+ 207:         discountAmount:
+ 208:           couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
+ 209:         finalAmount: amount,
+ 210:         createdAt: new Date().toISOString(),
+ 211:       }),
+ 212:     },
+ 213:   });
+ 214: 
+ 215:   const externalRef = `checkout:${transaction.id}`;
+ 216: 
+ 217:   const updatedTransaction = await prisma.paymentTransaction.update({
+ 218:     where: {
+ 219:       id: transaction.id,
+ 220:     },
+ 221:     data: {
+ 222:       externalRef,
+ 223:     },
+ 224:     include: {
+ 225:       provider: true,
+
+============================================================
+FILE: app\api\dashboard\promotions\validate-coupon\route.ts
+LINES: 1 - 70
+============================================================
+   1: import { NextResponse } from "next/server";
+   2: import { getCurrentSessionUser } from "@/lib/auth/current-user";
+   3: import {
+   4:   CouponValidationError,
+   5:   getCouponQuote,
+   6: } from "@/lib/promotions/coupon-service";
+   7: 
+   8: export async function POST(request: Request) {
+   9:   const current = await getCurrentSessionUser();
+  10:   if (!current?.user) {
+  11:     return NextResponse.json({ error: "يجب تسجيل الدخول أولًا." }, { status: 401 });
+  12:   }
+  13:   if (!current.user.schoolAccountId) {
+  14:     return NextResponse.json({ error: "لا يوجد حساب مدرسة مرتبط." }, { status: 403 });
+  15:   }
+  16: 
+  17:   const body = await request.json().catch(() => null);
+  18:   const planId = String(body?.planId || "").trim();
+  19:   const billingCycle =
+  20:     String(body?.billingCycle || "MONTHLY").toUpperCase() === "YEARLY"
+  21:       ? "YEARLY"
+  22:       : "MONTHLY";
+  23: 
+  24:   try {
+  25:     const quote = await getCouponQuote({
+  26:       code: String(body?.couponCode || ""),
+  27:       planId,
+  28:       billingCycle,
+  29:       schoolAccountId: current.user.schoolAccountId,
+  30:     });
+  31:     return NextResponse.json({ quote });
+  32:   } catch (error) {
+  33:     if (error instanceof CouponValidationError) {
+  34:       return NextResponse.json(
+  35:         { error: error.message, code: error.code },
+  36:         { status: error.status },
+  37:       );
+  38:     }
+  39:     console.error("coupon quote failed", error);
+  40:     return NextResponse.json({ error: "تعذر التحقق من الكوبون." }, { status: 500 });
+  41:   }
+  42: }
+  43: 
