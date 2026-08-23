@@ -8,6 +8,11 @@ import {
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
+import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 
 const MOE_2024 = {
   navy: "#15445A",
@@ -100,6 +105,23 @@ function SectionHeading({
       {description ? <p>{description}</p> : null}
     </header>
   );
+}
+
+function MoeCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const content = output.content;
+  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  return pageWeeks.map((weeks, index) => (
+    <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-curriculum-page">
+      <style>{`.moe24-curriculum-page .moe24-curriculum-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 12px}.moe24-curriculum-page .moe24-curriculum-meta>div{padding:7px;border:1px solid #d9e0e2;background:#f5f7f6;border-radius:5px}.moe24-curriculum-page .moe24-curriculum-meta span,.moe24-curriculum-page .moe24-curriculum-meta strong{display:block}.moe24-curriculum-page .moe24-curriculum-meta span{font-size:8px;color:#63737b;font-weight:800}.moe24-curriculum-page .moe24-curriculum-meta strong{font-size:10px;color:#15445a;margin-top:2px}.moe24-curriculum-page .moe24-curriculum-list{display:grid;gap:7px}.moe24-curriculum-page .moe24-curriculum-row{display:grid;grid-template-columns:26% 1fr;gap:10px;padding:9px;border:1px solid #d9e0e2;border-top:3px solid #07a869;background:#fff;break-inside:avoid}.moe24-curriculum-page .moe24-curriculum-row header strong,.moe24-curriculum-page .moe24-curriculum-row header span,.moe24-curriculum-page .moe24-curriculum-row header small{display:block}.moe24-curriculum-page .moe24-curriculum-row header strong{font-size:11px;color:#15445a}.moe24-curriculum-page .moe24-curriculum-row header span{font-size:9px;color:#07a869;font-weight:800;margin-top:2px}.moe24-curriculum-page .moe24-curriculum-row header small{font-size:7px;color:#63737b;margin-top:6px}.moe24-curriculum-page .moe24-curriculum-row section{margin-bottom:4px}.moe24-curriculum-page .moe24-curriculum-row section>b{font-size:9px;color:#15445a}.moe24-curriculum-page .moe24-curriculum-row ul{margin:2px 0 0;padding-inline-start:15px;font-size:8px;line-height:1.55}.moe24-curriculum-page .moe24-curriculum-badge{display:inline-block;padding:3px 6px;margin:0 0 4px 4px;background:#e7f7ef;color:#15445a;border-radius:3px;font-size:8px;font-weight:800}`}</style>
+      <style>{`.moe24-curriculum-page .moe24-curriculum-meta{gap:4px;margin:5px 0 7px}.moe24-curriculum-page .moe24-curriculum-meta>div{padding:4px 6px}.moe24-curriculum-page .moe24-curriculum-list{gap:3px}.moe24-curriculum-page .moe24-curriculum-row{grid-template-columns:23% 1fr;gap:6px;padding:5px 6px;border-top-width:2px}.moe24-curriculum-page .moe24-curriculum-row header strong{font-size:10px}.moe24-curriculum-page .moe24-curriculum-row header span{font-size:8px;margin-top:1px}.moe24-curriculum-page .moe24-curriculum-row header small{font-size:7px;margin-top:3px}.moe24-curriculum-page .moe24-curriculum-row section{margin-bottom:2px}.moe24-curriculum-page .moe24-curriculum-row section>b{font-size:8px}.moe24-curriculum-page .moe24-curriculum-row ul{margin:0;padding-inline-start:12px;font-size:7.5px;line-height:1.25}.moe24-curriculum-page .moe24-curriculum-badge{padding:2px 5px;margin:0 0 2px 3px;font-size:7px}`}</style>
+      <style>{`.moe24-curriculum-page .moe24-curriculum-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.moe24-curriculum-page .moe24-curriculum-row{display:block;padding:5px}.moe24-curriculum-page .moe24-curriculum-row header{margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid #d9e0e2}.moe24-curriculum-page .moe24-curriculum-row header small{white-space:nowrap}.moe24-curriculum-page .moe24-curriculum-row ul{padding-inline-start:11px}`}</style>
+      <style>{`.moe24-curriculum-page .moe24-curriculum-row header strong,.moe24-curriculum-page .moe24-curriculum-row section>b{font-weight:900}.moe24-curriculum-page .moe24-curriculum-row section>b{display:block;margin-bottom:1px}`}</style>
+      <SectionHeading eyebrow={index ? "مخرجات مرتبطة" : sectionTitle} title={output.displayTitle} />
+      {!index ? <div className="moe24-curriculum-meta">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div> : null}
+      <div className="moe24-curriculum-list">{weeks.map((week) => <article className="moe24-curriculum-row" key={week.id}><header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header><div>{week.kind !== "CURRICULUM_WEEK" ? <b className="moe24-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="moe24-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div></article>)}</div>
+    </MoePage>
+  ));
 }
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
@@ -477,7 +499,8 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
 
                     <div className="moe24-report-details-panel">
                       <div className="moe24-report-detail-grid">
-                        {section.fields.map((field, fieldIndex) => {
+                        {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
+                          row.map(({ field, span, index }) => {
                           const fieldItems = Array.isArray(field.value)
                             ? field.value
                                 .map((item) => item.trim())
@@ -495,15 +518,11 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                             serializedValue.length <= 150 &&
                             fieldItems.every((item) => item.length <= 70);
 
-                          const wide =
-                            (!isCompactArray && Array.isArray(field.value)) ||
-                            serializedValue.length > 160 ||
-                            (!Array.isArray(field.value) &&
-                              serializedValue.includes("\n"));
+                          const wide = span === 4;
 
                           const visual = getMoe24ReportFieldVisual(
                             field.label,
-                            fieldIndex,
+                            index,
                           );
 
                           return (
@@ -519,6 +538,7 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
+                              style={{ gridColumn: `span ${span}` }}
                             >
                               <span
                                 className="moe24-report-field-icon"
@@ -542,7 +562,8 @@ function MoeReportPages({ report }: { report: PortfolioReportContent }) {
                               </div>
                             </article>
                           );
-                        })}
+                        }),
+                        )}
                       </div>
                     </div>
                   </section>
@@ -640,8 +661,10 @@ function CustomEvidencePage({
 
 export function MoeOfficial2024PortfolioPrint({
   data,
+  physicalDocument,
 }: {
   data: PortfolioPrintData;
+  physicalDocument?: PortfolioPhysicalDocument;
 }) {
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -1581,8 +1604,8 @@ export function MoeOfficial2024PortfolioPrint({
 
         .moe24-report-detail-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          grid-auto-flow: row dense;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-auto-flow: row;
           gap: 2mm 4mm;
         }
 
@@ -2105,6 +2128,8 @@ export function MoeOfficial2024PortfolioPrint({
               </div>
             </MoePage>
           ) : null}
+
+          {section.linkedOutputs.flatMap((output) => MoeCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.map((report) =>
             report.content ? (

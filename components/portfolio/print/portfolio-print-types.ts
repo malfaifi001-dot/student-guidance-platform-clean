@@ -1,4 +1,5 @@
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 export type PortfolioPrintData = {
   showWeights?: boolean;
@@ -86,6 +87,7 @@ export type PortfolioPrintData = {
     intro: string;
     sortOrder: number;
     isEnabled: boolean;
+    linkedOutputs: PortfolioServiceOutput[];
     reports: Array<{
       id: string;
       title: string;

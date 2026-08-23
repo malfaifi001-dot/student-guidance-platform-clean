@@ -109,6 +109,7 @@ export function PortfolioReportsEvidencePanel(props: Props) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-black">
+              {group.linkedOutputCount ? <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700">مخرجات {group.linkedOutputCount}</span> : null}
               <span className="rounded-full bg-slate-100 px-3 py-1.5">متاح {group.availableCount}</span>
               <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">مضمّن {group.includedCount}</span>
               <span className="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700">شواهد {group.visibleEvidenceCount}</span>

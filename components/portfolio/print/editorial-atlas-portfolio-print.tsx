@@ -8,6 +8,11 @@ import {
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
+import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 
 const ATLAS = {
   ink: "#10243A",
@@ -85,6 +90,23 @@ function Heading({
   );
 }
 
+function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const content = output.content;
+  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  return pageWeeks.map((weeks, index) => (
+    <AtlasPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="atlas-curriculum-page" indexLabel={index ? "·" : "01"}>
+      <style>{`.atlas-curriculum-page .atlas-curriculum-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 14px}.atlas-curriculum-page .atlas-curriculum-meta>div{padding:7px;background:#eef5f8;border-bottom:2px solid #0f9d94}.atlas-curriculum-page .atlas-curriculum-meta span,.atlas-curriculum-page .atlas-curriculum-meta strong{display:block}.atlas-curriculum-page .atlas-curriculum-meta span{font-size:8px;color:#6b7785;font-weight:800}.atlas-curriculum-page .atlas-curriculum-meta strong{font-size:10px;color:#10243a;margin-top:2px}.atlas-curriculum-page .atlas-curriculum-list{display:grid;gap:8px}.atlas-curriculum-page .atlas-curriculum-row{display:grid;grid-template-columns:26% 1fr;gap:10px;padding:9px;border-inline-start:5px solid #e07a5f;background:#fbfaf7;break-inside:avoid}.atlas-curriculum-page .atlas-curriculum-row header strong,.atlas-curriculum-page .atlas-curriculum-row header span,.atlas-curriculum-page .atlas-curriculum-row header small{display:block}.atlas-curriculum-page .atlas-curriculum-row header strong{font-size:11px;color:#10243a}.atlas-curriculum-page .atlas-curriculum-row header span{font-size:9px;color:#0f9d94;font-weight:800;margin-top:2px}.atlas-curriculum-page .atlas-curriculum-row header small{font-size:7px;color:#6b7785;margin-top:6px}.atlas-curriculum-page .atlas-curriculum-row section{margin-bottom:4px}.atlas-curriculum-page .atlas-curriculum-row section>b{font-size:9px;color:#10243a}.atlas-curriculum-page .atlas-curriculum-row ul{margin:2px 0 0;padding-inline-start:15px;font-size:8px;line-height:1.55}.atlas-curriculum-page .atlas-curriculum-badge{display:inline-block;padding:3px 6px;margin:0 0 4px 4px;background:#fae9e3;color:#10243a;font-size:8px;font-weight:800}`}</style>
+      <style>{`.atlas-curriculum-page .atlas-curriculum-meta{gap:4px;margin:5px 0 7px}.atlas-curriculum-page .atlas-curriculum-meta>div{padding:4px 6px}.atlas-curriculum-page .atlas-curriculum-list{gap:3px}.atlas-curriculum-page .atlas-curriculum-row{grid-template-columns:23% 1fr;gap:6px;padding:5px 6px;border-inline-start-width:3px}.atlas-curriculum-page .atlas-curriculum-row header strong{font-size:10px}.atlas-curriculum-page .atlas-curriculum-row header span{font-size:8px;margin-top:1px}.atlas-curriculum-page .atlas-curriculum-row header small{font-size:7px;margin-top:3px}.atlas-curriculum-page .atlas-curriculum-row section{margin-bottom:2px}.atlas-curriculum-page .atlas-curriculum-row section>b{font-size:8px}.atlas-curriculum-page .atlas-curriculum-row ul{margin:0;padding-inline-start:12px;font-size:7.5px;line-height:1.25}.atlas-curriculum-page .atlas-curriculum-badge{padding:2px 5px;margin:0 0 2px 3px;font-size:7px}`}</style>
+      <style>{`.atlas-curriculum-page .atlas-curriculum-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.atlas-curriculum-page .atlas-curriculum-row{display:block;padding:5px}.atlas-curriculum-page .atlas-curriculum-row header{margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid #dce2e6}.atlas-curriculum-page .atlas-curriculum-row header small{white-space:nowrap}.atlas-curriculum-page .atlas-curriculum-row ul{padding-inline-start:11px}`}</style>
+      <style>{`.atlas-curriculum-page .atlas-curriculum-row header strong,.atlas-curriculum-page .atlas-curriculum-row section>b{font-weight:900}.atlas-curriculum-page .atlas-curriculum-row section>b{display:block;margin-bottom:1px}`}</style>
+      <Heading kicker={index ? "مخرجات مرتبطة" : sectionTitle} title={output.displayTitle} />
+      {!index ? <div className="atlas-curriculum-meta">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div> : null}
+      <div className="atlas-curriculum-list">{weeks.map((week) => <article className="atlas-curriculum-row" key={week.id}><header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header><div>{week.kind !== "CURRICULUM_WEEK" ? <b className="atlas-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="atlas-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div></article>)}</div>
+    </AtlasPage>
+  ));
+}
+
 function renderValue(value: string | string[]) {
   if (Array.isArray(value)) {
     return (
@@ -152,14 +174,9 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
                   >
                     <h2>التفاصيل</h2>
                     <div className="atlas-detail-grid">
-                      {section.fields.map((field, fieldIndex) => {
-                        const serialized = Array.isArray(field.value)
-                          ? field.value.join(" ")
-                          : String(field.value);
-                        const wide =
-                          serialized.length > 150 ||
-                          (!Array.isArray(field.value) && serialized.includes("\n"));
-                        const tone = fieldIndex % 3 === 0 ? "coral" : fieldIndex % 2 === 0 ? "teal" : "blue";
+                      {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
+                        row.map(({ field, span, index }) => {
+                        const tone = index % 3 === 0 ? "coral" : index % 2 === 0 ? "teal" : "blue";
 
                         return (
                           <article
@@ -167,11 +184,12 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
                             className={[
                               "atlas-detail-card",
                               `atlas-detail-card-${tone}`,
-                              wide ? "atlas-detail-card-wide" : "",
+                              span === 4 ? "atlas-detail-card-wide" : "",
                             ].filter(Boolean).join(" ")}
+                            style={{ gridColumn: `span ${span}` }}
                           >
                             <span className="atlas-detail-index">
-                              {String(fieldIndex + 1).padStart(2, "0")}
+                              {String(index + 1).padStart(2, "0")}
                             </span>
                             <div>
                               <small>{field.label}</small>
@@ -179,7 +197,8 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
                             </div>
                           </article>
                         );
-                      })}
+                        }),
+                      )}
                     </div>
                   </section>
                 );
@@ -253,8 +272,10 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
 
 export function EditorialAtlasPortfolioPrint({
   data,
+  physicalDocument,
 }: {
   data: PortfolioPrintData;
+  physicalDocument?: PortfolioPhysicalDocument;
 }) {
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -714,7 +735,8 @@ export function EditorialAtlasPortfolioPrint({
         .atlas-report-section h2 { margin: 0 0 2mm; font-size: 14px; }
 
         .atlas-detail-grid {
-          grid-auto-flow: row dense;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-auto-flow: row;
           gap: 2.5mm;
           border-radius: 4mm;
           padding: 4mm;
@@ -1049,6 +1071,8 @@ export function EditorialAtlasPortfolioPrint({
               </div>
             </AtlasPage>
           ) : null}
+
+          {section.linkedOutputs.flatMap((output) => AtlasCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.map((report) =>
             report.content ? (

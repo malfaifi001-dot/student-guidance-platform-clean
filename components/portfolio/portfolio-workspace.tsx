@@ -273,7 +273,7 @@ function ServiceSectionCard({
           </p>
         </div>
         <span className="h-fit rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
-          {section.reports.length}
+          {section.reports.length + section.linkedOutputs.length}
         </span>
       </div>
     </div>

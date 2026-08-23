@@ -58,7 +58,11 @@ export function parsePortfolioSnapshotDocument(value: unknown): PortfolioSnapsho
     throw new Error("بيانات نسخة ملف الإنجاز غير مكتملة.");
   }
 
-  return value as PortfolioSnapshotDocumentV1;
+  const performanceSections = value.performanceSections.map((section) => {
+    if (!isRecord(section)) return section;
+    return { ...section, linkedOutputs: Array.isArray(section.linkedOutputs) ? section.linkedOutputs : [] };
+  });
+  return { ...value, performanceSections } as PortfolioSnapshotDocumentV1;
 }
 
 export function readPortfolioSnapshotSummary(value: unknown): PortfolioSnapshotSummary | null {

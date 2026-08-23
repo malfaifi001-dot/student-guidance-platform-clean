@@ -5,6 +5,7 @@ import { loadCustomEvidence, loadManagedPortfolioReports } from "@/lib/portfolio
 import { loadPortfolioForUser, readBiography, readEducationIdentity, readPortfolioSettings } from "@/lib/portfolio/portfolio-service";
 import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
 import type { PortfolioItemType, PortfolioReportGroup } from "@/lib/portfolio/portfolio-types";
+import { resolvePortfolioServiceOutputs } from "@/lib/portfolio/service-outputs/service-output-registry";
 
 type PortfolioCurrentUser = {
   id: string;
@@ -33,7 +34,7 @@ export async function getPortfolioWorkspace(
   if (!user.schoolAccountId) return { ok: false as const, reason: "NO_SCHOOL" };
 
   const portfolio = await loadPortfolioForUser(user, portfolioId);
-  const [school, sections, qualificationItems, managedReports, customEvidence] = await Promise.all([
+  const [school, sections, qualificationItems, managedReports, customEvidence, linkedOutputs] = await Promise.all([
     prisma.schoolAccount.findUnique({
       where: { id: user.schoolAccountId },
       include: { profile: true },
@@ -51,6 +52,9 @@ export async function getPortfolioWorkspace(
     }),
     loadManagedPortfolioReports(user, portfolio.id),
     loadCustomEvidence(user, portfolio.id),
+    ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER", "PRINCIPAL"].includes(String(user.role))
+      ? resolvePortfolioServiceOutputs({ ownerUserId: user.id, schoolAccountId: user.schoolAccountId, roleKey: user.role as "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER" | "PRINCIPAL" })
+      : Promise.resolve([]),
   ]);
 
   const sectionDefinitions = getPortfolioDefaultSectionOrderForRole(user.role);
@@ -99,6 +103,7 @@ export async function getPortfolioWorkspace(
       sortOrder: section.sortOrder,
       isEnabled: section.isEnabled,
       intro: section.introText,
+      linkedOutputs: linkedOutputs.filter((output) => output.performanceItemKey === section.key),
       reports,
     };
   });
@@ -120,6 +125,8 @@ export async function getPortfolioWorkspace(
         (total, report) => total + report.evidence.filter((item) => item.isVisible).length,
         0,
       ),
+      linkedOutputs: section.linkedOutputs,
+      linkedOutputCount: section.linkedOutputs.length,
       reports,
     };
   });

@@ -5,6 +5,11 @@ import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import { buildPortfolioReportPages, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
+import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
+import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 
 function renderFieldValue(value: string | string[]) {
   if (Array.isArray(value)) {
@@ -108,6 +113,31 @@ function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const content = output.content;
+  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  return pageWeeks.map((weeks, index) => (
+    <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-curriculum-page">
+      <style>{`.portfolio-curriculum-page .portfolio-curriculum-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 14px}.portfolio-curriculum-page .portfolio-curriculum-ministry-list{display:grid;gap:8px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row{display:grid;grid-template-columns:27% 1fr;gap:12px;padding:10px;border:1px solid #d8e5df;border-inline-start:4px solid #2f6d4b;border-radius:10px;background:#fbfdfb;break-inside:avoid}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong,.portfolio-curriculum-page .portfolio-curriculum-ministry-row header span,.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{display:block}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong{color:#24583d;font-size:12px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header span{margin-top:2px;color:#345b65;font-size:10px;font-weight:800}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{margin-top:7px;color:#68777b;font-size:8px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section{margin-bottom:5px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section>b{color:#2f6d4b;font-size:10px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row ul{margin:2px 0 0;padding-inline-start:16px;font-size:9px;line-height:1.55}.portfolio-curriculum-page .portfolio-curriculum-badge{display:inline-block;margin:0 0 5px 5px;padding:4px 7px;border-radius:999px;background:#edf6ef;color:#2f6d4b;font-size:9px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row .portfolio-info-card{min-height:0}`}</style>
+      <style>{`.portfolio-curriculum-page .portfolio-curriculum-meta-grid{gap:4px;margin:5px 0 7px}.portfolio-curriculum-page .portfolio-curriculum-meta-grid .portfolio-info-card{padding:4px 6px}.portfolio-curriculum-page .portfolio-curriculum-ministry-list{gap:3px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row{grid-template-columns:24% 1fr;gap:6px;padding:5px 6px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong{font-size:10px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header span{font-size:8px;margin-top:1px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{font-size:7px;margin-top:3px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section{margin-bottom:2px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section>b{font-size:8px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row ul{margin:0;padding-inline-start:12px;font-size:7.5px;line-height:1.25}.portfolio-curriculum-page .portfolio-curriculum-badge{padding:2px 5px;margin:0 0 2px 3px;font-size:7px}`}</style>
+      <style>{`.portfolio-curriculum-page .portfolio-curriculum-ministry-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row{display:block;padding:5px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header{margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid #d8e5df}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{white-space:nowrap}.portfolio-curriculum-page .portfolio-curriculum-ministry-row ul{padding-inline-start:11px}`}</style>
+      <style>{`.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong,.portfolio-curriculum-page .portfolio-curriculum-ministry-row section>b{font-weight:900}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section>b{display:block;margin-bottom:1px}`}</style>
+      <div className="portfolio-section-heading">
+        <span>{index ? "مخرجات مرتبطة" : sectionTitle}</span>
+        <h2>{output.displayTitle}</h2>
+      </div>
+      {!index ? <div className="portfolio-curriculum-meta-grid">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <MiniInfo key={label} label={label} value={value} />)}</div> : null}
+      <div className="portfolio-curriculum-ministry-list">
+        {weeks.map((week) => <article key={week.id} className="portfolio-curriculum-ministry-row">
+          <header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header>
+          <div>{week.kind !== "CURRICULUM_WEEK" ? <b className="portfolio-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="portfolio-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div>
+        </article>)}
+      </div>
+    </PageShell>
+  ));
+}
+
 function PortfolioQualificationDocumentPage({ data, item }: {
   data: PortfolioPrintData;
   item: PortfolioPrintData["qualificationItems"][number];
@@ -180,19 +210,19 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
                           </div>
                         ) : (
                           <div className="portfolio-report-detail-grid">
-                            {section.fields.map((field) => (
-                              <div
-                                key={`${field.key}-${field.label}`}
-                                className={
-                                  Array.isArray(field.value) || String(field.value).length > 80
-                                    ? "portfolio-report-detail-box portfolio-report-detail-box-wide"
-                                    : "portfolio-report-detail-box"
-                                }
-                              >
-                                <span>{field.label}</span>
-                                <strong>{renderFieldValue(field.value)}</strong>
-                              </div>
-                            ))}
+                            {getBalancedPortfolioFieldRows(section.fields).map((row, rowIndex) =>
+                              row.map(({ field, span }) => (
+                                <div
+                                  key={`${field.key}-${field.label}`}
+                                  className="portfolio-report-detail-box"
+                                  style={{ gridColumn: `span ${span}` }}
+                                  data-field-row={rowIndex}
+                                >
+                                  <span>{field.label}</span>
+                                  <strong>{renderFieldValue(field.value)}</strong>
+                                </div>
+                              )),
+                            )}
                           </div>
                         )}
                       </section>
@@ -284,7 +314,7 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
   );
 }
 
-export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintData }) {
+export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data: PortfolioPrintData; physicalDocument?: PortfolioPhysicalDocument }) {
   const theme = getPortfolioTheme(data.portfolio.themeId);
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -1074,7 +1104,7 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
         .portfolio-report-detail-grid {
           margin-top: 3mm;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
         }
 
@@ -2123,6 +2153,8 @@ export function MinistryElegantPortfolioPrint({ data }: { data: PortfolioPrintDa
             </div>
           </PageShell>
           ) : null}
+
+          {section.linkedOutputs.flatMap((output) => MinistryCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.length ? (
             section.reports.map((report) =>

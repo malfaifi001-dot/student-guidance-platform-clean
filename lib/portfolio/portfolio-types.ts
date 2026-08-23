@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PORTFOLIO_THEME_IDS } from "@/lib/portfolio/portfolio-theme-registry";
+import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 export const portfolioItemTypes = ["QUALIFICATION", "COURSE", "CERTIFICATE"] as const;
 export type PortfolioItemType = (typeof portfolioItemTypes)[number];
@@ -161,6 +162,8 @@ export type PortfolioReportGroup = {
   availableCount: number;
   includedCount: number;
   visibleEvidenceCount: number;
+  linkedOutputs: PortfolioServiceOutput[];
+  linkedOutputCount: number;
   reports: PortfolioManagedReport[];
 };
 export type PortfolioCustomEvidence = {

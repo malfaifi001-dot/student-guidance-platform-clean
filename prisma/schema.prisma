@@ -478,9 +478,31 @@ model User {
   timetableHistoryEntries       TimetableProjectHistoryEntry[] @relation("TimetableHistoryActor")
   timetableHistoryReversions    TimetableProjectHistoryEntry[] @relation("TimetableHistoryReverter")
   timetableTeacherProfiles      TimetableTeacher[]
+  serviceOutputLinks            ServiceOutputLink[]
   reportSignatureRequests       ReportSignatureRequest[]
 
   @@index([schoolAccountId])
+}
+
+model ServiceOutputLink {
+  id                  String   @id @default(cuid())
+  schoolAccountId     String?
+  ownerUserId         String
+  owner               User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  roleKey             String   @db.VarChar(40)
+  serviceSlug         String   @db.VarChar(120)
+  performanceItemKey  String   @db.VarChar(180)
+  resourceType        String   @db.VarChar(80)
+  sourceKey           String   @db.VarChar(255)
+  sourceReferenceJson Json
+  displayTitle        String   @db.VarChar(255)
+  metadataJson        Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([ownerUserId, roleKey, performanceItemKey, serviceSlug, resourceType, sourceKey], map: "ServiceOutputLink_owner_scope_source_key")
+  @@index([ownerUserId, roleKey, performanceItemKey], map: "ServiceOutputLink_owner_performance_idx")
+  @@index([schoolAccountId, serviceSlug], map: "ServiceOutputLink_school_service_idx")
 }
 
 model GuidanceVideo {
