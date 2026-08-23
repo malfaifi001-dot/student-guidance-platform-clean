@@ -180,10 +180,17 @@ export type PortfolioSectionDefinition = {
 export function getPortfolioDefaultSectionOrderForRole(role?: string | null): PortfolioSectionDefinition[] {
   const profileIntro = role === "TEACHER" ? "نبذة مختصرة عن المعلم وخبراته." : "نبذة مختصرة عن صاحب الملف وخبراته المهنية.";
   const services = getPortfolioPerformanceElements(role);
-  return [
+  const staticSections: PortfolioSectionDefinition[] = [
     { key: "introduction", kind: "STATIC", title: "المقدمة", intro: "مدخل موجز لملف الإنجاز.", defaultSortOrder: 10 },
     { key: "profile", kind: "STATIC", title: "السيرة المهنية", intro: profileIntro, defaultSortOrder: 20 },
     { key: "qualifications", kind: "STATIC", title: "المؤهلات والدورات", intro: "المؤهلات العلمية والدورات والشهادات.", defaultSortOrder: 30 },
+    ...(role === "ACTIVITY_LEADER"
+      ? [{ key: "student_activity", kind: "STATIC" as const, title: "النشاط الطلابي", intro: "المخرجات والإنجازات المرتبطة بالنشاط الطلابي.", defaultSortOrder: 90 }]
+      : []),
+  ];
+
+  return [
+    ...staticSections,
     ...services.map((service, index) => ({
       key: service.key,
       kind: "PERFORMANCE_ELEMENT" as const,

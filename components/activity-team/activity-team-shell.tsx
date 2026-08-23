@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Loader2, Save, Send, UsersRound } from "lucide-react";
+import { Eye, Link2, Loader2, Save, Send, UsersRound } from "lucide-react";
 import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -9,8 +9,11 @@ import { ActivityTeamTable, type ActivityTeamAssignments } from "@/components/ac
 import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
+import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 
 type Feedback = { variant: "success" | "error"; title: string; description: string };
+type ServiceLink = { id: string; sourceKey: string; sourceReferenceJson: Record<string, unknown>; targetSectionKey?: string | null; performanceItemKey: string };
 
 async function readJsonResponse(response: Response) {
   const body = await response.text();
@@ -28,6 +31,8 @@ export function ActivityTeamShell({ gender }: { gender: string }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
   const activityLeaderLabel = getArabicUserRoleLabel({ role: "ACTIVITY_LEADER", gender });
 
@@ -39,6 +44,14 @@ export function ActivityTeamShell({ gender }: { gender: string }) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    void fetch("/api/dashboard/performance-links?serviceSlug=school-activity-team&roleContext=ACTIVITY_LEADER", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => setServiceLinks(payload.links || []));
+  }, []);
+
+  const existingLink = serviceLinks.find((link) => link.sourceKey === "school-account") || null;
 
   function changeAssignment(key: string, value: string) { setAssignments((current) => ({ ...current, [key]: value })); }
 
@@ -93,7 +106,7 @@ ${payload.publicUrl}
   return (
     <main dir="rtl" className="space-y-6">
       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-900 via-sky-800 to-cyan-700 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-wrap items-end justify-between gap-5"><div><span className="text-sm font-black text-cyan-200">{activityLeaderLabel}</span><h1 className="mt-2 text-3xl font-black md:text-4xl">فريق النشاط الطلابي بالمدرسة</h1></div><UsersRound className="h-12 w-12 text-cyan-200" aria-hidden="true" /></div>
+        <div className="flex flex-wrap items-end justify-between gap-5"><div><span className="text-sm font-black text-cyan-200">{activityLeaderLabel}</span><h1 className="mt-2 text-3xl font-black md:text-4xl">فريق النشاط الطلابي بالمدرسة</h1></div><div className="flex items-center gap-3">{existingLink ? <ServiceOutputLinkActions link={existingLink} onDeleted={() => setServiceLinks((current) => current.filter((item) => item.id !== existingLink.id))} /> : null}<button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20"><Link2 className="h-4 w-4" />{existingLink ? "تعديل الربط" : "ربط بملف الإنجاز"}</button><UsersRound className="h-12 w-12 text-cyan-200" aria-hidden="true" /></div></div>
       </section>
       {error ? <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/35 dark:text-rose-300" role="alert">{error}</p> : null}
       <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/20">
@@ -108,6 +121,7 @@ ${payload.publicUrl}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <CurriculumDistributionMobilePreview open={previewOpen} previewUrl="/print/activity-team?preview=1" onDownload={printDocument} onClose={() => setPreviewOpen(false)} title="معاينة فريق النشاط الطلابي" subtitle="راجع النموذج الرسمي قبل الطباعة." documentLabel="فريق النشاط الطلابي بالمدرسة" documentSelector=".pdf-report-page" documentOrientation="portrait" allowDocumentScroll />
       <SmartActionModal open={Boolean(feedback)} title={feedback?.title || ""} description={feedback?.description} variant={feedback?.variant || "info"} onClose={() => setFeedback(null)} />
+      <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="school-activity-team" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_TEAM" sourceReference={{ scope: "school-account" }} displayTitle="فريق النشاط الطلابي بالمدرسة" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
   );
 }

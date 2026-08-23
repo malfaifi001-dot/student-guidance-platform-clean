@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Eye, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Eye, Link2, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -11,6 +11,8 @@ import {
   getActivityPlanProgramByKey,
 } from "@/lib/activity-plan/activity-plan-programs";
 import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
+import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
+import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 
 type Program = { id: string; key?: string; title: string };
 type Entry = {
@@ -24,6 +26,7 @@ type Entry = {
 };
 type DateItem = { dayOfWeek: number; label: string; date: string };
 type Cell = { dayOfWeek: number; periodNumber: number; date: string };
+type ServiceLink = { id: string; sourceKey: string; sourceReferenceJson: Record<string, unknown>; targetSectionKey?: string | null; performanceItemKey: string };
 
 function formatDate(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-");
@@ -41,6 +44,8 @@ export function ActivityPlanShell() {
   const [activeCell, setActiveCell] = useState<Cell | null>(null);
   const [editing, setEditing] = useState<Entry | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
 
   const loadWeek = async (nextWeek: number) => {
@@ -63,6 +68,13 @@ export function ActivityPlanShell() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadWeek(week); }, [week]);
+  useEffect(() => {
+    void fetch("/api/dashboard/performance-links?serviceSlug=student-activity-plan&roleContext=ACTIVITY_LEADER", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => setServiceLinks(payload.links || []));
+  }, []);
+
+  const existingLink = serviceLinks.find((link) => link.sourceKey === "school-account") || null;
 
   const entryByCell = useMemo(
     () => new Map(entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry])),
@@ -94,12 +106,14 @@ export function ActivityPlanShell() {
             <h1 className="mt-2 text-3xl font-black md:text-4xl">خطة النشاط الطلابي</h1>
             <p className="mt-3 text-sm font-bold leading-7 text-sky-100">نظّم برامج النشاط في شبكة أسبوعية واضحة.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-3xl bg-white/10 px-5 py-4 text-center ring-1 ring-white/15">
               <p className="text-xs font-bold text-cyan-100">الأسبوع الحالي</p>
               <strong className="mt-1 block text-2xl font-black">الأسبوع {week} من 20</strong>
               {currentDate ? <span className="mt-1 block text-xs font-bold text-sky-100">{currentDate}</span> : null}
             </div>
+            {existingLink ? <ServiceOutputLinkActions link={existingLink} onDeleted={() => setServiceLinks((current) => current.filter((item) => item.id !== existingLink.id))} /> : null}
+            <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20"><Link2 className="h-4 w-4" />{existingLink ? "تعديل الربط" : "ربط بملف الإنجاز"}</button>
             <button type="button" onClick={() => setPreviewOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-sky-900 shadow-lg shadow-sky-950/20 transition hover:bg-cyan-50"><Eye className="h-4 w-4" />معاينة</button>
           </div>
         </div>
@@ -149,6 +163,7 @@ export function ActivityPlanShell() {
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <CurriculumDistributionMobilePreview open={previewOpen} previewUrl="/print/activity-plan?preview=1" onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
       <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
+      <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
   );
 }

@@ -9,10 +9,12 @@ import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 
 const HORIZON = {
   indigo: "#25316D",
@@ -94,6 +96,7 @@ function HorizonHeading({
 
 function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
   const content = output.content;
+  if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
   return pageWeeks.map((weeks, index) => (
@@ -105,6 +108,18 @@ function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { ou
       <HorizonHeading eyebrow={index ? "مخرجات مرتبطة" : sectionTitle} title={output.displayTitle} />
       {!index ? <div className="hzn-curriculum-meta">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div> : null}
       <div className="hzn-curriculum-list">{weeks.map((week) => <article className="hzn-curriculum-row" key={week.id}><header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header><div>{week.kind !== "CURRICULUM_WEEK" ? <b className="hzn-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="hzn-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div></article>)}</div>
+    </HorizonPage>
+  ));
+}
+
+function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
+    <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-activity-output-page" code={String(index + 1).padStart(2, "0")}>
+      <style>{`.portfolio-geometric-horizon-activity-output-body{display:grid;gap:4mm}.portfolio-geometric-horizon-activity-output-week{break-inside:avoid}.portfolio-geometric-horizon-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:#25316d;box-shadow:3px 3px 0 #f4b942;font-size:10px}.portfolio-geometric-horizon-activity-output-week header span{font-size:8px;color:#f4b942}.portfolio-geometric-horizon-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-geometric-horizon-activity-output-table th,.portfolio-geometric-horizon-activity-output-table td{padding:1.8mm 2mm;border:1px solid #e2e0da;text-align:right;vertical-align:middle}.portfolio-geometric-horizon-activity-output-table thead th{color:#fff;background:#6c5ce7;font-weight:900}.portfolio-geometric-horizon-activity-output-table tbody th{color:#25316d;background:#f4f2ed}.portfolio-geometric-horizon-activity-output-table td{background:#fff}.portfolio-geometric-horizon-activity-output-table small{display:block;margin-top:.5mm;color:#6b7280;font-size:7px}`}</style>
+      <HorizonHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
+      <ActivityLeaderServiceOutputContent chunk={chunk} design="geometric-horizon" />
     </HorizonPage>
   ));
 }
@@ -1418,7 +1433,9 @@ export function GeometricHorizonPortfolioPrint({
             </HorizonPage>
           ) : null}
 
-          {section.linkedOutputs.flatMap((output) => HorizonCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
+          {section.linkedOutputs.flatMap((output) => output.content.kind === "curriculum-distribution"
+            ? HorizonCurriculumPages({ output, sectionTitle: section.title, physicalDocument })
+            : HorizonActivityOutputPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.map((report) =>
             report.content ? (

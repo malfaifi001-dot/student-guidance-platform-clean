@@ -79,9 +79,11 @@ export async function getPortfolioWorkspace(
 
   const performanceSections = unifiedSections.flatMap((section) => {
     const definition = definitionByKey.get(section.key);
-    if (!definition?.service) return [];
+    const sectionLinkedOutputs = linkedOutputs.filter((output) => (output.targetSectionKey || output.performanceItemKey) === section.key);
+    const isActivityOutputSection = user.role === "ACTIVITY_LEADER" && section.key === "student_activity";
+    if (!definition?.service && !isActivityOutputSection && !sectionLinkedOutputs.length) return [];
     const reports = managedReports
-      .filter((report) => report.sectionKey === section.key && report.isVisible && report.isAvailable)
+      .filter((report) => Boolean(definition?.service) && report.sectionKey === section.key && report.isVisible && report.isAvailable)
       .sort((first, second) => first.sortOrder - second.sortOrder)
       .map((report) => ({
         id: report.sourceId,
@@ -98,12 +100,18 @@ export async function getPortfolioWorkspace(
         content: report.content,
       }));
     return {
-      ...definition.service,
+      ...(definition?.service || {
+        key: section.key,
+        title: section.title,
+        weight: 0,
+        serviceSlug: "",
+        intro: section.introText,
+      }),
       id: section.id,
       sortOrder: section.sortOrder,
       isEnabled: section.isEnabled,
       intro: section.introText,
-      linkedOutputs: linkedOutputs.filter((output) => output.performanceItemKey === section.key),
+      linkedOutputs: sectionLinkedOutputs,
       reports,
     };
   });

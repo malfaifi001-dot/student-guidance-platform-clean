@@ -79,6 +79,7 @@ type WorkspaceHomeProps = {
   showModuleDescription?: boolean;
   schoolIdentityComplete?: boolean;
   userId?: string | null;
+  showHeroBadges?: boolean;
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
@@ -132,6 +133,7 @@ export function WorkspaceHome({
   showModuleDescription = true,
   schoolIdentityComplete = false,
   userId,
+  showHeroBadges = true,
 }: WorkspaceHomeProps) {
   const headerCtaOptions = [
     {
@@ -159,17 +161,19 @@ export function WorkspaceHome({
           <section className="rounded-[2.5rem] border border-sky-600/30 bg-gradient-to-br from-sky-800 via-sky-700 to-sky-500 p-6 text-white shadow-sm shadow-sky-900/10">
             <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
               <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-transparent px-0 py-0 text-xs font-black text-white/90 ring-0 md:bg-white/15 md:px-3 md:py-1 md:ring-1 md:ring-white/20">
-                    {eyebrow}
-                  </span>
+                {showHeroBadges ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-transparent px-0 py-0 text-xs font-black text-white/90 ring-0 md:bg-white/15 md:px-3 md:py-1 md:ring-1 md:ring-white/20">
+                      {eyebrow}
+                    </span>
 
-                  <span className="hidden rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/80 ring-1 ring-white/20 sm:inline-flex">
-                    مساحة عمل موحدة
-                  </span>
-                </div>
+                    <span className="hidden rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/80 ring-1 ring-white/20 sm:inline-flex">
+                      مساحة عمل موحدة
+                    </span>
+                  </div>
+                ) : null}
 
-                <h1 className="mt-4 text-2xl font-black leading-9 text-white sm:text-3xl sm:leading-10">
+                <h1 className={`${showHeroBadges ? "mt-4" : "mt-0"} text-2xl font-black leading-9 text-white sm:text-3xl sm:leading-10`}>
                   {welcomeText} {getDisplayName(userName)}
                 </h1>
 

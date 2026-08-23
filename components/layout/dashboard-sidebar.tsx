@@ -115,16 +115,6 @@ const counselorImportantLinks: SidebarLinkItem[] = [
     icon: Home,
   },
   {
-    label: "الحالات",
-    href: OFFICIAL_WORKSPACE_ROUTES.cases,
-    icon: FolderKanban,
-  },
-  {
-    label: "التقارير المعتمدة",
-    href: OFFICIAL_WORKSPACE_ROUTES.reports,
-    icon: FileCheck2,
-  },
-  {
     label: "التقويم والتنبيهات",
     href: "/dashboard/calendar",
     icon: CalendarDays,

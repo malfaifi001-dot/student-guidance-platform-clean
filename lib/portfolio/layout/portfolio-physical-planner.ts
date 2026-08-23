@@ -1,6 +1,7 @@
 import type { PortfolioBlock } from "@/lib/portfolio/layout/portfolio-block-types";
 import type { PortfolioLogicalDocument } from "@/lib/portfolio/layout/portfolio-logical-document";
 import type { PortfolioPhysicalDocument, PortfolioPhysicalPage, PortfolioPhysicalPageRole } from "@/lib/portfolio/layout/portfolio-physical-types";
+import { getPortfolioServiceOutputChunks } from "@/lib/portfolio/service-outputs/service-output-types";
 
 function roleForBlock(block: PortfolioBlock): PortfolioPhysicalPageRole {
   if (block.type === "cover") return "cover";
@@ -20,16 +21,14 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
   for (const section of document.sections.filter((item) => item.isEnabled)) {
     for (const block of section.blocks) {
       if (block.type === "service-output") {
-        const weeksPerPage = Math.max(1, Math.ceil(block.payload.weeks.length / 2));
-        const chunks: typeof block.payload.weeks[] = [];
-        for (let index = 0; index < block.payload.weeks.length; index += weeksPerPage) chunks.push(block.payload.weeks.slice(index, index + weeksPerPage));
-        const outputPages = chunks.map((weeks, index) => ({
+        const chunks = getPortfolioServiceOutputChunks(block.payload.output);
+        const outputPages = chunks.map((chunk, index) => ({
           id: `${block.id}-page-${index + 1}`,
           role: "service-output" as const,
           sectionKey: section.key,
           sourceSectionIds: [section.id],
           continuationIndex: index,
-          blocks: [{ ...block, payload: { ...block.payload, weeks } }],
+          blocks: [{ ...block, payload: { ...block.payload, chunk } }],
         }));
         serviceOutputPages[block.payload.output.id] = outputPages;
         outputPages.forEach(append);
@@ -44,5 +43,11 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
 
 export function getPlannedServiceOutputWeeks(document: PortfolioPhysicalDocument | undefined, outputId: string) {
   const pages = document?.serviceOutputPages[outputId] || [];
-  return pages.flatMap((page) => page.blocks.flatMap((block) => block.type === "service-output" ? [block.payload.weeks] : []));
+  return pages.flatMap((page) => page.blocks.flatMap((block) => block.type === "service-output" && block.payload.chunk?.kind === "curriculum-distribution" ? [block.payload.chunk.weeks] : []));
+}
+
+export function getPlannedServiceOutputChunks(document: PortfolioPhysicalDocument | undefined, outputId: string) {
+  return (document?.serviceOutputPages[outputId] || []).flatMap((page) =>
+    page.blocks.flatMap((block) => block.type === "service-output" && block.payload.chunk ? [block.payload.chunk] : []),
+  );
 }

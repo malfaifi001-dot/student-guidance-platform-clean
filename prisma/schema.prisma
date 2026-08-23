@@ -319,6 +319,7 @@ model SchoolAccount {
   couponRedemptions            CouponRedemption[]
   reportSignatureRequests      ReportSignatureRequest[]
   activityPlanEntries          ActivityPlanEntry[]
+  activityPlanShareTokens      ActivityPlanShareToken[]
 }
 
 // Imported, platform-owned curriculum catalog. This data is not school-scoped.
@@ -480,6 +481,7 @@ model User {
   timetableTeacherProfiles      TimetableTeacher[]
   serviceOutputLinks            ServiceOutputLink[]
   reportSignatureRequests       ReportSignatureRequest[]
+  activityPlanShareTokens       ActivityPlanShareToken[]
 
   @@index([schoolAccountId])
 }
@@ -492,6 +494,7 @@ model ServiceOutputLink {
   roleKey             String   @db.VarChar(40)
   serviceSlug         String   @db.VarChar(120)
   performanceItemKey  String   @db.VarChar(180)
+  targetSectionKey    String?  @db.VarChar(180)
   resourceType        String   @db.VarChar(80)
   sourceKey           String   @db.VarChar(255)
   sourceReferenceJson Json
@@ -503,6 +506,24 @@ model ServiceOutputLink {
   @@unique([ownerUserId, roleKey, performanceItemKey, serviceSlug, resourceType, sourceKey], map: "ServiceOutputLink_owner_scope_source_key")
   @@index([ownerUserId, roleKey, performanceItemKey], map: "ServiceOutputLink_owner_performance_idx")
   @@index([schoolAccountId, serviceSlug], map: "ServiceOutputLink_school_service_idx")
+  @@index([ownerUserId, roleKey, targetSectionKey], map: "ServiceOutputLink_owner_section_idx")
+}
+
+model ActivityPlanShareToken {
+  id              String        @id @default(cuid())
+  tokenHash       String        @unique @db.VarChar(64)
+  encryptedToken  String        @db.Text
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdBy       User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  revokedAt       DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([schoolAccountId, revokedAt])
+  @@index([createdById])
 }
 
 model GuidanceVideo {

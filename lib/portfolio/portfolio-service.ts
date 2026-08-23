@@ -129,18 +129,31 @@ async function ensurePortfolioRoleSections(portfolioId: string, role?: string | 
   });
   const existingKeys = new Set(existing.map((item) => item.sectionKey));
   const missing = definitions.filter((item) => !existingKeys.has(item.key));
-  if (!missing.length) return;
-  await prisma.achievementPortfolioSection.createMany({
-    data: missing.map((section) => ({
-      portfolioId,
-      kind: section.kind,
-      sectionKey: section.key,
-      title: section.title,
-      introText: section.intro,
-      sortOrder: section.defaultSortOrder,
-      ...(section.service ? { metadataJson: asJson({ serviceSlug: section.service.serviceSlug, weight: section.service.weight }) } : {}),
-    })),
-  });
+  if (missing.length) {
+    await prisma.achievementPortfolioSection.createMany({
+      data: missing.map((section) => ({
+        portfolioId,
+        kind: section.kind,
+        sectionKey: section.key,
+        title: section.title,
+        introText: section.intro,
+        sortOrder: section.defaultSortOrder,
+        ...(section.service ? { metadataJson: asJson({ serviceSlug: section.service.serviceSlug, weight: section.service.weight }) } : {}),
+      })),
+    });
+  }
+
+  // This section was introduced before its final position was established.
+  // Keep existing Activity Leader portfolios aligned with the role definition.
+  if (role === "ACTIVITY_LEADER") {
+    const studentActivity = definitions.find((section) => section.key === "student_activity");
+    if (studentActivity) {
+      await prisma.achievementPortfolioSection.updateMany({
+        where: { portfolioId, sectionKey: studentActivity.key },
+        data: { sortOrder: studentActivity.defaultSortOrder },
+      });
+    }
+  }
 }
 
 export async function loadPortfolioForUser(
@@ -150,6 +163,29 @@ export async function loadPortfolioForUser(
   const portfolio = portfolioId ? await requireOwnedPortfolio(user, portfolioId) : await ensureDefaultPortfolio(user);
   await ensurePortfolioRoleSections(portfolio.id, user.role);
   return portfolio;
+}
+
+export async function listPortfolioSectionTargets(
+  user: PortfolioActor & { name?: string | null; officialName?: string | null },
+  roleKey: string,
+) {
+  const portfolio = roleKey === user.role
+    ? await loadPortfolioForUser(user)
+    : await prisma.achievementPortfolio.findFirst({
+      where: { ownerUserId: user.id, schoolAccountId: user.schoolAccountId || undefined, roleKey },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+  if (!portfolio) return [];
+  return prisma.achievementPortfolioSection.findMany({
+    where: { portfolioId: portfolio.id, isEnabled: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { sectionKey: true, title: true, kind: true },
+  }).then((sections) => sections.map((section) => ({
+    key: section.sectionKey,
+    title: section.title,
+    kind: section.kind,
+  })));
 }
 
 export function readPortfolioSettings(value: unknown) {

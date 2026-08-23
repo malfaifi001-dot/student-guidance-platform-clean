@@ -6,10 +6,12 @@ import { buildPortfolioReportPages, getPortfolioEvidenceImageHeightMm, getPortfo
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 
 function renderFieldValue(value: string | string[]) {
   if (Array.isArray(value)) {
@@ -115,6 +117,7 @@ function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
 
 function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
   const content = output.content;
+  if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
   return pageWeeks.map((weeks, index) => (
@@ -134,6 +137,19 @@ function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { o
           <div>{week.kind !== "CURRICULUM_WEEK" ? <b className="portfolio-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="portfolio-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div>
         </article>)}
       </div>
+    </PageShell>
+  ));
+}
+
+function MinistryActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
+    <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-activity-output-page">
+      <style>{`.portfolio-ministry-elegant-activity-output-body{display:grid;gap:4mm}.portfolio-ministry-elegant-activity-output-week{break-inside:avoid}.portfolio-ministry-elegant-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:linear-gradient(90deg,#315c49,#62886b);font-size:10px}.portfolio-ministry-elegant-activity-output-week header span{font-size:8px;opacity:.9}.portfolio-ministry-elegant-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-ministry-elegant-activity-output-table th,.portfolio-ministry-elegant-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d5e2d8;text-align:right;vertical-align:middle}.portfolio-ministry-elegant-activity-output-table thead th{color:#fff;background:#527861;font-weight:900}.portfolio-ministry-elegant-activity-output-table tbody th{color:#315c49;background:#f1f7f1}.portfolio-ministry-elegant-activity-output-table td{background:#fff}.portfolio-ministry-elegant-activity-output-table small{display:block;margin-top:.5mm;color:#6a7b73;font-size:7px}`}</style>
+      <span className="portfolio-section-kicker">مخرج مرتبط</span>
+      <h2 className="portfolio-section-title">{output.displayTitle}</h2>
+      <ActivityLeaderServiceOutputContent chunk={chunk} design="ministry-elegant" />
     </PageShell>
   ));
 }
@@ -2154,7 +2170,9 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
           </PageShell>
           ) : null}
 
-          {section.linkedOutputs.flatMap((output) => MinistryCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
+          {section.linkedOutputs.flatMap((output) => output.content.kind === "curriculum-distribution"
+            ? MinistryCurriculumPages({ output, sectionTitle: section.title, physicalDocument })
+            : MinistryActivityOutputPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.length ? (
             section.reports.map((report) =>

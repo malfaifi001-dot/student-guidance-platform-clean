@@ -4,12 +4,15 @@ import { getDistribution } from "@/lib/curriculum-distribution/queries";
 import { isServiceAllowedForSchool } from "@/lib/subscription/subscription-service";
 import { listServiceOutputLinks } from "@/lib/service-output-links/service-output-links";
 import { normalizeCurriculumDistribution } from "@/lib/portfolio/service-outputs/adapters/curriculum-distribution";
+import { resolveActivityPlanPortfolioOutput } from "@/lib/portfolio/service-outputs/adapters/activity-plan";
+import { resolveActivityTeamPortfolioOutput } from "@/lib/portfolio/service-outputs/adapters/activity-team";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 type LinkRecord = Awaited<ReturnType<typeof listServiceOutputLinks>>[number];
 
 type ResolverContext = {
   schoolAccountId: string;
+  ownerUserId: string;
   link: LinkRecord;
 };
 
@@ -36,10 +39,21 @@ const serviceOutputResolvers: Record<string, ServiceOutputResolver> = {
       serviceSlug: link.serviceSlug,
       resourceType: link.resourceType,
       performanceItemKey: link.performanceItemKey,
+      targetSectionKey: typeof link.targetSectionKey === "string" && link.targetSectionKey ? link.targetSectionKey : link.performanceItemKey,
       displayTitle: link.displayTitle,
       createdAt: link.createdAt.toISOString(),
       content: normalizeCurriculumDistribution(distribution),
     };
+  },
+  "student-activity-plan": async ({ schoolAccountId, ownerUserId, link }) => {
+    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
+    if (!access.ok) return null;
+    return resolveActivityPlanPortfolioOutput(schoolAccountId, ownerUserId, link);
+  },
+  "school-activity-team": async ({ schoolAccountId, link }) => {
+    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
+    if (!access.ok) return null;
+    return resolveActivityTeamPortfolioOutput(schoolAccountId, link);
   },
 };
 
@@ -51,8 +65,7 @@ export async function resolvePortfolioServiceOutputs(input: {
   const links = await listServiceOutputLinks({ ownerUserId: input.ownerUserId, schoolAccountId: input.schoolAccountId, roleKey: input.roleKey });
   const resolved = await Promise.all(links.map(async (link) => {
     const resolver = serviceOutputResolvers[link.serviceSlug];
-    return resolver ? resolver({ schoolAccountId: input.schoolAccountId, link }) : null;
+    return resolver ? resolver({ schoolAccountId: input.schoolAccountId, ownerUserId: input.ownerUserId, link }) : null;
   }));
   return resolved.filter((output): output is PortfolioServiceOutput => Boolean(output));
 }
-

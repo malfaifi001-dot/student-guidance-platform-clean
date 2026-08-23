@@ -9,10 +9,12 @@ import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 
 const MOE_2024 = {
   navy: "#15445A",
@@ -109,6 +111,7 @@ function SectionHeading({
 
 function MoeCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
   const content = output.content;
+  if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
   return pageWeeks.map((weeks, index) => (
@@ -120,6 +123,18 @@ function MoeCurriculumPages({ output, sectionTitle, physicalDocument }: { output
       <SectionHeading eyebrow={index ? "مخرجات مرتبطة" : sectionTitle} title={output.displayTitle} />
       {!index ? <div className="moe24-curriculum-meta">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div> : null}
       <div className="moe24-curriculum-list">{weeks.map((week) => <article className="moe24-curriculum-row" key={week.id}><header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header><div>{week.kind !== "CURRICULUM_WEEK" ? <b className="moe24-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="moe24-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div></article>)}</div>
+    </MoePage>
+  ));
+}
+
+function MoeActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
+    <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-activity-output-page">
+      <style>{`.moe24-activity-output-body{display:grid;gap:4mm}.moe24-activity-output-week{break-inside:avoid}.moe24-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#15445a;background:#e7f7ef;border-top:1.2mm solid #07a869;font-size:10px}.moe24-activity-output-week header span{font-size:8px;color:#63737b}.moe24-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.moe24-activity-output-table th,.moe24-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d9e0e2;text-align:right;vertical-align:middle}.moe24-activity-output-table thead th{color:#fff;background:#15445a;font-weight:900}.moe24-activity-output-table tbody th{color:#15445a;background:#f5f7f6}.moe24-activity-output-table td{background:#fff}.moe24-activity-output-table small{display:block;margin-top:.5mm;color:#63737b;font-size:7px}`}</style>
+      <SectionHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
+      <ActivityLeaderServiceOutputContent chunk={chunk} design="moe-official-2024" />
     </MoePage>
   ));
 }
@@ -2129,7 +2144,9 @@ export function MoeOfficial2024PortfolioPrint({
             </MoePage>
           ) : null}
 
-          {section.linkedOutputs.flatMap((output) => MoeCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
+          {section.linkedOutputs.flatMap((output) => output.content.kind === "curriculum-distribution"
+            ? MoeCurriculumPages({ output, sectionTitle: section.title, physicalDocument })
+            : MoeActivityOutputPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.map((report) =>
             report.content ? (

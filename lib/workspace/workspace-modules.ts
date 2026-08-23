@@ -113,6 +113,13 @@ export const counselorWorkspaceModules: WorkspaceModule[] = [
 
 export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
   {
+    title: "خطة النشاط الطلابي",
+    description: "تنظيم برامج النشاط الطلابي ومتابعة تنفيذها أسبوعيًا.",
+    href: "/dashboard/activity-leader/activity-plan",
+    icon: "calendar",
+    status: "available",
+  },
+  {
     title: SCHOOL_ACTIVITY_TEAM_SERVICE.title,
     description: SCHOOL_ACTIVITY_TEAM_SERVICE.description,
     href: SCHOOL_ACTIVITY_TEAM_SERVICE.href,
@@ -138,20 +145,6 @@ export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
     description: STUDENT_ACTIVITY_COMPETITIONS_SERVICE.description,
     href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderCompetitions,
     icon: "workflow",
-    status: "available",
-  },
-  {
-    title: "الحالات",
-    description: "متابعة حالات الأنشطة المعتمدة والشواهد.",
-    href: OFFICIAL_WORKSPACE_ROUTES.cases,
-    icon: "assignments",
-    status: "available",
-  },
-  {
-    title: "تقارير النشاط",
-    description: "إصدار التقارير الرسمية من المحرك المعتمد.",
-    href: OFFICIAL_WORKSPACE_ROUTES.reports,
-    icon: "reports",
     status: "available",
   },
   {

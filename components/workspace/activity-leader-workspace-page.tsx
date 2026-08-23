@@ -43,12 +43,13 @@ export function ActivityLeaderWorkspacePage({
     <WorkspaceHome
       eyebrow="ريادة النشاط"
       title="خدمات رائد النشاط"
-      description={`ابدأ من برامج النشاط في ${schoolName}، ثم تابع الحالات والشواهد وأصدر التقارير من المسارات الرسمية.`}
+      description={`ابدأ من خطة النشاط وفريق النشاط في ${schoolName}، ثم نظّم البرامج والشواهد من المسارات المخصصة لرائد النشاط.`}
       userName={user?.officialName || user?.name}
       userId={user?.id}
       schoolIdentityComplete={schoolIdentityComplete}
       modules={activityLeaderWorkspaceModules}
       showModuleDescription={false}
+      showHeroBadges={false}
       stats={[
         {
           label: "الطلاب",
@@ -74,27 +75,16 @@ export function ActivityLeaderWorkspacePage({
         {
           label: "التقارير",
           value: formatCount(stats.activityReports),
-          helper: "تقارير مرتبطة بالأنشطة.",
+          helper: "التقارير المسجلة داخل حساب المدرسة.",
           icon: "reports",
           href: OFFICIAL_WORKSPACE_ROUTES.reports,
         },
       ]}
       actions={[
         {
-          label: "برنامج جديد",
-          href: "/dashboard/activity-leader/programs/new",
-          icon: "plus",
-          primary: true,
-        },
-        {
           label: "برامج النشاط",
           href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
           icon: "programs",
-        },
-        {
-          label: "التقارير",
-          href: OFFICIAL_WORKSPACE_ROUTES.reports,
-          icon: "reports",
         },
       ]}
       notices={[

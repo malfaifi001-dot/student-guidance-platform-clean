@@ -47,7 +47,7 @@ export function buildPortfolioLogicalDocument(input: PortfolioLogicalInput): Por
     const blocks: PortfolioBlock[] = performance
       ? [
           { id: `${section.id}-divider`, type: "performance-divider", sectionKey: section.key, breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.performanceDivider, payload: { title: section.title, text: performance.intro } },
-          ...performance.linkedOutputs.flatMap((output) => [{ id: `${output.id}-service-output`, type: "service-output" as const, sectionKey: section.key, breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.serviceOutput, payload: { output, weeks: output.content.weeks } }]),
+          ...performance.linkedOutputs.flatMap((output) => [{ id: `${output.id}-service-output`, type: "service-output" as const, sectionKey: section.key, breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.serviceOutput, payload: { output } }]),
           ...performance.reports.flatMap((report) => [
             { id: `${report.id}-report`, type: "report" as const, sectionKey: section.key, breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.report, payload: { reportId: report.id, title: report.title, content: report.content } },
             ...(report.content?.evidenceItems.length ? [{ id: `${report.id}-evidence`, type: "evidence" as const, sectionKey: section.key, breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.evidence, payload: { reportId: report.id, items: report.content.evidenceItems } }] : []),
@@ -60,4 +60,3 @@ export function buildPortfolioLogicalDocument(input: PortfolioLogicalInput): Por
   sections.push({ id: "portfolio-closing", key: "closing", title: "closing", sortOrder: Number.MAX_SAFE_INTEGER, isEnabled: true, blocks: [{ id: "portfolio-closing-block", type: "closing", breakPolicy: PORTFOLIO_DEFAULT_BREAK_POLICIES.closing, payload: { title: "closing" } }] });
   return { sections };
 }
-

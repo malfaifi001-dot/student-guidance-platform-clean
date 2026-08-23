@@ -9,10 +9,12 @@ import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 
 const ATLAS = {
   ink: "#10243A",
@@ -92,6 +94,7 @@ function Heading({
 
 function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
   const content = output.content;
+  if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
   return pageWeeks.map((weeks, index) => (
@@ -103,6 +106,18 @@ function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { outp
       <Heading kicker={index ? "مخرجات مرتبطة" : sectionTitle} title={output.displayTitle} />
       {!index ? <div className="atlas-curriculum-meta">{[["المادة", content.subject], ["المرحلة", content.stage], ["الصف / السنة", content.grade], ["الفصل الدراسي", content.semester]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div> : null}
       <div className="atlas-curriculum-list">{weeks.map((week) => <article className="atlas-curriculum-row" key={week.id}><header><strong>{week.kind === "BREAK" ? week.title : `الأسبوع ${week.sequence}`}</strong>{week.kind === "CALENDAR_WEEK" ? <span>{week.title}</span> : null}<small>{week.gregorianRange}</small></header><div>{week.kind !== "CURRICULUM_WEEK" ? <b className="atlas-curriculum-badge">{week.title}</b> : null}{week.units.map((unit) => <section key={unit.name}><b>{unit.name}</b><ul>{unit.lessons.map((lesson, lessonIndex) => <li key={`${unit.name}-${lessonIndex}`}>{lesson}</li>)}</ul></section>)}{week.standalone.map((lesson, lessonIndex) => <b className="atlas-curriculum-badge" key={`${lesson}-${lessonIndex}`}>{lesson}</b>)}</div></article>)}</div>
+    </AtlasPage>
+  ));
+}
+
+function AtlasActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
+    <AtlasPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="atlas-activity-output-page" indexLabel={String(index + 1).padStart(2, "0")}>
+      <style>{`.portfolio-editorial-atlas-activity-output-body{display:grid;gap:4mm}.portfolio-editorial-atlas-activity-output-week{break-inside:avoid}.portfolio-editorial-atlas-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#10243a;background:#edf8f6;border-inline-start:1.5mm solid #e07a5f;font-size:10px}.portfolio-editorial-atlas-activity-output-week header span{font-size:8px;color:#6b7785}.portfolio-editorial-atlas-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-editorial-atlas-activity-output-table th,.portfolio-editorial-atlas-activity-output-table td{padding:1.8mm 2mm;border-bottom:1px solid #dce2e6;text-align:right;vertical-align:middle}.portfolio-editorial-atlas-activity-output-table thead th{color:#fff;background:#2f7ebb;font-weight:900}.portfolio-editorial-atlas-activity-output-table tbody th{color:#0f9d94;background:#eef5f8}.portfolio-editorial-atlas-activity-output-table td{background:#fff}.portfolio-editorial-atlas-activity-output-table small{display:block;margin-top:.5mm;color:#6b7785;font-size:7px}`}</style>
+      <Heading kicker="مخرج مرتبط" title={output.displayTitle} />
+      <ActivityLeaderServiceOutputContent chunk={chunk} design="editorial-atlas" />
     </AtlasPage>
   ));
 }
@@ -1072,7 +1087,9 @@ export function EditorialAtlasPortfolioPrint({
             </AtlasPage>
           ) : null}
 
-          {section.linkedOutputs.flatMap((output) => AtlasCurriculumPages({ output, sectionTitle: section.title, physicalDocument }))}
+          {section.linkedOutputs.flatMap((output) => output.content.kind === "curriculum-distribution"
+            ? AtlasCurriculumPages({ output, sectionTitle: section.title, physicalDocument })
+            : AtlasActivityOutputPages({ output, sectionTitle: section.title, physicalDocument }))}
 
           {section.reports.map((report) =>
             report.content ? (
