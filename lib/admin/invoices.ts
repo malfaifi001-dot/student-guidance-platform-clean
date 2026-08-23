@@ -24,6 +24,8 @@ type InvoiceSettingsInput = {
   invoiceNote?: string;
 };
 
+const DEFAULT_COMMERCIAL_REGISTRATION = "7054948356";
+
 function asJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -115,7 +117,9 @@ export async function getInvoiceSettings() {
       singletonKey: "default",
     },
     update: {},
-    create: {},
+    create: {
+      commercialRegistration: DEFAULT_COMMERCIAL_REGISTRATION,
+    },
   });
 }
 
@@ -132,7 +136,9 @@ export async function updateInvoiceSettings(input: InvoiceSettingsInput) {
       sellerCountry:
         String(input.sellerCountry || "المملكة العربية السعودية").trim() || null,
       sellerAddress: String(input.sellerAddress || "").trim() || null,
-      commercialRegistration: String(input.commercialRegistration || "").trim() || null,
+      commercialRegistration:
+        String(input.commercialRegistration || DEFAULT_COMMERCIAL_REGISTRATION).trim() ||
+        DEFAULT_COMMERCIAL_REGISTRATION,
       taxNumber: String(input.taxNumber || "").trim() || null,
       vatEnabled: Boolean(input.vatEnabled),
       vatRate: clampVatRate(input.vatRate),
@@ -234,7 +240,8 @@ function buildInvoicePayload(
         domain: invoice.sellerDomain || "—",
         country: invoice.sellerCountry || "—",
         address: invoice.sellerAddress || "—",
-        commercialRegistration: invoice.commercialRegistration || "—",
+        commercialRegistration:
+          invoice.commercialRegistration || DEFAULT_COMMERCIAL_REGISTRATION,
         taxNumber: invoice.taxNumber || "—",
       },
       buyer: {
@@ -426,7 +433,8 @@ export async function getOrCreateInvoiceForPaymentTransaction(
           sellerDomain: settings.sellerDomain,
           sellerCountry: settings.sellerCountry,
           sellerAddress: settings.sellerAddress,
-          commercialRegistration: settings.commercialRegistration,
+          commercialRegistration:
+            settings.commercialRegistration || DEFAULT_COMMERCIAL_REGISTRATION,
           taxNumber: settings.taxNumber,
 
           buyerName: counselorName,
@@ -451,7 +459,8 @@ export async function getOrCreateInvoiceForPaymentTransaction(
               sellerDomain: settings.sellerDomain,
               sellerCountry: settings.sellerCountry,
               sellerAddress: settings.sellerAddress,
-              commercialRegistration: settings.commercialRegistration,
+              commercialRegistration:
+                settings.commercialRegistration || DEFAULT_COMMERCIAL_REGISTRATION,
               taxNumber: settings.taxNumber,
               vatEnabled: settings.vatEnabled,
               vatRate: settings.vatRate,

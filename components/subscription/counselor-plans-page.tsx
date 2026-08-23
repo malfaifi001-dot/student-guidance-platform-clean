@@ -1011,7 +1011,7 @@ export function CounselorPlansPage() {
               </button>
             </header>
 
-            <div className="min-h-0 overflow-y-auto p-3 sm:p-6">
+            <div className="min-h-0 overflow-auto p-3 sm:p-6">
               {invoicePreviewData ? (
                 <TeachixInvoiceDocument data={invoicePreviewData} />
               ) : invoicePreviewLoading ? (

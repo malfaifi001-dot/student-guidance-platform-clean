@@ -72,7 +72,7 @@ export function TeachixInvoiceDocument({ data }: { data: TeachixInvoiceData }) {
   const currency = invoice.amounts.currency || transaction.currency || "SAR";
 
   return (
-    <article className="teachix-invoice-page mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white p-7 text-slate-900 shadow-xl print:min-h-0 print:max-w-none print:shadow-none sm:p-10">
+    <article className="teachix-invoice-page mx-auto min-h-[297mm] w-[210mm] min-w-[210mm] max-w-none bg-white p-7 text-slate-900 shadow-xl print:min-h-0 print:max-w-none print:shadow-none sm:p-10">
       <header className="flex items-start justify-between gap-6 border-b-2 border-sky-700 pb-6">
         <div>
           <p className="text-2xl font-black tracking-tight text-sky-800">Teachix</p>

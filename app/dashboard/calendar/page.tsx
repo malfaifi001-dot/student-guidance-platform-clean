@@ -120,9 +120,9 @@ export default async function DashboardCalendarPage() {
   ]);
 
   return (
-    <main className="space-y-5" dir="rtl">
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
-        <h1 className="text-4xl font-black">التقويم والتنبيهات</h1>
+    <main className="min-w-0 space-y-4 sm:space-y-5" dir="rtl">
+      <section className="rounded-[1.75rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-5 text-white shadow-xl sm:rounded-[2rem] sm:p-8">
+        <h1 className="text-2xl font-black sm:text-4xl">التقويم والتنبيهات</h1>
       </section>
 
       <CalendarCenterClient

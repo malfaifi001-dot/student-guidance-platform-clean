@@ -309,10 +309,10 @@ export function CalendarCenterClient({
   const activeReminders = grouped[activeTab];
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="min-w-0 space-y-4 pb-2" dir="rtl">
       <GuidanceScope context="calendar" />
-      <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
-        <aside data-guidance="calendar-create" className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <aside data-guidance="calendar-create" className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="space-y-3">
             <Field label="عنوان التنبيه">
               <input
@@ -323,7 +323,7 @@ export function CalendarCenterClient({
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="التاريخ">
                 <input
                   type="date"
@@ -442,9 +442,9 @@ export function CalendarCenterClient({
           </div>
         </aside>
 
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           <div data-guidance="calendar-filters" className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="grid grid-cols-2 gap-2 pb-1 sm:flex sm:gap-2 sm:overflow-x-auto">
               {tabs.map((tab) => {
                 const active = activeTab === tab.id;
 
@@ -454,7 +454,7 @@ export function CalendarCenterClient({
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={[
-                      "min-w-[132px] rounded-2xl border px-4 py-3 text-right transition",
+                      "min-w-0 rounded-2xl border px-3 py-3 text-right transition sm:min-w-[132px] sm:px-4",
                       active
                         ? "border-sky-300 bg-sky-50"
                         : "border-slate-200 bg-slate-50 hover:bg-white",
@@ -487,7 +487,7 @@ export function CalendarCenterClient({
               return (
                 <article
                   key={reminder.id}
-                  className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md"
+                  className="min-w-0 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -523,11 +523,11 @@ export function CalendarCenterClient({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
                       {href ? (
                         <a
                           href={href}
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 sm:flex-none"
                         >
                           فتح الرابط
                         </a>
@@ -539,7 +539,7 @@ export function CalendarCenterClient({
                           onClick={() =>
                             patchReminder(reminder.id, { status: "PENDING" })
                           }
-                          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white"
+                          className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white sm:flex-none"
                         >
                           <RefreshCcw className="h-4 w-4" />
                           إعادة
@@ -550,7 +550,7 @@ export function CalendarCenterClient({
                           onClick={() =>
                             patchReminder(reminder.id, { status: "COMPLETED" })
                           }
-                          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white"
+                          className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white sm:flex-none"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           تم
@@ -560,7 +560,7 @@ export function CalendarCenterClient({
                       <button
                         type="button"
                         onClick={() => deleteReminder(reminder.id)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"
+                        className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700 sm:flex-none"
                       >
                         <Trash2 className="h-4 w-4" />
                         حذف
