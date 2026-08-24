@@ -2,7 +2,9 @@ import { ServiceStatus} from "@prisma/client";
 
 import {
   getWorkflowServiceOwnerRole,
+  workflowServicesByRole,
   workflowUploadServices,
+  type WorkflowServiceOwnerRole,
 } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
 
@@ -79,6 +81,12 @@ export function getWorkflowUploadServices() {
   return workflowUploadServices.filter(isWorkflowUploadEligibleService);
 }
 
+export function getWorkflowUploadServicesForRole(
+  role: WorkflowServiceOwnerRole,
+) {
+  return workflowServicesByRole[role].filter(isWorkflowUploadEligibleService);
+}
+
 function getServiceConfig(serviceSlug: string): DashboardWorkflowServiceConfig | null {
   const config = workflowUploadServices.find((service) => service.slug === serviceSlug);
 
@@ -130,6 +138,22 @@ export async function ensureDashboardWorkflowServices() {
   const results = [];
 
   for (const service of getWorkflowUploadServices()) {
+    const ensured = await ensureDashboardWorkflowService(service.slug);
+
+    if (ensured) {
+      results.push(ensured);
+    }
+  }
+
+  return results;
+}
+
+export async function ensureDashboardWorkflowServicesForRole(
+  role: WorkflowServiceOwnerRole,
+) {
+  const results = [];
+
+  for (const service of getWorkflowUploadServicesForRole(role)) {
     const ensured = await ensureDashboardWorkflowService(service.slug);
 
     if (ensured) {

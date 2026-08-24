@@ -622,10 +622,28 @@ const adminMainLinks: SidebarLinkItem[] = [
     href: "/dashboard/admin/subscribers",
     icon: Users,
   },
+];
+
+const adminWorkflowRoleLinks: SidebarLinkItem[] = [
   {
-    label: "Workflows",
-    href: "/dashboard/admin/workflows",
-    icon: GitBranch,
+    label: "الموجه الطلابي",
+    href: "/dashboard/admin/workflows/counselor",
+    icon: Compass,
+  },
+  {
+    label: "رائد النشاط",
+    href: "/dashboard/admin/workflows/activity-leader",
+    icon: Activity,
+  },
+  {
+    label: "المعلم",
+    href: "/dashboard/admin/workflows/teacher",
+    icon: BookOpen,
+  },
+  {
+    label: "مدير المدرسة",
+    href: "/dashboard/admin/workflows/principal",
+    icon: School,
   },
 ];
 
@@ -1499,6 +1517,24 @@ function AdminSidebar({
           />
         ))}
       </SidebarSection>
+
+      <SidebarDropdown
+        title="Workflows"
+        defaultOpen={pathname.startsWith("/dashboard/admin/workflows")}
+        collapsed={collapsed}
+        admin
+      >
+        {adminWorkflowRoleLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+            admin
+          />
+        ))}
+      </SidebarDropdown>
 
       <SidebarDropdown
         title="المدفوعات"
