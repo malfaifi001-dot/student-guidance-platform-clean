@@ -320,6 +320,7 @@ model SchoolAccount {
   reportSignatureRequests      ReportSignatureRequest[]
   activityPlanEntries          ActivityPlanEntry[]
   activityPlanShareTokens      ActivityPlanShareToken[]
+  savedCurriculumSubjects      TeacherSavedCurriculum[]
 }
 
 // Imported, platform-owned curriculum catalog. This data is not school-scoped.
@@ -482,6 +483,7 @@ model User {
   serviceOutputLinks            ServiceOutputLink[]
   reportSignatureRequests       ReportSignatureRequest[]
   activityPlanShareTokens       ActivityPlanShareToken[]
+  savedCurriculumSubjects       TeacherSavedCurriculum[]
 
   @@index([schoolAccountId])
 }
@@ -524,6 +526,24 @@ model ActivityPlanShareToken {
 
   @@index([schoolAccountId, revokedAt])
   @@index([createdById])
+}
+
+model TeacherSavedCurriculum {
+  id              String        @id @default(cuid())
+  ownerUserId     String
+  owner           User          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  serviceSlug     String        @default("curriculum-distribution") @db.VarChar(120)
+  resourceType    String        @default("CURRICULUM_DISTRIBUTION") @db.VarChar(80)
+  subjectId       String        @db.VarChar(191)
+  semesterId      String        @db.VarChar(191)
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([ownerUserId, subjectId, semesterId], map: "TeacherSavedCurriculum_owner_subject_semester_uq")
+  @@index([schoolAccountId, ownerUserId, sortOrder])
 }
 
 model GuidanceVideo {

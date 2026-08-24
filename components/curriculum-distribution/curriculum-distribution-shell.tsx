@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpenCheck, ChevronDown, Eye, Link2, Loader2, Search } from "lucide-react";
+import { ChevronDown, Eye, Loader2, Plus, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -9,8 +9,9 @@ import { CurriculumDistributionMobilePreview } from "@/components/curriculum-dis
 import { CurriculumWeekCard } from "@/components/curriculum-distribution/curriculum-week-card";
 import { getCurriculumCalendarItems } from "@/lib/curriculum-distribution/calendar";
 import type { CurriculumDistribution, CurriculumOption } from "@/lib/curriculum-distribution/types";
-import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
-import { ServiceOutputCard } from "@/components/performance-links/service-output-card";
+import { MyCurriculumCard, type SavedCurriculumItem } from "@/components/curriculum-distribution/my-curriculum-card";
+import { CurriculumSendPopCard, type CurriculumSendStatus } from "@/components/curriculum-distribution/curriculum-send-pop-card";
+import { downloadBlobAsFile } from "@/lib/print-export/print-export-download";
 
 type Choice = CurriculumOption & { isExtra?: boolean };
 type Options = { stages: Choice[]; childStages: Choice[]; tracks: Choice[]; grades: Choice[]; semesters: Choice[]; subjects: Choice[] };
@@ -79,30 +80,30 @@ export function CurriculumDistributionShell({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [existingLink, setExistingLink] = useState<{ id: string; performanceItemKey: string } | null>(null);
-  const [historyLinks, setHistoryLinks] = useState<any[]>([]);
-  const [historyPerformanceItems, setHistoryPerformanceItems] = useState<{ key: string; title: string }[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [myCurriculum, setMyCurriculum] = useState<SavedCurriculumItem[]>([]);
+  const [myCurriculumLoading, setMyCurriculumLoading] = useState(false);
+  const [sendItem, setSendItem] = useState<SavedCurriculumItem | null>(null);
+  const [sendStatus, setSendStatus] = useState<CurriculumSendStatus>("idle");
+  const [sendBlob, setSendBlob] = useState<Blob | null>(null);
+  const [sendFileName, setSendFileName] = useState("weekly-curriculum.pdf");
   const searchParams = useSearchParams();
   const requestVersion = useRef(0);
   const print = usePrintExportAction();
 
-  async function loadHistory() {
+  async function loadMyCurriculum() {
     if (publicPreview) return;
-    setHistoryLoading(true);
+    setMyCurriculumLoading(true);
     try {
-      const response = await fetch("/api/dashboard/performance-links?serviceSlug=curriculum-distribution&roleContext=TEACHER", { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch("/api/dashboard/curriculum-distribution/my-curriculum", { cache: "no-store", credentials: "same-origin" });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error || "تعذر تحميل الخطط المرتبطة.");
-      setHistoryLinks(json.links || []);
-      setHistoryPerformanceItems(json.performanceItems || []);
+      if (!response.ok) throw new Error(json.error || "تعذر تحميل منهجي.");
+      setMyCurriculum(json.items || []);
     } catch {
-      setHistoryLinks([]);
-    } finally { setHistoryLoading(false); }
+      setMyCurriculum([]);
+    } finally { setMyCurriculumLoading(false); }
   }
 
-  useEffect(() => { void loadHistory(); }, [publicPreview]);
+  useEffect(() => { void loadMyCurriculum(); }, [publicPreview]);
 
   useEffect(() => {
     const subjectId = searchParams.get("subjectId");
@@ -112,13 +113,18 @@ export function CurriculumDistributionShell({
     fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" }).then((response) => response.json()).then((json) => { if (json.distribution) setDistribution(json.distribution); }).catch(() => undefined);
   }, [apiPath, searchParams]);
 
-  useEffect(() => {
+  async function addCurrentToMyCurriculum() {
     if (!distribution) return;
-    fetch(`/api/dashboard/performance-links?serviceSlug=curriculum-distribution&roleContext=TEACHER`, { cache: "no-store" }).then((response) => response.json()).then((json) => {
-      const match = (json.links || []).find((link: any) => link.sourceReferenceJson?.subjectId === distribution.subject.id && link.sourceReferenceJson?.semesterId === distribution.semester.id);
-      setExistingLink(match || null);
-    }).catch(() => setExistingLink(null));
-  }, [distribution]);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/dashboard/curriculum-distribution/my-curriculum", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subjectId: distribution.subject.id, semesterId: distribution.semester.id }) });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || "تعذر الإضافة إلى منهجي.");
+      setError(json.duplicate ? "هذه المادة موجودة في منهجي بالفعل." : "تمت إضافة المادة إلى منهجي.");
+      await loadMyCurriculum();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "تعذر الإضافة إلى منهجي."); }
+    finally { setLoading(false); }
+  }
 
   function getPrintUrl() {
     if (!distribution) return "";
@@ -184,6 +190,57 @@ export function CurriculumDistributionShell({
     if (!distribution) return;
     onPublicEvent?.("PREVIEW");
     setMobilePreviewOpen(true);
+  }
+
+  async function sendWeekly(item: SavedCurriculumItem | null, all: boolean) {
+    if (!item && !all) return;
+    const fileName = all ? "منهج-الأسبوع-موادي.pdf" : `منهج-الأسبوع-${item?.subject.name || "المادة"}.pdf`;
+    setSendFileName(fileName);
+    setSendBlob(null);
+    setSendStatus("preparing");
+    try {
+      const response = await fetch("/api/dashboard/curriculum-distribution/week/export/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all, subjectId: item?.subjectId, semesterId: item?.semesterId, fileName }), credentials: "same-origin" });
+      if (!response.ok || !(response.headers.get("content-type") || "").includes("application/pdf")) throw new Error("WEEKLY_PDF_UNAVAILABLE");
+      const blob = await response.blob();
+      const file = new File([blob], fileName, { type: "application/pdf" });
+      setSendBlob(blob);
+      if (typeof navigator.share !== "function" || typeof navigator.canShare !== "function" || !navigator.canShare({ files: [file] })) {
+        setSendStatus("unsupported");
+        return;
+      }
+      setSendStatus("sharing");
+      try {
+        await navigator.share({ files: [file], title: all ? "منهج الأسبوع" : `منهج الأسبوع - ${item?.subject.name || "المادة"}`, text: all ? "منهج الأسبوع لمواد منهجي" : `منهج الأسبوع لمادة ${item?.subject.name || "المادة"}` });
+        setSendItem(null);
+        setSendBlob(null);
+        setSendStatus("idle");
+      } catch (reason) {
+        if (reason instanceof DOMException && reason.name === "AbortError") {
+          setSendItem(null);
+          setSendBlob(null);
+          setSendStatus("idle");
+          return;
+        }
+        setSendStatus("error");
+      }
+    } catch {
+      setSendStatus("error");
+    }
+  }
+
+  async function downloadWeeklyFile() {
+    if (!sendBlob) return;
+    await downloadBlobAsFile(sendBlob, sendFileName);
+    setSendItem(null);
+    setSendBlob(null);
+    setSendStatus("idle");
+  }
+
+  function closeSendCard() {
+    if (sendStatus === "preparing" || sendStatus === "sharing") return;
+    setSendItem(null);
+    setSendBlob(null);
+    setSendStatus("idle");
   }
 
   useEffect(() => {
@@ -340,21 +397,21 @@ export function CurriculumDistributionShell({
         <div className="mt-5 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
           <p className="text-sm font-bold text-slate-500">{subject ? "أصبحت الخطة جاهزة للعرض." : "أكمل الاختيارات لعرض التوزيع."}</p>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-            <button disabled={!subject || loading} onClick={showDistribution} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-45">
+             {!distribution ? <button disabled={!subject || loading} onClick={showDistribution} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-45">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? "جارٍ التحميل" : "عرض التوزيع"}
-            </button>
+             </button> : <button type="button" disabled={loading} onClick={addCurrentToMyCurriculum} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-60"><Plus className="h-4 w-4" />إضافة إلى منهجي</button>}
             {distribution ? <button disabled={print.status === "loading"} onClick={openDistributionPreview} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-60"><Eye className="h-4 w-4" />معاينة وتحميل</button> : null}
-            {distribution ? <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-black text-sky-800 transition hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"><Link2 className="h-4 w-4" />{existingLink ? "تعديل الربط" : "ربط بعنصر أداء"}</button> : null}
+
           </div>
         </div>
       </section>
-      {distribution ? <DistributionView distribution={distribution} /> : <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/70 px-5 py-7 text-center"><BookOpenCheck className="mx-auto h-7 w-7 text-sky-500" /><p className="mt-2 text-sm font-black text-slate-600">{subject ? "جاهز لعرض توزيع المنهج." : "اختر المادة لعرض توزيع المنهج."}</p></div>}
-      {!publicPreview ? <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm md:p-5" aria-labelledby="curriculum-linked-history-title">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div><h2 id="curriculum-linked-history-title" className="text-base font-black text-slate-950">خطط توزيع المنهج المرتبطة</h2><p className="mt-1 text-xs font-bold text-slate-500">التوزيعات التي سبق ربطها بعناصر الأداء.</p></div>
-          {historyLoading ? <Loader2 className="h-4 w-4 animate-spin text-sky-600" aria-label="جار تحميل الخطط المرتبطة" /> : null}
-        </div>
-        {historyLinks.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">{historyLinks.map((link) => <ServiceOutputCard key={link.id} link={link} roleContext="TEACHER" performanceItemTitle={historyPerformanceItems.find((item) => item.key === link.performanceItemKey)?.title || link.performanceItemKey} onUpdated={(updated) => { setHistoryLinks((current) => current.map((item) => item.id === updated.id ? { ...item, ...updated } : item)); if (existingLink?.id === updated.id) setExistingLink(updated); }} onDeleted={(id) => setHistoryLinks((current) => current.filter((item) => item.id !== id))} />)}</div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm font-black text-slate-500">لا توجد خطط توزيع مرتبطة بعناصر الأداء حتى الآن.</p>}
+       {distribution ? <div className="rounded-[1.5rem] border border-sky-100 bg-sky-50/60 px-5 py-4 text-sm font-bold text-sky-800">تم تحميل التوزيع. استخدم «معاينة وتحميل» للاطلاع الكامل.</div> : null}
+       {!publicPreview ? <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm md:p-5" aria-labelledby="my-curriculum-title">
+         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+           <div><h2 id="my-curriculum-title" className="text-base font-black text-slate-950">منهجي</h2><p className="mt-1 text-xs font-bold text-slate-500">المواد التي حفظتها للمتابعة.</p></div>
+           {myCurriculumLoading ? <Loader2 className="h-4 w-4 animate-spin text-sky-600" aria-label="جار تحميل منهجي" /> : null}
+         </div>
+         {myCurriculum.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">{myCurriculum.map((item) => <MyCurriculumCard key={item.id} item={item} onRefresh={() => void loadMyCurriculum()} onSend={setSendItem} />)}</div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm font-black text-slate-500">لا توجد مواد محفوظة في منهجي حتى الآن.</p>}
       </section> : null}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <CurriculumDistributionMobilePreview
@@ -363,7 +420,7 @@ export function CurriculumDistributionShell({
         onDownload={printDistribution}
         onClose={() => setMobilePreviewOpen(false)}
       />
-      {distribution ? <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="curriculum-distribution" roleContext="TEACHER" resourceType="CURRICULUM_DISTRIBUTION" sourceReference={{ subjectId: distribution.subject.id, semesterId: distribution.semester.id }} displayTitle={`خطة توزيع المنهج لمادة ${distribution.subject.name}`} existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setExistingLink(link); void loadHistory(); }} /> : null}
+       <CurriculumSendPopCard open={Boolean(sendItem)} status={sendStatus} onClose={closeSendCard} onDownload={() => void downloadWeeklyFile()} onSingle={() => { if (sendItem) void sendWeekly(sendItem, false); }} onAll={() => { if (sendItem) void sendWeekly(sendItem, true); }} />
     </div>
   );
 }

@@ -1,0 +1,2366 @@
+﻿FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 17
+TEXT: function getOrigin(request: Request) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 19
+TEXT:     request.headers.get("origin") ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 20
+TEXT:     process.env.NEXT_PUBLIC_APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 21
+TEXT:     process.env.APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 134
+TEXT:   const origin = getOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 190
+TEXT:       const publicUrl = buildTeacherAssignmentPublicUrl(origin, assignment.token);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 327
+TEXT:   const origin = getOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts
+LINE: 328
+TEXT:   const publicUrl = buildTeacherAssignmentPublicUrl(origin, assignment.token);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-plan\export\pdf\route.ts
+LINE: 3
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-plan\export\pdf\route.ts
+LINE: 27
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-plan\export\pdf\route.ts
+LINE: 28
+TEXT:   const printUrl = new URL("/print/activity-plan", origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-team\export\pdf\route.ts
+LINE: 4
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-team\export\pdf\route.ts
+LINE: 51
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-team\export\pdf\route.ts
+LINE: 52
+TEXT:   const printUrl = new URL("/print/activity-team", origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\accounting\expenses\[expenseId]\attachments\route.ts
+LINE: 55
+TEXT:         originalFileName: file.name.slice(0, 190),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+LINE: 182
+TEXT:       const originalAmount =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+LINE: 183
+TEXT:         transferRequest.originalAmount ?? transferRequest.amount;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+LINE: 185
+TEXT:       if (originalAmount - discountAmount !== transferRequest.amount) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\items\[itemId]\replace-file\route.ts
+LINE: 140
+TEXT:       originalFileName: uploadedFile.name,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 38
+TEXT:   originalStorageKey: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 269
+TEXT:       const originalStorageKey = addSchoolCover
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 290
+TEXT:           originalPdf: validation.buffer,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 315
+TEXT:       if (originalStorageKey) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 317
+TEXT:           storageKey: originalStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 320
+TEXT:         savedStorageKeys.push(originalStorageKey);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 334
+TEXT:         originalStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 335
+TEXT:         pdfCoverApplied: Boolean(originalStorageKey),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 368
+TEXT:         originalStorageKey: null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+LINE: 392
+TEXT:       originalStorageKey: pdfUpload?.originalStorageKey ?? null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\[videoId]\route.ts
+LINE: 9
+TEXT:   sanitizeOriginalVideoFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\[videoId]\route.ts
+LINE: 73
+TEXT:   let nextOriginalName = existing.originalFileName;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\[videoId]\route.ts
+LINE: 129
+TEXT:       nextOriginalName = sanitizeOriginalVideoFileName(replacement.name);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\[videoId]\route.ts
+LINE: 138
+TEXT:       nextOriginalName = null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\[videoId]\route.ts
+LINE: 150
+TEXT:         originalFileName: nextOriginalName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\route.ts
+LINE: 9
+TEXT:   sanitizeOriginalVideoFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\route.ts
+LINE: 77
+TEXT:     let originalFileName: string | null = null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\route.ts
+LINE: 113
+TEXT:       originalFileName = sanitizeOriginalVideoFileName(file.name);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\guidance-videos\route.ts
+LINE: 125
+TEXT:         originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 13
+TEXT:   createWorkflowOriginalFileStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 14
+TEXT:   deleteWorkflowOriginalFile,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 16
+TEXT:   saveWorkflowOriginalFile,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 17
+TEXT: } from "@/lib/storage/workflow-original-file-storage";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 169
+TEXT:     savedStorageKey = createWorkflowOriginalFileStorageKey({
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 174
+TEXT:     await saveWorkflowOriginalFile({
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 179
+TEXT:     const originalFileMimeType =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 195
+TEXT:         originalFileName: file.name.trim().slice(0, 255),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 196
+TEXT:         originalFileStorageKey: savedStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 197
+TEXT:         originalFileMimeType,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 198
+TEXT:         originalFileSize: file.size,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 199
+TEXT:         originalFileUploadedAt: new Date(),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 208
+TEXT:         originalFileName: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 209
+TEXT:         originalFileStorageKey: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 210
+TEXT:         originalFileMimeType: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 211
+TEXT:         originalFileSize: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 212
+TEXT:         originalFileUploadedAt: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 229
+TEXT:         originalFileName: file.name.trim().slice(0, 255),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 230
+TEXT:         originalFileStorageKey: savedStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 231
+TEXT:         originalFileMimeType,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 232
+TEXT:         originalFileSize: file.size,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 233
+TEXT:         originalFileUploadedAt: new Date().toISOString(),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+LINE: 245
+TEXT:     await deleteWorkflowOriginalFile(savedStorageKey).catch(() => null);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+LINE: 5
+TEXT: import { deleteWorkflowOriginalFile } from "@/lib/storage/workflow-original-file-storage";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+LINE: 118
+TEXT:     await deleteWorkflowOriginalFile(workflow.originalFileStorageKey).catch(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+LINE: 120
+TEXT:         console.error("Failed to delete workflow original file:", storageError);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 7
+TEXT:   readWorkflowOriginalFile,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 8
+TEXT:   workflowOriginalFileExists,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 9
+TEXT: } from "@/lib/storage/workflow-original-file-storage";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 42
+TEXT:       originalFileName: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 43
+TEXT:       originalFileStorageKey: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 47
+TEXT:   if (!workflow?.originalFileStorageKey) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 54
+TEXT:   const extension = getWorkflowExcelExtension(workflow.originalFileStorageKey);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 55
+TEXT:   if (!extension || !(await workflowOriginalFileExists(workflow.originalFileStorageKey))) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 59
+TEXT:   const buffer = await readWorkflowOriginalFile(workflow.originalFileStorageKey);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\[workflowId]\original-file\route.ts
+LINE: 61
+TEXT:     workflow.originalFileName || `workflow-${workflowId}.${extension}`,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\certificates\batches\[batchId]\export\pdf\route.ts
+LINE: 94
+TEXT:     baseUrl: new URL(request.url).origin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\certificates\[certificateId]\export\pdf\route.ts
+LINE: 79
+TEXT:     baseUrl: new URL(request.url).origin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\export\pdf\route.ts
+LINE: 4
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\export\pdf\route.ts
+LINE: 66
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\export\pdf\route.ts
+LINE: 67
+TEXT:   const printUrl = new URL("/print/curriculum-distribution", origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\week\export\pdf\route.ts
+LINE: 3
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\week\export\pdf\route.ts
+LINE: 33
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\curriculum-distribution\week\export\pdf\route.ts
+LINE: 34
+TEXT:   const printUrl = new URL("/print/curriculum-distribution/week", origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+LINE: 278
+TEXT:   const originalAmount =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+LINE: 280
+TEXT:   let amount = originalAmount;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+LINE: 309
+TEXT:     amount = automaticPricing?.finalAmount ?? originalAmount;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+LINE: 363
+TEXT:       originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\portfolio\snapshots\[snapshotId]\export\pdf\route.ts
+LINE: 7
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\portfolio\snapshots\[snapshotId]\export\pdf\route.ts
+LINE: 33
+TEXT:     const previewUrl = `${getRequestOrigin(request)}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\portfolio\[portfolioId]\export\pdf\route.ts
+LINE: 8
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\portfolio\[portfolioId]\export\pdf\route.ts
+LINE: 39
+TEXT:     const previewUrl = `${getRequestOrigin(request)}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\prepare\route.ts
+LINE: 4
+TEXT:   return NextResponse.redirect(new URL("/api/dashboard/reports/prepare", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\approve\route.ts
+LINE: 7
+TEXT:   return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/approve`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\delete\route.ts
+LINE: 10
+TEXT:       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\delete\route.ts
+LINE: 20
+TEXT:       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\duplicate\route.ts
+LINE: 7
+TEXT:   return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/duplicate`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\evidence\route.ts
+LINE: 7
+TEXT:   return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/evidence`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\export\pdf\route.ts
+LINE: 7
+TEXT:   return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/export/pdf`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\route.ts
+LINE: 7
+TEXT:   return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\route.ts
+LINE: 4
+TEXT:   return NextResponse.redirect(new URL("/api/dashboard/reports", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report\route.ts
+LINE: 8
+TEXT:   return NextResponse.redirect(new URL("/api/dashboard/reports", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-1\[reportId]\export\pdf\route.ts
+LINE: 20
+TEXT:     process.env.NEXT_PUBLIC_APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-1\[reportId]\export\pdf\route.ts
+LINE: 21
+TEXT:     process.env.APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 18
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 236
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 237
+TEXT:   const previewUrl = `${origin}/report-2-export-preview/${token}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 242
+TEXT:       baseUrl: origin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 251
+TEXT:       baseUrl: origin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+LINE: 257
+TEXT:       baseUrl: origin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\export\pdf\route.ts
+LINE: 19
+TEXT:     process.env.NEXT_PUBLIC_APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\export\pdf\route.ts
+LINE: 20
+TEXT:     process.env.APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\signature-request\route.ts
+LINE: 12
+TEXT:   resolveReportSignaturePublicOrigin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\signature-request\route.ts
+LINE: 171
+TEXT:       resolveReportSignaturePublicOrigin(request.url),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\settings\school\principal-signature-request\route.ts
+LINE: 16
+TEXT: const DEFAULT_PUBLIC_APP_URL = "https://paleturquoise-mandrill-289573.hostingersite.com";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\settings\school\principal-signature-request\route.ts
+LINE: 33
+TEXT:   const envBaseUrl = cleanBaseUrl(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.SITE_URL);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\settings\school\principal-signature-request\route.ts
+LINE: 35
+TEXT:   const requestBaseUrl = cleanBaseUrl(new URL(request.url).origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\settings\school\principal-signature-request\route.ts
+LINE: 37
+TEXT:   return DEFAULT_PUBLIC_APP_URL;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\special-report\ai\route.ts
+LINE: 41
+TEXT:       process.env.DEEPSEEK_BASE_URL?.trim() ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\health\route.ts
+LINE: 61
+TEXT:       databaseUrlConfigured: Boolean(process.env.DATABASE_URL),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 93
+TEXT:   originalValue: unknown,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 96
+TEXT:   if (!url || typeof originalValue !== "string") return "MISSING_OR_INVALID_URL";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 107
+TEXT:   const rawUrlWithoutQueryOrHash = originalValue.split(/[?#]/, 1)[0];
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 124
+TEXT: function isAllowedAppleValidationUrl(originalValue: unknown, url: URL | null) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 125
+TEXT:   return getAppleValidationRejectionReason(originalValue, url) === null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\apple-pay\session\route.ts
+LINE: 191
+TEXT:     origin: getSafeDiagnosticText(request.headers.get("origin")),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 15
+TEXT: function getPublicOrigin(request: NextRequest) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 16
+TEXT:   const configuredOrigin = process.env.APP_URL?.trim().replace(/\/+$/, "");
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 18
+TEXT:   if (configuredOrigin) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 19
+TEXT:     return configuredOrigin;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 36
+TEXT:   return request.nextUrl.origin;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\payments\moyasar\callback\route.ts
+LINE: 41
+TEXT:     new URL(path, getPublicOrigin(request))
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\counselor-reference-library\[itemId]\download\route.ts
+LINE: 8
+TEXT: type DownloadVariant = "pdf" | "docx" | "original";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\counselor-reference-library\[itemId]\download\route.ts
+LINE: 12
+TEXT:   return variant === "pdf" || variant === "docx" || variant === "original" ? variant : null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\counselor-reference-library\[itemId]\download\route.ts
+LINE: 34
+TEXT:       : { storageKey: item.storageKey || item.originalStorageKey, mimeType: item.mimeType || "application/octet-stream", fileName: item.originalFileName || `${item.title}.${item.fileExtension || "bin"}`, sizeBytes: item.sizeBytes };
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\counselor-reference-library\[itemId]\route.ts
+LINE: 13
+TEXT:     originalStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\counselor-reference-library\[itemId]\route.ts
+LINE: 20
+TEXT:   void originalStorageKey;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\curriculum-distribution\export\pdf\route.ts
+LINE: 3
+TEXT: import { getRequestOrigin } from "@/lib/http/request-origin";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\curriculum-distribution\export\pdf\route.ts
+LINE: 64
+TEXT:   const origin = getRequestOrigin(request);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\api\public\curriculum-distribution\export\pdf\route.ts
+LINE: 65
+TEXT:   const printUrl = new URL("/print/curriculum-distribution", origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\activity-leader\teacher-assignments\page.tsx
+LINE: 91
+TEXT:   const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\activity-leader\teacher-assignments\page.tsx
+LINE: 96
+TEXT:         const publicUrl = buildTeacherAssignmentPublicUrl(origin, assignment.token);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LINE: 186
+TEXT:     hasOriginalFile: Boolean(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+LINE: 187
+TEXT:       workflow.originalFileStorageKey && workflow.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\app\uploads\expense-receipts\[expenseId]\[fileName]\route.ts
+LINE: 18
+TEXT:     select: { mimeType: true, originalFileName: true },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\accounting\admin-accounting-dashboard.tsx
+LINE: 546
+TEXT:   return <SimpleModal title={expense.title} onClose={onClose} wide><div className="grid gap-5 lg:grid-cols-3"><section className="rounded-2xl border border-slate-200 p-4"><h3 className="font-black">بيانات المصروف</h3><dl className="mt-4 space-y-3 text-sm"><Detail label="الحالة" value={EXPENSE_STATUS_LABELS[expense.effectiveStatus]} /><Detail label="المورد" value={expense.vendor || "غير محدد"} /><Detail label="التصنيف" value={expense.category.name} /><Detail label="الإجمالي" value={formatMoney(expense.totalAmount, expense.currency)} /><Detail label="الاستحقاق" value={formatDate(expense.dueDate)} />{expense.isRecurring ? <Detail label="التجديد القادم" value={formatDate(expense.nextRenewalDate)} /> : null}<Detail label="دُفع من" value={expense.paymentSource?.name || "غير مسدد"} /><Detail label="منفذ السداد" value={expense.paidByName || "غير محدد"} /></dl></section><section className="rounded-2xl border border-slate-200 p-4"><div className="flex items-center justify-between"><h3 className="font-black">المرفقات والإيصالات</h3><label className="cursor-pointer rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white"><Paperclip className="inline h-3.5 w-3.5" /> رفع<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={busy} className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(expense.id, file); event.currentTarget.value = ""; }} /></label></div><div className="mt-4 space-y-2">{expense.attachments.length ? expense.attachments.map((attachment) => <div key={attachment.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 p-3"><a href={attachment.fileUrl} target="_blank" rel="noreferrer" className="min-w-0 truncate text-xs font-black text-sky-700">{attachment.originalFileName}</a><button type="button" onClick={() => onArchiveAttachment(expense, attachment.id)} className="text-rose-600"><Trash2 className="h-4 w-4" /></button></div>) : <p className="text-xs font-bold text-slate-400">لا توجد مرفقات.</p>}</div></section><section className="rounded-2xl border border-slate-200 p-4"><h3 className="font-black">سجل الدفعات</h3><div className="mt-4 space-y-3">{expense.payments.length ? expense.payments.map((payment) => <div key={payment.id} className="rounded-xl bg-emerald-50 p-3"><p className="font-black text-emerald-900">{formatMoney(payment.totalAmount, payment.currency)}</p><p className="mt-1 text-xs font-bold text-emerald-700">{payment.paymentSourceName} · {EXPENSE_PAYMENT_METHOD_LABELS[payment.paymentMethod]} · {formatDate(payment.paidAt)}</p><p className="mt-1 text-[11px] font-bold text-emerald-600">سجله: {payment.recordedByName || payment.recordedById}</p></div>) : <p className="text-xs font-bold text-slate-400">لا توجد دفعات.</p>}</div></section></div><section className="mt-5 rounded-2xl border border-slate-200 p-4"><h3 className="flex items-center gap-2 font-black"><History className="h-4 w-4" /> سجل التدقيق</h3><div className="mt-4 grid gap-3 md:grid-cols-2">{expense.audits.map((audit) => <div key={audit.id} className="rounded-xl bg-slate-50 p-3"><p className="text-sm font-black text-slate-900">{audit.summary}</p><p className="mt-1 text-xs font-bold text-slate-500">{audit.actorName || audit.actorUserId} · {formatDate(audit.createdAt)}</p></div>)}</div></section></SimpleModal>;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-card.tsx
+LINE: 6
+TEXT: import { WorkflowOriginalFileAction } from "@/components/admin/workflows/workflow-original-file-action";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-card.tsx
+LINE: 23
+TEXT:   hasOriginalFile: boolean;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-card.tsx
+LINE: 98
+TEXT:       <WorkflowOriginalFileAction serviceSlug={serviceSlug} workflowId={workflow.id} hasOriginalFile={workflow.hasOriginalFile} />
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-original-file-action.tsx
+LINE: 9
+TEXT:   hasOriginalFile: boolean;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-original-file-action.tsx
+LINE: 12
+TEXT: export function WorkflowOriginalFileAction({ serviceSlug, workflowId, hasOriginalFile }: Props) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-original-file-action.tsx
+LINE: 13
+TEXT:   if (!hasOriginalFile) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\workflows\workflow-original-file-action.tsx
+LINE: 24
+TEXT:       href={`/api/dashboard/admin/workflows/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(workflowId)}/original-file`}
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 162
+TEXT:     const original = REPORT_TEXT_TEMPLATE_PRESETS.find(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 166
+TEXT:     if (!original) return;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 170
+TEXT:         template.id === selectedTemplate.id ? original : template
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-client.tsx
+LINE: 18
+TEXT:   originServiceName: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-client.tsx
+LINE: 34
+TEXT:   assignment: Assignment & { originService: { name: string }; createdBy: { name: string; officialName: string | null } };
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-client.tsx
+LINE: 144
+TEXT:               <h2 className="mt-4 text-lg font-black leading-7 text-slate-950 dark:text-white">{assignment.title || assignment.originServiceName}</h2>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-client.tsx
+LINE: 145
+TEXT:               <p className="mt-2 text-sm font-bold text-slate-500">عنصر التقييم: {assignment.originServiceName}</p>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-client.tsx
+LINE: 165
+TEXT:                   <div className="rounded-[1.5rem] bg-slate-50 p-4 dark:bg-slate-900"><h3 className="font-black text-slate-950 dark:text-white">{details.assignment.title || details.assignment.originService.name}</h3><p className="mt-2 text-sm font-bold text-slate-500">عنصر التقييم: {details.assignment.originService.name}</p>{details.assignment.note ? <p className="mt-3 whitespace-pre-wrap text-sm font-bold leading-7 text-slate-700 dark:text-slate-200">{details.assignment.note}</p> : null}</div>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\assignments\internal-assignments-page.tsx
+LINE: 43
+TEXT:         originServiceName: assignment.originService.name,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\auth\native-login-shell.tsx
+LINE: 7
+TEXT: import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\auth\native-login-shell.tsx
+LINE: 44
+TEXT:         `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(NATIVE_LOGIN_SUPPORT_MESSAGE)}`,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-mobile-preview.tsx
+LINE: 301
+TEXT:               transformOrigin: "center center",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 33
+TEXT:   const url = new URL(apiPath, window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 43
+TEXT:     response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 46
+TEXT:       response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 97
+TEXT:       const response = await fetch("/api/dashboard/curriculum-distribution/my-curriculum", { cache: "no-store", credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 113
+TEXT:     fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" }).then((response) => response.json()).then((json) => { if (json.distribution) setDistribution(json.distribution); }).catch(() => undefined);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 202
+TEXT:       const response = await fetch("/api/dashboard/curriculum-distribution/week/export/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all, subjectId: item?.subjectId, semesterId: item?.semesterId, fileName }), credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 348
+TEXT:         response = await fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-shell.tsx
+LINE: 351
+TEXT:           response = await fetch(buildApiUrl(apiPath, query), { cache: "no-store", credentials: "same-origin" });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\document-export\document-pdf-download-button.tsx
+LINE: 293
+TEXT:       clone.crossOrigin = "anonymous";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\admin-guidance-videos-center.tsx
+LINE: 681
+TEXT:                   title={video.originalFileName ?? undefined}
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\admin-guidance-videos-center.tsx
+LINE: 685
+TEXT:                     : video.originalFileName}
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\guidance-video-player.tsx
+LINE: 27
+TEXT:         referrerPolicy="strict-origin-when-cross-origin"
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\guidance-video-player.tsx
+LINE: 36
+TEXT:       // The URL is an authenticated same-origin media route, not user HTML.
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\marketing\contact-form.tsx
+LINE: 12
+TEXT:   TEACHIX_WHATSAPP_URL,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\marketing\contact-form.tsx
+LINE: 118
+TEXT:       TEACHIX_WHATSAPP_URL +
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\marketing\contact-form.tsx
+LINE: 296
+TEXT:             href={TEACHIX_WHATSAPP_URL}
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\marketing\role-story-section.tsx
+LINE: 48
+TEXT:         <div className="w-[161%] origin-top-right scale-[0.62]">
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-report-a4-popup-preview.tsx
+LINE: 394
+TEXT:                   transformOrigin: "top center",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-report-a4-viewer-page.tsx
+LINE: 665
+TEXT:                     transformOrigin: "top center",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\moyasar-checkout-form.tsx
+LINE: 126
+TEXT:         `${window.location.origin}` +
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 5
+TEXT: import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 27
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 81
+TEXT:     coupon && coupon.discountAmount > 0 && coupon.originalAmount !== total,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 93
+TEXT:     void openExternalUrl(`${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 153
+TEXT:                   <span>{coupon.originalAmount.toLocaleString("ar-SA")} ريال</span>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\payments\plan-payment-modal.tsx
+LINE: 168
+TEXT:                   {coupon.originalAmount.toLocaleString("ar-SA")} ريال
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\portfolio\portfolio-preview-fit.tsx
+LINE: 117
+TEXT:               transformOrigin: "top left",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\portfolio\portfolio-reports-evidence-panel.tsx
+LINE: 210
+TEXT:   const [title, setTitle] = useState(evidence.title === evidence.originalTitle ? "" : evidence.title);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\portfolio\portfolio-reports-evidence-panel.tsx
+LINE: 216
+TEXT:       <div><p className="text-xs font-black text-slate-500">{evidence.originalTitle || "شاهد دون عنوان"}</p><input placeholder="عنوان مخصص" value={title} onChange={(event) => setTitle(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" /><textarea placeholder="وصف مخصص" rows={2} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" /></div>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\promotions\admin-promotions-page.tsx
+LINE: 36
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\promotions\admin-promotions-page.tsx
+LINE: 647
+TEXT:                   <td className="px-4 py-3">{item.originalAmount}</td>
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reference-library\admin-reference-library-types.ts
+LINE: 23
+TEXT:   originalFileName: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reference-library\public-reference-library-shell.tsx
+LINE: 117
+TEXT:   const primaryVariant = (item.downloadVariants[0] || "ORIGINAL").toLowerCase();
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-case-workspace.tsx
+LINE: 93
+TEXT:       const originalField = sourceFields.find(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-case-workspace.tsx
+LINE: 97
+TEXT:       if (!originalField) return null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-case-workspace.tsx
+LINE: 100
+TEXT:         ...originalField,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-case-workspace.tsx
+LINE: 101
+TEXT:         key: originalField.key || `field-${index + 1}`,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-linked-assessment-appendix.tsx
+LINE: 84
+TEXT:           transform-origin:top center;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-linked-survey-appendix.tsx
+LINE: 84
+TEXT:           transform-origin:top center;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-print-document.tsx
+LINE: 219
+TEXT:           transform-origin: top left;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1008
+TEXT:     item?.originalName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1110
+TEXT:           cleanText(item.title || item.fileName || item.originalName || item.name) ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1125
+TEXT:             item.originalName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 5051
+TEXT:                 transform-origin: top left;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\designs\moe-official-2024\index.tsx
+LINE: 3
+TEXT: import { MOE_OFFICIAL_2024_EXACT_CSS } from "./original-portfolio-styles";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\shared\final-report.ts
+LINE: 119
+TEXT:     originalKind: rawKind,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\shared\final-report.ts
+LINE: 627
+TEXT:   const group = block.finalFieldGroup || block.originalKind || "";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-a4-layout.tsx
+LINE: 694
+TEXT:    * MOE 2024 keeps its original visual identity.
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+LINE: 137
+TEXT:   const originalBlocks =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+LINE: 144
+TEXT:       ? [...originalBlocks]
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+LINE: 145
+TEXT:       : originalBlocks.filter(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\design-renderers\smart-layout\report-smart-page-composer.tsx
+LINE: 161
+TEXT:    * AutoEvidencePages still receives the ORIGINAL page,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reports\guardian-summons\guardian-summons-template.tsx
+LINE: 468
+TEXT:             transform-origin: top center;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 41
+TEXT:   originalValue: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 2258
+TEXT:     const originalArabic = (text.match(/[\\u0600-\\u06FF]/g) || []).length;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 2261
+TEXT:     return decodedArabic > originalArabic ? decoded : text;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 224
+TEXT:   const originalServices = editingPlan
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 228
+TEXT:     (slug) => !originalServices.includes(slug),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 230
+TEXT:   const removedServices = originalServices.filter(
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 716
+TEXT:     originalAmount: basePrice,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 725
+TEXT:       ? `${formatMoney(planPricing.originalAmount)} ← ${formatMoney(planPricing.finalAmount)} — ${planPricing.promotionName}`
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 867
+TEXT:   const originalPrice =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 872
+TEXT:     originalAmount: originalPrice,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 1022
+TEXT:                     value={originalPrice || ""}
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 1058
+TEXT:                   السعر الأساسي: {originalPrice.toLocaleString("ar-SA")} ريال
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+LINE: 1253
+TEXT:                 originalPrice,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+LINE: 40
+TEXT:     originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+LINE: 75
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+LINE: 791
+TEXT:                     {formatPrice(automaticPricing.originalAmount)} ريال
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\plan-pricing-card.tsx
+LINE: 7
+TEXT:   originalPrice: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\plan-pricing-card.tsx
+LINE: 21
+TEXT:     data.finalPrice < data.originalPrice &&
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\plan-pricing-card.tsx
+LINE: 49
+TEXT:             {data.originalPrice.toLocaleString("ar-SA")} ريال
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\subscription\plan-pricing-card.tsx
+LINE: 56
+TEXT:             : data.originalPrice
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-analysis-shell.tsx
+LINE: 209
+TEXT:     const url = `${window.location.origin}/survey/${analysis.survey.token}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-center-shell.tsx
+LINE: 334
+TEXT:     const url = `${window.location.origin}/survey/${token}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 47
+TEXT:   const [origin, setOrigin] = useState("");
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 54
+TEXT:     if (!origin || !survey?.token) return "";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 56
+TEXT:     return `${origin}/survey/${survey.token}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 57
+TEXT:   }, [origin, survey?.token]);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 95
+TEXT:     setOrigin(window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\timetable-v2\teachers-workspace.tsx
+LINE: 30
+TEXT:     originalSubstitutions: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\daily-operations\daily-operations-workspace.tsx
+LINE: 43
+TEXT:   originalTeacherId: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\daily-operations\daily-operations-workspace.tsx
+LINE: 44
+TEXT:   originalSessionId: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\daily-operations\daily-operations-workspace.tsx
+LINE: 312
+TEXT:   return <div className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-2"><b className="text-slate-900">{substitution.className} · {substitution.subjectName}</b><span className="rounded-full bg-[#EEF7FC] px-2 py-1 text-xs font-bold text-[#3478B8]">{substitution.periodLabel ?? substitution.periodId}</span></div><p className="mt-2 text-xs text-slate-500">المعلم الغائب: {teachers.find((teacher) => teacher.id === substitution.originalTeacherId)?.name ?? substitution.originalTeacherId}</p><select disabled={saving} defaultValue={substitution.substituteTeacher?.id ?? ""} onChange={(event) => event.target.value && onAssign(event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"><option value="">اختر البديل المقترح أو يدويًا</option>{candidates.map((candidate) => <option key={candidate.teacherId} value={candidate.teacherId}>{candidate.teacherName}{candidate.reasonLabels?.length ? ` — ${candidate.reasonLabels.join("، ")}` : ""}</option>)}{candidates.length === 0 ? teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>) : null}</select><div className="mt-3 flex items-center gap-2"><select value={substitution.status} onChange={(event) => onStatus(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs"><option value="ASSIGNED">مكلف</option><option value="NOTIFIED">تم الإشعار</option><option value="COMPLETED">مكتملة</option><option value="DECLINED">مرفوضة</option><option value="CANCELED">ملغاة</option></select><span className="text-xs text-slate-500">البدلاء المقترحون وفق ضوابط التشغيل.</span></div></div>;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-plan\activity-plan-share-service.ts
+LINE: 40
+TEXT: export function resolveActivityPlanPublicOrigin() {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-plan\activity-plan-share-service.ts
+LINE: 42
+TEXT:     process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.SITE_URL,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-plan\activity-plan-share-service.ts
+LINE: 48
+TEXT:   return `${resolveActivityPlanPublicOrigin()}/activity-plan/${encodeURIComponent(token)}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-programs\teacher-assignment-links.ts
+LINE: 19
+TEXT: export function buildTeacherAssignmentPublicUrl(origin: string, token: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-programs\teacher-assignment-links.ts
+LINE: 20
+TEXT:   const cleanOrigin = String(origin || "").replace(/\/+$/, "");
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-programs\teacher-assignment-links.ts
+LINE: 22
+TEXT:   return `${cleanOrigin}/teacher/activity-assignment/${encodeURIComponent(token)}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-team\activity-team-signature-service.ts
+LINE: 12
+TEXT:   resolveReportSignaturePublicOrigin,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\activity-team\activity-team-signature-service.ts
+LINE: 136
+TEXT:   return `${resolveReportSignaturePublicOrigin(input.requestUrl)}/activity-team-signature/${encodeURIComponent(token)}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\accounting\accounting-service.ts
+LINE: 807
+TEXT:     originalFileName: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\accounting\accounting-service.ts
+LINE: 828
+TEXT:       summary: `إضافة مرفق: ${input.originalFileName}`.slice(0, 190),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\accounting\accounting-service.ts
+LINE: 833
+TEXT:         fileName: created.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\accounting\accounting-service.ts
+LINE: 869
+TEXT:       summary: `أرشفة المرفق: ${attachment.originalFileName}`.slice(0, 190),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\accounting\accounting-service.ts
+LINE: 872
+TEXT:       before: { attachmentId, fileName: attachment.originalFileName },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts
+LINE: 164
+TEXT:           originalCreatedAt: request.createdAt.toISOString(),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 16
+TEXT:     process.env.DEEPSEEK_BASE_URL?.trim() ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report\ai-report-text-sanitizer.ts
+LINE: 26
+TEXT: function shouldRepair(original: string, repaired: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report\ai-report-text-sanitizer.ts
+LINE: 27
+TEXT:   if (!repaired || repaired === original) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report\ai-report-text-sanitizer.ts
+LINE: 35
+TEXT:   return countMojibakeMarkers(repaired) < countMojibakeMarkers(original);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report2\teacher-semantic-polisher.ts
+LINE: 1615
+TEXT:     const originalLabel = clean(rawField.label || rawField.reportLabel);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report2\teacher-semantic-polisher.ts
+LINE: 1617
+TEXT:     if (!originalLabel || isLowValueField(originalLabel)) continue;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\ai-report2\teacher-semantic-polisher.ts
+LINE: 1619
+TEXT:     const polishedLabel = polishLabel(originalLabel, analysis);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\assessment-center\assessment-pdf-report.ts
+LINE: 885
+TEXT:     transform-origin:top right;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\assessment-center\assessment-pdf-report.ts
+LINE: 938
+TEXT:       transform-origin:top right !important;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\assignments\internal-assignment-service.ts
+LINE: 59
+TEXT:       originService: { select: { id: true, slug: true, name: true } },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\assignments\internal-assignment-service.ts
+LINE: 124
+TEXT:       originService: { select: { id: true, slug: true, name: true } },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\assignments\internal-assignment-service.ts
+LINE: 136
+TEXT:         originService: { select: { id: true, slug: true, name: true } },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\auth\password.ts
+LINE: 27
+TEXT:   const originalHash = parts[3];
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\auth\password.ts
+LINE: 35
+TEXT:     Buffer.from(originalHash, "hex")
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\data-center\delete-student-import-session.ts
+LINE: 56
+TEXT:     const originalFileName = session.files[0]?.fileName ?? session.title;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\data-center\delete-student-import-session.ts
+LINE: 104
+TEXT:           originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\data-center\delete-student-import-session.ts
+LINE: 119
+TEXT:       originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\evidence\save-evidence-files.ts
+LINE: 27
+TEXT: function sanitizeOriginalFileName(fileName: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\evidence\save-evidence-files.ts
+LINE: 40
+TEXT:   const safeName = sanitizeOriginalFileName(file.name);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\evidence\save-evidence-files.ts
+LINE: 111
+TEXT:     const safeOriginalName = sanitizeOriginalFileName(file.name);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\evidence\save-evidence-files.ts
+LINE: 119
+TEXT:       fileName: safeOriginalName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\guidance-videos\guidance-video-config.ts
+LINE: 61
+TEXT:   originalFileName: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\guidance-videos\guidance-video-input.ts
+LINE: 135
+TEXT: export function sanitizeOriginalVideoFileName(value: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\guidance-videos\guidance-video-service.ts
+LINE: 24
+TEXT:     originalFileName: video.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\http\request-origin.ts
+LINE: 1
+TEXT: export function getRequestOrigin(request: Request) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\marketing\contact-details.ts
+LINE: 4
+TEXT: export const TEACHIX_WHATSAPP_URL =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\marketing\contact-details.ts
+LINE: 13
+TEXT:   return `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\external-url-handler.ts
+LINE: 21
+TEXT:     target = new URL(url, window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 87
+TEXT:     if (url.hostname !== "teachix.sa") return "EXTERNAL_ORIGIN";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 125
+TEXT:     const url = new URL(value, window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 126
+TEXT:     if (url.origin !== window.location.origin || !isPersistableNativeRoute(url.pathname)) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 140
+TEXT:     const url = new URL(value, window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 141
+TEXT:     if (url.origin !== window.location.origin || !isAllowedNativeRoute(url.pathname)) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 251
+TEXT:   const originalPushState = window.history.pushState.bind(window.history);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 252
+TEXT:   const originalReplaceState = window.history.replaceState.bind(window.history);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 290
+TEXT:     originalPushState(data, unused, url);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 295
+TEXT:     originalReplaceState(data, unused, url);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 305
+TEXT:       window.history.pushState = originalPushState;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\native\native-runtime.ts
+LINE: 306
+TEXT:       window.history.replaceState = originalReplaceState;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\noor-import\noor-student-data-list-parser.ts
+LINE: 473
+TEXT:       originalRow: rowValues(args.row),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\notifications\push-routing.ts
+LINE: 14
+TEXT:     if (url.origin !== "https://teachix.sa") return null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\payments\electronic-payments.ts
+LINE: 162
+TEXT:   const originalAmount = getCheckoutAmount(plan, billingCycle);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\payments\electronic-payments.ts
+LINE: 179
+TEXT:     couponQuote?.finalAmount ?? automaticPricing?.finalAmount ?? originalAmount;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\payments\electronic-payments.ts
+LINE: 206
+TEXT:         originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 82
+TEXT:       parsedOrigin: parsedUrl?.origin || null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-report-service.ts
+LINE: 90
+TEXT:             originService: { slug: { in: serviceSlugs } },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-report-service.ts
+LINE: 97
+TEXT:             originService: { select: { slug: true } },
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-report-service.ts
+LINE: 169
+TEXT:     const section = sectionBySlug.get(assignment.originService.slug); if (!section) continue;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-report-service.ts
+LINE: 200
+TEXT:     return { id: item.id, originalTitle: item.title, title: typeof pref.customTitle === "string" && pref.customTitle ? pref.customTitle : item.title, description: typeof pref.customDescription === "string" ? pref.customDescription : "", url: item.url, type: item.type, isVisible: pref.isVisible !== false, sortOrder: typeof pref.sortOrder === "number" ? pref.sortOrder : (index + 1) * 10 };
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-report-service.ts
+LINE: 305
+TEXT:   managed.forEach((entry, order) => { const current = object(prefs[entry.id]); prefs[entry.id] = { ...current, isVisible: entry.isVisible, sortOrder: (order + 1) * 10, customTitle: entry.title === entry.originalTitle ? "" : entry.title, customDescription: entry.description }; });
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\portfolio\portfolio-types.ts
+LINE: 129
+TEXT:   originalTitle: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\principal\performance-service.ts
+LINE: 115
+TEXT:         originServiceId: context.service.id,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\principal\performance-service.ts
+LINE: 341
+TEXT:       originServiceId: input.serviceId,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\print-export\print-export-download.ts
+LINE: 92
+TEXT:     const parsed = new URL(trimmed, window.location.origin);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\coupon-service.ts
+LINE: 148
+TEXT:     originalAmount: getPlanAmount(plan, input.billingCycle),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\coupon-service.ts
+LINE: 203
+TEXT:         originalAmount: quote.originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\coupon-service.ts
+LINE: 226
+TEXT:         originalAmount: result.quote.originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 4
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 8
+TEXT:   const originalAmount = Math.max(0, Math.trunc(input.originalAmount));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 11
+TEXT:       ? (originalAmount * input.discountValue) / 100
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 14
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 19
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\discount-calculator.ts
+LINE: 21
+TEXT:     finalAmount: Math.max(0, originalAmount - discountAmount),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\plan-pricing.ts
+LINE: 36
+TEXT:   const originalAmount = baseAmount(input.plan, input.billingCycle);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\plan-pricing.ts
+LINE: 38
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\plan-pricing.ts
+LINE: 65
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 16
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 35
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 38
+TEXT:   const originalAmount = Math.max(0, Math.trunc(input.originalAmount));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 41
+TEXT:   if (!input.offer.enabled || !name || offerPrice >= originalAmount) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 43
+TEXT:       originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 45
+TEXT:       finalAmount: originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 52
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 53
+TEXT:     discountAmount: originalAmount - offerPrice,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 90
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 94
+TEXT:   const originalAmount = Math.max(0, Math.trunc(input.originalAmount));
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 98
+TEXT:       originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 100
+TEXT:       finalAmount: originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\pricing-core.ts
+LINE: 107
+TEXT:     originalAmount,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\promotions\promotion-types.ts
+LINE: 11
+TEXT:   originalAmount: number;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 21
+TEXT:   originalFileName?: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 23
+TEXT:   originalStorageKey?: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 48
+TEXT:   if ((item.storageKey || item.originalStorageKey) && !downloadVariants.length) downloadVariants.push("ORIGINAL");
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 61
+TEXT:     fileName: item.originalFileName || item.pdfFileName || item.docxFileName || null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 101
+TEXT:     originalFileName: item.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-anonymous-service.ts
+LINE: 103
+TEXT:     originalStorageKey: item.originalStorageKey,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-pdf-cover.ts
+LINE: 321
+TEXT:   originalPdf: Uint8Array;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-pdf-cover.ts
+LINE: 344
+TEXT:   const originalPdf =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-pdf-cover.ts
+LINE: 345
+TEXT:     await PDFDocument.load(input.originalPdf, {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-pdf-cover.ts
+LINE: 350
+TEXT:     originalPdf.getPageIndices();
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-pdf-cover.ts
+LINE: 354
+TEXT:       originalPdf,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-public-service.ts
+LINE: 228
+TEXT:       originalFileName: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-public-service.ts
+LINE: 230
+TEXT:       originalStorageKey: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 51
+TEXT:   originalFileName: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 214
+TEXT:   originalStorageKey?: string | null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 240
+TEXT:           originalFileName: input.pdfFileName ?? null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 247
+TEXT:           originalFileName: input.docxFileName ?? null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 266
+TEXT:       originalFileName: legacyFile.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 268
+TEXT:       originalStorageKey: input.originalStorageKey ?? null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 424
+TEXT:   originalFileName: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 463
+TEXT:               pdfFileName: input.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 467
+TEXT:               originalFileName: input.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 473
+TEXT:               originalStorageKey: null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 476
+TEXT:               docxFileName: input.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 482
+TEXT:                     originalFileName: input.originalFileName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 554
+TEXT:             originalStorageKey: null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 555
+TEXT:             originalFileName: null,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 584
+TEXT:       originalStorageKey: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-service.ts
+LINE: 614
+TEXT:     deleteReferenceLibraryFile(existing.originalStorageKey),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\reference-library\reference-library-types.ts
+LINE: 70
+TEXT: export type PublicReferenceLibraryDownloadVariant = "PDF" | "DOCX" | "ORIGINAL";
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-serializer.ts
+LINE: 113
+TEXT:   originalPayload: SmartReportPayload,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-serializer.ts
+LINE: 119
+TEXT:     ...computeReportDraftAdjustments(originalPayload, editedPayload),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 52
+TEXT:   originalFields: SmartReportPayload["primaryFields"],
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 57
+TEXT:       const original = originalFields.find((item) => item.key === field.key);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 60
+TEXT:         original &&
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 61
+TEXT:         normalizeValue(original.value) !== normalizeValue(field.value)
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 118
+TEXT:   original: SmartReportPayload,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 123
+TEXT:   if (edited.title !== original.title) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 127
+TEXT:   if (edited.narrative.title !== original.narrative.title) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 134
+TEXT:   if (edited.narrative.body !== original.narrative.body) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 142
+TEXT:     original.primaryFields,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 151
+TEXT:     original.detailFields,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 159
+TEXT:   if (edited.caseInfo.issuedAt !== original.caseInfo.issuedAt) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 166
+TEXT:   if (edited.caseInfo.issuedBy !== original.caseInfo.issuedBy) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+LINE: 174
+TEXT:     JSON.stringify(original.customBlocks || []) !==
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts
+LINE: 114
+TEXT:   originalText: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts
+LINE: 271
+TEXT:       originalText: text,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts
+LINE: 929
+TEXT:     item?.originalName,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 180
+TEXT:   const originalLabel = displayLabel(field);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 181
+TEXT:   const originalValue = displayValue(field.value);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 182
+TEXT:   const technical = isTechnicalField(key, originalLabel, originalValue);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 184
+TEXT:   if (!originalLabel || !originalValue) return null;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 190
+TEXT:     label: applyReportLanguageModeToText(originalLabel, languageMode),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 192
+TEXT:       originalValue,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 195
+TEXT:       originalLabel,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 197
+TEXT:     originalLabel,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 198
+TEXT:     originalValue,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 236
+TEXT:       originalLabel: label,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 237
+TEXT:       originalValue: rawValue,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 266
+TEXT:     const key = `${field.originalLabel}::${field.originalValue}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 285
+TEXT:       field.originalLabel || field.label,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 289
+TEXT:       field.originalValue || field.value,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 292
+TEXT:       field.originalLabel || field.label,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 352
+TEXT:   originalField: SmartReportField | undefined,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 357
+TEXT:   const originalLabel = field.originalLabel || field.label;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 358
+TEXT:   const originalValue = originalField?.value;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 360
+TEXT:   if (Array.isArray(originalValue)) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 361
+TEXT:     const originalItems = originalValue
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 365
+TEXT:     if (!originalItems.length) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 370
+TEXT:     const originalJoined = originalItems.join("، ");
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 374
+TEXT:     const matchesOriginalText =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 376
+TEXT:       normalizePreparedComparisonText(originalJoined);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 378
+TEXT:     if (preparedValue && (isTechnicalPreparedList || matchesOriginalText)) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 380
+TEXT:         originalItems.length > 1 ? originalItems : originalItems[0] || "",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 382
+TEXT:         originalLabel,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 390
+TEXT:   const originalDisplay = displayValue(originalValue);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 395
+TEXT:     originalDisplay &&
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 396
+TEXT:     !isEnglishTechnicalText(originalDisplay)
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 399
+TEXT:       originalDisplay,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 401
+TEXT:       originalLabel,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 421
+TEXT:       const original =
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 425
+TEXT:         ...(original || {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts
+LINE: 431
+TEXT:         value: resolvePreparedFieldValue(original, field, languageMode),
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-storage.ts
+LINE: 78
+TEXT:         originalLabel: field.originalLabel || field.label || "",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-storage.ts
+LINE: 79
+TEXT:         originalValue: field.originalValue || field.value || "",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts
+LINE: 15
+TEXT:   originalLabel: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts
+LINE: 16
+TEXT:   originalValue: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 24
+TEXT: export function buildReportSignaturePublicUrl(origin: string, token: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 25
+TEXT:   return `${String(origin || "").replace(/\/+$/, "")}/report-signature/${encodeURIComponent(token)}`;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 28
+TEXT: export function resolveReportSignaturePublicOrigin(requestUrl: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 30
+TEXT:     process.env.NEXT_PUBLIC_APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 31
+TEXT:       process.env.APP_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 32
+TEXT:       process.env.SITE_URL ||
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\report-signatures\report-signature-service.ts
+LINE: 39
+TEXT:   return new URL(requestUrl).origin;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\signatures\signature-image-processor.ts
+LINE: 69
+TEXT:     // Keep the original valid PNG usable if an unusual legacy/browser PNG
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\storage\workflow-original-file-storage.ts
+LINE: 19
+TEXT: export function createWorkflowOriginalFileStorageKey(input: {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\storage\workflow-original-file-storage.ts
+LINE: 30
+TEXT: export async function saveWorkflowOriginalFile(input: {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\storage\workflow-original-file-storage.ts
+LINE: 37
+TEXT: export async function readWorkflowOriginalFile(storageKey: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\storage\workflow-original-file-storage.ts
+LINE: 41
+TEXT: export async function workflowOriginalFileExists(storageKey: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\storage\workflow-original-file-storage.ts
+LINE: 49
+TEXT: export async function deleteWorkflowOriginalFile(storageKey?: string | null) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\text\repair-utf8-mojibake.ts
+LINE: 13
+TEXT: function shouldUseRepairedValue(original: string, repaired: string) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\text\repair-utf8-mojibake.ts
+LINE: 14
+TEXT:   if (!repaired || repaired === original) {
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\text\repair-utf8-mojibake.ts
+LINE: 22
+TEXT:   return countMojibakeMarkers(repaired) < countMojibakeMarkers(original);
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 59
+TEXT:   | "ORIGINAL_TEACHER"
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 668
+TEXT:       originalSessionId: session.id,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 675
+TEXT:       originalTeacherId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 744
+TEXT:           projectId_substitutionDate_originalSessionId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 748
+TEXT:               originalSessionId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 749
+TEXT:                 row.originalSessionId,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 1294
+TEXT:         "ORIGINAL_TEACHER",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable\timetable-daily-operations-service.ts
+LINE: 1887
+TEXT:     ORIGINAL_TEACHER:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 59
+TEXT:   | "ORIGINAL_TEACHER"
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 208
+TEXT:        * originalSessionId في عمليات الانتظار سيشير
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 721
+TEXT:         originalSessionId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 998
+TEXT:         substitution.originalSessionId,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 1476
+TEXT:       originalSessionId: session.id,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 1483
+TEXT:       originalTeacherId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 1552
+TEXT:           projectId_substitutionDate_originalSessionId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 1556
+TEXT:               originalSessionId:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 1557
+TEXT:                 row.originalSessionId,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 2114
+TEXT:         "ORIGINAL_TEACHER",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\daily-operations-service.ts
+LINE: 2709
+TEXT:     ORIGINAL_TEACHER:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\daily-operations\waiting-relaxation-advisor.ts
+LINE: 88
+TEXT:     "ORIGINAL_TEACHER",
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\curriculum-catalog.ts
+LINE: 486
+TEXT:     originalSubjectNamesCount:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\teacher-service.ts
+LINE: 98
+TEXT:             originalSubstitutions: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\teacher-service.ts
+LINE: 169
+TEXT:           originalSubstitutions: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\teacher-service.ts
+LINE: 255
+TEXT:           originalSubstitutions: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\teacher-service.ts
+LINE: 288
+TEXT:             originalSubstitutions: true,
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\teacher-service.ts
+LINE: 305
+TEXT:     teacher._count.originalSubstitutions +
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v3\ai-import\ai-import-service.ts
+LINE: 624
+TEXT:           originalPrompt:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v3\ai-import\ai-import-service.ts
+LINE: 681
+TEXT:         originalPrompt:
+------------------------------------------------------------
+
+FILE: D:\student-guidance-platform-clean\lib\timetable-v3\ai-import\pipeline-prompts.ts
+LINE: 280
+TEXT:     originalPrompt: string;
+------------------------------------------------------------
+
+FILE: D:\student-guidance-
