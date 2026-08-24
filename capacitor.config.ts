@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://teachix.sa/dashboard',
     cleartext: false,
-    allowNavigation: ['https://teachix.sa'],
+    allowNavigation: ['teachix.sa'],
   },
   plugins: {
     SplashScreen: {

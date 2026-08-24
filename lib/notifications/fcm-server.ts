@@ -283,6 +283,13 @@ function buildMessage(tokens: string[], payload: TeachixPushPayload): MulticastM
     android: {
       notification: { channelId: "teachix_default", sound: "default" },
     },
+    apns: {
+      payload: {
+        aps: {
+          sound: "default",
+        },
+      },
+    },
   };
 }
 

@@ -39,10 +39,29 @@ export const SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA = {
   stripedRows: true,
 } satisfies StructuredValueTableMetadata;
 
+const BROADCAST_SCHEDULE_STRUCTURED_VALUE_METADATA = {
+  fieldKey: "broadcast_schedule_items",
+  tableTitle: "خطة الإذاعة المدرسية",
+  tableColumns: [
+    { key: "week", label: "الأسبوع" },
+    { key: "day", label: "اليوم" },
+    { key: "date", label: "التاريخ" },
+    { key: "grade", label: "الصف" },
+    { key: "topic", label: "الموضوع" },
+    { key: "responsible", label: "المسؤول" },
+  ],
+  repeatHeader: true,
+  stripedRows: true,
+} satisfies StructuredValueTableMetadata;
+
 const STRUCTURED_VALUE_TABLE_METADATA = new Map<string, StructuredValueTableMetadata>([
   [
     SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA.fieldKey,
     SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA,
+  ],
+  [
+    BROADCAST_SCHEDULE_STRUCTURED_VALUE_METADATA.fieldKey,
+    BROADCAST_SCHEDULE_STRUCTURED_VALUE_METADATA,
   ],
 ]);
 

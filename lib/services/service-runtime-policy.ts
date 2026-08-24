@@ -58,6 +58,15 @@ export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
     evidenceMode: "none",
     committeeChainEnabled: true,
   },
+
+  "activity-programs-school-broadcast": {
+    serviceSlug: "activity-programs-school-broadcast",
+    showsStudentPicker: false,
+    supportsMultipleStudents: false,
+    studentMode: "none",
+    evidenceMode: "none",
+    committeeChainEnabled: false,
+  },
 };
 
 export function getServiceRuntimePolicy(serviceSlug: string): ServiceRuntimePolicy {

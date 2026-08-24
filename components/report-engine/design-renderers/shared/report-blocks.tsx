@@ -533,7 +533,11 @@ function DesignBlock({
   if (isDynamicFieldsDesignBlock(block)) {
     const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
 
-    if (!dynamicFieldItems.length && previewCase?.hasStudentDataTable) {
+    if (
+      !dynamicFieldItems.length &&
+      (previewCase?.hasStudentDataTable ||
+        previewCase?.serviceSlug === "activity-programs-school-broadcast")
+    ) {
       return null;
     }
 

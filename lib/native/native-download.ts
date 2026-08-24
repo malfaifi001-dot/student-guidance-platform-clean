@@ -65,6 +65,10 @@ export async function downloadBlobAsNativeFile(
 ): Promise<NativeDownloadResult | null> {
   if (!Capacitor.isNativePlatform()) return null;
 
+  // TeachixPdf is an Android-only plugin. Let the shared browser/object-URL
+  // fallback handle iOS instead of invoking an unimplemented native plugin.
+  if (Capacitor.getPlatform() !== "android") return null;
+
   const safeFileName = fileName.trim() || "report.pdf";
   try {
     const data = await blobToBase64(blob);
@@ -86,7 +90,7 @@ export async function downloadBlobAsNativeFile(
 }
 
 export async function savePrintPreviewAsNativePdf(url: string, fileName: string): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return false;
 
   const safeFileName = fileName.trim() || "report.pdf";
   await TeachixPdf.renderHtmlToPdf({ url, fileName: safeFileName });

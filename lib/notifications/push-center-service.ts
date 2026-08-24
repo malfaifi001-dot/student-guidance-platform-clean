@@ -15,11 +15,11 @@ import { getSafePushRoute } from "@/lib/notifications/push-routing";
 import { sendPushToDeviceBatch } from "@/lib/notifications/fcm-server";
 
 const ACTIVE_DEVICE_WHERE = {
-  platform: "android",
+  platform: { in: ["android", "ios"] },
   packageName: "sa.teachix.app",
   enabled: true,
   revokedAt: null,
-} as const;
+};
 
 const SUPPORTED_ROLES = Object.values(UserRole);
 const MAX_DELIVERY_RETRIES = 3;

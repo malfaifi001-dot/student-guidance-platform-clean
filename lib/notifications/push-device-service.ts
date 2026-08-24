@@ -108,7 +108,7 @@ export async function getEnabledPushDevicesForUsers(userIds: string[]) {
   return prisma.pushDevice.findMany({
     where: {
       userId: { in: userIds },
-      platform: "android",
+      platform: { in: ["android", "ios"] },
       packageName: "sa.teachix.app",
       enabled: true,
       revokedAt: null,

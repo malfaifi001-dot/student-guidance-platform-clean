@@ -14,6 +14,11 @@ import {
 } from "@/components/workflow/workflow-step-card";
 
 import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
+import {
+  getBroadcastScheduleValidation,
+  isBroadcastScheduleField,
+  isBroadcastScheduleStep,
+} from "@/components/activity/broadcast-schedule-repeater";
 import { SPECIAL_REPORT_FIXED_FIELD_KEYS } from "@/lib/special-report/catalog";
 import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 
@@ -1015,6 +1020,9 @@ export function DynamicFormRenderer({
     const isCommitteeChainCurrentStep =
       workflow.serviceSlug === "committees-meetings" &&
       isCommitteeChainStep(displayCurrentStep);
+    const isBroadcastScheduleCurrentStep =
+      workflow.serviceSlug === "activity-programs-school-broadcast" &&
+      isBroadcastScheduleStep(displayCurrentStep);
 
     if (
       isCommitteeChainCurrentStep &&
@@ -1029,12 +1037,26 @@ export function DynamicFormRenderer({
       return false;
     }
 
+    if (isBroadcastScheduleCurrentStep) {
+      const validation = getBroadcastScheduleValidation(values.broadcast_schedule_items);
+      if (!validation.valid) {
+        showFeedback(
+          "warning",
+          "جدول الإذاعة المدرسية غير مكتمل",
+          `أكمل الحقول التالية في السطر ${Number(validation.rowIndex) + 1}: ${validation.missing?.join("، ")}`,
+        );
+        return false;
+      }
+    }
+
     const visibleFields = displayCurrentStep.fields
       .filter(shouldShowFieldInCurrentValues)
       .filter((field) =>
         isCommitteeChainCurrentStep
           ? !isCommitteeChainRuntimeField(field)
-          : true
+          : isBroadcastScheduleCurrentStep
+            ? !isBroadcastScheduleField(field)
+            : true
       );
 
     for (const field of visibleFields) {

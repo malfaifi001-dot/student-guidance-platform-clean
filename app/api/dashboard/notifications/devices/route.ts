@@ -7,6 +7,11 @@ import {
 } from "@/lib/notifications/push-device-service";
 
 const PACKAGE_NAME = "sa.teachix.app";
+type PushPlatform = "android" | "ios";
+
+function isSupportedPlatform(value: unknown): value is PushPlatform {
+  return value === "android" || value === "ios";
+}
 
 export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
@@ -23,7 +28,8 @@ export async function POST(request: Request) {
       typeof body.token !== "string" ||
       body.token.trim().length < 20 ||
       body.token.trim().length > 4096 ||
-      body.platform !== "android" ||
+      typeof body.platform !== "string" ||
+      !isSupportedPlatform(body.platform) ||
       body.packageName !== PACKAGE_NAME
     ) {
       return NextResponse.json({ error: "Invalid push device" }, { status: 400 });
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
     const device = await upsertPushDevice({
       userId: current.user.id,
       token: body.token.trim(),
-      platform: "android",
+      platform: body.platform,
       packageName: PACKAGE_NAME,
     });
 

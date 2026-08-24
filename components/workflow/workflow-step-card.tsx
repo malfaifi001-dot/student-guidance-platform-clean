@@ -3,7 +3,14 @@
 import {
   CommitteeChainRepeater,
   isCommitteeRowsValid,
+  type CommitteeChainRow,
 } from "@/components/committees/committee-chain-repeater";
+import {
+  BroadcastScheduleRepeater,
+  getBroadcastScheduleValidation,
+  isBroadcastScheduleField,
+  isBroadcastScheduleStep,
+} from "@/components/activity/broadcast-schedule-repeater";
 import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
 import { GripVertical } from "lucide-react";
 import {
@@ -118,12 +125,19 @@ export function WorkflowStepCard({
 
   const shouldRenderCommitteeChain =
     serviceSlug === "committees-meetings" && isCommitteeChainStep(step);
+  const shouldRenderBroadcastSchedule =
+    serviceSlug === "activity-programs-school-broadcast" && isBroadcastScheduleStep(step);
 
-  const normalFields = shouldRenderCommitteeChain
-    ? visibleFields.filter((field) => !isCommitteeChainField(field))
-    : visibleFields;
+  const normalFields = visibleFields.filter((field) =>
+    shouldRenderCommitteeChain
+      ? !isCommitteeChainField(field)
+      : shouldRenderBroadcastSchedule
+        ? !isBroadcastScheduleField(field)
+        : true,
+  );
 
   const committeeValid = isCommitteeRowsValid(values.committee_items);
+  const broadcastValidation = getBroadcastScheduleValidation(values.broadcast_schedule_items);
   const visibleStepDescription = getVisibleWorkflowStepDescription(
     step.description,
   );
@@ -212,7 +226,7 @@ export function WorkflowStepCard({
               values={values}
               value={
                 Array.isArray(values.committee_items)
-                  ? (values.committee_items as any[])
+                  ? (values.committee_items as CommitteeChainRow[])
                   : undefined
               }
               onChange={(rows) => onChange("committee_items", rows)}
@@ -226,7 +240,22 @@ export function WorkflowStepCard({
           </div>
         ) : null}
 
-        {normalFields.length === 0 && !shouldRenderCommitteeChain ? (
+        {shouldRenderBroadcastSchedule ? (
+          <div className="md:col-span-2">
+            <BroadcastScheduleRepeater
+              fields={step.fields}
+              value={values.broadcast_schedule_items}
+              onChange={(rows) => onChange("broadcast_schedule_items", rows)}
+            />
+            {!broadcastValidation.valid ? (
+              <p className="mt-3 text-sm font-bold text-rose-500">
+                أكمل الحقول التالية في السطر {Number(broadcastValidation.rowIndex) + 1}: {broadcastValidation.missing?.join("، ")}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {normalFields.length === 0 && !shouldRenderCommitteeChain && !shouldRenderBroadcastSchedule ? (
           <div className="rounded-2xl bg-slate-50 p-6 text-sm font-semibold text-slate-400">
             لا توجد حقول ظاهرة في هذه الخطوة حاليًا.
           </div>

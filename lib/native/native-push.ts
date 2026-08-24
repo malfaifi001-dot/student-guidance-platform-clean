@@ -35,12 +35,15 @@ function clearDeviceId(): void {
 }
 
 async function registerDeviceToken(token: string): Promise<void> {
+  const platform = Capacitor.getPlatform();
+  if (platform !== "android" && platform !== "ios") return;
+
   const response = await fetch("/api/dashboard/notifications/devices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       token,
-      platform: "android",
+      platform,
       packageName: "sa.teachix.app",
     }),
   });
@@ -64,6 +67,8 @@ async function registerDeviceToken(token: string): Promise<void> {
 }
 
 async function setupChannel(): Promise<void> {
+  if (Capacitor.getPlatform() !== "android") return;
+
   await PushNotifications.createChannel({
     id: TEACHIX_PUSH_CHANNEL_ID,
     name: "إشعارات Teachix",

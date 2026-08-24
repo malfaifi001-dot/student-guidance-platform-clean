@@ -82,15 +82,26 @@ export default async function ReportTwoPreparePage({
     }
   }
 
+  if (result.serviceSlug === "activity-programs-school-broadcast") {
+    redirect(
+      `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/studio?${new URLSearchParams({
+        mode: "preview",
+        variant: selectedVariantId,
+      }).toString()}`,
+    );
+  }
+
+  const continueHref = `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/studio?${new URLSearchParams({
+    mode: "preview",
+    variant: selectedVariantId,
+  }).toString()}`;
+
   return (
     <ReportPrepareFlow
       payload={result.payload}
       selectedVariantId={selectedVariantId}
       variants={reportVariants}
-      continueHref={`/dashboard/report-2/cases/${caseId}/studio?${new URLSearchParams({
-        mode: "preview",
-        variant: selectedVariantId,
-      }).toString()}`}
+      continueHref={continueHref}
     />
   );
 }

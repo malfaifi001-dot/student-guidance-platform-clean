@@ -94,6 +94,21 @@ export function normalizeStructuredTableBlockPresentation<T extends Record<strin
 ) {
   if (block.kind !== "structured-table") return block;
   const columns = Array.isArray(block.columns) ? block.columns : [];
+  const sourceFieldKey = normalizeKey(block.sourceFieldKey);
+  const structuredMetadata = getStructuredValueTableMetadata(sourceFieldKey);
+  const metadataColumns = new Map(
+    (structuredMetadata?.tableColumns || []).map((column) => [
+      normalizeKey(column.key),
+      column.label,
+    ]),
+  );
+  const displayColumns = columns.map((column) => {
+    const key =
+      typeof column === "string"
+        ? column
+        : String((column as { key?: unknown } | null)?.key || "");
+    return metadataColumns.get(normalizeKey(key)) || column;
+  });
   const rows = Array.isArray(block.rows) ? block.rows : [];
   const columnWidths = Array.isArray(block.columnWidths) ? block.columnWidths : [];
   const preservedColumnIndexes = new Set(
@@ -131,6 +146,10 @@ export function normalizeStructuredTableBlockPresentation<T extends Record<strin
 
   return {
     ...block,
+    ...(structuredMetadata &&
+    normalizedTechnicalTitle(block.title) === normalizedTechnicalTitle(sourceFieldKey)
+      ? { title: structuredMetadata.tableTitle }
+      : {}),
     ...(studentTable
       ? {
           title: studentTitle,
@@ -139,7 +158,7 @@ export function normalizeStructuredTableBlockPresentation<T extends Record<strin
           showTitle: true,
         }
       : {}),
-    columns: retainedIndexes.map((index) => columns[index]),
+    columns: retainedIndexes.map((index) => displayColumns[index]),
     rows: rows.map((row) =>
       retainedIndexes.map((index) => (Array.isArray(row) ? row[index] : "")),
     ),
