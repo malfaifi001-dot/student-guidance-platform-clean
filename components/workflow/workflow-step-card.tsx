@@ -137,7 +137,7 @@ export function WorkflowStepCard({
   );
 
   const committeeValid = isCommitteeRowsValid(values.committee_items);
-  const broadcastValidation = getBroadcastScheduleValidation(values.broadcast_schedule_items);
+  const broadcastValidation = getBroadcastScheduleValidation(values.broadcast_schedule_items, step.fields);
   const visibleStepDescription = getVisibleWorkflowStepDescription(
     step.description,
   );

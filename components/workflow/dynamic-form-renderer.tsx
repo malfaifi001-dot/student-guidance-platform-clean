@@ -1038,7 +1038,7 @@ export function DynamicFormRenderer({
     }
 
     if (isBroadcastScheduleCurrentStep) {
-      const validation = getBroadcastScheduleValidation(values.broadcast_schedule_items);
+      const validation = getBroadcastScheduleValidation(values.broadcast_schedule_items, displayCurrentStep.fields);
       if (!validation.valid) {
         showFeedback(
           "warning",
