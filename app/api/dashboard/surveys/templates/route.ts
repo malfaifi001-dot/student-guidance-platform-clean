@@ -11,6 +11,10 @@ import {
   SURVEY_SERVICE_SLUG,
 } from "@/lib/surveys/survey-config";
 import { createSurveyToken } from "@/lib/surveys/survey-service";
+
+function surveyOptionLabel(option: string | { label: string }) {
+  return typeof option === "string" ? option : option.label;
+}
 import {
   getSurveyTemplateByKey,
   surveyTemplates,
@@ -156,7 +160,7 @@ export async function POST(request: NextRequest) {
               scaleMax: question.scaleMax ?? null,
               options: {
                 create: question.options.map((option, optionIndex) => ({
-                  label: option,
+                  label: surveyOptionLabel(option),
                   value: `option_${optionIndex + 1}`,
                   order: optionIndex + 1,
                 })),

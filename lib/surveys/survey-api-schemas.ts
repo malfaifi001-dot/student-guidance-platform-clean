@@ -19,6 +19,14 @@ const surveyQuestionTypeSchema = z.enum([
   "DATE",
 ]);
 
+const surveyOptionInputSchema = z.union([
+  z.string().trim().min(1).max(120),
+  z.object({
+    id: z.string().trim().min(1).optional(),
+    label: z.string().trim().min(1).max(120),
+  }),
+]);
+
 const optionalTrimmedString = (maxLength: number) =>
   z.preprocess(
     (value) => (typeof value === "string" ? value.trim() : value),
@@ -50,6 +58,7 @@ const optionalNumber = z.preprocess((value) => {
 
 export const surveyQuestionInputSchema = z
   .object({
+    id: z.string().trim().min(1).optional(),
     label: z.preprocess(
       (value) => (typeof value === "string" ? value.trim() : value),
       z.string().min(1).max(300),
@@ -60,7 +69,7 @@ export const surveyQuestionInputSchema = z
     isRequired: z.boolean().optional().default(false),
     scaleMin: optionalNumber,
     scaleMax: optionalNumber,
-    options: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+    options: z.array(surveyOptionInputSchema).max(20).default([]),
   })
   .superRefine((value, ctx) => {
     const requiresOptions =

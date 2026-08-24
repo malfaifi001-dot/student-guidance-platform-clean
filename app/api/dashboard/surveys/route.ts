@@ -15,6 +15,10 @@ function parseOptionalDate(value: string | null) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function surveyOptionLabel(option: string | { label: string }) {
+  return typeof option === "string" ? option : option.label;
+}
+
 export async function GET(request: NextRequest) {
   const { context, error } = await requireSurveyServiceContext();
 
@@ -172,7 +176,7 @@ export async function POST(request: NextRequest) {
           scaleMax: question.scaleMax ?? null,
           options: {
             create: question.options.map((option, optionIndex) => ({
-              label: option,
+              label: surveyOptionLabel(option),
               value: `option_${optionIndex + 1}`,
               order: optionIndex + 1,
             })),

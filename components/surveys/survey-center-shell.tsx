@@ -469,12 +469,12 @@ export function SurveyCenterShell({
                       الردود
                     </a>
 
-                    {survey.status === "DRAFT" ? (
+                    {survey.status === "DRAFT" || survey.status === "PUBLISHED" ? (
                       <a
                         href={`${boardPath}/${survey.id}/edit`}
                         className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                       >
-                        تعديل
+                        {survey.status === "PUBLISHED" ? "تعديل الأسئلة" : "تعديل"}
                       </a>
                     ) : null}
 

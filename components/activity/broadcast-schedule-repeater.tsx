@@ -50,6 +50,10 @@ function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function preserveText(value: unknown): string {
+  return String(value ?? "");
+}
+
 function parseValue(value: unknown): unknown {
   if (typeof value !== "string") return value;
   const text = value.trim();
@@ -81,12 +85,12 @@ export function normalizeBroadcastScheduleRows(value: unknown): BroadcastSchedul
     .slice(0, MAX_ROWS)
     .map((row) => ({
       id: clean(row.id) || createRow().id,
-      week: clean(row.week),
-      day: clean(row.day),
-      date: clean(row.date),
-      grade: clean(row.grade),
-      topic: clean(row.topic),
-      responsible: clean(row.responsible),
+      week: preserveText(row.week),
+      day: preserveText(row.day),
+      date: preserveText(row.date),
+      grade: preserveText(row.grade),
+      topic: preserveText(row.topic),
+      responsible: preserveText(row.responsible),
     }));
 
   return rows.length ? rows : [createRow()];

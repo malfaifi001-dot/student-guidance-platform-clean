@@ -11,12 +11,14 @@ import {
 } from "@/lib/surveys/survey-config";
 
 type QuestionDraft = {
+  id?: string;
   label: string;
   type: SurveyQuestionInputType;
   sectionTitle: string | null;
   helpText: string | null;
   isRequired: boolean;
   optionsText: string;
+  optionIds: string[];
 };
 
 type SurveyEditShellProps = {
@@ -116,12 +118,14 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
         const metadata = parseSurveyQuestionHelpText(question.helpText);
 
         return {
+          id: question.id,
           label: metadata.fullLabel || question.label,
           type: question.type,
           sectionTitle: metadata.sectionTitle,
           helpText: metadata.helpText,
           isRequired: question.isRequired,
           optionsText: question.options.map((option) => option.label).join("\n"),
+          optionIds: question.options.map((option) => option.id),
         };
       }),
     );
@@ -154,6 +158,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
         helpText: null,
         isRequired: false,
         optionsText: "",
+        optionIds: [],
       },
     ]);
   }
@@ -183,6 +188,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
         opensAt: fromDatetimeLocal(opensAt),
         endsAt: fromDatetimeLocal(endsAt),
         questions: questions.map((question) => ({
+          id: question.id,
           label: question.label,
           type: question.type,
           sectionTitle: question.sectionTitle,
@@ -190,8 +196,11 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
           isRequired: question.isRequired,
           options: question.optionsText
             .split("\n")
-            .map((option) => option.trim())
-            .filter(Boolean),
+            .map((option, optionIndex) => ({
+              id: question.optionIds[optionIndex],
+              label: option.trim(),
+            }))
+            .filter((option) => option.label),
           scaleMin: 1,
           scaleMax: 5,
         })),
@@ -227,7 +236,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
     return null;
   }
 
-  const isEditable = survey.status === "DRAFT" && (survey._count?.responses || 0) === 0;
+  const isEditable = survey.status === "DRAFT" || survey.status === "PUBLISHED";
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -239,7 +248,9 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
         <h1 className="mt-3 text-2xl font-bold text-slate-950">تعديل الاستبيان</h1>
 
         <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
-          يمكن تعديل الاستبيان وهو في حالة مسودة فقط. بعد النشر يتم تثبيت الأسئلة لحماية دقة التحليل والردود.
+          {survey.status === "PUBLISHED"
+            ? "يمكن تعديل الأسئلة المنشورة مع الحفاظ على الردود السابقة وهويات الأسئلة."
+            : "يمكن تعديل الاستبيان قبل إغلاقه، مع الحفاظ على هويات الأسئلة والردود السابقة."}
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -269,7 +280,7 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
 
       {!isEditable ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold leading-7 text-amber-800">
-          لا يمكن تعديل هذا الاستبيان لأنه لم يعد مسودة أو لأنه يحتوي على ردود. استخدم زر النسخ لإنشاء نسخة قابلة للتعديل.
+          لا يمكن تعديل هذا الاستبيان لأنه مغلق أو مؤرشف.
         </div>
       ) : null}
 
