@@ -161,29 +161,17 @@ export function CurriculumDistributionShell({
     return `${previewPath}?${query}`;
   }
 
+  async function runDistributionPreview(reference: { subjectId: string; semesterId: string; stageId: string; gradeId: string }) {
+    const query = new URLSearchParams({ stageId: reference.stageId, gradeId: reference.gradeId, semesterId: reference.semesterId, subjectId: reference.subjectId, ...(campaignRef ? { ref: campaignRef } : {}) });
+    const printUrl = printPath === "/print/curriculum-distribution" ? `${printPath}?${query}` : (() => { query.set("variant", "curriculum-distribution"); query.set("mode", "print"); query.set("print", "1"); return `${printPath}?${query}`; })();
+    const result = await print.runPrintExport({ exportUrl: exportPath, method: exportPath ? "POST" : undefined, body: exportPath ? { subjectId: reference.subjectId, semesterId: reference.semesterId, fileName: downloadFileName } : undefined, printUrl, fileName: downloadFileName, blockedTitle: "معاينة الطباعة", blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة." });
+    if (result !== "error") { onPublicEvent?.("DOWNLOAD"); onDownloadComplete?.(); }
+    return result !== "error";
+  }
+
   async function printDistribution() {
     if (!distribution) return false;
-
-    const result = await print.runPrintExport({
-      exportUrl: exportPath,
-      method: exportPath ? "POST" : undefined,
-      body: exportPath ? {
-        subjectId: distribution.subject.id,
-        semesterId: distribution.semester.id,
-        fileName: downloadFileName,
-      } : undefined,
-      printUrl: getPrintUrl(),
-      fileName: downloadFileName,
-      blockedTitle: "معاينة الطباعة",
-      blockedMessage: "تم حظر فتح نافذة المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند الطباعة.",
-    });
-
-    const successful = result !== "error";
-    if (successful) {
-      onPublicEvent?.("DOWNLOAD");
-      onDownloadComplete?.();
-    }
-    return successful;
+    return runDistributionPreview({ subjectId: distribution.subject.id, semesterId: distribution.semester.id, stageId: distribution.stage.id, gradeId: distribution.grade.id });
   }
 
   function openDistributionPreview() {
@@ -194,7 +182,8 @@ export function CurriculumDistributionShell({
 
   async function sendWeekly(item: SavedCurriculumItem | null, all: boolean) {
     if (!item && !all) return;
-    const fileName = all ? "منهج-الأسبوع-موادي.pdf" : `منهج-الأسبوع-${item?.subject.name || "المادة"}.pdf`;
+    const subjectName = item?.subject.name && !/[\u00d9\u00d8]/.test(item.subject.name) ? item.subject.name : "المادة";
+    const fileName = all ? "منهج-الأسبوع-موادي.pdf" : `منهج-الأسبوع-${subjectName}.pdf`;
     setSendFileName(fileName);
     setSendBlob(null);
     setSendStatus("preparing");
@@ -411,7 +400,7 @@ export function CurriculumDistributionShell({
            <div><h2 id="my-curriculum-title" className="text-base font-black text-slate-950">منهجي</h2><p className="mt-1 text-xs font-bold text-slate-500">المواد التي حفظتها للمتابعة.</p></div>
            {myCurriculumLoading ? <Loader2 className="h-4 w-4 animate-spin text-sky-600" aria-label="جار تحميل منهجي" /> : null}
          </div>
-         {myCurriculum.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">{myCurriculum.map((item) => <MyCurriculumCard key={item.id} item={item} onRefresh={() => void loadMyCurriculum()} onSend={setSendItem} />)}</div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm font-black text-slate-500">لا توجد مواد محفوظة في منهجي حتى الآن.</p>}
+         {myCurriculum.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">{myCurriculum.map((item) => <MyCurriculumCard key={item.id} item={item} onRefresh={() => void loadMyCurriculum()} onSend={setSendItem} onPreview={(saved) => void runDistributionPreview({ subjectId: saved.subjectId, semesterId: saved.semesterId, stageId: saved.stage.id, gradeId: saved.grade.id })} />)}</div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center text-sm font-black text-slate-500">لا توجد مواد محفوظة في منهجي حتى الآن.</p>}
       </section> : null}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <CurriculumDistributionMobilePreview

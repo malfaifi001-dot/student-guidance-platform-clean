@@ -8,7 +8,7 @@ import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 const COPY = {
   linked: "\u0645\u0631\u062a\u0628\u0637 \u0628\u0645\u0644\u0641 \u0627\u0644\u0625\u0646\u062c\u0627\u0632",
-  view: "\u0639\u0631\u0636 / \u0645\u0639\u0627\u064a\u0646\u0629",
+  preview: "\u0645\u0639\u0627\u064a\u0646\u0629",
   editLink: "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0631\u0628\u0637",
   link: "\u0631\u0628\u0637 \u0628\u0645\u0644\u0641 \u0627\u0644\u0625\u0646\u062c\u0627\u0632",
   send: "\u0625\u0631\u0633\u0627\u0644",
@@ -31,12 +31,10 @@ export type SavedCurriculumItem = {
   portfolioLink?: { id: string; performanceItemKey: string; targetSectionKey?: string | null } | null;
 };
 
-export function MyCurriculumCard({ item, onRefresh, onSend }: { item: SavedCurriculumItem; onRefresh: () => void; onSend: (item: SavedCurriculumItem) => void }) {
+export function MyCurriculumCard({ item, onRefresh, onSend, onPreview }: { item: SavedCurriculumItem; onRefresh: () => void; onSend: (item: SavedCurriculumItem) => void; onPreview: (item: SavedCurriculumItem) => void }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const previewHref = `/dashboard/teacher/curriculum-distribution?subjectId=${encodeURIComponent(item.subjectId)}&semesterId=${encodeURIComponent(item.semesterId)}`;
-
   async function remove() {
     setBusy(true);
     try {
@@ -55,11 +53,11 @@ export function MyCurriculumCard({ item, onRefresh, onSend }: { item: SavedCurri
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold text-slate-500"><span className="rounded-full bg-slate-50 px-2.5 py-1">{item.stage.name}</span><span className="rounded-full bg-slate-50 px-2.5 py-1">{item.grade.name}</span><span className="rounded-full bg-slate-50 px-2.5 py-1">{item.semester.name}</span></div>
           {item.portfolioLink ? <p className="mt-2 text-xs font-black text-sky-700">{COPY.linked}</p> : null}
         </div>
-        <ExpandableActionMenu menuId={`my-curriculum-${item.id}`} className="relative" stripClassName="!absolute end-10 top-0 z-20 flex w-48 flex-col gap-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl" overlayStrip>
-          <button type="button" onClick={() => { window.location.href = previewHref; }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-black text-slate-700 hover:bg-slate-50"><Eye className="h-4 w-4" />{COPY.view}</button>
-          <button type="button" onClick={() => setLinkOpen(true)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-black text-slate-700 hover:bg-slate-50"><Link2 className="h-4 w-4" />{item.portfolioLink ? COPY.editLink : COPY.link}</button>
-          <button type="button" onClick={() => onSend(item)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-black text-slate-700 hover:bg-slate-50"><Send className="h-4 w-4" />{COPY.send}</button>
-          <button type="button" onClick={() => setDeleteOpen(true)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-black text-rose-700 hover:bg-rose-50"><Trash2 className="h-4 w-4" />{COPY.remove}</button>
+        <ExpandableActionMenu menuId={`my-curriculum-${item.id}`} overlayStrip>
+          <button type="button" onClick={() => onPreview(item)} aria-label={COPY.preview} title={COPY.preview} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"><Eye className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setLinkOpen(true)} aria-label={item.portfolioLink ? COPY.editLink : COPY.link} title={item.portfolioLink ? COPY.editLink : COPY.link} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"><Link2 className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onSend(item)} aria-label={COPY.send} title={COPY.send} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"><Send className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setDeleteOpen(true)} aria-label={COPY.remove} title={COPY.remove} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"><Trash2 className="h-4 w-4" /></button>
         </ExpandableActionMenu>
       </div>
     </article>

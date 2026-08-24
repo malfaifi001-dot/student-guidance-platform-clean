@@ -8,7 +8,9 @@ import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-br
 export const runtime = "nodejs";
 
 function safeFileName(value: unknown, fallback: string) {
-  const name = String(value || fallback).replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 150);
+  const requested = String(value || "").trim();
+  const source = requested && !/[\u00d9\u00d8]/.test(requested) ? requested : fallback;
+  const name = source.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 150);
   return name.endsWith(".pdf") ? name : `${name || fallback.replace(/\.pdf$/i, "")}.pdf`;
 }
 
