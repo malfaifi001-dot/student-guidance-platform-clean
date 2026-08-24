@@ -10,6 +10,7 @@ import {
 import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
 import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { applyStructuredTableDisplayMetadataToTemplate } from "@/lib/report-engine/report-structured-table-display";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -38,6 +39,49 @@ const INITIAL_PRINT_PREVIEW_DIMENSIONS: PrintPreviewDimensions = {
   scale: 1,
 };
 
+const SCHOOL_BROADCAST_SERVICE_SLUG = "activity-programs-school-broadcast";
+const SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS = new Set([
+  "executive-description",
+  "executive_description",
+  "details",
+]);
+
+function isHiddenSchoolBroadcastBlock(block: any): boolean {
+  const kind = String(block?.kind || block?.type || "").trim().toLowerCase();
+  const id = String(block?.id || block?.key || "").trim().toLowerCase();
+  const boundFieldKey = String(block?.boundFieldKey || block?.sourceFieldKey || "")
+    .trim()
+    .toLowerCase();
+  const title = repairPotentialUtf8Mojibake(String(block?.title || "")).trim();
+
+  return (
+    SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS.has(kind) ||
+    id === "executive-description" ||
+    id === "executive_description" ||
+    id === "details" ||
+    boundFieldKey === "executive-description" ||
+    boundFieldKey === "executive_description" ||
+    title === "الوصف التنفيذي" ||
+    title === "التفاصيل"
+  );
+}
+
+function hideSchoolBroadcastBlocks(template: any, serviceSlug: unknown) {
+  if (serviceSlug !== SCHOOL_BROADCAST_SERVICE_SLUG) return template;
+
+  return {
+    ...template,
+    pages: Array.isArray(template?.pages)
+      ? template.pages.map((page: any) => ({
+          ...page,
+          blocks: Array.isArray(page?.blocks)
+            ? page.blocks.filter((block: any) => !isHiddenSchoolBroadcastBlock(block))
+            : page?.blocks,
+        }))
+      : template?.pages,
+  };
+}
+
 export function ReportTwoPrintDocument({
   snapshot,
   autoPrint = false,
@@ -49,10 +93,14 @@ export function ReportTwoPrintDocument({
   const previewStageRef = useRef<HTMLDivElement>(null);
   const [previewDimensions, setPreviewDimensions] =
     useState<PrintPreviewDimensions>(INITIAL_PRINT_PREVIEW_DIMENSIONS);
-  const template = applyStructuredTableDisplayMetadataToTemplate(
+  const templateWithMetadata = applyStructuredTableDisplayMetadataToTemplate(
     snapshot.template || { pages: [] },
     snapshot.sourcePayload,
   ) as any;
+  const template = hideSchoolBroadcastBlocks(
+    templateWithMetadata,
+    snapshot.previewCase?.serviceSlug,
+  );
   const pages = Array.isArray(template.pages) ? template.pages : [];
   const context = snapshot.context || {};
   const previewCase = snapshot.previewCase || null;
