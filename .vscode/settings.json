@@ -1,0 +1,36 @@
+﻿{
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/.next/**": true,
+    "**/node_modules/**": true,
+    "**/.turbo/**": true,
+    "**/coverage/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/android/.gradle/**": true,
+    "**/android/build/**": true,
+    "**/android/app/build/**": true,
+    "**/ios/Pods/**": true,
+    "**/_stable-backups/**": true,
+    "**/*.tsbuildinfo": true
+  },
+  "search.exclude": {
+    "**/.git": true,
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/android/.gradle": true,
+    "**/android/build": true,
+    "**/android/app/build": true,
+    "**/ios/Pods": true,
+    "**/_stable-backups": true
+  },
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/*.tsbuildinfo": true
+  }
+}

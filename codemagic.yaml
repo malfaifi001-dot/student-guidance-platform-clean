@@ -52,15 +52,6 @@ workflows:
         script: npx cap sync ios
       - name: Resolve Swift package dependencies
         script: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
-      - name: Initialize signing keychain
-        script: keychain initialize
-      - name: Create or fetch App Store signing files
-        script: |
-          app-store-connect fetch-signing-files "sa.teachix.app" \
-            --type IOS_APP_STORE \
-            --create
-      - name: Install signing certificates
-        script: keychain add-certificates
       - name: Apply automatic iOS distribution signing
         script: xcode-project use-profiles
       - name: Set automatic TestFlight build number
