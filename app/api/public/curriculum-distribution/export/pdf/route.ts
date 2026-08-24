@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getRequestOrigin } from "@/lib/http/request-origin";
 import { getDistribution } from "@/lib/curriculum-distribution/queries";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
+import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,13 @@ function clean(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    namespace: "public-curriculum-distribution-pdf",
+    limit: 6,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let body: { subjectId?: unknown; semesterId?: unknown; fileName?: unknown } = {};
   try {
     body = (await request.json()) as typeof body;

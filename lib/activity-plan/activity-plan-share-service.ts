@@ -8,8 +8,13 @@ function clean(value: unknown) {
 }
 
 function encryptionKey() {
+  const configured = process.env.ACTIVITY_PLAN_SHARE_TOKEN_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET;
+  if (process.env.NODE_ENV === "production" && (!configured || configured.trim().length < 32)) {
+    throw new Error("ACTIVITY_PLAN_SHARE_TOKEN_ENCRYPTION_KEY or NEXTAUTH_SECRET is required in production.");
+  }
+
   return crypto.createHash("sha256").update(
-    String(process.env.ACTIVITY_PLAN_SHARE_TOKEN_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || "development-only-activity-plan-share-key"),
+    String(configured || "development-only-activity-plan-share-key"),
     "utf8",
   ).digest();
 }

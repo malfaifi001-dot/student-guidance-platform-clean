@@ -40,7 +40,7 @@
         "jspdf": "^4.2.1",
         "lucide-react": "^1.16.0",
         "mariadb": "^3.5.2",
-        "next": "16.2.6",
+        "next": "16.2.11",
         "pdf-lib": "^1.17.1",
         "playwright": "^1.60.0",
         "prisma": "^7.8.0",
@@ -66,7 +66,7 @@
         "@types/react-dom": "^19",
         "dotenv": "^17.4.2",
         "eslint": "^9",
-        "eslint-config-next": "16.2.6",
+        "eslint-config-next": "16.2.11",
         "tailwindcss": "^4",
         "typescript": "^5"
     }
