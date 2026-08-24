@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>يحتاج تطبيق Teachix إلى الوصول إلى الكاميرا لالتقاط الصور والشواهد داخل الخدمات المدرسية.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يحتاج تطبيق Teachix إلى الوصول إلى مكتبة الصور لإرفاق الصور والشواهد والملفات داخل الخدمات المدرسية.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
