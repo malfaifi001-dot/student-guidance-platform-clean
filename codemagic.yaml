@@ -41,7 +41,7 @@ workflows:
       app_store_connect: Codemagic
     environment:
       node: 22.14.0
-      xcode: 16.4
+      xcode: 26.4
       ios_signing:
         distribution_type: app_store
         bundle_identifier: sa.teachix.app
