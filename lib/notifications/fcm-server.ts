@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications/push-device-service";
 import { getSafePushRoute } from "@/lib/notifications/push-routing";
 import { isSafePushPayload, type TeachixPushPayload } from "@/lib/notifications/push-types";
+import { normalizePushError, type NormalizedPushError } from "@/lib/notifications/push-error";
 
 type FirebaseHealthDiagnostic = {
   category: "INVALID_CREDENTIAL" | "INVALID_PRIVATE_KEY" | "INVALID_PROJECT" | "AUTH_ERROR" | "UNKNOWN_FIREBASE_ERROR";
@@ -333,18 +334,18 @@ export async function sendPushToUsers(
 export async function sendPushToDevice(
   device: { tokenHash: string; encryptedToken: string },
   payload: TeachixPushPayload,
-): Promise<{ success: boolean; invalidToken: boolean; messageId?: string }> {
+): Promise<{ success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string; errorCategory?: string; safeErrorMessage?: string; retryable?: boolean }> {
   const result = await sendPushToDeviceBatch([{ id: "single", ...device }], payload);
   const first = result[0];
   if (!first) throw new Error("Push device send did not return a result");
-  return { success: first.success, invalidToken: first.invalidToken, ...(first.messageId ? { messageId: first.messageId } : {}) };
+  return { success: first.success, invalidToken: first.invalidToken, ...(first.messageId ? { messageId: first.messageId } : {}), ...(first.errorCode ? { errorCode: first.errorCode } : {}), ...(first.errorCategory ? { errorCategory: first.errorCategory } : {}), ...(first.safeErrorMessage ? { safeErrorMessage: first.safeErrorMessage } : {}), ...(first.retryable !== undefined ? { retryable: first.retryable } : {}) };
 }
 
 export async function sendPushToDeviceBatch(
   devices: Array<{ id: string; tokenHash: string; encryptedToken: string }>,
   payload: TeachixPushPayload,
-): Promise<Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string }>> {
-  const results: Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string }> = [];
+): Promise<Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string; errorCategory?: string; safeErrorMessage?: string; retryable?: boolean }>> {
+  const results: Array<{ id: string; success: boolean; invalidToken: boolean; messageId?: string; errorCode?: string; errorCategory?: string; safeErrorMessage?: string; retryable?: boolean }> = [];
 
   for (let offset = 0; offset < devices.length; offset += 500) {
     const chunk = devices.slice(offset, offset + 500);
@@ -354,7 +355,8 @@ export async function sendPushToDeviceBatch(
       try {
         validDevices.push({ id: device.id, tokenHash: device.tokenHash, token: decryptPushToken(device.encryptedToken) });
       } catch {
-        results.push({ id: device.id, success: false, invalidToken: false, errorCode: "TOKEN_DECRYPTION_FAILED" });
+        const error = normalizePushError("TOKEN_DECRYPTION_FAILED", null);
+        results.push({ id: device.id, success: false, ...error });
       }
     }
 
@@ -364,15 +366,14 @@ export async function sendPushToDeviceBatch(
 
     response.responses.forEach((item, index) => {
       const device = validDevices[index];
-      const code = item.error?.code || "";
-      const invalidToken = code.includes("registration-token-not-registered") || code.includes("invalid-registration-token");
-      if (invalidToken) invalidHashes.push(hashPushToken(device.token));
+      const normalized: NormalizedPushError | null = item.success ? null : normalizePushError(item.error?.code, item.error?.message);
+      if (normalized?.invalidToken) invalidHashes.push(hashPushToken(device.token));
       results.push({
         id: device.id,
         success: Boolean(item.success),
-        invalidToken,
+        invalidToken: normalized?.invalidToken || false,
         ...(item.messageId ? { messageId: item.messageId } : {}),
-        ...(!item.success && code ? { errorCode: code.slice(0, 120) } : {}),
+        ...(normalized ? { errorCode: normalized.code, errorCategory: normalized.category, safeErrorMessage: normalized.safeMessage, retryable: normalized.retryable } : {}),
       });
     });
     await disablePushDevicesByTokenHashes(invalidHashes);

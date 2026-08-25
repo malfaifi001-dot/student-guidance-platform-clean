@@ -12,7 +12,7 @@ import {
 import { logAdminActivity } from "@/lib/admin/activity-log";
 import { prisma } from "@/lib/prisma";
 import { getSafePushRoute } from "@/lib/notifications/push-routing";
-import { sendPushToDeviceBatch } from "@/lib/notifications/fcm-server";
+import { sendPushToDevice, sendPushToDeviceBatch } from "@/lib/notifications/fcm-server";
 
 const ACTIVE_DEVICE_WHERE = {
   platform: { in: ["android", "ios"] },
@@ -229,8 +229,9 @@ export async function executePushCampaign(campaignId: string, actorUserId?: stri
   const resultById = new Map(results.map((result) => [result.id, result]));
   await Promise.all(deliveries.map((delivery) => {
     const result = resultById.get(delivery.id);
-    const nextRetry = !result?.success && !result?.invalidToken && isRetryablePushError(result?.errorCode) && delivery.retryCount + 1 < MAX_DELIVERY_RETRIES ? retryAt(delivery.retryCount + 1) : null;
-    return prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: result?.success ? PushDeliveryStatus.SUCCESS : PushDeliveryStatus.FAILED, attemptedAt: new Date(), firebaseMessageId: result?.messageId || null, errorCode: result?.errorCode || null, invalidToken: result?.invalidToken || false, retryCount: { increment: 1 }, lastRetryAt: delivery.retryCount ? new Date() : null, nextRetryAt: nextRetry } });
+    const attemptedAt = new Date();
+    const nextRetry = !result?.success && !result?.invalidToken && (result?.retryable || isRetryablePushError(result?.errorCode)) && delivery.retryCount + 1 < MAX_DELIVERY_RETRIES ? retryAt(delivery.retryCount + 1) : null;
+    return prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: result?.success ? PushDeliveryStatus.SUCCESS : PushDeliveryStatus.FAILED, provider: "firebase-cloud-messaging", attemptCount: { increment: 1 }, attemptedAt, sentAt: result?.success ? attemptedAt : undefined, failedAt: result?.success ? undefined : attemptedAt, firebaseMessageId: result?.messageId || null, errorCode: result?.errorCode || null, errorCategory: result?.errorCategory || null, safeErrorMessage: result?.safeErrorMessage || null, retryable: Boolean(nextRetry), invalidToken: result?.invalidToken || false, retryCount: { increment: 1 }, lastRetryAt: delivery.retryCount ? attemptedAt : null, nextRetryAt: nextRetry } });
   }));
 
   const successCount = results.filter((result) => result.success).length;
@@ -253,6 +254,47 @@ export async function executePushCampaign(campaignId: string, actorUserId?: stri
   });
   if (actorUserId) await logAdminActivity({ actorUserId, category: "SYSTEM", action: "push-campaign-sent", severity: successCount ? "SUCCESS" : "ERROR", title: "Push campaign sent", details: { campaignId, successCount, failureCount } });
   return { campaignId, attempted: results.length, successCount, failureCount };
+}
+
+export async function sendPushTestToDevice(device: { id: string; userId: string; tokenHash: string; encryptedToken: string; platform: string; packageName: string; lastSeenAt: Date }, actorUserId: string) {
+  const campaign = await prisma.pushCampaign.create({
+    data: {
+      name: "ADMIN device test",
+      title: "Teachix notification test",
+      body: "This is a device-specific Teachix test notification.",
+      route: "/dashboard",
+      type: PushCampaignType.SYSTEM_TEST,
+      status: PushCampaignStatus.PROCESSING,
+      processingStartedAt: new Date(),
+      audienceType: PushAudienceType.USER,
+      audienceConfig: { userId: device.userId },
+      estimatedUserCount: 1,
+      estimatedDeviceCount: 1,
+      createdById: actorUserId,
+    },
+  });
+  const delivery = await prisma.pushDelivery.create({ data: { campaignId: campaign.id, userId: device.userId, deviceId: device.id } });
+  const attemptedAt = new Date();
+  try {
+    const result = await sendPushToDevice(device, { title: "Teachix test", body: "Your Teachix device is connected.", route: "/dashboard", type: "system-announcement", campaignId: campaign.id });
+    const failed = !result.success;
+    await prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: failed ? PushDeliveryStatus.FAILED : PushDeliveryStatus.SUCCESS, provider: "firebase-cloud-messaging", attemptCount: 1, attemptedAt, sentAt: failed ? null : attemptedAt, failedAt: failed ? attemptedAt : null, firebaseMessageId: result.messageId || null, errorCode: result.errorCode || null, errorCategory: result.errorCategory || null, safeErrorMessage: result.safeErrorMessage || null, retryable: Boolean(result.retryable), invalidToken: result.invalidToken, retryCount: 1 } });
+    await prisma.pushCampaign.update({ where: { id: campaign.id }, data: { status: failed ? PushCampaignStatus.FAILED : PushCampaignStatus.SENT, completedAt: attemptedAt, sentCount: 1, successCount: result.success ? 1 : 0, failureCount: result.success ? 0 : 1 } });
+    await logAdminActivity({ actorUserId, category: "SYSTEM", action: "push-device-test-sent", severity: result.success ? "SUCCESS" : "ERROR", title: "Push device test sent", details: { campaignId: campaign.id, deliveryId: delivery.id, deviceId: device.id, platform: device.platform, success: result.success } });
+    return { ...result, campaignId: campaign.id, deliveryId: delivery.id, platform: device.platform };
+  } catch {
+    await prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: PushDeliveryStatus.FAILED, provider: "firebase-cloud-messaging", attemptCount: 1, attemptedAt, failedAt: attemptedAt, errorCode: "PUSH_TEST_SEND_FAILED", errorCategory: "UNKNOWN", safeErrorMessage: "The test delivery could not be completed.", retryable: false, retryCount: 1 } });
+    await prisma.pushCampaign.update({ where: { id: campaign.id }, data: { status: PushCampaignStatus.FAILED, completedAt: attemptedAt, sentCount: 1, failureCount: 1, lastErrorCode: "PUSH_TEST_SEND_FAILED" } });
+    return { success: false, invalidToken: false, campaignId: campaign.id, deliveryId: delivery.id, platform: device.platform, errorCode: "PUSH_TEST_SEND_FAILED", errorCategory: "UNKNOWN", safeErrorMessage: "The test delivery could not be completed.", retryable: false };
+  }
+}
+
+export async function retryFailedPushCampaign(campaignId: string, actorUserId: string) {
+  const result = await prisma.pushDelivery.updateMany({ where: { campaignId, status: PushDeliveryStatus.FAILED, retryable: true, invalidToken: false, retryCount: { lt: MAX_DELIVERY_RETRIES } }, data: { nextRetryAt: new Date() } });
+  if (!result.count) throw new Error("NO_RETRYABLE_DELIVERIES");
+  const campaign = await prisma.pushCampaign.update({ where: { id: campaignId }, data: { status: PushCampaignStatus.PROCESSING, processingStartedAt: new Date() } });
+  const sent = await executePushCampaign(campaign.id, actorUserId);
+  return { queued: result.count, ...sent };
 }
 
 export async function runPushScheduler() {
@@ -315,11 +357,35 @@ export async function listPushCampaigns(input: { page?: number; pageSize?: numbe
 }
 
 export async function listPushDevices() {
-  return prisma.pushDevice.findMany({ orderBy: { lastSeenAt: "desc" }, take: 200, select: { id: true, platform: true, packageName: true, enabled: true, revokedAt: true, lastSeenAt: true, createdAt: true, updatedAt: true, user: { select: { id: true, name: true, role: true } } } });
+  const devices = await prisma.pushDevice.findMany({ where: { platform: { in: ["android", "ios"] }, packageName: "sa.teachix.app" }, orderBy: { lastSeenAt: "desc" }, take: 200, select: { id: true, tokenHash: true, platform: true, packageName: true, enabled: true, revokedAt: true, lastSeenAt: true, createdAt: true, updatedAt: true, user: { select: { id: true, name: true, role: true } } } });
+  const ids = devices.map((device) => device.id);
+  if (!ids.length) return [];
+  const [counts, openedCounts, latestFailures] = await Promise.all([
+    prisma.pushDelivery.groupBy({ by: ["deviceId", "status"], where: { deviceId: { in: ids } }, _count: { _all: true }, _max: { attemptedAt: true } }),
+    prisma.pushDelivery.groupBy({ by: ["deviceId"], where: { deviceId: { in: ids }, openedAt: { not: null } }, _count: { _all: true } }),
+    prisma.pushDelivery.findMany({ where: { deviceId: { in: ids }, status: PushDeliveryStatus.FAILED }, orderBy: { attemptedAt: "desc" }, select: { deviceId: true, errorCategory: true, errorCode: true }, take: 1000 }),
+  ]);
+  const countByDevice = new Map<string, { total: number; failed: number; lastDeliveryAt: Date | null; lastSuccessAt: Date | null; lastFailureAt: Date | null }>();
+  counts.forEach((row) => { const current = countByDevice.get(row.deviceId) || { total: 0, failed: 0, lastDeliveryAt: null, lastSuccessAt: null, lastFailureAt: null }; current.total += row._count._all; if (row.status === PushDeliveryStatus.FAILED) { current.failed += row._count._all; current.lastFailureAt = row._max.attemptedAt; } if (row.status === PushDeliveryStatus.SUCCESS) current.lastSuccessAt = row._max.attemptedAt; if (!current.lastDeliveryAt || (row._max.attemptedAt && row._max.attemptedAt > current.lastDeliveryAt)) current.lastDeliveryAt = row._max.attemptedAt; countByDevice.set(row.deviceId, current); });
+  const failureByDevice = new Map<string, { errorCategory: string | null; errorCode: string | null }>();
+  latestFailures.forEach((row) => { if (!failureByDevice.has(row.deviceId)) failureByDevice.set(row.deviceId, row); });
+  const openedByDevice = new Map(openedCounts.map((row) => [row.deviceId, row._count._all]));
+  return devices.map((device) => {
+    const row = countByDevice.get(device.id);
+    const failure = failureByDevice.get(device.id);
+    const { tokenHash, ...safeDevice } = device;
+    return { ...safeDevice, tokenFingerprint: tokenHash.slice(0, 12), totalSent: row?.total || 0, totalOpened: openedByDevice.get(device.id) || 0, totalFailed: row?.failed || 0, lastDeliveryAt: row?.lastDeliveryAt || null, lastSuccessAt: row?.lastSuccessAt || null, lastFailureAt: row?.lastFailureAt || null, lastErrorCategory: failure?.errorCategory || null, lastErrorCode: failure?.errorCode || null };
+  });
 }
 
-export async function revokePushCenterDevice(deviceId: string) {
-  return prisma.pushDevice.updateMany({ where: { id: deviceId }, data: { enabled: false, revokedAt: new Date() } });
+export async function setPushCenterDeviceEnabled(deviceId: string, enabled: boolean, actorUserId?: string) {
+  const result = await prisma.pushDevice.updateMany({ where: { id: deviceId }, data: { enabled, revokedAt: enabled ? null : new Date() } });
+  if (result.count && actorUserId) await logAdminActivity({ actorUserId, category: "SYSTEM", action: enabled ? "push-device-enabled" : "push-device-disabled", severity: "WARNING", title: "Push device state changed", details: { deviceId, enabled } });
+  return result;
+}
+
+export async function revokePushCenterDevice(deviceId: string, actorUserId?: string) {
+  return setPushCenterDeviceEnabled(deviceId, false, actorUserId);
 }
 
 export async function recordPushOpen(input: { deliveryId?: string; campaignId?: string; userId: string; route: string }) {
@@ -477,6 +543,15 @@ export async function getPushAnalytics(input: { from?: Date; to?: Date; type?: P
   for (const row of trendRows) { const key = row.createdAt.toISOString().slice(0, 10); const bucket = buckets.get(key) || { accepted: 0, failed: 0, opened: 0 }; if (row.status === PushDeliveryStatus.SUCCESS) bucket.accepted += 1; if (row.status === PushDeliveryStatus.FAILED) bucket.failed += 1; if (row.openedAt) bucket.opened += 1; buckets.set(key, bucket); }
   const staleCutoff = new Date(Date.now() - 30 * 86_400_000);
   const staleDevices = await prisma.pushDevice.count({ where: { ...ACTIVE_DEVICE_WHERE, lastSeenAt: { lt: staleCutoff } } });
+  const [deviceIos, androidSuccess, androidFailed, iosSuccess, iosFailed, androidOpened, iosOpened] = await Promise.all([
+    prisma.pushDevice.count({ where: { ...ACTIVE_DEVICE_WHERE, platform: "ios" } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.SUCCESS, device: { platform: "android" } } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.FAILED, device: { platform: "android" } } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.SUCCESS, device: { platform: "ios" } } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, status: PushDeliveryStatus.FAILED, device: { platform: "ios" } } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, openedAt: { not: null }, device: { platform: "android" } } }),
+    prisma.pushDelivery.count({ where: { ...deliveryWhere, openedAt: { not: null }, device: { platform: "ios" } } }),
+  ]);
   const averageOpenRate = topOpen.length ? Math.round(topOpen.reduce((sum, item) => sum + (item.successCount ? item.openedCount / item.successCount * 100 : 0), 0) / topOpen.length) : 0;
-  return { from, to, campaigns, targetedUsers: targeted._sum.estimatedUserCount || 0, targetedDevices: targeted._sum.estimatedDeviceCount || 0, accepted: success, failed, invalid, opened, successRate: attempts ? Math.round(success / attempts * 100) : 0, failureRate: attempts ? Math.round(failed / attempts * 100) : 0, openRate: success ? Math.round(opened / success * 100) : 0, averageOpenRate, byType, byError, topOpen, topFailure, devices: { total: deviceTotal, active: deviceActive, disabled: deviceTotal - deviceActive, android: deviceAndroid, stale: staleDevices }, trend: [...buckets.entries()].map(([date, values]) => ({ date, ...values })) };
+  return { from, to, campaigns, targetedUsers: targeted._sum.estimatedUserCount || 0, targetedDevices: targeted._sum.estimatedDeviceCount || 0, accepted: success, failed, invalid, opened, successRate: attempts ? Math.round(success / attempts * 100) : 0, failureRate: attempts ? Math.round(failed / attempts * 100) : 0, openRate: success ? Math.round(opened / success * 100) : 0, averageOpenRate, byType, byError, topOpen, topFailure, devices: { total: deviceTotal, active: deviceActive, disabled: deviceTotal - deviceActive, android: deviceAndroid, ios: deviceIos, stale: staleDevices }, platform: { android: { sent: androidSuccess, failed: androidFailed, opened: androidOpened, successRate: androidSuccess + androidFailed ? Math.round(androidSuccess / (androidSuccess + androidFailed) * 100) : 0, openRate: androidSuccess ? Math.round(androidOpened / androidSuccess * 100) : 0 }, ios: { sent: iosSuccess, failed: iosFailed, opened: iosOpened, successRate: iosSuccess + iosFailed ? Math.round(iosSuccess / (iosSuccess + iosFailed) * 100) : 0, openRate: iosSuccess ? Math.round(iosOpened / iosSuccess * 100) : 0 } }, trend: [...buckets.entries()].map(([date, values]) => ({ date, ...values })) };
 }

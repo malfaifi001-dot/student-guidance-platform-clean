@@ -667,9 +667,16 @@ model PushDelivery {
   deviceId          String
   device            PushDevice         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   status            PushDeliveryStatus @default(PENDING)
+  provider          String?            @db.VarChar(40)
+  attemptCount      Int                @default(0)
   attemptedAt       DateTime?
+  sentAt            DateTime?
+  failedAt          DateTime?
   firebaseMessageId String?            @db.VarChar(255)
   errorCode         String?            @db.VarChar(120)
+  errorCategory     String?            @db.VarChar(40)
+  safeErrorMessage  String?            @db.Text
+  retryable         Boolean            @default(false)
   invalidToken      Boolean            @default(false)
   openedAt          DateTime?
   openedRoute       String?            @db.VarChar(255)
