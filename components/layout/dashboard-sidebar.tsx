@@ -1342,7 +1342,7 @@ function TeacherSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الخدمات الإضافية"
+        title="الأدوات الإضافية"
         defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
         collapsed={collapsed}
       >

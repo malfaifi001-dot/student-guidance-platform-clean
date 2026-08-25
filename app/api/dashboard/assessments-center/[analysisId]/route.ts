@@ -33,3 +33,25 @@ export async function PATCH(request: Request, context: { params: Promise<{ analy
   await prisma.assessmentAnalysis.update({ where: { id: analysis.id }, data: { summaryJson: nextSnapshot as Prisma.InputJsonValue } });
   return NextResponse.json({ success: true, snapshot: nextSnapshot });
 }
+
+export async function DELETE(_request: Request, context: { params: Promise<{ analysisId: string }> }) {
+  const auth = await requireSchoolDashboardApiContext();
+  if (auth instanceof Response) return auth;
+  const guard = await requireServiceAccessApi("assessment-center");
+  if (guard) return guard;
+
+  const { analysisId } = await context.params;
+  const analysis = await prisma.assessmentAnalysis.findFirst({
+    where: {
+      id: analysisId,
+      schoolAccountId: auth.schoolAccountId,
+      uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] },
+    },
+    select: { id: true },
+  });
+
+  if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
+
+  await prisma.assessmentAnalysis.delete({ where: { id: analysis.id } });
+  return NextResponse.json({ success: true });
+}

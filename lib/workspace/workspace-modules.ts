@@ -242,9 +242,9 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     status: "available",
   },
   {
-    title: "مركز التحليل",
-    description: "الوصول إلى مركز التحليل والمؤشرات المشترك عند توفر الصلاحية.",
-    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    title: "تحليل نتائج الطلاب",
+    description: "إنشاء ومراجعة تحليلات نتائج الطلاب واستخراج التقارير.",
+    href: "/dashboard/assessments-center",
     icon: "assessment",
     status: "available",
   },

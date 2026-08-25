@@ -146,8 +146,8 @@ export function WorkspaceHome({
     { key: "surveys", label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys },
     {
       key: "assessment-center",
-      label: "مركز التحليل",
-      href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+      label: "تحليل نتائج الطلاب",
+      href: "/dashboard/assessments-center",
     },
   ].filter((option) =>
     modules.some(
