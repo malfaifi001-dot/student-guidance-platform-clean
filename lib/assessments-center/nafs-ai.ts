@@ -1,7 +1,7 @@
 import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
 import type { NafsAiAnalysis, NafsSnapshot } from "./nafs-types";
 import type { MultiPeriodSnapshot } from "./assessment-types";
-import { resolveAnalysisPresentation } from "./analysis-presentation";
+import { resolveAnalysisMeasurements, resolveAnalysisPresentation } from "./analysis-presentation";
 
 const empty: NafsAiAnalysis = {
   executiveSummary: "",
@@ -107,9 +107,16 @@ function parse(content: string) {
 
 export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
   const presentation = resolveAnalysisPresentation(snapshot);
+  const measurements = resolveAnalysisMeasurements(snapshot);
   const context = {
     analysisType: "NAFS",
     presentationMode: presentation.mode,
+    measurementCount: measurements.length,
+    measurementLabels: measurements.map((measurement) => measurement.label),
+    studentCount: presentation.studentCount,
+    measurementMode: presentation.measurementMode,
+    availableMeasurements: measurements.map((measurement) => ({ id: measurement.id, label: measurement.label, studentCount: measurement.studentCount, averageScore: measurement.averageScore, achievementPercentage: measurement.achievementPercentage })),
+    matchedStudentCount: presentation.series.matchedStudentCount,
     title: snapshot.title,
     subject: snapshot.subject,
     grade: snapshot.grade,
@@ -134,7 +141,7 @@ export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
       { role: "system", content: `${sharedSystemPrompt}\n${outputContract}` },
       {
         role: "user",
-        content: `${presentation.mode === "SINGLE_MEASUREMENT" || presentation.mode === "SINGLE_STUDENT" ? "حلل القياس المتاح بوصفه أداءً مطلقًا. لا تذكر التحسن أو الثبات أو التراجع أو المقارنة الزمنية لأن البيانات لا تدعمها." : "حلل اختبار نافس القبلي والبعدي. ركز على الفرق بين القياسين، توزيع مستويات الأداء، وأولويات الضعف."} اشرح ما الذي ينبغي تنفيذه وكيف ومتى وبأي مؤشر نجاح.\n${JSON.stringify(context)}`,
+        content: `${presentation.periodCount === 1 ? "حلل القياس المتاح بوصفه أداءً مطلقًا. لا تذكر التحسن أو الثبات أو التراجع أو المقارنة الزمنية." : presentation.periodCount === 2 ? "قارن القياسين الفعليين باستخدام تسمياتهما المحفوظة، دون افتراض قبلي/بعدي إذا لم تدل التسميات على ذلك." : "حلل الاتجاه عبر جميع القياسات، وحدد أفضل وأضعف قياس والتذبذب إن كان مدعومًا."} اشرح ما الذي ينبغي تنفيذه وكيف ومتى وبأي مؤشر نجاح.\n${JSON.stringify(context)}`,
       },
     ],
   });
@@ -144,16 +151,22 @@ export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
 
 export async function generateMultiPeriodAiAnalysis(snapshot: MultiPeriodSnapshot) {
   const presentation = resolveAnalysisPresentation(snapshot);
+  const measurements = resolveAnalysisMeasurements(snapshot);
   const context = {
     analysisType: snapshot.type,
     presentationMode: presentation.mode,
+    measurementCount: measurements.length,
+    measurementLabels: measurements.map((measurement) => measurement.label),
+    studentCount: presentation.studentCount,
+    measurementMode: presentation.measurementMode,
     title: snapshot.title,
     subject: snapshot.subject,
     grade: snapshot.grade,
     classroom: snapshot.classroom,
     maximumScore: snapshot.maximumScore,
-    periods: snapshot.periodMetrics,
-    firstToLastChange: snapshot.firstToLastAverageChange,
+    availableMeasurements: measurements.map((measurement) => ({ id: measurement.id, label: measurement.label, studentCount: measurement.studentCount, averageScore: measurement.averageScore, achievementPercentage: measurement.achievementPercentage })),
+    firstToLastChange: presentation.series.firstToLastChange,
+    matchedStudentCount: presentation.series.matchedStudentCount,
     anonymousStudents: snapshot.students.map((student, index) => ({
       row: index + 1,
       scores: student.scores,
@@ -161,9 +174,11 @@ export async function generateMultiPeriodAiAnalysis(snapshot: MultiPeriodSnapsho
     })),
   };
 
-  const focus = snapshot.type === "MAHIROON"
-    ? "اختبار ماهرون متعدد الفترات: حلل المسار الزمني، الاتساق، الضعف المتكرر، التراجع، والتحسن المستدام وخطة المتابعة طويلة المدى."
-    : "تحليل فصلي لمادة: حلل تحصيل المادة وتقدم الصف والآثار التدريسية والمهارية وخطة التدخل والقياس الدوري القادم.";
+  const focus = presentation.periodCount === 1
+    ? "حلل القياس الحالي فقط، وركز على الأداء المطلق والفجوات والتدخلات دون مقارنة أو اتجاه زمني."
+    : presentation.periodCount === 2
+      ? "قارن القياسين المحفوظين باستخدام تسمياتهما الفعلية، ولا تستخدم قبلي/بعدي إلا إذا كانت التسميات كذلك."
+      : "حلل المسار الزمني عبر جميع القياسات، وأبرز أفضل وأضعف قياس والتغير والتذبذب وخطة المتابعة.";
 
   const content = await callDeepSeekChat({
     temperature: 0.25,
