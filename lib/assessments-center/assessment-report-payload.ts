@@ -99,7 +99,7 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
     analysisTypeLabel: typeLabel,
     analysisType: type,
     school: { name: identity?.schoolName || "مدرسة Teachix", educationAdministration: identity?.educationDepartment || undefined, educationOffice: identity?.educationOffice || undefined, principalName: identity?.principalName || undefined, teacherName: teacherName || undefined, teacherSignatureUrl: teacherSignatureUrl || undefined, principalSignatureUrl: identity?.principalSignatureUrl || undefined, logoUrl: identity?.logoUrl || undefined, ministryLogoUrl: "/uploads/school-logos/MOE.png" },
-    metadata: { subject: text(snapshot.subject, "—"), grade: text(snapshot.grade, "—"), classroom: text(snapshot.classroom, "—"), academicYear: text(snapshot.academicYear, identity?.academicYear || ""), semester: text(snapshot.semester, identity?.currentSemester || ""), maximumScore, reportDate: new Intl.DateTimeFormat("ar-SA").format(new Date()) },
+    metadata: { subject: text(snapshot.subject, "—"), grade: text(snapshot.grade, "—"), classroom: text(snapshot.classroom, "—"), academicYear: text(snapshot.academicYear).trim() || text(identity?.academicYear).trim() || "1448-1449", semester: text(snapshot.semester).trim() || text(identity?.currentSemester).trim() || "الفصل الدراسي الأول", maximumScore, reportDate: new Intl.DateTimeFormat("ar-SA").format(new Date()) },
     metrics: { studentCount: students.length, averageScore, achievementRate: percent(latestPeriod?.achievementRate ?? number(stats.postAchievementPercentage)), highestScore, lowestScore, improvementRate: improvementRate ?? undefined, improvedCount, stableCount, declinedCount },
     periods,
     performanceLevels,
