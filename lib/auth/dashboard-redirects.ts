@@ -13,6 +13,16 @@ export function getDashboardHomePath(role?: string | null) {
   return COUNSELOR_DASHBOARD_PATH;
 }
 
+export function isDashboardHomePath(pathname: string) {
+  return [
+    COUNSELOR_DASHBOARD_PATH,
+    ADMIN_DASHBOARD_PATH,
+    ACTIVITY_LEADER_DASHBOARD_PATH,
+    TEACHER_DASHBOARD_PATH,
+    PRINCIPAL_DASHBOARD_PATH,
+  ].includes(pathname);
+}
+
 export function getOnboardingPathForRole(role?: string | null) {
   if (role === "ACTIVITY_LEADER") {
     return "/dashboard/onboarding?role=activity-leader";

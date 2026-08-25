@@ -26,6 +26,7 @@ import {
   isNativeOnboardingReviewOpen,
   publishNativeStartupReady,
 } from "@/lib/native/native-onboarding";
+import { isDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 
 export function NativeRuntimeSetup() {
   const [startupGateActive, setStartupGateActive] = useState(false);
@@ -296,7 +297,10 @@ export function NativeRuntimeSetup() {
 
       const coldPath = launchSafePath || pendingStartupPath;
       if (coldPath && !coldStartNavigationCompleted) {
-        if (window.location.pathname === coldPath) {
+        const serverResolvedDashboardPath =
+          coldPath === "/dashboard" && isDashboardHomePath(window.location.pathname);
+
+        if (window.location.pathname === coldPath || serverResolvedDashboardPath) {
           deepLinkHandled = true;
           lastHandledSafePath = coldPath;
           pendingStartupPath = null;
@@ -304,6 +308,7 @@ export function NativeRuntimeSetup() {
           logNativeRuntimeDiagnostic("cold-start-already-at-target", {
             safePath: getNativeDiagnosticPath(coldPath),
             pathname: getNativeDiagnosticPath(window.location.pathname),
+            serverResolvedDashboardPath,
             coldStart: true,
           });
           logNativeRuntimeDiagnostic("cold-start-launch-complete", {
