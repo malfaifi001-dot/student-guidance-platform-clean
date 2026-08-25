@@ -856,15 +856,23 @@ export async function POST(request: Request) {
     ];
 
     const plan = await prisma.$transaction(async (transaction) => {
-      await transaction.planFeature.deleteMany({
-        where: {
-          planId,
-          OR: [
-            { key: { in: managedKeys } },
-            { key: { startsWith: "service:" } },
-          ],
-        },
+      const existingFeatures = await transaction.planFeature.findMany({
+        where: { planId },
+        select: { id: true, key: true },
       });
+      const featureIdsToDelete = existingFeatures
+        .filter(
+          (feature) =>
+            managedKeys.includes(feature.key) ||
+            feature.key.startsWith("service:"),
+        )
+        .map((feature) => feature.id);
+
+      if (featureIdsToDelete.length > 0) {
+        await transaction.planFeature.deleteMany({
+          where: { id: { in: featureIdsToDelete } },
+        });
+      }
       await transaction.planFeature.createMany({
         data: featureData.map((feature) => ({ ...feature, planId })),
       });
