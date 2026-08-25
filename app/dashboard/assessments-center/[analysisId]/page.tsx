@@ -3,8 +3,14 @@ import { GenericAnalysisClient } from "@/components/assessments-center/generic-a
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 
-export default async function NafsAnalysisPage({ params }: { params: Promise<{ analysisId: string }> }) {
+export default async function NafsAnalysisPage({ params, searchParams }: { params: Promise<{ analysisId: string }>; searchParams: Promise<{ mode?: string }> }) {
   const context = await requireDashboardPageContext();
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await params).analysisId, ...(context.isAdmin ? {} : { schoolAccountId: context.schoolAccountId }), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { uploadMode: true } });
-  return analysis?.uploadMode === "NAFS_PRE_POST" ? <NafsAnalysisClient analysisId={(await params).analysisId} /> : <GenericAnalysisClient analysisId={(await params).analysisId} />;
+  const { analysisId } = await params;
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, ...(context.isAdmin ? {} : { schoolAccountId: context.schoolAccountId }), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { uploadMode: true } });
+  const { mode } = await searchParams;
+  if (mode === "edit" && analysis) {
+    const { AssessmentNewClient } = await import("@/components/assessments-center/assessment-new-client");
+    return <AssessmentNewClient editAnalysisId={analysisId} />;
+  }
+  return analysis?.uploadMode === "NAFS_PRE_POST" ? <NafsAnalysisClient analysisId={analysisId} /> : <GenericAnalysisClient analysisId={analysisId} />;
 }
