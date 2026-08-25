@@ -32,7 +32,8 @@ async function downloadPdfFromResponse(response: Response, fileName: string) {
 
     if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
       if (isNativeCapacitor()) {
-        await savePrintPreviewAsNativePdf(json.previewUrl, fileName);
+        const opened = await savePrintPreviewAsNativePdf(json.previewUrl, fileName);
+        if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
         return;
       }
 

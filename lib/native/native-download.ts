@@ -1,4 +1,6 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 
 type NativePdfResult = {
   fileName: string;
@@ -45,6 +47,33 @@ function getBlobMimeType(blob: Blob, fileName: string) {
   return "application/octet-stream";
 }
 
+function sanitizeFileName(fileName: string) {
+  const sanitized = fileName
+    .replace(/[\\/:*?"<>|\r\n]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 150);
+
+  return sanitized || "report.pdf";
+}
+
+function getSafePreviewUrl(url: string): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const isSameOrigin = parsed.origin === window.location.origin;
+    const isTeachixOrigin =
+      parsed.protocol === "https:" &&
+      ["teachix.sa", "www.teachix.sa"].includes(parsed.hostname.toLowerCase());
+
+    if (!isSameOrigin && !isTeachixOrigin) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 function dispatchDownloadFeedback(
   type: "success" | "error",
   fileName: string,
@@ -65,11 +94,42 @@ export async function downloadBlobAsNativeFile(
 ): Promise<NativeDownloadResult | null> {
   if (!Capacitor.isNativePlatform()) return null;
 
-  // TeachixPdf is an Android-only plugin. Let the shared browser/object-URL
-  // fallback handle iOS instead of invoking an unimplemented native plugin.
-  if (Capacitor.getPlatform() !== "android") return null;
+  // TeachixPdf is Android-only. Keep this path unchanged for Android.
+  if (Capacitor.getPlatform() !== "android") {
+    if (Capacitor.getPlatform() !== "ios") return null;
+
+    const safeFileName = sanitizeFileName(fileName);
+
+    try {
+      const data = await blobToBase64(blob);
+      const path = `teachix-exports/${Date.now()}-${safeFileName}`;
+      const result = await Filesystem.writeFile({
+        path,
+        data,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+
+      await Share.share({
+        title: safeFileName,
+        url: result.uri,
+        dialogTitle: "مشاركة ملف PDF",
+      });
+
+      dispatchDownloadFeedback("success", safeFileName);
+      return { fileName: safeFileName, uri: result.uri };
+    } catch (error) {
+      dispatchDownloadFeedback(
+        "error",
+        safeFileName,
+        "تعذر تجهيز الملف للمشاركة، حاول مرة أخرى",
+      );
+      throw error;
+    }
+  }
 
   const safeFileName = fileName.trim() || "report.pdf";
+
   try {
     const data = await blobToBase64(blob);
     const result = await TeachixPdf.saveFile({
@@ -90,9 +150,29 @@ export async function downloadBlobAsNativeFile(
 }
 
 export async function savePrintPreviewAsNativePdf(url: string, fileName: string): Promise<boolean> {
-  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return false;
+  if (!Capacitor.isNativePlatform()) return false;
 
-  const safeFileName = fileName.trim() || "report.pdf";
-  await TeachixPdf.renderHtmlToPdf({ url, fileName: safeFileName });
-  return true;
+  const safeFeedbackFileName = sanitizeFileName(fileName);
+
+  try {
+    if (Capacitor.getPlatform() === "android") {
+      const safeFileName = fileName.trim() || "report.pdf";
+      await TeachixPdf.renderHtmlToPdf({ url, fileName: safeFileName });
+      return true;
+    }
+
+    if (Capacitor.getPlatform() !== "ios") return false;
+
+    const safeFileName = sanitizeFileName(fileName);
+
+    const safeUrl = getSafePreviewUrl(url);
+    if (!safeUrl) throw new Error("UNSAFE_PRINT_PREVIEW_URL");
+
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url: safeUrl });
+    return true;
+  } catch (error) {
+    dispatchDownloadFeedback("error", safeFeedbackFileName, "تعذر فتح معاينة PDF، حاول مرة أخرى");
+    throw error;
+  }
 }

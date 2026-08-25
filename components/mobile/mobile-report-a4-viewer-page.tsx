@@ -505,10 +505,11 @@ export function MobileReportA4ViewerPage({
         typeof data.previewUrl === "string"
       ) {
         if (isNativeCapacitor()) {
-          await savePrintPreviewAsNativePdf(
+          const opened = await savePrintPreviewAsNativePdf(
             data.previewUrl,
             `${safeFileName(reportTitle)}.pdf`,
           );
+          if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
         } else {
           window.open(data.previewUrl, "_blank", "noopener,noreferrer");
         }

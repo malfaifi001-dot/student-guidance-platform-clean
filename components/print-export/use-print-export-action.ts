@@ -94,10 +94,11 @@ export function usePrintExportAction() {
 
       if (isNativeCapacitor()) {
         try {
-          await savePrintPreviewAsNativePdf(
+          const opened = await savePrintPreviewAsNativePdf(
             targetUrl,
             fallback?.fileName || "report.pdf",
           );
+          if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
           setStatus("success");
           setModal({
             status: "success",

@@ -75,9 +75,13 @@ export function ReportTwoPdfDownloadButton({
     previewUrl?: string;
   } | null>(null);
 
-  const openPreviewWindow = useCallback((previewUrl: string, fileName = "report.pdf") => {
+  const openPreviewWindow = useCallback(async (previewUrl: string, fileName = "report.pdf") => {
     if (isNativeCapacitor()) {
-      void savePrintPreviewAsNativePdf(previewUrl, fileName)
+      return savePrintPreviewAsNativePdf(previewUrl, fileName)
+        .then((opened) => {
+          if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
+          return opened;
+        })
         .then(() => setFallbackState({ message: "تم حفظ ملف PDF على الجهاز." }))
         .catch(() => {
           setFallbackState({
@@ -86,7 +90,6 @@ export function ReportTwoPdfDownloadButton({
             previewUrl,
           });
         });
-      return null;
     }
 
     const popup = window.open(previewUrl, "_blank", "noopener,noreferrer");
@@ -101,7 +104,7 @@ export function ReportTwoPdfDownloadButton({
       });
     }
 
-    return popup;
+    return Boolean(popup);
   }, []);
 
   const handleDownload = useCallback(async () => {
@@ -179,7 +182,7 @@ export function ReportTwoPdfDownloadButton({
       ) {
         downloadActiveRef.current = false;
         setLoading(false);
-        openPreviewWindow(
+        await openPreviewWindow(
           data.previewUrl,
           `${formatFileName(snapshot.reportTitle)}.pdf`,
         );
@@ -234,7 +237,7 @@ export function ReportTwoPdfDownloadButton({
               {fallbackState.previewUrl ? (
                 <button
                   type="button"
-                  onClick={() => openPreviewWindow(fallbackState.previewUrl!)}
+                  onClick={() => void openPreviewWindow(fallbackState.previewUrl!)}
                   className="mt-4 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
                 >
                   فتح معاينة الطباعة

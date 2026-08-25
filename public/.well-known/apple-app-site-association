@@ -1,0 +1,23 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "BTKJX5K3WT.sa.teachix.app"
+        ],
+        "components": [
+          { "/": "/dashboard" },
+          { "/": "/dashboard/*" },
+          { "/": "/survey" },
+          { "/": "/survey/*" },
+          { "/": "/school-signature" },
+          { "/": "/school-signature/*" },
+          { "/": "/teacher/activity-assignment" },
+          { "/": "/teacher/activity-assignment/*" },
+          { "/": "/report-signature" },
+          { "/": "/report-signature/*" }
+        ]
+      }
+    ]
+  }
+}
