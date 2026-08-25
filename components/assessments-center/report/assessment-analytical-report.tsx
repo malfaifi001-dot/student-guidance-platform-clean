@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { AnalysisPresentation } from "@/lib/assessments-center/analysis-presentation";
 
 export type AssessmentReportPeriod = { id: string; label: string; average: number; achievementRate: number };
 export type AssessmentPerformanceLevel = { label: string; count: number; percentage: number };
@@ -15,6 +16,7 @@ export type AssessmentDevelopmentPlanItem = {
 
 export type AssessmentAnalyticalReportData = {
   studentAudience?: "الطلاب" | "الطالبات";
+  presentation: AnalysisPresentation;
   reportTitle: string; reportSubtitle?: string; analysisTypeLabel: string;
   analysisType?: "NAFS" | "MAHIROON" | "SUBJECT_PERIODIC";
   school: {
@@ -44,7 +46,7 @@ const COLORS = {
   border: "#cddbe6", soft: "#f6f9fc", text: "#183247",
 };
 
-const AssessmentAudienceContext = React.createContext<"الطلاب" | "الطالبات">("الطلاب");
+const AssessmentAudienceContext = React.createContext({ audience: "الطلاب" as "الطلاب" | "الطالبات", mode: "PRE_POST" as AnalysisPresentation["mode"] });
 
 function clamp(value: number, min = 0, max = 100) { return Math.min(max, Math.max(min, Number.isFinite(value) ? value : 0)); }
 function formatNumber(value: number, digits = 1) { return Number.isFinite(value) ? value.toFixed(digits) : "—"; }
@@ -59,8 +61,9 @@ function ReportBrand({ data }: { data: AssessmentAnalyticalReportData }) {
 }
 
 function MetricCard({ label, value, hint, tone = "default" }: { label: string; value: React.ReactNode; hint?: string; tone?: "default" | "green" | "blue" | "amber" | "red" }) {
-  const audience = React.useContext(AssessmentAudienceContext);
-  return <div className={`metric-card metric-card--${tone}`}><div className="metric-card__label">{label === "عدد الطلاب" ? `عدد ${audience}` : label}</div><div className="metric-card__value">{value}</div>{hint ? <div className="metric-card__hint">{hint}</div> : null}</div>;
+  const context = React.useContext(AssessmentAudienceContext);
+  if (!["PRE_POST", "MULTI_PERIOD"].includes(context.mode) && ["مؤشر التحسن", "تحسن", "ثبات", "تراجع"].includes(label)) return null;
+  return <div className={`metric-card metric-card--${tone}`}><div className="metric-card__label">{label === "عدد الطلاب" ? `عدد ${context.audience}` : label}</div><div className="metric-card__value">{value}</div>{hint ? <div className="metric-card__hint">{hint}</div> : null}</div>;
 }
 
 function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -68,6 +71,8 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
 }
 
 function TrendChart({ periods }: { periods: AssessmentReportPeriod[] }) {
+  const context = React.useContext(AssessmentAudienceContext);
+  if (!context.mode || !["PRE_POST", "MULTI_PERIOD"].includes(context.mode)) return null;
   const width = 620, height = 220, paddingX = 48, paddingTop = 24, paddingBottom = 44;
   const chartWidth = width - paddingX * 2, chartHeight = height - paddingTop - paddingBottom;
   const points = (periods.length ? periods : [{ id: "empty", label: "—", average: 0, achievementRate: 0 }]).map((item, index, all) => ({
@@ -86,6 +91,8 @@ function TrendChart({ periods }: { periods: AssessmentReportPeriod[] }) {
 }
 
 function DonutChart({ levels }: { levels: AssessmentPerformanceLevel[] }) {
+  const context = React.useContext(AssessmentAudienceContext);
+  if (context.mode === "SINGLE_STUDENT") return null;
   const radius = 58, circumference = Math.PI * radius; let offset = 0;
   const palette = [COLORS.green, COLORS.blue, COLORS.amber, COLORS.red, COLORS.teal];
   return <div className="donut-layout"><div className="donut-chart"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r={radius} fill="none" stroke="#edf2f6" strokeWidth="22" />{levels.map((level, index) => { const percentage = clamp(level.percentage), dash = (percentage / 100) * circumference, currentOffset = offset; offset += dash; return <circle key={`${level.label}-${index}`} cx="80" cy="80" r={radius} fill="none" stroke={palette[index % palette.length]} strokeWidth="22" strokeDasharray={`${dash} ${circumference - dash}`} strokeDashoffset={-currentOffset} transform="rotate(-90 80 80)" />; })}<text x="80" y="75" textAnchor="middle" fontSize="18" fontWeight="800" fill={COLORS.navy}>الأداء</text><text x="80" y="97" textAnchor="middle" fontSize="12" fill={COLORS.slate}>حسب المستويات</text></svg></div><div className="donut-legend">{levels.map((level, index) => <div className="donut-legend__row" key={`${level.label}-${index}`}><span className="donut-legend__color" style={{ backgroundColor: palette[index % palette.length] }} /><strong>{level.label}</strong><span>{level.count}</span><b>{formatPercent(level.percentage)}</b></div>)}</div></div>;
@@ -527,7 +534,7 @@ function AnalyticalReportPages({
 export function AssessmentAnalyticalReport({ data }: Props) {
   const domains = data.domains ?? [], periodCount = Math.max(data.periods.length, 1);
   const followUp = data.analysis.followUpIndicators?.length ? data.analysis.followUpIndicators : ["متابعة تنفيذ الإجراءات المعتمدة.", "قياس أثر التدخلات في القياسات القادمة.", "مراجعة مؤشرات التحسن دوريًا.", "تحديث الخطة بناءً على النتائج اللاحقة."];
-  return <AssessmentAudienceContext.Provider value={data.studentAudience || "الطلاب"}><div className="assessment-report" dir="rtl">
+  return <AssessmentAudienceContext.Provider value={{ audience: data.studentAudience || "الطلاب", mode: data.presentation.mode }}><div className={`assessment-report assessment-report--${data.presentation.mode}`} dir="rtl">
     <section className="report-page report-cover"><div className="cover-accent cover-accent--top" /><ReportBrand data={data} /><div className="cover-content"><div className="cover-badge">{data.analysisTypeLabel}</div><h1>{data.reportTitle}</h1>{data.reportSubtitle ? <p className="cover-subtitle">{data.reportSubtitle}</p> : null}<div className="cover-line" /><div className="cover-meta-grid"><div><span>المادة</span><strong>{data.metadata.subject}</strong></div><div><span>الصف</span><strong>{data.metadata.grade}</strong></div><div><span>الفصل</span><strong>{data.metadata.classroom || "—"}</strong></div><div><span>الدرجة الكلية</span><strong>{data.metadata.maximumScore}</strong></div><div><span>الفصل الدراسي</span><strong>{data.metadata.semester || "—"}</strong></div><div><span>العام الدراسي</span><strong>{data.metadata.academicYear || "—"}</strong></div></div></div><div className="cover-bottom"><div><span>عدد القياسات</span><strong>{periodCount}</strong></div><div><span>عدد الطلاب</span><strong>{data.metrics.studentCount}</strong></div><div><span>تاريخ التقرير</span><strong>{data.metadata.reportDate || "—"}</strong></div></div><div className="cover-accent cover-accent--bottom" /><PageFooter page={1} /></section>
 
     <section className="report-page"><ReportBrand data={data} /><SectionTitle title="البيانات والمؤشرات التحليلية" /><div className="report-info-strip"><div><span>نوع التحليل</span><strong>{data.analysisTypeLabel}</strong></div><div><span>المادة</span><strong>{data.metadata.subject}</strong></div><div><span>الصف</span><strong>{data.metadata.grade}</strong></div><div><span>الفصل</span><strong>{data.metadata.classroom || "—"}</strong></div><div><span>الدرجة الكلية</span><strong>{data.metadata.maximumScore}</strong></div></div><div className="metrics-grid"><MetricCard label="عدد الطلاب" value={data.metrics.studentCount} tone="blue" /><MetricCard label="متوسط الدرجات" value={formatNumber(data.metrics.averageScore)} hint={`من ${data.metadata.maximumScore}`} tone="blue" /><MetricCard label="نسبة التحصيل" value={formatPercent(data.metrics.achievementRate)} tone="green" /><MetricCard label="أعلى درجة" value={formatNumber(data.metrics.highestScore)} hint={`من ${data.metadata.maximumScore}`} tone="blue" /><MetricCard label="أدنى درجة" value={formatNumber(data.metrics.lowestScore)} hint={`من ${data.metadata.maximumScore}`} tone="amber" /><MetricCard label="مؤشر التحسن" value={formatPercent(data.metrics.improvementRate)} tone={(data.metrics.improvementRate ?? 0) >= 0 ? "green" : "red"} /></div><div className="charts-grid charts-grid--top"><TrendChart periods={data.periods} /><div className="chart-shell"><div className="chart-shell__header"><strong>توزيع مستويات الأداء</strong></div><DonutChart levels={data.performanceLevels} /></div></div><div className="charts-grid charts-grid--bottom"><div className="chart-shell"><div className="chart-shell__header"><strong>مؤشرات الحركة والتحسن</strong></div><div className="movement-grid"><MetricCard label="تحسن" value={data.metrics.improvedCount ?? "—"} tone="green" /><MetricCard label="ثبات" value={data.metrics.stableCount ?? "—"} tone="blue" /><MetricCard label="تراجع" value={data.metrics.declinedCount ?? "—"} tone="red" /></div></div>{domains.length ? <div className="chart-shell"><div className="chart-shell__header"><strong>الأداء حسب المجالات / المهارات</strong></div><DomainBars domains={domains} /></div> : <div className="chart-shell chart-shell--summary"><div className="chart-shell__header"><strong>الملخص التنفيذي</strong></div><p className="executive-summary">{data.analysis.executiveSummary}</p></div>}</div><PageFooter page={2} /></section>
@@ -539,6 +546,7 @@ export function AssessmentAnalyticalReport({ data }: Props) {
     <AnalyticalReportPages data={data} />
 
     <style jsx global>{`
+      .assessment-report--SINGLE_MEASUREMENT .charts-grid--bottom,.assessment-report--SINGLE_STUDENT .charts-grid--top,.assessment-report--SINGLE_STUDENT .charts-grid--bottom{display:none}
       .assessment-report{--report-navy:${COLORS.navy};--report-teal:${COLORS.teal};--report-turquoise:${COLORS.turquoise};--report-blue:${COLORS.blue};--report-green:${COLORS.green};--report-border:${COLORS.border};--report-soft:${COLORS.soft};--report-text:${COLORS.text};width:210mm;min-width:210mm;max-width:210mm;margin:0;padding:32px 0;color:var(--report-text);font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;background:#edf3f8}
       .assessment-report>.report-page--flow:not(.report-page--dynamic),.assessment-report>.report-page--closing:not(.report-page--dynamic){display:none!important}
       .report-page{position:relative;width:210mm;height:297mm;min-height:297mm;max-height:297mm;margin:0 auto 28px;box-sizing:border-box;background:#fff;padding:14mm 13mm 18mm;box-shadow:0 20px 55px rgba(31,63,91,.1);break-after:page;page-break-after:always;overflow:hidden}

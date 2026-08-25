@@ -1,11 +1,13 @@
 import type { AssessmentAnalyticalReportData } from "@/components/assessments-center/report/assessment-analytical-report";
 import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
+import { resolveAnalysisPresentation } from "@/lib/assessments-center/analysis-presentation";
 
 type Identity = { schoolName?: string | null; logoUrl?: string | null; principalName?: string | null; principalSignatureUrl?: string | null; educationDepartment?: string | null; educationOffice?: string | null; academicYear?: string | null; currentSemester?: string | null; gender?: string | null; };
 type RecordValue = Record<string, unknown>;
 
 function record(value: unknown): RecordValue { return value && typeof value === "object" ? value as RecordValue : {}; }
 function number(value: unknown): number | null { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null; }
+function validScore(value: unknown): boolean { return number(value) !== null; }
 function text(value: unknown, fallback = ""): string { return typeof value === "string" ? value : fallback; }
 function list(value: unknown): string[] { return Array.isArray(value) ? value.map((item) => { if (typeof item === "string") return item; if (item && typeof item === "object") return Object.values(item as Record<string, unknown>).flatMap((part) => Array.isArray(part) ? part : [part]).filter((part): part is string => typeof part === "string" && part.trim().length > 0).join(" — "); return ""; }).filter((item) => item.trim().length > 0) : []; }
 function percent(value: number | null): number { return value === null ? 0 : Math.max(0, Math.min(100, value)); }
@@ -31,24 +33,28 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
   const snapshot = record(snapshotValue);
   const stats = record(snapshot.statistics);
   const ai = record(snapshot.ai);
-  const isMultiPeriod = Array.isArray(snapshot.periodMetrics);
+  const isMultiPeriod = Array.isArray(snapshot.periodMetrics) && snapshot.periodMetrics.length > 0;
   const maximumScore = number(snapshot.maximumScore ?? snapshot.totalScore) ?? 0;
   const students = Array.isArray(snapshot.students) ? snapshot.students.map(record) : [];
+  const hasPre = validScore(stats.preAverage) || students.some((student) => validScore(student.preScore));
+  const hasPost = validScore(stats.postAverage) || students.some((student) => validScore(student.postScore));
   const type = text(snapshot.type, "NAFS") as AssessmentAnalyticalReportData["analysisType"];
   const typeLabel = type === "MAHIROON" ? "اختبار ماهرون" : type === "SUBJECT_PERIODIC" ? "تحليل فصلي لمادة" : "اختبار نافس";
 
   const periods: AssessmentAnalyticalReportData["periods"] = isMultiPeriod
     ? (snapshot.periodMetrics as unknown[]).map((item) => { const period = record(item); return { id: text(period.periodId), label: text(period.label, "الفترة"), average: number(period.average) ?? 0, achievementRate: percent(number(period.achievementPercentage)) }; })
-    : [
-      { id: "PRE", label: "الاختبار القبلي", average: number(stats.preAverage) ?? 0, achievementRate: percent(number(stats.preAchievementPercentage)) },
-      { id: "POST", label: "الاختبار البعدي", average: number(stats.postAverage) ?? 0, achievementRate: percent(number(stats.postAchievementPercentage)) },
-    ];
+    : hasPre && hasPost
+      ? [
+          { id: "PRE", label: "الاختبار القبلي", average: number(stats.preAverage) ?? 0, achievementRate: percent(number(stats.preAchievementPercentage)) },
+          { id: "POST", label: "الاختبار البعدي", average: number(stats.postAverage) ?? 0, achievementRate: percent(number(stats.postAchievementPercentage)) },
+        ]
+      : [{ id: hasPost ? "POST" : "PRE", label: "القياس", average: number(hasPost ? stats.postAverage : stats.preAverage) ?? 0, achievementRate: percent(number(hasPost ? stats.postAchievementPercentage : stats.preAchievementPercentage)) }];
 
   const latestPeriod = periods.at(-1);
   const latestAveragePercentage = latestPeriod?.average ?? 0;
   const latestScores = isMultiPeriod
     ? students.map((student) => number(record(student.scores)[text(latestPeriod?.id)])) .filter((value): value is number => value !== null)
-    : students.map((student) => number(student.postScore)).filter((value): value is number => value !== null);
+    : students.map((student) => number(hasPost ? student.postScore : student.preScore)).filter((value): value is number => value !== null);
   const averageScore = maximumScore > 0 ? latestAveragePercentage / 100 * maximumScore : 0;
   const highestScore = latestScores.length ? Math.max(...latestScores) : number(stats.highestPost ?? stats.highestPre) ?? 0;
   const lowestScore = latestScores.length ? Math.min(...latestScores) : number(stats.lowestPost ?? stats.lowestPre) ?? 0;
@@ -61,7 +67,7 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
 
   const latestPercentages = isMultiPeriod
     ? students.map((student) => { const score = number(record(student.scores)[text(latestPeriod?.id)]); return score === null || maximumScore <= 0 ? null : score / maximumScore * 100; })
-    : students.map((student) => number(student.postPercentage));
+    : students.map((student) => number(hasPost ? student.postPercentage : student.prePercentage));
   const levels = [
     ["مرتفع", (value: number) => value >= 80],
     ["متوسط", (value: number) => value >= 60 && value < 80],
@@ -91,9 +97,11 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
   })) : [];
   const analysis = aiSections(ai, students.map((student) => text(student.studentName)).filter(Boolean));
   const audience = getAssessmentAudienceLabels(gender);
+  const presentation = resolveAnalysisPresentation(snapshot);
 
   return {
     studentAudience: audience.students as "الطلاب" | "الطالبات",
+    presentation,
     reportTitle: type === "NAFS" ? `تحليل نتائج نافس لـ${audience.students}` : type === "MAHIROON" ? `تحليل نتائج اختبار ماهرون لـ${audience.students}` : `تحليل نتائج مادة ${text(snapshot.subject, "")} لـ${audience.students}`,
     reportSubtitle: type === "NAFS" ? "الاختبار القبلي والبعدي" : "تقرير تحليلي للنتائج والمؤشرات",
     analysisTypeLabel: typeLabel,

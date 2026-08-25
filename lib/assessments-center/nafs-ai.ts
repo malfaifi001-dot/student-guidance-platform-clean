@@ -1,6 +1,7 @@
 import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
 import type { NafsAiAnalysis, NafsSnapshot } from "./nafs-types";
 import type { MultiPeriodSnapshot } from "./assessment-types";
+import { resolveAnalysisPresentation } from "./analysis-presentation";
 
 const empty: NafsAiAnalysis = {
   executiveSummary: "",
@@ -105,8 +106,10 @@ function parse(content: string) {
 }
 
 export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
+  const presentation = resolveAnalysisPresentation(snapshot);
   const context = {
     analysisType: "NAFS",
+    presentationMode: presentation.mode,
     title: snapshot.title,
     subject: snapshot.subject,
     grade: snapshot.grade,
@@ -131,7 +134,7 @@ export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
       { role: "system", content: `${sharedSystemPrompt}\n${outputContract}` },
       {
         role: "user",
-        content: `حلل اختبار نافس القبلي والبعدي. ركز على الفرق بين القياسين، توزيع مستويات الأداء، أولويات الضعف، الفئات التي تحتاج علاجًا، والفئات التي تستحق إثراءً. اشرح ما الذي ينبغي تنفيذه وكيف ومتى وبأي مؤشر نجاح.\n${JSON.stringify(context)}`,
+        content: `${presentation.mode === "SINGLE_MEASUREMENT" || presentation.mode === "SINGLE_STUDENT" ? "حلل القياس المتاح بوصفه أداءً مطلقًا. لا تذكر التحسن أو الثبات أو التراجع أو المقارنة الزمنية لأن البيانات لا تدعمها." : "حلل اختبار نافس القبلي والبعدي. ركز على الفرق بين القياسين، توزيع مستويات الأداء، وأولويات الضعف."} اشرح ما الذي ينبغي تنفيذه وكيف ومتى وبأي مؤشر نجاح.\n${JSON.stringify(context)}`,
       },
     ],
   });
@@ -140,8 +143,10 @@ export async function generateNafsAiAnalysis(snapshot: NafsSnapshot) {
 }
 
 export async function generateMultiPeriodAiAnalysis(snapshot: MultiPeriodSnapshot) {
+  const presentation = resolveAnalysisPresentation(snapshot);
   const context = {
     analysisType: snapshot.type,
+    presentationMode: presentation.mode,
     title: snapshot.title,
     subject: snapshot.subject,
     grade: snapshot.grade,
