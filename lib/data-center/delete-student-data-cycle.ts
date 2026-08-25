@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { syncActiveStudentsForSchool } from "@/lib/data-center/sync-active-students-for-school";
 
 export class StudentDataCycleDeleteError extends Error {
   constructor(
@@ -71,37 +72,6 @@ export async function deleteStudentDataCycle(input: {
       0,
     );
 
-    const importedStudentIds = Array.from(
-      new Set(
-        sessions.flatMap((session) =>
-          session.rows
-            .map((row) => row.matchedStudentId)
-            .filter((id): id is string => Boolean(id)),
-        ),
-      ),
-    );
-    const retainedStudentIds = sessionIds.length && importedStudentIds.length
-      ? new Set((await tx.studentImportRow.findMany({
-          where: {
-            matchedStudentId: { in: importedStudentIds },
-            sessionId: { notIn: sessionIds },
-            session: {
-              schoolAccountId: input.schoolAccountId,
-              status: "COMMITTED",
-              isArchived: false,
-            },
-          },
-          select: { matchedStudentId: true },
-        })).map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id)))
-      : new Set<string>();
-    const studentsToDeactivate = importedStudentIds.filter((id) => !retainedStudentIds.has(id));
-    const deactivatedStudents = studentsToDeactivate.length
-      ? await tx.student.updateMany({
-          where: { schoolAccountId: input.schoolAccountId, id: { in: studentsToDeactivate } },
-          data: { isActive: false },
-        })
-      : { count: 0 };
-
     const deletedChanges = sessionIds.length
       ? await tx.studentImportChange.deleteMany({
           where: { sessionId: { in: sessionIds } },
@@ -121,6 +91,8 @@ export async function deleteStudentDataCycle(input: {
     }
 
     await tx.noorImportCycle.delete({ where: { id: cycle.id } });
+
+    const visibility = await syncActiveStudentsForSchool(tx, input.schoolAccountId);
 
     const deletedAt = new Date();
     await tx.platformActivityLog.create({
@@ -142,7 +114,10 @@ export async function deleteStudentDataCycle(input: {
           deletedRows: rowCount,
           deletedFileMetadata: fileMetadataCount,
           deletedImportChanges: deletedChanges.count,
-          deactivatedStudents: deactivatedStudents.count,
+          deactivatedStudents: visibility.deactivatedStudents,
+          activeStudentsBefore: visibility.activeStudentsBefore,
+          activeStudentsAfter: visibility.activeStudentsAfter,
+          reactivatedStudents: visibility.reactivatedStudents,
           deletedBy: input.actorUserId,
           deletedAt: deletedAt.toISOString(),
           canonicalStudentsPreserved: true,

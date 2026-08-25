@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { readApiResponse } from "@/lib/http/read-api-response";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { StudentDataCardDeleteDialog } from "@/components/data-center/noor-import/student-data-card-delete-dialog";
+import { getStudentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 type NoorCycle = {
   id: string;
@@ -39,20 +40,15 @@ type NoorCycle = {
 
 type Props = {
   schoolName: string;
+  gender?: string | null;
 };
+type UploadFileState = { id: string; file: File; status: "waiting" | "processing" | "completed" | "failed"; error?: string };
 
 const termOptions = [
   "الفصل الدراسي الأول",
   "الفصل الدراسي الثاني",
   "الفصل الدراسي الثالث",
 ];
-
-const statusLabel: Record<string, string> = {
-  DRAFT: "لم يبدأ",
-  REVIEW_PENDING: "بانتظار المراجعة",
-  COMMITTED: "معتمدة",
-  ARCHIVED: "مؤرشفة",
-};
 
 function defaultAcademicYear() {
   return "1447";
@@ -73,32 +69,63 @@ function formatDate(value?: string | null) {
   }
 }
 
-function statusClass(status: string) {
-  if (status === "COMMITTED") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (status === "REVIEW_PENDING") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (status === "ARCHIVED") {
-    return "border-slate-200 bg-slate-100 text-slate-600";
-  }
-
-  return "border-sky-200 bg-sky-50 text-sky-700";
-}
-
-export function NoorImportCyclesClient({ schoolName }: Props) {
+export function NoorImportCyclesClient({ schoolName, gender }: Props) {
+  const labels = getStudentAudienceLabels(gender);
   const [cycles, setCycles] = useState<NoorCycle[]>([]);
   const [academicYear, setAcademicYear] = useState(defaultAcademicYear());
   const [term, setTerm] = useState(termOptions[0]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<UploadFileState[]>([]);
+  const [uploadCurrent, setUploadCurrent] = useState(0);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<NoorCycle | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function openUpload(cycle?: NoorCycle) {
+    setAcademicYear(cycle?.academicYear || defaultAcademicYear());
+    setTerm(cycle?.term || termOptions[0]);
+    setUploadFiles([]);
+    setMessage(null);
+    setIsCreateOpen(true);
+  }
+
+  function selectUploadFiles(fileList: FileList | null) {
+    const files = Array.from(fileList || []).filter((file) => /\.(xlsx|xls)$/i.test(file.name));
+    setUploadFiles(files.map((file, index) => ({ id: `${file.name}-${file.lastModified}-${index}`, file, status: "waiting" })));
+    if (files.length !== Array.from(fileList || []).length) {
+      setMessage({ type: "error", text: "تم تجاهل الملفات غير المدعومة. اختر ملفات xlsx أو xls فقط." });
+    }
+  }
+
+  async function importSelectedFiles(cycleId: string) {
+    let completed = 0;
+    for (let index = 0; index < uploadFiles.length; index += 1) {
+      const item = uploadFiles[index];
+      setUploadCurrent(index + 1);
+      setUploadFiles((current) => current.map((entry) => entry.id === item.id ? { ...entry, status: "processing", error: undefined } : entry));
+      try {
+        const formData = new FormData();
+        formData.append("file", item.file);
+        formData.append("cycleId", cycleId);
+        formData.append("academicYear", academicYear.trim());
+        formData.append("term", term.trim());
+        formData.append("batchMode", "queue");
+        const response = await fetch("/api/dashboard/data-center/student-data-import/preview", { method: "POST", body: formData });
+        const result = await readApiResponse(response);
+        if (!response.ok) throw new Error(result.error || "تعذر استيراد الملف.");
+        completed += 1;
+        setUploadFiles((current) => current.map((entry) => entry.id === item.id ? { ...entry, status: "completed" } : entry));
+      } catch (error) {
+        setUploadFiles((current) => current.map((entry) => entry.id === item.id ? { ...entry, status: "failed", error: error instanceof Error ? error.message : "تعذر استيراد الملف." } : entry));
+      }
+    }
+    setUploadCurrent(0);
+    if (completed > 0) {
+      window.location.href = `/dashboard/data-center/students?imported=${completed}&files=${uploadFiles.length}`;
+    }
+  }
 
   const loadCycles = useCallback(async () => {
     const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
@@ -164,10 +191,10 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
   async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!academicYear.trim() || !term.trim()) {
+    if (!academicYear.trim() || !term.trim() || !uploadFiles.length) {
       setMessage({
         type: "error",
-        text: "حدد السنة الدراسية والفصل الدراسي أولًا.",
+        text: "حدد السنة والفصل واختر ملف Excel واحدًا على الأقل.",
       });
       return;
     }
@@ -175,7 +202,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
     setIsLoading(true);
     setMessage({
       type: "info",
-      text: "جاري إنشاء بطاقة بيانات الطلاب...",
+      text: "جاري رفع بيانات الطلاب...",
     });
 
     try {
@@ -193,24 +220,16 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
       const result = await readApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.error || "تعذر إنشاء بطاقة بيانات الطلاب.");
+        throw new Error(result.error || "تعذر تجهيز دفعة بيانات الطلاب.");
       }
 
-      setMessage({
-        type: "success",
-        text: result.message || "تم إنشاء بطاقة بيانات الطلاب.",
-      });
-
-      setIsCreateOpen(false);
-      await loadCycles();
-
       if (result.cycle?.id) {
-        window.location.href = `/dashboard/data-center/student-data-import/cycles/${result.cycle.id}`;
+        await importSelectedFiles(result.cycle.id);
       }
     } catch (error) {
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "تعذر إنشاء بطاقة بيانات الطلاب.",
+        text: error instanceof Error ? error.message : "تعذر رفع بيانات الطلاب.",
       });
     } finally {
       setIsLoading(false);
@@ -231,19 +250,19 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
               <div>
                 <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز بيانات الطلاب</h1>
+                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز {labels.studentData}</h1>
                 <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-                  إدارة بيانات الطلاب وتحديثاتها.
+                  إدارة {labels.studentData} وتحديثاتها.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => setIsCreateOpen(true)}
+                onClick={() => openUpload()}
                 data-guidance="student-import-start"
                 className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
               >
-                إضافة بيانات طالب
+                إضافة بيانات {labels.students}
               </button>
             </div>
           </div>
@@ -265,34 +284,12 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
         ) : null}
 
         <section
-          data-guidance="student-import-steps"
-          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
-        >
-          <h2 className="text-lg font-black">الخطوات</h2>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              "١. اختر السنة والفصل",
-              "٢. ارفع ملف Excel",
-              "٣. راجع واعتمد",
-            ].map((step) => (
-              <div
-                key={step}
-                className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-4 text-sm font-black text-sky-800"
-              >
-                {step}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section
           data-guidance="student-import-current-data"
           className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
         >
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div>
-              <h2 className="text-lg font-black">بطاقات بيانات الطلاب</h2>
+                <h2 className="text-lg font-black">بطاقات {labels.studentData}</h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
                 بطاقات البيانات حسب السنة والفصل.
               </p>
@@ -300,10 +297,10 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
 
             <button
               type="button"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => openUpload()}
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100"
             >
-              إضافة بيانات طالب
+              إضافة بيانات {labels.students}
             </button>
           </div>
 
@@ -316,43 +313,23 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                 >
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={["rounded-full border px-3 py-1 text-xs font-black", statusClass(cycle.status)].join(" ")}>
-                          {statusLabel[cycle.status] || cycle.status}
-                        </span>
-
-                        {cycle.pendingSessions > 0 ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                            بانتظار مراجعة
-                          </span>
-                        ) : null}
-                      </div>
-
                       <h3 className="mt-3 text-xl font-black text-slate-950">
-                        بيانات الطلاب {cycle.academicYear} - {cycle.term}
+                        {labels.studentData} {cycle.academicYear} - {cycle.term}
                       </h3>
 
                       <p className="mt-2 text-xs font-bold text-slate-500">
-                        آخر ملف: {cycle.latestSession?.files?.[0]?.fileName || "لم يتم رفع ملف بعد"} · آخر تحديث: {formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}
+                        {cycle.totalSessions} ملفات · آخر رفع: {formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}
                       </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       <Link
-                        href={`/dashboard/data-center/student-data-import/cycles/${cycle.id}`}
+                        href="/dashboard/data-center/students"
                         className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
                       >
-                        فتح البطاقة
+                        عرض {labels.students}
                       </Link>
-
-                      {cycle.latestSession ? (
-                        <Link
-                          href={`/dashboard/data-center/student-data-import/sessions/${cycle.latestSession.id}`}
-                          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-                        >
-                          آخر تحديث
-                        </Link>
-                      ) : null}
+                      <button type="button" onClick={() => openUpload(cycle)} className="rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-50">إعادة الرفع</button>
                       <button
                         type="button"
                         onClick={() => {
@@ -362,35 +339,20 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                         className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"
                       >
                         <Trash2 className="h-4 w-4" />
-                        حذف البطاقة
+                        حذف
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-5">
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
                     <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                      <p className="text-xs font-black text-slate-400">الطلاب</p>
+                      <p className="text-xs font-black text-slate-400">{labels.students}</p>
                       <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
                     </div>
 
                     <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                      <p className="text-xs font-black text-slate-400">التحديثات</p>
+                      <p className="text-xs font-black text-slate-400">الملفات</p>
                       <p className="mt-1 text-2xl font-black">{cycle.totalSessions}</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                      <p className="text-xs font-black text-slate-400">المعتمدة</p>
-                      <p className="mt-1 text-2xl font-black">{cycle.committedSessions}</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                      <p className="text-xs font-black text-slate-400">بانتظار مراجعة</p>
-                      <p className="mt-1 text-2xl font-black">{cycle.pendingSessions}</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                      <p className="text-xs font-black text-slate-400">آخر تحديث</p>
-                      <p className="mt-1 text-sm font-black">{formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}</p>
                     </div>
                   </div>
                 </article>
@@ -399,15 +361,15 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
                 <h3 className="text-lg font-black text-slate-900">لا توجد بطاقات بعد</h3>
                 <p className="mt-2 text-sm font-bold text-slate-500">
-                  أضف بطاقة للسنة والفصل، ثم ارفع الملف من داخلها.
+                  أضف بيانات {labels.students} من خلال نافذة الرفع.
                 </p>
 
                 <button
                   type="button"
-                  onClick={() => setIsCreateOpen(true)}
+                  onClick={() => openUpload()}
                   className="mt-5 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
                 >
-                  إضافة بيانات طالب
+                  إضافة بيانات {labels.students}
                 </button>
               </div>
             )}
@@ -422,9 +384,9 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-black">إضافة بيانات طالب</h2>
+                  <h2 className="text-xl font-black">إضافة بيانات {labels.students}</h2>
                   <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                    اختر السنة والفصل، ثم افتح البطاقة لرفع الملف.
+                    اختر السنة والفصل وملفات Excel، وسيتم حفظ {labels.students} مباشرة.
                   </p>
                 </div>
 
@@ -462,6 +424,26 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                     ))}
                   </select>
                 </label>
+
+                <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+                  <span className="text-sm font-black text-sky-800">اختر ملفات Excel</span>
+                  <span className="mt-1 block text-xs font-bold text-sky-700">يمكنك اختيار أكثر من ملف وسيتم رفعها بالتتابع.</span>
+                  <input type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={(event) => selectUploadFiles(event.target.files)} />
+                </label>
+
+                {uploadFiles.length ? (
+                  <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3" aria-live="polite">
+                    {uploadFiles.map((item, index) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-xs font-bold">
+                        <span className="min-w-0 truncate">{index + 1}. {item.file.name}</span>
+                        <span className={item.status === "failed" ? "text-rose-700" : item.status === "completed" ? "text-emerald-700" : item.status === "processing" ? "text-sky-700" : "text-slate-500"}>
+                          {item.status === "failed" ? item.error || "فشل" : item.status === "completed" ? "تم" : item.status === "processing" ? "قيد الرفع" : "في الانتظار"}
+                        </span>
+                      </div>
+                    ))}
+                    {uploadCurrent ? <p className="text-xs font-black text-sky-700">{uploadCurrent} من {uploadFiles.length} ملفات</p> : null}
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-6 flex flex-col gap-2 md:flex-row">
@@ -470,7 +452,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                   disabled={isLoading}
                   className="flex-1 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-50"
                 >
-                  {isLoading ? "جاري الإنشاء..." : "إنشاء بطاقة"}
+                  {isLoading ? `جاري رفع البيانات... ${uploadCurrent ? `${uploadCurrent} من ${uploadFiles.length}` : ""}` : "رفع البيانات"}
                 </button>
 
                 <button
@@ -490,7 +472,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
         target={
           deleteTarget
             ? {
-                title: `بيانات الطلاب ${deleteTarget.academicYear} - ${deleteTarget.term}`,
+                title: `${labels.studentData} ${deleteTarget.academicYear} - ${deleteTarget.term}`,
                 academicYear: deleteTarget.academicYear,
                 term: deleteTarget.term,
                 studentCount: deleteTarget.totalStudents || deleteTarget.latestSession?.totalRows || 0,

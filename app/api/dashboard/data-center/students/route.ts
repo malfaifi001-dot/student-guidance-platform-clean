@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+import { activeStudentWhere } from "@/lib/students/student-query";
 
 export const runtime = "nodejs";
 
@@ -20,17 +21,7 @@ export async function GET(request: Request) {
       100,
     );
 
-    const where: any = {
-      schoolAccountId: context.schoolAccountId,
-    };
-
-    if (status === "ACTIVE") {
-      where.isActive = true;
-    }
-
-    if (status === "INACTIVE") {
-      where.isActive = false;
-    }
+    const where: any = activeStudentWhere(context.schoolAccountId);
 
     if (grade) {
       where.grade = grade;
@@ -72,9 +63,7 @@ export async function GET(request: Request) {
         take: pageSize,
       }),
       prisma.student.findMany({
-        where: {
-          schoolAccountId: context.schoolAccountId,
-        },
+        where: activeStudentWhere(context.schoolAccountId),
         select: {
           grade: true,
           classroom: true,
@@ -91,8 +80,8 @@ export async function GET(request: Request) {
       new Set(filterSource.map((item: any) => item.classroom).filter(Boolean)),
     ).sort();
 
-    const activeCount = filterSource.filter((item: any) => item.isActive).length;
-    const inactiveCount = filterSource.filter((item: any) => !item.isActive).length;
+    const activeCount = filterSource.length;
+    const inactiveCount = 0;
 
     return NextResponse.json({
       students: students.map((student: any) => ({

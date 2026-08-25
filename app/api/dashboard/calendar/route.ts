@@ -80,6 +80,7 @@ async function validateLinkedResource(input: {
       where: {
         id: input.studentId,
         schoolAccountId: input.schoolAccountId,
+        isActive: true,
       },
       select: {
         id: true,

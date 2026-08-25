@@ -13,6 +13,7 @@ type CurrentUserLite = {
   name?: string | null;
   email?: string | null;
   role?: string | null;
+  gender?: string | null;
   schoolAccountId?: string | null;
   isActive?: boolean;
   schoolAccount?: SchoolAccountLite | null;

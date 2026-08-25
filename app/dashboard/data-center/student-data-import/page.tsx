@@ -11,5 +11,5 @@ export default async function NoorImportCenterPage() {
     redirect("/login");
   }
 
-  return <NoorImportCyclesClient schoolName={context.schoolName} />;
+  return <NoorImportCyclesClient schoolName={context.schoolName} gender={context.user?.gender} />;
 }

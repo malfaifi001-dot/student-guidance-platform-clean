@@ -1,0 +1,611 @@
+
+============================================================
+FILE: lib\students\student-query.ts
+============================================================
+    1: export function activeStudentWhere<T extends Record<string, unknown>>(
+    2:   schoolAccountId: string,
+    3:   additional: T = {} as T,
+    4: ) {
+    5:   return {
+    6:     schoolAccountId,
+    7:     isActive: true,
+    8:     ...additional,
+    9:   };
+   10: }
+
+============================================================
+FILE: lib\data-center\delete-student-data-cycle.ts
+============================================================
+    1: import "server-only";
+    2: 
+    3: import { Prisma } from "@prisma/client";
+    4: 
+    5: import { prisma } from "@/lib/prisma";
+    6: 
+    7: export class StudentDataCycleDeleteError extends Error {
+    8:   constructor(
+    9:     readonly code: "NOT_FOUND" | "INVALID_CYCLE_ID",
+   10:     message: string,
+   11:   ) {
+   12:     super(message);
+   13:     this.name = "StudentDataCycleDeleteError";
+   14:   }
+   15: }
+   16: 
+   17: export function normalizeStudentDataCycleId(value: unknown) {
+   18:   const cycleId = typeof value === "string" ? value.trim() : "";
+   19: 
+   20:   if (!cycleId || cycleId.length > 191 || !/^[A-Za-z0-9_-]+$/.test(cycleId)) {
+   21:     throw new StudentDataCycleDeleteError(
+   22:       "INVALID_CYCLE_ID",
+   23:       "معرّف بطاقة بيانات الطلاب غير صالح.",
+   24:     );
+   25:   }
+   26: 
+   27:   return cycleId;
+   28: }
+   29: 
+   30: export async function deleteStudentDataCycle(input: {
+   31:   cycleId: string;
+   32:   schoolAccountId: string;
+   33:   actorUserId: string;
+   34: }) {
+   35:   return prisma.$transaction(async (tx) => {
+   36:     const cycle = await tx.noorImportCycle.findFirst({
+   37:       where: {
+   38:         id: input.cycleId,
+   39:         schoolAccountId: input.schoolAccountId,
+   40:       },
+   41:     });
+   42: 
+   43:     if (!cycle) {
+   44:       throw new StudentDataCycleDeleteError(
+   45:         "NOT_FOUND",
+   46:         "لم يتم العثور على بطاقة بيانات الطلاب.",
+   47:       );
+   48:     }
+   49: 
+   50:     const sessions = await tx.studentImportSession.findMany({
+   51:       where: {
+   52:         cycleId: cycle.id,
+   53:         schoolAccountId: input.schoolAccountId,
+   54:       },
+   55:       select: {
+   56:         id: true,
+   57:         totalRows: true,
+   58:         files: { select: { id: true } },
+   59:         _count: { select: { rows: true } },
+   60:         rows: { select: { matchedStudentId: true } },
+   61:       },
+   62:     });
+   63: 
+   64:     const sessionIds = sessions.map((session) => session.id);
+   65:     const rowCount = sessions.reduce(
+   66:       (total, session) => total + session._count.rows,
+   67:       0,
+   68:     );
+   69:     const fileMetadataCount = sessions.reduce(
+   70:       (total, session) => total + session.files.length,
+   71:       0,
+   72:     );
+   73: 
+   74:     const importedStudentIds = Array.from(
+   75:       new Set(
+   76:         sessions.flatMap((session) =>
+   77:           session.rows
+   78:             .map((row) => row.matchedStudentId)
+   79:             .filter((id): id is string => Boolean(id)),
+   80:         ),
+   81:       ),
+   82:     );
+   83:     const retainedStudentIds = sessionIds.length && importedStudentIds.length
+   84:       ? new Set((await tx.studentImportRow.findMany({
+   85:           where: {
+   86:             matchedStudentId: { in: importedStudentIds },
+   87:             sessionId: { notIn: sessionIds },
+   88:             session: {
+   89:               schoolAccountId: input.schoolAccountId,
+   90:               status: "COMMITTED",
+   91:               isArchived: false,
+   92:             },
+   93:           },
+   94:           select: { matchedStudentId: true },
+   95:         })).map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id)))
+   96:       : new Set<string>();
+   97:     const studentsToDeactivate = importedStudentIds.filter((id) => !retainedStudentIds.has(id));
+   98:     const deactivatedStudents = studentsToDeactivate.length
+   99:       ? await tx.student.updateMany({
+  100:           where: { schoolAccountId: input.schoolAccountId, id: { in: studentsToDeactivate } },
+  101:           data: { isActive: false },
+  102:         })
+  103:       : { count: 0 };
+  104: 
+  105:     const deletedChanges = sessionIds.length
+  106:       ? await tx.studentImportChange.deleteMany({
+  107:           where: { sessionId: { in: sessionIds } },
+  108:         })
+  109:       : { count: 0 };
+  110: 
+  111:     // Sessions own their staging rows and file metadata through database cascades.
+  112:     // Canonical students, cases, reports, snapshots, and evidence are intentionally
+  113:     // outside this delete graph and must remain available as historical records.
+  114:     if (sessionIds.length) {
+  115:       await tx.studentImportSession.deleteMany({
+  116:         where: {
+  117:           id: { in: sessionIds },
+  118:           schoolAccountId: input.schoolAccountId,
+  119:         },
+  120:       });
+  121:     }
+  122: 
+  123:     await tx.noorImportCycle.delete({ where: { id: cycle.id } });
+  124: 
+  125:     const deletedAt = new Date();
+  126:     await tx.platformActivityLog.create({
+  127:       data: {
+  128:         actorUserId: input.actorUserId,
+  129:         schoolAccountId: input.schoolAccountId,
+  130:         category: "STUDENT_DATA_IMPORT",
+  131:         action: "STUDENT_DATA_CARD_DELETED",
+  132:         severity: "WARNING",
+  133:         title: "حذف بطاقة بيانات الطلاب",
+  134:         details: {
+  135:           event: "student_data_card_deleted",
+  136:           cycleId: cycle.id,
+  137:           title: cycle.title,
+  138:           academicYear: cycle.academicYear,
+  139:           term: cycle.term,
+  140:           studentCount: cycle.totalStudents,
+  141:           deletedSessions: sessionIds.length,
+  142:           deletedRows: rowCount,
+  143:           deletedFileMetadata: fileMetadataCount,
+  144:           deletedImportChanges: deletedChanges.count,
+  145:           deactivatedStudents: deactivatedStudents.count,
+  146:           deletedBy: input.actorUserId,
+  147:           deletedAt: deletedAt.toISOString(),
+  148:           canonicalStudentsPreserved: true,
+  149:           historicalCasesPreserved: true,
+  150:           historicalReportsPreserved: true,
+  151:         } satisfies Prisma.InputJsonObject,
+  152:       },
+  153:     });
+  154: 
+  155:     return {
+  156:       cycleId: cycle.id,
+  157:       title: cycle.title,
+  158:       academicYear: cycle.academicYear,
+  159:       term: cycle.term,
+  160:       studentCount: cycle.totalStudents,
+  161:       deletedSessions: sessionIds.length,
+  162:       deletedRows: rowCount,
+  163:     };
+  164:   });
+  165: }
+
+============================================================
+FILE: lib\data-center\delete-student-import-session.ts
+============================================================
+    1: import "server-only";
+    2: 
+    3: import { Prisma } from "@prisma/client";
+    4: 
+    5: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+    6: import { prisma } from "@/lib/prisma";
+    7: 
+    8: export class StudentImportDeleteError extends Error {
+    9:   constructor(
+   10:     readonly code: "NOT_FOUND" | "INVALID_SESSION_ID",
+   11:     message: string,
+   12:   ) {
+   13:     super(message);
+   14:     this.name = "StudentImportDeleteError";
+   15:   }
+   16: }
+   17: 
+   18: export function normalizeStudentImportSessionId(value: unknown) {
+   19:   const sessionId = typeof value === "string" ? value.trim() : "";
+   20: 
+   21:   if (!sessionId || sessionId.length > 191 || !/^[A-Za-z0-9_-]+$/.test(sessionId)) {
+   22:     throw new StudentImportDeleteError(
+   23:       "INVALID_SESSION_ID",
+   24:       "معرّف ملف بيانات الطلاب غير صالح.",
+   25:     );
+   26:   }
+   27: 
+   28:   return sessionId;
+   29: }
+   30: 
+   31: export async function deleteStudentImportSession(input: {
+   32:   sessionId: string;
+   33:   schoolAccountId: string;
+   34:   actorUserId: string;
+   35: }) {
+   36:   return prisma.$transaction(async (tx) => {
+   37:     const session = await tx.studentImportSession.findFirst({
+   38:       where: {
+   39:         id: input.sessionId,
+   40:         schoolAccountId: input.schoolAccountId,
+   41:       },
+   42:       include: {
+   43:         files: true,
+   44:         _count: { select: { rows: true } },
+   45:         rows: { select: { matchedStudentId: true } },
+   46:       },
+   47:     });
+   48: 
+   49:     if (!session) {
+   50:       throw new StudentImportDeleteError(
+   51:         "NOT_FOUND",
+   52:         "لم يتم العثور على ملف بيانات الطلاب.",
+   53:       );
+   54:     }
+   55: 
+   56:     const originalFileName = session.files[0]?.fileName ?? session.title;
+   57:     const deletedAt = new Date();
+   58:     const deletedChanges = await tx.studentImportChange.deleteMany({
+   59:       where: { sessionId: session.id },
+   60:     });
+   61: 
+   62:     const importedStudentIds = Array.from(
+   63:       new Set(session.rows.map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id))),
+   64:     );
+   65:     const retainedStudentIds = importedStudentIds.length
+   66:       ? new Set((await tx.studentImportRow.findMany({
+   67:           where: {
+   68:             matchedStudentId: { in: importedStudentIds },
+   69:             sessionId: { not: session.id },
+   70:             session: { schoolAccountId: input.schoolAccountId, status: "COMMITTED", isArchived: false },
+   71:           },
+   72:           select: { matchedStudentId: true },
+   73:         })).map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id)))
+   74:       : new Set<string>();
+   75:     const studentsToDeactivate = importedStudentIds.filter((id) => !retainedStudentIds.has(id));
+   76:     const deactivatedStudents = studentsToDeactivate.length
+   77:       ? await tx.student.updateMany({
+   78:           where: { schoolAccountId: input.schoolAccountId, id: { in: studentsToDeactivate } },
+   79:           data: { isActive: false },
+   80:         })
+   81:       : { count: 0 };
+   82: 
+   83:     // StudentImportFile and StudentImportRow are owned by the session and cascade
+   84:     // with it. Canonical Student/Guardian records are deliberately preserved.
+   85:     await tx.studentImportSession.delete({ where: { id: session.id } });
+   86: 
+   87:     await syncNoorImportCycle(tx, {
+   88:       cycleId: session.cycleId,
+   89:       schoolAccountId: input.schoolAccountId,
+   90:     });
+   91: 
+   92:     await tx.platformActivityLog.create({
+   93:       data: {
+   94:         actorUserId: input.actorUserId,
+   95:         schoolAccountId: input.schoolAccountId,
+   96:         category: "STUDENT_DATA_IMPORT",
+   97:         action: "STUDENT_DATA_IMPORT_DELETED",
+   98:         severity: "WARNING",
+   99:         title: "حذف ملف بيانات الطلاب",
+  100:         details: {
+  101:           event: "student_data_import_deleted",
+  102:           sessionId: session.id,
+  103:           cycleId: session.cycleId,
+  104:           originalFileName,
+  105:           rowCount: session._count.rows,
+  106:           status: session.status,
+  107:           deletedImportChanges: deletedChanges.count,
+  108:           deactivatedStudents: deactivatedStudents.count,
+  109:           deletedBy: input.actorUserId,
+  110:           deletedAt: deletedAt.toISOString(),
+  111:           canonicalStudentsPreserved: true,
+  112:         } satisfies Prisma.InputJsonObject,
+  113:       },
+  114:     });
+  115: 
+  116:     return {
+  117:       sessionId: session.id,
+  118:       cycleId: session.cycleId,
+  119:       originalFileName,
+  120:       rowCount: session._count.rows,
+  121:       status: session.status,
+  122:     };
+  123:   });
+  124: }
+
+============================================================
+FILE: app\api\dashboard\data-center\students\route.ts
+============================================================
+    1: import { NextResponse } from "next/server";
+    2: import { prisma } from "@/lib/prisma";
+    3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+    4: import { activeStudentWhere } from "@/lib/students/student-query";
+    5: 
+    6: export const runtime = "nodejs";
+    7: 
+    8: export async function GET(request: Request) {
+    9:   try {
+   10:     const context = await resolveCurrentSchoolContext();
+   11:     const url = new URL(request.url);
+   12: 
+   13:     const q = (url.searchParams.get("q") || "").trim();
+   14:     const grade = (url.searchParams.get("grade") || "").trim();
+   15:     const classroom = (url.searchParams.get("classroom") || "").trim();
+   16:     const status = (url.searchParams.get("status") || "ACTIVE").trim();
+   17: 
+   18:     const page = Math.max(Number(url.searchParams.get("page") || "1"), 1);
+   19:     const pageSize = Math.min(
+   20:       Math.max(Number(url.searchParams.get("pageSize") || "40"), 10),
+   21:       100,
+   22:     );
+   23: 
+   24:     const where: any = activeStudentWhere(context.schoolAccountId);
+   25: 
+   26:     if (grade) {
+   27:       where.grade = grade;
+   28:     }
+   29: 
+   30:     if (classroom) {
+   31:       where.classroom = classroom;
+   32:     }
+   33: 
+   34:     if (q) {
+   35:       where.OR = [
+   36:         { fullName: { contains: q } },
+   37:         { nationalId: { contains: q } },
+   38:         { grade: { contains: q } },
+   39:         { classroom: { contains: q } },
+   40:         {
+   41:           guardian: {
+   42:             is: {
+   43:               name: { contains: q },
+   44:             },
+   45:           },
+   46:         },
+   47:       ];
+   48:     }
+   49: 
+   50:     const [total, students, filterSource] = await prisma.$transaction([
+   51:       prisma.student.count({ where }),
+   52:       prisma.student.findMany({
+   53:         where,
+   54:         include: {
+   55:           guardian: true,
+   56:         },
+   57:         orderBy: [
+   58:           { grade: "asc" },
+   59:           { classroom: "asc" },
+   60:           { fullName: "asc" },
+   61:         ],
+   62:         skip: (page - 1) * pageSize,
+   63:         take: pageSize,
+   64:       }),
+   65:       prisma.student.findMany({
+   66:         where: activeStudentWhere(context.schoolAccountId),
+   67:         select: {
+   68:           grade: true,
+   69:           classroom: true,
+   70:           isActive: true,
+   71:         },
+   72:       }),
+   73:     ]);
+   74: 
+   75:     const grades = Array.from(
+   76:       new Set(filterSource.map((item: any) => item.grade).filter(Boolean)),
+   77:     ).sort();
+   78: 
+   79:     const classrooms = Array.from(
+   80:       new Set(filterSource.map((item: any) => item.classroom).filter(Boolean)),
+   81:     ).sort();
+   82: 
+   83:     const activeCount = filterSource.length;
+   84:     const inactiveCount = 0;
+   85: 
+   86:     return NextResponse.json({
+   87:       students: students.map((student: any) => ({
+   88:         id: student.id,
+   89:         fullName: student.fullName,
+   90:         nationalId: student.nationalId,
+   91:         gender: student.gender,
+   92:         stage: student.stage,
+   93:         grade: student.grade,
+   94:         classroom: student.classroom,
+   95:         isActive: student.isActive,
+   96:         guardian: student.guardian
+   97:           ? {
+   98:               id: student.guardian.id,
+   99:               name: student.guardian.name,
+  100:               phone: student.guardian.phone,
+  101:               relation: student.guardian.relation,
+  102:             }
+  103:           : null,
+  104:       })),
+  105:       pagination: {
+  106:         page,
+  107:         pageSize,
+  108:         total,
+  109:         totalPages: Math.max(Math.ceil(total / pageSize), 1),
+  110:       },
+  111:       filters: {
+  112:         grades,
+  113:         classrooms,
+  114:       },
+  115:       stats: {
+  116:         total: filterSource.length,
+  117:         active: activeCount,
+  118:         inactive: inactiveCount,
+  119:         grades: grades.length,
+  120:         classrooms: classrooms.length,
+  121:       },
+  122:     });
+  123:   } catch (error) {
+  124:     return NextResponse.json(
+  125:       {
+  126:         error:
+  127:           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
+  128:             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
+  129:             : "تعذر جلب سجل الطلاب.",
+  130:       },
+  131:       { status: 500 },
+  132:     );
+  133:   }
+  134: }
+
+============================================================
+FILE: app\api\dashboard\students\search\route.ts
+============================================================
+    1: import { NextRequest, NextResponse } from "next/server";
+    2: 
+    3: import { prisma } from "@/lib/prisma";
+    4: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+    5: 
+    6: export const runtime = "nodejs";
+    7: 
+    8: type StudentSearchRow = {
+    9:   id: string;
+   10:   fullName: string;
+   11:   nationalId: string | null;
+   12:   gender: string;
+   13:   stage: string | null;
+   14:   grade: string | null;
+   15:   classroom: string | null;
+   16:   phone: string | null;
+   17:   guardianId: string | null;
+   18:   guardianName: string | null;
+   19:   guardianPhone: string | null;
+   20:   guardianRelation: string | null;
+   21: };
+   22: 
+   23: function normalizeSearchQuery(value: string | null) {
+   24:   return String(value || "").trim().slice(0, 80);
+   25: }
+   26: 
+   27: function isUnauthenticatedSchoolUser(error: unknown) {
+   28:   return error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER";
+   29: }
+   30: 
+   31: function escapeLike(value: string) {
+   32:   return value.replace(/[\\%_]/g, "\\$&");
+   33: }
+   34: 
+   35: function toStudentPickerItem(row: StudentSearchRow) {
+   36:   return {
+   37:     id: row.id,
+   38:     fullName: row.fullName,
+   39:     nationalId: row.nationalId,
+   40:     gender: row.gender,
+   41:     stage: row.stage,
+   42:     grade: row.grade,
+   43:     classroom: row.classroom,
+   44:     phone: row.phone,
+   45: 
+   46:     guardianName: row.guardianName,
+   47:     guardianPhone: row.guardianPhone,
+   48: 
+   49:     guardian: row.guardianId
+   50:       ? {
+   51:           id: row.guardianId,
+   52:           name: row.guardianName,
+   53:           phone: row.guardianPhone,
+   54:           relation: row.guardianRelation,
+   55:         }
+   56:       : null,
+   57:   };
+   58: }
+   59: 
+   60: async function searchStudentsWithRawSql({
+   61:   schoolAccountId,
+   62:   q,
+   63: }: {
+   64:   schoolAccountId: string;
+   65:   q: string;
+   66: }) {
+   67:   if (!q) {
+   68:     return prisma.$queryRaw<StudentSearchRow[]>`
+   69:       SELECT
+   70:         s.id,
+   71:         s.fullName,
+   72:         s.nationalId,
+   73:         s.gender,
+   74:         s.stage,
+   75:         s.grade,
+   76:         s.classroom,
+   77:         s.phone,
+   78:         s.guardianId,
+   79:         g.name AS guardianName,
+   80:         g.phone AS guardianPhone,
+   81:         g.relation AS guardianRelation
+   82:       FROM Student s
+   83:       LEFT JOIN Guardian g ON g.id = s.guardianId
+   84:       WHERE s.schoolAccountId = ${schoolAccountId}
+   85:         AND s.isActive = 1
+   86:       ORDER BY s.grade ASC, s.classroom ASC, s.fullName ASC
+   87:       LIMIT 40
+   88:     `;
+   89:   }
+   90: 
+   91:   const pattern = `%${escapeLike(q)}%`;
+   92: 
+   93:   return prisma.$queryRaw<StudentSearchRow[]>`
+   94:     SELECT
+   95:       s.id,
+   96:       s.fullName,
+   97:       s.nationalId,
+   98:       s.gender,
+   99:       s.stage,
+  100:       s.grade,
+  101:       s.classroom,
+  102:       s.phone,
+  103:       s.guardianId,
+  104:       g.name AS guardianName,
+  105:       g.phone AS guardianPhone,
+  106:       g.relation AS guardianRelation
+  107:     FROM Student s
+  108:     LEFT JOIN Guardian g ON g.id = s.guardianId
+  109:     WHERE s.schoolAccountId = ${schoolAccountId}
+  110:       AND s.isActive = 1
+  111:       AND (
+  112:         s.fullName COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  113:         OR s.nationalId COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  114:         OR s.grade COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  115:         OR s.classroom COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  116:         OR s.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  117:         OR g.name COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  118:         OR g.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+  119:       )
+  120:     ORDER BY s.grade ASC, s.classroom ASC, s.fullName ASC
+  121:     LIMIT 40
+  122:   `;
+  123: }
+  124: 
+  125: export async function GET(request: NextRequest) {
+  126:   try {
+  127:     const context = await resolveCurrentSchoolContext();
+  128: 
+  129:     const q = normalizeSearchQuery(
+  130:       request.nextUrl.searchParams.get("q") ||
+  131:         request.nextUrl.searchParams.get("query"),
+  132:     );
+  133: 
+  134:     const students = await searchStudentsWithRawSql({
+  135:       schoolAccountId: context.schoolAccountId,
+  136:       q,
+  137:     });
+  138: 
+  139:     return NextResponse.json({
+  140:       success: true,
+  141:       students: students.map(toStudentPickerItem),
+  142:     });
+  143:   } catch (error) {
+  144:     console.error("[students-search-api]", error);
+  145: 
+  146:     return NextResponse.json(
+  147:       {
+  148:         success: false,
+  149:         error: isUnauthenticatedSchoolUser(error)
+  150:           ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
+  151:           : "تعذر البحث في الطلاب.",
+  152:       },
+  153:       {
+  154:         status: isUnauthenticatedSchoolUser(error) ? 401 : 500,
+  155:       },
+  156:     );
+  157:   }
+  158: }

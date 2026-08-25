@@ -6,7 +6,7 @@ type AppTransactionClient = Omit<
 >;
 
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
-import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+import { commitNoorImportSession } from "@/lib/noor-import/commit-noor-import-session";
 import {
   parseNoorStudentWorkbook,
   type NoorParsedWorkbook,
@@ -115,7 +115,6 @@ export async function POST(request: Request) {
     const academicYear = String(formData.get("academicYear") || "").trim() || null;
     const term = String(formData.get("term") || "").trim() || null;
     const cycleId = String(formData.get("cycleId") || "").trim() || null;
-    const batchMode = String(formData.get("batchMode") || "").trim();
 
     if (!cycleId) {
       return NextResponse.json(
@@ -138,32 +137,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const pendingSession = await prisma.studentImportSession.findFirst({
-      where: {
-        cycleId,
-        schoolAccountId: context.schoolAccountId,
-        status: {
-          not: "COMMITTED",
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    if (pendingSession && batchMode !== "queue") {
-      return NextResponse.json(
-        {
-          error:
-            "يوجد تحديث بانتظار المراجعة داخل هذه البطاقة. راجع التحديث الحالي أو احذفه قبل رفع ملف جديد.",
-        },
-        { status: 409 },
-      );
-    }
-
     if (!uploaded || typeof uploaded === "string" || typeof uploaded.arrayBuffer !== "function") {
       return NextResponse.json(
-        { error: "الرجاء اختيار ملف Excel صادر من نور." },
+        { error: "الرجاء اختيار ملف Excel صالح لبيانات الطلاب." },
         { status: 400 },
       );
     }
@@ -186,7 +162,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "لم يتم العثور على طلاب داخل الملف. تأكد أن الملف هو كشف بيانات الطلاب من نور.",
+            "لم يتم العثور على طلاب داخل الملف. تأكد من أن الملف يحتوي على كشف بيانات الطلاب.",
         },
         { status: 422 },
       );
@@ -254,12 +230,19 @@ export async function POST(request: Request) {
     const invalidRows = rowsWithPlan.filter((row: any) => row.status === "INVALID").length;
     const conflictCount = rowsWithPlan.filter((row: any) => row.status === "CONFLICT").length;
 
+    if (!validRows) {
+      return NextResponse.json(
+        { error: "لا توجد صفوف صالحة للاستيراد في هذا الملف. تأكد من وجود أسماء ومعرفات طلاب صحيحة." },
+        { status: 422 },
+      );
+    }
+
     const session = await prisma.$transaction(async (tx: AppTransactionClient) => {
       const createdSession = await tx.studentImportSession.create({
         data: {
           schoolAccountId: context.schoolAccountId,
           cycleId,
-          title: `تحديث نور - ${new Date().toLocaleDateString("ar-SA")}`,
+          title: `استيراد بيانات الطلاب - ${new Date().toLocaleDateString("ar-SA")}`,
           source: "NOOR_EXCEL",
           status: "PARSED",
           academicYear: academicYear ?? cycle.academicYear,
@@ -312,29 +295,14 @@ export async function POST(request: Request) {
       });
     });
 
-    await writeNoorImportActivity({
+    const committed = await commitNoorImportSession({
+      sessionId: session.id,
       schoolAccountId: context.schoolAccountId,
-      userId: context.user.id,
-      event: "NOOR_IMPORT_PREVIEW_CREATED",
-      title: "تم إنشاء تحديث بيانات الطلاب للمراجعة",
-      description: `تمت قراءة ${rowsWithPlan.length} طالب/طالبة من ملف بيانات الطلاب قبل الاعتماد النهائي.`,
-      metadata: {
-        sessionId: session.id,
-        cycleId,
-        fileName,
-        sheetsCount: parsed.sheetsCount,
-        totalRows: rowsWithPlan.length,
-        validRows,
-        invalidRows,
-        conflictCount,
-        planSummary,
-        grades: parsed.grades,
-        classrooms: parsed.classrooms,
-      },
+      actorUserId: context.user.id,
     });
 
     return NextResponse.json({
-      message: "تم إنشاء تحديث نور بنجاح. راجع التحديث قبل الاعتماد.",
+      message: "تم استيراد بيانات الطلاب بنجاح وأصبحت متاحة مباشرة.",
       parsedSummary: {
         detectedFormat: parsed.detectedFormat,
         sheetsCount: parsed.sheetsCount,
@@ -348,9 +316,15 @@ export async function POST(request: Request) {
         classrooms: parsed.classrooms,
         planSummary,
       },
+      importResult: {
+        createdCount: committed.createdCount,
+        updatedCount: committed.updatedCount,
+        skippedCount: committed.skippedCount,
+        importedStudents: committed.importedStudents,
+      },
       session: {
-        ...session,
-        rowCount: session._count.rows,
+        ...committed.session,
+        rowCount: committed.session._count.rows,
       },
     });
   } catch (error) {
@@ -361,7 +335,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل رفع بيانات الطلاب."
-            : "تعذر إنشاء معاينة استيراد نور. راجع Terminal لمعرفة السبب التفصيلي.",
+            : "تعذر استيراد بيانات الطلاب. راجع السجل لمعرفة السبب التفصيلي.",
       },
       { status: 500 },
     );

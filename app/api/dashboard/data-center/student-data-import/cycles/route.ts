@@ -68,7 +68,7 @@ export async function GET() {
       sessionsByCycle.set(session.cycleId, list);
     }
 
-    const responseCycles = cycles.map((cycle: any) => {
+    const responseCycles = await Promise.all(cycles.map(async (cycle: any) => {
       const cycleSessions = sessionsByCycle.get(cycle.id) ?? [];
       const latestSession = cycleSessions[0] ?? null;
       const status = computeCycleStatus(cycleSessions, cycle.isArchived);
@@ -76,16 +76,28 @@ export async function GET() {
       const pendingSessions = cycleSessions.filter((session: any) => session.status !== "COMMITTED");
       const latestCommitted = committedSessions[0] ?? null;
 
+      const committedSessionIds = committedSessions.map((session: any) => session.id);
+      const matchedRows = committedSessionIds.length
+        ? await prisma.studentImportRow.findMany({
+            where: { sessionId: { in: committedSessionIds }, matchedStudentId: { not: null } },
+            select: { matchedStudentId: true },
+          })
+        : [];
+      const matchedStudentIds = Array.from(new Set(matchedRows.map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id))));
+      const activeStudentCount = matchedStudentIds.length
+        ? await prisma.student.count({ where: { schoolAccountId: context.schoolAccountId, isActive: true, id: { in: matchedStudentIds } } })
+        : 0;
+
       return {
         ...cycle,
         status,
         totalSessions: cycleSessions.length,
         pendingSessions: pendingSessions.length,
         committedSessions: committedSessions.length,
-        totalStudents: latestCommitted?.totalRows ?? latestSession?.totalRows ?? cycle.totalStudents,
+        totalStudents: activeStudentCount,
         latestSession,
       };
-    });
+    }));
 
     return NextResponse.json({
       cycles: responseCycles,

@@ -1,402 +1,52 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
-import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+import { commitNoorImportSession } from "@/lib/noor-import/commit-noor-import-session";
 
 export const runtime = "nodejs";
 
-type RouteContext = {
-  params: Promise<{ sessionId: string }> | { sessionId: string };
-};
-
-async function getParams(context: RouteContext) {
-  return await context.params;
-}
-
-function compactStudentSnapshot(student: any): any {
-  return {
-    id: student.id,
-    fullName: student.fullName,
-    nationalId: student.nationalId,
-    gender: student.gender,
-    stage: student.stage,
-    grade: student.grade,
-    classroom: student.classroom,
-    guardianId: student.guardianId,
-    isActive: student.isActive,
-  };
-}
-
-async function readRequestBody(request: Request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function getActorUserId(current: any) {
-  return (
-    current?.user?.id ||
-    current?.currentUser?.id ||
-    current?.sessionUser?.id ||
-    current?.userId ||
-    null
-  );
-}
+type RouteContext = { params: Promise<{ sessionId: string }> | { sessionId: string } };
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const current = await resolveCurrentSchoolContext();
-    const currentContext = current as any;
-    const actorUserId = getActorUserId(currentContext);
-
-    if (!currentContext?.schoolAccountId) {
-      return NextResponse.json(
-        { error: "تعذر تحديد حساب المدرسة المرتبط بالمستخدم الحالي." },
-        { status: 401 }
-      );
+    const current = (await resolveCurrentSchoolContext()) as any;
+    const actorUserId = current?.user?.id || current?.currentUser?.id || current?.sessionUser?.id || current?.userId;
+    if (!current?.schoolAccountId || !actorUserId) {
+      return NextResponse.json({ error: "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل اعتماد بيانات الطلاب." }, { status: 401 });
     }
 
-    if (!actorUserId) {
-      return NextResponse.json(
-        {
-          error:
-            "تعذر تحديد المستخدم الحالي لاعتماد تحديث بيانات الطلاب. سجّل الخروج ثم ادخل مرة أخرى، أو تأكد أن الحساب مرتبط بمدرسة.",
-        },
-        { status: 401 }
-      );
-    }
+    const { sessionId } = await context.params;
+    let body: any = {};
+    try { body = await request.json(); } catch { /* empty body is valid */ }
 
-    const params = await getParams(context);
-    const body = await readRequestBody(request);
-
-    const deactivateMissing = body?.deactivateMissing === true;
-    const sessionId = params.sessionId;
-
-    const session = await prisma.studentImportSession.findFirst({
-      where: {
-        id: sessionId,
-        schoolAccountId: currentContext.schoolAccountId,
-      },
-      include: {
-        rows: {
-          where: {
-            status: "VALID",
-          },
-          orderBy: {
-            rowIndex: "asc",
-          },
-        },
-      },
-    });
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "لم يتم العثور على جلسة الاستيراد." },
-        { status: 404 }
-      );
-    }
-
-    if (session.status === "COMMITTED") {
-      return NextResponse.json(
-        { error: "تم اعتماد هذه الجلسة مسبقًا ولا يمكن اعتمادها مرة أخرى." },
-        { status: 409 }
-      );
-    }
-
-    if (!session.rows.length) {
-      return NextResponse.json(
-        { error: "لا توجد صفوف صالحة للاعتماد في هذه الجلسة." },
-        { status: 422 }
-      );
-    }
-
-    const result = await prisma.$transaction(async (tx: any) => {
-      let createdCount = 0;
-      let updatedCount = 0;
-      let skippedCount = 0;
-      let deactivatedCount = 0;
-
-      const incomingNationalIds = session.rows
-        .map((row: any) => row.nationalId)
-        .filter(Boolean) as string[];
-
-      for (const row of session.rows) {
-        if (!row.fullName?.trim()) {
-          skippedCount += 1;
-
-          await tx.studentImportRow.update({
-            where: { id: row.id },
-            data: {
-              status: "SKIPPED",
-              errorMessage: "تم تجاوز الصف لعدم وجود اسم طالب/طالبة.",
-            },
-          });
-
-          continue;
-        }
-
-        let guardianId: string | null = null;
-
-        if (row.guardianName?.trim()) {
-          const existingGuardian = await tx.guardian.findFirst({
-            where: {
-              schoolAccountId: currentContext.schoolAccountId,
-              name: row.guardianName.trim(),
-            },
-          });
-
-          if (existingGuardian) {
-            guardianId = existingGuardian.id;
-
-            if (row.guardianPhone && !existingGuardian.phone) {
-              await tx.guardian.update({
-                where: { id: existingGuardian.id },
-                data: {
-                  phone: row.guardianPhone,
-                },
-              });
-            }
-          } else {
-            const createdGuardian = await tx.guardian.create({
-              data: {
-                schoolAccountId: currentContext.schoolAccountId,
-                name: row.guardianName.trim(),
-                phone: row.guardianPhone || null,
-                relation: "ولي أمر مستنتج من اسم الطالب",
-              },
-            });
-
-            guardianId = createdGuardian.id;
-          }
-        }
-
-        const existingStudent = row.nationalId
-          ? await tx.student.findFirst({
-              where: {
-                schoolAccountId: currentContext.schoolAccountId,
-                nationalId: row.nationalId,
-              },
-            })
-          : await tx.student.findFirst({
-              where: {
-                schoolAccountId: currentContext.schoolAccountId,
-                fullName: row.fullName,
-                grade: row.grade,
-                classroom: row.classroom,
-              },
-            });
-
-        const studentData = {
-          fullName: row.fullName,
-          nationalId: row.nationalId || null,
-          gender: row.gender,
-          stage: row.stage || null,
-          grade: row.grade || null,
-          classroom: row.classroom || null,
-          guardianId,
-          isActive: true,
-        };
-
-        if (existingStudent && row.planAction === "UNCHANGED") {
-          if (!existingStudent.isActive) {
-            await tx.student.update({
-              where: { id: existingStudent.id },
-              data: { isActive: true },
-            });
-          }
-          skippedCount += 1;
-
-          await tx.studentImportRow.update({
-            where: { id: row.id },
-            data: {
-              status: "SKIPPED",
-              matchedStudentId: existingStudent.id,
-            },
-          });
-
-          await tx.studentImportChange.create({
-            data: {
-              sessionId: session.id,
-              rowId: row.id,
-              studentId: existingStudent.id,
-              action: "UNCHANGED",
-              beforeJson: compactStudentSnapshot(existingStudent),
-              afterJson: compactStudentSnapshot(existingStudent),
-            },
-          });
-
-          continue;
-        }
-
-        if (existingStudent) {
-          const beforeJson = compactStudentSnapshot(existingStudent);
-
-          const updated = await tx.student.update({
-            where: { id: existingStudent.id },
-            data: studentData,
-          });
-
-          updatedCount += 1;
-
-          await tx.studentImportRow.update({
-            where: { id: row.id },
-            data: {
-              status: "UPDATED",
-              matchedStudentId: updated.id,
-            },
-          });
-
-          await tx.studentImportChange.create({
-            data: {
-              sessionId: session.id,
-              rowId: row.id,
-              studentId: updated.id,
-              action: "UPDATED",
-              beforeJson,
-              afterJson: compactStudentSnapshot(updated),
-            },
-          });
-        } else {
-          const created = await tx.student.create({
-            data: {
-              schoolAccountId: currentContext.schoolAccountId,
-              ...studentData,
-            },
-          });
-
-          createdCount += 1;
-
-          await tx.studentImportRow.update({
-            where: { id: row.id },
-            data: {
-              status: "CREATED",
-              matchedStudentId: created.id,
-            },
-          });
-
-          await tx.studentImportChange.create({
-            data: {
-              sessionId: session.id,
-              rowId: row.id,
-              studentId: created.id,
-              action: "CREATED",
-              beforeJson: null as any,
-              afterJson: compactStudentSnapshot(created),
-            },
-          });
-        }
-      }
-
-      if (deactivateMissing && incomingNationalIds.length > 0) {
-        const activeStudents = await tx.student.findMany({
-          where: {
-            schoolAccountId: currentContext.schoolAccountId,
-            isActive: true,
-          },
-        });
-
-        const incomingSet = new Set(incomingNationalIds);
-
-        const missingStudents = activeStudents.filter((student: any) => {
-          return student.nationalId && !incomingSet.has(student.nationalId);
-        });
-
-        for (const student of missingStudents) {
-          const beforeJson = compactStudentSnapshot(student);
-
-          const updated = await tx.student.update({
-            where: { id: student.id },
-            data: {
-              isActive: false,
-            },
-          });
-
-          deactivatedCount += 1;
-
-          await tx.studentImportChange.create({
-            data: {
-              sessionId: session.id,
-              rowId: null,
-              studentId: student.id,
-              action: "DEACTIVATED_MISSING_FROM_IMPORT",
-              beforeJson,
-              afterJson: compactStudentSnapshot(updated),
-            },
-          });
-        }
-      }
-
-      const committedSession = await tx.studentImportSession.update({
-        where: { id: session.id },
-        data: {
-          status: "COMMITTED",
-          createdCount,
-          updatedCount,
-          skippedCount,
-          committedAt: new Date(),
-          committedByUserId: actorUserId,
-        },
-        include: {
-          files: true,
-          rows: {
-            orderBy: { rowIndex: "asc" },
-            take: 50,
-          },
-          _count: {
-            select: { rows: true },
-          },
-        },
-      });
-
-      return {
-        session: committedSession,
-        createdCount,
-        updatedCount,
-        skippedCount,
-        deactivatedCount,
-      };
-    }, { maxWait: 10000, timeout: 120000 });
-
-    await writeNoorImportActivity({
-      schoolAccountId: currentContext.schoolAccountId,
-      userId: actorUserId,
-      event: "NOOR_IMPORT_COMMITTED",
-      title: "تم اعتماد استيراد بيانات الطلاب",
-      description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
-      metadata: {
-        sessionId,
-        createdCount: result.createdCount,
-        updatedCount: result.updatedCount,
-        skippedCount: result.skippedCount,
-        deactivatedCount: result.deactivatedCount,
-        deactivateMissing,
-      },
+    const result = await commitNoorImportSession({
+      sessionId,
+      schoolAccountId: current.schoolAccountId,
+      actorUserId,
+      deactivateMissing: body?.deactivateMissing === true,
     });
 
     return NextResponse.json({
-      message: "تم اعتماد بيانات الطلاب وربط الطلاب وأولياء الأمور بالمدرسة.",
+      message: "تم استيراد بيانات الطلاب وربطها بالمدرسة.",
       deactivatedCount: result.deactivatedCount,
-      session: {
-        ...result.session,
-        rowCount: result.session._count.rows,
+      importResult: {
+        createdCount: result.createdCount,
+        updatedCount: result.updatedCount,
+        skippedCount: result.skippedCount,
+        importedStudents: result.importedStudents,
       },
+      session: { ...result.session, rowCount: result.session._count.rows },
     });
   } catch (error) {
     console.error("noor import commit failed", error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message === "UNAUTHENTICATED_SCHOOL_USER"
-              ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل اعتماد بيانات الطلاب."
-              : error.message
-            : "تعذر اعتماد جلسة الاستيراد.",
-      },
-      { status: 500 }
-    );
+    const message = error instanceof Error
+      ? ({
+          UNAUTHENTICATED_SCHOOL_USER: "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل اعتماد بيانات الطلاب.",
+          IMPORT_SESSION_NOT_FOUND: "لم يتم العثور على جلسة الاستيراد.",
+          IMPORT_SESSION_ALREADY_COMMITTED: "تم استيراد هذه الجلسة مسبقًا.",
+          IMPORT_SESSION_HAS_NO_VALID_ROWS: "لا توجد صفوف صالحة للاستيراد في هذا الملف.",
+        } as Record<string, string>)[error.message] || error.message
+      : "تعذر استيراد بيانات الطلاب.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

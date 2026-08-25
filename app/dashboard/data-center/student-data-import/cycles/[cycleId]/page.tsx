@@ -17,5 +17,5 @@ export default async function NoorImportCyclePage({ params }: PageProps) {
 
   const resolvedParams = await params;
 
-  return <NoorImportCycleDetailClient cycleId={resolvedParams.cycleId} />;
+  return <NoorImportCycleDetailClient cycleId={resolvedParams.cycleId} gender={context.user?.gender} />;
 }

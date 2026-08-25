@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
 import { prisma } from "@/lib/prisma";
+import { syncActiveStudentsForSchool } from "@/lib/data-center/sync-active-students-for-school";
 
 export class StudentImportDeleteError extends Error {
   constructor(
@@ -59,27 +60,6 @@ export async function deleteStudentImportSession(input: {
       where: { sessionId: session.id },
     });
 
-    const importedStudentIds = Array.from(
-      new Set(session.rows.map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id))),
-    );
-    const retainedStudentIds = importedStudentIds.length
-      ? new Set((await tx.studentImportRow.findMany({
-          where: {
-            matchedStudentId: { in: importedStudentIds },
-            sessionId: { not: session.id },
-            session: { schoolAccountId: input.schoolAccountId, status: "COMMITTED", isArchived: false },
-          },
-          select: { matchedStudentId: true },
-        })).map((row) => row.matchedStudentId).filter((id): id is string => Boolean(id)))
-      : new Set<string>();
-    const studentsToDeactivate = importedStudentIds.filter((id) => !retainedStudentIds.has(id));
-    const deactivatedStudents = studentsToDeactivate.length
-      ? await tx.student.updateMany({
-          where: { schoolAccountId: input.schoolAccountId, id: { in: studentsToDeactivate } },
-          data: { isActive: false },
-        })
-      : { count: 0 };
-
     // StudentImportFile and StudentImportRow are owned by the session and cascade
     // with it. Canonical Student/Guardian records are deliberately preserved.
     await tx.studentImportSession.delete({ where: { id: session.id } });
@@ -88,6 +68,7 @@ export async function deleteStudentImportSession(input: {
       cycleId: session.cycleId,
       schoolAccountId: input.schoolAccountId,
     });
+    const visibility = await syncActiveStudentsForSchool(tx, input.schoolAccountId);
 
     await tx.platformActivityLog.create({
       data: {
@@ -105,7 +86,10 @@ export async function deleteStudentImportSession(input: {
           rowCount: session._count.rows,
           status: session.status,
           deletedImportChanges: deletedChanges.count,
-          deactivatedStudents: deactivatedStudents.count,
+          deactivatedStudents: visibility.deactivatedStudents,
+          activeStudentsBefore: visibility.activeStudentsBefore,
+          activeStudentsAfter: visibility.activeStudentsAfter,
+          reactivatedStudents: visibility.reactivatedStudents,
           deletedBy: input.actorUserId,
           deletedAt: deletedAt.toISOString(),
           canonicalStudentsPreserved: true,

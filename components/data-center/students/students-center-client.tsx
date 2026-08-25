@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { readApiResponse } from "@/lib/http/read-api-response";
+import { getStudentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 type StudentItem = {
   id: string;
@@ -48,6 +49,9 @@ type EditingStudent = {
 
 type Props = {
   schoolName: string;
+  gender?: string | null;
+  importedCount?: number;
+  importedFiles?: number;
 };
 
 const statusOptions = [
@@ -56,7 +60,8 @@ const statusOptions = [
   { value: "ALL", label: "الكل" },
 ];
 
-export function StudentsCenterClient({ schoolName }: Props) {
+export function StudentsCenterClient({ schoolName, gender, importedCount, importedFiles }: Props) {
+  const labels = getStudentAudienceLabels(gender);
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -201,10 +206,15 @@ export function StudentsCenterClient({ schoolName }: Props) {
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-            <h1 className="mt-2 text-2xl font-black md:text-4xl">سجل الطلاب</h1>
+            <h1 className="mt-2 text-2xl font-black md:text-4xl">سجل {labels.students}</h1>
             <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-              هذا هو السجل الناتج من بيانات الطلاب لمدرسة {schoolName}. ابحث وعدّل الحالات الشاذة قبل استخدام الطلاب في الخدمات والتقارير.
+              هذا هو السجل الناتج من {labels.studentData} لمدرسة {schoolName}.
             </p>
+            {importedCount ? (
+              <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800">
+                تم استيراد {importedCount} {labels.students} من {importedFiles || 1} ملفات بنجاح.
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -225,7 +235,7 @@ export function StudentsCenterClient({ schoolName }: Props) {
 
         <section className="grid gap-3 md:grid-cols-5">
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            <p className="text-xs font-black text-slate-400">إجمالي الطلاب</p>
+            <p className="text-xs font-black text-slate-400">إجمالي {labels.students}</p>
             <p className="mt-1 text-2xl font-black">{stats.total}</p>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">

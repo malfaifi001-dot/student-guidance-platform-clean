@@ -13,6 +13,7 @@ import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
+import { getStudentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 import {
   Activity,
@@ -421,7 +422,9 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
   },
 ];
 
-const teacherAdditionalLinks: SidebarLinkItem[] = [
+function getTeacherAdditionalLinks(gender?: string | null): SidebarLinkItem[] {
+  const labels = getStudentAudienceLabels(gender);
+  return [
   {
     label: "تحليل نتائج الطلاب",
     href: "/dashboard/assessments-center",
@@ -433,7 +436,7 @@ const teacherAdditionalLinks: SidebarLinkItem[] = [
     icon: BarChart3,
   },
   {
-    label: "رفع الطلاب",
+    label: labels.uploadStudents,
     href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
     icon: UploadCloud,
   },
@@ -447,7 +450,8 @@ const teacherAdditionalLinks: SidebarLinkItem[] = [
     href: OFFICIAL_WORKSPACE_ROUTES.surveys,
     icon: ListChecks,
   },
-];
+  ];
+}
 
 const teacherAccountLinks: SidebarLinkItem[] = [
   {
@@ -932,6 +936,7 @@ export function DashboardSidebar({
             <TeacherSidebar
               pathname={pathname}
               collapsed={effectiveCollapsed}
+              gender={user?.gender}
             />
           ) : isPrincipal ? (
             <PrincipalSidebar
@@ -1305,10 +1310,13 @@ function CounselorSidebar({
 function TeacherSidebar({
   pathname,
   collapsed,
+  gender,
 }: {
   pathname: string;
   collapsed: boolean;
+  gender?: string | null;
 }) {
+  const teacherAdditionalLinks = getTeacherAdditionalLinks(gender);
   return (
     <SidebarNav ariaLabel="قائمة المعلم">
       <SidebarSection

@@ -29,6 +29,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       where: {
         id: params.studentId,
         schoolAccountId: current.schoolAccountId,
+        isActive: true,
       },
       include: {
         guardian: true,
