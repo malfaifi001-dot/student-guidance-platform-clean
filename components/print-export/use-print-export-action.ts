@@ -100,11 +100,7 @@ export function usePrintExportAction() {
           );
           if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
           setStatus("success");
-          setModal({
-            status: "success",
-            title: "تم حفظ ملف PDF",
-            message: "تم إنشاء ملف PDF وحفظه في مجلد التنزيلات على الجهاز.",
-          });
+          setModal(null);
         } catch {
           setStatus("error");
           setModal({
@@ -141,6 +137,7 @@ export function usePrintExportAction() {
       }
 
       setStatus("success");
+      setModal(null);
       if (analytics) {
         trackAnalyticsEvent(analytics.eventName, analytics.params);
       }
@@ -152,7 +149,11 @@ export function usePrintExportAction() {
   const runPrintExport = useCallback(
     async (options: PrintExportActionOptions): Promise<PrintExportRunResult> => {
       setStatus("loading");
-      setModal(null);
+      setModal({
+        status: "loading",
+        title: options.progressTitle || "جاري تجهيز الملف",
+        message: options.progressMessage || "يتم الآن تجهيز ملف التقرير للتحميل، الرجاء الانتظار...",
+      });
 
       const fallbackMeta = {
         title: options.blockedTitle || "معاينة الطباعة",
@@ -191,6 +192,8 @@ export function usePrintExportAction() {
                   options.successMessage ||
                   "تم تنزيل الملف بنجاح.",
               });
+            } else {
+              setModal(null);
             }
 
             return "downloaded";
@@ -223,7 +226,7 @@ export function usePrintExportAction() {
           }
         }
 
-        if (options.printUrl) {
+      if (options.printUrl) {
           return openFallbackPrintUrl({
             printUrl: options.printUrl,
             fileName: options.fileName,

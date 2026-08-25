@@ -4,6 +4,7 @@ import type {
   PrintExportFallback,
   PrintExportModal,
 } from "@/lib/print-export/print-export-types";
+import { BrandLoader } from "@/components/common/brand-loader";
 
 export function PrintExportPopCard({
   modal,
@@ -34,6 +35,7 @@ export function PrintExportPopCard({
     >
       <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
         <header className="border-b border-slate-100 px-6 py-5">
+          {modal.status === "loading" ? <BrandLoader variant="inline" size="md" label={null} className="mb-4" /> : null}
           <h2 className="text-xl font-black text-slate-950">{modal.title}</h2>
           <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
             {modal.message}
@@ -50,7 +52,7 @@ export function PrintExportPopCard({
           ) : null}
         </header>
 
-        <footer className="flex justify-end px-6 py-4">
+        {modal.status !== "loading" ? <footer className="flex justify-end px-6 py-4">
           <button
             type="button"
             onClick={onClose}
@@ -61,7 +63,7 @@ export function PrintExportPopCard({
           >
             حسنًا
           </button>
-        </footer>
+        </footer> : null}
       </section>
     </div>
   );

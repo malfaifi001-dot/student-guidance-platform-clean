@@ -26,6 +26,8 @@ export type PrintExportActionOptions = {
   blockedMessage?: string;
   errorTitle?: string;
   errorMessage?: string;
+  progressTitle?: string;
+  progressMessage?: string;
   analytics?: {
     eventName: AnalyticsEventName;
     params?: import("@/lib/analytics/analytics-types").AnalyticsEventParams;

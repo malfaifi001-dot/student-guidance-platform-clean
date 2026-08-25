@@ -115,6 +115,7 @@ export async function POST(request: Request) {
     const academicYear = String(formData.get("academicYear") || "").trim() || null;
     const term = String(formData.get("term") || "").trim() || null;
     const cycleId = String(formData.get("cycleId") || "").trim() || null;
+    const batchMode = String(formData.get("batchMode") || "").trim();
 
     if (!cycleId) {
       return NextResponse.json(
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
       },
     });
 
-    if (pendingSession) {
+    if (pendingSession && batchMode !== "queue") {
       return NextResponse.json(
         {
           error:
