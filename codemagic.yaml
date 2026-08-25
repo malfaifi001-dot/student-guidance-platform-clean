@@ -66,6 +66,51 @@ workflows:
           xcode-project build-ipa \
             --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --scheme App
+      - name: TEMP diagnostic - inspect signed App entitlements
+        script: |
+          set -euo pipefail
+
+          ipa_path="$(find "$CM_BUILD_DIR/build/ios/ipa" -maxdepth 1 -type f -name '*.ipa' -print | sort | tail -n 1)"
+          if [ -z "$ipa_path" ]; then
+            echo "No signed IPA found under $CM_BUILD_DIR/build/ios/ipa"
+            exit 1
+          fi
+
+          diagnostic_dir="$(mktemp -d)"
+          trap 'rm -rf "$diagnostic_dir"' EXIT
+          unzip -q "$ipa_path" -d "$diagnostic_dir"
+
+          app_path="$(find "$diagnostic_dir/Payload" -maxdepth 1 -type d -name '*.app' -print | head -n 1)"
+          if [ -z "$app_path" ]; then
+            echo "No App.app found in signed IPA: $ipa_path"
+            exit 1
+          fi
+
+          echo "Signed App.app: $app_path"
+          codesign -d --entitlements :- "$app_path" > "$diagnostic_dir/codesign-entitlements.plist" 2> "$diagnostic_dir/codesign.log"
+          cat "$diagnostic_dir/codesign.log"
+          cat "$diagnostic_dir/codesign-entitlements.plist"
+
+          if ! grep -Fq '<key>com.apple.developer.associated-domains</key>' "$diagnostic_dir/codesign-entitlements.plist" ||
+             ! grep -Fq '<string>applinks:teachix.sa</string>' "$diagnostic_dir/codesign-entitlements.plist"; then
+            echo "Signed App.app is missing applinks:teachix.sa"
+            exit 1
+          fi
+
+          if ! grep -Fq '<key>application-identifier</key>' "$diagnostic_dir/codesign-entitlements.plist" ||
+             ! grep -Fq '<string>BTKJX5K3WT.sa.teachix.app</string>' "$diagnostic_dir/codesign-entitlements.plist"; then
+            echo "Signed App.app is missing application-identifier BTKJX5K3WT.sa.teachix.app"
+            exit 1
+          fi
+
+          profile_path="$app_path/embedded.mobileprovision"
+          if [ -f "$profile_path" ]; then
+            echo "Embedded provisioning profile entitlements:"
+            security cms -D -i "$profile_path" > "$diagnostic_dir/profile.plist"
+            /usr/libexec/PlistBuddy -c 'Print :Entitlements' "$diagnostic_dir/profile.plist"
+          else
+            echo "No embedded.mobileprovision found in $app_path"
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
