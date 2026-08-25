@@ -138,6 +138,34 @@ export async function getMostRecentlyActiveEnabledAndroidPushDevice() {
   });
 }
 
+export async function getMostRecentlyActiveEnabledPushDevice() {
+  return prisma.pushDevice.findFirst({
+    where: {
+      platform: { in: ["android", "ios"] },
+      packageName: "sa.teachix.app",
+      enabled: true,
+      revokedAt: null,
+    },
+    orderBy: [{ lastSeenAt: "desc" }, { updatedAt: "desc" }],
+    select: {
+      id: true,
+      userId: true,
+      tokenHash: true,
+      encryptedToken: true,
+      platform: true,
+      packageName: true,
+      lastSeenAt: true,
+    },
+  });
+}
+
+export async function getEnabledPushDeviceById(deviceId: string) {
+  return prisma.pushDevice.findFirst({
+    where: { id: deviceId, platform: { in: ["android", "ios"] }, packageName: "sa.teachix.app", enabled: true, revokedAt: null },
+    select: { id: true, userId: true, tokenHash: true, encryptedToken: true, platform: true, packageName: true, lastSeenAt: true },
+  });
+}
+
 export async function getEnabledAndroidPushDeviceById(deviceId: string) {
   return prisma.pushDevice.findFirst({
     where: { id: deviceId, platform: "android", packageName: "sa.teachix.app", enabled: true, revokedAt: null },

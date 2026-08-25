@@ -10,6 +10,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['teachix.sa'],
   },
   plugins: {
+    FirebaseMessaging: {
+      presentationOptions: ['alert', 'badge', 'sound'],
+    },
     SplashScreen: {
       launchShowDuration: 800,
       launchAutoHide: true,

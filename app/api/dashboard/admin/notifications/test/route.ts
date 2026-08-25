@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { sendPushToDevice } from "@/lib/notifications/fcm-server";
-import { getEnabledAndroidPushDeviceById, getMostRecentlyActiveEnabledAndroidPushDevice } from "@/lib/notifications/push-device-service";
+import { getEnabledPushDeviceById, getMostRecentlyActiveEnabledPushDevice } from "@/lib/notifications/push-device-service";
 
 export const runtime = "nodejs";
 
@@ -10,10 +10,10 @@ export async function POST(request: Request) {
   const adminError = await requireAdminApi();
   if (adminError) return adminError;
 
-  let device: Awaited<ReturnType<typeof getMostRecentlyActiveEnabledAndroidPushDevice>>;
+  let device: Awaited<ReturnType<typeof getMostRecentlyActiveEnabledPushDevice>>;
   try {
     const body = await request.json().catch(() => null) as { deviceId?: unknown } | null;
-    device = typeof body?.deviceId === "string" ? await getEnabledAndroidPushDeviceById(body.deviceId) : await getMostRecentlyActiveEnabledAndroidPushDevice();
+    device = typeof body?.deviceId === "string" ? await getEnabledPushDeviceById(body.deviceId) : await getMostRecentlyActiveEnabledPushDevice();
   } catch {
     return NextResponse.json(
       { ok: false, error: { code: "PUSH_TEST_DATABASE_FAILED" } },
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
   if (!device) {
     return NextResponse.json(
-      { ok: false, error: { code: "NO_ENABLED_ANDROID_DEVICE" } },
+      { ok: false, error: { code: "NO_ENABLED_PUSH_DEVICE" } },
       { status: 404 },
     );
   }

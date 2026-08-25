@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { App } from "@capacitor/app";
-import { PushNotifications } from "@capacitor/push-notifications";
+import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import {
   logNativeRuntimeDiagnostic,
@@ -171,9 +171,14 @@ export function NativeRuntimeSetup() {
       return true;
     };
 
-    void PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
-      const route = notification.data?.route;
-      const campaignId = notification.data?.campaignId;
+    void FirebaseMessaging.addListener("notificationActionPerformed", ({ notification }) => {
+      const data = notification.data;
+      const route = typeof data === "object" && data !== null && "route" in data
+        ? (data as { route?: unknown }).route
+        : undefined;
+      const campaignId = typeof data === "object" && data !== null && "campaignId" in data
+        ? (data as { campaignId?: unknown }).campaignId
+        : undefined;
       if (typeof campaignId === "string" && campaignId.length > 0 && typeof route === "string") {
         void fetch("/api/dashboard/notifications/open", {
           method: "POST",

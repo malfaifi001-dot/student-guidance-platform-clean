@@ -1,7 +1,7 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
+import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { logNativeRuntimeDiagnostic } from "@/lib/native/native-runtime-diagnostics";
 
 export const TEACHIX_PUSH_CHANNEL_ID = "teachix_default";
@@ -69,7 +69,7 @@ async function registerDeviceToken(token: string): Promise<void> {
 async function setupChannel(): Promise<void> {
   if (Capacitor.getPlatform() !== "android") return;
 
-  await PushNotifications.createChannel({
+  await FirebaseMessaging.createChannel({
     id: TEACHIX_PUSH_CHANNEL_ID,
     name: "إشعارات Teachix",
     description: "الإشعارات والتنبيهات الخاصة بمنصة Teachix",
@@ -86,41 +86,44 @@ export function initializeNativePushNotifications(): Promise<void> {
   setupPromise = (async () => {
     await setupChannel();
 
-    await PushNotifications.addListener("registration", ({ value }) => {
-      void registerDeviceToken(value).catch(() => {
+    await FirebaseMessaging.addListener("tokenReceived", ({ token }) => {
+      void registerDeviceToken(token).catch(() => {
         logNativeRuntimeDiagnostic("push-registration-failed", {
           reason: "DEVICE_API_REQUEST_FAILED",
         });
       });
     });
 
-    await PushNotifications.addListener("registrationError", () => {
-      logNativeRuntimeDiagnostic("push-registration-failed", {
-        reason: "NATIVE_REGISTRATION_ERROR",
-      });
-    });
-
-    await PushNotifications.addListener("pushNotificationReceived", () => {
+    await FirebaseMessaging.addListener("notificationReceived", () => {
       logNativeRuntimeDiagnostic("push-notification-received", {
         hasNotification: true,
       });
     });
 
-    const current = await PushNotifications.checkPermissions();
+    const support = await FirebaseMessaging.isSupported();
+    if (!support.isSupported) {
+      logNativeRuntimeDiagnostic("push-registration-failed", {
+        reason: "NATIVE_MESSAGING_UNSUPPORTED",
+      });
+      return;
+    }
+
+    const current = await FirebaseMessaging.checkPermissions();
     logNativeRuntimeDiagnostic("push-permission-status", {
       status: current.receive,
     });
 
     let permission = current;
     if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
-      permission = await PushNotifications.requestPermissions();
+      permission = await FirebaseMessaging.requestPermissions();
       logNativeRuntimeDiagnostic("push-permission-status", {
         status: permission.receive,
       });
     }
 
     if (permission.receive !== "granted") return;
-    await PushNotifications.register();
+    const tokenResult = await FirebaseMessaging.getToken();
+    await registerDeviceToken(tokenResult.token);
   })().catch((error) => {
     setupPromise = null;
     logNativeRuntimeDiagnostic("push-registration-failed", {
