@@ -56,7 +56,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const origin = getRequestOrigin(request);
-  const printUrl = `${origin}/dashboard/assessments-center/${encodeURIComponent(analysis.id)}/print?print=1`;
+  const printUrl = `${origin}/assessments-center-print/${encodeURIComponent(analysis.id)}?print=1`;
   const fileName = safeDownloadFileName(analysis.title);
 
   try {
@@ -86,7 +86,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       fallback: "PRINT_PREVIEW",
-      previewUrl: `/dashboard/assessments-center/${encodeURIComponent(analysis.id)}/print?print=1`,
+      previewUrl: `/assessments-center-print/${encodeURIComponent(analysis.id)}?print=1`,
     });
   }
 }
