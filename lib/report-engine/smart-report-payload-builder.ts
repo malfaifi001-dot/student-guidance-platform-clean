@@ -25,6 +25,7 @@ import {
   type WorkflowValueLike,
 } from "@/lib/workflow-values/workflow-display-value";
 import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
+import { shouldIncludeReportNarrative } from "@/lib/report-engine/report-narrative-policy";
 
 type CurrentUserLike = {
   user: {
@@ -1528,7 +1529,7 @@ export async function buildSmartReportPayloadForCase({
         }
       : {
           title: "وصف التنفيذ",
-          body: serviceSlug === "activity-programs-school-broadcast"
+          body: !shouldIncludeReportNarrative(serviceSlug)
             ? ""
             : buildNarrative({
             title,

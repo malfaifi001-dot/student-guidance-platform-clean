@@ -14,6 +14,7 @@ import type {
   ReportFlowPrepareField,
   ReportFlowPreparation,
 } from "@/lib/report-flow/report-flow-types";
+import { isSchoolBroadcastServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 
 const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
   execution_date: "تاريخ التنفيذ / اليوم",
@@ -439,6 +440,7 @@ export function applyReportFlowPreparationToPayload(
 ): SmartReportPayload {
   const languageMode = normalizeReportLanguageMode(preparation.languageMode);
   const showExecutionDescriptionInReport =
+    !isSchoolBroadcastServiceSlug(payload.service.slug) &&
     preparation.showExecutionDescriptionInReport !== false;
   const primaryFields = applyFields(
     payload.primaryFields,
@@ -487,6 +489,8 @@ export function createReportFlowPreparation({
   languageMode: ReportLanguageMode;
   showExecutionDescriptionInReport?: boolean;
 }): ReportFlowPreparation {
+  const isSchoolBroadcast = isSchoolBroadcastServiceSlug(payload.service.slug);
+
   return {
     version: 1,
     caseId: payload.caseInfo.id,
@@ -494,7 +498,7 @@ export function createReportFlowPreparation({
     reportType: payload.reportType,
     languageMode: normalizeReportLanguageMode(languageMode),
     showExecutionDescriptionInReport:
-      showExecutionDescriptionInReport !== false,
+      !isSchoolBroadcast && showExecutionDescriptionInReport !== false,
     selectedFieldIds: fields
       .filter((field) => field.selected)
       .map((field) => field.id),

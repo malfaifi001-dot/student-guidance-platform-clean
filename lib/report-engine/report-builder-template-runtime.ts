@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
 
 type LegacyReportTemplateId =
   | "official-long"
@@ -91,6 +92,10 @@ export async function getBuilderTemplateFromDatabase(templateId?: string | null)
       templateJson.description ||
       "قالب تقرير محفوظ من صانع القوالب.",
     serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    pages: filterReportNarrativeBlocks(
+      templateJson.pages,
+      templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    ),
     status: templateJson.status || "PUBLISHED",
   };
 }

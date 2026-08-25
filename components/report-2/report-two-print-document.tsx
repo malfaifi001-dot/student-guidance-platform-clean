@@ -15,6 +15,10 @@ import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
 } from "@/components/report-2/report-two-official-activity-signature-style";
+import {
+  isReportNarrativeBlock,
+  shouldIncludeReportNarrative,
+} from "@/lib/report-engine/report-narrative-policy";
 
 type PrintDocumentSnapshot = {
   template: any;
@@ -39,7 +43,6 @@ const INITIAL_PRINT_PREVIEW_DIMENSIONS: PrintPreviewDimensions = {
   scale: 1,
 };
 
-const SCHOOL_BROADCAST_SERVICE_SLUG = "activity-programs-school-broadcast";
 const SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS = new Set([
   "executive-description",
   "executive_description",
@@ -58,6 +61,7 @@ function isHiddenSchoolBroadcastBlock(block: any): boolean {
   const title = repairPotentialUtf8Mojibake(String(block?.title || "")).trim();
 
   return (
+    isReportNarrativeBlock(block) ||
     SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS.has(kind) ||
     id === "executive-description" ||
     id === "executive_description" ||
@@ -73,7 +77,7 @@ function isHiddenSchoolBroadcastBlock(block: any): boolean {
 }
 
 function hideSchoolBroadcastBlocks(template: any, serviceSlug: unknown) {
-  if (serviceSlug !== SCHOOL_BROADCAST_SERVICE_SLUG) return template;
+  if (shouldIncludeReportNarrative(String(serviceSlug || ""))) return template;
 
   return {
     ...template,

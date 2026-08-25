@@ -1,5 +1,6 @@
 import type { ReportBlock } from "@/lib/report-engine/report-block-types";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { shouldIncludeReportNarrative } from "@/lib/report-engine/report-narrative-policy";
 
 function cleanText(value: unknown) {
   return String(value ?? "").trim();
@@ -63,10 +64,7 @@ export function buildReportBlocks(payload: SmartReportPayload): ReportBlock[] {
     });
   }
 
-  const isSchoolBroadcast =
-    payload.service.slug === "activity-programs-school-broadcast";
-
-  if (!isSchoolBroadcast && hasValue(payload.narrative?.body)) {
+  if (shouldIncludeReportNarrative(payload.service.slug) && hasValue(payload.narrative?.body)) {
     blocks.push({
       id: "narrative",
       type: "NARRATIVE",

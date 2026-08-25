@@ -40,6 +40,7 @@ import {
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
+import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
 
 
 type ReportTwoCollapsibleCardProps = {
@@ -656,13 +657,16 @@ function normalizePage(value: any, index: number): StudioPage {
   };
 }
 
-function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
+function hydrateTemplate(
+  template: TemplateOption | null,
+  serviceSlug?: string | null,
+): StudioTemplate {
   const raw = asRecord(template?.templateJson);
   const smartStudio = asRecord(raw.smartStudio);
   const source = asArray(smartStudio.pages).length ? smartStudio : raw;
   const pages = asArray(source.pages);
 
-  return {
+  const hydrated: StudioTemplate = {
     id: template?.id || "report-2-empty-template",
     name: template?.name || "قالب report-2",
     description: template?.description || "",
@@ -693,6 +697,14 @@ function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
             ],
           },
         ],
+  };
+
+  return {
+    ...hydrated,
+    pages: filterReportNarrativeBlocks(
+      hydrated.pages,
+      serviceSlug || template?.serviceSlug,
+    ),
   };
 }
 
@@ -1532,9 +1544,14 @@ function normalizeReportTwoLogicalTemplate(
   template: StudioTemplate,
   payload: SmartReportPayload,
 ) {
+  const narrativeFilteredTemplate = {
+    ...template,
+    pages: filterReportNarrativeBlocks(template.pages, payload.service.slug),
+  };
+
   return withSingleReportTwoEvidenceBlock(
     withReportTwoSignatureBlock(
-      withReportTwoStructuredTables(template, payload),
+      withReportTwoStructuredTables(narrativeFilteredTemplate, payload),
       payload,
     ),
   );
@@ -2680,7 +2697,7 @@ export function ReportTwoStudioRuntime({
     null;
 
   const initialHydratedTemplate = useMemo(() => {
-    const hydrated = hydrateTemplate(initialTemplateOption);
+    const hydrated = hydrateTemplate(initialTemplateOption, payload.service.slug);
 
     if (!selectedTemplateId && !explicitlySelectedTemplateOption) {
       return {
@@ -2690,7 +2707,12 @@ export function ReportTwoStudioRuntime({
     }
 
     return hydrated;
-  }, [explicitlySelectedTemplateOption, initialTemplateOption, selectedTemplateId]);
+  }, [
+    explicitlySelectedTemplateOption,
+    initialTemplateOption,
+    payload.service.slug,
+    selectedTemplateId,
+  ]);
 
   const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
     initialTemplateOption?.id || "",
@@ -3882,7 +3904,7 @@ export function ReportTwoStudioRuntime({
     const nextTemplateOption =
       templates.find((item) => item.id === templateId) || templates[0] || null;
 
-    const nextTemplate = hydrateTemplate(nextTemplateOption);
+    const nextTemplate = hydrateTemplate(nextTemplateOption, preparedPayload.service.slug);
 
     setSelectedTemplateOptionId(nextTemplateOption?.id || "");
     setActiveSavedRuntimeTemplateId("");

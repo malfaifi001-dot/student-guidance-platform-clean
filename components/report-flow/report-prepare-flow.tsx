@@ -36,6 +36,7 @@ import {
   loadReportFlowPreparation,
   saveReportFlowPreparation,
 } from "@/lib/report-flow/report-flow-storage";
+import { isSchoolBroadcastServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import type {
   ReportFlowExecutionSummarySource,
   ReportFlowPrepareField,
@@ -95,6 +96,7 @@ export function ReportPrepareFlow({
 }: ReportPrepareFlowProps) {
   const router = useRouter();
   const initialLanguageMode = normalizeReportLanguageMode(payload.languageMode);
+  const isSchoolBroadcast = isSchoolBroadcastServiceSlug(payload.service.slug);
 
   const [step, setStep] = useState<PrepareStep>("prepare");
   const [hydratedFromStorage, setHydratedFromStorage] = useState(false);
@@ -105,7 +107,7 @@ export function ReportPrepareFlow({
   );
   const [executionSummary, setExecutionSummary] = useState("");
   const [showExecutionDescriptionInReport, setShowExecutionDescriptionInReport] =
-    useState(true);
+    useState(!isSchoolBroadcast);
   const [summarySource, setSummarySource] =
     useState<ReportFlowExecutionSummarySource>(() => buildInitialSummarySource());
   const [search, setSearch] = useState("");
@@ -145,7 +147,7 @@ export function ReportPrepareFlow({
       setLanguageMode(savedMode);
       setFields(applyReportFlowLanguageModeToFields(saved.fields, savedMode));
       setShowExecutionDescriptionInReport(
-        saved.showExecutionDescriptionInReport !== false,
+        !isSchoolBroadcast && saved.showExecutionDescriptionInReport !== false,
       );
       setExecutionSummary(String(saved.executionSummary || ""));
       setSummarySource(saved.executionSummarySource || "FALLBACK");
@@ -154,7 +156,13 @@ export function ReportPrepareFlow({
     }
 
     setHydratedFromStorage(true);
-  }, [hydratedFromStorage, initialLanguageMode, payload, selectedVariantId]);
+  }, [
+    hydratedFromStorage,
+    initialLanguageMode,
+    isSchoolBroadcast,
+    payload,
+    selectedVariantId,
+  ]);
 
   const selectedFields = useMemo(
     () =>

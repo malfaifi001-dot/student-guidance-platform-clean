@@ -1,4 +1,10 @@
 export const ACTIVITY_PROGRAM_SERVICE_SLUG = "activity-programs";
+export const ACTIVITY_PROGRAM_SCHOOL_BROADCAST_SERVICE_SLUG =
+  "activity-programs-school-broadcast";
+
+export function isSchoolBroadcastServiceSlug(serviceSlug?: string | null) {
+  return serviceSlug === ACTIVITY_PROGRAM_SCHOOL_BROADCAST_SERVICE_SLUG;
+}
 
 export const ACTIVITY_PROGRAM_DOMAINS = [
   {
@@ -52,7 +58,7 @@ export const ACTIVITY_PROGRAM_DOMAINS = [
   },
   {
     slug: "school-broadcast",
-    serviceSlug: "activity-programs-school-broadcast",
+    serviceSlug: ACTIVITY_PROGRAM_SCHOOL_BROADCAST_SERVICE_SLUG,
     title: "الإذاعة المدرسية",
     shortLabel: "الإذاعة المدرسية",
     description: "برامج الإذاعة المدرسية وتنظيم فقراتها ومشاركاتها الطلابية.",

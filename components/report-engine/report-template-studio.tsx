@@ -2,6 +2,7 @@
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
 
 import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
@@ -629,6 +630,12 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
           }))
         : fallback.pages;
 
+  const serviceSlug =
+    item?.serviceSlug ||
+    templateJson.serviceSlug ||
+    templateJson?.workflowBinding?.serviceSlug ||
+    undefined;
+
   return {
     ...fallback,
     id: templateJson.id || item?.id || fallback.id,
@@ -651,11 +658,7 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
       templateJson.scope ||
       templateJson?.workflowBinding?.scope ||
       (item?.serviceSlug ? "SERVICE" : "GLOBAL"),
-    serviceSlug:
-      item?.serviceSlug ||
-      templateJson.serviceSlug ||
-      templateJson?.workflowBinding?.serviceSlug ||
-      undefined,
+    serviceSlug,
     workflowSlug:
       templateJson.workflowSlug ||
       templateJson?.workflowBinding?.workflowSlug ||
@@ -676,7 +679,7 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
           DEFAULT_REPORT_HEADER_SETTINGS,
       ),
     },
-    pages,
+    pages: filterReportNarrativeBlocks(pages, serviceSlug),
   } as StudioTemplate;
 }
 
@@ -874,6 +877,12 @@ export function ReportTemplateStudio() {
     setTemplate((current) => ({
       ...current,
       ...next,
+      pages: filterReportNarrativeBlocks(
+        next.pages || current.pages,
+        next.serviceSlug === undefined
+          ? current.serviceSlug
+          : next.serviceSlug,
+      ),
       updatedAt: new Date().toISOString().slice(0, 10),
     }));
   }
