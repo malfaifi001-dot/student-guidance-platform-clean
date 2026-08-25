@@ -1528,7 +1528,9 @@ export async function buildSmartReportPayloadForCase({
         }
       : {
           title: "وصف التنفيذ",
-          body: buildNarrative({
+          body: serviceSlug === "activity-programs-school-broadcast"
+            ? ""
+            : buildNarrative({
             title,
             serviceName,
             semester: semesterText,
@@ -1538,7 +1540,7 @@ export async function buildSmartReportPayloadForCase({
             executionMethod: executionMethodText,
             evidenceCount: evidence.length,
             languageMode,
-          }),
+            }),
         },
     evidence: {
       layout: "GRID_2X2",

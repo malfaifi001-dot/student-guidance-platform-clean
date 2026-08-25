@@ -5,6 +5,7 @@ import {
   serializeCaseValues,
   type RuntimeCaseValues,
 } from "@/lib/cases/case-values";
+import { isAllowedSystemCaseValueKey } from "@/lib/cases/system-case-value-keys";
 
 type EvidenceItem = {
   id?: string;
@@ -315,16 +316,6 @@ type RuntimeValidationField = {
   options: Array<{ value: string }>;
 };
 
-const RUNTIME_SYSTEM_VALUE_KEYS = new Set([
-  "selectedStudent",
-  "selected_students_count",
-  "selected_students_names_text",
-  "selected_students_json",
-  "primary_student_id",
-  "studentSnapshot",
-  "guardianSnapshot",
-]);
-
 const CHOICE_FIELD_TYPES = new Set([
   "SELECT",
   "MULTI_SELECT",
@@ -426,14 +417,20 @@ async function getRuntimeValidationFields(existingCase: {
 }
 
 async function validateRuntimeCaseValues(
-  existingCase: { workflowId: string | null; workflowSnapshot: unknown },
+  existingCase: {
+    workflowId: string | null;
+    workflowSnapshot: unknown;
+    service: { slug: string };
+  },
   values: RuntimeCaseValues,
 ) {
   const fields = await getRuntimeValidationFields(existingCase);
   const fieldMap = new Map(fields.map((field) => [field.key, field]));
 
   for (const [key, value] of Object.entries(values || {})) {
-    if (RUNTIME_SYSTEM_VALUE_KEYS.has(key)) continue;
+    if (isAllowedSystemCaseValueKey(existingCase.service.slug, key)) {
+      continue;
+    }
 
     if (key.endsWith("__other")) {
       const parent = fieldMap.get(key.slice(0, -7));
@@ -603,6 +600,11 @@ export async function updateRuntimeCase({
       schoolAccountId: true,
       workflowId: true,
       workflowSnapshot: true,
+      service: {
+        select: {
+          slug: true,
+        },
+      },
     },
   });
 

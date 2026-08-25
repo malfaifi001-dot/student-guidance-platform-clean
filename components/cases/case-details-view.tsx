@@ -21,11 +21,16 @@ import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import {
+  BROADCAST_SCHEDULE_ROW_FIELD_KEYS,
+  parseBroadcastScheduleRows,
+} from "@/lib/activity-programs/broadcast-schedule";
+import {
   formatWorkflowDisplayValue,
   getWorkflowFieldLabel,
   type WorkflowFieldLike,
   type WorkflowValueLike,
 } from "@/lib/workflow-values/workflow-display-value";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
 
 type CaseDetailsViewProps = {
   caseEntry: any;
@@ -58,6 +63,7 @@ const SMART_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
 };
 
 const COMMITTEE_SERVICE_SLUG = "committees-meetings";
+const SCHOOL_BROADCAST_SERVICE_SLUG = "activity-programs-school-broadcast";
 
 function buildFieldMap(caseEntry: any) {
   const map = new Map<string, FieldLookupItem>();
@@ -139,6 +145,27 @@ function shouldHideCaseValue(fieldKey: string) {
     key.startsWith("assessment_") ||
     key.startsWith("intervention_")
   );
+}
+
+function getBroadcastScheduleCellLabel(
+  rowKey: keyof typeof BROADCAST_SCHEDULE_ROW_FIELD_KEYS,
+  value: unknown,
+  fieldMap: Map<string, FieldLookupItem>,
+) {
+  const rawValue = Array.isArray(value) ? value.join("، ") : cleanText(value);
+  if (!rawValue) return "—";
+
+  const field = fieldMap.get(BROADCAST_SCHEDULE_ROW_FIELD_KEYS[rowKey]);
+  const options = Array.isArray(field?.options)
+    ? (field.options as Array<{ value?: unknown; label?: unknown }>)
+    : [];
+  const option = options.find(
+    (item) =>
+      String(item.value ?? "") === rawValue ||
+      String(item.label ?? "") === rawValue,
+  );
+
+  return repairPotentialUtf8Mojibake(cleanText(option?.label)) || rawValue;
 }
 
 function shouldHideCommitteeMainValue(fieldKey: string) {
@@ -866,8 +893,21 @@ export function CaseDetailsView({
 
   const displayValues = workflowValues.filter((value: WorkflowValueLike) => {
     const key = value.field?.key || value.fieldKey || "";
-    return !shouldHideCaseValue(key);
+    return !shouldHideCaseValue(key) &&
+      !(caseEntry.service?.slug === SCHOOL_BROADCAST_SERVICE_SLUG &&
+        key === "broadcast_schedule_items");
   });
+
+  const isSchoolBroadcastCase =
+    caseEntry.service?.slug === SCHOOL_BROADCAST_SERVICE_SLUG;
+  const broadcastScheduleValue = isSchoolBroadcastCase
+    ? getRawCaseValueByKey(workflowValues, ["broadcast_schedule_items"])
+    : null;
+  const broadcastScheduleRows = broadcastScheduleValue
+    ? parseBroadcastScheduleRows(
+        broadcastScheduleValue.jsonValue ?? broadcastScheduleValue.value,
+      )
+    : null;
 
   const evidenceItems =
     caseEntry.evidences?.map((item: any) => ({
@@ -1406,6 +1446,56 @@ export function CaseDetailsView({
           ) : null}
         </div>
       </section>
+
+      {isSchoolBroadcastCase && broadcastScheduleRows?.length ? (
+        <section className="rounded-[2rem] border border-sky-200 bg-white p-5 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-sky-600">الجدول</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">
+              خطة الإذاعة المدرسية
+            </h2>
+          </div>
+
+          <div className="mt-5 overflow-x-auto rounded-3xl border border-slate-200">
+            <table className="min-w-[760px] w-full border-collapse text-right" dir="rtl">
+              <thead className="bg-sky-700 text-xs font-black text-white">
+                <tr>
+                  <th className="border-l border-sky-600 px-4 py-3">الأسبوع</th>
+                  <th className="border-l border-sky-600 px-4 py-3">اليوم</th>
+                  <th className="border-l border-sky-600 px-4 py-3">التاريخ</th>
+                  <th className="border-l border-sky-600 px-4 py-3">الصف</th>
+                  <th className="border-l border-sky-600 px-4 py-3">الفصل</th>
+                  <th className="border-l border-sky-600 px-4 py-3">الموضوع</th>
+                  <th className="px-4 py-3">المسؤول</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm font-bold leading-7 text-slate-700">
+                {broadcastScheduleRows.map((row, index) => (
+                  <tr
+                    key={row.id || `broadcast-row-${index}`}
+                    className="border-t border-slate-200 odd:bg-white even:bg-slate-50"
+                  >
+                    {(["week", "day", "date", "grade", "classroom", "topic", "responsible"] as const).map(
+                      (rowKey) => (
+                        <td
+                          key={rowKey}
+                          className="border-l border-slate-200 px-4 py-3 align-top last:border-l-0"
+                        >
+                          {getBroadcastScheduleCellLabel(
+                            rowKey,
+                            row[rowKey],
+                            fieldMap,
+                          )}
+                        </td>
+                      ),
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       {evidenceItems.length > 0 ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

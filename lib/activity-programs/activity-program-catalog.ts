@@ -97,6 +97,13 @@ export function isActivityProgramDomainServiceSlug(serviceSlug: string) {
   );
 }
 
+export function isActivityProgramServiceSlug(serviceSlug: string) {
+  return (
+    serviceSlug === ACTIVITY_PROGRAM_SERVICE_SLUG ||
+    isActivityProgramDomainServiceSlug(serviceSlug)
+  );
+}
+
 export function getActivityProgramsBillingServiceSlug(serviceSlug: string) {
   return isActivityProgramDomainServiceSlug(serviceSlug)
     ? ACTIVITY_PROGRAM_SERVICE_SLUG

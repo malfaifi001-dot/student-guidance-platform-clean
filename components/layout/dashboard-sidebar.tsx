@@ -423,6 +423,11 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
 
 const teacherAdditionalLinks: SidebarLinkItem[] = [
   {
+    label: "تحليل نتائج الطلاب",
+    href: "/dashboard/assessments-center",
+    icon: BarChart3,
+  },
+  {
     label: "الإحصائيات",
     href: "/dashboard/statistics",
     icon: BarChart3,
@@ -1326,24 +1331,6 @@ function TeacherSidebar({
         collapsed={collapsed}
       >
         {teacherPerformanceLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            collapsed={collapsed}
-            compact
-          />
-        ))}
-      </SidebarDropdown>
-
-      <SidebarDropdown
-        title="مركز تحليل النتائج"
-        defaultOpen={pathname.startsWith(
-          "/dashboard/assessment-center",
-        )}
-        collapsed={collapsed}
-      >
-        {assessmentCenterLinks.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}

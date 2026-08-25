@@ -39,8 +39,8 @@ export const DEFAULT_PLATFORM_SERVICES = [
   },
   {
     slug: "assessment-center",
-    name: "مركز التحليل والاختبارات",
-    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+    name: "تحليل نتائج الطلاب",
+    description: "إنشاء ومراجعة تحليلات نتائج الطلاب واستخراج التقارير.",
   },
   {
     slug: "surveys",

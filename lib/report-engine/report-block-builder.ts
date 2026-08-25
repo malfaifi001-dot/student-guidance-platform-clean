@@ -63,7 +63,10 @@ export function buildReportBlocks(payload: SmartReportPayload): ReportBlock[] {
     });
   }
 
-  if (hasValue(payload.narrative?.body)) {
+  const isSchoolBroadcast =
+    payload.service.slug === "activity-programs-school-broadcast";
+
+  if (!isSchoolBroadcast && hasValue(payload.narrative?.body)) {
     blocks.push({
       id: "narrative",
       type: "NARRATIVE",

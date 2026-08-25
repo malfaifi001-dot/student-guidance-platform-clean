@@ -5,7 +5,7 @@ import { MOE_OFFICIAL_2024_ADMIN_PRESENTATION_CSS } from "./admin-presentation-s
 import type { ReportDesignPageComponentProps } from "../report-design-component-types";
 import { ReportDesignSmartContent } from "../../smart-layout/report-design-smart-content";
 
-const MOE_2024 = {
+export const MOE_2024 = {
   navy: "#15445A",
   green: "#07A869",
   blue: "#3D7EB9",
@@ -19,7 +19,7 @@ const MOE_2024 = {
   line: "#D9E0E2",
 } as const;
 
-function BrandRule() {
+export function BrandRule() {
   return (
     <div
       className="moe24-brand-rule"
@@ -28,7 +28,7 @@ function BrandRule() {
   );
 }
 
-function MoeReportPage({
+export function MoeReportPage({
   children,
   sectionLabel,
   schoolName,

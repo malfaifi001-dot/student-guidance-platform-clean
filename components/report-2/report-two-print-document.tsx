@@ -44,6 +44,9 @@ const SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS = new Set([
   "executive-description",
   "executive_description",
   "details",
+  "narrative",
+  "execution-description",
+  "execution_description",
 ]);
 
 function isHiddenSchoolBroadcastBlock(block: any): boolean {
@@ -59,6 +62,9 @@ function isHiddenSchoolBroadcastBlock(block: any): boolean {
     id === "executive-description" ||
     id === "executive_description" ||
     id === "details" ||
+    id === "narrative" ||
+    id === "execution-description" ||
+    id === "execution_description" ||
     boundFieldKey === "executive-description" ||
     boundFieldKey === "executive_description" ||
     title === "الوصف التنفيذي" ||

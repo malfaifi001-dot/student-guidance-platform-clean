@@ -594,21 +594,25 @@ export function buildActivityExecutionCardReportData(
     fileName: item.fileName || "مرفق",
   }));
 
-  const implementationDescription = buildNarrative({
-    title,
-    domain,
-    teacherName,
-    activityDate,
-    targetGroup,
-    beneficiaryCount,
-    location,
-    semester,
-    implementationMethod,
-    periodsCount,
-    evidenceCount: evidences.length,
-  });
+  const implementationDescription =
+    caseEntry.service?.slug === "activity-programs-school-broadcast"
+      ? ""
+      : buildNarrative({
+          title,
+          domain,
+          teacherName,
+          activityDate,
+          targetGroup,
+          beneficiaryCount,
+          location,
+          semester,
+          implementationMethod,
+          periodsCount,
+          evidenceCount: evidences.length,
+        });
 
   return {
+    serviceSlug: caseEntry.service?.slug,
     identity: {
       ministryName: "وزارة التعليم",
       educationDepartment: profile?.district

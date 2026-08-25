@@ -179,6 +179,7 @@ function mapSmartPayloadToActivityReportData(
   ].filter((item) => item.label && item.value);
 
   return {
+    serviceSlug: payload.service.slug,
     identity: {
       ministryName: payload.identity.ministryName || "وزارة التعليم",
       educationDepartment:

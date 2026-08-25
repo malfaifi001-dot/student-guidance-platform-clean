@@ -264,8 +264,8 @@ export const standaloneServices: AppService[] = [
   },
   {
     slug: "assessment-center",
-    title: "مركز التحليل والاختبارات",
-    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+    title: "تحليل نتائج الطلاب",
+    description: "إنشاء ومراجعة تحليلات نتائج الطلاب واستخراج التقارير.",
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     kind: "standalone",
   },

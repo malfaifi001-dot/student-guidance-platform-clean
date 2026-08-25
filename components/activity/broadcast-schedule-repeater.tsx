@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+import { parseBroadcastScheduleRows } from "@/lib/activity-programs/broadcast-schedule";
 import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
 
 export const BROADCAST_SCHEDULE_VALUE_KEY = "broadcast_schedule_items";
@@ -60,18 +61,6 @@ function preserveText(value: unknown): string {
   return String(value ?? "");
 }
 
-function parseValue(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  const text = value.trim();
-  if (!text) return [];
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return value;
-  }
-}
-
 function activeFields(
   fields?: RuntimeField[],
 ): Array<RuntimeField & { key: BroadcastScheduleFieldKey }> {
@@ -109,9 +98,9 @@ export function normalizeBroadcastScheduleRows(
   value: unknown,
   fields: RuntimeField[] = [],
 ): BroadcastScheduleRow[] {
-  const parsed = parseValue(value);
+  const parsed = parseBroadcastScheduleRows(value);
   const configuredFields = activeFields(fields);
-  if (!Array.isArray(parsed)) return [createRow(configuredFields)];
+  if (!parsed) return [createRow(configuredFields)];
 
   const rows = parsed
     .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"))
@@ -170,8 +159,8 @@ export function getBroadcastScheduleValidation(
   value: unknown,
   fields: RuntimeField[] = [],
 ): { valid: boolean; rowIndex?: number; missing?: string[] } {
-  const parsed = parseValue(value);
-  if (!Array.isArray(parsed)) return { valid: true };
+  const parsed = parseBroadcastScheduleRows(value);
+  if (!parsed) return { valid: true };
 
   for (let index = 0; index < parsed.length; index += 1) {
     const raw = parsed[index];

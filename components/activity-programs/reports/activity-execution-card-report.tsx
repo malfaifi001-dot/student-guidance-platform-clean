@@ -19,6 +19,7 @@ import type {
 } from "@/lib/report-engine/smart-report-types";
 
 export type ActivityExecutionCardReportData = {
+  serviceSlug?: string;
   identity: {
     ministryName: string;
     educationDepartment: string;
@@ -196,7 +197,10 @@ function buildDefaultBlocks(
       editable: true,
     });
 
-    if (hasUsefulValue(data.activity.implementationDescription)) {
+    if (
+      data.serviceSlug !== "activity-programs-school-broadcast" &&
+      hasUsefulValue(data.activity.implementationDescription)
+    ) {
       blocks.push({
         id: "narrative",
         type: "NARRATIVE",
@@ -270,13 +274,23 @@ export function ActivityExecutionCardReport({
   showEvidenceHeading = true,
   pageMode = "full",
 }: ActivityExecutionCardReportProps) {
+  const isSchoolBroadcast =
+    data.serviceSlug === "activity-programs-school-broadcast";
   const evidenceVisible = evidenceConfig?.visible ?? true;
   const evidencesPerPage = evidenceConfig?.itemsPerPage ?? 2;
   const evidenceImageSize = evidenceConfig?.imageSize ?? "small-squares";
 
   const visualBlocks =
     blocks && blocks.length > 0
-      ? blocks.filter((block) => !["HEADER", "FOOTER", "MANUAL_PAGE_BREAK"].includes(block.type))
+      ? blocks.filter(
+          (block) =>
+            !["HEADER", "FOOTER", "MANUAL_PAGE_BREAK"].includes(block.type) &&
+            !(isSchoolBroadcast && block.type === "NARRATIVE") &&
+            !(isSchoolBroadcast &&
+              ["executive-description", "executive_description", "details"].includes(
+                String(block.id || "").trim().toLowerCase(),
+              )),
+        )
       : buildDefaultBlocks(data, pageMode, showApprovals);
 
   return (
