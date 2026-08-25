@@ -339,7 +339,7 @@ function buildInvoicePdfHtml(invoice: Awaited<ReturnType<typeof getInvoiceForPdf
     </section>
 
     <footer>
-      <p>تم إصدار هذا المستند آليًا من مركز الفواتير في منصة التوجيه الطلابي.</p>
+      <p>تم إصدار هذا المستند آليًا من مركز الفواتير في Teachix.</p>
       <p>الفواتير الملغاة محفوظة للأثر المالي، ولا تدخل ضمن إجمالي الفواتير السارية.</p>
     </footer>
   </article>

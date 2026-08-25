@@ -140,7 +140,7 @@ export default async function CheckoutTransactionRoutePage({
   const planName =
     typeof metadata.planName === "string"
       ? metadata.planName
-      : "اشتراك منصة التوجيه الطلابي";
+      : "اشتراك Teachix";
 
   const paymentMessage =
     getPaymentMessage(query.payment);

@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { NafsSnapshot } from "@/lib/assessments-center/nafs-types";
 import { AssessmentAiEditor } from "./assessment-ai-editor";
+import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
 
-export function NafsAnalysisClient({ analysisId }: { analysisId: string }) {
+export function NafsAnalysisClient({ analysisId, gender }: { analysisId: string; gender?: string | null }) {
+  const audience = getAssessmentAudienceLabels(gender);
   const [snapshot, setSnapshot] = useState<NafsSnapshot | null>(null); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [confirm, setConfirm] = useState(false);
   async function load() { const response = await fetch(`/api/dashboard/assessments-center/${analysisId}`, { cache: "no-store" }); const result = await response.json(); if (response.ok) setSnapshot(result.analysis.summaryJson); else setMessage("تعذر تحميل التحليل."); setLoading(false); }
   useEffect(() => { void load(); }, [analysisId]);
   async function generateAi() { if (!snapshot || busy) return; if (snapshot.aiMeta?.aiManuallyEdited && !confirm) { setConfirm(true); return; } setConfirm(false); setBusy(true); setMessage("جاري تحليل النتائج وإعداد التقرير..."); try { const response = await fetch("/api/dashboard/assessments-center/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ analysisId, snapshot }) }); const result = await response.json(); if (!response.ok) throw new Error("تعذر توليد التحليل الذكي الآن."); setSnapshot(result.snapshot); setMessage("تم تحديث القراءة التربوية والخطط بنجاح."); } catch (error) { setMessage(error instanceof Error ? error.message : "تعذر توليد التحليل."); } finally { setBusy(false); } }
-  if (loading) return <main dir="rtl" className="p-8 font-bold">جاري تحميل التحليل...</main>;
+  if (loading) return <main dir="rtl" className="p-8 font-bold">جاري تحميل {audience.resultsTitle}...</main>;
   if (!snapshot) return <main dir="rtl" className="p-8">{message}</main>;
   const stats = snapshot.statistics; const ai = snapshot.ai as unknown as Record<string, unknown> | null;
   const sections: Array<[string, string[]]> = [["نقاط القوة", snapshot.ai?.strengths || []], ["جوانب التحسين", snapshot.ai?.weaknesses || []], ["الأسباب المحتملة", snapshot.ai?.possibleCauses || []], ["التوصيات", snapshot.ai?.recommendations || []], ["إجراءات التحسين", snapshot.ai?.improvementPriorities || []]];

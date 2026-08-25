@@ -11,6 +11,7 @@ import {
 } from "@/lib/assessments-center/assessment-types";
 import { calculateMultiPeriod } from "@/lib/assessments-center/multi-period-calculations";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
+import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 type Student = { id: string; fullName: string; grade: string | null; classroom: string | null };
 type Row = PeriodScoreRow & { source: "linked" | "manual" };
@@ -32,7 +33,8 @@ function emptyScores(periods: AssessmentPeriod[]) {
   return Object.fromEntries(periods.map((period) => [period.id, null]));
 }
 
-export function AssessmentNewClient({ editAnalysisId }: { editAnalysisId?: string } = {}) {
+export function AssessmentNewClient({ editAnalysisId, gender }: { editAnalysisId?: string; gender?: string | null } = {}) {
+  const audience = getAssessmentAudienceLabels(gender);
   const router = useRouter();
   const [dataCenterAvailable, setDataCenterAvailable] = useState<boolean | null>(null);
   const [type, setType] = useState<AssessmentAnalysisType>("NAFS");
@@ -42,7 +44,7 @@ export function AssessmentNewClient({ editAnalysisId }: { editAnalysisId?: strin
   const [grade, setGrade] = useState("");
   const [classroom, setClassroom] = useState("");
   const [subject, setSubject] = useState("");
-  const [title, setTitle] = useState("تحليل نتائج نافس");
+  const [title, setTitle] = useState(`تحليل نتائج نافس لـ${audience.students}`);
   const [maximumScore, setMaximumScore] = useState("100");
   const [rows, setRows] = useState<Row[]>([]);
   const [grades, setGrades] = useState<string[]>([]);
@@ -109,7 +111,7 @@ export function AssessmentNewClient({ editAnalysisId }: { editAnalysisId?: strin
     void fetch(`/api/dashboard/assessments-center?grade=${encodeURIComponent(grade)}&classroom=${encodeURIComponent(classroom)}`, { cache: "no-store" })
       .then(async (response) => {
         const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.error || "تعذر تحميل بيانات الطلاب.");
+        if (!response.ok || !result.success) throw new Error(result.error || `تعذر تحميل ${audience.studentData}.`);
         return result;
       })
       .then((result) => {
@@ -137,12 +139,12 @@ export function AssessmentNewClient({ editAnalysisId }: { editAnalysisId?: strin
         } else {
           setRows([{ studentId: null, studentName: "", grade, classroom, scores: emptyScores(periods), source: "manual" }]);
           setStudentLoadState("empty");
-          setMessage("لا توجد بيانات طلاب لهذا الصف والفصل. يمكنك إضافة الطلاب يدويًا أو رفع ملف Excel.");
+          setMessage(`لا توجد ${audience.studentData} لهذا الصف والفصل. يمكنك إضافة ${audience.students} يدويًا أو رفع ملف Excel.`);
         }
       })
       .catch((error) => {
         if (!active) return;
-        const errorMessage = error instanceof Error ? error.message : "تعذر تحميل بيانات الطلاب.";
+        const errorMessage = error instanceof Error ? error.message : `تعذر تحميل ${audience.studentData}.`;
         setStudentLoadState("error");
         setStudentLoadError(errorMessage);
         setMessage(errorMessage);
@@ -242,12 +244,12 @@ export function AssessmentNewClient({ editAnalysisId }: { editAnalysisId?: strin
     setGenerationState("validating");
     const max = Number(maximumScore);
     if (!subject.trim() || !grade.trim() || !classroom.trim() || !periods.length || !rows.length || !Number.isFinite(max) || max <= 0) {
-      setMessage("أكمل المادة والصف والفصل والدرجة الكلية وأضف طالباً واحداً على الأقل.");
+      setMessage(`أكمل المادة والصف والفصل والدرجة الكلية وأضف ${audience.student} واحدًا على الأقل.`);
       setGenerationState("idle");
       return;
     }
     if (rows.some((row) => !row.studentName.trim())) {
-      setMessage("أدخل اسم كل طالب قبل الحفظ.");
+      setMessage(`أدخل اسم كل ${audience.student} قبل الحفظ.`);
       setGenerationState("idle");
       return;
     }

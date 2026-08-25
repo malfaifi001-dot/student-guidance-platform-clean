@@ -1866,7 +1866,7 @@ function resolveTextLibraryFallback(block: TemplateBlock) {
   }
 
   if (String(category).includes("خاتمة")) {
-    return "تم إعداد هذا التقارير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
+    return "تم إعداد هذا التقرير من Teachix اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
   }
 
   return "تم إعداد هذا التقارير لخدمة {serviceName} بناءً على بيانات الحالة {caseTitle} والشواهد المرتبطة بها.";

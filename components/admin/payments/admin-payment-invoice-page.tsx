@@ -401,7 +401,7 @@ function buildCompactPdfInvoiceHtml(data: InvoiceResponse) {
 
     <footer>
       <p>${escapeHtml(data.invoice.note)}</p>
-      <p>تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.</p>
+      <p>تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.</p>
     </footer>
   </article>
 </body>
@@ -768,7 +768,7 @@ export function AdminPaymentInvoicePage({ transactionId }: { transactionId: stri
               {data.invoice.note}
             </p>
             <p className="mt-3 text-xs text-slate-400">
-              تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.
+              تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.
             </p>
           </footer>
         </article>

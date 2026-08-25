@@ -642,7 +642,7 @@ function ReportFooter({ data }: { data: ActivityExecutionCardReportData }) {
       <span>
         {data.identity.academicYear} - {data.identity.semester}
       </span>
-      <span>منصة التوجيه الطلابي</span>
+      <span>Teachix</span>
     </footer>
   );
 }

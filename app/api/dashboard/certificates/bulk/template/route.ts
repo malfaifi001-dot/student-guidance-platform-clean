@@ -15,7 +15,7 @@ function toArrayBuffer(value: ExcelJS.Buffer) {
 
 export async function GET() {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "منصة التوجيه الطلابي";
+  workbook.creator = "Teachix";
 
   const sheet = workbook.addWorksheet("الشهادات");
 

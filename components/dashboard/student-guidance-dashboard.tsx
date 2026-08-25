@@ -272,7 +272,7 @@ export function StudentGuidanceDashboard() {
             </div>
             <div>
               <p className="text-base font-bold text-slate-900">
-                منصة التوجيه الطلابي
+                Teachix
               </p>
               <p className="mt-1 text-xs text-slate-400">Student Guidance</p>
             </div>

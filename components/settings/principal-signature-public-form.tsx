@@ -241,7 +241,7 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
         <div className="w-full rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-blue-100/60 sm:p-8">
           <div className="text-center">
             <p className="text-sm font-black text-blue-700">
-              منصة التوجيه الطلابي
+              Teachix
             </p>
             <h1 className="mt-3 text-3xl font-black text-slate-950">
               توقيع مدير المدرسة

@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
   );
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "منصة التوجيه الطلابي";
+  workbook.creator = "Teachix";
   workbook.created = new Date();
 
   const summarySheet = workbook.addWorksheet("ملخص الفواتير", {

@@ -268,7 +268,7 @@ async function createCoverPng(
     font-size="25"
     font-weight="700"
     fill="#334155"
-  >إعداد: ${escapeXml(input.counselorName || "منصة التوجيه الطلابي")}</text>
+  >إعداد: ${escapeXml(input.counselorName || "Teachix")}</text>
 
   <text
     x="260"
@@ -309,7 +309,7 @@ async function createCoverPng(
     font-size="29"
     font-weight="700"
     fill="#ffffff"
-  >منصة التوجيه الطلابي</text>
+  >Teachix</text>
 </svg>`;
 
   return sharp(Buffer.from(svg))

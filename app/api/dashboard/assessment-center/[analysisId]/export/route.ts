@@ -554,7 +554,7 @@ function buildPdfHtml({
     </table>
 
     <div class="footer">
-      منصة التوجيه الطلابي
+      Teachix
       <br />
       تقرير صادر من مركز التحليل والاختبارات
     </div>

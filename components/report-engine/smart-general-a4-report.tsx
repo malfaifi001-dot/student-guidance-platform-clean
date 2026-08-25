@@ -311,7 +311,7 @@ export function SmartGeneralA4Report({ payload }: SmartGeneralA4ReportProps) {
       <footer className="mt-6 flex items-center justify-between border-t-4 border-slate-950 pt-3 text-xs font-black text-slate-500">
         <span>{payload.identity.schoolName}</span>
         <span>{payload.identity.academicYear}</span>
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix</span>
       </footer>
     </article>
   );

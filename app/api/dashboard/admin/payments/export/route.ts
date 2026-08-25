@@ -281,8 +281,8 @@ export async function GET(request: NextRequest) {
 
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = "منصة التوجيه الطلابي";
-  workbook.lastModifiedBy = "منصة التوجيه الطلابي";
+  workbook.creator = "Teachix";
+  workbook.lastModifiedBy = "Teachix";
   workbook.created = new Date();
   workbook.modified = new Date();
 

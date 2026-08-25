@@ -107,7 +107,7 @@ export function TimetablePrintView({
         <header className="document-header">
           <div>
             <p className="platform-name">
-              منصة التوجيه الطلابي
+              Teachix
             </p>
 
             <h1>{project.name}</h1>

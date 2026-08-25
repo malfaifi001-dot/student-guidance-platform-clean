@@ -299,7 +299,7 @@ function buildExportContext(
       cleanText(identity.logoUrl) ||
       cleanText(identity.schoolLogoUrl) ||
       "/uploads/school-logos/MOE.png",
-    "report.platformName": "منصة التوجيه الطلابي",
+    "report.platformName": "Teachix",
     "evidence.count": String(previewCaseData.evidences.length),
     evidenceCount: String(previewCaseData.evidences.length),
   };

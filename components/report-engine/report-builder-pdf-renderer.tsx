@@ -169,7 +169,7 @@ function OfficialPageFrame({
       <main className="min-h-0 flex-1 overflow-hidden pt-6">{children}</main>
 
       <footer className="mt-6 border-t border-slate-200 pt-3 text-center text-[11px] text-slate-500">
-        تم إنشاء التقارير من منصة التوجيه الطلابي
+        تم إنشاء التقرير من Teachix
       </footer>
     </div>
   );

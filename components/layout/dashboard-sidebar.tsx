@@ -13,7 +13,7 @@ import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
-import { getStudentAudienceLabels } from "@/lib/students/student-audience-labels";
+import { getAssessmentAudienceLabels, getStudentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 import {
   Activity,
@@ -424,9 +424,10 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
 
 function getTeacherAdditionalLinks(gender?: string | null): SidebarLinkItem[] {
   const labels = getStudentAudienceLabels(gender);
+  const assessmentLabels = getAssessmentAudienceLabels(gender);
   return [
   {
-    label: "تحليل نتائج الطلاب",
+    label: assessmentLabels.resultsTitle,
     href: "/dashboard/assessments-center",
     icon: BarChart3,
   },

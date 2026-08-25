@@ -7,6 +7,7 @@ import { PerformanceItemLinkPopCard } from "@/components/performance-links/perfo
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
 
 type Analysis = {
   id: string;
@@ -31,7 +32,8 @@ const labels: Record<string, string> = {
   SUBJECT_PERIODIC: "تحليل فصلي لمادة",
 };
 
-export function AssessmentsCenterHome() {
+export function AssessmentsCenterHome({ gender }: { gender?: string | null }) {
+  const audience = getAssessmentAudienceLabels(gender);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [links, setLinks] = useState<ServiceLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +103,7 @@ export function AssessmentsCenterHome() {
 
   return <main dir="rtl" className="mx-auto max-w-7xl space-y-6 p-6">
     <header className="flex flex-wrap items-end justify-between gap-6 rounded-[2rem] bg-gradient-to-br from-teal-700 via-cyan-700 to-blue-700 p-8 text-white shadow-xl">
-      <div><p className="font-bold text-cyan-100">Teachix</p><h1 className="mt-2 text-4xl font-black">تحليل نتائج الطلاب</h1><p className="mt-3 max-w-2xl font-bold leading-8 text-cyan-50">أنشئ تحليلًا جديدًا، راجع النتائج السابقة، واستخرج تقريرًا تعليميًا قابلًا للطباعة.</p></div>
+      <div><p className="font-bold text-cyan-100">Teachix</p><h1 className="mt-2 text-4xl font-black">{audience.resultsTitle}</h1><p className="mt-3 max-w-2xl font-bold leading-8 text-cyan-50">{audience.newAnalysis}، راجع النتائج السابقة، واستخرج تقريرًا تعليميًا قابلًا للطباعة.</p></div>
       <Link href="/dashboard/assessments-center/new" className="rounded-2xl bg-white px-6 py-3 font-black text-teal-700">تحليل جديد</Link>
     </header>
 

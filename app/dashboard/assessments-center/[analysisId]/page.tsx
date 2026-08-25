@@ -10,7 +10,7 @@ export default async function NafsAnalysisPage({ params, searchParams }: { param
   const { mode } = await searchParams;
   if (mode === "edit" && analysis) {
     const { AssessmentNewClient } = await import("@/components/assessments-center/assessment-new-client");
-    return <AssessmentNewClient editAnalysisId={analysisId} />;
+    return <AssessmentNewClient editAnalysisId={analysisId} gender={context.user.gender} />;
   }
-  return analysis?.uploadMode === "NAFS_PRE_POST" ? <NafsAnalysisClient analysisId={analysisId} /> : <GenericAnalysisClient analysisId={analysisId} />;
+  return analysis?.uploadMode === "NAFS_PRE_POST" ? <NafsAnalysisClient analysisId={analysisId} gender={context.user.gender} /> : <GenericAnalysisClient analysisId={analysisId} gender={context.user.gender} />;
 }

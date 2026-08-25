@@ -169,7 +169,7 @@ export function ReportDesignGalleryPreview() {
         <div className="mb-6 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black text-emerald-700">
-              منصة التوجيه الطلابي
+              Teachix
             </p>
             <h1 className="mt-2 text-2xl font-black text-slate-950">
               معرض التصاميم الخام

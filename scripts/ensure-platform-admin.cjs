@@ -38,11 +38,11 @@ async function main() {
       slug,
     },
     update: {
-      name: "إدارة منصة التوجيه الطلابي",
+      name: "إدارة Teachix",
       isActive: true,
     },
     create: {
-      name: "إدارة منصة التوجيه الطلابي",
+      name: "إدارة Teachix",
       slug,
       isActive: true,
     },
@@ -53,7 +53,7 @@ async function main() {
       schoolAccountId: schoolAccount.id,
     },
     update: {
-      schoolName: "إدارة منصة التوجيه الطلابي",
+      schoolName: "إدارة Teachix",
       educationDepartment: "الإدارة العامة",
       educationOffice: "إدارة المنصة",
       academicYear: "1447 هـ",
@@ -62,7 +62,7 @@ async function main() {
     },
     create: {
       schoolAccountId: schoolAccount.id,
-      schoolName: "إدارة منصة التوجيه الطلابي",
+      schoolName: "إدارة Teachix",
       educationDepartment: "الإدارة العامة",
       educationOffice: "إدارة المنصة",
       academicYear: "1447 هـ",
@@ -86,7 +86,7 @@ async function main() {
     update: {
       schoolAccountId: schoolAccount.id,
       name: "مدير المنصة",
-      officialName: "مدير منصة التوجيه الطلابي",
+      officialName: "مدير Teachix",
       jobTitle: "مدير النظام",
       role: "ADMIN",
       gender: "MALE",
@@ -98,7 +98,7 @@ async function main() {
     create: {
       schoolAccountId: schoolAccount.id,
       name: "مدير المنصة",
-      officialName: "مدير منصة التوجيه الطلابي",
+      officialName: "مدير Teachix",
       email: ADMIN_EMAIL,
       phone: "0500000000",
       passwordHash,

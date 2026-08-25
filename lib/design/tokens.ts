@@ -1,6 +1,6 @@
 export const designTokens = {
   app: {
-    name: "منصة التوجيه الطلابي",
+    name: "Teachix",
     shortName: "توجيه",
   },
   colors: {

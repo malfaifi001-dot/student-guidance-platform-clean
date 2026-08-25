@@ -47,7 +47,7 @@ export default async function AssessmentCleanPrintPage({
         }),
         prisma.user.findUnique({
           where: { id: context.user.id },
-          select: { signatureUrl: true },
+            select: { signatureUrl: true, gender: true },
         }),
       ])
     : [null, null];
@@ -57,6 +57,7 @@ export default async function AssessmentCleanPrintPage({
     profile || undefined,
     context.user.name,
     currentUser?.signatureUrl,
+    currentUser?.gender,
   );
 
   return <AssessmentAnalyticalReport data={data} />;

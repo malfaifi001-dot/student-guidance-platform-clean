@@ -20,6 +20,7 @@ export type DashboardAuthUser = {
   role: DashboardRole | string;
   schoolAccountId: string | null;
   isActive?: boolean | null;
+  gender?: string | null;
 };
 
 export type DashboardContext = {
@@ -39,6 +40,7 @@ type RawSessionUser = {
   role?: unknown;
   schoolAccountId?: unknown;
   isActive?: unknown;
+  gender?: unknown;
 };
 
 function toNullableString(value: unknown) {
@@ -67,6 +69,7 @@ function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
     schoolAccountId: toNullableString(user?.schoolAccountId),
     isActive:
       typeof user?.isActive === "boolean" ? user.isActive : null,
+    gender: toNullableString(user?.gender),
   };
 }
 

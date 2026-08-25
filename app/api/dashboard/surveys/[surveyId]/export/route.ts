@@ -146,7 +146,7 @@ export async function GET(_request: Request, context: RouteContext) {
   if (error) return error;
 
   const workbook = new Workbook();
-  workbook.creator = "منصة التوجيه الطلابي";
+  workbook.creator = "Teachix";
   workbook.created = new Date();
 
   const summarySheet = workbook.addWorksheet("ملخص الاستبيان", {

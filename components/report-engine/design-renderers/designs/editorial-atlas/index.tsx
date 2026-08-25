@@ -36,7 +36,7 @@ export function EditorialAtlasReportDesign({
               EDITORIAL ATLAS
             </p>
             <p className="mt-2 text-[9px] font-bold text-white/60">
-              منصة التوجيه الطلابي
+              Teachix
             </p>
           </div>
         </aside>

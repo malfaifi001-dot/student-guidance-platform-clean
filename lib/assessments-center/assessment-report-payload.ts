@@ -1,6 +1,7 @@
 import type { AssessmentAnalyticalReportData } from "@/components/assessments-center/report/assessment-analytical-report";
+import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
 
-type Identity = { schoolName?: string | null; logoUrl?: string | null; principalName?: string | null; principalSignatureUrl?: string | null; educationDepartment?: string | null; educationOffice?: string | null; academicYear?: string | null; currentSemester?: string | null; };
+type Identity = { schoolName?: string | null; logoUrl?: string | null; principalName?: string | null; principalSignatureUrl?: string | null; educationDepartment?: string | null; educationOffice?: string | null; academicYear?: string | null; currentSemester?: string | null; gender?: string | null; };
 type RecordValue = Record<string, unknown>;
 
 function record(value: unknown): RecordValue { return value && typeof value === "object" ? value as RecordValue : {}; }
@@ -26,7 +27,7 @@ function aiSections(ai: RecordValue, studentNames: string[]) {
   };
 }
 
-export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, identity?: Identity, teacherName?: string | null, teacherSignatureUrl?: string | null): AssessmentAnalyticalReportData {
+export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, identity?: Identity, teacherName?: string | null, teacherSignatureUrl?: string | null, gender?: string | null): AssessmentAnalyticalReportData {
   const snapshot = record(snapshotValue);
   const stats = record(snapshot.statistics);
   const ai = record(snapshot.ai);
@@ -89,9 +90,11 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
     evidence: text(item.evidence) || undefined,
   })) : [];
   const analysis = aiSections(ai, students.map((student) => text(student.studentName)).filter(Boolean));
+  const audience = getAssessmentAudienceLabels(gender);
 
   return {
-    reportTitle: type === "NAFS" ? "تحليل نتائج نافس" : type === "MAHIROON" ? "تحليل نتائج اختبار ماهرون" : `تحليل نتائج مادة ${text(snapshot.subject, "")}`,
+    studentAudience: audience.students as "الطلاب" | "الطالبات",
+    reportTitle: type === "NAFS" ? `تحليل نتائج نافس لـ${audience.students}` : type === "MAHIROON" ? `تحليل نتائج اختبار ماهرون لـ${audience.students}` : `تحليل نتائج مادة ${text(snapshot.subject, "")} لـ${audience.students}`,
     reportSubtitle: type === "NAFS" ? "الاختبار القبلي والبعدي" : "تقرير تحليلي للنتائج والمؤشرات",
     analysisTypeLabel: typeLabel,
     analysisType: type,

@@ -32,7 +32,7 @@ export function GirlsLilacElegantReportDesign({
           <aside className="bg-gradient-to-b from-violet-700 to-fuchsia-500 p-5 text-white">
             <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain brightness-0 invert" />
             <div className="mx-auto mt-10 h-40 w-px bg-white/40" />
-            <p className="mt-5 rotate-180 text-center text-xs font-black [writing-mode:vertical-rl]">منصة التوجيه الطلابي</p>
+            <p className="mt-5 rotate-180 text-center text-xs font-black [writing-mode:vertical-rl]">Teachix</p>
           </aside>
         </div>
       </article>

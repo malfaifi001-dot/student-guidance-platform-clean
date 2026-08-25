@@ -564,7 +564,7 @@ function createBlock(kind: StudioBlockKind): StudioBlock {
     return {
       ...base,
       title: "خاتمة واعتماد",
-      content: "تم إعداد التقرير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+      content: "تم إعداد التقرير واعتماده وفق البيانات المتاحة في Teachix.",
     };
   }
 
@@ -816,7 +816,7 @@ function getDefaultReportTwoHeaderValues(
       cleanText(context["identity.educationDepartment"]) ||
       "الإدارة العامة للتعليم",
     "report.platformName":
-      cleanText(context["report.platformName"]) || "منصة التوجيه الطلابي",
+      cleanText(context["report.platformName"]) || "Teachix",
   };
 }
 

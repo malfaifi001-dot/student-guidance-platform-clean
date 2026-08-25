@@ -178,7 +178,7 @@ export function SurveyPrintReportShell({ surveyId, backPath }: SurveyPrintReport
         <header className="avoid-break border-b border-slate-200 pb-6">
           <div className="flex items-start justify-between gap-6">
             <div>
-              <p className="text-sm font-bold text-sky-700">منصة التوجيه الطلابي</p>
+              <p className="text-sm font-bold text-sky-700">Teachix</p>
               <h1 className="mt-3 text-3xl font-black text-slate-950">{analysis.survey.title}</h1>
               {analysis.survey.description ? (
                 <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-600">{analysis.survey.description}</p>
@@ -334,7 +334,7 @@ export function SurveyPrintReportShell({ surveyId, backPath }: SurveyPrintReport
         </section>
 
         <footer className="mt-8 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">
-          تم إنشاء هذا التقرير من مركز الاستبيانات في منصة التوجيه الطلابي.
+          تم إنشاء هذا التقرير من مركز الاستبيانات في Teachix.
         </footer>
       </section>
     </main>

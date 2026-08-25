@@ -23,7 +23,7 @@ export function ModernOfficialReportDesign({
           <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
             <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
             <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
-              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="text-sm font-black tracking-wide">Teachix</p>
               <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
             </div>
           </aside>

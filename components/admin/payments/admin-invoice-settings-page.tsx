@@ -19,7 +19,7 @@ type InvoiceSettings = {
 
 const emptySettings: InvoiceSettings = {
   id: "",
-  sellerName: "منصة التوجيه الطلابي",
+  sellerName: "Teachix",
   sellerDomain: "smstudents.com",
   sellerCountry: "المملكة العربية السعودية",
   sellerAddress: "",
@@ -29,7 +29,7 @@ const emptySettings: InvoiceSettings = {
   vatRate: 0,
   invoicePrefix: "INV",
   invoiceNote:
-    "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
+    "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.",
 };
 
 function Field({

@@ -207,7 +207,7 @@ export function DesignFooter({
             "calc(11px * var(--report-caption-font-scale, 1))",
         }}
       >
-        <span>منصة التوجيه الطلابي</span>
+        <span>Teachix</span>
         <span>{text}</span>
       </div>
 

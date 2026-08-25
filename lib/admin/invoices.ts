@@ -131,7 +131,7 @@ export async function updateInvoiceSettings(input: InvoiceSettingsInput) {
       id: existing.id,
     },
     data: {
-      sellerName: String(input.sellerName || "منصة التوجيه الطلابي").trim(),
+      sellerName: String(input.sellerName || "Teachix").trim(),
       sellerDomain: String(input.sellerDomain || "smstudents.com").trim() || null,
       sellerCountry:
         String(input.sellerCountry || "المملكة العربية السعودية").trim() || null,
@@ -145,7 +145,7 @@ export async function updateInvoiceSettings(input: InvoiceSettingsInput) {
       invoicePrefix: normalizePrefix(input.invoicePrefix),
       invoiceNote:
         String(input.invoiceNote || "").trim() ||
-        "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
+        "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.",
     },
   });
 }
@@ -234,7 +234,7 @@ function buildInvoicePayload(
         (snapshot && typeof snapshot.invoiceNote === "string"
           ? snapshot.invoiceNote
           : "") ||
-        "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
+        "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.",
       seller: {
         name: invoice.sellerName,
         domain: invoice.sellerDomain || "—",
@@ -373,7 +373,7 @@ export async function getOrCreateInvoiceForPaymentTransaction(
     settings.vatRate
   );
 
-  const itemTitle = `اشتراك منصة التوجيه الطلابي - ${
+  const itemTitle = `اشتراك Teachix - ${
     transaction.subscription?.plan.name || "باقة غير محددة"
   }`;
 
@@ -453,7 +453,7 @@ export async function getOrCreateInvoiceForPaymentTransaction(
           snapshotJson: asJson({
             invoiceNote:
               settings.invoiceNote ||
-              "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
+              "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في Teachix.",
             settings: {
               sellerName: settings.sellerName,
               sellerDomain: settings.sellerDomain,
