@@ -7,6 +7,52 @@ import { normalizePortfolioServiceOutput, type PortfolioCurriculumWeek, type Por
 import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-registry";
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
 
+const CURRICULUM_FIRST_PAGE_BUDGET = 30;
+const CURRICULUM_CONTINUATION_PAGE_BUDGET = 38;
+
+function curriculumWeekWeight(week: PortfolioCurriculumWeek) {
+  const textLines = (value: string) => Math.max(1, Math.ceil(value.trim().length / 28));
+  const lessonLines = week.units.reduce(
+    (total, unit) =>
+      total + 1 + textLines(unit.name) + unit.lessons.reduce((sum, lesson) => sum + textLines(lesson), 0),
+    0,
+  );
+  const standaloneLines = week.standalone.reduce((total, lesson) => total + textLines(lesson), 0);
+  return 3 + textLines(week.title) + textLines(week.gregorianRange) + lessonLines + standaloneLines;
+}
+
+function splitCurriculumWeeksForPhysicalPages(weeks: PortfolioCurriculumWeek[]) {
+  const pages: PortfolioCurriculumWeek[][] = [];
+  let page: PortfolioCurriculumWeek[] = [];
+  let pageWeight = 0;
+  let row: PortfolioCurriculumWeek[] = [];
+  let rowWeight = 0;
+
+  const flushRow = () => {
+    if (!row.length) return;
+    const budget = pages.length === 0 ? CURRICULUM_FIRST_PAGE_BUDGET : CURRICULUM_CONTINUATION_PAGE_BUDGET;
+    if (page.length && pageWeight + rowWeight > budget) {
+      pages.push(page);
+      page = [];
+      pageWeight = 0;
+    }
+    page.push(...row);
+    pageWeight += rowWeight;
+    row = [];
+    rowWeight = 0;
+  };
+
+  for (const week of weeks) {
+    const weight = curriculumWeekWeight(week);
+    if (row.length === 3) flushRow();
+    row.push(week);
+    rowWeight = Math.max(rowWeight, weight);
+  }
+  flushRow();
+  if (page.length) pages.push(page);
+  return pages;
+}
+
 function roleForPageType(pageType: PortfolioPhysicalPageType): PortfolioPhysicalPageRole {
   if (pageType === "cover") return "cover";
   if (pageType === "performance-divider") return "performance-divider";
@@ -58,7 +104,12 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
   for (const section of document.sections.filter((item) => item.isEnabled)) {
     for (const block of section.blocks) {
       if (block.type === "service-output") {
-        const chunks = normalizePortfolioServiceOutput(block.payload.output);
+        const normalizedChunks = normalizePortfolioServiceOutput(block.payload.output);
+        const chunks: PortfolioServiceOutputChunk[] = normalizedChunks.flatMap<PortfolioServiceOutputChunk>((chunk) =>
+          chunk.kind === "curriculum-distribution"
+            ? splitCurriculumWeeksForPhysicalPages(chunk.weeks).map((weeks) => ({ ...chunk, weeks }))
+            : [chunk],
+        );
         const outputPages = chunks.map((chunk, index) => {
           const pageType = index === 0 ? "service-output" : "service-output-continuation";
           const page = makePage(section, block, pageType, `${block.id}-page-${index + 1}`, { ...block.payload, chunk }, index, chunks.length);
