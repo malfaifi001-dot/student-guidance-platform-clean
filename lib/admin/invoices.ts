@@ -68,6 +68,11 @@ function getSenderName(metadataJson: unknown) {
   return typeof metadata?.senderName === "string" ? metadata.senderName : null;
 }
 
+function isBagPurchase(metadataJson: unknown) {
+  const metadata = getMetadata(metadataJson);
+  return metadata?.salesExperienceMode === "BAG";
+}
+
 function clampVatRate(value: unknown) {
   const rate = Number(value || 0);
 
@@ -373,9 +378,12 @@ export async function getOrCreateInvoiceForPaymentTransaction(
     settings.vatRate
   );
 
-  const itemTitle = `اشتراك Teachix - ${
-    transaction.subscription?.plan.name || "باقة غير محددة"
-  }`;
+  const bagPurchase = isBagPurchase(transaction.metadataJson);
+  const itemTitle = bagPurchase
+    ? "الحقيبة الشاملة"
+    : `اشتراك Teachix - ${
+        transaction.subscription?.plan.name || "باقة غير محددة"
+      }`;
 
   try {
     await prisma.$transaction(async (tx) => {

@@ -32,10 +32,12 @@ export function CheckoutPlanPage({
   plan,
   providers,
   userHasSchoolAccount,
+  isBagMode = false,
 }: {
   plan: Plan;
   providers: Provider[];
   userHasSchoolAccount: boolean;
+  isBagMode?: boolean;
 }) {
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">(plan.commercialType === "YEAR" ? "YEARLY" : "MONTHLY");
   const [providerSlug, setProviderSlug] = useState(providers[0]?.slug || "");
@@ -84,13 +86,13 @@ export function CheckoutPlanPage({
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
-          إتمام الاشتراك
+          {isBagMode ? "إتمام شراء الحقيبة الشاملة" : "إتمام الاشتراك"}
         </p>
         <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
-          {plan.name}
+          {isBagMode ? "الحقيبة الشاملة" : plan.name}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-400">
-          اختر دورة الفوترة ومزود الدفع، ثم ابدأ عملية الدفع الإلكتروني.
+          {isBagMode ? "منتج تعليمي مادي يتم شحنه إلى العميل. بعد إتمام الدفع سيتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم." : "اختر دورة الفوترة ومزود الدفع، ثم ابدأ عملية الدفع الإلكتروني."}
         </p>
       </section>
 
@@ -177,12 +179,12 @@ export function CheckoutPlanPage({
 
           <div className="mt-5 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
-              <span className="text-slate-500 dark:text-slate-400">الباقة</span>
-              <strong className="text-slate-950 dark:text-white">{plan.name}</strong>
+              <span className="text-slate-500 dark:text-slate-400">{isBagMode ? "المنتج" : "الباقة"}</span>
+              <strong className="text-slate-950 dark:text-white">{isBagMode ? "الحقيبة الشاملة" : plan.name}</strong>
             </div>
 
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
-              <span className="text-slate-500 dark:text-slate-400">الفوترة</span>
+              <span className="text-slate-500 dark:text-slate-400">{isBagMode ? "مدة الخدمات المصاحبة" : "الفوترة"}</span>
               <strong className="text-slate-950 dark:text-white">
                 {getSubscriptionPeriodLabel(billingCycle)}
               </strong>
@@ -208,7 +210,7 @@ export function CheckoutPlanPage({
             }
             className="mt-6 w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
-            {isSubmitting ? "جارٍ إنشاء العملية..." : "بدء الدفع"}
+            {isSubmitting ? "جارٍ إنشاء العملية..." : isBagMode ? "شراء الحقيبة" : "بدء الدفع"}
           </button>
         </aside>
       </section>

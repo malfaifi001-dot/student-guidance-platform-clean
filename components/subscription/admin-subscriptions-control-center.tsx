@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { AdminSalesExperiencePanel } from "@/components/subscription/admin-sales-experience-panel";
 import { PlanPricingCard } from "@/components/subscription/plan-pricing-card";
 import { quoteManualPlanOffer } from "@/lib/promotions/pricing-core";
 import {
@@ -418,6 +419,7 @@ export function AdminSubscriptionsControlCenter() {
   ];
   return (
     <main dir="rtl" className="space-y-5">
+      <AdminSalesExperiencePanel />
       <header className="rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

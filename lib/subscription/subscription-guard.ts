@@ -4,6 +4,7 @@ import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
 } from "@/lib/subscription/subscription-service";
+import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
 
 export async function requireActiveSubscriptionForCurrentUser() {
   const current = await getCurrentSessionUser();
@@ -13,6 +14,10 @@ export async function requireActiveSubscriptionForCurrentUser() {
   }
 
   if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (await isBagModeForCurrentUser()) {
     return current;
   }
 
@@ -41,6 +46,10 @@ export async function requireServiceAccessForCurrentUser(
   }
 
   if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (await isBagModeForCurrentUser()) {
     return current;
   }
 

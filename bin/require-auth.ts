@@ -7,6 +7,7 @@ import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
 } from "@/lib/subscription/subscription-service";
+import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
 
 type DashboardAuthResult = SchoolDashboardContext | NextResponse;
 
@@ -35,6 +36,10 @@ export async function requireActiveSubscriptionForCurrentUser(
     return context;
   }
 
+  if (await isBagModeForCurrentUser()) {
+    return context;
+  }
+
   const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
 
   if (!overview.usable) {
@@ -55,6 +60,10 @@ export async function requireServiceAccessForCurrentUser(
   }
 
   if (context.isAdmin) {
+    return context;
+  }
+
+  if (await isBagModeForCurrentUser()) {
     return context;
   }
 

@@ -50,6 +50,7 @@ export function PlanPaymentModal({
   onRemoveCoupon,
   isFreeActivation = false,
   isActivatingFreePlan = false,
+  isBagMode = false,
   onActivateFreePlan,
   onClose,
 }: {
@@ -74,6 +75,7 @@ export function PlanPaymentModal({
   onRemoveCoupon: () => void;
   isFreeActivation?: boolean;
   isActivatingFreePlan?: boolean;
+  isBagMode?: boolean;
   onActivateFreePlan?: () => void;
   onClose: () => void;
 }) {
@@ -84,7 +86,7 @@ export function PlanPaymentModal({
   function openTabbyWhatsApp() {
     const message = [
       "مرحبًا، أرغب في الدفع عبر Tabby.",
-      `الباقة: ${planName}`,
+      `${isBagMode ? "الحقيبة" : "الباقة"}: ${planName}`,
       `المدة: ${billingLabel}`,
       `المبلغ: ${total.toLocaleString("ar-SA")} ريال`,
       "أرجو إرسال رابط الدفع عبر Tabby.",
@@ -112,13 +114,13 @@ export function PlanPaymentModal({
         </button>
 
         <aside className="order-1 flex flex-col justify-center border-t border-sky-100 bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-600 p-6 text-white sm:p-7 lg:order-1 lg:border-l lg:border-t-0">
-          <p className="text-xs font-black text-sky-100">ملخص الاشتراك</p>
+          <p className="text-xs font-black text-sky-100">{isBagMode ? "ملخص الحقيبة" : "ملخص الاشتراك"}</p>
           <h2 className="mt-3 text-2xl font-black">{planName}</h2>
           <p className="mt-2 text-sm font-bold text-sky-100">{billingLabel}</p>
 
           <div className="mt-6 flex items-center gap-2 border-y border-white/20 py-4 text-sm font-bold text-sky-50">
             <Check className="h-4 w-4 shrink-0 text-cyan-200" />
-            <span>شاملة جميع الخدمات</span>
+            <span>{isBagMode ? "أدوات ومواد تعليمية" : "شاملة جميع الخدمات"}</span>
           </div>
 
           <div className="mt-5 rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
@@ -190,7 +192,7 @@ export function PlanPaymentModal({
               )}
             </div>
             <div>
-              <p className="text-xs font-black text-sky-700">إتمام الاشتراك</p>
+              <p className="text-xs font-black text-sky-700">{isBagMode ? "إتمام شراء الحقيبة" : "إتمام الاشتراك"}</p>
               <h2
                 id="payment-modal-title"
                 className="mt-1 text-xl font-black text-slate-950"
@@ -212,12 +214,12 @@ export function PlanPaymentModal({
                 <>
                   <Loader2 className="mx-auto h-7 w-7 animate-spin text-emerald-600" />
                   <p className="mt-3 text-sm font-black text-emerald-800">
-                    جاري تفعيل الباقة والتحقق من الكوبون...
+                    {isBagMode ? "جاري تجهيز شراء الحقيبة والتحقق من الكوبون..." : "جاري تفعيل الباقة والتحقق من الكوبون..."}
                   </p>
                 </>
               ) : errorMessage ? (
                 <>
-                  <p className="text-sm font-black text-rose-700">تعذر تفعيل الباقة.</p>
+                  <p className="text-sm font-black text-rose-700">{isBagMode ? "تعذر تجهيز شراء الحقيبة." : "تعذر تفعيل الباقة."}</p>
                   {onActivateFreePlan ? (
                     <button
                       type="button"
@@ -230,7 +232,7 @@ export function PlanPaymentModal({
                 </>
               ) : (
                 <p className="text-sm font-black text-emerald-800">
-                  تم التحقق من الكوبون. جاري تفعيل الباقة...
+                  {isBagMode ? "تم التحقق من الكوبون. جاري تجهيز شراء الحقيبة..." : "تم التحقق من الكوبون. جاري تفعيل الباقة..."}
                 </p>
               )}
             </div>
@@ -252,7 +254,7 @@ export function PlanPaymentModal({
                     currency={transaction.currency}
                     publicKey={transaction.publicKey}
                     transactionId={transaction.id}
-                    description={`اشتراك ${planName}`}
+                    description={`${isBagMode ? "شراء الحقيبة الشاملة" : "اشتراك"} ${planName}`}
                   />
                 </div>
               ) : null}

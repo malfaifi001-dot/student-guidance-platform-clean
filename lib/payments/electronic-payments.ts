@@ -18,6 +18,7 @@ import {
   redeemCouponWithClient,
 } from "@/lib/promotions/coupon-service";
 import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 export class ElectronicPaymentError extends Error {
   status: number;
@@ -159,6 +160,8 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
     );
   }
 
+  const salesExperience = await resolveSalesExperienceForUser(requesterUser.id);
+
   const originalAmount = getCheckoutAmount(plan, billingCycle);
   const couponQuote = input.couponCode
     ? await getCouponQuote({
@@ -191,6 +194,9 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
       status: PaymentStatus.PENDING,
       metadataJson: asJson({
         source: "CHECKOUT",
+        salesExperienceMode: salesExperience.effectiveMode,
+        productTitle:
+          salesExperience.isBagMode ? "الحقيبة الشاملة" : plan.name,
         planId: plan.id,
         planSlug: plan.slug,
         planName: plan.name,

@@ -27,6 +27,7 @@ import {
   redeemCoupon,
 } from "@/lib/promotions/coupon-service";
 import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -84,6 +85,8 @@ export async function GET() {
       },
     }),
   ]);
+
+  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
 
   const paidInvoiceTransaction = subscription
     ? await prisma.paymentTransaction.findFirst({
@@ -158,7 +161,14 @@ export async function GET() {
     }),
   );
 
+  const bagPlan = [...mappedPlans].sort((a, b) => {
+    const fullAccess = (value: typeof a) => value.serviceAccessMode === "ALL_SERVICES" ? 1 : 0;
+    return fullAccess(b) - fullAccess(a) || b.services.length - a.services.length || b.priceYearly - a.priceYearly;
+  })[0] || null;
+
   return NextResponse.json({
+    salesExperience,
+    bagPlanId: bagPlan?.id || null,
     plans: mappedPlans,
     subscription: subscription
       ? {

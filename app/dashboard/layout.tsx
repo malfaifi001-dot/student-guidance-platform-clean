@@ -13,6 +13,7 @@ import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
 import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-bottom-nav";
 import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
 import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 export const metadata: Metadata = {
   robots: {
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
   children: ReactNode;
 }) {
   const current = await requireDashboardUser();
+  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
   const subscriptionOverview =
     current.user.role !== "ADMIN" && current.user.schoolAccountId
       ? await getSchoolSubscriptionOverview(current.user.schoolAccountId)
@@ -74,12 +76,14 @@ export default async function DashboardLayout({
           <DashboardSidebar
             user={current.user}
             subscription={subscriptionPresentation}
+            salesMode={salesExperience.effectiveMode}
           />
 
           <main className="h-[100dvh] w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
             <DashboardHeader
               user={current.user}
               subscription={subscriptionPresentation}
+              salesMode={salesExperience.effectiveMode}
             />
 
             {current.user.role !== "PRINCIPAL" ? (

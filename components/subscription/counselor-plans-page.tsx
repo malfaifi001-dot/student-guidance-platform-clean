@@ -15,6 +15,9 @@ import {
 } from "@/lib/subscription/subscription-presentation";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { buildWhatsAppLink } from "@/lib/whatsapp/whatsapp-links";
+import { TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER } from "@/lib/marketing/contact-details";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
 
 const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
@@ -51,6 +54,11 @@ type CounselorPlan = {
 };
 
 type PlansPayload = {
+  salesExperience?: {
+    effectiveMode: "SERVICE" | "BAG";
+    isBagMode: boolean;
+  };
+  bagPlanId?: string | null;
   plans: CounselorPlan[];
   subscription: {
     status: string;
@@ -98,6 +106,7 @@ type PaymentReturnFeedback = {
   title: string;
   description: string;
   transactionId?: string;
+  isBagMode?: boolean;
 };
 
 type BankTransferFields = {
@@ -113,6 +122,17 @@ const emptyBankTransfer: BankTransferFields = {
   receiptUrl: "",
   note: "",
 };
+
+const BAG_CONTENTS = [
+  "كتب تعليمية",
+  "أدوات تعليمية للطلاب",
+  "ملزمة تعليمية",
+  "عروض تعليمية",
+  "بطاقات وأنشطة",
+  "مواد صفية مساندة",
+  "نماذج جاهزة للطباعة",
+  "أدوات تنظيم للمعلم",
+];
 
 function getPlanPrice(plan: CounselorPlan, billingCycle: BillingCycle) {
   return billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
@@ -166,6 +186,77 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
   }
 
   return null;
+}
+
+function BagProductCard({
+  plan,
+  billingCycle,
+  onPurchase,
+}: {
+  plan: CounselorPlan;
+  billingCycle: BillingCycle;
+  onPurchase: () => void;
+}) {
+  const amount = getPlanPrice(plan, billingCycle);
+
+  return (
+    <article className="relative overflow-hidden rounded-[2rem] border border-violet-200 bg-gradient-to-br from-violet-950 via-slate-900 to-sky-950 p-6 text-white shadow-xl shadow-violet-100 md:col-span-2 xl:col-span-3">
+      <div className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-violet-400/20 blur-3xl" />
+      <div className="relative grid gap-7 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-amber-300 px-3 py-1 text-xs font-black text-amber-950">
+              منتج مادي
+            </span>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-violet-100">
+              Teachix
+            </span>
+          </div>
+          <h2 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
+            الحقيبة الشاملة
+          </h2>
+          <p className="mt-3 text-xl font-black text-violet-100">
+            حقيبة تعليمية متكاملة للمعلم
+          </p>
+          <p className="mt-4 max-w-2xl text-sm font-bold leading-8 text-slate-200">
+            منتج تعليمي مادي يتم شحنه إلى العميل، وبعد إتمام الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم.
+          </p>
+          <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
+            <h3 className="font-black text-white">محتويات الحقيبة الشاملة</h3>
+            <p className="mt-1 text-xs font-bold text-slate-300">مجموعة مختارة من الأدوات والمواد التعليمية للمعلم.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {BAG_CONTENTS.map((name) => (
+                <div key={name} className="flex items-start gap-2 text-sm font-bold text-slate-200">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                  <span>{name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-[1.75rem] border border-white/15 bg-white p-5 text-slate-950 shadow-2xl">
+          <p className="text-xs font-black text-violet-700">أدوات ومواد تعليمية</p>
+          <div className="mt-4 flex items-end gap-2">
+            <strong className="text-4xl font-black">{formatPrice(amount)}</strong>
+            <span className="pb-1 text-sm font-bold text-slate-500">ريال</span>
+          </div>
+          <p className="mt-2 text-xs font-bold text-slate-500">
+            مدة الخدمات المصاحبة: {getBillingLabel(billingCycle)}
+          </p>
+          <p className="mt-5 rounded-2xl bg-violet-50 p-3 text-xs font-bold leading-6 text-violet-800">
+            بعد إتمام الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم.
+          </p>
+          <button
+            type="button"
+            onClick={onPurchase}
+            className="mt-5 h-12 w-full rounded-2xl bg-violet-700 text-sm font-black text-white transition hover:bg-violet-800"
+          >
+            شراء الحقيبة
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export function CounselorPlansPage() {
@@ -294,11 +385,15 @@ export function CounselorPlansPage() {
             method?: string;
           };
 
+          const modeResponse = await fetch("/api/dashboard/plans", { cache: "no-store" });
+          const modePayload = await readApiResponse(modeResponse);
           await loadPlans();
+          const bagPurchase = modePayload?.salesExperience?.isBagMode === true;
           setPaymentReturnFeedback({
             type: "success",
-            title: "تم الدفع وتفعيل الباقة بنجاح",
+            title: bagPurchase ? "تم شراء الحقيبة الشاملة بنجاح" : "تم الدفع وتفعيل الباقة بنجاح",
             description: [
+              bagPurchase ? "تم استلام عملية الدفع بنجاح. يرجى التواصل معنا عبر واتساب لاستكمال بيانات الشحن والتسليم." : null,
               invoice.buyer?.schoolName,
               invoice.invoiceNumber
                 ? `رقم الفاتورة: ${invoice.invoiceNumber}`
@@ -311,6 +406,7 @@ export function CounselorPlansPage() {
               .filter(Boolean)
               .join("\n"),
             transactionId,
+            isBagMode: bagPurchase,
           });
         } catch (error) {
           setPaymentReturnFeedback({
@@ -362,6 +458,8 @@ export function CounselorPlansPage() {
       ),
     [data?.plans],
   );
+  const isBagMode = data?.salesExperience?.isBagMode === true;
+  const bagPlan = visiblePlans.find((plan) => plan.id === data?.bagPlanId) || visiblePlans[0] || null;
 
   const selectedPrice = selectedPlan
     ? selectedPlan.pricing?.pricingReason === "AUTOMATIC_PROMOTION" ||
@@ -633,7 +731,7 @@ export function CounselorPlansPage() {
 
   return (
     <main className="space-y-6" dir="rtl">
-      {entryNotice ? (
+      {entryNotice && !isBagMode ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
           <section
             className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl"
@@ -677,7 +775,7 @@ export function CounselorPlansPage() {
         </div>
       ) : null}
 
-      {message ? (
+      {message && !isBagMode ? (
         <div
           className={[
             "rounded-2xl border px-4 py-3 text-sm font-bold",
@@ -693,15 +791,15 @@ export function CounselorPlansPage() {
       <header className="flex flex-col gap-4 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-950">
-            اختر الباقة المناسبة
+            {isBagMode ? "الحقيبة الشاملة" : "اختر الباقة المناسبة"}
           </h1>
           <p className="mt-2 text-sm font-bold text-slate-500">
-            اختر خطتك ثم راجع السعر وانتقل مباشرة إلى الدفع الآمن.
+            {isBagMode ? "حقيبة تعليمية متكاملة للمعلم. منتج تعليمي مادي يتم شحنه إلى العميل، وبعد الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم." : "اختر خطتك ثم راجع السعر وانتقل مباشرة إلى الدفع الآمن."}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {data?.subscription?.usable ? (
+          {!isBagMode && data?.subscription?.usable ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2">
               <p className="text-xs font-black text-emerald-700">
                 الباقة المفعلة · {data.subscription.planName}
@@ -747,7 +845,16 @@ export function CounselorPlansPage() {
         id="plans-list"
         className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"
       >
-        {visiblePlans.map((plan) => {
+        {isBagMode ? (
+          bagPlan ? (
+            <BagProductCard
+              key="comprehensive-teacher-bag"
+              plan={bagPlan}
+              billingCycle={billingCycle}
+              onPurchase={() => selectPlan(bagPlan)}
+            />
+          ) : null
+        ) : visiblePlans.map((plan) => {
           const selected = selectedPlan?.id === plan.id;
           const active = Boolean(
             data?.subscription?.usable && data.subscription.planId === plan.id,
@@ -774,11 +881,11 @@ export function CounselorPlansPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-xl font-black text-slate-950">
-                  {plan.name}
+                {isBagMode ? "الحقيبة الشاملة" : plan.name}
                 </h2>
                 {active ? (
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
-                    الباقة المفعلة
+                    {isBagMode ? "خدمات Teachix مفعلة" : "الباقة المفعلة"}
                   </span>
                 ) : selected ? (
                   <CheckCircle2 className="h-5 w-5 text-sky-600" />
@@ -868,7 +975,7 @@ export function CounselorPlansPage() {
                     "الباقة الحالية"
                   )
                 ) : (
-                  "اختيار الباقة"
+                  isBagMode ? "شراء الحقيبة" : "اختيار الباقة"
                 )}
               </button>
             </article>
@@ -877,7 +984,7 @@ export function CounselorPlansPage() {
 
         {visiblePlans.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500 md:col-span-2 xl:col-span-3">
-            لا توجد باقات متاحة حاليًا.
+            {isBagMode ? "لا تتوفر الحقيبة حاليًا." : "لا توجد باقات متاحة حاليًا."}
           </div>
         ) : null}
       </section>
@@ -893,10 +1000,10 @@ export function CounselorPlansPage() {
             </div>
             <div>
               <p className="text-xs font-black text-emerald-700">
-                الباقة المختارة
+                {isBagMode ? "الحقيبة المختارة" : "الباقة المختارة"}
               </p>
               <h2 className="mt-1 text-lg font-black text-slate-950">
-                {selectedPlan.name}
+                {isBagMode ? "الحقيبة الشاملة" : selectedPlan.name}
               </h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
                 {getBillingLabel(billingCycle)} · {formatPrice(selectedPrice)}{" "}
@@ -921,25 +1028,27 @@ export function CounselorPlansPage() {
               ) : (
                 <ShieldCheck className="h-4 w-4" />
               )}
-              {selectedPlanIsFree ? "تفعيل الباقة الآن" : "المتابعة للدفع"}
+              {selectedPlanIsFree ? (isBagMode ? "شراء الحقيبة" : "تفعيل الباقة الآن") : (isBagMode ? "شراء الحقيبة" : "المتابعة للدفع")}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedPlan(null);
-                setCheckoutTransaction(null);
-              }}
-              className="px-3 py-2 text-sm font-black text-slate-500 transition hover:text-slate-900"
-            >
-              تغيير الباقة
-            </button>
+            {!isBagMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlan(null);
+                  setCheckoutTransaction(null);
+                }}
+                className="px-3 py-2 text-sm font-black text-slate-500 transition hover:text-slate-900"
+              >
+                تغيير الباقة
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
 
       {paymentModalOpen && selectedPlan ? (
         <PlanPaymentModal
-          planName={selectedPlan.name}
+          planName={isBagMode ? "الحقيبة الشاملة" : selectedPlan.name}
           billingLabel={getBillingLabel(billingCycle)}
           total={selectedFinalPrice}
           couponCode={couponCode}
@@ -977,6 +1086,7 @@ export function CounselorPlansPage() {
           }}
           isFreeActivation={selectedPlanIsFree}
           isActivatingFreePlan={activatingFreePlan}
+          isBagMode={isBagMode}
           onActivateFreePlan={() => void activateFreePlan()}
           onClose={() => setPaymentModalOpen(false)}
         />
@@ -995,7 +1105,7 @@ export function CounselorPlansPage() {
               <div>
                 <h2 className="text-xl font-black text-slate-950">معاينة الفاتورة</h2>
                 <p className="mt-1 text-xs font-bold text-slate-500">
-                  فاتورة Teachix الخاصة بالاشتراك الحالي
+                  {isBagMode ? "فاتورة Teachix الخاصة بالحقيبة" : "فاتورة Teachix الخاصة بالاشتراك الحالي"}
                 </p>
               </div>
               <button
@@ -1036,12 +1146,23 @@ export function CounselorPlansPage() {
         title={paymentReturnFeedback?.title || "حالة الدفع"}
         description={paymentReturnFeedback?.description || ""}
         primaryActionLabel={
-          paymentReturnFeedback?.transactionId
-            ? "معاينة الفاتورة"
-            : "حسنًا"
+          paymentReturnFeedback?.isBagMode
+            ? "استكمال الشحن عبر واتساب"
+            : paymentReturnFeedback?.transactionId
+              ? "معاينة الفاتورة"
+              : "حسنًا"
         }
-        secondaryActionLabel={paymentReturnFeedback?.transactionId ? "إغلاق" : undefined}
+        secondaryActionLabel={paymentReturnFeedback?.isBagMode || paymentReturnFeedback?.transactionId ? "العودة إلى Teachix" : undefined}
         onPrimaryAction={() => {
+          if (paymentReturnFeedback?.isBagMode) {
+            const link = buildWhatsAppLink(
+              TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER,
+              `السلام عليكم،\nتم شراء الحقيبة الشاملة من Teachix وأرغب في استكمال بيانات الشحن والتسليم.\nرقم العملية: ${paymentReturnFeedback.transactionId || ""}`,
+            );
+            if (link) void openExternalUrl(link);
+            setPaymentReturnFeedback(null);
+            return;
+          }
           const transactionId = paymentReturnFeedback?.transactionId;
           setPaymentReturnFeedback(null);
           if (transactionId) {

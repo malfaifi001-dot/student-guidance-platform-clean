@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAdminActivity } from "@/lib/admin/activity-log";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 type CreatePaidBankTransferPaymentTransactionOptions = {
   actorUserId?: string | null;
@@ -98,6 +99,9 @@ export async function createPaidBankTransferPaymentTransaction(
   }
 
   const externalRef = buildBankTransferExternalRef(request.id);
+  const salesExperience = request.requesterUserId
+    ? await resolveSalesExperienceForUser(request.requesterUserId)
+    : null;
 
   const existingTransaction = await prisma.paymentTransaction.findFirst({
     where: {
@@ -149,6 +153,8 @@ export async function createPaidBankTransferPaymentTransaction(
         externalRef,
         metadataJson: toInputJson({
           source: options.source || "BANK_TRANSFER_APPROVAL",
+          salesExperienceMode: salesExperience?.effectiveMode || "SERVICE",
+          productTitle: salesExperience?.isBagMode ? "الحقيبة الشاملة" : null,
           bankTransferRequestId: request.id,
           schoolAccountId: request.schoolAccountId,
           requestPlanId: request.planId,

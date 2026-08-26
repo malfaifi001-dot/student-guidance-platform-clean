@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
@@ -89,6 +89,8 @@ type SidebarLinkItem = {
   icon: ComponentType<{ className?: string }>;
   shortLabel?: string;
 };
+
+const SalesExperienceModeContext = createContext<"SERVICE" | "BAG">("SERVICE");
 
 const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 
@@ -752,6 +754,7 @@ function getRoleLabel(role?: string | null) {
 export function DashboardSidebar({
   user,
   subscription,
+  salesMode = "SERVICE",
   mode = "permanent",
   onClose,
 }: {
@@ -760,6 +763,7 @@ export function DashboardSidebar({
     planName: string;
     statusText: string;
   };
+  salesMode?: "SERVICE" | "BAG";
   mode?: "permanent" | "drawer";
   onClose?: () => void;
 }) {
@@ -923,6 +927,7 @@ export function DashboardSidebar({
         />
 
         <div className="min-h-0 flex-1 px-2 pb-2 pt-2">
+          <SalesExperienceModeContext.Provider value={salesMode}>
           {isAdmin ? (
             <AdminSidebar
               pathname={pathname}
@@ -950,6 +955,7 @@ export function DashboardSidebar({
               collapsed={effectiveCollapsed}
             />
           )}
+          </SalesExperienceModeContext.Provider>
         </div>
 
         <SidebarProfile
@@ -957,12 +963,16 @@ export function DashboardSidebar({
           displayName={
             isAdmin
               ? displayName
-              : subscription?.planName || "لا توجد باقة مفعلة"
+              : salesMode === "BAG"
+                ? displayName
+                : subscription?.planName || "لا توجد باقة مفعلة"
           }
           roleLabel={
             isAdmin
               ? roleLabel
-              : subscription?.statusText || "اختر باقة للمتابعة"
+              : salesMode === "BAG"
+                ? roleLabel
+                : subscription?.statusText || "اختر باقة للمتابعة"
           }
           avatar={avatar}
           avatarAlt={displayName}
@@ -1137,6 +1147,7 @@ function ActivityLeaderSidebar({
   pathname: string;
   collapsed: boolean;
 }) {
+  const salesMode = useContext(SalesExperienceModeContext);
   return (
     <SidebarNav ariaLabel="قائمة رائد النشاط">
       <SidebarSection
@@ -1188,7 +1199,7 @@ function ActivityLeaderSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب والباقات"
+        title={salesMode === "BAG" ? "الحساب والحقائب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1218,6 +1229,7 @@ function CounselorSidebar({
   pathname: string;
   collapsed: boolean;
 }) {
+  const salesMode = useContext(SalesExperienceModeContext);
   return (
     <SidebarNav ariaLabel="قائمة الموجه الطلابي">
       <SidebarSection
@@ -1285,7 +1297,7 @@ function CounselorSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب والباقات"
+        title={salesMode === "BAG" ? "الحساب والحقائب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1318,6 +1330,7 @@ function TeacherSidebar({
   gender?: string | null;
 }) {
   const teacherAdditionalLinks = getTeacherAdditionalLinks(gender);
+  const salesMode = useContext(SalesExperienceModeContext);
   return (
     <SidebarNav ariaLabel="قائمة المعلم">
       <SidebarSection
@@ -1367,7 +1380,7 @@ function TeacherSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب والباقات"
+        title={salesMode === "BAG" ? "الحساب والحقائب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/subscription") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1397,6 +1410,7 @@ function PrincipalSidebar({
   pathname: string;
   collapsed: boolean;
 }) {
+  const salesMode = useContext(SalesExperienceModeContext);
   return (
     <SidebarNav ariaLabel="قائمة مدير المدرسة">
       <SidebarSection
@@ -1467,7 +1481,7 @@ function PrincipalSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب والباقات"
+        title={salesMode === "BAG" ? "الحساب والحقائب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1755,11 +1769,17 @@ function SidebarLink({
   admin?: boolean;
 }) {
   const Icon = item.icon;
+  const salesMode = useContext(SalesExperienceModeContext);
+  const isSalesPlansLink =
+    item.href === "/dashboard/plans" || item.href === "/dashboard/subscription";
+  const label = salesMode === "BAG" && isSalesPlansLink
+    ? "الحقائب"
+    : item.label;
 
   return (
     <Link
       href={item.href}
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? label : undefined}
       aria-current={active ? "page" : undefined}
       className={[
         "group relative flex items-center border border-transparent transition-all duration-200",
@@ -1821,7 +1841,7 @@ function SidebarLink({
               : "text-[12.5px] leading-5",
           ].join(" ")}
         >
-          {item.label}
+          {label}
         </span>
       ) : null}
     </Link>

@@ -4,6 +4,7 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
 import { getPlanCommercialType } from "@/lib/subscription/subscription-service";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 type PageProps = {
   params: Promise<{
@@ -19,6 +20,7 @@ export default async function CheckoutPlanRoutePage({ params }: PageProps) {
   }
 
   const { planId } = await params;
+  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
 
   const [plan, providers] = await Promise.all([
     prisma.plan.findUnique({
@@ -62,6 +64,7 @@ export default async function CheckoutPlanRoutePage({ params }: PageProps) {
       plan={{ ...plan, commercialType: getPlanCommercialType(plan.features) }}
       providers={providers}
       userHasSchoolAccount={Boolean(current.user.schoolAccountId)}
+      isBagMode={salesExperience.isBagMode}
     />
   );
 }

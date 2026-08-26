@@ -101,6 +101,11 @@ enum Gender {
   UNKNOWN
 }
 
+enum SalesExperienceMode {
+  SERVICE
+  BAG
+}
+
 enum ServiceStatus {
   ACTIVE
   INACTIVE
@@ -484,6 +489,7 @@ model User {
   reportSignatureRequests       ReportSignatureRequest[]
   activityPlanShareTokens       ActivityPlanShareToken[]
   savedCurriculumSubjects       TeacherSavedCurriculum[]
+  salesExperienceOverride       SalesExperienceUserOverride?
 
   @@index([schoolAccountId])
 }
@@ -1503,6 +1509,25 @@ model FeatureFlag {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SalesExperienceConfig {
+  id           String              @id @default(cuid())
+  singletonKey String              @unique @db.VarChar(80)
+  globalMode   SalesExperienceMode @default(SERVICE)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model SalesExperienceUserOverride {
+  id        String              @id @default(cuid())
+  userId    String              @unique
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode      SalesExperienceMode @default(BAG)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([mode])
 }
 
 model UsageLimit {

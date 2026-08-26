@@ -4,6 +4,9 @@ import { MoyasarCheckoutForm } from "@/components/payments/moyasar-checkout-form
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { getPublicProviderConfig } from "@/lib/payments/electronic-payments";
 import { prisma } from "@/lib/prisma";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+import { buildWhatsAppLink } from "@/lib/whatsapp/whatsapp-links";
+import { TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER } from "@/lib/marketing/contact-details";
 
 type PageProps = {
   params: Promise<{
@@ -44,13 +47,14 @@ function getStatusLabel(status: string) {
 }
 
 function getPaymentMessage(
-  payment: string | undefined
+  payment: string | undefined,
+  isBagMode = false,
 ) {
   if (payment === "success") {
     return {
       className:
         "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
-      text: "تم التحقق من عملية الدفع وتفعيل الاشتراك بنجاح.",
+      text: isBagMode ? "تم شراء الحقيبة الشاملة بنجاح. يرجى التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم." : "تم التحقق من عملية الدفع وتفعيل الاشتراك بنجاح.",
     };
   }
 
@@ -85,6 +89,7 @@ export default async function CheckoutTransactionRoutePage({
 
   const { transactionId } = await params;
   const query = await searchParams;
+  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
 
   const transaction =
     await prisma.paymentTransaction.findUnique({
@@ -142,8 +147,10 @@ export default async function CheckoutTransactionRoutePage({
       ? metadata.planName
       : "اشتراك Teachix";
 
-  const paymentMessage =
-    getPaymentMessage(query.payment);
+  const paymentMessage = getPaymentMessage(query.payment, salesExperience.isBagMode);
+  const shippingLink = salesExperience.isBagMode && query.payment === "success"
+    ? buildWhatsAppLink(TEACHIX_WHATSAPP_INTERNATIONAL_NUMBER, `السلام عليكم،\nتم شراء الحقيبة الشاملة من Teachix وأرغب في استكمال بيانات الشحن والتسليم.\nرقم العملية: ${transaction.id}`)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -167,6 +174,13 @@ export default async function CheckoutTransactionRoutePage({
         >
           {paymentMessage.text}
         </div>
+      ) : null}
+
+      {shippingLink ? (
+        <section className="rounded-3xl border border-violet-200 bg-violet-50 p-5 text-center">
+          <p className="text-sm font-bold text-violet-800">استكمال الشحن عبر واتساب</p>
+          <a href={shippingLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-2xl bg-violet-700 px-5 py-3 text-sm font-black text-white">استكمال الشحن عبر واتساب</a>
+        </section>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-3">
