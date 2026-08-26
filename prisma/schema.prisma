@@ -463,6 +463,7 @@ model User {
   pushDevices                 PushDevice[]
   pushCampaignsCreated        PushCampaign[]       @relation("PushCampaignCreator")
   pushTemplatesCreated        PushTemplate[]       @relation("PushTemplateCreator")
+  whatsappMessageTemplates    WhatsAppMessageTemplate[] @relation("WhatsAppMessageTemplateCreator")
   pushAutomaticRulesCreated   PushAutomaticRule[]  @relation("PushAutomaticRuleCreator")
   pushDeliveries              PushDelivery[]
   calendarReminders           CalendarReminder[]
@@ -737,6 +738,23 @@ model PushTemplate {
   updatedAt   DateTime         @updatedAt
 
   @@index([enabled, createdAt])
+}
+
+model WhatsAppMessageTemplate {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(160)
+  content     String   @db.Text
+  coupon      String?  @db.VarChar(160)
+  isActive    Boolean  @default(false)
+  createdById String?
+  createdBy   User?    @relation("WhatsAppMessageTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  activatedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([createdById])
 }
 
 model PushAutomaticEvent {
@@ -1233,6 +1251,7 @@ model ActivityPlanEntry {
   weekNumber   Int
   dayOfWeek    Int
   periodNumber Int
+  stage        String        @default("غير محددة") @db.VarChar(191)
   date         DateTime
   gradeLabel   String   @db.VarChar(191)
   teacherName  String   @db.VarChar(191)
@@ -1240,8 +1259,8 @@ model ActivityPlanEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([schoolAccountId, weekNumber, dayOfWeek, periodNumber])
-  @@index([schoolAccountId, weekNumber])
+  @@unique([schoolAccountId, stage, weekNumber, dayOfWeek, periodNumber])
+  @@index([schoolAccountId, stage, weekNumber])
   @@index([programCaseEntryId])
   @@index([programKey])
   @@index([createdById])

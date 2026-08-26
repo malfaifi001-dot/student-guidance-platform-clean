@@ -3,6 +3,7 @@ import { ActivityPlanPrintWeek as ActivityPlanPrintWeekView } from "./activity-p
 
 type ActivityPlanPrintDocumentProps = {
   weeks: ActivityPlanPrintWeek[];
+  stage: string;
   academicYear?: string | null;
   schoolName: string;
   educationDepartment?: string | null;
@@ -13,10 +14,10 @@ type ActivityPlanPrintDocumentProps = {
   principalSignatureUrl?: string | null;
 };
 
-export function ActivityPlanPrintDocument({ weeks, ...identity }: ActivityPlanPrintDocumentProps) {
+export function ActivityPlanPrintDocument({ weeks, stage, ...identity }: ActivityPlanPrintDocumentProps) {
   return (
     <main className="activity-plan-print-root" dir="rtl">
-      {weeks.map((week) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} {...identity} />)}
+      {weeks.map((week) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} stage={stage} {...identity} />)}
     </main>
   );
 }

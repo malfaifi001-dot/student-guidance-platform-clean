@@ -17,24 +17,3 @@ export function buildWhatsAppLink(phone: string | null | undefined, message?: st
   const suffix = message ? `?text=${encodeURIComponent(message)}` : "";
   return `https://wa.me/${normalized}${suffix}`;
 }
-
-export function buildMembershipInvitationMessage(name: string | null | undefined): string {
-  const displayName = String(name || "").trim();
-  const greeting = displayName ? `مرحباً أ. ${displayName}` : "مرحباً";
-
-  const message = `${greeting}
-
-يسعدنا في Teachix منحك عضوية مجانية لمدة فصل دراسي كامل.
-
-كوبون التفعيل: Welcome
-
-كما خصصنا لك 4 عضويات مجانية لمدة فصل دراسي لإهدائها لمن ترغب من الزملاء والزميلات، وجميعها تُفعّل بنفس الكوبون: Welcome
-
-نتمنى لك تجربة مميزة مع Teachix.
-
-ملاحظة: الكود صالح لمدة 10 أيام فقط للتفعيل
-
-فريق Teachix`;
-
-  return message;
-}

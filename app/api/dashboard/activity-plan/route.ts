@@ -7,6 +7,12 @@ import {
 } from "@/lib/activity-plan/activity-plan-programs";
 import { getActivityPlanDates, isValidActivityPlanSlot } from "@/lib/activity-plan/activity-plan-calendar";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getActivityPlanStageOptions,
+  getActivityPlanStagesFromProfile,
+  normalizeActivityPlanStage,
+  UNSPECIFIED_ACTIVITY_PLAN_STAGE,
+} from "@/lib/activity-plan/activity-plan-stages";
 
 const SERVICE_SLUG = "student-activity-plan";
 
@@ -46,8 +52,22 @@ export async function GET(request: Request) {
   }
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
+  const requestedStage = cleanText(new URL(request.url).searchParams.get("stage"));
+  const [students, stageEntries] = await Promise.all([
+    prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true, grade: true } }),
+    prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
+  ]);
+  const stages = getActivityPlanStageOptions([
+    ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
+    ...students.map((student) => student.stage),
+    ...stageEntries.map((entry) => entry.stage),
+  ]);
+  const normalizedRequestedStage = normalizeActivityPlanStage(requestedStage);
+  const selectedStage = normalizedRequestedStage && stages.includes(normalizedRequestedStage)
+    ? normalizedRequestedStage
+    : stages[0] || UNSPECIFIED_ACTIVITY_PLAN_STAGE;
   const entries = await prisma.activityPlanEntry.findMany({
-    where: { schoolAccountId, weekNumber: week },
+    where: { schoolAccountId, weekNumber: week, stage: selectedStage },
     select: {
       id: true,
       dayOfWeek: true,
@@ -55,6 +75,7 @@ export async function GET(request: Request) {
       date: true,
       gradeLabel: true,
       teacherName: true,
+      stage: true,
       programKey: true,
       programCaseEntryId: true,
     },
@@ -75,15 +96,24 @@ export async function GET(request: Request) {
   const legacyProgramsById = new Map(legacyPrograms.map((program) => [program.id, program]));
 
   const suggestions = await prisma.activityPlanEntry.findMany({
-    where: { schoolAccountId },
+    where: { schoolAccountId, stage: selectedStage },
     distinct: ["gradeLabel", "teacherName"],
     select: { gradeLabel: true, teacherName: true },
     orderBy: { updatedAt: "desc" },
   });
+  const gradesByStage = Object.fromEntries(stages.map((stage) => [
+    stage,
+    Array.from(new Set([
+      ...students.filter((student) => normalizeActivityPlanStage(student.stage) === stage).map((student) => student.grade).filter((grade): grade is string => Boolean(grade)),
+      ...(stage === selectedStage ? suggestions.map((item) => item.gradeLabel) : []),
+    ])),
+  ]));
 
   return NextResponse.json({
     success: true,
     week,
+    stage: selectedStage,
+    stages,
     dates: getActivityPlanDates(week),
     entries: entries.map((entry) => {
       const directProgram = entry.programKey ? getActivityPlanProgramByKey(entry.programKey) : null;
@@ -95,6 +125,7 @@ export async function GET(request: Request) {
         date: entry.date.toISOString().slice(0, 10),
         gradeLabel: entry.gradeLabel,
         teacherName: entry.teacherName,
+        stage: entry.stage,
         program: {
           id: entry.programKey || entry.programCaseEntryId || "legacy-program",
           key: directProgram?.key || entry.programKey || "",
@@ -104,7 +135,8 @@ export async function GET(request: Request) {
     }),
     programs: ACTIVITY_PLAN_PROGRAM_OPTIONS.map(({ key, title }) => ({ id: key, key, title })),
     suggestions: {
-      grades: Array.from(new Set(suggestions.map((item) => item.gradeLabel))),
+      grades: gradesByStage[selectedStage] || [],
+      gradesByStage,
       teachers: Array.from(new Set(suggestions.map((item) => item.teacherName))),
     },
   });
@@ -118,11 +150,13 @@ export async function POST(request: Request) {
   const week = parseSlot(body?.weekNumber);
   const dayOfWeek = parseSlot(body?.dayOfWeek);
   const periodNumber = parseSlot(body?.periodNumber);
+  const entryId = cleanText(body?.id);
+  const stage = normalizeActivityPlanStage(cleanText(body?.stage));
   const gradeLabel = cleanText(body?.gradeLabel);
   const teacherName = cleanText(body?.teacherName);
   const programKey = cleanText(body?.programId);
 
-  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !gradeLabel || !teacherName || !programKey) {
+  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !stage || !gradeLabel || !teacherName || !programKey) {
     return NextResponse.json({ success: false, error: "أكمل بيانات الخلية المطلوبة." }, { status: 400 });
   }
 
@@ -132,32 +166,42 @@ export async function POST(request: Request) {
   }
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
+  const [students, stageEntries] = await Promise.all([
+    prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true } }),
+    prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
+  ]);
+  const availableStages = getActivityPlanStageOptions([
+    ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
+    ...students.map((student) => student.stage),
+    ...stageEntries.map((entry) => entry.stage),
+  ]);
+  if (!availableStages.includes(stage)) {
+    return NextResponse.json({ success: false, error: "اختر المرحلة المطلوبة." }, { status: 400 });
+  }
   const dates = getActivityPlanDates(week);
   const date = dates[dayOfWeek]?.date;
   if (!date) {
     return NextResponse.json({ success: false, error: "تاريخ الخلية غير متاح." }, { status: 400 });
   }
 
-  const entry = await prisma.activityPlanEntry.upsert({
-    where: { schoolAccountId_weekNumber_dayOfWeek_periodNumber: { schoolAccountId, weekNumber: week, dayOfWeek, periodNumber } },
-    update: { programKey: selectedProgram.key, gradeLabel, teacherName, date: new Date(`${date}T00:00:00.000Z`) },
-    create: {
-      schoolAccountId,
-      createdById: auth.current.user.id,
-      programKey: selectedProgram.key,
-      weekNumber: week,
-      dayOfWeek,
-      periodNumber,
-      date: new Date(`${date}T00:00:00.000Z`),
-      gradeLabel,
-      teacherName,
-    },
-  });
+  const entryData = { programKey: selectedProgram.key, stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  if (entryId) {
+    const ownedEntry = await prisma.activityPlanEntry.findFirst({ where: { id: entryId, schoolAccountId }, select: { id: true } });
+    if (!ownedEntry) return NextResponse.json({ success: false, error: "الإدخال غير موجود." }, { status: 404 });
+  }
+  const entry = entryId
+    ? await prisma.activityPlanEntry.update({ where: { id: entryId }, data: entryData })
+    : await prisma.activityPlanEntry.upsert({
+      where: { schoolAccountId_stage_weekNumber_dayOfWeek_periodNumber: { schoolAccountId, stage, weekNumber: week, dayOfWeek, periodNumber } },
+      update: entryData,
+      create: { schoolAccountId, createdById: auth.current.user.id, ...entryData },
+    });
 
   return NextResponse.json({
     success: true,
     entry: {
       id: entry.id,
+      stage: entry.stage,
       dayOfWeek: entry.dayOfWeek,
       periodNumber: entry.periodNumber,
       date,

@@ -4,6 +4,7 @@ import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-prin
 import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
+import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, UNSPECIFIED_ACTIVITY_PLAN_STAGE } from "@/lib/activity-plan/activity-plan-stages";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +55,14 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   if (current.user.role !== "ACTIVITY_LEADER") redirect("/dashboard");
   if (!current.user.schoolAccountId) redirect("/dashboard/onboarding?required=true");
 
-  const weeks = await getActivityPlanPrintData(current.user.schoolAccountId);
   const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const profile = current.user.schoolAccount?.profile;
   const activityLeaderName = current.user.officialName || current.user.name || "";
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
   const printEnabled = String(params.print || "") === "1";
+  const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
+  const stage = requestedStage || getActivityPlanStagesFromProfile(profile?.stage)[0] || UNSPECIFIED_ACTIVITY_PLAN_STAGE;
 
-  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={weeks} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={current.user.signatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
+  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage);
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={current.user.signatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

@@ -17,6 +17,7 @@ import { ServiceOutputLinkActions } from "@/components/performance-links/service
 type Program = { id: string; key?: string; title: string };
 type Entry = {
   id: string;
+  stage: string;
   dayOfWeek: number;
   periodNumber: number;
   date: string;
@@ -38,6 +39,9 @@ export function ActivityPlanShell() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [dates, setDates] = useState<DateItem[]>([]);
   const [grades, setGrades] = useState<string[]>([]);
+  const [gradesByStage, setGradesByStage] = useState<Record<string, string[]>>({});
+  const [stages, setStages] = useState<string[]>([]);
+  const [selectedStage, setSelectedStage] = useState("");
   const [teachers, setTeachers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,17 +52,22 @@ export function ActivityPlanShell() {
   const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
 
-  const loadWeek = async (nextWeek: number) => {
+  const loadWeek = async (nextWeek: number, nextStage: string) => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/dashboard/activity-plan?week=${nextWeek}`, { cache: "no-store" });
+      const query = new URLSearchParams({ week: String(nextWeek) });
+      if (nextStage) query.set("stage", nextStage);
+      const response = await fetch(`/api/dashboard/activity-plan?${query.toString()}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "تعذر تحميل الخطة.");
       setEntries(payload.entries || []);
       setDates(payload.dates || []);
       setGrades(payload.suggestions?.grades || []);
+      setGradesByStage(payload.suggestions?.gradesByStage || {});
       setTeachers(payload.suggestions?.teachers || []);
+      setStages(payload.stages || []);
+      setSelectedStage(payload.stage || nextStage);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحميل الخطة.");
     } finally {
@@ -67,7 +76,7 @@ export function ActivityPlanShell() {
   };
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void loadWeek(week); }, [week]);
+  useEffect(() => { void loadWeek(week, selectedStage); }, [week, selectedStage]);
   useEffect(() => {
     void fetch("/api/dashboard/performance-links?serviceSlug=student-activity-plan&roleContext=ACTIVITY_LEADER", { cache: "no-store" })
       .then((response) => response.json())
@@ -88,8 +97,8 @@ export function ActivityPlanShell() {
     const result = await print.runPrintExport({
       exportUrl: "/api/dashboard/activity-plan/export/pdf",
       method: "POST",
-      body: { fileName: "student-activity-plan.pdf" },
-      printUrl: "/print/activity-plan?print=1",
+      body: { fileName: "student-activity-plan.pdf", stage: selectedStage },
+      printUrl: `/print/activity-plan?print=1&stage=${encodeURIComponent(selectedStage)}`,
       fileName: "student-activity-plan.pdf",
       blockedTitle: "معاينة خطة النشاط الطلابي",
       blockedMessage: "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح مستند الطباعة.",
@@ -133,6 +142,7 @@ export function ActivityPlanShell() {
       <section className="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-sm md:p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div><h2 className="text-xl font-black text-slate-950">الجدول الأسبوعي</h2><p className="mt-1 text-xs font-bold text-slate-500">الأيام صفوف والحصص أعمدة. اضغط للإضافة أو التعديل.</p></div>
+          <label className="flex shrink-0 items-center gap-2 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-10 min-w-[170px] rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
           <CalendarDays className="h-6 w-6 text-sky-600" />
         </div>
         <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200 [scrollbar-width:thin]" style={{ WebkitOverflowScrolling: "touch" }}>
@@ -161,15 +171,16 @@ export function ActivityPlanShell() {
       </section>
 
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
-      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl="/print/activity-plan?preview=1" onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
-      <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
+      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={`/print/activity-plan?preview=1&stage=${encodeURIComponent(selectedStage)}`} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
+      <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={stages} selectedStage={selectedStage} gradesByStage={gradesByStage} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.stage === entry.stage && item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
   );
 }
 
-function ActivityPlanCellModal({ week, cell, entry, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {
+function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, gradesByStage, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; stages: string[]; selectedStage: string; gradesByStage: Record<string, string[]>; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {
   const [programKey, setProgramKey] = useState(entry?.program.key || "");
+  const [stage, setStage] = useState(entry?.stage || selectedStage);
   const [gradeLabel, setGradeLabel] = useState(entry?.gradeLabel || "");
   const [teacherName, setTeacherName] = useState(entry?.teacherName || "");
   const [saving, setSaving] = useState(false);
@@ -181,7 +192,7 @@ function ActivityPlanCellModal({ week, cell, entry, grades, teachers, onClose, o
   const save = async () => {
     setSaving(true); setError("");
     try {
-      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, programId: programKey, gradeLabel, teacherName }) });
+      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry?.id, weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, programId: programKey, stage, gradeLabel, teacherName }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "تعذر حفظ الإدخال.");
       onSaved(payload.entry);
@@ -202,7 +213,8 @@ function ActivityPlanCellModal({ week, cell, entry, grades, teachers, onClose, o
   return <SmartActionModal open title={entry ? "تعديل نشاط الخلية" : "إضافة نشاط للخلية"} description={`${formatDate(cell.date)} · الحصة ${cell.periodNumber}`} portal onClose={onClose} showFooter={false}>
     <div className="space-y-4">
       <label className="block text-sm font-black text-slate-700">البرنامج<select value={programKey} onChange={(event) => setProgramKey(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر البرنامج</option>{ACTIVITY_PLAN_PROGRAM_OPTIONS.map((program) => <option key={program.key} value={program.key}>{program.title}</option>)}</select></label>
-      <SuggestionInput label="الصف" value={gradeLabel} onChange={setGradeLabel} suggestions={grades} placeholder="مثال: الثالث متوسط" />
+      <label className="block text-sm font-black text-slate-700">المرحلة<select required value={stage} onChange={(event) => { const nextStage = event.target.value; setStage(nextStage); if (gradeLabel && !(gradesByStage[nextStage] || []).includes(gradeLabel)) setGradeLabel(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر المرحلة</option>{stages.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      <SuggestionInput label="الصف" value={gradeLabel} onChange={setGradeLabel} suggestions={gradesByStage[stage] || grades} placeholder="مثال: الثالث متوسط" />
       <SuggestionInput label="اسم المعلم" value={teacherName} onChange={setTeacherName} suggestions={teachers} placeholder="اكتب اسم المعلم" />
       {error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}
       <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programKey || !gradeLabel.trim() || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>

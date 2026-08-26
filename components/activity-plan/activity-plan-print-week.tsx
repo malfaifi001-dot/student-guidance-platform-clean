@@ -12,6 +12,7 @@ const programKeys = ["citizenship-life", "science-technology", "culture-arts", "
 
 type ActivityPlanPrintWeekProps = {
   week: ActivityPlanPrintWeekData;
+  stage: string;
   academicYear?: string | null;
   schoolName: string;
   educationDepartment?: string | null;
@@ -24,6 +25,7 @@ type ActivityPlanPrintWeekProps = {
 
 export function ActivityPlanPrintWeek({
   week,
+  stage,
   academicYear,
   schoolName,
   educationDepartment,
@@ -40,8 +42,8 @@ export function ActivityPlanPrintWeek({
       <CurriculumDocumentHeader title="خطة النشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
 
       <section className="activity-plan-print-objective">
-        <strong>الهدف العام</strong>
-        <span aria-label="نص الهدف العام" />
+        <strong>المرحلة</strong>
+        <span aria-label="المرحلة">{stage}</span>
       </section>
 
       <section className="activity-plan-print-legend" aria-label="مجالات النشاط الطلابي">

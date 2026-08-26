@@ -3,8 +3,10 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getActivityPlanDates } from "@/lib/activity-plan/activity-plan-calendar";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+import { normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
 
 export type ActivityPlanPrintEntry = {
+  stage: string;
   dayOfWeek: number;
   periodNumber: number;
   programKey: string;
@@ -33,9 +35,10 @@ function resolveLegacyProgramKey(title: string | null | undefined) {
   return match?.key || "";
 }
 
-export async function getActivityPlanPrintData(schoolAccountId: string): Promise<ActivityPlanPrintWeek[]> {
+export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null): Promise<ActivityPlanPrintWeek[]> {
+  const selectedStage = normalizeActivityPlanStage(stage);
   const entries = await prisma.activityPlanEntry.findMany({
-    where: { schoolAccountId, weekNumber: { gte: 1, lte: 20 } },
+    where: { schoolAccountId, ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: { gte: 1, lte: 20 } },
     select: {
       weekNumber: true,
       dayOfWeek: true,
@@ -43,6 +46,7 @@ export async function getActivityPlanPrintData(schoolAccountId: string): Promise
       programKey: true,
       gradeLabel: true,
       teacherName: true,
+      stage: true,
       programCaseEntryId: true,
     },
     orderBy: [{ weekNumber: "asc" }, { dayOfWeek: "asc" }, { periodNumber: "asc" }],
@@ -68,6 +72,7 @@ export async function getActivityPlanPrintData(schoolAccountId: string): Promise
         .map((entry) => ({
           dayOfWeek: entry.dayOfWeek,
           periodNumber: entry.periodNumber,
+          stage: entry.stage,
           programKey: entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""),
           gradeLabel: entry.gradeLabel,
           teacherName: entry.teacherName,
