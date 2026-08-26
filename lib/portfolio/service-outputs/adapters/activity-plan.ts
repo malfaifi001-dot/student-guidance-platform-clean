@@ -6,6 +6,7 @@ import { getActivityPlanDates, getPeriodLabel } from "@/lib/activity-plan/activi
 import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { getOrCreateActivityPlanShareToken } from "@/lib/activity-plan/activity-plan-share-service";
+import { getStoredActivityPlanProgramName } from "@/lib/activity-plan/activity-plan-program-value";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 type ActivityPlanLink = {
@@ -34,8 +35,8 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
           day: dateByDay.get(entry.dayOfWeek)?.label || `اليوم ${entry.dayOfWeek}`,
           date: dateByDay.get(entry.dayOfWeek)?.date || "",
           period: getPeriodLabel(entry.periodNumber),
-          activityArea: getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",
-          activity: getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",
+          activityArea: getStoredActivityPlanProgramName(entry.programKey) || getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",
+          activity: getStoredActivityPlanProgramName(entry.programKey) || getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",
           grade: entry.gradeLabel,
           supervisor: entry.teacherName,
         })),

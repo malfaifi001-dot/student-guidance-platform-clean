@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
-import {
-  ACTIVITY_PLAN_PROGRAM_OPTIONS,
-  getActivityPlanProgramByKey,
-} from "@/lib/activity-plan/activity-plan-programs";
+import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { getActivityPlanDates, isValidActivityPlanSlot } from "@/lib/activity-plan/activity-plan-calendar";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
@@ -13,6 +10,9 @@ import {
   normalizeActivityPlanStage,
   REAL_ACTIVITY_PLAN_STAGES,
 } from "@/lib/activity-plan/activity-plan-stages";
+import { decodeActivityPlanProgramValue, encodeActivityPlanProgramValue } from "@/lib/activity-plan/activity-plan-program-value";
+import { findActivityPlanWorkflowProgram, getActivityPlanWorkflowPrograms } from "@/lib/activity-plan/activity-plan-workflow-programs";
+import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 
 const SERVICE_SLUG = "student-activity-plan";
 
@@ -116,7 +116,8 @@ export async function GET(request: Request) {
     stages,
     dates: getActivityPlanDates(week),
     entries: entries.map((entry) => {
-      const directProgram = entry.programKey ? getActivityPlanProgramByKey(entry.programKey) : null;
+      const storedProgram = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
+      const directProgram = storedProgram ? { key: entry.programKey || "", title: storedProgram.programName } : (entry.programKey ? getActivityPlanProgramByKey(entry.programKey) : null);
       const legacyProgram = entry.programCaseEntryId ? legacyProgramsById.get(entry.programCaseEntryId) : null;
       return {
         id: entry.id,
@@ -126,14 +127,14 @@ export async function GET(request: Request) {
         gradeLabel: entry.gradeLabel,
         teacherName: entry.teacherName,
         stage: entry.stage,
+        domainServiceSlug: storedProgram?.serviceSlug || getActivityProgramDomainBySlug(entry.programKey || "")?.serviceSlug || "",
         program: {
           id: entry.programKey || entry.programCaseEntryId || "legacy-program",
-          key: directProgram?.key || entry.programKey || "",
+          key: storedProgram?.programValue || directProgram?.key || entry.programKey || "",
           title: directProgram?.title || legacyProgram?.values[0]?.value || legacyProgram?.title || "برنامج نشاط",
         },
       };
     }),
-    programs: ACTIVITY_PLAN_PROGRAM_OPTIONS.map(({ key, title }) => ({ id: key, key, title })),
     suggestions: {
       grades: gradesByStage[selectedStage] || [],
       gradesByStage,
@@ -154,28 +155,31 @@ export async function POST(request: Request) {
   const stage = normalizeActivityPlanStage(cleanText(body?.stage));
   const gradeLabel = cleanText(body?.gradeLabel);
   const teacherName = cleanText(body?.teacherName);
-  const programKey = cleanText(body?.programId);
+  const domainServiceSlug = cleanText(body?.domainServiceSlug);
+  const programValue = cleanText(body?.programValue || body?.programId);
+  const manualProgramName = cleanText(body?.programName, 120);
 
-  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !stage || !gradeLabel || !teacherName || !programKey) {
+  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !stage || !gradeLabel || !teacherName || !domainServiceSlug || !programValue) {
     return NextResponse.json({ success: false, error: "أكمل بيانات الخلية المطلوبة." }, { status: 400 });
-  }
-
-  const selectedProgram = getActivityPlanProgramByKey(programKey);
-  if (!selectedProgram) {
-    return NextResponse.json({ success: false, error: "البرنامج غير صالح." }, { status: 400 });
   }
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
   if (!REAL_ACTIVITY_PLAN_STAGES.includes(stage)) {
     return NextResponse.json({ success: false, error: "اختر المرحلة المطلوبة." }, { status: 400 });
   }
+  const workflowPrograms = await getActivityPlanWorkflowPrograms(domainServiceSlug);
+  const selectedProgram = workflowPrograms ? findActivityPlanWorkflowProgram(workflowPrograms.options, programValue) : null;
+  if (!selectedProgram || (selectedProgram.isOther && !manualProgramName)) {
+    return NextResponse.json({ success: false, error: "البرنامج غير صالح أو يلزم إدخال الاسم." }, { status: 400 });
+  }
+  const programName = selectedProgram.isOther ? manualProgramName : selectedProgram.label;
   const dates = getActivityPlanDates(week);
   const date = dates[dayOfWeek]?.date;
   if (!date) {
     return NextResponse.json({ success: false, error: "تاريخ الخلية غير متاح." }, { status: 400 });
   }
 
-  const entryData = { programKey: selectedProgram.key, stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  const entryData = { programKey: encodeActivityPlanProgramValue(domainServiceSlug, programName), stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
   if (entryId) {
     const ownedEntry = await prisma.activityPlanEntry.findFirst({ where: { id: entryId, schoolAccountId }, select: { id: true } });
     if (!ownedEntry) return NextResponse.json({ success: false, error: "الإدخال غير موجود." }, { status: 404 });
@@ -198,7 +202,8 @@ export async function POST(request: Request) {
       date,
       gradeLabel: entry.gradeLabel,
       teacherName: entry.teacherName,
-      program: { id: selectedProgram.key, key: selectedProgram.key, title: selectedProgram.title },
+      domainServiceSlug,
+      program: { id: programValue, key: programValue, title: programName },
     },
   });
 }

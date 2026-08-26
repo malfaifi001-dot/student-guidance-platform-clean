@@ -6,10 +6,9 @@ import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
-import {
-  ACTIVITY_PLAN_PROGRAM_OPTIONS,
-  getActivityPlanProgramByKey,
-} from "@/lib/activity-plan/activity-plan-programs";
+import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-plan-program-value";
 import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
@@ -24,8 +23,10 @@ type Entry = {
   date: string;
   gradeLabel: string;
   teacherName: string;
+  domainServiceSlug?: string;
   program: Program;
 };
+type WorkflowProgramOption = { value: string; label: string; isOther: boolean };
 type DateItem = { dayOfWeek: number; label: string; date: string };
 type Cell = { dayOfWeek: number; periodNumber: number; date: string };
 type ServiceLink = { id: string; sourceKey: string; sourceReferenceJson: Record<string, unknown>; targetSectionKey?: string | null; performanceItemKey: string };
@@ -207,7 +208,11 @@ export function ActivityPlanShell() {
 }
 
 function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, gradesByStage, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; stages: string[]; selectedStage: string; gradesByStage: Record<string, string[]>; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {
-  const [programKey, setProgramKey] = useState(entry?.program.key || "");
+  const [domainServiceSlug, setDomainServiceSlug] = useState(entry?.domainServiceSlug || "");
+  const [programValue, setProgramValue] = useState(entry?.program.key || "");
+  const [manualProgramName, setManualProgramName] = useState("");
+  const [programOptions, setProgramOptions] = useState<WorkflowProgramOption[]>([]);
+  const [programLoading, setProgramLoading] = useState(false);
   const [stage, setStage] = useState(entry?.stage || selectedStage);
   const [gradeLabel, setGradeLabel] = useState(entry?.gradeLabel || "");
   const [teacherName, setTeacherName] = useState(entry?.teacherName || "");
@@ -215,12 +220,45 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (!domainServiceSlug) {
+      setProgramOptions([]);
+      setProgramValue("");
+      setManualProgramName("");
+      return;
+    }
+    let cancelled = false;
+    setProgramLoading(true);
+    void fetch(`/api/dashboard/activity-plan/program-options?serviceSlug=${encodeURIComponent(domainServiceSlug)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "تعذر تحميل برامج المجال.");
+        if (cancelled) return;
+        const options = (payload.options || []) as WorkflowProgramOption[];
+        setProgramOptions(options);
+        const savedValue = entry?.program.key || entry?.program.title || "";
+        const saved = options.find((option) => option.value === savedValue || option.label === savedValue);
+        if (saved) {
+          setProgramValue(saved.value);
+          setManualProgramName(saved.isOther ? entry?.program.title || "" : "");
+        } else if (entry?.program.title) {
+          setProgramValue(ACTIVITY_PLAN_OTHER_PROGRAM_VALUE);
+          setManualProgramName(entry.program.title);
+        } else {
+          setProgramValue("");
+          setManualProgramName("");
+        }
+      })
+      .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : "تعذر تحميل برامج المجال."); })
+      .finally(() => { if (!cancelled) setProgramLoading(false); });
+    return () => { cancelled = true; };
+  }, [domainServiceSlug, entry]);
   if (!cell) return null;
 
   const save = async () => {
     setSaving(true); setError("");
     try {
-      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry?.id, weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, programId: programKey, stage, gradeLabel, teacherName }) });
+      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry?.id, weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, domainServiceSlug, programValue, programName: manualProgramName, stage, gradeLabel, teacherName }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "تعذر حفظ الإدخال.");
       onSaved(payload.entry);
@@ -240,12 +278,14 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
 
   return <SmartActionModal open title={entry ? "تعديل نشاط الخلية" : "إضافة نشاط للخلية"} description={`${formatDate(cell.date)} · الحصة ${cell.periodNumber}`} portal onClose={onClose} showFooter={false}>
     <div className="space-y-4">
-      <label className="block text-sm font-black text-slate-700">البرنامج<select value={programKey} onChange={(event) => setProgramKey(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر البرنامج</option>{ACTIVITY_PLAN_PROGRAM_OPTIONS.map((program) => <option key={program.key} value={program.key}>{program.title}</option>)}</select></label>
+      <label className="block text-sm font-black text-slate-700">مجال النشاط<select required value={domainServiceSlug} onChange={(event) => { setDomainServiceSlug(event.target.value); setProgramValue(""); setManualProgramName(""); setError(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر مجال النشاط</option>{ACTIVITY_PROGRAM_DOMAINS.map((domain) => <option key={domain.serviceSlug} value={domain.serviceSlug}>{domain.title}</option>)}</select></label>
+      <label className="block text-sm font-black text-slate-700">البرنامج<select required value={programValue} disabled={!domainServiceSlug || programLoading} onChange={(event) => { const value = event.target.value; setProgramValue(value); if (value !== ACTIVITY_PLAN_OTHER_PROGRAM_VALUE) setManualProgramName(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">{programLoading ? "جارٍ تحميل البرامج..." : "اختر البرنامج"}</option>{programOptions.map((program) => <option key={program.value} value={program.value}>{program.label}</option>)}</select></label>
+      {programValue === ACTIVITY_PLAN_OTHER_PROGRAM_VALUE ? <SuggestionInput label="اسم البرنامج" value={manualProgramName} onChange={setManualProgramName} suggestions={[]} placeholder="اكتب اسم البرنامج" /> : null}
       <label className="block text-sm font-black text-slate-700">المرحلة<select required value={stage} onChange={(event) => { const nextStage = event.target.value; setStage(nextStage); if (gradeLabel && !(gradesByStage[nextStage] || []).includes(gradeLabel)) setGradeLabel(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر المرحلة</option>{stages.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       <SuggestionInput label="الصف" value={gradeLabel} onChange={setGradeLabel} suggestions={gradesByStage[stage] || grades} placeholder="مثال: الثالث متوسط" />
       <SuggestionInput label="اسم المعلم" value={teacherName} onChange={setTeacherName} suggestions={teachers} placeholder="اكتب اسم المعلم" />
       {error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}
-      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programKey || !gradeLabel.trim() || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>
+      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programValue || (programValue === ACTIVITY_PLAN_OTHER_PROGRAM_VALUE && !manualProgramName.trim()) || !gradeLabel.trim() || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>
       {entry ? <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving || deleting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 text-sm font-black text-rose-700 ring-1 ring-rose-100"><Trash2 className="h-4 w-4" />حذف الإدخال</button> : null}
     </div>
     <SmartActionModal open={confirmDelete} title="تأكيد حذف الإدخال" description="سيتم إزالة النشاط من هذه الخلية فقط." variant="danger" confirmLabel="حذف الإدخال" loading={deleting} portal onClose={() => setConfirmDelete(false)} onConfirm={() => void remove()} />
