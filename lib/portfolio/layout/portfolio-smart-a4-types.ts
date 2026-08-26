@@ -13,4 +13,7 @@ export type PortfolioSmartPageMetadata = {
   evidenceLayout: PortfolioEvidenceLayout;
   primaryEvidenceCount: 0 | 1 | 2;
   overflowEvidenceCount: number;
+  fieldLayout?: "balanced-grid" | "dense-grid";
+  fieldColumnCount?: 1 | 2 | 3 | 4 | 5 | 6;
+  fieldBands?: import("@/lib/portfolio/layout/portfolio-field-layout").PortfolioFieldBand[];
 };

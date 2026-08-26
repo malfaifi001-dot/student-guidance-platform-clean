@@ -1,3 +1,616 @@
+
+============================================================
+FILE: lib\portfolio\layout\portfolio-field-layout.ts
+============================================================
+
+import type { PortfolioReportField } from "@/lib/portfolio/portfolio-report-content";
+
+export type PortfolioFieldKind = "short" | "medium" | "long" | "list";
+
+export type PortfolioFieldPlacement = {
+  field: PortfolioReportField;
+  fieldKey: string;
+  sourceIndex: number;
+  columnStart: number;
+  columnSpan: number;
+  row: number;
+  semanticKind: PortfolioFieldKind;
+  measuredHeightPx?: number;
+  renderedHeightPx?: number;
+  stretchToBandHeight: boolean;
+  internalLayout: PortfolioFieldInternalLayout;
+};
+
+export type PortfolioFieldInternalLayout = {
+  valueColumns: 1 | 2 | 3;
+  valuePlacement: "grid" | "list";
+};
+
+export type PortfolioFieldBand = {
+  id: string;
+  columnCount: number;
+  items: PortfolioFieldPlacement[];
+  heightPx?: number;
+};
+
+function normalizeText(value: unknown) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getValueItems(field: PortfolioReportField) {
+  if (Array.isArray(field.value)) {
+    return field.value.map(normalizeText).filter(Boolean);
+  }
+
+  const value = normalizeText(field.value);
+  return value ? [value] : [];
+}
+
+function getPortfolioFieldMetrics(field: PortfolioReportField) {
+  const label = normalizeText(field.label);
+  const isListValue = Array.isArray(field.value);
+  const values = getValueItems(field);
+  const valueCharacters = values.reduce((sum, value) => sum + value.length, 0);
+  const longestValue = values.reduce(
+    (longest, value) => Math.max(longest, value.length),
+    0,
+  );
+
+  return {
+    labelCharacters: label.length,
+    valueCharacters,
+    longestValue,
+    totalCharacters: label.length + valueCharacters,
+    valuesCount: values.length,
+    isListValue,
+  };
+}
+
+export function getPortfolioFieldInternalLayout(
+  field: PortfolioReportField,
+  outerColumnCount: 1 | 2 | 3 | 4 | 5 | 6 = 4,
+): PortfolioFieldInternalLayout {
+  if (!Array.isArray(field.value)) {
+    return { valueColumns: 1, valuePlacement: "list" };
+  }
+
+  const values = getValueItems(field);
+  const longest = values.reduce(
+    (max, value) => Math.max(max, value.length),
+    0,
+  );
+  const total = values.reduce(
+    (sum, value) => sum + value.length,
+    0,
+  );
+
+  if (!values.length) {
+    return { valueColumns: 1, valuePlacement: "list" };
+  }
+
+  /*
+   * Multi-value layout is independent from the OUTER grid count.
+   *
+   * Example:
+   * الصفوف = 6 values
+   * المهارات = 5 values
+   *
+   * Both may be half-width outer cards while each card internally
+   * renders its own values using two columns.
+   *
+   * Never force a vertical list merely because the outer candidate
+   * dropped from 4 columns to 3 or 2.
+   */
+  const canUseInternalGrid =
+    values.length >= 4 &&
+    values.length <= 12 &&
+    longest <= 42 &&
+    total <= 300;
+
+  if (!canUseInternalGrid) {
+    return { valueColumns: 1, valuePlacement: "list" };
+  }
+
+  const canUseThreeColumns =
+    outerColumnCount >= 5 &&
+    values.length >= 6 &&
+    longest <= 24 &&
+    total <= 190;
+
+  if (canUseThreeColumns) {
+    return { valueColumns: 3, valuePlacement: "grid" };
+  }
+
+  return {
+    valueColumns: 2,
+    valuePlacement: "grid",
+  };
+}
+
+/** Classifies from rendered content, rather than from field names. */
+export function classifyPortfolioField(
+  field: PortfolioReportField,
+): PortfolioFieldKind {
+  const metrics = getPortfolioFieldMetrics(field);
+
+  if (
+    !metrics.isListValue &&
+    metrics.valuesCount <= 1 &&
+    metrics.longestValue <= 36 &&
+    metrics.labelCharacters <= 36 &&
+    metrics.totalCharacters <= 68
+  ) {
+    return "short";
+  }
+
+  if (
+    metrics.isListValue &&
+    metrics.valuesCount <= 3 &&
+    metrics.longestValue <= 52 &&
+    metrics.valueCharacters <= 115
+  ) {
+    return "medium";
+  }
+
+  if (
+    metrics.valuesCount <= 1 &&
+    metrics.longestValue <= 125 &&
+    metrics.totalCharacters <= 165
+  ) {
+    return "medium";
+  }
+
+  if (metrics.valuesCount > 1) return "list";
+  return "long";
+}
+
+/** Returns a readable semantic span for adaptive candidate column counts. */
+export function getPortfolioFieldSpanForColumns(
+  field: PortfolioReportField,
+  columnCount: 1 | 2 | 3 | 4 | 5 | 6,
+) {
+  const kind = classifyPortfolioField(field);
+
+  if (kind === "list") {
+    const metrics = getPortfolioFieldMetrics(field);
+
+    const compactList =
+      metrics.valuesCount >= 4 &&
+      metrics.valuesCount <= 12 &&
+      metrics.longestValue <= 42 &&
+      metrics.valueCharacters <= 300;
+
+    if (compactList) {
+      /*
+       * Prefer approximately half of the outer grid so two compatible
+       * list fields can sit beside each other.
+       *
+       * 6 cols -> 3 + 3
+       * 5 cols -> 2 + 3 after band balancing
+       * 4 cols -> 2 + 2
+       * 3 cols -> 2 (only pairs when physically reasonable)
+       * 2 cols -> 1 + 1
+       */
+      if (columnCount === 2) return 1;
+      if (columnCount === 3) return 2;
+
+      return Math.max(
+        2,
+        Math.floor(columnCount / 2),
+      );
+    }
+
+    return columnCount;
+  }
+
+  if (kind === "long") {
+    return columnCount;
+  }
+
+  if (kind === "medium") {
+    const metrics = getPortfolioFieldMetrics(field);
+
+    /*
+     * Scalar metadata such as:
+     * البرنامج / الفصل / اليوم / الأسبوع / قناة التنفيذ
+     * should be allowed to occupy one compact slot.
+     *
+     * This lets a measured 4/5-column candidate actually render
+     * 4 or 5 useful cards instead of wasting two columns per field.
+     */
+    const compactScalar =
+      !metrics.isListValue &&
+      metrics.valuesCount <= 1 &&
+      metrics.labelCharacters <= 34 &&
+      metrics.longestValue <= 34 &&
+      metrics.totalCharacters <= 62;
+
+    if (compactScalar) {
+      return 1;
+    }
+
+    /*
+     * Slightly larger scalar values still remain compact on wider grids,
+     * but receive extra width on 4-column layouts when required.
+     */
+    const moderateScalar =
+      !metrics.isListValue &&
+      metrics.valuesCount <= 1 &&
+      metrics.labelCharacters <= 44 &&
+      metrics.longestValue <= 52 &&
+      metrics.totalCharacters <= 92;
+
+    if (moderateScalar && columnCount >= 5) {
+      return 1;
+    }
+
+    if (columnCount >= 4) {
+      return 2;
+    }
+
+    return 1;
+  }
+
+  return 1;
+}
+
+/**
+ * Creates a deterministic bounded dense placement plan. It preserves source
+ * order except for a two-item lookahead used to fill a currently available
+ * slot; wide fields are never advanced over another wide field.
+ */
+export function getAdaptivePortfolioFieldPlacements(
+  fields: PortfolioReportField[],
+  columnCount: 1 | 2 | 3 | 4 | 5 | 6,
+): PortfolioFieldPlacement[] {
+  const placements: PortfolioFieldPlacement[] = [];
+  const occupancy: number[][] = [];
+  const pending = fields.map((field, sourceIndex) => ({ field, sourceIndex }));
+  while (pending.length) {
+    const current = pending.shift()!;
+    const span = getPortfolioFieldSpanForColumns(current.field, columnCount);
+    const row = occupancy.length ? occupancy.length - 1 : 0;
+    const used = occupancy[row]?.reduce((sum, item) => sum + item, 0) || 0;
+    if (used + span > columnCount && used < columnCount && span < columnCount) {
+      const lookaheadIndex = pending.slice(0, 3).findIndex(({ field }) => {
+        const candidateSpan = getPortfolioFieldSpanForColumns(field, columnCount);
+        return candidateSpan < columnCount && used + candidateSpan <= columnCount;
+      });
+      if (lookaheadIndex >= 0) {
+        const compatible = pending.splice(lookaheadIndex, 1)[0];
+        const compatibleSpan = getPortfolioFieldSpanForColumns(compatible.field, columnCount);
+          placements.push({ field: compatible.field, fieldKey: compatible.field.key, sourceIndex: compatible.sourceIndex, columnStart: used + 1, columnSpan: compatibleSpan, row, semanticKind: classifyPortfolioField(compatible.field), stretchToBandHeight: true, internalLayout: getPortfolioFieldInternalLayout(compatible.field, columnCount) });
+        occupancy[row] = [...(occupancy[row] || []), compatibleSpan];
+        pending.unshift(current);
+        continue;
+      }
+    }
+    const nextRow = used + span > columnCount || !occupancy[row]?.length ? row : row;
+    if (!occupancy[nextRow] || (occupancy[nextRow].reduce((sum, item) => sum + item, 0) + span > columnCount)) occupancy.push([]);
+    const targetRow = occupancy.length - 1;
+    const targetUsed = occupancy[targetRow].reduce((sum, item) => sum + item, 0);
+    placements.push({ field: current.field, fieldKey: current.field.key, sourceIndex: current.sourceIndex, columnStart: targetUsed + 1, columnSpan: span, row: targetRow, semanticKind: classifyPortfolioField(current.field), stretchToBandHeight: true, internalLayout: getPortfolioFieldInternalLayout(current.field, columnCount) });
+    occupancy[targetRow].push(span);
+  }
+  return placements;
+}
+
+export function getPortfolioFieldBandPlan(fields: PortfolioReportField[], columnCount: 1 | 2 | 3 | 4 | 5 | 6 = 4, measuredHeights?: Record<string, number>): PortfolioFieldBand[] {
+  const placements = getAdaptivePortfolioFieldPlacements(fields, columnCount).map((placement) => {
+    const measuredHeightPx = measuredHeights?.[placement.fieldKey];
+    return { ...placement, measuredHeightPx, renderedHeightPx: measuredHeightPx, stretchToBandHeight: true };
+  });
+  const bands = new Map<number, PortfolioFieldPlacement[]>();
+  for (const placement of placements) bands.set(placement.row, [...(bands.get(placement.row) || []), placement]);
+  return Array.from(bands.entries()).sort(([a], [b]) => a - b).map(([row, items]) => {
+    const heightPx = items.reduce((max, item) => Math.max(max, item.measuredHeightPx || 0), 0) || undefined;
+    return { id: `portfolio-field-band-${row}`, columnCount, heightPx, items: items.map((item) => ({ ...item, renderedHeightPx: heightPx || item.measuredHeightPx, stretchToBandHeight: items.length > 1 })) };
+  });
+}
+
+
+============================================================
+FILE: lib\portfolio\engine\portfolio-smart-candidates.ts
+============================================================
+
+import type { PortfolioPhysicalDocument, PortfolioPhysicalPage } from "@/lib/portfolio/layout/portfolio-physical-types";
+import type { PortfolioReportPageModel } from "@/components/portfolio/print/portfolio-print-types";
+import { getPortfolioFieldBandPlan } from "@/lib/portfolio/layout/portfolio-field-layout";
+
+export type PortfolioSmartDensity = "normal" | "compact" | "dense" | "minimum-safe";
+export type PortfolioFieldLayoutMode = "balanced-grid" | "dense-grid";
+
+export type PortfolioSmartCandidate = {
+  id: string;
+  density: PortfolioSmartDensity;
+  fieldLayout: PortfolioFieldLayoutMode;
+  columnCount: 1 | 2 | 3 | 4 | 5 | 6;
+  evidenceCount: 0 | 1 | 2;
+  evidenceLayout: "evidence-2-column" | "evidence-1-column";
+  readabilityScore: number;
+};
+
+export const PORTFOLIO_SMART_CANDIDATES: readonly PortfolioSmartCandidate[] = [
+  // ----------------------------------------------------------
+  // 4-column readable baseline
+  // ----------------------------------------------------------
+  {
+    id: "normal-4-e2",
+    density: "normal",
+    fieldLayout: "balanced-grid",
+    columnCount: 4,
+    evidenceCount: 2,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 100,
+  },
+  {
+    id: "normal-4-e1",
+    density: "normal",
+    fieldLayout: "balanced-grid",
+    columnCount: 4,
+    evidenceCount: 1,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 99,
+  },
+  {
+    id: "normal-4-e0",
+    density: "normal",
+    fieldLayout: "balanced-grid",
+    columnCount: 4,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 98,
+  },
+
+  // ----------------------------------------------------------
+  // 5-column compact candidate
+  // Keep all evidence-count variants so removing evidence does
+  // not force the field grid down to 3 columns.
+  // ----------------------------------------------------------
+  {
+    id: "normal-5-e2",
+    density: "normal",
+    fieldLayout: "dense-grid",
+    columnCount: 5,
+    evidenceCount: 2,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 96,
+  },
+  {
+    id: "normal-5-e1",
+    density: "normal",
+    fieldLayout: "dense-grid",
+    columnCount: 5,
+    evidenceCount: 1,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 95,
+  },
+  {
+    id: "normal-5-e0",
+    density: "normal",
+    fieldLayout: "dense-grid",
+    columnCount: 5,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 94,
+  },
+
+  // ----------------------------------------------------------
+  // 6-column candidate for genuinely short scalar-heavy data.
+  // Lists still receive larger spans through the field planner.
+  // ----------------------------------------------------------
+  {
+    id: "compact-6-e2",
+    density: "compact",
+    fieldLayout: "dense-grid",
+    columnCount: 6,
+    evidenceCount: 2,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 91,
+  },
+  {
+    id: "compact-6-e1",
+    density: "compact",
+    fieldLayout: "dense-grid",
+    columnCount: 6,
+    evidenceCount: 1,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 90,
+  },
+  {
+    id: "compact-6-e0",
+    density: "compact",
+    fieldLayout: "dense-grid",
+    columnCount: 6,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 89,
+  },
+
+  // ----------------------------------------------------------
+  // Compact 4-column fallback
+  // ----------------------------------------------------------
+  {
+    id: "compact-4-e1",
+    density: "compact",
+    fieldLayout: "dense-grid",
+    columnCount: 4,
+    evidenceCount: 1,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 86,
+  },
+  {
+    id: "compact-4-e0",
+    density: "compact",
+    fieldLayout: "dense-grid",
+    columnCount: 4,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 85,
+  },
+
+  // ----------------------------------------------------------
+  // Narrow fallbacks only when wider layouts genuinely fail.
+  // ----------------------------------------------------------
+  {
+    id: "dense-3-e1",
+    density: "dense",
+    fieldLayout: "dense-grid",
+    columnCount: 3,
+    evidenceCount: 1,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 72,
+  },
+  {
+    id: "dense-3-e0",
+    density: "dense",
+    fieldLayout: "dense-grid",
+    columnCount: 3,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 71,
+  },
+  {
+    id: "minimum-safe-2-e0",
+    density: "minimum-safe",
+    fieldLayout: "dense-grid",
+    columnCount: 2,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-2-column",
+    readabilityScore: 58,
+  },
+  {
+    id: "minimum-safe-1-e0",
+    density: "minimum-safe",
+    fieldLayout: "dense-grid",
+    columnCount: 1,
+    evidenceCount: 0,
+    evidenceLayout: "evidence-1-column",
+    readabilityScore: 45,
+  },
+];
+
+export type PortfolioSmartMeasurementResult = {
+  candidateId: string;
+  fits: boolean;
+  overflowPx: number;
+  blockOverflowPx: number;
+  scrollOverflowPx: number;
+  boundingOverflowPx: number;
+  mainContentOverflowPx: number;
+  pageHeightPx: number;
+  viewportHeightPx: number;
+  headerBoundaryPx: number;
+  footerBoundaryPx: number;
+  contentTopPx: number;
+  contentBottomPx: number;
+  mainContentBottomPx: number;
+  fieldHeightPx: number;
+  narrativeHeightPx: number;
+  evidenceHeightPx: number;
+  tableHeightPx: number;
+  dominantRole: string;
+  severity: "none" | "tiny" | "small" | "medium" | "large";
+  stable: boolean;
+  fieldHeights: Record<string, number>;
+};
+
+function getPortfolioReportPageModel(payload: unknown): PortfolioReportPageModel | undefined {
+  if (!payload || typeof payload !== "object" || !("page" in payload)) return undefined;
+  const model = (payload as { page?: unknown }).page;
+  return model && typeof model === "object" ? model as PortfolioReportPageModel : undefined;
+}
+
+export function applyPortfolioSmartCandidate(document: PortfolioPhysicalDocument, candidate: PortfolioSmartCandidate, frozen = false, fieldHeights?: Record<string, number>): PortfolioPhysicalDocument {
+  let pages: PortfolioPhysicalPage[] = document.pages.map((page) => {
+    const model = getPortfolioReportPageModel(page.payload);
+    const details = model?.sections.find((section): section is Extract<PortfolioReportPageModel["sections"][number], { kind: "details" }> => section.kind === "details");
+    const fieldBands = details ? getPortfolioFieldBandPlan(details.fields, candidate.columnCount, fieldHeights) : undefined;
+    if (details?.fields.length && !fieldBands?.length && process.env.NODE_ENV !== "production") {
+      throw new Error(`Portfolio invariant failed: report page ${page.id} has detail fields but no field bands.`);
+    }
+    const rawPayload = page.payload && typeof page.payload === "object" ? page.payload as Record<string, unknown> : {};
+    return {
+      ...page,
+      density: candidate.id as never,
+      candidateId: candidate.id,
+      fieldLayout: candidate.fieldLayout,
+      fieldColumnCount: candidate.columnCount,
+      frozen,
+      fieldBands,
+      payload: model ? { ...rawPayload, page: { ...model, fieldLayout: candidate.fieldLayout, fieldColumnCount: candidate.columnCount, fieldBands } } : page.payload,
+    };
+  });
+  const candidatePageById = new Map(pages.map((page) => [page.id, page]));
+  const reportPages: Record<string, PortfolioPhysicalPage[]> = {};
+  for (const [reportId, sourcePages] of Object.entries(document.reportPages)) {
+    const candidateSourcePages = sourcePages.map((sourcePage) => candidatePageById.get(sourcePage.id) || sourcePage);
+    const primary = candidateSourcePages[0];
+    if (!primary) continue;
+    const allEvidence = candidateSourcePages.flatMap((sourcePage) => {
+      const payload = sourcePage.payload;
+      if (!payload || typeof payload !== "object" || !("page" in payload)) return [];
+      const model = (payload as { page?: PortfolioReportPageModel }).page;
+      return model?.sections.flatMap((section) => section.kind === "evidence" ? section.items : []) || [];
+    });
+    const count = Math.min(candidate.evidenceCount, allEvidence.length) as 0 | 1 | 2;
+    const currentModel = getPortfolioReportPageModel(primary.payload);
+    const regularSections = (currentModel?.sections || []).filter((section) => section.kind !== "evidence");
+    const rebuilt: PortfolioPhysicalPage[] = [{
+      ...primary,
+      primaryEvidenceCount: count,
+      overflowEvidenceCount: Math.max(0, allEvidence.length - count),
+      payload: { ...(primary.payload as object), page: { ...currentModel, sections: [...regularSections, ...(count ? [{ kind: "evidence" as const, items: allEvidence.slice(0, count) }] : [])] } },
+    }];
+    const template = candidateSourcePages[1] || primary;
+    for (let index = count; index < allEvidence.length; index += 2) {
+      const items = allEvidence.slice(index, index + 2);
+      const templateModel = getPortfolioReportPageModel(template.payload);
+      rebuilt.push({
+        ...template,
+        id: `${primary.id}-evidence-${Math.floor(index / 2) + 1}`,
+        continuationIndex: rebuilt.length,
+        fieldBands: undefined,
+        fieldColumnCount: undefined,
+        fieldLayout: undefined,
+        primaryEvidenceCount: 0,
+        overflowEvidenceCount: Math.max(0, allEvidence.length - index - items.length),
+        payload: templateModel ? { ...(template.payload as object), page: { ...templateModel, fieldBands: undefined, fieldColumnCount: undefined, fieldLayout: undefined, key: `${primary.id}-evidence-${Math.floor(index / 2) + 1}`, sections: [{ kind: "evidence" as const, items }] } } : template.payload,
+      });
+    }
+    reportPages[reportId] = rebuilt;
+    const ids = new Set(sourcePages.map((page) => page.id));
+    pages = [...pages.filter((page) => !ids.has(page.id)), ...rebuilt];
+  }
+  const finalized: PortfolioPhysicalDocument = {
+    ...document,
+    pages,
+    serviceOutputPages: Object.fromEntries(Object.entries(document.serviceOutputPages).map(([key, items]) => [key, items.map((page) => pages.find((candidatePage) => candidatePage.id === page.id) || page)])),
+    reportPages: Object.fromEntries(Object.entries(reportPages).map(([key, items]) => [key, items])),
+    evidencePages: Object.fromEntries(Object.entries(reportPages).map(([key, items]) => [key, items.filter((page) => page.primaryEvidenceCount === 0 && Boolean((page.payload as { page?: PortfolioReportPageModel } | undefined)?.page?.sections.some((section) => section.kind === "evidence")))])),
+  };
+  if (process.env.NODE_ENV !== "production") {
+    for (const page of finalized.reportPages ? Object.values(finalized.reportPages).flat() : []) {
+      const model = getPortfolioReportPageModel(page.payload);
+      const details = model?.sections.find((section): section is Extract<PortfolioReportPageModel["sections"][number], { kind: "details" }> => section.kind === "details");
+      if (details?.fields.length) {
+        const bandItemCount = page.fieldBands?.reduce((count, band) => count + band.items.length, 0) || 0;
+        if (!page.fieldBands?.length || bandItemCount !== details.fields.length) {
+          throw new Error(`Portfolio invariant failed after finalization: ${page.id} has ${details.fields.length} detail fields but ${bandItemCount} field-band items.`);
+        }
+      }
+    }
+  }
+  return finalized;
+}
+
+
+============================================================
+FILE: components\portfolio\print\editorial-atlas-portfolio-print.tsx
+============================================================
+
 import type { CSSProperties, ReactNode } from "react";
 
 import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/lib/portfolio/engine/portfolio-smart-content-utils";
@@ -123,7 +736,7 @@ function renderValue(value: string | string[], field?: PortfolioReportField, int
   if (Array.isArray(value)) {
     const columns = internalLayout?.valueColumns || 1;
     return (
-      <ul className="atlas-value-list" style={columns > 1 ? { display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: ".3mm .7mm" } : undefined}>
+      <ul className="atlas-value-list" style={columns > 1 ? { display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: ".35mm 1mm" } : undefined}>
         {value.map((item, index) => (
           <li key={`${item}-${index}`}>{item}</li>
         ))}
@@ -152,7 +765,7 @@ function AtlasReportPages({ report, physicalDocument, reportId }: { report: Port
           sectionLabel={report.serviceName || "التقرير"}
           indexLabel={String(pageIndex + 1).padStart(2, "0")}
         >
-          <header className="atlas-report-title" data-portfolio-page-id={physicalDocument.reportPages[reportId]?.[pageIndex]?.id}>
+          <header className="atlas-report-title">
             <span>{report.serviceName || report.subtitle || "تقرير"}</span>
             <div><i aria-hidden="true" /><h1>{report.title}</h1></div>
             <small>صفحة {pageIndex + 1} من {pages.length}</small>
@@ -171,7 +784,7 @@ function AtlasReportPages({ report, physicalDocument, reportId }: { report: Port
                     <h2>التفاصيل</h2>
                     <div className="atlas-detail-grid" style={{ gridTemplateColumns: `repeat(${page.fieldColumnCount || 4}, minmax(0, 1fr))` }}>
                       {(page.fieldBands || []).flatMap((band) =>
-                        band.items.map(({ field, columnStart, columnSpan: effectiveSpan, row, semanticKind: kind, sourceIndex: index, renderedHeightPx, internalLayout }) => {
+                        band.items.map(({ field, columnSpan: effectiveSpan, semanticKind: kind, sourceIndex: index, renderedHeightPx, internalLayout }) => {
                         const tone = index % 3 === 0 ? "coral" : index % 2 === 0 ? "teal" : "blue";
 
                         return (
@@ -186,7 +799,7 @@ function AtlasReportPages({ report, physicalDocument, reportId }: { report: Port
                             data-portfolio-field-key={field.key}
                             data-portfolio-field-band={band.id}
                             data-portfolio-internal-columns={internalLayout.valueColumns}
-                            style={{ gridColumn: `${columnStart} / span ${effectiveSpan}`, gridRow: `${row + 1}`, height: "100%", alignSelf: "stretch", ...(renderedHeightPx ? { minHeight: `${renderedHeightPx}px` } : {}) }}
+                            style={{ gridColumn: `span ${effectiveSpan}`, height: "100%", alignSelf: "stretch", ...(renderedHeightPx ? { minHeight: `${renderedHeightPx}px` } : {}) }}
                           >
                             <span className="atlas-detail-index">
                               {String(index + 1).padStart(2, "0")}
@@ -859,7 +1472,7 @@ export function EditorialAtlasPortfolioPrint({
             description="تنظيم بصري يوضح تسلسل أقسام ملف الإنجاز."
           />
 
-          <div className="atlas-index-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <div className="atlas-index-grid">
             {data.sections
               .filter((section) => section.isEnabled)
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -873,17 +1486,9 @@ export function EditorialAtlasPortfolioPrint({
         </AtlasPage>
       ) : null}
 
-      <style>{`
-        .atlas-introduction-page .atlas-heading h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 32px !important; font-weight: 900; line-height: 1.3; }
-        .atlas-introduction-page .atlas-heading p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 16px !important; font-weight: 600; line-height: 2; max-width: 165mm; text-align: justify; text-justify: inter-word; }
-        .atlas-identity-physical-page .portfolio-identity-page-heading h1 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 30px !important; font-weight: 900; line-height: 1.3; }
-        .atlas-identity-physical-page .portfolio-educational-identity-content h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 17px !important; font-weight: 900; line-height: 1.4; }
-        .atlas-identity-physical-page .portfolio-educational-identity-content p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 12px !important; line-height: 1.8; }
-        .atlas-identity-physical-page .portfolio-educational-identity-content li { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 11px !important; line-height: 1.7; }
-      `}</style>
       {sectionEnabled("introduction") ? (
-        <div>
-          <AtlasPage sectionLabel="المقدمة" indexLabel="03" className="atlas-introduction-page">
+        <div style={{ order: sectionOrder("introduction") }}>
+          <AtlasPage sectionLabel="المقدمة" indexLabel="03">
             <Heading
               kicker="مدخل الملف"
               title="المقدمة"
@@ -898,7 +1503,7 @@ export function EditorialAtlasPortfolioPrint({
       ) : null}
 
       {sectionEnabled("educational-identity") ? (
-        <AtlasPage sectionLabel="الهوية التعليمية" indexLabel="04" className="portfolio-identity-physical-page atlas-identity-physical-page">
+        <AtlasPage sectionLabel="الهوية التعليمية" indexLabel="04" className="portfolio-identity-physical-page">
           <PortfolioEducationalIdentityContent data={data} variant="atlas" />
         </AtlasPage>
       ) : null}

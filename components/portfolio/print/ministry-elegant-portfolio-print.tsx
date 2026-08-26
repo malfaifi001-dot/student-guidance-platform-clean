@@ -1,24 +1,23 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import type { PortfolioReportContent, PortfolioReportField, } from "@/lib/portfolio/portfolio-report-content";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
-import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
+import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/lib/portfolio/engine/portfolio-smart-content-utils";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
-import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
 import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
-import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
-import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getServiceOutputPhysicalWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
-function renderFieldValue(value: string | string[]) {
+function renderFieldValue(value: string | string[], field?: PortfolioReportField, internalLayout?: PortfolioFieldInternalLayout) {
   if (Array.isArray(value)) {
+    const columns = internalLayout?.valueColumns || 1;
     return (
-      <ul className="portfolio-report-list">
+      <ul className="portfolio-report-list" style={columns > 1 ? { display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: ".3mm .7mm" } : undefined}>
         {value.map((item) => (
           <li key={item}>{item}</li>
         ))}
@@ -90,7 +89,7 @@ function PageShell({
   style?: CSSProperties;
 }) {
   return (
-    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel}>
+    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel} data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}>
       <div className="portfolio-page-header" data-portfolio-header-boundary>
         <span>ملف الإنجاز</span>
         <span>{pageLabel}</span>
@@ -120,7 +119,7 @@ function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
 function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
-  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const plannedWeeks = getServiceOutputPhysicalWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-curriculum-page">
@@ -144,10 +143,10 @@ function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { o
 }
 
 function MinistryActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
-  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-activity-output-page">
+    <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-activity-output-page portfolio-service-output-page">
       <style>{`.portfolio-ministry-elegant-activity-output-body{display:grid;gap:4mm}.portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-ministry-elegant-activity-output-week{break-inside:avoid}.portfolio-ministry-elegant-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:linear-gradient(90deg,#315c49,#62886b);font-size:10px}.portfolio-ministry-elegant-activity-output-week header span{font-size:8px;opacity:.9}.portfolio-ministry-elegant-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-ministry-elegant-activity-output-table th,.portfolio-ministry-elegant-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d5e2d8;text-align:right;vertical-align:middle}.portfolio-ministry-elegant-activity-output-table thead th{color:#fff;background:#527861;font-weight:900}.portfolio-ministry-elegant-activity-output-table tbody th{color:#315c49;background:#f1f7f1}.portfolio-ministry-elegant-activity-output-table td{background:#fff}.portfolio-ministry-elegant-activity-output-table small{display:block;margin-top:.5mm;color:#6a7b73;font-size:7px}`}</style>
       <span className="portfolio-section-kicker">مخرج مرتبط</span>
       <h2 className="portfolio-section-title portfolio-activity-output-title">{output.displayTitle}</h2>
@@ -187,7 +186,7 @@ function PortfolioQualificationDocumentPage({ data, item }: {
 }
 
 function PortfolioDesignedReportPage({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
-  const pages = getPlannedReportPages(physicalDocument, reportId);
+  const pages = getReportPhysicalPages(physicalDocument, reportId);
   const evidenceImageHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceGridColumns =
     getPortfolioEvidencePerPage(report) <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
@@ -195,7 +194,7 @@ function PortfolioDesignedReportPage({ report, physicalDocument, reportId }: { r
   return (
     <>
       {pages.map((page, pageIndex) => (
-        <section key={page.key} className="portfolio-report-page" data-portfolio-density={page.layoutCandidate}>
+        <section key={page.key} className="portfolio-report-page" data-portfolio-density={page.layoutCandidate} data-portfolio-page-id={physicalDocument.reportPages[reportId]?.[pageIndex]?.id}>
           <div className="portfolio-report-frame">
             <div className="portfolio-report-band" />
 
@@ -227,18 +226,20 @@ function PortfolioDesignedReportPage({ report, physicalDocument, reportId }: { r
                             لا توجد حقول متاحة في هذا التقرير.
                           </div>
                         ) : (
-                          <div className="portfolio-report-detail-grid">
-                            {getBalancedPortfolioFieldRows(section.fields).map((row, rowIndex) =>
-                              row.map(({ field, effectiveSpan, kind }) => (
+                          <div className="portfolio-report-detail-grid" style={{ gridTemplateColumns: `repeat(${page.fieldColumnCount || 4}, minmax(0, 1fr))` }}>
+                            {(page.fieldBands || []).flatMap((band) =>
+                              band.items.map(({ field, columnStart, columnSpan: effectiveSpan, row, semanticKind: kind, renderedHeightPx, internalLayout }) => (
                                 <div
                                   key={`${field.key}-${field.label}`}
                                   className="portfolio-report-detail-box"
-                                  style={{ gridColumn: `span ${effectiveSpan}` }}
+                                  style={{ gridColumn: `${columnStart} / span ${effectiveSpan}`, gridRow: `${row + 1}`, height: "100%", alignSelf: "stretch", ...(renderedHeightPx ? { minHeight: `${renderedHeightPx}px` } : {}) }}
                                   data-portfolio-field-kind={kind}
-                                  data-field-row={rowIndex}
+                                  data-portfolio-field-key={field.key}
+                                  data-portfolio-field-band={band.id}
+                                  data-portfolio-internal-columns={internalLayout.valueColumns}
                                 >
                                   <span>{field.label}</span>
-                                  <strong>{renderFieldValue(field.value)}</strong>
+                                  <strong>{renderFieldValue(field.value, field, internalLayout)}</strong>
                                 </div>
                               )),
                             )}
@@ -342,13 +343,6 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
   const sectionEnabled = (key: string) => sectionByKey.get(key)?.isEnabled !== false;
   const sectionOrder = (key: string) => sectionByKey.get(key)?.sortOrder ?? 0;
   const visibleQualificationItems = data.qualificationItems.filter((item) => item.isVisible);
-  const educationIdentity = data.educationIdentity;
-  const hasIntroductionIdentity = Boolean(
-    educationIdentity.vision ||
-    educationIdentity.mission ||
-    educationIdentity.pillars.length ||
-    educationIdentity.values.length,
-  );
 
   return (
     <div
@@ -2006,7 +2000,7 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
         <span className="portfolio-section-kicker">المحتويات</span>
         <h2 className="portfolio-section-title">فهرس الملف</h2>
 
-        <div className="portfolio-index-table">
+        <div className="portfolio-index-table" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
           {data.sections
             .filter((section) => section.isEnabled)
             .sort((first, second) => first.sortOrder - second.sortOrder)
@@ -2021,85 +2015,22 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
       </PageShell>
       ) : null}
 
+      <style>{`
+        .portfolio-introduction-page .portfolio-section-title { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 32px !important; font-weight: 900; line-height: 1.3; }
+        .portfolio-introduction-page .portfolio-introduction-text { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 16px !important; font-weight: 600; line-height: 2; max-width: 165mm; text-align: justify; text-justify: inter-word; }
+        .portfolio-identity-physical-page .portfolio-identity-page-heading h1 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 30px !important; font-weight: 900; line-height: 1.3; }
+        .portfolio-identity-physical-page .portfolio-educational-identity-content h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 17px !important; font-weight: 900; line-height: 1.4; }
+        .portfolio-identity-physical-page .portfolio-educational-identity-content p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 12px !important; line-height: 1.8; }
+        .portfolio-identity-physical-page .portfolio-educational-identity-content li { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 11px !important; line-height: 1.7; }
+      `}</style>
       {sectionEnabled("introduction") ? (
-        <div className="portfolio-introduction-section" style={{ order: sectionOrder("introduction") }}>
+        <div className="portfolio-introduction-section">
           <PageShell pageLabel="المقدمة" className="portfolio-introduction-page">
             <span className="portfolio-section-kicker">مدخل الملف</span>
             <h2 className="portfolio-section-title">المقدمة</h2>
             <p className="portfolio-introduction-text">
               {data.portfolio.introText || "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي."}
             </p>
-            {false && hasIntroductionIdentity ? <div className="portfolio-education-identity">
-              {educationIdentity.vision || educationIdentity.mission ? (
-                <div className="portfolio-identity-feature-grid">
-                  {educationIdentity.vision ? (
-                    <section className="portfolio-identity-feature-card portfolio-identity-vision">
-                      <span className="portfolio-identity-quote" aria-hidden="true">“</span>
-
-                      <div className="portfolio-identity-feature-heading">
-                        <span className="portfolio-identity-feature-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                            <circle cx="12" cy="12" r="2.75" />
-                          </svg>
-                        </span>
-
-                        <div>
-                          <span className="portfolio-identity-feature-label">نطمح إلى</span>
-                          <h3>الرؤية</h3>
-                        </div>
-                      </div>
-
-                      <p>{educationIdentity.vision}</p>
-                    </section>
-                  ) : null}
-
-                  {educationIdentity.mission ? (
-                    <section className="portfolio-identity-feature-card portfolio-identity-mission">
-                      <span className="portfolio-identity-quote" aria-hidden="true">“</span>
-
-                      <div className="portfolio-identity-feature-heading">
-                        <span className="portfolio-identity-feature-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M12 3 4.5 6.2v5.5c0 4.4 3 7.7 7.5 9.3 4.5-1.6 7.5-4.9 7.5-9.3V6.2L12 3Z" />
-                            <path d="m8.7 12 2.1 2.1 4.6-4.7" />
-                          </svg>
-                        </span>
-
-                        <div>
-                          <span className="portfolio-identity-feature-label">نعمل من أجل</span>
-                          <h3>الرسالة</h3>
-                        </div>
-                      </div>
-
-                      <p>{educationIdentity.mission}</p>
-                    </section>
-                  ) : null}
-                </div>
-              ) : null}
-              {educationIdentity.pillars.length || educationIdentity.values.length ? <div className="portfolio-identity-lists">
-                {educationIdentity.pillars.length ? <section className="portfolio-identity-list"><h3>المحاور</h3><ol>{educationIdentity.pillars.map((item, index) => <li key={`pillar-${index}`}>{item}</li>)}</ol></section> : null}
-                {educationIdentity.values.length ? <section className="portfolio-identity-list"><h3>القيم</h3><ol>{educationIdentity.values.map((item, index) => <li key={`value-${index}`}>{item}</li>)}</ol></section> : null}
-              </div> : null}
-
-              {educationIdentity.strategicObjectives.length ? (
-                <section className="portfolio-objectives-inline">
-                  <div className="portfolio-objectives-inline-heading">
-                    <span className="portfolio-objectives-inline-icon" aria-hidden="true">✓</span>
-                    <div>
-                      <span>الهوية التعليمية</span>
-                      <h3>الأهداف الاستراتيجية</h3>
-                    </div>
-                  </div>
-
-                  <ol className="portfolio-objectives-list">
-                    {educationIdentity.strategicObjectives.map((objective, index) => (
-                      <li key={`objective-${index}`}>{objective}</li>
-                    ))}
-                  </ol>
-                </section>
-              ) : null}
-            </div> : null}
           </PageShell>
         </div>
       ) : null}

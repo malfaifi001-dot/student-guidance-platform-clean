@@ -1,19 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import {
-  getPortfolioEvidenceImageHeightMm,
-  getPortfolioEvidencePerPage,
-} from "@/components/portfolio/print/portfolio-print-pagination";
+import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/lib/portfolio/engine/portfolio-smart-content-utils";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
-import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
-import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioReportContent, PortfolioReportField } from "@/lib/portfolio/portfolio-report-content";
 import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
-import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
-import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getServiceOutputPhysicalWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
@@ -31,10 +26,11 @@ const MOE_2024 = {
   line: "#D9E0E2",
 } as const;
 
-function renderFieldValue(value: string | string[]) {
+function renderFieldValue(value: string | string[], field?: PortfolioReportField, internalLayout?: PortfolioFieldInternalLayout) {
   if (Array.isArray(value)) {
+    const columns = internalLayout?.valueColumns || 1;
     return (
-      <ul className="moe24-report-list">
+      <ul className="moe24-report-list" style={columns > 1 ? { display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: ".3mm .7mm" } : undefined}>
         {value.map((item, index) => (
           <li key={`${item}-${index}`}>{item}</li>
         ))}
@@ -69,6 +65,7 @@ function MoePage({
       className={`moe24-page ${className}`}
       style={style}
       data-page-label={sectionLabel}
+      data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}
     >
       <BrandRule />
 
@@ -113,7 +110,7 @@ function SectionHeading({
 function MoeCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
-  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const plannedWeeks = getServiceOutputPhysicalWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-curriculum-page">
@@ -129,10 +126,10 @@ function MoeCurriculumPages({ output, sectionTitle, physicalDocument }: { output
 }
 
 function MoeActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
-  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-activity-output-page">
+    <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-activity-output-page portfolio-service-output-page">
       <style>{`.moe24-activity-output-body{display:grid;gap:4mm}.moe24-activity-output-page .portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.moe24-activity-output-week{break-inside:avoid}.moe24-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#15445a;background:#e7f7ef;border-top:1.2mm solid #07a869;font-size:10px}.moe24-activity-output-week header span{font-size:8px;color:#63737b}.moe24-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.moe24-activity-output-table th,.moe24-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d9e0e2;text-align:right;vertical-align:middle}.moe24-activity-output-table thead th{color:#fff;background:#15445a;font-weight:900}.moe24-activity-output-table tbody th{color:#15445a;background:#f5f7f6}.moe24-activity-output-table td{background:#fff}.moe24-activity-output-table small{display:block;margin-top:.5mm;color:#63737b;font-size:7px}`}</style>
       <SectionHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="moe-official-2024" />
@@ -146,26 +143,6 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
       <span>{label}</span>
       <strong>{value || "غير محدد"}</strong>
     </div>
-  );
-}
-
-function IntroFeature({
-  title,
-  text,
-  tone,
-}: {
-  title: string;
-  text: string;
-  tone: "blue" | "green";
-}) {
-  return (
-    <section className={`moe24-intro-feature moe24-intro-feature-${tone}`}>
-      <span className="moe24-quote" aria-hidden="true">
-        “
-      </span>
-      <h3>{title}</h3>
-      <p>{text}</p>
-    </section>
   );
 }
 
@@ -472,7 +449,7 @@ function Moe24ReportFieldIcon({
   );
 }
 function MoeReportPages({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
-  const plannedPages = getPlannedReportPages(physicalDocument, reportId);
+  const plannedPages = getReportPhysicalPages(physicalDocument, reportId);
   const pages = plannedPages;
   const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceColumns =
@@ -488,7 +465,7 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
           sectionLabel={report.serviceName || "التقرير"}
           className="moe24-report-page portfolio-report-page"
         >
-          <header className="moe24-report-title">
+          <header className="moe24-report-title" data-portfolio-page-id={physicalDocument.reportPages[reportId]?.[pageIndex]?.id}>
             <span>{report.serviceName || report.subtitle || "تقرير"}</span>
             <div className="moe24-report-title-row">
               <span
@@ -515,9 +492,9 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
                     <h2>التفاصيل</h2>
 
                     <div className="moe24-report-details-panel">
-                      <div className="moe24-report-detail-grid">
-                        {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
-                          row.map(({ field, effectiveSpan, kind, index }) => {
+                      <div className="moe24-report-detail-grid" style={{ gridTemplateColumns: `repeat(${page.fieldColumnCount || 4}, minmax(0, 1fr))` }}>
+                        {(page.fieldBands || []).flatMap((band) =>
+                          band.items.map(({ field, columnStart, columnSpan: effectiveSpan, row, semanticKind: kind, sourceIndex: index, renderedHeightPx, internalLayout }) => {
                           const fieldItems = Array.isArray(field.value)
                             ? field.value
                                 .map((item) => item.trim())
@@ -530,7 +507,7 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
 
                           const isCompactArray = kind === "list" && fieldItems.length <= 4 && serializedValue.length <= 150;
 
-                          const wide = effectiveSpan === 4;
+                          const wide = effectiveSpan === (page.fieldColumnCount || 4);
 
                           const visual = getMoe24ReportFieldVisual(
                             field.label,
@@ -550,8 +527,11 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
-                              style={{ gridColumn: `span ${effectiveSpan}` }}
-                              data-portfolio-field-kind={kind}
+                                style={{ gridColumn: `${columnStart} / span ${effectiveSpan}`, gridRow: `${row + 1}`, height: "100%", alignSelf: "stretch", ...(renderedHeightPx ? { minHeight: `${renderedHeightPx}px` } : {}) }}
+                                data-portfolio-field-band={band.id}
+                                data-portfolio-internal-columns={internalLayout.valueColumns}
+                                data-portfolio-field-kind={kind}
+                                data-portfolio-field-key={field.key}
                             >
                               <span
                                 className="moe24-report-field-icon"
@@ -570,7 +550,7 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
                                 </div>
 
                                 <strong>
-                                  {renderFieldValue(field.value)}
+                                  {renderFieldValue(field.value, field, internalLayout)}
                                 </strong>
                               </div>
                             </article>
@@ -696,16 +676,6 @@ export function MoeOfficial2024PortfolioPrint({
   const visibleQualifications = data.qualificationItems
     .filter((item) => item.isVisible)
     .sort((first, second) => first.sortOrder - second.sortOrder);
-
-  const educationIdentity = data.educationIdentity;
-
-  const hasIntroIdentity = Boolean(
-    educationIdentity.vision ||
-      educationIdentity.mission ||
-      educationIdentity.pillars.length ||
-      educationIdentity.values.length ||
-      educationIdentity.strategicObjectives.length,
-  );
 
   return (
     <div
@@ -1935,7 +1905,7 @@ export function MoeOfficial2024PortfolioPrint({
         <MoePage sectionLabel="الفهرس" style={{ order: -9999 }}>
           <SectionHeading eyebrow="المحتويات" title="فهرس الملف" />
 
-          <div className="moe24-index">
+          <div className="moe24-index" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
             {data.sections
               .filter((section) => section.isEnabled)
               .sort((first, second) => first.sortOrder - second.sortOrder)
@@ -1950,8 +1920,16 @@ export function MoeOfficial2024PortfolioPrint({
         </MoePage>
       ) : null}
 
+      <style>{`
+        .moe24-introduction-page .moe24-section-heading h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 32px !important; font-weight: 900; line-height: 1.3; }
+        .moe24-introduction-page .moe24-section-heading p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 16px !important; font-weight: 600; line-height: 2; max-width: 165mm; text-align: justify; text-justify: inter-word; }
+        .moe24-identity-physical-page .portfolio-identity-page-heading h1 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 30px !important; font-weight: 900; line-height: 1.3; }
+        .moe24-identity-physical-page .portfolio-educational-identity-content h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 17px !important; font-weight: 900; line-height: 1.4; }
+        .moe24-identity-physical-page .portfolio-educational-identity-content p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 12px !important; line-height: 1.8; }
+        .moe24-identity-physical-page .portfolio-educational-identity-content li { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 11px !important; line-height: 1.7; }
+      `}</style>
       {sectionEnabled("introduction") ? (
-        <div style={{ order: sectionOrder("introduction") }}>
+        <div>
           <MoePage sectionLabel="المقدمة" className="moe24-introduction-page">
             <SectionHeading
               eyebrow="مدخل الملف"
@@ -1962,92 +1940,12 @@ export function MoeOfficial2024PortfolioPrint({
               }
             />
 
-            {false && hasIntroIdentity ? (
-              <>
-                {educationIdentity.vision || educationIdentity.mission ? (
-                  <div className="moe24-intro-grid">
-                    {educationIdentity.vision ? (
-                      <IntroFeature
-                        title="الرؤية"
-                        text={educationIdentity.vision}
-                        tone="blue"
-                      />
-                    ) : null}
-
-                    {educationIdentity.mission ? (
-                      <IntroFeature
-                        title="الرسالة"
-                        text={educationIdentity.mission}
-                        tone="green"
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {educationIdentity.pillars.length ||
-                educationIdentity.values.length ? (
-                  <div className="moe24-identity-columns">
-                    {educationIdentity.pillars.length ? (
-                      <section className="moe24-identity-list moe24-identity-list-pillars">
-                        <div className="moe24-identity-list-header">
-                          <span className="moe24-identity-list-mark" aria-hidden="true" />
-                          <div>
-                            <h3>المحاور</h3>
-                            <p className="moe24-identity-list-subtitle">مرتكزات العمل التعليمي</p>
-                          </div>
-                        </div>
-                        <ol>
-                          {educationIdentity.pillars.map((item, index) => (
-                            <li key={`pillar-${index}`}>{item}</li>
-                          ))}
-                        </ol>
-                      </section>
-                    ) : null}
-
-                    {educationIdentity.values.length ? (
-                      <section className="moe24-identity-list moe24-identity-list-values">
-                        <div className="moe24-identity-list-header">
-                          <span className="moe24-identity-list-mark" aria-hidden="true" />
-                          <div>
-                            <h3>القيم</h3>
-                            <p className="moe24-identity-list-subtitle">قيم تقود الممارسة المهنية</p>
-                          </div>
-                        </div>
-                        <ol>
-                          {educationIdentity.values.map((item, index) => (
-                            <li key={`value-${index}`}>{item}</li>
-                          ))}
-                        </ol>
-                      </section>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {educationIdentity.strategicObjectives.length ? (
-                  <section className="moe24-intro-objectives">
-                    <header className="moe24-intro-objectives-header">
-                      <span className="moe24-intro-objectives-mark" aria-hidden="true" />
-                      <div>
-                        <span>الهوية التعليمية</span>
-                        <h3>الأهداف الاستراتيجية</h3>
-                      </div>
-                    </header>
-
-                    <ol className="moe24-intro-objectives-list">
-                      {educationIdentity.strategicObjectives.map((objective, index) => (
-                        <li key={`objective-${index}`}>{objective}</li>
-                      ))}
-                    </ol>
-                  </section>
-                ) : null}
-              </>
-            ) : null}
           </MoePage>
         </div>
       ) : null}
 
       {sectionEnabled("educational-identity") ? (
-        <MoePage sectionLabel="الهوية التعليمية" className="portfolio-identity-physical-page">
+        <MoePage sectionLabel="الهوية التعليمية" className="portfolio-identity-physical-page moe24-identity-physical-page">
           <PortfolioEducationalIdentityContent data={data} variant="moe" />
         </MoePage>
       ) : null}

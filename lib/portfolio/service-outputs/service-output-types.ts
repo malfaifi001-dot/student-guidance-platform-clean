@@ -77,7 +77,7 @@ export type PortfolioServiceOutputChunk =
   | { kind: "activity-plan"; rows: PortfolioActivityPlanRow[]; summary?: Omit<PortfolioActivityPlanContent, "kind" | "rows">; shareUrl?: string; shareQrDataUrl?: string }
   | { kind: "activity-team"; rows: PortfolioActivityTeamContent["rows"] };
 
-export function getPortfolioServiceOutputChunks(output: PortfolioServiceOutput): PortfolioServiceOutputChunk[] {
+export function normalizePortfolioServiceOutput(output: PortfolioServiceOutput): PortfolioServiceOutputChunk[] {
   const content = output.content;
   if (content.kind === "activity-team") {
     const rows = (content as PortfolioActivityTeamContent).rows;
@@ -86,20 +86,15 @@ export function getPortfolioServiceOutputChunks(output: PortfolioServiceOutput):
 
   if (content.kind === "activity-plan") {
     const plan = content as PortfolioActivityPlanContent;
-    const size = Math.max(8, Math.min(14, Math.ceil(plan.rows.length / 2) || 1));
-    const chunks = Array.from({ length: Math.max(1, Math.ceil(plan.rows.length / size)) }, (_, index) => ({
+    return [{
       kind: "activity-plan" as const,
-      rows: plan.rows.slice(index * size, (index + 1) * size),
-      ...(index === 0 ? { summary: { title: plan.title, academicYear: plan.academicYear, semester: plan.semester, totalWeeks: plan.totalWeeks, populatedWeeks: plan.populatedWeeks, totalEntries: plan.totalEntries, activityAreas: plan.activityAreas, shareUrl: plan.shareUrl, shareQrDataUrl: plan.shareQrDataUrl } } : {}),
-      ...(index === Math.max(1, Math.ceil(plan.rows.length / size)) - 1 ? { shareUrl: plan.shareUrl, shareQrDataUrl: plan.shareQrDataUrl } : {}),
-    }));
-    return chunks;
+      rows: plan.rows,
+      summary: { title: plan.title, academicYear: plan.academicYear, semester: plan.semester, totalWeeks: plan.totalWeeks, populatedWeeks: plan.populatedWeeks, totalEntries: plan.totalEntries, activityAreas: plan.activityAreas, shareUrl: plan.shareUrl, shareQrDataUrl: plan.shareQrDataUrl },
+      shareUrl: plan.shareUrl,
+      shareQrDataUrl: plan.shareQrDataUrl,
+    }];
   }
 
   const weeks = (content as PortfolioCurriculumContent).weeks;
-  const size = Math.max(1, Math.ceil(weeks.length / 2));
-  return Array.from({ length: Math.max(1, Math.ceil(weeks.length / size)) }, (_, index) => ({
-    kind: "curriculum-distribution" as const,
-    weeks: weeks.slice(index * size, (index + 1) * size),
-  }));
+  return [{ kind: "curriculum-distribution" as const, weeks }];
 }

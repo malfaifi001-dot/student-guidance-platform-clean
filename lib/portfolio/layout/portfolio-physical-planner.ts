@@ -1,15 +1,16 @@
-import { buildPortfolioReportPages, chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import { composePortfolioSmartPages } from "@/lib/portfolio/engine/portfolio-smart-page-composer";
+import { splitPortfolioItems } from "@/lib/portfolio/engine/portfolio-smart-content-utils";
 import type { PortfolioBlock } from "@/lib/portfolio/layout/portfolio-block-types";
 import type { PortfolioLogicalDocument, PortfolioLogicalSection } from "@/lib/portfolio/layout/portfolio-logical-document";
 import type { PortfolioPhysicalDocument, PortfolioPhysicalPage, PortfolioPhysicalPageRole, PortfolioPhysicalPageType } from "@/lib/portfolio/layout/portfolio-physical-types";
-import { getPortfolioServiceOutputChunks, type PortfolioCurriculumWeek, type PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
+import { normalizePortfolioServiceOutput, type PortfolioCurriculumWeek, type PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
 import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-registry";
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
 
 function roleForPageType(pageType: PortfolioPhysicalPageType): PortfolioPhysicalPageRole {
   if (pageType === "cover") return "cover";
   if (pageType === "performance-divider") return "performance-divider";
-  if (pageType === "service-output") return "service-output";
+  if (pageType === "service-output" || pageType === "service-output-continuation") return "service-output";
   if (pageType === "report" || pageType === "report-evidence") return "report";
   if (pageType === "portfolio-evidence") return "evidence";
   if (pageType === "closing") return "closing";
@@ -57,14 +58,18 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
   for (const section of document.sections.filter((item) => item.isEnabled)) {
     for (const block of section.blocks) {
       if (block.type === "service-output") {
-        const chunks = getPortfolioServiceOutputChunks(block.payload.output);
-        const outputPages = chunks.map((chunk, index) => makePage(section, block, "service-output", `${block.id}-page-${index + 1}`, { ...block.payload, chunk }, index, chunks.length));
+        const chunks = normalizePortfolioServiceOutput(block.payload.output);
+        const outputPages = chunks.map((chunk, index) => {
+          const pageType = index === 0 ? "service-output" : "service-output-continuation";
+          const page = makePage(section, block, pageType, `${block.id}-page-${index + 1}`, { ...block.payload, chunk }, index, chunks.length);
+          return { ...page, outputId: block.payload.output.id };
+        });
         serviceOutputPages[block.payload.output.id] = outputPages;
         pages.push(...outputPages);
         continue;
       }
       if (block.type === "report" && block.payload.content) {
-        const models = buildPortfolioReportPages(block.payload.content);
+        const models = composePortfolioSmartPages(block.payload.content);
         const planned = models.map((model, index) => makePage(section, block, "report", `${block.id}-page-${index + 1}`, { ...block.payload, page: model }, index, models.length));
         reportPages[block.payload.reportId] = planned;
         evidencePages[block.payload.reportId] = planned.filter((page) => {
@@ -79,7 +84,7 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
         continue;
       }
       if (block.type === "custom" && section.type === "evidence" && Array.isArray(block.payload.data)) {
-        const chunks = chunkPortfolioItems(block.payload.data, 2);
+        const chunks = splitPortfolioItems(block.payload.data, 2);
         const planned = chunks.map((items, index) => makePage(section, block, "portfolio-evidence", `${block.id}-page-${index + 1}`, { ...block.payload, data: items }, index, chunks.length));
         pages.push(...planned);
         continue;
@@ -90,21 +95,21 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
   return { pages, frame: getPortfolioFrame(themeId), serviceOutputPages, reportPages, evidencePages };
 }
 
-export function getPlannedServiceOutputWeeks(document: PortfolioPhysicalDocument | undefined, outputId: string): PortfolioCurriculumWeek[][] {
+export function getServiceOutputPhysicalWeeks(document: PortfolioPhysicalDocument | undefined, outputId: string): PortfolioCurriculumWeek[][] {
   return (document?.serviceOutputPages[outputId] || []).flatMap((page) => {
     const chunk = page.payload && typeof page.payload === "object" && "chunk" in page.payload ? (page.payload as { chunk?: { kind?: string; weeks?: unknown[] } }).chunk : undefined;
     return chunk?.kind === "curriculum-distribution" ? [chunk.weeks || []] : [];
   }) as PortfolioCurriculumWeek[][];
 }
 
-export function getPlannedServiceOutputChunks(document: PortfolioPhysicalDocument | undefined, outputId: string) {
+export function getServiceOutputPhysicalChunks(document: PortfolioPhysicalDocument | undefined, outputId: string) {
   return (document?.serviceOutputPages[outputId] || []).flatMap((page) => {
     const chunk = page.payload && typeof page.payload === "object" && "chunk" in page.payload ? (page.payload as { chunk?: unknown }).chunk : undefined;
     return chunk ? [chunk] : [];
   }) as PortfolioServiceOutputChunk[];
 }
 
-export function getPlannedReportPages(document: PortfolioPhysicalDocument, reportId: string) {
+export function getReportPhysicalPages(document: PortfolioPhysicalDocument, reportId: string) {
   return (document.reportPages[reportId] || []).flatMap((page) => {
     const payload = page.payload;
     return payload && typeof payload === "object" && "page" in payload ? [(payload as { page: unknown }).page] : [];

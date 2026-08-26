@@ -1,19 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import {
-  getPortfolioEvidenceImageHeightMm,
-  getPortfolioEvidencePerPage,
-} from "@/components/portfolio/print/portfolio-print-pagination";
+import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/lib/portfolio/engine/portfolio-smart-content-utils";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
-import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
-import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
+import type { PortfolioReportContent, PortfolioReportField } from "@/lib/portfolio/portfolio-report-content";
 import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
-import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
-import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
-import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getServiceOutputPhysicalWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
@@ -53,6 +48,7 @@ function HorizonPage({
       className={`hzn-page ${className}`}
       style={style}
       data-page-label={sectionLabel}
+      data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}
     >
       <div className="hzn-corner-code" aria-hidden="true">
         <span>{code}</span>
@@ -98,7 +94,7 @@ function HorizonHeading({
 function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
-  const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
+  const plannedWeeks = getServiceOutputPhysicalWeeks(physicalDocument, output.id);
   const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-curriculum-page" code={`${index + 1}`.padStart(2, "0")}>
@@ -114,10 +110,10 @@ function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { ou
 }
 
 function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
-  const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
+  const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-activity-output-page" code={String(index + 1).padStart(2, "0")}>
+    <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-activity-output-page portfolio-service-output-page" code={String(index + 1).padStart(2, "0")}>
       <style>{`.portfolio-geometric-horizon-activity-output-body{display:grid;gap:4mm}.hzn-activity-output-page .hzn-heading h2{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-geometric-horizon-activity-output-week{break-inside:avoid}.portfolio-geometric-horizon-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:#25316d;box-shadow:3px 3px 0 #f4b942;font-size:10px}.portfolio-geometric-horizon-activity-output-week header span{font-size:8px;color:#f4b942}.portfolio-geometric-horizon-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-geometric-horizon-activity-output-table th,.portfolio-geometric-horizon-activity-output-table td{padding:1.8mm 2mm;border:1px solid #e2e0da;text-align:right;vertical-align:middle}.portfolio-geometric-horizon-activity-output-table thead th{color:#fff;background:#6c5ce7;font-weight:900}.portfolio-geometric-horizon-activity-output-table tbody th{color:#25316d;background:#f4f2ed}.portfolio-geometric-horizon-activity-output-table td{background:#fff}.portfolio-geometric-horizon-activity-output-table small{display:block;margin-top:.5mm;color:#6b7280;font-size:7px}`}</style>
       <HorizonHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="geometric-horizon" />
@@ -125,10 +121,11 @@ function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: 
   ));
 }
 
-function renderValue(value: string | string[]) {
+function renderValue(value: string | string[], field?: PortfolioReportField, internalLayout?: PortfolioFieldInternalLayout) {
   if (Array.isArray(value)) {
+    const columns = internalLayout?.valueColumns || 1;
     return (
-      <ul className="hzn-value-list">
+      <ul className="hzn-value-list" style={columns > 1 ? { display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: ".3mm .7mm" } : undefined}>
         {value.map((item, index) => (
           <li key={`${item}-${index}`}>{item}</li>
         ))}
@@ -140,7 +137,7 @@ function renderValue(value: string | string[]) {
 }
 
 function HorizonReportPages({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
-  const plannedPages = getPlannedReportPages(physicalDocument, reportId);
+  const plannedPages = getReportPhysicalPages(physicalDocument, reportId);
   const pages = plannedPages;
   const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceColumns =
@@ -157,7 +154,7 @@ function HorizonReportPages({ report, physicalDocument, reportId }: { report: Po
           sectionLabel={report.serviceName || "التقرير"}
           code={String(pageIndex + 1).padStart(2, "0")}
         >
-          <header className="hzn-report-title">
+          <header className="hzn-report-title" data-portfolio-page-id={physicalDocument.reportPages[reportId]?.[pageIndex]?.id}>
             <span>{report.serviceName || report.subtitle || "تقرير"}</span>
             <h1>{report.title}</h1>
             <small>
@@ -177,10 +174,9 @@ function HorizonReportPages({ report, physicalDocument, reportId }: { report: Po
                   >
                     <h2>التفاصيل</h2>
 
-                    <div className="hzn-detail-grid">
-                      {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
-                        row.map(({ field, effectiveSpan, kind, index }) => {
-
+                    <div className="hzn-detail-grid" style={{ gridTemplateColumns: `repeat(${page.fieldColumnCount || 4}, minmax(0, 1fr))` }}>
+                      {(page.fieldBands || []).flatMap((band) =>
+                        band.items.map(({ field, columnStart, columnSpan: effectiveSpan, row, semanticKind: kind, sourceIndex: index, renderedHeightPx, internalLayout }) => {
                         return (
                           <article
                             key={`${field.key}-${field.label}`}
@@ -190,8 +186,11 @@ function HorizonReportPages({ report, physicalDocument, reportId }: { report: Po
                             ]
                               .filter(Boolean)
                               .join(" ")}
-                            style={{ gridColumn: `span ${effectiveSpan}` }}
                             data-portfolio-field-kind={kind}
+                            data-portfolio-field-key={field.key}
+                            data-portfolio-field-band={band.id}
+                            data-portfolio-internal-columns={internalLayout.valueColumns}
+                            style={{ gridColumn: `${columnStart} / span ${effectiveSpan}`, gridRow: `${row + 1}`, height: "100%", alignSelf: "stretch", ...(renderedHeightPx ? { minHeight: `${renderedHeightPx}px` } : {}) }}
                           >
                             <span className="hzn-detail-number">
                               {String(index + 1).padStart(2, "0")}
@@ -199,7 +198,7 @@ function HorizonReportPages({ report, physicalDocument, reportId }: { report: Po
 
                             <div className="hzn-detail-content">
                               <small>{field.label}</small>
-                              <strong>{renderValue(field.value)}</strong>
+                              <strong>{renderValue(field.value, field, internalLayout)}</strong>
                             </div>
                           </article>
                         );
@@ -1212,7 +1211,7 @@ export function GeometricHorizonPortfolioPrint({
             description="عرض منظم لأقسام ملف الإنجاز."
           />
 
-          <div className="hzn-index">
+          <div className="hzn-index" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
             {data.sections
               .filter((section) => section.isEnabled)
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -1227,9 +1226,17 @@ export function GeometricHorizonPortfolioPrint({
         </HorizonPage>
       ) : null}
 
+      <style>{`
+        .hzn-introduction-page .hzn-heading h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 32px !important; font-weight: 900; line-height: 1.3; }
+        .hzn-introduction-page .hzn-heading p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 16px !important; font-weight: 600; line-height: 2; max-width: 165mm; text-align: justify; text-justify: inter-word; }
+        .hzn-identity-physical-page .portfolio-identity-page-heading h1 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 30px !important; font-weight: 900; line-height: 1.3; }
+        .hzn-identity-physical-page .portfolio-educational-identity-content h2 { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 17px !important; font-weight: 900; line-height: 1.4; }
+        .hzn-identity-physical-page .portfolio-educational-identity-content p { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 12px !important; line-height: 1.8; }
+        .hzn-identity-physical-page .portfolio-educational-identity-content li { font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif; font-size: 11px !important; line-height: 1.7; }
+      `}</style>
       {sectionEnabled("introduction") ? (
-        <div style={{ order: sectionOrder("introduction") }}>
-          <HorizonPage sectionLabel="المقدمة" code="03">
+        <div>
+          <HorizonPage sectionLabel="المقدمة" code="03" className="hzn-introduction-page">
             <HorizonHeading
               eyebrow="مدخل الملف"
               title="المقدمة"
@@ -1239,73 +1246,12 @@ export function GeometricHorizonPortfolioPrint({
               }
             />
 
-            {false ? (
-              data.educationIdentity.vision || data.educationIdentity.mission ? (
-              <div className="hzn-intro-grid">
-                {data.educationIdentity.vision ? (
-                  <section className="hzn-intro-card">
-                    <small>نطمح إلى</small>
-                    <h3>الرؤية</h3>
-                    <p>{data.educationIdentity.vision}</p>
-                  </section>
-                ) : null}
-
-                {data.educationIdentity.mission ? (
-                  <section className="hzn-intro-card hzn-intro-card-mint">
-                    <small>نعمل من أجل</small>
-                    <h3>الرسالة</h3>
-                    <p>{data.educationIdentity.mission}</p>
-                  </section>
-                ) : null}
-              </div>
-              ) : null
-            ) : null}
-
-            {data.educationIdentity.pillars.length ||
-            data.educationIdentity.values.length ? (
-              <div className="hzn-lists">
-                {data.educationIdentity.pillars.length ? (
-                  <section className="hzn-list">
-                    <h3>المحاور</h3>
-                    <ol>
-                      {data.educationIdentity.pillars.map((item, index) => (
-                        <li key={`pillar-${index}`}>{item}</li>
-                      ))}
-                    </ol>
-                  </section>
-                ) : null}
-
-                {data.educationIdentity.values.length ? (
-                  <section className="hzn-list">
-                    <h3>القيم</h3>
-                    <ol>
-                      {data.educationIdentity.values.map((item, index) => (
-                        <li key={`value-${index}`}>{item}</li>
-                      ))}
-                    </ol>
-                  </section>
-                ) : null}
-              </div>
-            ) : null}
-
-            {data.educationIdentity.strategicObjectives.length ? (
-              <section className="hzn-objectives">
-                <h3>الأهداف الاستراتيجية</h3>
-                <ol>
-                  {data.educationIdentity.strategicObjectives.map(
-                    (item, index) => (
-                      <li key={`objective-${index}`}>{item}</li>
-                    ),
-                  )}
-                </ol>
-              </section>
-            ) : null}
           </HorizonPage>
         </div>
       ) : null}
 
       {sectionEnabled("educational-identity") ? (
-        <HorizonPage sectionLabel="الهوية التعليمية" code="04" className="portfolio-identity-physical-page">
+        <HorizonPage sectionLabel="الهوية التعليمية" code="04" className="portfolio-identity-physical-page hzn-identity-physical-page">
           <PortfolioEducationalIdentityContent data={data} variant="horizon" />
         </HorizonPage>
       ) : null}
