@@ -11,6 +11,7 @@ import {
   getActivityPlanProgramByKey,
 } from "@/lib/activity-plan/activity-plan-programs";
 import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
+import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
 import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 
@@ -48,6 +49,11 @@ export function ActivityPlanShell() {
   const [activeCell, setActiveCell] = useState<Cell | null>(null);
   const [editing, setEditing] = useState<Entry | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSetupOpen, setPreviewSetupOpen] = useState(false);
+  const [previewStage, setPreviewStage] = useState("");
+  const [previewWeekMode, setPreviewWeekMode] = useState<"all" | "selected">("all");
+  const [previewWeeks, setPreviewWeeks] = useState<number[]>([]);
+  const [previewSetupError, setPreviewSetupError] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
   const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
@@ -97,13 +103,34 @@ export function ActivityPlanShell() {
     const result = await print.runPrintExport({
       exportUrl: "/api/dashboard/activity-plan/export/pdf",
       method: "POST",
-      body: { fileName: "student-activity-plan.pdf", stage: selectedStage },
-      printUrl: `/print/activity-plan?print=1&stage=${encodeURIComponent(selectedStage)}`,
+      body: { fileName: "student-activity-plan.pdf", stage: previewStage, weeks: previewWeekMode === "selected" ? previewWeeks : undefined },
+      printUrl: buildActivityPlanPreviewUrl(previewStage, previewWeekMode, previewWeeks, true),
       fileName: "student-activity-plan.pdf",
       blockedTitle: "معاينة خطة النشاط الطلابي",
       blockedMessage: "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح مستند الطباعة.",
     });
     return result !== "error";
+  }
+
+  function openPreviewSetup() {
+    setPreviewStage(selectedStage);
+    setPreviewWeekMode("all");
+    setPreviewWeeks([]);
+    setPreviewSetupError("");
+    setPreviewSetupOpen(true);
+  }
+
+  function openSelectedPreview() {
+    if (!REAL_ACTIVITY_PLAN_STAGES.includes(previewStage)) {
+      setPreviewSetupError("اختر مرحلة صحيحة أولاً.");
+      return;
+    }
+    if (previewWeekMode === "selected" && previewWeeks.length === 0) {
+      setPreviewSetupError("اختر أسبوعًا واحدًا على الأقل.");
+      return;
+    }
+    setPreviewSetupOpen(false);
+    setPreviewOpen(true);
   }
 
   return (
@@ -123,7 +150,7 @@ export function ActivityPlanShell() {
             </div>
             {existingLink ? <ServiceOutputLinkActions link={existingLink} onDeleted={() => setServiceLinks((current) => current.filter((item) => item.id !== existingLink.id))} /> : null}
             <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20"><Link2 className="h-4 w-4" />{existingLink ? "تعديل الربط" : "ربط بملف الإنجاز"}</button>
-            <button type="button" onClick={() => setPreviewOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-sky-900 shadow-lg shadow-sky-950/20 transition hover:bg-cyan-50"><Eye className="h-4 w-4" />معاينة</button>
+            <button type="button" onClick={openPreviewSetup} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-sky-900 shadow-lg shadow-sky-950/20 transition hover:bg-cyan-50"><Eye className="h-4 w-4" />معاينة</button>
           </div>
         </div>
       </section>
@@ -171,7 +198,8 @@ export function ActivityPlanShell() {
       </section>
 
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
-      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={`/print/activity-plan?preview=1&stage=${encodeURIComponent(selectedStage)}`} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
+      <ActivityPlanPreviewSetup open={previewSetupOpen} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} onClose={() => setPreviewSetupOpen(false)} onStageChange={(stage) => { setPreviewStage(stage); setPreviewSetupError(""); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
+      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={buildActivityPlanPreviewUrl(previewStage, previewWeekMode, previewWeeks, false)} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
       <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={stages} selectedStage={selectedStage} gradesByStage={gradesByStage} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.stage === entry.stage && item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
@@ -221,6 +249,27 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
       {entry ? <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving || deleting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 text-sm font-black text-rose-700 ring-1 ring-rose-100"><Trash2 className="h-4 w-4" />حذف الإدخال</button> : null}
     </div>
     <SmartActionModal open={confirmDelete} title="تأكيد حذف الإدخال" description="سيتم إزالة النشاط من هذه الخلية فقط." variant="danger" confirmLabel="حذف الإدخال" loading={deleting} portal onClose={() => setConfirmDelete(false)} onConfirm={() => void remove()} />
+  </SmartActionModal>;
+}
+
+function buildActivityPlanPreviewUrl(stage: string, weekMode: "all" | "selected", weeks: number[], print: boolean) {
+  const params = new URLSearchParams({ preview: "1", stage });
+  if (print) params.set("print", "1");
+  if (weekMode === "selected" && weeks.length) params.set("weeks", weeks.join(","));
+  return `/print/activity-plan?${params.toString()}`;
+}
+
+function ActivityPlanPreviewSetup({ open, stage, weekMode, weeks, error, onClose, onStageChange, onWeekModeChange, onWeeksChange, onConfirm }: { open: boolean; stage: string; weekMode: "all" | "selected"; weeks: number[]; error: string; onClose: () => void; onStageChange: (stage: string) => void; onWeekModeChange: (mode: "all" | "selected") => void; onWeeksChange: (weeks: number[]) => void; onConfirm: () => void }) {
+  const toggleWeek = (week: number) => onWeeksChange(weeks.includes(week) ? weeks.filter((item) => item !== week) : [...weeks, week].sort((a, b) => a - b));
+
+  return <SmartActionModal open={open} title="إعداد معاينة خطة النشاط" description="اختر المرحلة ونطاق الأسابيع قبل فتح المعاينة." portal onClose={onClose} showFooter={false}>
+    <div className="space-y-4">
+      <label className="block text-sm font-black text-slate-700">المرحلة<select required value={stage} onChange={(event) => onStageChange(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر المرحلة</option>{REAL_ACTIVITY_PLAN_STAGES.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      <fieldset className="space-y-2"><legend className="text-sm font-black text-slate-700">نطاق الأسابيع</legend><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700"><input type="radio" name="activity-plan-week-mode" checked={weekMode === "all"} onChange={() => onWeekModeChange("all")} />كل الأسابيع</label><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700"><input type="radio" name="activity-plan-week-mode" checked={weekMode === "selected"} onChange={() => onWeekModeChange("selected")} />تحديد أسابيع</label></fieldset>
+      {weekMode === "selected" ? <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="mb-2 flex items-center justify-between gap-2"><span className="text-xs font-black text-slate-500">اختر أسبوعًا أو أكثر</span><span className="flex gap-2"><button type="button" onClick={() => onWeeksChange(Array.from({ length: 20 }, (_, index) => index + 1))} className="text-[11px] font-black text-sky-700 hover:text-sky-900">تحديد الكل</button><button type="button" onClick={() => onWeeksChange([])} className="text-[11px] font-black text-slate-500 hover:text-slate-700">إلغاء التحديد</button></span></div><div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain pl-1" role="group" aria-label="اختيار الأسابيع">{Array.from({ length: 20 }, (_, index) => index + 1).map((week) => <label key={week} className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-100 hover:bg-sky-50"><input type="checkbox" checked={weeks.includes(week)} onChange={() => toggleWeek(week)} />الأسبوع {week}</label>)}</div></div> : null}
+      {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700" role="alert">{error}</p> : null}
+      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={onConfirm} disabled={!REAL_ACTIVITY_PLAN_STAGES.includes(stage) || (weekMode === "selected" && weeks.length === 0)} className="h-11 rounded-2xl bg-sky-700 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">فتح المعاينة</button><button type="button" onClick={onClose} className="h-11 rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-600 transition hover:bg-slate-50">إلغاء</button></div>
+    </div>
   </SmartActionModal>;
 }
 

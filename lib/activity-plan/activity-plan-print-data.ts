@@ -35,10 +35,11 @@ function resolveLegacyProgramKey(title: string | null | undefined) {
   return match?.key || "";
 }
 
-export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null): Promise<ActivityPlanPrintWeek[]> {
+export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null, weekNumbers?: number[]): Promise<ActivityPlanPrintWeek[]> {
   const selectedStage = normalizeActivityPlanStage(stage);
+  const selectedWeeks = weekNumbers?.length ? Array.from(new Set(weekNumbers.filter((week) => Number.isInteger(week) && week >= 1 && week <= 20))) : [];
   const entries = await prisma.activityPlanEntry.findMany({
-    where: { schoolAccountId, ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: { gte: 1, lte: 20 } },
+    where: { schoolAccountId, ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: selectedWeeks.length ? { in: selectedWeeks } : { gte: 1, lte: 20 } },
     select: {
       weekNumber: true,
       dayOfWeek: true,
@@ -62,8 +63,8 @@ export async function getActivityPlanPrintData(schoolAccountId: string, stage?: 
   });
   const legacyById = new Map(legacyCases.map((item) => [item.id, item.values[0]?.value || ""]));
 
-  return Array.from({ length: 20 }, (_, index) => {
-    const weekNumber = index + 1;
+  const weeksToRender = selectedWeeks.length ? selectedWeeks.sort((left, right) => left - right) : Array.from({ length: 20 }, (_, index) => index + 1);
+  return weeksToRender.map((weekNumber) => {
     return {
       weekNumber,
       dates: getActivityPlanDates(weekNumber),

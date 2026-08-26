@@ -57,14 +57,17 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
 
   const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const profile = current.user.schoolAccount?.profile;
-  const activityLeaderName = current.user.officialName || current.user.name || "";
+  const activityLeaderName = profile?.activityLeaderName || current.user.officialName || current.user.name || "";
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
   const printEnabled = String(params.print || "") === "1";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
   const stage = requestedStage && REAL_ACTIVITY_PLAN_STAGES.includes(requestedStage)
     ? requestedStage
     : getActivityPlanStagesFromProfile(profile?.stage)[0] || REAL_ACTIVITY_PLAN_STAGES[0];
+  const requestedWeeks = typeof params.weeks === "string"
+    ? Array.from(new Set(params.weeks.split(",").map((value) => Number(value.trim())).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20)))
+    : [];
 
-  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage);
-  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={current.user.signatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
+  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks);
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={profile?.activityLeaderSignatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

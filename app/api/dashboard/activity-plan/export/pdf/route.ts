@@ -21,13 +21,17 @@ export async function POST(request: Request) {
   if (context instanceof Response) return context;
   if (!context.isAdmin && context.user.role !== "ACTIVITY_LEADER") return NextResponse.json({ success: false, error: "هذه الخدمة متاحة لرائد النشاط فقط." }, { status: 403 });
 
-  let body: { fileName?: unknown; stage?: unknown } = {};
+  let body: { fileName?: unknown; stage?: unknown; weeks?: unknown } = {};
   try { body = (await request.json()) as typeof body; } catch { /* optional body */ }
 
   const origin = getRequestOrigin(request);
   const printUrl = new URL("/print/activity-plan", origin);
   printUrl.searchParams.set("print", "1");
   if (typeof body.stage === "string" && body.stage.trim()) printUrl.searchParams.set("stage", body.stage.trim());
+  if (Array.isArray(body.weeks)) {
+    const weeks = body.weeks.map((week) => Number(week)).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20);
+    if (weeks.length) printUrl.searchParams.set("weeks", Array.from(new Set(weeks)).join(","));
+  }
 
   try {
     const pdfBytes = await generatePdfFromUrlWithCloudflare({ request, url: printUrl.toString(), waitForSelector: ".activity-plan-print-page", landscape: true });
