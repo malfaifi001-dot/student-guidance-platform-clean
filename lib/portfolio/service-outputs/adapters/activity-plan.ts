@@ -29,6 +29,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
         dateRange: week.dates.length ? `${week.dates[0].date} — ${week.dates[week.dates.length - 1].date}` : "",
         entries: week.entries.map((entry, entryIndex) => ({
           id: `${week.weekNumber}-${entry.dayOfWeek}-${entry.periodNumber}-${entryIndex}`,
+          stage: entry.stage,
           week: String(week.weekNumber),
           day: dateByDay.get(entry.dayOfWeek)?.label || `اليوم ${entry.dayOfWeek}`,
           date: dateByDay.get(entry.dayOfWeek)?.date || "",

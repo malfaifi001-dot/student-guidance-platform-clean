@@ -117,7 +117,7 @@ function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: 
   const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
     <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-activity-output-page" code={String(index + 1).padStart(2, "0")}>
-      <style>{`.portfolio-geometric-horizon-activity-output-body{display:grid;gap:4mm}.portfolio-geometric-horizon-activity-output-week{break-inside:avoid}.portfolio-geometric-horizon-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:#25316d;box-shadow:3px 3px 0 #f4b942;font-size:10px}.portfolio-geometric-horizon-activity-output-week header span{font-size:8px;color:#f4b942}.portfolio-geometric-horizon-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-geometric-horizon-activity-output-table th,.portfolio-geometric-horizon-activity-output-table td{padding:1.8mm 2mm;border:1px solid #e2e0da;text-align:right;vertical-align:middle}.portfolio-geometric-horizon-activity-output-table thead th{color:#fff;background:#6c5ce7;font-weight:900}.portfolio-geometric-horizon-activity-output-table tbody th{color:#25316d;background:#f4f2ed}.portfolio-geometric-horizon-activity-output-table td{background:#fff}.portfolio-geometric-horizon-activity-output-table small{display:block;margin-top:.5mm;color:#6b7280;font-size:7px}`}</style>
+      <style>{`.portfolio-geometric-horizon-activity-output-body{display:grid;gap:4mm}.hzn-activity-output-page .hzn-heading h2{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-geometric-horizon-activity-output-week{break-inside:avoid}.portfolio-geometric-horizon-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:#25316d;box-shadow:3px 3px 0 #f4b942;font-size:10px}.portfolio-geometric-horizon-activity-output-week header span{font-size:8px;color:#f4b942}.portfolio-geometric-horizon-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-geometric-horizon-activity-output-table th,.portfolio-geometric-horizon-activity-output-table td{padding:1.8mm 2mm;border:1px solid #e2e0da;text-align:right;vertical-align:middle}.portfolio-geometric-horizon-activity-output-table thead th{color:#fff;background:#6c5ce7;font-weight:900}.portfolio-geometric-horizon-activity-output-table tbody th{color:#25316d;background:#f4f2ed}.portfolio-geometric-horizon-activity-output-table td{background:#fff}.portfolio-geometric-horizon-activity-output-table small{display:block;margin-top:.5mm;color:#6b7280;font-size:7px}`}</style>
       <HorizonHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="geometric-horizon" />
     </HorizonPage>
@@ -376,7 +376,7 @@ export function GeometricHorizonPortfolioPrint({
           padding: 24px 0;
           background: #e9ebef;
           color: var(--hzn-ink);
-          font-family: "Cairo", "Tahoma", "Arial", sans-serif;
+          font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif;
         }
 
         .hzn-page {

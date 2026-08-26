@@ -141,7 +141,7 @@ export default async function TimetableV3PrintPage({
                               <div className="font-bold">{entry.subjectName}</div>
                               <div className="mt-0.5 text-[6.5px] text-slate-600">{entry.teacherName}</div>
                             </>
-                          ) : "â€”"}
+                          ) : ""}
                         </td>
                       );
                     }))}
@@ -163,7 +163,7 @@ export default async function TimetableV3PrintPage({
                       <th className="border border-slate-400 bg-slate-50 p-2">{day.label}</th>
                       {data.periods.map((period) => {
                         const entry = data.entries.find((item) => item.teacherId === teacherItem.id && scopeClassIds.has(item.classId) && item.dayId === day.id && item.periodId === period.id);
-                        return <td key={period.id} className="h-16 border border-slate-300 p-2 text-center">{entry ? <><div className="font-bold">{entry.subjectName}</div><div className="mt-1 text-slate-600">{entry.className}</div></> : "—"}</td>;
+                        return <td key={period.id} className="h-16 border border-slate-300 p-2 text-center">{entry ? <><div className="font-bold">{entry.subjectName}</div><div className="mt-1 text-slate-600">{entry.className}</div></> : ""}</td>;
                       })}
                     </tr>
                   ))}</tbody>

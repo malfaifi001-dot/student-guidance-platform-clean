@@ -41,6 +41,7 @@ export type PortfolioActivityPlanWeek = {
 
 export type PortfolioActivityPlanRow = {
   id: string;
+  stage: string;
   week: string;
   day: string;
   date: string;
@@ -80,11 +81,7 @@ export function getPortfolioServiceOutputChunks(output: PortfolioServiceOutput):
   const content = output.content;
   if (content.kind === "activity-team") {
     const rows = (content as PortfolioActivityTeamContent).rows;
-    const size = Math.max(1, Math.ceil(rows.length / 2));
-    return Array.from({ length: Math.max(1, Math.ceil(rows.length / size)) }, (_, index) => ({
-      kind: "activity-team" as const,
-      rows: rows.slice(index * size, (index + 1) * size),
-    }));
+    return [{ kind: "activity-team" as const, rows }];
   }
 
   if (content.kind === "activity-plan") {

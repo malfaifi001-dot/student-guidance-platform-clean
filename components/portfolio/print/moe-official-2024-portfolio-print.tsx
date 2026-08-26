@@ -102,7 +102,7 @@ function SectionHeading({
   return (
     <header className="moe24-section-heading">
       {eyebrow ? <span className="moe24-eyebrow">{eyebrow}</span> : null}
-      <h2>{title}</h2>
+      <h2 className="portfolio-activity-output-title">{title}</h2>
       <span className="moe24-heading-rule" aria-hidden="true" />
       {description ? <p>{description}</p> : null}
     </header>
@@ -132,7 +132,7 @@ function MoeActivityOutputPages({ output, sectionTitle, physicalDocument }: { ou
   const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
     <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-activity-output-page">
-      <style>{`.moe24-activity-output-body{display:grid;gap:4mm}.moe24-activity-output-week{break-inside:avoid}.moe24-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#15445a;background:#e7f7ef;border-top:1.2mm solid #07a869;font-size:10px}.moe24-activity-output-week header span{font-size:8px;color:#63737b}.moe24-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.moe24-activity-output-table th,.moe24-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d9e0e2;text-align:right;vertical-align:middle}.moe24-activity-output-table thead th{color:#fff;background:#15445a;font-weight:900}.moe24-activity-output-table tbody th{color:#15445a;background:#f5f7f6}.moe24-activity-output-table td{background:#fff}.moe24-activity-output-table small{display:block;margin-top:.5mm;color:#63737b;font-size:7px}`}</style>
+      <style>{`.moe24-activity-output-body{display:grid;gap:4mm}.moe24-activity-output-page .portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.moe24-activity-output-week{break-inside:avoid}.moe24-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#15445a;background:#e7f7ef;border-top:1.2mm solid #07a869;font-size:10px}.moe24-activity-output-week header span{font-size:8px;color:#63737b}.moe24-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.moe24-activity-output-table th,.moe24-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d9e0e2;text-align:right;vertical-align:middle}.moe24-activity-output-table thead th{color:#fff;background:#15445a;font-weight:900}.moe24-activity-output-table tbody th{color:#15445a;background:#f5f7f6}.moe24-activity-output-table td{background:#fff}.moe24-activity-output-table small{display:block;margin-top:.5mm;color:#63737b;font-size:7px}`}</style>
       <SectionHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="moe-official-2024" />
     </MoePage>
@@ -780,7 +780,7 @@ export function MoeOfficial2024PortfolioPrint({
           padding: 24px 0;
           background: #edf2f4;
           color: var(--moe24-ink);
-          font-family: "Sakkal Majalla", "Cairo", "Tahoma", "Arial", sans-serif;
+          font-family: var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif;
         }
 
         .moe24-page {
