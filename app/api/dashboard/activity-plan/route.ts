@@ -11,7 +11,7 @@ import {
   getActivityPlanStageOptions,
   getActivityPlanStagesFromProfile,
   normalizeActivityPlanStage,
-  UNSPECIFIED_ACTIVITY_PLAN_STAGE,
+  REAL_ACTIVITY_PLAN_STAGES,
 } from "@/lib/activity-plan/activity-plan-stages";
 
 const SERVICE_SLUG = "student-activity-plan";
@@ -57,15 +57,15 @@ export async function GET(request: Request) {
     prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true, grade: true } }),
     prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
   ]);
-  const stages = getActivityPlanStageOptions([
+  const stages = REAL_ACTIVITY_PLAN_STAGES.filter((stage) => getActivityPlanStageOptions([
     ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
     ...students.map((student) => student.stage),
     ...stageEntries.map((entry) => entry.stage),
-  ]);
+  ]).includes(stage));
   const normalizedRequestedStage = normalizeActivityPlanStage(requestedStage);
   const selectedStage = normalizedRequestedStage && stages.includes(normalizedRequestedStage)
     ? normalizedRequestedStage
-    : stages[0] || UNSPECIFIED_ACTIVITY_PLAN_STAGE;
+    : stages[0] || "";
   const entries = await prisma.activityPlanEntry.findMany({
     where: { schoolAccountId, weekNumber: week, stage: selectedStage },
     select: {
@@ -166,16 +166,7 @@ export async function POST(request: Request) {
   }
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
-  const [students, stageEntries] = await Promise.all([
-    prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true } }),
-    prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
-  ]);
-  const availableStages = getActivityPlanStageOptions([
-    ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
-    ...students.map((student) => student.stage),
-    ...stageEntries.map((entry) => entry.stage),
-  ]);
-  if (!availableStages.includes(stage)) {
+  if (!REAL_ACTIVITY_PLAN_STAGES.includes(stage)) {
     return NextResponse.json({ success: false, error: "اختر المرحلة المطلوبة." }, { status: 400 });
   }
   const dates = getActivityPlanDates(week);

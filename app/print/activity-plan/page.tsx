@@ -4,7 +4,7 @@ import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-prin
 import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
-import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, UNSPECIFIED_ACTIVITY_PLAN_STAGE } from "@/lib/activity-plan/activity-plan-stages";
+import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +61,9 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
   const printEnabled = String(params.print || "") === "1";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
-  const stage = requestedStage || getActivityPlanStagesFromProfile(profile?.stage)[0] || UNSPECIFIED_ACTIVITY_PLAN_STAGE;
+  const stage = requestedStage && REAL_ACTIVITY_PLAN_STAGES.includes(requestedStage)
+    ? requestedStage
+    : getActivityPlanStagesFromProfile(profile?.stage)[0] || REAL_ACTIVITY_PLAN_STAGES[0];
 
   const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage);
   return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={current.user.signatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
