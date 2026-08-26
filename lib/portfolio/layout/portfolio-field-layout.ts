@@ -7,6 +7,9 @@ export type PortfolioFieldSpan = 1 | 2 | 3 | 4;
 export type PortfolioFieldLayoutItem = {
   field: PortfolioReportField;
   kind: PortfolioFieldKind;
+  semanticSpan: 1 | 2 | 4;
+  effectiveSpan: 1 | 2 | 4;
+  /** Backward-compatible alias consumed by existing renderers. */
   span: PortfolioFieldSpan;
   index: number;
 };
@@ -30,6 +33,7 @@ function getValueItems(field: PortfolioReportField) {
 
 function getPortfolioFieldMetrics(field: PortfolioReportField) {
   const label = normalizeText(field.label);
+  const isListValue = Array.isArray(field.value);
   const values = getValueItems(field);
   const valueCharacters = values.reduce((sum, value) => sum + value.length, 0);
   const longestValue = values.reduce(
@@ -43,6 +47,7 @@ function getPortfolioFieldMetrics(field: PortfolioReportField) {
     longestValue,
     totalCharacters: label.length + valueCharacters,
     valuesCount: values.length,
+    isListValue,
   };
 }
 
@@ -53,6 +58,7 @@ export function classifyPortfolioField(
   const metrics = getPortfolioFieldMetrics(field);
 
   if (
+    !metrics.isListValue &&
     metrics.valuesCount <= 1 &&
     metrics.longestValue <= 36 &&
     metrics.labelCharacters <= 36 &&
@@ -62,7 +68,7 @@ export function classifyPortfolioField(
   }
 
   if (
-    metrics.valuesCount > 1 &&
+    metrics.isListValue &&
     metrics.valuesCount <= 3 &&
     metrics.longestValue <= 52 &&
     metrics.valueCharacters <= 115
@@ -82,7 +88,7 @@ export function classifyPortfolioField(
   return "long";
 }
 
-function getBaseSpan(kind: PortfolioFieldKind): PortfolioFieldSpan {
+function getBaseSpan(kind: PortfolioFieldKind): 1 | 2 | 4 {
   if (kind === "short") return 1;
   if (kind === "medium") return 2;
   return 4;
@@ -97,7 +103,8 @@ export function getBalancedPortfolioFieldRows(
 ): PortfolioFieldLayoutRow[] {
   const items = fields.map((field, index) => {
     const kind = classifyPortfolioField(field);
-    return { field, kind, span: getBaseSpan(kind), index };
+    const semanticSpan = getBaseSpan(kind);
+    return { field, kind, semanticSpan, effectiveSpan: semanticSpan, span: semanticSpan, index };
   });
 
   const rows: PortfolioFieldLayoutRow[] = [];
@@ -105,29 +112,15 @@ export function getBalancedPortfolioFieldRows(
   let used = 0;
 
   const balanceRow = () => {
-    let remaining = 4 - used;
-
-    while (remaining > 0) {
-      let candidate = -1;
-
-      for (let index = 0; index < row.length; index += 1) {
-        if (
-          row[index].span >= 4 ||
-          (candidate !== -1 && row[index].span > row[candidate].span)
-        ) {
-          continue;
-        }
-
-        // Prefer the later field on ties: [1, 1, 1] becomes [1, 1, 2].
-        candidate = index;
-      }
-
-      if (candidate === -1) break;
-      row[candidate] = {
-        ...row[candidate],
-        span: (row[candidate].span + 1) as PortfolioFieldSpan,
-      };
-      remaining -= 1;
+    const total = row.reduce((sum, item) => sum + item.semanticSpan, 0);
+    // Redistribute only unused columns. Semantic classification remains intact.
+    if (row.length === 2 && total === 3) {
+      row = row.map((item) => item.semanticSpan === 1 ? { ...item, effectiveSpan: 2 as const, span: 2 as const } : item);
+    } else if (row.length === 2 && total === 2) {
+      row = row.map((item) => ({ ...item, effectiveSpan: 2 as const, span: 2 as const }));
+    } else if (row.length === 3 && total === 3) {
+      const last = row.length - 1;
+      row = row.map((item, index) => index === last ? { ...item, effectiveSpan: 2 as const, span: 2 as const } : item);
     }
 
     if (row.length) rows.push(row);

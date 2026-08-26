@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import {
-  buildPortfolioReportPages,
   getPortfolioEvidenceImageHeightMm,
   getPortfolioEvidencePerPage,
 } from "@/components/portfolio/print/portfolio-print-pagination";
@@ -9,12 +8,14 @@ import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
+import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
 const ATLAS = {
   ink: "#10243A",
@@ -58,14 +59,14 @@ function AtlasPage({
         <i />
       </aside>
 
-      <header className="atlas-header">
+      <header className="atlas-header" data-portfolio-header-boundary>
         <strong>ملف الإنجاز</strong>
         <span>{sectionLabel}</span>
       </header>
 
-      <main className="atlas-body">{children}</main>
+      <main className="atlas-body" data-portfolio-safe-content>{children}</main>
 
-      <footer className="atlas-footer">
+      <footer className="atlas-footer" data-portfolio-footer-boundary>
         <span>Teachix | الاسهل والاشمل</span>
         <span>{sectionLabel}</span>
         <PageNumber />
@@ -92,11 +93,11 @@ function Heading({
   );
 }
 
-function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
-  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <AtlasPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="atlas-curriculum-page" indexLabel={index ? "·" : "01"}>
       <style>{`.atlas-curriculum-page .atlas-curriculum-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 14px}.atlas-curriculum-page .atlas-curriculum-meta>div{padding:7px;background:#eef5f8;border-bottom:2px solid #0f9d94}.atlas-curriculum-page .atlas-curriculum-meta span,.atlas-curriculum-page .atlas-curriculum-meta strong{display:block}.atlas-curriculum-page .atlas-curriculum-meta span{font-size:8px;color:#6b7785;font-weight:800}.atlas-curriculum-page .atlas-curriculum-meta strong{font-size:10px;color:#10243a;margin-top:2px}.atlas-curriculum-page .atlas-curriculum-list{display:grid;gap:8px}.atlas-curriculum-page .atlas-curriculum-row{display:grid;grid-template-columns:26% 1fr;gap:10px;padding:9px;border-inline-start:5px solid #e07a5f;background:#fbfaf7;break-inside:avoid}.atlas-curriculum-page .atlas-curriculum-row header strong,.atlas-curriculum-page .atlas-curriculum-row header span,.atlas-curriculum-page .atlas-curriculum-row header small{display:block}.atlas-curriculum-page .atlas-curriculum-row header strong{font-size:11px;color:#10243a}.atlas-curriculum-page .atlas-curriculum-row header span{font-size:9px;color:#0f9d94;font-weight:800;margin-top:2px}.atlas-curriculum-page .atlas-curriculum-row header small{font-size:7px;color:#6b7785;margin-top:6px}.atlas-curriculum-page .atlas-curriculum-row section{margin-bottom:4px}.atlas-curriculum-page .atlas-curriculum-row section>b{font-size:9px;color:#10243a}.atlas-curriculum-page .atlas-curriculum-row ul{margin:2px 0 0;padding-inline-start:15px;font-size:8px;line-height:1.55}.atlas-curriculum-page .atlas-curriculum-badge{display:inline-block;padding:3px 6px;margin:0 0 4px 4px;background:#fae9e3;color:#10243a;font-size:8px;font-weight:800}`}</style>
@@ -110,9 +111,9 @@ function AtlasCurriculumPages({ output, sectionTitle, physicalDocument }: { outp
   ));
 }
 
-function AtlasActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function AtlasActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
-  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
     <AtlasPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="atlas-activity-output-page" indexLabel={String(index + 1).padStart(2, "0")}>
       <style>{`.portfolio-editorial-atlas-activity-output-body{display:grid;gap:4mm}.atlas-activity-output-page .atlas-heading h2{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-editorial-atlas-activity-output-week{break-inside:avoid}.portfolio-editorial-atlas-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#10243a;background:#edf8f6;border-inline-start:1.5mm solid #e07a5f;font-size:10px}.portfolio-editorial-atlas-activity-output-week header span{font-size:8px;color:#6b7785}.portfolio-editorial-atlas-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-editorial-atlas-activity-output-table th,.portfolio-editorial-atlas-activity-output-table td{padding:1.8mm 2mm;border-bottom:1px solid #dce2e6;text-align:right;vertical-align:middle}.portfolio-editorial-atlas-activity-output-table thead th{color:#fff;background:#2f7ebb;font-weight:900}.portfolio-editorial-atlas-activity-output-table tbody th{color:#0f9d94;background:#eef5f8}.portfolio-editorial-atlas-activity-output-table td{background:#fff}.portfolio-editorial-atlas-activity-output-table small{display:block;margin-top:.5mm;color:#6b7785;font-size:7px}`}</style>
@@ -155,8 +156,9 @@ function IntroCard({
   );
 }
 
-function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
-  const pages = buildPortfolioReportPages(report);
+function AtlasReportPages({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
+  const plannedPages = getPlannedReportPages(physicalDocument, reportId);
+  const pages = plannedPages;
   const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceColumns =
     getPortfolioEvidencePerPage(report) <= 1
@@ -168,6 +170,7 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
       {pages.map((page, pageIndex) => (
         <AtlasPage
           key={page.key}
+          className="portfolio-report-page"
           sectionLabel={report.serviceName || "التقرير"}
           indexLabel={String(pageIndex + 1).padStart(2, "0")}
         >
@@ -190,7 +193,7 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
                     <h2>التفاصيل</h2>
                     <div className="atlas-detail-grid">
                       {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
-                        row.map(({ field, span, index }) => {
+                        row.map(({ field, effectiveSpan, kind, index }) => {
                         const tone = index % 3 === 0 ? "coral" : index % 2 === 0 ? "teal" : "blue";
 
                         return (
@@ -199,9 +202,10 @@ function AtlasReportPages({ report }: { report: PortfolioReportContent }) {
                             className={[
                               "atlas-detail-card",
                               `atlas-detail-card-${tone}`,
-                              span === 4 ? "atlas-detail-card-wide" : "",
+                              effectiveSpan === 4 ? "atlas-detail-card-wide" : "",
                             ].filter(Boolean).join(" ")}
-                            style={{ gridColumn: `span ${span}` }}
+                            style={{ gridColumn: `span ${effectiveSpan}` }}
+                            data-portfolio-field-kind={kind}
                           >
                             <span className="atlas-detail-index">
                               {String(index + 1).padStart(2, "0")}
@@ -290,7 +294,7 @@ export function EditorialAtlasPortfolioPrint({
   physicalDocument,
 }: {
   data: PortfolioPrintData;
-  physicalDocument?: PortfolioPhysicalDocument;
+  physicalDocument: PortfolioPhysicalDocument;
 }) {
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -900,7 +904,7 @@ export function EditorialAtlasPortfolioPrint({
               }
             />
 
-            {data.educationIdentity.vision || data.educationIdentity.mission ? (
+            {false && (data.educationIdentity.vision || data.educationIdentity.mission) ? (
               <div className="atlas-vision-grid">
                 {data.educationIdentity.vision ? (
                   <IntroCard
@@ -961,6 +965,12 @@ export function EditorialAtlasPortfolioPrint({
             ) : null}
           </AtlasPage>
         </div>
+      ) : null}
+
+      {sectionEnabled("educational-identity") ? (
+        <AtlasPage sectionLabel="الهوية التعليمية" indexLabel="04" className="portfolio-identity-physical-page">
+          <PortfolioEducationalIdentityContent data={data} variant="atlas" />
+        </AtlasPage>
       ) : null}
 
       {sectionEnabled("profile") ? (
@@ -1093,7 +1103,7 @@ export function EditorialAtlasPortfolioPrint({
 
           {section.reports.map((report) =>
             report.content ? (
-              <AtlasReportPages key={report.id} report={report.content} />
+              <AtlasReportPages key={report.id} report={report.content} physicalDocument={physicalDocument} reportId={report.id} />
             ) : null,
           )}
         </div>

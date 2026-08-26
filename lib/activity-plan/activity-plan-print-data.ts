@@ -4,12 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { getActivityPlanDates } from "@/lib/activity-plan/activity-plan-calendar";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
+import { decodeActivityPlanProgramValue, formatActivityPlanEntryLabel } from "@/lib/activity-plan/activity-plan-program-value";
+import { getActivityProgramDomainByServiceSlug, getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 
 export type ActivityPlanPrintEntry = {
   stage: string;
   dayOfWeek: number;
   periodNumber: number;
   programKey: string;
+  domainKey: string;
+  domainTitle: string;
+  programName: string;
+  displayTitle: string;
   gradeLabel: string;
   teacherName: string;
 };
@@ -75,6 +81,20 @@ export async function getActivityPlanPrintData(schoolAccountId: string, stage?: 
           periodNumber: entry.periodNumber,
           stage: entry.stage,
           programKey: entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""),
+          domainKey: (() => {
+            const stored = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
+            return stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.slug || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.slug || "";
+          })(),
+          domainTitle: (() => {
+            const stored = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
+            return stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.title || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.title || legacyById.get(entry.programCaseEntryId || "") || "";
+          })(),
+          programName: decodeActivityPlanProgramValue(entry.programKey || "")?.programName || "",
+          displayTitle: (() => {
+            const stored = decodeActivityPlanProgramValue(entry.programKey || "");
+            const domainTitle = stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.title || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.title || legacyById.get(entry.programCaseEntryId || "") || "";
+            return formatActivityPlanEntryLabel(domainTitle, stored?.programName);
+          })(),
           gradeLabel: entry.gradeLabel,
           teacherName: entry.teacherName,
         })),

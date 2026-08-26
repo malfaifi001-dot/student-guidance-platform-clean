@@ -12,7 +12,8 @@ import {
 } from "@/lib/activity-plan/activity-plan-stages";
 import { decodeActivityPlanProgramValue, encodeActivityPlanProgramValue } from "@/lib/activity-plan/activity-plan-program-value";
 import { findActivityPlanWorkflowProgram, getActivityPlanWorkflowPrograms } from "@/lib/activity-plan/activity-plan-workflow-programs";
-import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
+import { getActivityProgramDomainByServiceSlug, getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
+import { formatActivityPlanEntryLabel } from "@/lib/activity-plan/activity-plan-program-value";
 
 const SERVICE_SLUG = "student-activity-plan";
 
@@ -119,6 +120,9 @@ export async function GET(request: Request) {
       const storedProgram = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
       const directProgram = storedProgram ? { key: entry.programKey || "", title: storedProgram.programName } : (entry.programKey ? getActivityPlanProgramByKey(entry.programKey) : null);
       const legacyProgram = entry.programCaseEntryId ? legacyProgramsById.get(entry.programCaseEntryId) : null;
+      const domain = storedProgram ? getActivityProgramDomainByServiceSlug(storedProgram.serviceSlug) : getActivityProgramDomainBySlug(entry.programKey || "");
+      const domainTitle = domain?.title || legacyProgram?.values[0]?.value || legacyProgram?.title || directProgram?.title || "";
+      const programName = storedProgram?.programName || "";
       return {
         id: entry.id,
         dayOfWeek: entry.dayOfWeek,
@@ -127,11 +131,14 @@ export async function GET(request: Request) {
         gradeLabel: entry.gradeLabel,
         teacherName: entry.teacherName,
         stage: entry.stage,
-        domainServiceSlug: storedProgram?.serviceSlug || getActivityProgramDomainBySlug(entry.programKey || "")?.serviceSlug || "",
+        domainServiceSlug: storedProgram?.serviceSlug || domain?.serviceSlug || "",
+        domainKey: domain?.slug || "",
+        domainTitle,
+        displayTitle: formatActivityPlanEntryLabel(domainTitle, programName),
         program: {
           id: entry.programKey || entry.programCaseEntryId || "legacy-program",
           key: storedProgram?.programValue || directProgram?.key || entry.programKey || "",
-          title: directProgram?.title || legacyProgram?.values[0]?.value || legacyProgram?.title || "برنامج نشاط",
+          title: programName || domainTitle || "برنامج نشاط",
         },
       };
     }),
@@ -173,6 +180,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "البرنامج غير صالح أو يلزم إدخال الاسم." }, { status: 400 });
   }
   const programName = selectedProgram.isOther ? manualProgramName : selectedProgram.label;
+  const domainTitle = getActivityProgramDomainByServiceSlug(domainServiceSlug)?.title || "";
   const dates = getActivityPlanDates(week);
   const date = dates[dayOfWeek]?.date;
   if (!date) {
@@ -203,6 +211,9 @@ export async function POST(request: Request) {
       gradeLabel: entry.gradeLabel,
       teacherName: entry.teacherName,
       domainServiceSlug,
+      domainKey: getActivityProgramDomainByServiceSlug(domainServiceSlug)?.slug || "",
+      domainTitle,
+      displayTitle: formatActivityPlanEntryLabel(domainTitle, programName),
       program: { id: programValue, key: programValue, title: programName },
     },
   });

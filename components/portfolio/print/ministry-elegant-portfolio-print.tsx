@@ -2,16 +2,18 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
-import { buildPortfolioReportPages, getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
+import { getPortfolioEvidenceImageHeightMm, getPortfolioEvidencePerPage } from "@/components/portfolio/print/portfolio-print-pagination";
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
+import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
 function renderFieldValue(value: string | string[]) {
   if (Array.isArray(value)) {
@@ -89,16 +91,16 @@ function PageShell({
 }) {
   return (
     <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel}>
-      <div className="portfolio-page-header">
+      <div className="portfolio-page-header" data-portfolio-header-boundary>
         <span>ملف الإنجاز</span>
         <span>{pageLabel}</span>
       </div>
 
-      <div className="portfolio-page-body">{children}</div>
+      <div className="portfolio-page-body" data-portfolio-safe-content>{children}</div>
 
       <PortfolioPageWave />
 
-      <div className="portfolio-page-footer">
+      <div className="portfolio-page-footer" data-portfolio-footer-boundary>
         <span>Teachix | الاسهل والاشمل</span>
         <span>{pageLabel}</span>
       </div>
@@ -115,11 +117,11 @@ function MiniInfo({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
-  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-curriculum-page">
       <style>{`.portfolio-curriculum-page .portfolio-curriculum-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 14px}.portfolio-curriculum-page .portfolio-curriculum-ministry-list{display:grid;gap:8px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row{display:grid;grid-template-columns:27% 1fr;gap:12px;padding:10px;border:1px solid #d8e5df;border-inline-start:4px solid #2f6d4b;border-radius:10px;background:#fbfdfb;break-inside:avoid}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong,.portfolio-curriculum-page .portfolio-curriculum-ministry-row header span,.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{display:block}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header strong{color:#24583d;font-size:12px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header span{margin-top:2px;color:#345b65;font-size:10px;font-weight:800}.portfolio-curriculum-page .portfolio-curriculum-ministry-row header small{margin-top:7px;color:#68777b;font-size:8px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section{margin-bottom:5px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row section>b{color:#2f6d4b;font-size:10px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row ul{margin:2px 0 0;padding-inline-start:16px;font-size:9px;line-height:1.55}.portfolio-curriculum-page .portfolio-curriculum-badge{display:inline-block;margin:0 0 5px 5px;padding:4px 7px;border-radius:999px;background:#edf6ef;color:#2f6d4b;font-size:9px}.portfolio-curriculum-page .portfolio-curriculum-ministry-row .portfolio-info-card{min-height:0}`}</style>
@@ -141,9 +143,9 @@ function MinistryCurriculumPages({ output, sectionTitle, physicalDocument }: { o
   ));
 }
 
-function MinistryActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function MinistryActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
-  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
     <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-activity-output-page">
       <style>{`.portfolio-ministry-elegant-activity-output-body{display:grid;gap:4mm}.portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-ministry-elegant-activity-output-week{break-inside:avoid}.portfolio-ministry-elegant-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:linear-gradient(90deg,#315c49,#62886b);font-size:10px}.portfolio-ministry-elegant-activity-output-week header span{font-size:8px;opacity:.9}.portfolio-ministry-elegant-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-ministry-elegant-activity-output-table th,.portfolio-ministry-elegant-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d5e2d8;text-align:right;vertical-align:middle}.portfolio-ministry-elegant-activity-output-table thead th{color:#fff;background:#527861;font-weight:900}.portfolio-ministry-elegant-activity-output-table tbody th{color:#315c49;background:#f1f7f1}.portfolio-ministry-elegant-activity-output-table td{background:#fff}.portfolio-ministry-elegant-activity-output-table small{display:block;margin-top:.5mm;color:#6a7b73;font-size:7px}`}</style>
@@ -184,8 +186,8 @@ function PortfolioQualificationDocumentPage({ data, item }: {
   </section>;
 }
 
-function PortfolioDesignedReportPage({ report }: { report: PortfolioReportContent }) {
-  const pages = buildPortfolioReportPages(report);
+function PortfolioDesignedReportPage({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
+  const pages = getPlannedReportPages(physicalDocument, reportId);
   const evidenceImageHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceGridColumns =
     getPortfolioEvidencePerPage(report) <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
@@ -193,16 +195,16 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
   return (
     <>
       {pages.map((page, pageIndex) => (
-        <section key={page.key} className="portfolio-report-page">
+        <section key={page.key} className="portfolio-report-page" data-portfolio-density={page.layoutCandidate}>
           <div className="portfolio-report-frame">
             <div className="portfolio-report-band" />
 
-            <div className="portfolio-report-fixed-header">
+            <div className="portfolio-report-fixed-header" data-portfolio-header-boundary>
               <span>{report.serviceName || "التقرير"}</span>
               <span>{`صفحة ${pageIndex + 1} من ${pages.length}`}</span>
             </div>
 
-            <main className="portfolio-report-body">
+            <main className="portfolio-report-body" data-portfolio-safe-content>
               <header className="portfolio-report-header">
                 <div>
                   <h1>{report.title}</h1>
@@ -227,11 +229,12 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
                         ) : (
                           <div className="portfolio-report-detail-grid">
                             {getBalancedPortfolioFieldRows(section.fields).map((row, rowIndex) =>
-                              row.map(({ field, span }) => (
+                              row.map(({ field, effectiveSpan, kind }) => (
                                 <div
                                   key={`${field.key}-${field.label}`}
                                   className="portfolio-report-detail-box"
-                                  style={{ gridColumn: `span ${span}` }}
+                                  style={{ gridColumn: `span ${effectiveSpan}` }}
+                                  data-portfolio-field-kind={kind}
                                   data-field-row={rowIndex}
                                 >
                                   <span>{field.label}</span>
@@ -319,7 +322,7 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
             </main>
 
             <PortfolioPageWave />
-            <div className="portfolio-report-fixed-footer">
+            <div className="portfolio-report-fixed-footer" data-portfolio-footer-boundary>
               <span>ملف الإنجاز</span>
               <span>{report.serviceName || "التقرير"}</span>
             </div>
@@ -330,7 +333,7 @@ function PortfolioDesignedReportPage({ report }: { report: PortfolioReportConten
   );
 }
 
-export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data: PortfolioPrintData; physicalDocument?: PortfolioPhysicalDocument }) {
+export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data: PortfolioPrintData; physicalDocument: PortfolioPhysicalDocument }) {
   const theme = getPortfolioTheme(data.portfolio.themeId);
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -2026,7 +2029,7 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
             <p className="portfolio-introduction-text">
               {data.portfolio.introText || "يعرض هذا الملف أبرز الأعمال والتقارير والشواهد المهنية خلال الفصل الدراسي."}
             </p>
-            {hasIntroductionIdentity ? <div className="portfolio-education-identity">
+            {false && hasIntroductionIdentity ? <div className="portfolio-education-identity">
               {educationIdentity.vision || educationIdentity.mission ? (
                 <div className="portfolio-identity-feature-grid">
                   {educationIdentity.vision ? (
@@ -2099,6 +2102,12 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
             </div> : null}
           </PageShell>
         </div>
+      ) : null}
+
+      {sectionEnabled("educational-identity") ? (
+        <PageShell pageLabel="الهوية التعليمية" className="portfolio-identity-physical-page">
+          <PortfolioEducationalIdentityContent data={data} variant="ministry" />
+        </PageShell>
       ) : null}
 
       {sectionEnabled("profile") ? (
@@ -2177,7 +2186,7 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
           {section.reports.length ? (
             section.reports.map((report) =>
               report.content ? (
-                <PortfolioDesignedReportPage key={report.id} report={report.content} />
+                <PortfolioDesignedReportPage key={report.id} report={report.content} physicalDocument={physicalDocument} reportId={report.id} />
               ) : (
                 <PageShell key={report.id} pageLabel={section.title}>
                   <span className="portfolio-section-kicker">تقرير</span>

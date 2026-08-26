@@ -17,3 +17,10 @@ export function decodeActivityPlanProgramValue(value: string) {
 export function getStoredActivityPlanProgramName(value: string) {
   return decodeActivityPlanProgramValue(value)?.programName || null;
 }
+
+export function formatActivityPlanEntryLabel(domainTitle?: string | null, programName?: string | null) {
+  const domain = String(domainTitle || "").trim();
+  const program = String(programName || "").trim();
+  if (domain && program) return `${domain} / ${program}`;
+  return domain || program;
+}

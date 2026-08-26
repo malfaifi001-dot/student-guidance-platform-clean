@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import {
-  buildPortfolioReportPages,
   getPortfolioEvidenceImageHeightMm,
   getPortfolioEvidencePerPage,
 } from "@/components/portfolio/print/portfolio-print-pagination";
@@ -9,12 +8,14 @@ import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-
 import { PortfolioCoverOfficialLogos } from "@/components/portfolio/print/portfolio-cover-official-logos";
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import { chunkPortfolioItems } from "@/components/portfolio/print/portfolio-print-pagination";
-import { getPortfolioServiceOutputChunks, type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import { type PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioPhysicalDocument } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { getPlannedServiceOutputWeeks } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { getBalancedPortfolioFieldRows } from "@/lib/portfolio/layout/portfolio-field-layout";
 import { getPlannedServiceOutputChunks } from "@/lib/portfolio/layout/portfolio-physical-planner";
+import { getPlannedReportPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
+import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 
 const HORIZON = {
   indigo: "#25316D",
@@ -57,14 +58,14 @@ function HorizonPage({
         <span>{code}</span>
       </div>
 
-      <header className="hzn-header">
+      <header className="hzn-header" data-portfolio-header-boundary>
         <span className="hzn-header-brand">ملف الإنجاز</span>
         <span>{sectionLabel}</span>
       </header>
 
-      <main className="hzn-body">{children}</main>
+      <main className="hzn-body" data-portfolio-safe-content>{children}</main>
 
-      <footer className="hzn-footer">
+      <footer className="hzn-footer" data-portfolio-footer-boundary>
         <span>Teachix | الاسهل والاشمل</span>
         <span>{sectionLabel}</span>
         <HorizonPageNumber />
@@ -94,11 +95,11 @@ function HorizonHeading({
   );
 }
 
-function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const content = output.content;
   if (content.kind !== "curriculum-distribution") return null;
   const plannedWeeks = getPlannedServiceOutputWeeks(physicalDocument, output.id);
-  const pageWeeks = plannedWeeks.length ? plannedWeeks : chunkPortfolioItems(content.weeks, Math.ceil(content.weeks.length / 2));
+  const pageWeeks = plannedWeeks;
   return pageWeeks.map((weeks, index) => (
     <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-curriculum-page" code={`${index + 1}`.padStart(2, "0")}>
       <style>{`.hzn-curriculum-page .hzn-curriculum-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 14px}.hzn-curriculum-page .hzn-curriculum-meta>div{padding:7px;background:#f4f2ed;border:1px solid #e2e0da;border-radius:4px}.hzn-curriculum-page .hzn-curriculum-meta span,.hzn-curriculum-page .hzn-curriculum-meta strong{display:block}.hzn-curriculum-page .hzn-curriculum-meta span{font-size:8px;color:#6b7280;font-weight:800}.hzn-curriculum-page .hzn-curriculum-meta strong{font-size:10px;color:#25316d;margin-top:2px}.hzn-curriculum-page .hzn-curriculum-list{display:grid;gap:8px}.hzn-curriculum-page .hzn-curriculum-row{display:grid;grid-template-columns:26% 1fr;gap:10px;padding:9px;border:1px solid #e2e0da;border-inline-start:5px solid #6c5ce7;background:#fcfbf8;box-shadow:3px 3px 0 #f4b942;break-inside:avoid}.hzn-curriculum-page .hzn-curriculum-row header strong,.hzn-curriculum-page .hzn-curriculum-row header span,.hzn-curriculum-page .hzn-curriculum-row header small{display:block}.hzn-curriculum-page .hzn-curriculum-row header strong{font-size:11px;color:#25316d}.hzn-curriculum-page .hzn-curriculum-row header span{font-size:9px;color:#6c5ce7;font-weight:800;margin-top:2px}.hzn-curriculum-page .hzn-curriculum-row header small{font-size:7px;color:#6b7280;margin-top:6px}.hzn-curriculum-page .hzn-curriculum-row section{margin-bottom:4px}.hzn-curriculum-page .hzn-curriculum-row section>b{font-size:9px;color:#25316d}.hzn-curriculum-page .hzn-curriculum-row ul{margin:2px 0 0;padding-inline-start:15px;font-size:8px;line-height:1.55}.hzn-curriculum-page .hzn-curriculum-badge{display:inline-block;padding:3px 6px;margin:0 0 4px 4px;background:#fff4d8;color:#25316d;font-size:8px;font-weight:800}`}</style>
@@ -112,9 +113,9 @@ function HorizonCurriculumPages({ output, sectionTitle, physicalDocument }: { ou
   ));
 }
 
-function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument?: PortfolioPhysicalDocument }) {
+function HorizonActivityOutputPages({ output, sectionTitle, physicalDocument }: { output: PortfolioServiceOutput; sectionTitle: string; physicalDocument: PortfolioPhysicalDocument }) {
   const chunks = getPlannedServiceOutputChunks(physicalDocument, output.id);
-  const pageChunks = chunks.length ? chunks : getPortfolioServiceOutputChunks(output);
+  const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
     <HorizonPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="hzn-activity-output-page" code={String(index + 1).padStart(2, "0")}>
       <style>{`.portfolio-geometric-horizon-activity-output-body{display:grid;gap:4mm}.hzn-activity-output-page .hzn-heading h2{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-geometric-horizon-activity-output-week{break-inside:avoid}.portfolio-geometric-horizon-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:#25316d;box-shadow:3px 3px 0 #f4b942;font-size:10px}.portfolio-geometric-horizon-activity-output-week header span{font-size:8px;color:#f4b942}.portfolio-geometric-horizon-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-geometric-horizon-activity-output-table th,.portfolio-geometric-horizon-activity-output-table td{padding:1.8mm 2mm;border:1px solid #e2e0da;text-align:right;vertical-align:middle}.portfolio-geometric-horizon-activity-output-table thead th{color:#fff;background:#6c5ce7;font-weight:900}.portfolio-geometric-horizon-activity-output-table tbody th{color:#25316d;background:#f4f2ed}.portfolio-geometric-horizon-activity-output-table td{background:#fff}.portfolio-geometric-horizon-activity-output-table small{display:block;margin-top:.5mm;color:#6b7280;font-size:7px}`}</style>
@@ -138,8 +139,9 @@ function renderValue(value: string | string[]) {
   return value || "غير محدد";
 }
 
-function HorizonReportPages({ report }: { report: PortfolioReportContent }) {
-  const pages = buildPortfolioReportPages(report);
+function HorizonReportPages({ report, physicalDocument, reportId }: { report: PortfolioReportContent; physicalDocument: PortfolioPhysicalDocument; reportId: string }) {
+  const plannedPages = getPlannedReportPages(physicalDocument, reportId);
+  const pages = plannedPages;
   const evidenceHeightMm = getPortfolioEvidenceImageHeightMm(report);
   const evidenceColumns =
     getPortfolioEvidencePerPage(report) <= 1
@@ -151,6 +153,7 @@ function HorizonReportPages({ report }: { report: PortfolioReportContent }) {
       {pages.map((page, pageIndex) => (
         <HorizonPage
           key={page.key}
+          className="portfolio-report-page"
           sectionLabel={report.serviceName || "التقرير"}
           code={String(pageIndex + 1).padStart(2, "0")}
         >
@@ -176,18 +179,19 @@ function HorizonReportPages({ report }: { report: PortfolioReportContent }) {
 
                     <div className="hzn-detail-grid">
                       {getBalancedPortfolioFieldRows(section.fields).flatMap((row) =>
-                        row.map(({ field, span, index }) => {
+                        row.map(({ field, effectiveSpan, kind, index }) => {
 
                         return (
                           <article
                             key={`${field.key}-${field.label}`}
                             className={[
                               "hzn-detail-card",
-                              span === 4 ? "hzn-detail-card-wide" : "",
+                              effectiveSpan === 4 ? "hzn-detail-card-wide" : "",
                             ]
                               .filter(Boolean)
                               .join(" ")}
-                            style={{ gridColumn: `span ${span}` }}
+                            style={{ gridColumn: `span ${effectiveSpan}` }}
+                            data-portfolio-field-kind={kind}
                           >
                             <span className="hzn-detail-number">
                               {String(index + 1).padStart(2, "0")}
@@ -285,7 +289,7 @@ export function GeometricHorizonPortfolioPrint({
   physicalDocument,
 }: {
   data: PortfolioPrintData;
-  physicalDocument?: PortfolioPhysicalDocument;
+  physicalDocument: PortfolioPhysicalDocument;
 }) {
   const enabledSections = data.performanceSections
     .filter((section) => section.isEnabled)
@@ -1235,8 +1239,8 @@ export function GeometricHorizonPortfolioPrint({
               }
             />
 
-            {data.educationIdentity.vision ||
-            data.educationIdentity.mission ? (
+            {false ? (
+              data.educationIdentity.vision || data.educationIdentity.mission ? (
               <div className="hzn-intro-grid">
                 {data.educationIdentity.vision ? (
                   <section className="hzn-intro-card">
@@ -1254,6 +1258,7 @@ export function GeometricHorizonPortfolioPrint({
                   </section>
                 ) : null}
               </div>
+              ) : null
             ) : null}
 
             {data.educationIdentity.pillars.length ||
@@ -1297,6 +1302,12 @@ export function GeometricHorizonPortfolioPrint({
             ) : null}
           </HorizonPage>
         </div>
+      ) : null}
+
+      {sectionEnabled("educational-identity") ? (
+        <HorizonPage sectionLabel="الهوية التعليمية" code="04" className="portfolio-identity-physical-page">
+          <PortfolioEducationalIdentityContent data={data} variant="horizon" />
+        </HorizonPage>
       ) : null}
 
       {sectionEnabled("profile") ? (
@@ -1439,7 +1450,7 @@ export function GeometricHorizonPortfolioPrint({
 
           {section.reports.map((report) =>
             report.content ? (
-              <HorizonReportPages key={report.id} report={report.content} />
+              <HorizonReportPages key={report.id} report={report.content} physicalDocument={physicalDocument} reportId={report.id} />
             ) : null,
           )}
         </div>

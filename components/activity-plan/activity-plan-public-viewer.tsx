@@ -28,8 +28,8 @@ export function ActivityPlanPublicViewer({
             <thead><tr><th>اليوم</th><th>التاريخ</th><th>الحصة</th><th>المجال / النشاط</th><th>الصف</th><th>المشرف</th></tr></thead>
             <tbody>
               {week.dates.flatMap((day) => week.entries.filter((entry) => entry.dayOfWeek === day.dayOfWeek).map((entry) => {
-                const program = getActivityPlanProgramByKey(entry.programKey);
-                return <tr key={`${week.weekNumber}-${day.dayOfWeek}-${entry.periodNumber}`}><td>{day.label}</td><td>{day.date}</td><td>{entry.periodNumber}</td><td>{program?.title || "نشاط طلابي"}</td><td>{entry.gradeLabel}</td><td>{entry.teacherName}</td></tr>;
+                const domainProgram = getActivityPlanProgramByKey(entry.domainKey);
+                return <tr key={`${week.weekNumber}-${day.dayOfWeek}-${entry.periodNumber}`}><td>{day.label}</td><td>{day.date}</td><td>{entry.periodNumber}</td><td className="activity-plan-public-program" style={domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{entry.displayTitle || "نشاط طلابي"}</td><td>{entry.gradeLabel}</td><td>{entry.teacherName}</td></tr>;
               }))}
             </tbody>
           </table>

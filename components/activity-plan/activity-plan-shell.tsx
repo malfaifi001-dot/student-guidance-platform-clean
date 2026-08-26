@@ -24,6 +24,8 @@ type Entry = {
   gradeLabel: string;
   teacherName: string;
   domainServiceSlug?: string;
+  domainKey?: string;
+  displayTitle?: string;
   program: Program;
 };
 type WorkflowProgramOption = { value: string; label: string; isOther: boolean };
@@ -186,9 +188,10 @@ export function ActivityPlanShell() {
                 </div>
                 {ACTIVITY_PLAN_PERIODS.map((period) => {
                   const entry = entryByCell.get(`${day.dayOfWeek}-${period}`);
-                  const colorClass = entry?.program.key ? getActivityPlanProgramByKey(entry.program.key)?.colorClass : "";
+                  const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+                  const colorClass = domainProgram?.colorClass || "";
                   return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[148px] border-b border-l border-slate-200 bg-white p-3 text-right transition hover:bg-sky-50/50">
-                    {entry ? <div className={`h-full rounded-2xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="line-clamp-2 text-sm font-black leading-6">{entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100">اضغط للتعديل</span></div> : <span className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700"><Plus className="h-6 w-6" /><span className="text-xs font-black">إضافة</span></span>}
+                    {entry ? <div className={`h-full rounded-2xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="break-words whitespace-normal text-[13px] font-black leading-5 text-center">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100">اضغط للتعديل</span></div> : <span className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700"><Plus className="h-6 w-6" /><span className="text-xs font-black">إضافة</span></span>}
                   </button>;
                 })}
               </div>

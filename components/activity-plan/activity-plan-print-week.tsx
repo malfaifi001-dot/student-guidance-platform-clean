@@ -79,10 +79,10 @@ export function ActivityPlanPrintWeek({
                 <th className="activity-plan-print-row-label">{rowLabel}</th>
                 {periods.map((period) => {
                   const entry = entryBySlot.get(`${day.dayOfWeek}-${period}`);
-                  const program = entry ? getActivityPlanProgramByKey(entry.programKey) : null;
-                  const value = rowIndex === 0 ? program?.title || "" : rowIndex === 1 ? entry?.gradeLabel || "" : entry?.teacherName || "";
-                  const isProgramCell = rowIndex === 0 && Boolean(program);
-                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={isProgramCell && program ? { backgroundColor: program.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</td>;
+                  const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+                  const value = rowIndex === 0 ? entry?.displayTitle || "" : rowIndex === 1 ? entry?.gradeLabel || "" : entry?.teacherName || "";
+                  const isProgramCell = rowIndex === 0 && Boolean(entry?.displayTitle);
+                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={isProgramCell && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</td>;
                 })}
               </tr>
             ));

@@ -1,5 +1,6 @@
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
+import type { PortfolioSmartPageMetadata } from "@/lib/portfolio/layout/portfolio-smart-a4-types";
 
 export type PortfolioPrintData = {
   showWeights?: boolean;
@@ -117,4 +118,4 @@ export type PortfolioReportSectionModel =
 export type PortfolioReportPageModel = {
   key: string;
   sections: PortfolioReportSectionModel[];
-};
+} & PortfolioSmartPageMetadata;
