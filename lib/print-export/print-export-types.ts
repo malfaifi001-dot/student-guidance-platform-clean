@@ -28,6 +28,8 @@ export type PrintExportActionOptions = {
   errorMessage?: string;
   progressTitle?: string;
   progressMessage?: string;
+  fallbackProgressTitle?: string;
+  fallbackProgressMessage?: string;
   analytics?: {
     eventName: AnalyticsEventName;
     params?: import("@/lib/analytics/analytics-types").AnalyticsEventParams;
@@ -38,6 +40,7 @@ export type PrintExportModal = {
   status: Exclude<PrintExportStatus, "idle">;
   title: string;
   message: string;
+  progress?: number;
   fallback?: PrintExportFallback | null;
 };
 

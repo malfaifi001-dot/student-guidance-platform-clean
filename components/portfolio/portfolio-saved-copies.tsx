@@ -92,7 +92,7 @@ export function PortfolioSavedCopies({
                   <button
                     type="button"
                     disabled={print.status === "loading"}
-                    onClick={() => void print.runPrintExport({ exportUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`, fileName: `${snapshot.name}.pdf`, progressTitle: "جاري تجهيز الملف", progressMessage: "يتم الآن تجهيز ملف الإنجاز للتحميل، الرجاء الانتظار...", blockedTitle: "معاينة ملف الإنجاز" })}
+                    onClick={() => void print.runPrintExport({ exportUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`, fileName: `${snapshot.name}.pdf`, progressTitle: "جاري تجهيز ملف الإنجاز", progressMessage: "يتم الآن تجهيز ملف الإنجاز للتحميل، الرجاء الانتظار...", fallbackProgressTitle: "جاري تجهيز ملف الإنجاز للمعاينة", fallbackProgressMessage: "يتم الآن تجهيز ملف الإنجاز للمعاينة، الرجاء الانتظار...", blockedTitle: "معاينة ملف الإنجاز" })}
                     className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:opacity-60"
                   >
                     <Download className="h-4 w-4" /> تحميل
@@ -107,7 +107,7 @@ export function PortfolioSavedCopies({
           لا توجد نسخ محفوظة بعد. اعتمد نسختك الأولى بعد مراجعة المعاينة.
         </div>
       )}
-      <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
+      <PrintExportPopCard align="center" modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
     </section>
   );
 }

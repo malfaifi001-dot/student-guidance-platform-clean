@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildPrintUrl,
   downloadBlobAsFile,
@@ -67,11 +67,60 @@ function buildRequestBody(body: unknown) {
 export function usePrintExportAction() {
   const [status, setStatus] = useState<PrintExportStatus>("idle");
   const [modal, setModal] = useState<PrintExportModal | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef(1);
+
+  const stopProgress = useCallback(() => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }, []);
+
+  const publishProgress = useCallback((progress: number) => {
+    setModal((current) =>
+      current?.status === "loading" ? { ...current, progress } : current,
+    );
+  }, []);
+
+  const startProgress = useCallback(() => {
+    stopProgress();
+    progressRef.current = 1;
+    progressTimerRef.current = setInterval(() => {
+      const current = progressRef.current;
+      const next = current < 20
+        ? current + 1
+        : current < 60
+          ? current + 1
+          : current < 90
+            ? current + 1
+            : current < 95
+              ? current + 1
+              : current;
+      if (next !== current) {
+        progressRef.current = next;
+        publishProgress(next);
+      }
+    }, 220);
+  }, [publishProgress, stopProgress]);
+
+  const finishProgress = useCallback(async () => {
+    stopProgress();
+    while (progressRef.current < 100) {
+      await new Promise((resolve) => setTimeout(resolve, 28));
+      progressRef.current += 1;
+      publishProgress(progressRef.current);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }, [publishProgress, stopProgress]);
 
   const closeModal = useCallback(() => {
+    stopProgress();
     setModal(null);
     setStatus("idle");
-  }, []);
+  }, [stopProgress]);
+
+  useEffect(() => () => stopProgress(), [stopProgress]);
 
   const openFallbackPrintUrl = useCallback(
     async (
@@ -81,6 +130,7 @@ export function usePrintExportAction() {
       const targetUrl = buildPrintUrl(fallback?.printUrl || "");
 
       if (!targetUrl) {
+        stopProgress();
         setStatus("error");
         setModal({
           status: "error",
@@ -99,9 +149,11 @@ export function usePrintExportAction() {
             fallback?.fileName || "report.pdf",
           );
           if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
+          await finishProgress();
           setStatus("success");
           setModal(null);
         } catch {
+          stopProgress();
           setStatus("error");
           setModal({
             status: "error",
@@ -119,6 +171,7 @@ export function usePrintExportAction() {
       const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
 
       if (!popup) {
+        stopProgress();
         setStatus("blocked");
         setModal({
           status: "blocked",
@@ -136,6 +189,7 @@ export function usePrintExportAction() {
         return "blocked";
       }
 
+      await finishProgress();
       setStatus("success");
       setModal(null);
       if (analytics) {
@@ -143,14 +197,16 @@ export function usePrintExportAction() {
       }
       return "opened";
     },
-    [],
+    [finishProgress, stopProgress],
   );
 
   const runPrintExport = useCallback(
     async (options: PrintExportActionOptions): Promise<PrintExportRunResult> => {
+      startProgress();
       setStatus("loading");
       setModal({
         status: "loading",
+        progress: 1,
         title: options.progressTitle || "جاري تجهيز الملف",
         message: options.progressMessage || "يتم الآن تجهيز ملف التقرير للتحميل، الرجاء الانتظار...",
       });
@@ -179,6 +235,7 @@ export function usePrintExportAction() {
           if (response.ok && contentType.includes("application/pdf")) {
             const blob = await response.blob();
             await downloadBlobAsFile(blob, options.fileName || "report.pdf");
+            await finishProgress();
             setStatus("success");
             if (options.analytics) {
               trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
@@ -213,6 +270,17 @@ export function usePrintExportAction() {
           );
 
           if (fallbackUrl) {
+            setModal((current) =>
+              current?.status === "loading"
+                ? {
+                    ...current,
+                    title:
+                      options.fallbackProgressTitle || current.title,
+                    message:
+                      options.fallbackProgressMessage || current.message,
+                  }
+                : current,
+            );
             return openFallbackPrintUrl({
               printUrl: fallbackUrl,
               fileName: options.fileName,
@@ -226,7 +294,16 @@ export function usePrintExportAction() {
           }
         }
 
-      if (options.printUrl) {
+        if (options.printUrl) {
+          setModal((current) =>
+            current?.status === "loading"
+              ? {
+                  ...current,
+                  title: options.fallbackProgressTitle || current.title,
+                  message: options.fallbackProgressMessage || current.message,
+                }
+              : current,
+          );
           return openFallbackPrintUrl({
             printUrl: options.printUrl,
             fileName: options.fileName,
@@ -237,6 +314,7 @@ export function usePrintExportAction() {
 
         throw new Error("PRINT_EXPORT_NO_FALLBACK");
       } catch {
+        stopProgress();
         setStatus("error");
         setModal({
           status: "error",
@@ -248,7 +326,7 @@ export function usePrintExportAction() {
         return "error";
       }
     },
-    [openFallbackPrintUrl],
+    [finishProgress, openFallbackPrintUrl, startProgress, stopProgress],
   );
 
   return {
