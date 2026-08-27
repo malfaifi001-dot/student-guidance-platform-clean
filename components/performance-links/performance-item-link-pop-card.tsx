@@ -2,6 +2,7 @@
 
 import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 
 type TargetItem = { key: string; title: string; serviceSlug?: string; kind?: string };
 type ExistingLink = { id: string; performanceItemKey: string; targetSectionKey?: string | null };
@@ -18,6 +19,8 @@ export function PerformanceItemLinkPopCard({
   defaultTargetKey,
   onClose,
   onSaved,
+  onDeleted,
+  showDelete = false,
 }: {
   open: boolean;
   serviceSlug: string;
@@ -30,6 +33,8 @@ export function PerformanceItemLinkPopCard({
   defaultTargetKey?: string;
   onClose: () => void;
   onSaved: (link: ExistingLink) => void;
+  onDeleted?: () => void;
+  showDelete?: boolean;
 }) {
   const [items, setItems] = useState<TargetItem[]>([]);
   const [selected, setSelected] = useState(
@@ -38,6 +43,7 @@ export function PerformanceItemLinkPopCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const sectionTarget = targetType === "portfolio-section";
+  const canDeleteLink = showDelete || serviceSlug === "student-activity-plan";
   const dialogTitle = sectionTarget ? "ربط بملف الإنجاز" : "ربط بعنصر أداء";
 
   useEffect(() => {
@@ -126,7 +132,8 @@ export function PerformanceItemLinkPopCard({
           {busy && !items.length ? <p className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> جارٍ تحميل وجهات الربط</p> : null}
         </div>
         {error ? <p role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p> : null}
-        <div className="mt-3 flex shrink-0 gap-2">
+        <div className="mt-3 flex shrink-0 items-center gap-2">
+          {existingLink && canDeleteLink ? <ServiceOutputLinkActions link={existingLink} onDeleted={() => { onDeleted?.(); onClose(); }} /> : null}
           <button type="button" onClick={onClose} disabled={busy} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:opacity-50">
             إلغاء
           </button>

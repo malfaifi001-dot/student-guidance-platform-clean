@@ -324,6 +324,7 @@ model SchoolAccount {
   couponRedemptions            CouponRedemption[]
   reportSignatureRequests      ReportSignatureRequest[]
   activityPlanEntries          ActivityPlanEntry[]
+  weeklyActivityPlanEntries    WeeklyActivityPlanEntry[]
   activityPlanShareTokens      ActivityPlanShareToken[]
   savedCurriculumSubjects      TeacherSavedCurriculum[]
   principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
@@ -477,6 +478,7 @@ model User {
   receivedInternalAssignments InternalAssignment[] @relation("InternalAssignmentsAssignedTo")
   createdSurveys              Survey[]             @relation("SurveysCreatedBy")
   activityPlanEntries         ActivityPlanEntry[]
+  weeklyActivityPlanEntries   WeeklyActivityPlanEntry[]
 
   createdAt                     DateTime                       @default(now())
   updatedAt                     DateTime                       @updatedAt
@@ -1289,6 +1291,28 @@ model ActivityPlanEntry {
   @@index([schoolAccountId, stage, weekNumber])
   @@index([programCaseEntryId])
   @@index([programKey])
+  @@index([createdById])
+}
+
+model WeeklyActivityPlanEntry {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  createdById      String
+  createdBy        User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  stage       String   @db.VarChar(191)
+  weekNumber  Int
+  dateFrom    DateTime
+  dateTo      DateTime
+  periodCount Int?
+  items       Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, stage, weekNumber])
+  @@index([schoolAccountId, stage])
   @@index([createdById])
 }
 

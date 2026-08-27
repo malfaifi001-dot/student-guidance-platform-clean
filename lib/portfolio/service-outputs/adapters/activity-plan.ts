@@ -6,6 +6,8 @@ import { getActivityPlanDates, getPeriodLabel } from "@/lib/activity-plan/activi
 import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { getOrCreateActivityPlanShareToken } from "@/lib/activity-plan/activity-plan-share-service";
+import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 type ActivityPlanLink = {
@@ -44,6 +46,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
 
   const rows = populatedWeeks.flatMap((week) => week.entries);
   const profile = await prisma.schoolProfile.findUnique({ where: { schoolAccountId }, select: { academicYear: true, currentSemester: true } });
+  const weeklyPlans = await Promise.all(REAL_ACTIVITY_PLAN_STAGES.map(async (stage) => ({ stage, weeks: await getWeeklyActivityPlans(schoolAccountId, stage) })));
   const share = await getOrCreateActivityPlanShareToken({ schoolAccountId, createdById: ownerUserId });
   const shareUrl = share.url;
   const shareQrDataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 2, errorCorrectionLevel: "M" });
@@ -69,6 +72,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
       rows,
       shareUrl,
       shareQrDataUrl,
+      weeklyPlans,
     },
   };
 }

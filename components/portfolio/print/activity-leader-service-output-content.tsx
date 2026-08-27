@@ -1,6 +1,7 @@
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import type { PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
 import { activityPlanTableRows, activityTeamTableRows, PortfolioStructuredTable } from "@/components/portfolio/print/shared/portfolio-structured-table";
+import { WeeklyActivityPlanMatrix } from "@/components/activity-plan/weekly-activity-plan-print-document";
 
 export type ActivityLeaderPortfolioDesign = "ministry-elegant" | "moe-official-2024" | "editorial-atlas" | "geometric-horizon";
 
@@ -17,6 +18,16 @@ const activityPlanColumns = [
 
 export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: PortfolioServiceOutputChunk; design: ActivityLeaderPortfolioDesign }) {
   const prefix = `portfolio-${design}`;
+
+  if (chunk.kind === "weekly-activity-plan") {
+    return (
+      <div className={`${prefix}-activity-output-body weekly-activity-plan-achievement-output`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="weekly-activity-plan">
+        <style>{`.weekly-activity-plan-achievement-output{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.weekly-activity-plan-achievement-output .weekly-plan-bands{gap:3px!important}.weekly-activity-plan-achievement-output table{font-size:7px!important}.weekly-activity-plan-achievement-output th,.weekly-activity-plan-achievement-output td{padding:2px!important}.weekly-activity-plan-achievement-output .weekly-plan-band{break-inside:avoid;page-break-inside:avoid}.weekly-activity-plan-achievement-output .weekly-plan-band+ .weekly-plan-band{margin-top:3px}`}</style>
+        <h3 className={`${prefix}-activity-plan-stage-heading`}>{chunk.stage} · الخطة الأسبوعية للنشاط الطلابي</h3>
+        <WeeklyActivityPlanMatrix weeks={chunk.weeks} />
+      </div>
+    );
+  }
 
   if (chunk.kind === "activity-team") {
     return (

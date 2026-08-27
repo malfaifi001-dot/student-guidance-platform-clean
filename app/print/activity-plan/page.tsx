@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
 import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
 import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
+import { WeeklyActivityPlanPrintDocument } from "@/components/activity-plan/weekly-activity-plan-print-document";
+import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
@@ -38,6 +40,14 @@ body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
 .activity-plan-print-day small { margin-top: 1mm; direction: ltr; font-size: 7.6pt; font-weight: 900; }
 .activity-plan-print-row-label { width: 23mm; color: #35524b; background: #f4f7f5; font-size: 7.6pt; font-weight: 900; }
 .activity-plan-print-table td { background: #fff; font-weight: 700; }
+.weekly-activity-plan-print-page { padding-bottom: 28mm; }
+.weekly-activity-plan-print-meta { display: grid; grid-template-columns: 20mm 1fr 20mm 20mm 15mm 35mm 15mm 35mm; align-items: center; margin-top: 5mm; border: .25mm solid #aeb9b6; background: #f4f7f5; color: #274b42; font-size: 10pt; font-weight: 900; }
+.weekly-activity-plan-print-meta > * { min-height: 10mm; padding: 2mm; border-inline-start: .25mm solid #aeb9b6; text-align: center; }
+.weekly-activity-plan-print-meta strong { color: #fff; background: #5b7659; }
+.weekly-activity-plan-print-table { width: 100%; margin-top: 5mm; table-layout: fixed; border-collapse: collapse; color: #263238; font-size: 9pt; }
+.weekly-activity-plan-print-table th, .weekly-activity-plan-print-table td { padding: 2.5mm 2mm; border: .25mm solid #aeb9b6; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
+.weekly-activity-plan-print-table th { color: #fff; background: #137b72; font-weight: 900; }
+.weekly-activity-plan-print-table td { background: #fff; font-weight: 700; }
 .activity-plan-program-cell { color: #fff !important; font-size: 7.9pt; font-weight: 900 !important; }
 .activity-plan-print-table tbody tr:nth-child(3n) td, .activity-plan-print-table tbody tr:nth-child(3n) th { border-bottom-color: #6f8f86; }
 .activity-plan-print-page .curriculum-print-footer { padding-top: 2mm; }
@@ -61,6 +71,7 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const activityLeaderName = profile?.activityLeaderName || current.user.officialName || current.user.name || "";
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
   const printEnabled = String(params.print || "") === "1";
+  const weeklyMode = String(params.mode || "") === "weekly";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
   const stage = requestedStage && REAL_ACTIVITY_PLAN_STAGES.includes(requestedStage)
     ? requestedStage
@@ -70,9 +81,13 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
     : [];
 
   const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks);
+  const weeklyPlans = weeklyMode
+    ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
+    : [];
   const principalSignature = await resolveEffectivePrincipalSignature({
     schoolAccountId: current.user.schoolAccountId,
     owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
   });
-  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={profile?.activityLeaderSignatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={principalSignature.signatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
+  const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || null, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />{weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

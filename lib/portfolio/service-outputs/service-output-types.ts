@@ -1,4 +1,5 @@
 import type { CurriculumCalendarItem } from "@/lib/curriculum-distribution/calendar";
+import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
 
 export type PortfolioCurriculumWeek = Pick<CurriculumCalendarItem, "id" | "kind" | "sequence" | "title" | "hijriRange" | "gregorianRange"> & {
   units: Array<{ name: string; lessons: string[] }>;
@@ -64,6 +65,7 @@ export type PortfolioActivityPlanContent = {
   rows: PortfolioActivityPlanRow[];
   shareUrl: string;
   shareQrDataUrl: string;
+  weeklyPlans?: Array<{ stage: string; weeks: WeeklyActivityPlan[] }>;
 };
 
 export type PortfolioActivityTeamContent = {
@@ -75,6 +77,7 @@ export type PortfolioActivityTeamContent = {
 export type PortfolioServiceOutputChunk =
   | { kind: "curriculum-distribution"; weeks: PortfolioCurriculumWeek[] }
   | { kind: "activity-plan"; rows: PortfolioActivityPlanRow[]; summary?: Omit<PortfolioActivityPlanContent, "kind" | "rows">; shareUrl?: string; shareQrDataUrl?: string }
+  | { kind: "weekly-activity-plan"; stage: string; weeks: WeeklyActivityPlan[] }
   | { kind: "activity-team"; rows: PortfolioActivityTeamContent["rows"] };
 
 export function normalizePortfolioServiceOutput(output: PortfolioServiceOutput): PortfolioServiceOutputChunk[] {
@@ -86,13 +89,17 @@ export function normalizePortfolioServiceOutput(output: PortfolioServiceOutput):
 
   if (content.kind === "activity-plan") {
     const plan = content as PortfolioActivityPlanContent;
-    return [{
+    const chunks: PortfolioServiceOutputChunk[] = [{
       kind: "activity-plan" as const,
       rows: plan.rows,
       summary: { title: plan.title, academicYear: plan.academicYear, semester: plan.semester, totalWeeks: plan.totalWeeks, populatedWeeks: plan.populatedWeeks, totalEntries: plan.totalEntries, activityAreas: plan.activityAreas, shareUrl: plan.shareUrl, shareQrDataUrl: plan.shareQrDataUrl },
       shareUrl: plan.shareUrl,
       shareQrDataUrl: plan.shareQrDataUrl,
     }];
+    for (const weeklyPlan of plan.weeklyPlans || []) {
+      chunks.push({ kind: "weekly-activity-plan", stage: weeklyPlan.stage, weeks: weeklyPlan.weeks });
+    }
+    return chunks;
   }
 
   const weeks = (content as PortfolioCurriculumContent).weeks;
