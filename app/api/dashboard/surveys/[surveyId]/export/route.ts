@@ -77,7 +77,7 @@ async function requireExportAccess(surveyId: string) {
       };
     }
 
-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
+    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId, current.user.id);
 
     if (!overview.usable) {
       return {

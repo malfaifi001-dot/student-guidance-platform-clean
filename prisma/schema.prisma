@@ -301,7 +301,7 @@ model SchoolAccount {
   staff                        StaffMember[]
   services                     ServiceAccess[]
   cases                        CaseEntry[]
-  subscription                 Subscription?
+  subscriptions                Subscription[]
   resultsAnalyses              ResultsAnalysis[]
   assessmentAnalyses           AssessmentAnalysis[]
   calendarReminders            CalendarReminder[]
@@ -438,6 +438,10 @@ model User {
   id              String         @id @default(cuid())
   schoolAccountId String?
   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+  subscriptions    Subscription[]
+  serviceAccess    ServiceAccess[]
+  manualActivations ManualActivation[]
+  bankTransferRequests BankTransferRequest[]
 
   name              String
   email             String    @unique
@@ -1435,7 +1439,9 @@ model PlanFeature {
 
 model Subscription {
   id              String        @id @default(cuid())
-  schoolAccountId String        @unique
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolAccountId String
   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
   planId String
@@ -1450,6 +1456,9 @@ model Subscription {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([schoolAccountId])
 }
 
 model Promotion {
@@ -1530,6 +1539,9 @@ model ServiceAccess {
   schoolAccountId String
   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
+  userId String?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
@@ -1539,7 +1551,9 @@ model ServiceAccess {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([schoolAccountId, serviceId])
+  @@index([schoolAccountId, serviceId])
+  @@unique([userId, serviceId])
+  @@index([userId])
 }
 
 model FeatureFlag {
@@ -1647,6 +1661,7 @@ model BankTransferRequest {
   planId          String?
   durationDays    Int?
   requesterUserId String?
+  requesterUser   User? @relation(fields: [requesterUserId], references: [id], onDelete: SetNull)
   billingCycle    String?
   couponCode      String?
   promotionId     String?
@@ -1662,6 +1677,8 @@ model BankTransferRequest {
 
 model ManualActivation {
   id              String    @id @default(cuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   schoolAccountId String
   activatedById   String?
   reason          String?
@@ -1671,6 +1688,7 @@ model ManualActivation {
   createdAt DateTime @default(now())
 
   @@index([schoolAccountId])
+  @@index([userId])
 }
 
 model IntegrationProvider {

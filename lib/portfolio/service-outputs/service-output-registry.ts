@@ -25,8 +25,8 @@ function sourceReference(link: LinkRecord) {
 }
 
 const serviceOutputResolvers: Record<string, ServiceOutputResolver> = {
-  "curriculum-distribution": async ({ schoolAccountId, link }) => {
-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
+  "curriculum-distribution": async ({ schoolAccountId, ownerUserId, link }) => {
+    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
     if (!access.ok) return null;
     const reference = sourceReference(link);
     const subjectId = typeof reference.subjectId === "string" ? reference.subjectId : "";
@@ -46,12 +46,12 @@ const serviceOutputResolvers: Record<string, ServiceOutputResolver> = {
     };
   },
   "student-activity-plan": async ({ schoolAccountId, ownerUserId, link }) => {
-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
+    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
     if (!access.ok) return null;
     return resolveActivityPlanPortfolioOutput(schoolAccountId, ownerUserId, link);
   },
-  "school-activity-team": async ({ schoolAccountId, link }) => {
-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
+  "school-activity-team": async ({ schoolAccountId, ownerUserId, link }) => {
+    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
     if (!access.ok) return null;
     return resolveActivityTeamPortfolioOutput(schoolAccountId, link);
   },

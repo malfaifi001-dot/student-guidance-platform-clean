@@ -36,6 +36,7 @@ export default async function ReportOneSavedStudioPage({ params }: PageProps) {
 
     const overview = await getSchoolSubscriptionOverview(
       current.user.schoolAccountId,
+      current.user.id,
     );
 
     if (!overview.usable) {
@@ -59,6 +60,7 @@ export default async function ReportOneSavedStudioPage({ params }: PageProps) {
   if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({
       schoolAccountId: current.user.schoolAccountId || "",
+      userId: current.user.id,
       serviceSlug: report.serviceSlug,
     });
 

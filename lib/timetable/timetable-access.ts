@@ -32,6 +32,7 @@ export async function requireTimetableApiAccess(options?: {
   if (options?.requireActiveSubscription) {
     const overview = await getSchoolSubscriptionOverview(
       access.schoolAccountId!,
+      access.user.id,
     );
 
     if (!overview.usable) {

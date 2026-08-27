@@ -34,9 +34,18 @@ type ActivationData = {
     status: string;
     adminNote: string | null;
     planId?: string | null;
+    requesterUserId?: string | null;
     durationDays?: number | null;
     billingCycle?: string | null;
     createdAt: string;
+  }>;
+  users: Array<{
+    id: string;
+    schoolAccountId: string | null;
+    name: string | null;
+    officialName: string | null;
+    email: string;
+    role: string;
   }>;
   subscriptions: Array<{
     id: string;
@@ -109,12 +118,14 @@ export function AdminActivationsCenter() {
   const [maxUses, setMaxUses] = useState("1");
 
   const [manualSchoolAccountId, setManualSchoolAccountId] = useState("");
+  const [manualUserId, setManualUserId] = useState("");
   const [manualPlanId, setManualPlanId] = useState("");
   const [manualDays, setManualDays] = useState("30");
 
   const [processing, setProcessing] = useState(false);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const [requestDays, setRequestDays] = useState<Record<string, string>>({});
+  const [requestOwner, setRequestOwner] = useState<Record<string, string>>({});
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
   const [modal, setModal] = useState<ModalState>({
@@ -144,6 +155,7 @@ export function AdminActivationsCenter() {
         requests: result.requests || [],
         subscriptions: result.subscriptions || [],
         schools: result.schools || [],
+        users: result.users || [],
         plans: result.plans || [],
       });
     } else {
@@ -243,6 +255,7 @@ export function AdminActivationsCenter() {
       },
       body: JSON.stringify({
         schoolAccountId: manualSchoolAccountId,
+        userId: manualUserId,
         planId: manualPlanId,
         days: manualDays,
       }),
@@ -266,6 +279,8 @@ export function AdminActivationsCenter() {
 
   async function approveRequest(id: string) {
     setProcessingRequestId(id);
+    const request = data?.requests.find((item) => item.id === id);
+    const userId = request?.requesterUserId || requestOwner[id] || "";
 
     const response = await fetch(
       `/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
@@ -276,6 +291,7 @@ export function AdminActivationsCenter() {
         },
         body: JSON.stringify({
           days: Number(requestDays[id] || 0),
+          ...(userId ? { userId } : {}),
         }),
       }
     );
@@ -415,10 +431,13 @@ export function AdminActivationsCenter() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_130px]">
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_1fr_130px]">
             <select
               value={manualSchoolAccountId}
-              onChange={(event) => setManualSchoolAccountId(event.target.value)}
+              onChange={(event) => {
+                setManualSchoolAccountId(event.target.value);
+                setManualUserId("");
+              }}
               className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
             >
               <option value="">اختر الحساب</option>
@@ -427,6 +446,22 @@ export function AdminActivationsCenter() {
                   {school.name}
                 </option>
               ))}
+            </select>
+
+            <select
+              value={manualUserId}
+              onChange={(event) => setManualUserId(event.target.value)}
+              disabled={!manualSchoolAccountId}
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="">Ø§Ø®ØªØ± Ø§Ù„Ù…Ø³ØªÙÙŠØ¯</option>
+              {(data?.users || [])
+                .filter((user) => user.schoolAccountId === manualSchoolAccountId)
+                .map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.officialName || user.name || user.email}
+                  </option>
+                ))}
             </select>
 
             <select
@@ -452,6 +487,7 @@ export function AdminActivationsCenter() {
 
           <button
             type="button"
+            disabled={!manualSchoolAccountId || !manualUserId || !manualPlanId}
             onClick={() =>
               confirmAction({
                 title: "تأكيد التفعيل اليدوي",
@@ -461,7 +497,7 @@ export function AdminActivationsCenter() {
                 run: manualActivate,
               })
             }
-            className="mt-4 h-12 w-full rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700"
+            className="mt-4 h-12 w-full rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             تفعيل الحساب
           </button>
@@ -591,6 +627,28 @@ export function AdminActivationsCenter() {
                             placeholder="الأيام"
                             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
                           />
+
+                          {!request.requesterUserId ? (
+                            <select
+                              value={requestOwner[request.id] || ""}
+                              onChange={(event) =>
+                                setRequestOwner((current) => ({
+                                  ...current,
+                                  [request.id]: event.target.value,
+                                }))
+                              }
+                              className="h-10 rounded-xl border border-amber-200 bg-amber-50 px-3 text-xs font-black text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                            >
+                              <option value="">Ø§Ø®ØªØ± Ù…Ø§Ù„Ùƒ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ</option>
+                              {(data?.users || [])
+                                .filter((user) => user.schoolAccountId === request.schoolAccountId)
+                                .map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.officialName || user.name || user.email}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : null}
 
                           <input
                             value={rejectReason[request.id] || ""}

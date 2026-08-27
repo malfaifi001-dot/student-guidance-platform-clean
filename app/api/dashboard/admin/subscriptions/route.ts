@@ -12,6 +12,7 @@ import {
   assignPlanToSchool,
   getPlanFeatureValue,
   getPlanServiceSlugs,
+  syncSchoolServicesFromPlan,
   syncPlanEntitlementsForSubscribers,
 } from "@/lib/subscription/subscription-service";
 import {
@@ -139,6 +140,15 @@ export async function GET() {
         updatedAt: "desc",
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            officialName: true,
+            email: true,
+            role: true,
+          },
+        },
         schoolAccount: {
           select: {
             id: true,
@@ -245,6 +255,7 @@ export async function GET() {
 
     return {
       ...row,
+      subscriberUser: row.user,
       schoolAccount: {
         id: row.schoolAccount.id,
         name: primaryUser
@@ -1036,12 +1047,13 @@ export async function POST(request: Request) {
 
   if (action === "assign-plan") {
     const schoolAccountId = String(payload?.schoolAccountId || "").trim();
+    const userId = String(payload?.userId || "").trim();
     const planId = String(payload?.planId || "").trim();
     const days = Number(payload?.days || 0);
     const status = String(payload?.status || "ACTIVE") as
       "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
 
-    if (!schoolAccountId || !planId) {
+    if (!schoolAccountId || !planId || !userId) {
       return NextResponse.json(
         { error: "اختر الحساب والباقة." },
         { status: 400 },
@@ -1064,6 +1076,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const targetUser = await prisma.user.findFirst({
+      where: { id: userId, schoolAccountId },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: "المستخدم المحدد غير مرتبط بحساب المدرسة." }, { status: 403 });
+    }
+
     const durationDays =
       days > 0
         ? days
@@ -1072,6 +1092,7 @@ export async function POST(request: Request) {
           : 30;
 
     const subscription = await assignPlanToSchool({
+      userId: targetUser.id,
       schoolAccountId,
       planId,
       days: durationDays,
@@ -1084,6 +1105,7 @@ export async function POST(request: Request) {
       triggerKey: "subscription-activated",
       actorUserId: current.user.id,
       sourceRecordId: subscription.id,
+      targetUserId: targetUser.id,
       variables: { serviceName: plan.name },
     }).catch(() => undefined);
 
@@ -1128,12 +1150,23 @@ export async function POST(request: Request) {
       },
     });
 
-    void dispatchAutomaticPushEvent({
-      triggerKey: "subscription-activated",
-      actorUserId: current.user.id,
-      sourceRecordId: subscription.id,
-      variables: { serviceName: "Teachix" },
-    }).catch(() => undefined);
+    if (subscription.userId) {
+      await syncSchoolServicesFromPlan({
+        schoolAccountId: subscription.schoolAccountId,
+        userId: subscription.userId,
+        planId: subscription.planId,
+      });
+    }
+
+    if (subscription.userId) {
+      void dispatchAutomaticPushEvent({
+        triggerKey: "subscription-activated",
+        actorUserId: current.user.id,
+        sourceRecordId: subscription.id,
+        targetUserId: subscription.userId,
+        variables: { serviceName: "Teachix" },
+      }).catch(() => undefined);
+    }
 
     await prisma.manualActivation.create({
       data: {
@@ -1182,7 +1215,8 @@ export async function POST(request: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.serviceAccess.updateMany({
         where: {
-          schoolAccountId: subscription.schoolAccountId,
+          userId: subscription.userId || "__missing__",
+          isPaid: true,
         },
         data: {
           isEnabled: false,
@@ -1193,6 +1227,7 @@ export async function POST(request: Request) {
       await tx.manualActivation.create({
         data: {
           schoolAccountId: subscription.schoolAccountId,
+          userId: subscription.userId,
           reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
           startsAt: now,
           endsAt: now,
@@ -1214,6 +1249,7 @@ export async function POST(request: Request) {
   if (action === "toggle-service-access") {
     const schoolAccountId = String(payload?.schoolAccountId || "").trim();
     const serviceId = String(payload?.serviceId || "").trim();
+    const userId = String(payload?.userId || "").trim();
     const isEnabled = Boolean(payload?.isEnabled);
     const isPaid = Boolean(payload?.isPaid);
 
@@ -1224,24 +1260,29 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.serviceAccess.upsert({
-      where: {
-        schoolAccountId_serviceId: {
-          schoolAccountId,
-          serviceId,
-        },
-      },
-      update: {
-        isEnabled,
-        isPaid,
-      },
-      create: {
-        schoolAccountId,
-        serviceId,
-        isEnabled,
-        isPaid,
-      },
-    });
+    if (isPaid && !userId) {
+      return NextResponse.json({ error: "حدد المستخدم المستهدف للاستحقاق المدفوع." }, { status: 400 });
+    }
+
+    if (userId) {
+      const target = await prisma.user.findFirst({ where: { id: userId, schoolAccountId }, select: { id: true } });
+      if (!target) return NextResponse.json({ error: "المستخدم المستهدف غير مرتبط بحساب المدرسة." }, { status: 403 });
+    }
+
+    if (userId) {
+      await prisma.serviceAccess.upsert({
+        where: { userId_serviceId: { userId, serviceId } },
+        update: { isEnabled, isPaid },
+        create: { schoolAccountId, userId, serviceId, isEnabled, isPaid },
+      });
+    } else {
+      const existing = await prisma.serviceAccess.findFirst({ where: { schoolAccountId, serviceId, userId: null }, select: { id: true } });
+      if (existing) {
+        await prisma.serviceAccess.update({ where: { id: existing.id }, data: { isEnabled, isPaid: false } });
+      } else {
+        await prisma.serviceAccess.create({ data: { schoolAccountId, serviceId, isEnabled, isPaid: false } });
+      }
+    }
 
     return NextResponse.json({
       message: "تم تحديث صلاحية الخدمة للحساب.",

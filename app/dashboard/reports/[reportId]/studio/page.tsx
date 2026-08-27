@@ -22,6 +22,7 @@ export default async function ReportStudioPage({ params }: PageProps) {
 
     const overview = await getSchoolSubscriptionOverview(
       current.user.schoolAccountId,
+      current.user.id,
     );
     if (!overview.usable) {
       redirect("/dashboard/plans?reason=activation-required");
@@ -50,6 +51,7 @@ export default async function ReportStudioPage({ params }: PageProps) {
   if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({
       schoolAccountId: current.user.schoolAccountId || "",
+      userId: current.user.id,
       serviceSlug: report.serviceSlug,
     });
     if (!access.ok) {

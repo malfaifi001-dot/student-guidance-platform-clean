@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!schoolAccountId) {
       return NextResponse.json({ ok: false, error: "لا يوجد حساب مدرسة مرتبط بالحساب." }, { status: 400 });
     }
-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: "school-activity-team" });
+    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: current.user.id, serviceSlug: "school-activity-team" });
     if (!access.ok) {
       return NextResponse.json({ ok: false, error: access.reason === "SUBSCRIPTION_INACTIVE" ? "الاشتراك غير فعال." : "الخدمة غير متاحة ضمن الباقة الحالية." }, { status: 403 });
     }

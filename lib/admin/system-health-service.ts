@@ -55,7 +55,7 @@ export async function generateSystemHealthReport(): Promise<SystemHealthReport> 
     prisma.schoolAccount.count({
       where: {
         isActive: true,
-        subscription: null,
+        subscriptions: { none: {} },
       },
     }),
 

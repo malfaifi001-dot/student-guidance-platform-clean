@@ -5,7 +5,7 @@ import {
   assignDefaultFreePlanIfEligible,
   DEFAULT_FREE_PLAN_SLUG,
 } from "@/lib/subscription/default-free-plan";
-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { getUserSubscriptionOverview } from "@/lib/subscription/subscription-service";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -34,10 +34,11 @@ export async function GET() {
   }
 
   const [overview, pendingBankRequests] = await Promise.all([
-    getSchoolSubscriptionOverview(current.user.schoolAccountId),
+    getUserSubscriptionOverview(current.user.id),
     prisma.bankTransferRequest.count({
       where: {
         schoolAccountId: current.user.schoolAccountId,
+        requesterUserId: current.user.id,
         status: "PENDING",
       },
     }),

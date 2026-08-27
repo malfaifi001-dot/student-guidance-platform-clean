@@ -10,7 +10,8 @@ import {
   isPlanSelfServiceVisible,
 } from "@/lib/subscription/plan-audience";
 import {
-  assignPlanToSchool,
+  assignPlanToUser,
+  getUserSubscriptionOverview,
   getPlanFeatureValue,
   getPlanServiceSlugs,
   getRemainingDays,
@@ -76,14 +77,7 @@ export async function GET() {
       },
     }),
 
-    prisma.subscription.findUnique({
-      where: {
-        schoolAccountId: current.user.schoolAccountId,
-      },
-      include: {
-        plan: true,
-      },
-    }),
+    getUserSubscriptionOverview(current.user.id).then((result) => result.subscription),
   ]);
 
   const salesExperience = await resolveSalesExperienceForUser(current.user.id);
@@ -320,7 +314,8 @@ export async function POST(request: Request) {
   }
 
   if (amount <= 0) {
-    const subscription = await assignPlanToSchool({
+    const subscription = await assignPlanToUser({
+      userId: current.user.id,
       schoolAccountId: current.user.schoolAccountId,
       planId: plan.id,
       days: durationDays,

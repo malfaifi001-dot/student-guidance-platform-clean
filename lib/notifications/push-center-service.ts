@@ -316,12 +316,13 @@ async function runSubscriptionPushEvents() {
   if (!actor) return;
   const now = new Date();
   const horizon = new Date(now.getTime() + 3 * 86_400_000);
-  const subscriptions = await prisma.subscription.findMany({ where: { endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, schoolAccountId: true, endsAt: true } });
+  const subscriptions = await prisma.subscription.findMany({ where: { userId: { not: null }, endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, userId: true, endsAt: true } });
   for (const subscription of subscriptions) {
     if (!subscription.endsAt) continue;
     const triggerKey = subscription.endsAt <= now ? "subscription-expired" : "subscription-expiring";
     const eventDate = subscription.endsAt.toISOString().slice(0, 10);
-    await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
+    if (!subscription.userId) continue;
+    await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, targetUserId: subscription.userId, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
   }
 }
 
@@ -402,7 +403,7 @@ export async function recordPushOpen(input: { deliveryId?: string; campaignId?: 
   return { recorded: result.count > 0 };
 }
 
-export async function dispatchAutomaticPushEvent(input: { triggerKey: string; actorUserId: string; sourceRecordId?: string; variables?: Record<string, string> }) {
+export async function dispatchAutomaticPushEvent(input: { triggerKey: string; actorUserId: string; sourceRecordId?: string; variables?: Record<string, string>; targetUserId?: string }) {
   const rule = await prisma.pushAutomaticRule.findUnique({ where: { triggerKey: input.triggerKey } });
   if (!rule?.enabled) return { dispatched: false, reason: "RULE_DISABLED" as const };
   const eventKey = input.sourceRecordId ? `${input.triggerKey}:${input.sourceRecordId}` : null;
@@ -417,7 +418,16 @@ export async function dispatchAutomaticPushEvent(input: { triggerKey: string; ac
   }
   const replace = (template: string) => template.replace(/\{\{(userName|serviceName|surveyTitle|assignmentTitle)\}\}/g, (_match, key: string) => input.variables?.[key] || "");
   const config = rule.audienceConfig as Record<string, unknown>;
-  const campaign = await createPushCampaign({ title: replace(rule.titleTemplate), body: replace(rule.bodyTemplate), route: rule.route, campaignType: PushCampaignType.AUTOMATIC, sendNow: true, audienceType: rule.audienceType, ...(typeof config.role === "string" ? { role: config.role } : {}), ...(typeof config.userId === "string" ? { userId: config.userId } : {}), ...(Array.isArray(config.userIds) ? { userIds: config.userIds as string[] } : {}), ...(typeof config.schoolAccountId === "string" ? { schoolAccountId: config.schoolAccountId } : {}) }, input.actorUserId);
+  const audience = input.targetUserId
+    ? { audienceType: "USER" as const, userId: input.targetUserId }
+    : {
+        audienceType: rule.audienceType,
+        ...(typeof config.role === "string" ? { role: config.role } : {}),
+        ...(typeof config.userId === "string" ? { userId: config.userId } : {}),
+        ...(Array.isArray(config.userIds) ? { userIds: config.userIds as string[] } : {}),
+        ...(typeof config.schoolAccountId === "string" ? { schoolAccountId: config.schoolAccountId } : {}),
+      };
+  const campaign = await createPushCampaign({ title: replace(rule.titleTemplate), body: replace(rule.bodyTemplate), route: rule.route, campaignType: PushCampaignType.AUTOMATIC, sendNow: true, ...audience }, input.actorUserId);
   if (eventId && campaign?.id) await prisma.pushAutomaticEvent.update({ where: { id: eventId }, data: { campaignId: campaign.id } });
   await prisma.pushAutomaticRule.update({ where: { id: rule.id }, data: { lastTriggeredAt: new Date(), totalSends: { increment: 1 }, lastResult: "SUCCESS", lastErrorCode: null } });
   return { dispatched: true, campaignId: campaign?.id || null };

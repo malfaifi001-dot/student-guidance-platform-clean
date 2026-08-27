@@ -128,6 +128,7 @@ export async function createPaidBankTransferPaymentTransaction(
 
   const subscription = await prisma.subscription.findFirst({
     where: {
+      userId: request.requesterUserId || "__missing__",
       schoolAccountId: request.schoolAccountId,
     },
     orderBy: {

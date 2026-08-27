@@ -6,7 +6,7 @@ import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboard
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
 import { GuidanceProvider } from "@/components/guidance/guidance-provider";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { getUserSubscriptionOverview } from "@/lib/subscription/subscription-service";
 import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
 import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authenticated-analytics-identity";
 import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
@@ -37,7 +37,7 @@ export default async function DashboardLayout({
   const salesExperience = await resolveSalesExperienceForUser(current.user.id);
   const subscriptionOverview =
     current.user.role !== "ADMIN" && current.user.schoolAccountId
-      ? await getSchoolSubscriptionOverview(current.user.schoolAccountId)
+      ? await getUserSubscriptionOverview(current.user.id)
       : null;
   const subscriptionPresentation =
     current.user.role === "ADMIN"

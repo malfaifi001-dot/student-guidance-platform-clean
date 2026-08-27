@@ -46,11 +46,11 @@ export async function GET(request: Request) {
         email: true,
         role: true,
         isActive: true,
-        schoolAccount: {
-          select: {
-            name: true,
-            subscription: { select: { status: true, endsAt: true } },
-          },
+        subscriptions: {
+          where: { userId: { not: null } },
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          select: { status: true, endsAt: true },
         },
         salesExperienceOverride: { select: { mode: true } },
       },
@@ -68,12 +68,12 @@ export async function GET(request: Request) {
         effectiveMode: user.salesExperienceOverride?.mode || globalMode,
         source: user.salesExperienceOverride ? "USER_OVERRIDE" : "GLOBAL",
         activeSubscription: Boolean(
-          user.schoolAccount?.subscription &&
-            user.schoolAccount.subscription.status !== "CANCELED" &&
-            user.schoolAccount.subscription.status !== "EXPIRED" &&
-            user.schoolAccount.subscription.status !== "PAST_DUE" &&
-            (!user.schoolAccount.subscription.endsAt ||
-              user.schoolAccount.subscription.endsAt > new Date()),
+          user.subscriptions[0] &&
+            user.subscriptions[0].status !== "CANCELED" &&
+            user.subscriptions[0].status !== "EXPIRED" &&
+            user.subscriptions[0].status !== "PAST_DUE" &&
+            (!user.subscriptions[0].endsAt ||
+              user.subscriptions[0].endsAt > new Date()),
         ),
       })),
     },

@@ -16,6 +16,7 @@ export default async function SavedReportsRoutePage() {
 
     const overview = await getSchoolSubscriptionOverview(
       current.user.schoolAccountId,
+      current.user.id,
     );
 
     if (!overview.usable) {

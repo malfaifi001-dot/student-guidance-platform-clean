@@ -79,6 +79,7 @@ async function getEligibleReportSelection(context: SchoolDashboardContext) {
       serviceSlug,
       access: await isServiceAllowedForSchool({
         schoolAccountId: context.schoolAccountId,
+        userId: context.user.id,
         serviceSlug,
       }),
     })),

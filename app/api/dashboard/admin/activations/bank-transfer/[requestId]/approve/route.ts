@@ -50,6 +50,7 @@ export async function POST(
 
     const payload = await request.json().catch(() => null);
     const days = Number(payload?.days || 0);
+    const requestedTargetUserId = String(payload?.userId || "").trim();
     const adminNote = String(payload?.adminNote || "").trim();
 
     step = "LOAD_BANK_TRANSFER_REQUEST";
@@ -192,8 +193,26 @@ export async function POST(
       }
     }
 
-    step = "ASSIGN_PLAN_TO_SCHOOL";
+    // Legacy requests have no durable owner; require an explicit admin
+    // choice instead of guessing from school membership.
+    const targetUserId = transferRequest.requesterUserId || requestedTargetUserId;
+    if (!targetUserId) {
+      return NextResponse.json(
+        { error: "طلب التحويل القديم لا يحدد مستخدم الاشتراك. حدده يدويًا قبل التفعيل.", step },
+        { status: 409 },
+      );
+    }
+    const targetUser = await prisma.user.findFirst({
+      where: { id: targetUserId, schoolAccountId: transferRequest.schoolAccountId },
+      select: { id: true },
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: "مستخدم طلب التحويل غير مرتبط بالمدرسة.", step }, { status: 403 });
+    }
+
+    step = "ASSIGN_PLAN_TO_USER";
     const subscription = await assignPlanToSchool({
+      userId: targetUser.id,
       schoolAccountId: transferRequest.schoolAccountId,
       planId: plan.id,
       days: durationDays,
@@ -221,6 +240,9 @@ export async function POST(
       },
       data: {
         status: "PAID",
+        ...(transferRequest.requesterUserId
+          ? {}
+          : { requesterUserId: targetUser.id }),
         adminNote: [
           transferRequest.adminNote || "",
           adminNote ? `ملاحظة الأدمن: ${adminNote}` : "",

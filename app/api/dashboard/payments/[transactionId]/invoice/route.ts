@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         id: true,
         metadataJson: true,
         subscription: {
-          select: { schoolAccountId: true },
+          select: { schoolAccountId: true, userId: true },
         },
       },
     });
@@ -50,7 +50,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (
       !transaction ||
       !ownerSchoolAccountId ||
-      ownerSchoolAccountId !== current.user.schoolAccountId
+      ownerSchoolAccountId !== current.user.schoolAccountId ||
+      transaction.subscription?.userId !== current.user.id
     ) {
       return NextResponse.json(
         { ok: false, error: "لم يتم العثور على الفاتورة المطلوبة." },

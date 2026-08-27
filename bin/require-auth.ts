@@ -4,8 +4,8 @@ import {
   type SchoolDashboardContext,
 } from "@/lib/auth/dashboard-context";
 import {
-  getSchoolSubscriptionOverview,
-  isServiceAllowedForSchool,
+  getUserSubscriptionOverview,
+  isServiceAllowedForUser,
 } from "@/lib/subscription/subscription-service";
 import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
 
@@ -40,7 +40,7 @@ export async function requireActiveSubscriptionForCurrentUser(
     return context;
   }
 
-  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
+  const overview = await getUserSubscriptionOverview(context.user.id);
 
   if (!overview.usable) {
     return buildSubscriptionRequiredResponse();
@@ -67,7 +67,8 @@ export async function requireServiceAccessForCurrentUser(
     return context;
   }
 
-  const result = await isServiceAllowedForSchool({
+  const result = await isServiceAllowedForUser({
+    userId: context.user.id,
     schoolAccountId: context.schoolAccountId,
     serviceSlug,
   });

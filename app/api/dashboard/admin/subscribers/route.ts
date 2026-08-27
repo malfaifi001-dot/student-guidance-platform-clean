@@ -22,6 +22,7 @@ type ComputedSubscriptionStatus =
 
 type SubscriberItem = {
   schoolAccountId: string;
+  subscriberUserId: string;
   accountName: string;
   slug: string;
   isActive: boolean;
@@ -46,6 +47,13 @@ type SubscriberItem = {
   } | null;
   computedStatus: ComputedSubscriptionStatus;
   needsAttention: boolean;
+  users: Array<{
+    id: string;
+    name: string | null;
+    officialName: string | null;
+    email: string;
+    role: string;
+  }>;
 };
 
 function getSchoolDisplayName(account: {
@@ -92,11 +100,6 @@ export async function GET() {
       },
       include: {
         profile: true,
-        subscription: {
-          include: {
-            plan: true,
-          },
-        },
         users: {
           select: {
             id: true,
@@ -105,8 +108,12 @@ export async function GET() {
             email: true,
             role: true,
             isActive: true,
+            subscriptions: {
+              take: 1,
+              orderBy: { updatedAt: "desc" },
+              include: { plan: true },
+            },
           },
-          take: 5,
           orderBy: {
             createdAt: "asc",
           },
@@ -141,6 +148,7 @@ export async function GET() {
     prisma.serviceAccess.findMany({
       select: {
         schoolAccountId: true,
+        userId: true,
         serviceId: true,
         isEnabled: true,
         isPaid: true,
@@ -154,6 +162,7 @@ export async function GET() {
       select: {
         id: true,
         schoolAccountId: true,
+        requesterUserId: true,
         amount: true,
         currency: true,
         createdAt: true,
@@ -161,18 +170,15 @@ export async function GET() {
     }),
   ]);
 
-  const pendingCountBySchool = new Map<string, number>();
+  const pendingCountByUser = new Map<string, number>();
 
   for (const request of pendingRequests) {
-    pendingCountBySchool.set(
-      request.schoolAccountId,
-      (pendingCountBySchool.get(request.schoolAccountId) || 0) + 1
-    );
+    if (request.requesterUserId) pendingCountByUser.set(request.requesterUserId, (pendingCountByUser.get(request.requesterUserId) || 0) + 1);
   }
 
-  const subscribers: SubscriberItem[] = schoolAccounts.map(
-    (account: any): SubscriberItem => {
-      const subscription = account.subscription;
+  const subscribers: SubscriberItem[] = schoolAccounts.flatMap(
+    (account: any): SubscriberItem[] => account.users.map((owner: any) => {
+      const subscription = owner.subscriptions?.[0] || null;
       const computedStatus = getComputedStatus({
         subscriptionStatus: subscription?.status,
         endsAt: subscription?.endsAt,
@@ -184,12 +190,9 @@ export async function GET() {
         subscription?.endsAt
       );
 
-      const owner =
-        account.users.find((user: any) => user.role !== "ADMIN") ||
-        account.users[0];
-
       return {
         schoolAccountId: account.id,
+        subscriberUserId: owner.id,
         accountName: account.name,
         slug: account.slug,
         isActive: account.isActive,
@@ -199,7 +202,7 @@ export async function GET() {
         ownerEmail: owner?.email || "",
         usersCount: account._count.users,
         studentsCount: account._count.students,
-        pendingRequestsCount: pendingCountBySchool.get(account.id) || 0,
+        pendingRequestsCount: pendingCountByUser.get(owner.id) || 0,
         subscription: subscription
           ? {
               id: subscription.id,
@@ -221,9 +224,10 @@ export async function GET() {
           computedStatus === "CANCELED" ||
           computedStatus === "PAST_DUE" ||
           (remainingDays !== null && remainingDays <= 7) ||
-          (pendingCountBySchool.get(account.id) || 0) > 0,
+          (pendingCountByUser.get(owner.id) || 0) > 0,
+        users: account.users,
       };
-    }
+    })
   );
 
   const stats = {
@@ -247,12 +251,15 @@ export async function GET() {
       (item: SubscriberItem) => item.needsAttention
     ).length,
     pendingRequests: pendingRequests.length,
-    totalUsers: subscribers.reduce(
-      (sum: number, item: SubscriberItem) => sum + item.usersCount,
+    // Subscriber rows are intentionally one row per user, so school totals
+    // must come from the distinct school-account source rather than being
+    // summed once for every subscriber.
+    totalUsers: schoolAccounts.reduce(
+      (sum: number, account: any) => sum + account._count.users,
       0
     ),
-    totalStudents: subscribers.reduce(
-      (sum: number, item: SubscriberItem) => sum + item.studentsCount,
+    totalStudents: schoolAccounts.reduce(
+      (sum: number, account: any) => sum + account._count.students,
       0
     ),
   };

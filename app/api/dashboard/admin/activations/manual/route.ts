@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
 
   const schoolAccountId = String(payload?.schoolAccountId || "").trim();
+  const userId = String(payload?.userId || "").trim();
   const planId = String(payload?.planId || "").trim();
   const days = Number(payload?.days || 0);
   const reason = String(payload?.reason || "").trim();
@@ -38,6 +39,23 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "اختر الباقة التي تريد تفعيلها للحساب." },
       { status: 400 }
+    );
+  }
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "حدد المستخدم المستفيد من التفعيل." },
+      { status: 400 },
+    );
+  }
+  const targetUser = await prisma.user.findFirst({
+    where: { id: userId, schoolAccountId },
+    select: { id: true },
+  });
+  if (!targetUser) {
+    return NextResponse.json(
+      { error: "المستخدم غير مرتبط بالمدرسة المحددة." },
+      { status: 403 },
     );
   }
 
@@ -63,6 +81,7 @@ export async function POST(request: Request) {
       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
   await assignPlanToSchool({
+    userId,
     schoolAccountId,
     planId: plan.id,
     days: durationDays,

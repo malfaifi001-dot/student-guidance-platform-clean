@@ -19,22 +19,15 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
 
   const subscriptionId = String(payload?.subscriptionId || "").trim();
-  const schoolAccountIdFromPayload = String(payload?.schoolAccountId || "").trim();
-
-  if (!subscriptionId && !schoolAccountIdFromPayload) {
+  if (!subscriptionId) {
     return NextResponse.json(
       { error: "رقم الاشتراك أو حساب المدرسة مطلوب لإلغاء الاشتراك." },
       { status: 400 }
     );
   }
 
-  const subscription = subscriptionId
-    ? await prisma.subscription.findUnique({
+  const subscription = await prisma.subscription.findUnique({
         where: { id: subscriptionId },
-        include: { schoolAccount: true },
-      })
-    : await prisma.subscription.findUnique({
-        where: { schoolAccountId: schoolAccountIdFromPayload },
         include: { schoolAccount: true },
       });
 
@@ -59,7 +52,8 @@ export async function POST(request: Request) {
 
   await prisma.serviceAccess.updateMany({
     where: {
-      schoolAccountId: subscription.schoolAccountId,
+      userId: subscription.userId || "__missing__",
+      isPaid: true,
     },
     data: {
       isEnabled: false,
@@ -69,6 +63,7 @@ export async function POST(request: Request) {
   await prisma.manualActivation.create({
     data: {
       schoolAccountId: subscription.schoolAccountId,
+      userId: subscription.userId,
       activatedById: current.user.id,
       reason: `إلغاء اشتراك المدرسة: ${subscription.schoolAccount.name}`,
       startsAt: now,

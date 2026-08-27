@@ -10,6 +10,7 @@ async function main() {
   const user = await prisma.user.findUnique({
     where: { email: userEmail },
     select: {
+      id: true,
       schoolAccountId: true,
     },
   });
@@ -72,13 +73,14 @@ async function main() {
 
   const syncResult = await syncSchoolServicesFromPlan({
     schoolAccountId: user.schoolAccountId,
+    userId: user.id,
     planId: plan.id,
   });
 
   const access = await prisma.serviceAccess.findUnique({
     where: {
-      schoolAccountId_serviceId: {
-        schoolAccountId: user.schoolAccountId,
+      userId_serviceId: {
+        userId: user.id,
         serviceId: service.id,
       },
     },

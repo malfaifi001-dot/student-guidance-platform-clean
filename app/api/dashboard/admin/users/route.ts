@@ -54,14 +54,14 @@ export async function GET() {
         createdAt: "desc",
       },
       include: {
+        subscriptions: {
+          take: 1,
+          orderBy: { updatedAt: "desc" },
+          include: { plan: true },
+        },
         schoolAccount: {
           include: {
             profile: true,
-            subscription: {
-              include: {
-                plan: true,
-              },
-            },
             _count: {
               select: {
                 students: { where: { isActive: true } },
@@ -207,7 +207,7 @@ export async function GET() {
   }
 
   const mappedUsers = users.map((user: any) => {
-    const subscription = user.schoolAccount?.subscription;
+    const subscription = user.subscriptions?.[0] || null;
     const computedSubscriptionStatus = getSubscriptionStatusLabel(
       subscription?.status,
       subscription?.endsAt
@@ -539,9 +539,7 @@ export async function POST(request: Request) {
     }
 
     const subscription = await prisma.subscription.findUnique({
-      where: {
-        schoolAccountId: targetUser.schoolAccountId,
-      },
+      where: { userId: userId },
     });
 
     if (!subscription) {
@@ -563,7 +561,8 @@ export async function POST(request: Request) {
 
     await prisma.serviceAccess.updateMany({
       where: {
-        schoolAccountId: targetUser.schoolAccountId,
+        userId,
+        isPaid: true,
       },
       data: {
         isEnabled: false,

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
   await prisma.bankTransferRequest.create({
     data: {
       schoolAccountId: current.user.schoolAccountId,
+      requesterUserId: current.user.id,
       amount,
       currency: "SAR",
       senderName,

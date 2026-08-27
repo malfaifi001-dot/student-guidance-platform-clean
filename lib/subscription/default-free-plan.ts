@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import type { UserRole } from "@prisma/client";
 import {
-  assignPlanToSchool,
+  assignPlanToUser,
   getPlanServiceSlugs,
   getRemainingDays,
   isSubscriptionUsable,
@@ -274,7 +274,9 @@ async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePla
     },
   });
 
-  const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  const schoolAccountIds = Array.from(
+    new Set(currentSubscriptions.map((subscription) => subscription.schoolAccountId)),
+  );
 
   const conversionLogs = await prisma.platformActivityLog.findMany({
     where: {
@@ -422,7 +424,11 @@ async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
     },
   });
 
-  const schoolAccountIds = subscriptions.map((subscription) => subscription.schoolAccountId);
+  const subscriptionsBySchool = new Map(
+    subscriptions.map((subscription) => [subscription.schoolAccountId, subscription]),
+  );
+  const uniqueSubscriptions = Array.from(subscriptionsBySchool.values());
+  const schoolAccountIds = Array.from(subscriptionsBySchool.keys());
 
   if (!schoolAccountIds.length) {
     return [];
@@ -492,7 +498,7 @@ async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
     reportCountBySchool.set(row.schoolAccountId, row._count._all);
   }
 
-  return subscriptions.map((subscription) => {
+  return uniqueSubscriptions.map((subscription) => {
     const schoolAccount = subscription.schoolAccount;
     const owner = pickAccountOwner(schoolAccount.users);
 
@@ -640,7 +646,7 @@ export async function saveDefaultFreePlanConfig(
 
 export async function assignDefaultFreePlanIfEligible(input: {
   schoolAccountId: string;
-  userId?: string;
+  userId: string;
   source: string;
 }) {
   const schoolAccountId = String(input.schoolAccountId || "").trim();
@@ -662,9 +668,7 @@ export async function assignDefaultFreePlanIfEligible(input: {
   }
 
   const existingSubscription = await prisma.subscription.findUnique({
-    where: {
-      schoolAccountId,
-    },
+    where: { userId: input.userId },
     include: {
       plan: true,
     },
@@ -696,7 +700,8 @@ export async function assignDefaultFreePlanIfEligible(input: {
     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
   );
 
-  await assignPlanToSchool({
+  await assignPlanToUser({
+    userId: input.userId,
     schoolAccountId,
     planId: plan.id,
     days: durationDays,

@@ -20,6 +20,7 @@ async function getActivityLeaderContext() {
 
   const access = await isServiceAllowedForSchool({
     schoolAccountId: current.user.schoolAccountId,
+    userId: current.user.id,
     serviceSlug: "school-activity-team",
   });
   if (!access.ok) {

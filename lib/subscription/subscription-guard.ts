@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
-  getSchoolSubscriptionOverview,
-  isServiceAllowedForSchool,
+  getUserSubscriptionOverview,
+  isServiceAllowedForUser,
 } from "@/lib/subscription/subscription-service";
 import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
 
@@ -25,9 +25,7 @@ export async function requireActiveSubscriptionForCurrentUser() {
     redirect("/login");
   }
 
-  const overview = await getSchoolSubscriptionOverview(
-    current.user.schoolAccountId,
-  );
+  const overview = await getUserSubscriptionOverview(current.user.id);
 
   if (!overview.usable) {
     redirect("/dashboard/plans?reason=activation-required");
@@ -57,7 +55,8 @@ export async function requireServiceAccessForCurrentUser(
     redirect("/login");
   }
 
-  const result = await isServiceAllowedForSchool({
+  const result = await isServiceAllowedForUser({
+    userId: current.user.id,
     schoolAccountId: current.user.schoolAccountId,
     serviceSlug,
   });

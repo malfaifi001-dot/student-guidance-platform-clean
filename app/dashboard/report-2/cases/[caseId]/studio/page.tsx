@@ -62,6 +62,7 @@ export default async function ReportTwoCaseStudioPage({
 
     const overview = await getSchoolSubscriptionOverview(
       current.user.schoolAccountId,
+      current.user.id,
     );
 
     if (!overview.usable) {
@@ -88,6 +89,7 @@ export default async function ReportTwoCaseStudioPage({
   if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({
       schoolAccountId: current.user.schoolAccountId || "",
+      userId: current.user.id,
       serviceSlug: result.serviceSlug,
     });
 

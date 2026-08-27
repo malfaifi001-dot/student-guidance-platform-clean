@@ -16,7 +16,7 @@ export async function GET() {
 
   await ensureSimpleActivationPlan();
 
-  const [codes, requests, subscriptions, schools] = await Promise.all([
+  const [codes, requests, subscriptions, schools, users] = await Promise.all([
     prisma.activationCode.findMany({
       orderBy: {
         createdAt: "desc",
@@ -53,6 +53,22 @@ export async function GET() {
         slug: true,
       },
     }),
+
+    prisma.user.findMany({
+      where: {
+        schoolAccountId: { not: null },
+        role: { in: ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER"] },
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        schoolAccountId: true,
+        name: true,
+        officialName: true,
+        email: true,
+        role: true,
+      },
+    }),
   ]);
 
   return NextResponse.json({
@@ -60,6 +76,7 @@ export async function GET() {
     requests,
     subscriptions,
     schools,
+    users,
   });
 }
 

@@ -51,6 +51,7 @@ export async function ensureSimpleActivationPlan() {
 
 export async function grantAllActiveServiceAccess(input: {
   schoolAccountId: string;
+  userId: string;
   isPaid: boolean;
 }) {
   const services = await prisma.service.findMany({
@@ -65,8 +66,8 @@ export async function grantAllActiveServiceAccess(input: {
   for (const service of services) {
     await prisma.serviceAccess.upsert({
       where: {
-        schoolAccountId_serviceId: {
-          schoolAccountId: input.schoolAccountId,
+        userId_serviceId: {
+          userId: input.userId,
           serviceId: service.id,
         },
       },
@@ -76,6 +77,7 @@ export async function grantAllActiveServiceAccess(input: {
       },
       create: {
         schoolAccountId: input.schoolAccountId,
+        userId: input.userId,
         serviceId: service.id,
         isEnabled: true,
         isPaid: input.isPaid,
@@ -84,10 +86,13 @@ export async function grantAllActiveServiceAccess(input: {
   }
 }
 
-export async function ensureTrialSubscription(schoolAccountId: string) {
+export async function ensureTrialSubscription(schoolAccountId: string, userId?: string) {
+  if (!userId) throw new Error("SUBSCRIPTION_USER_REQUIRED");
+  const owner = await prisma.user.findFirst({ where: { id: userId, schoolAccountId }, select: { id: true } });
+  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
   const existing = await prisma.subscription.findUnique({
     where: {
-      schoolAccountId,
+      userId,
     },
     include: {
       plan: true,
@@ -98,6 +103,7 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
     if (isSubscriptionUsable(existing.status, existing.endsAt)) {
       await grantAllActiveServiceAccess({
         schoolAccountId,
+        userId,
         isPaid: existing.status === "ACTIVE",
       });
     }
@@ -109,6 +115,7 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
 
   const subscription = await prisma.subscription.create({
     data: {
+      userId,
       schoolAccountId,
       planId: plan.id,
       status: "TRIAL",
@@ -122,19 +129,21 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
 
   await grantAllActiveServiceAccess({
     schoolAccountId,
+    userId,
     isPaid: false,
   });
 
   return subscription;
 }
 
-export async function getActivationOverview(schoolAccountId: string) {
-  const subscription = await ensureTrialSubscription(schoolAccountId);
+export async function getActivationOverview(schoolAccountId: string, userId?: string) {
+  const subscription = await ensureTrialSubscription(schoolAccountId, userId);
 
   const pendingBankRequests = await prisma.bankTransferRequest.count({
     where: {
       schoolAccountId,
       status: "PENDING",
+      requesterUserId: userId,
     },
   });
 
@@ -150,18 +159,21 @@ export async function getActivationOverview(schoolAccountId: string) {
 }
 
 export async function activateSchoolAccount(input: {
+  userId: string;
   schoolAccountId: string;
   days?: number;
   status?: PaymentStatus;
   reason?: string;
   activatedById?: string;
 }) {
+  const owner = await prisma.user.findFirst({ where: { id: input.userId, schoolAccountId: input.schoolAccountId }, select: { id: true } });
+  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
   const plan = await ensureSimpleActivationPlan();
 
   const now = new Date();
   const current = await prisma.subscription.findUnique({
     where: {
-      schoolAccountId: input.schoolAccountId,
+      userId: input.userId,
     },
   });
 
@@ -170,7 +182,7 @@ export async function activateSchoolAccount(input: {
 
   const subscription = await prisma.subscription.upsert({
     where: {
-      schoolAccountId: input.schoolAccountId,
+      userId: input.userId,
     },
     update: {
       planId: plan.id,
@@ -179,6 +191,7 @@ export async function activateSchoolAccount(input: {
       endsAt: nextEndsAt,
     },
     create: {
+      userId: input.userId,
       schoolAccountId: input.schoolAccountId,
       planId: plan.id,
       status: "ACTIVE",
@@ -189,12 +202,14 @@ export async function activateSchoolAccount(input: {
 
   await grantAllActiveServiceAccess({
     schoolAccountId: input.schoolAccountId,
+    userId: input.userId,
     isPaid: true,
   });
 
   await prisma.manualActivation.create({
     data: {
       schoolAccountId: input.schoolAccountId,
+      userId: input.userId,
       activatedById: input.activatedById,
       reason: input.reason || `تفعيل لمدة ${durationDays} يوم`,
       startsAt: now,
@@ -257,6 +272,7 @@ export async function redeemActivationCode(input: {
   }
 
   await activateSchoolAccount({
+    userId: input.userId,
     schoolAccountId: input.schoolAccountId,
     days: activationCode.durationDays,
     reason: `تفعيل بواسطة الكود ${activationCode.code}`,

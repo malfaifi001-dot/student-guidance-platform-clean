@@ -32,6 +32,7 @@ type SubscriberStatus =
 
 type Subscriber = {
   schoolAccountId: string;
+  subscriberUserId: string;
   accountName: string;
   slug: string;
   isActive: boolean;
@@ -44,6 +45,13 @@ type Subscriber = {
   pendingRequestsCount: number;
   computedStatus: SubscriberStatus;
   needsAttention: boolean;
+  users: Array<{
+    id: string;
+    name: string | null;
+    officialName: string | null;
+    email: string;
+    role: string;
+  }>;
   subscription: null | {
     id: string;
     status: string;
@@ -74,6 +82,7 @@ type Service = {
 
 type ServiceAccess = {
   schoolAccountId: string;
+  userId: string | null;
   serviceId: string;
   isEnabled: boolean;
   isPaid: boolean;
@@ -154,6 +163,7 @@ export function AdminSubscribersCenter() {
   const [message, setMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ACTIVE");
   const [selectedDays, setSelectedDays] = useState("");
@@ -171,7 +181,7 @@ export function AdminSubscribersCenter() {
 
     if (response.ok) {
       setData(result);
-      setSelectedId((current) => current || result.subscribers?.[0]?.schoolAccountId || null);
+      setSelectedId((current) => current || result.subscribers?.[0]?.subscriberUserId || null);
     } else {
       setMessage(result.error || "تعذر تحميل المشتركين.");
     }
@@ -241,21 +251,18 @@ export function AdminSubscribersCenter() {
   }, [data?.subscribers, planId, query, sortBy, status]);
 
   const selectedSubscriber =
-    filteredSubscribers.find((item) => item.schoolAccountId === selectedId) ||
+    filteredSubscribers.find((item) => item.subscriberUserId === selectedId) ||
     filteredSubscribers[0] ||
     null;
 
   const selectedServiceAccess = useMemo(() => {
     if (!selectedSubscriber?.schoolAccountId || !selectedServiceId) return null;
 
-    return (
-      data?.serviceAccess.find(
-        (item) =>
-          item.schoolAccountId === selectedSubscriber.schoolAccountId &&
-          item.serviceId === selectedServiceId,
-      ) || null
+    const rows = (data?.serviceAccess || []).filter(
+      (item) => item.schoolAccountId === selectedSubscriber.schoolAccountId && item.serviceId === selectedServiceId,
     );
-  }, [data?.serviceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId]);
+    return rows.find((item) => item.userId === selectedUserId) || rows.find((item) => item.userId === null) || null;
+  }, [data?.serviceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId, selectedUserId]);
 
   const priorityItems = useMemo(() => {
     return [...(data?.subscribers || [])]
@@ -284,11 +291,13 @@ export function AdminSubscribersCenter() {
         : "ACTIVE",
     );
     setSelectedDays("");
+    setSelectedUserId(selectedSubscriber.users?.[0]?.id || "");
   }, [
     availablePlans,
     selectedSubscriber?.schoolAccountId,
     selectedSubscriber?.subscription?.planId,
     selectedSubscriber?.subscription?.status,
+    selectedSubscriber?.users,
   ]);
 
   useEffect(() => {
@@ -386,6 +395,7 @@ export function AdminSubscribersCenter() {
       body: JSON.stringify({
         action: "assign-plan",
         schoolAccountId: selectedSubscriber.schoolAccountId,
+        userId: selectedUserId,
         planId: selectedPlanId,
         status: selectedStatus,
         days: selectedDays,
@@ -424,6 +434,7 @@ export function AdminSubscribersCenter() {
         serviceId: selectedServiceId,
         isEnabled: serviceEnabled,
         isPaid: servicePaid,
+        userId: selectedUserId,
       }),
     });
 
@@ -584,12 +595,12 @@ export function AdminSubscribersCenter() {
             <div className="grid gap-3 p-4">
               {filteredSubscribers.map((item) => (
                 <button
-                  key={item.schoolAccountId}
+                  key={item.subscriberUserId}
                   type="button"
-                  onClick={() => setSelectedId(item.schoolAccountId)}
+                  onClick={() => setSelectedId(item.subscriberUserId)}
                   className={[
                     "rounded-[1.5rem] border p-4 text-right transition hover:bg-slate-50",
-                    selectedSubscriber?.schoolAccountId === item.schoolAccountId
+                    selectedSubscriber?.subscriberUserId === item.subscriberUserId
                       ? "border-sky-200 bg-sky-50/70 ring-1 ring-sky-100"
                       : "border-slate-100 bg-white",
                   ].join(" ")}
@@ -663,9 +674,9 @@ export function AdminSubscribersCenter() {
               {priorityItems.length > 0 ? (
                 priorityItems.map((item) => (
                   <button
-                    key={item.schoolAccountId}
+                    key={item.subscriberUserId}
                     type="button"
-                    onClick={() => setSelectedId(item.schoolAccountId)}
+                    onClick={() => setSelectedId(item.subscriberUserId)}
                     className="w-full rounded-3xl bg-amber-50 p-4 text-right transition hover:bg-amber-100"
                   >
                     <p className="font-black text-amber-900">
@@ -749,6 +760,19 @@ export function AdminSubscribersCenter() {
                     </div>
 
                     <div className="mt-4 space-y-3">
+                      <select
+                        value={selectedUserId}
+                        onChange={(event) => setSelectedUserId(event.target.value)}
+                        className="input"
+                      >
+                        <option value="">اختر المشترك المستهدف</option>
+                        {selectedSubscriber.users?.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.officialName || user.name || user.email} · {user.role}
+                          </option>
+                        ))}
+                      </select>
+
                       <select
                         value={selectedPlanId}
                         onChange={(event) => setSelectedPlanId(event.target.value)}

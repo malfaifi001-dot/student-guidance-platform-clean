@@ -97,6 +97,7 @@ function hasPlanServiceRules(features: PlanFeatureLike[]) {
 
 export async function syncSchoolServicesFromPlan(input: {
   schoolAccountId: string;
+  userId: string;
   planId: string;
 }) {
   const planFeatures = (
@@ -112,14 +113,6 @@ export async function syncSchoolServicesFromPlan(input: {
   ).filter((feature) => feature.key.startsWith("service:"));
 
   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
-
-  if (!enabledServiceSlugs.length) {
-    return {
-      enabledServiceCount: 0,
-      missingServiceSlugs: [],
-      skippedReason: "PLAN_HAS_NO_ENABLED_SERVICE_FEATURES",
-    };
-  }
 
   const enabledServices = await prisma.service.findMany({
     where: {
@@ -147,7 +140,8 @@ export async function syncSchoolServicesFromPlan(input: {
   await prisma.$transaction(async (tx) => {
     await tx.serviceAccess.updateMany({
       where: {
-        schoolAccountId: input.schoolAccountId,
+        userId: input.userId,
+        isPaid: true,
       },
       data: {
         isEnabled: false,
@@ -158,8 +152,8 @@ export async function syncSchoolServicesFromPlan(input: {
     for (const service of enabledServices) {
       await tx.serviceAccess.upsert({
         where: {
-          schoolAccountId_serviceId: {
-            schoolAccountId: input.schoolAccountId,
+          userId_serviceId: {
+            userId: input.userId,
             serviceId: service.id,
           },
         },
@@ -169,6 +163,7 @@ export async function syncSchoolServicesFromPlan(input: {
         },
         create: {
           schoolAccountId: input.schoolAccountId,
+          userId: input.userId,
           serviceId: service.id,
           isEnabled: true,
           isPaid: true,
@@ -197,7 +192,7 @@ export async function syncPlanEntitlementsForSubscribers(input: {
 
   const subscriptions = await prisma.subscription.findMany({
     where: { planId: input.planId },
-    select: { schoolAccountId: true },
+    select: { schoolAccountId: true, userId: true },
   });
   const services = await prisma.service.findMany({
     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
@@ -207,13 +202,14 @@ export async function syncPlanEntitlementsForSubscribers(input: {
 
   await prisma.$transaction(async (tx) => {
     for (const subscription of subscriptions) {
+      if (!subscription.userId) continue;
       for (const slug of addedSlugs) {
         const serviceId = serviceBySlug.get(slug);
         if (!serviceId) continue;
         await tx.serviceAccess.upsert({
-          where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+          where: { userId_serviceId: { userId: subscription.userId, serviceId } },
           update: { isEnabled: true, isPaid: true },
-          create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+          create: { schoolAccountId: subscription.schoolAccountId, userId: subscription.userId, serviceId, isEnabled: true, isPaid: true },
         });
       }
       for (const slug of removedSlugs) {
@@ -221,7 +217,7 @@ export async function syncPlanEntitlementsForSubscribers(input: {
         if (!serviceId) continue;
         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
         await tx.serviceAccess.updateMany({
-          where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+          where: { userId: subscription.userId, serviceId, isPaid: true },
           data: { isEnabled: false, isPaid: false },
         });
       }
@@ -230,7 +226,8 @@ export async function syncPlanEntitlementsForSubscribers(input: {
   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
 }
 
-export async function assignPlanToSchool(input: {
+export async function assignPlanToUser(input: {
+  userId: string;
   schoolAccountId: string;
   planId: string;
   days?: number;
@@ -238,6 +235,12 @@ export async function assignPlanToSchool(input: {
   activatedById?: string;
   reason?: string;
 }) {
+  const owner = await prisma.user.findFirst({
+    where: { id: input.userId, schoolAccountId: input.schoolAccountId },
+    select: { id: true },
+  });
+  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
+
   const plan = await prisma.plan.findUnique({
     where: {
       id: input.planId,
@@ -252,9 +255,7 @@ export async function assignPlanToSchool(input: {
   }
 
   const currentSubscription = await prisma.subscription.findUnique({
-    where: {
-      schoolAccountId: input.schoolAccountId,
-    },
+    where: { userId: input.userId },
     include: {
       plan: {
         select: {
@@ -273,9 +274,7 @@ export async function assignPlanToSchool(input: {
   const endsAt = period.endsAt;
 
   const subscription = await prisma.subscription.upsert({
-    where: {
-      schoolAccountId: input.schoolAccountId,
-    },
+    where: { userId: input.userId },
     update: {
       planId: plan.id,
       status: input.status || "ACTIVE",
@@ -283,6 +282,7 @@ export async function assignPlanToSchool(input: {
       endsAt,
     },
     create: {
+      userId: input.userId,
       schoolAccountId: input.schoolAccountId,
       planId: plan.id,
       status: input.status || "ACTIVE",
@@ -291,8 +291,12 @@ export async function assignPlanToSchool(input: {
     },
   });
 
+  // Keep plan-generated entitlements aligned with the newly assigned plan.
+  // Only paid, user-owned rows are reconciled; manual and legacy school rows
+  // remain untouched.
   await syncSchoolServicesFromPlan({
     schoolAccountId: input.schoolAccountId,
+    userId: input.userId,
     planId: plan.id,
   });
 
@@ -336,6 +340,7 @@ export async function assignPlanToSchool(input: {
   try {
     await prisma.manualActivation.create({
       data: {
+        userId: input.userId,
         schoolAccountId: input.schoolAccountId,
         activatedById: input.activatedById || null,
         reason: input.reason || `إسناد باقة ${plan.name}`,
@@ -350,11 +355,9 @@ export async function assignPlanToSchool(input: {
   return subscription;
 }
 
-export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+export async function getUserSubscriptionOverview(userId: string) {
   const subscription = await prisma.subscription.findUnique({
-    where: {
-      schoolAccountId,
-    },
+    where: { userId },
     include: {
       plan: {
         include: {
@@ -376,14 +379,15 @@ export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
   };
 }
 
-export async function isServiceAllowedForSchool(input: {
+export async function isServiceAllowedForUser(input: {
+  userId: string;
   schoolAccountId: string;
   serviceSlug: string;
 }) {
   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
     input.serviceSlug,
   );
-  const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  const overview = await getUserSubscriptionOverview(input.userId);
 
   if (!overview.usable) {
     return {
@@ -412,25 +416,6 @@ export async function isServiceAllowedForSchool(input: {
       };
     }
 
-    await prisma.serviceAccess.upsert({
-      where: {
-        schoolAccountId_serviceId: {
-          schoolAccountId: input.schoolAccountId,
-          serviceId: service.id,
-        },
-      },
-      update: {
-        isEnabled: true,
-        isPaid: true,
-      },
-      create: {
-        schoolAccountId: input.schoolAccountId,
-        serviceId: service.id,
-        isEnabled: true,
-        isPaid: true,
-      },
-    });
-
     return {
       ok: true,
       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
@@ -446,7 +431,10 @@ export async function isServiceAllowedForSchool(input: {
 
   const accessRows = await prisma.serviceAccess.findMany({
     where: {
-      schoolAccountId: input.schoolAccountId,
+      OR: [
+        { userId: input.userId },
+        { schoolAccountId: input.schoolAccountId, userId: null, isPaid: false },
+      ],
     },
   });
 
@@ -459,7 +447,10 @@ export async function isServiceAllowedForSchool(input: {
 
   const serviceAccess = await prisma.serviceAccess.findFirst({
     where: {
-      schoolAccountId: input.schoolAccountId,
+      OR: [
+        { userId: input.userId },
+        { schoolAccountId: input.schoolAccountId, userId: null, isPaid: false },
+      ],
       service: {
         slug: billingServiceSlug,
       },
@@ -477,4 +468,30 @@ export async function isServiceAllowedForSchool(input: {
     ok: true,
     reason: "SERVICE_INCLUDED" as const,
   };
+}
+
+/** Compatibility name for non-entitlement/admin integrations. It is
+ * deliberately fail-closed because a school is not a billing owner anymore.
+ */
+export async function getSchoolSubscriptionOverview(_schoolAccountId: string, userId?: string) {
+  return userId
+    ? getUserSubscriptionOverview(userId)
+    : { subscription: null, usable: false, remainingDays: null };
+}
+
+export async function isServiceAllowedForSchool(input: {
+  schoolAccountId: string;
+  serviceSlug: string;
+  userId?: string;
+}) {
+  return input.userId
+    ? isServiceAllowedForUser(input as { userId: string; schoolAccountId: string; serviceSlug: string })
+    : { ok: false as const, reason: "USER_SUBSCRIPTION_REQUIRED" as const };
+}
+
+/** Compatibility name for older admin callers. New operations must provide
+ * the exact target user; a school alone is never a subscription owner.
+ */
+export async function assignPlanToSchool(input: Parameters<typeof assignPlanToUser>[0]) {
+  return assignPlanToUser(input);
 }

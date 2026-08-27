@@ -332,11 +332,19 @@ export async function applyPaidElectronicPaymentTransaction(
       ? metadata.requesterUserId
       : null;
 
-  if (!planId || !schoolAccountId) {
+  if (!planId || !schoolAccountId || !requesterUserId) {
     throw new ElectronicPaymentError(
       "بيانات عملية الدفع غير مكتملة للتفعيل.",
       409,
     );
+  }
+
+  const payer = await prisma.user.findFirst({
+    where: { id: requesterUserId, schoolAccountId },
+    select: { id: true },
+  });
+  if (!payer) {
+    throw new ElectronicPaymentError("Ø§Ù„Ù…Ø´ØªØ±ÙŠ ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø§Ù„Ù…Ø¯Ø±Ø³Ø©.", 403);
   }
 
   const couponCodeForPayment =
@@ -379,7 +387,7 @@ export async function applyPaidElectronicPaymentTransaction(
   const paidTransaction = await prisma.$transaction(async (tx) => {
     const subscription = await tx.subscription.upsert({
       where: {
-        schoolAccountId,
+        userId: requesterUserId,
       },
       update: {
         planId,
@@ -388,6 +396,7 @@ export async function applyPaidElectronicPaymentTransaction(
         endsAt,
       },
       create: {
+        userId: requesterUserId,
         schoolAccountId,
         planId,
         status: SubscriptionStatus.ACTIVE,

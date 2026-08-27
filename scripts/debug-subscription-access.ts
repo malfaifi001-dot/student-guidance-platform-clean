@@ -11,40 +11,29 @@ async function main() {
       email: true,
       role: true,
       schoolAccountId: true,
+      subscriptions: {
+        take: 1,
+        orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              features: true,
+            },
+          },
+        },
+      },
       schoolAccount: {
         select: {
           id: true,
           name: true,
           isActive: true,
-          subscription: {
-            select: {
-              id: true,
-              status: true,
-              startsAt: true,
-              endsAt: true,
-              plan: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  features: {
-                    where: {
-                      OR: [
-                        { key: `service:${serviceSlug}` },
-                        { key: "durationDays" },
-                        { key: "targetAudience" },
-                      ],
-                    },
-                    select: {
-                      key: true,
-                      label: true,
-                      value: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
           services: {
             where: {
               service: {

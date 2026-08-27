@@ -61,6 +61,7 @@ export async function requireReferenceLibraryApiViewer() {
       await isServiceAllowedForSchool({
         schoolAccountId:
           current.user.schoolAccountId,
+        userId: current.user.id,
         serviceSlug:
           COUNSELOR_REFERENCE_LIBRARY_SERVICE_SLUG,
       });

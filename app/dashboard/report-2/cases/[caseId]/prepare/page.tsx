@@ -36,6 +36,7 @@ export default async function ReportTwoPreparePage({
 
     const overview = await getSchoolSubscriptionOverview(
       current.user.schoolAccountId,
+      current.user.id,
     );
 
     if (!overview.usable) {
@@ -65,6 +66,7 @@ export default async function ReportTwoPreparePage({
   if (current.user.role !== "ADMIN" && result.serviceSlug !== "custom-report") {
     const access = await isServiceAllowedForSchool({
       schoolAccountId: current.user.schoolAccountId || "",
+      userId: current.user.id,
       serviceSlug: result.serviceSlug,
     });
 

@@ -71,7 +71,7 @@ export async function GET() {
     prisma.schoolAccount.count({
       where: {
         isActive: true,
-        subscription: null,
+        subscriptions: { none: {} },
       },
     }),
 

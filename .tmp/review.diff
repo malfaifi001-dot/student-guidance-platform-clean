@@ -1,0 +1,1974 @@
+﻿diff --git a/app/api/dashboard/activity-team/route.ts b/app/api/dashboard/activity-team/route.ts
+index 26065a2..8618e13 100644
+--- a/app/api/dashboard/activity-team/route.ts
++++ b/app/api/dashboard/activity-team/route.ts
+@@ -20,6 +20,7 @@ async function getActivityLeaderContext() {
+ 
+   const access = await isServiceAllowedForSchool({
+     schoolAccountId: current.user.schoolAccountId,
++    userId: current.user.id,
+     serviceSlug: "school-activity-team",
+   });
+   if (!access.ok) {
+diff --git a/app/api/dashboard/activity-team/signature-request/route.ts b/app/api/dashboard/activity-team/signature-request/route.ts
+index b375b85..7189b3a 100644
+--- a/app/api/dashboard/activity-team/signature-request/route.ts
++++ b/app/api/dashboard/activity-team/signature-request/route.ts
+@@ -19,7 +19,7 @@ export async function POST(request: Request) {
+     if (!schoolAccountId) {
+       return NextResponse.json({ ok: false, error: "لا يوجد حساب مدرسة مرتبط بالحساب." }, { status: 400 });
+     }
+-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: "school-activity-team" });
++    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: current.user.id, serviceSlug: "school-activity-team" });
+     if (!access.ok) {
+       return NextResponse.json({ ok: false, error: access.reason === "SUBSCRIPTION_INACTIVE" ? "الاشتراك غير فعال." : "الخدمة غير متاحة ضمن الباقة الحالية." }, { status: 403 });
+     }
+diff --git a/app/api/dashboard/admin/activations/bank-transfer/[requestId]/approve/route.ts b/app/api/dashboard/admin/activations/bank-transfer/[requestId]/approve/route.ts
+index d5a0661..ca4a966 100644
+--- a/app/api/dashboard/admin/activations/bank-transfer/[requestId]/approve/route.ts
++++ b/app/api/dashboard/admin/activations/bank-transfer/[requestId]/approve/route.ts
+@@ -50,6 +50,7 @@ export async function POST(
+ 
+     const payload = await request.json().catch(() => null);
+     const days = Number(payload?.days || 0);
++    const requestedTargetUserId = String(payload?.userId || "").trim();
+     const adminNote = String(payload?.adminNote || "").trim();
+ 
+     step = "LOAD_BANK_TRANSFER_REQUEST";
+@@ -192,8 +193,26 @@ export async function POST(
+       }
+     }
+ 
+-    step = "ASSIGN_PLAN_TO_SCHOOL";
++    // Legacy requests have no durable owner; require an explicit admin
++    // choice instead of guessing from school membership.
++    const targetUserId = transferRequest.requesterUserId || requestedTargetUserId;
++    if (!targetUserId) {
++      return NextResponse.json(
++        { error: "طلب التحويل القديم لا يحدد مستخدم الاشتراك. حدده يدويًا قبل التفعيل.", step },
++        { status: 409 },
++      );
++    }
++    const targetUser = await prisma.user.findFirst({
++      where: { id: targetUserId, schoolAccountId: transferRequest.schoolAccountId },
++      select: { id: true },
++    });
++    if (!targetUser) {
++      return NextResponse.json({ error: "مستخدم طلب التحويل غير مرتبط بالمدرسة.", step }, { status: 403 });
++    }
++
++    step = "ASSIGN_PLAN_TO_USER";
+     const subscription = await assignPlanToSchool({
++      userId: targetUser.id,
+       schoolAccountId: transferRequest.schoolAccountId,
+       planId: plan.id,
+       days: durationDays,
+@@ -221,6 +240,9 @@ export async function POST(
+       },
+       data: {
+         status: "PAID",
++        ...(transferRequest.requesterUserId
++          ? {}
++          : { requesterUserId: targetUser.id }),
+         adminNote: [
+           transferRequest.adminNote || "",
+           adminNote ? `ملاحظة الأدمن: ${adminNote}` : "",
+diff --git a/app/api/dashboard/admin/activations/cancel/route.ts b/app/api/dashboard/admin/activations/cancel/route.ts
+index 886297f..1377c6e 100644
+--- a/app/api/dashboard/admin/activations/cancel/route.ts
++++ b/app/api/dashboard/admin/activations/cancel/route.ts
+@@ -19,23 +19,16 @@ export async function POST(request: Request) {
+   const payload = await request.json().catch(() => null);
+ 
+   const subscriptionId = String(payload?.subscriptionId || "").trim();
+-  const schoolAccountIdFromPayload = String(payload?.schoolAccountId || "").trim();
+-
+-  if (!subscriptionId && !schoolAccountIdFromPayload) {
++  if (!subscriptionId) {
+     return NextResponse.json(
+       { error: "رقم الاشتراك أو حساب المدرسة مطلوب لإلغاء الاشتراك." },
+       { status: 400 }
+     );
+   }
+ 
+-  const subscription = subscriptionId
+-    ? await prisma.subscription.findUnique({
++  const subscription = await prisma.subscription.findUnique({
+         where: { id: subscriptionId },
+         include: { schoolAccount: true },
+-      })
+-    : await prisma.subscription.findUnique({
+-        where: { schoolAccountId: schoolAccountIdFromPayload },
+-        include: { schoolAccount: true },
+       });
+ 
+   if (!subscription) {
+@@ -59,7 +52,8 @@ export async function POST(request: Request) {
+ 
+   await prisma.serviceAccess.updateMany({
+     where: {
+-      schoolAccountId: subscription.schoolAccountId,
++      userId: subscription.userId || "__missing__",
++      isPaid: true,
+     },
+     data: {
+       isEnabled: false,
+@@ -69,6 +63,7 @@ export async function POST(request: Request) {
+   await prisma.manualActivation.create({
+     data: {
+       schoolAccountId: subscription.schoolAccountId,
++      userId: subscription.userId,
+       activatedById: current.user.id,
+       reason: `إلغاء اشتراك المدرسة: ${subscription.schoolAccount.name}`,
+       startsAt: now,
+diff --git a/app/api/dashboard/admin/activations/codes/route.ts b/app/api/dashboard/admin/activations/codes/route.ts
+index 7b57ba0..ced0103 100644
+--- a/app/api/dashboard/admin/activations/codes/route.ts
++++ b/app/api/dashboard/admin/activations/codes/route.ts
+@@ -16,7 +16,7 @@ export async function GET() {
+ 
+   await ensureSimpleActivationPlan();
+ 
+-  const [codes, requests, subscriptions, schools] = await Promise.all([
++  const [codes, requests, subscriptions, schools, users] = await Promise.all([
+     prisma.activationCode.findMany({
+       orderBy: {
+         createdAt: "desc",
+@@ -53,6 +53,22 @@ export async function GET() {
+         slug: true,
+       },
+     }),
++
++    prisma.user.findMany({
++      where: {
++        schoolAccountId: { not: null },
++        role: { in: ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER"] },
++      },
++      orderBy: { createdAt: "asc" },
++      select: {
++        id: true,
++        schoolAccountId: true,
++        name: true,
++        officialName: true,
++        email: true,
++        role: true,
++      },
++    }),
+   ]);
+ 
+   return NextResponse.json({
+@@ -60,6 +76,7 @@ export async function GET() {
+     requests,
+     subscriptions,
+     schools,
++    users,
+   });
+ }
+ 
+diff --git a/app/api/dashboard/admin/activations/manual/route.ts b/app/api/dashboard/admin/activations/manual/route.ts
+index 519b77d..30e1f2f 100644
+--- a/app/api/dashboard/admin/activations/manual/route.ts
++++ b/app/api/dashboard/admin/activations/manual/route.ts
+@@ -23,6 +23,7 @@ export async function POST(request: Request) {
+   const payload = await request.json().catch(() => null);
+ 
+   const schoolAccountId = String(payload?.schoolAccountId || "").trim();
++  const userId = String(payload?.userId || "").trim();
+   const planId = String(payload?.planId || "").trim();
+   const days = Number(payload?.days || 0);
+   const reason = String(payload?.reason || "").trim();
+@@ -41,6 +42,23 @@ export async function POST(request: Request) {
+     );
+   }
+ 
++  if (!userId) {
++    return NextResponse.json(
++      { error: "حدد المستخدم المستفيد من التفعيل." },
++      { status: 400 },
++    );
++  }
++  const targetUser = await prisma.user.findFirst({
++    where: { id: userId, schoolAccountId },
++    select: { id: true },
++  });
++  if (!targetUser) {
++    return NextResponse.json(
++      { error: "المستخدم غير مرتبط بالمدرسة المحددة." },
++      { status: 403 },
++    );
++  }
++
+   const plan = await prisma.plan.findUnique({
+     where: {
+       id: planId,
+@@ -63,6 +81,7 @@ export async function POST(request: Request) {
+       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
+ 
+   await assignPlanToSchool({
++    userId,
+     schoolAccountId,
+     planId: plan.id,
+     days: durationDays,
+diff --git a/app/api/dashboard/admin/operational-alerts/route.ts b/app/api/dashboard/admin/operational-alerts/route.ts
+index 1ec896f..2f81e55 100644
+--- a/app/api/dashboard/admin/operational-alerts/route.ts
++++ b/app/api/dashboard/admin/operational-alerts/route.ts
+@@ -71,7 +71,7 @@ export async function GET() {
+     prisma.schoolAccount.count({
+       where: {
+         isActive: true,
+-        subscription: null,
++        subscriptions: { none: {} },
+       },
+     }),
+ 
+diff --git a/app/api/dashboard/admin/sales-experience/route.ts b/app/api/dashboard/admin/sales-experience/route.ts
+index 81c1781..c171e9a 100644
+--- a/app/api/dashboard/admin/sales-experience/route.ts
++++ b/app/api/dashboard/admin/sales-experience/route.ts
+@@ -46,11 +46,11 @@ export async function GET(request: Request) {
+         email: true,
+         role: true,
+         isActive: true,
+-        schoolAccount: {
+-          select: {
+-            name: true,
+-            subscription: { select: { status: true, endsAt: true } },
+-          },
++        subscriptions: {
++          where: { userId: { not: null } },
++          orderBy: { updatedAt: "desc" },
++          take: 1,
++          select: { status: true, endsAt: true },
+         },
+         salesExperienceOverride: { select: { mode: true } },
+       },
+@@ -68,12 +68,12 @@ export async function GET(request: Request) {
+         effectiveMode: user.salesExperienceOverride?.mode || globalMode,
+         source: user.salesExperienceOverride ? "USER_OVERRIDE" : "GLOBAL",
+         activeSubscription: Boolean(
+-          user.schoolAccount?.subscription &&
+-            user.schoolAccount.subscription.status !== "CANCELED" &&
+-            user.schoolAccount.subscription.status !== "EXPIRED" &&
+-            user.schoolAccount.subscription.status !== "PAST_DUE" &&
+-            (!user.schoolAccount.subscription.endsAt ||
+-              user.schoolAccount.subscription.endsAt > new Date()),
++          user.subscriptions[0] &&
++            user.subscriptions[0].status !== "CANCELED" &&
++            user.subscriptions[0].status !== "EXPIRED" &&
++            user.subscriptions[0].status !== "PAST_DUE" &&
++            (!user.subscriptions[0].endsAt ||
++              user.subscriptions[0].endsAt > new Date()),
+         ),
+       })),
+     },
+diff --git a/app/api/dashboard/admin/subscribers/route.ts b/app/api/dashboard/admin/subscribers/route.ts
+index 51394de..b65d8b4 100644
+--- a/app/api/dashboard/admin/subscribers/route.ts
++++ b/app/api/dashboard/admin/subscribers/route.ts
+@@ -22,6 +22,7 @@ type ComputedSubscriptionStatus =
+ 
+ type SubscriberItem = {
+   schoolAccountId: string;
++  subscriberUserId: string;
+   accountName: string;
+   slug: string;
+   isActive: boolean;
+@@ -46,6 +47,13 @@ type SubscriberItem = {
+   } | null;
+   computedStatus: ComputedSubscriptionStatus;
+   needsAttention: boolean;
++  users: Array<{
++    id: string;
++    name: string | null;
++    officialName: string | null;
++    email: string;
++    role: string;
++  }>;
+ };
+ 
+ function getSchoolDisplayName(account: {
+@@ -92,11 +100,6 @@ export async function GET() {
+       },
+       include: {
+         profile: true,
+-        subscription: {
+-          include: {
+-            plan: true,
+-          },
+-        },
+         users: {
+           select: {
+             id: true,
+@@ -105,8 +108,12 @@ export async function GET() {
+             email: true,
+             role: true,
+             isActive: true,
++            subscriptions: {
++              take: 1,
++              orderBy: { updatedAt: "desc" },
++              include: { plan: true },
++            },
+           },
+-          take: 5,
+           orderBy: {
+             createdAt: "asc",
+           },
+@@ -141,6 +148,7 @@ export async function GET() {
+     prisma.serviceAccess.findMany({
+       select: {
+         schoolAccountId: true,
++        userId: true,
+         serviceId: true,
+         isEnabled: true,
+         isPaid: true,
+@@ -154,6 +162,7 @@ export async function GET() {
+       select: {
+         id: true,
+         schoolAccountId: true,
++        requesterUserId: true,
+         amount: true,
+         currency: true,
+         createdAt: true,
+@@ -161,18 +170,15 @@ export async function GET() {
+     }),
+   ]);
+ 
+-  const pendingCountBySchool = new Map<string, number>();
++  const pendingCountByUser = new Map<string, number>();
+ 
+   for (const request of pendingRequests) {
+-    pendingCountBySchool.set(
+-      request.schoolAccountId,
+-      (pendingCountBySchool.get(request.schoolAccountId) || 0) + 1
+-    );
++    if (request.requesterUserId) pendingCountByUser.set(request.requesterUserId, (pendingCountByUser.get(request.requesterUserId) || 0) + 1);
+   }
+ 
+-  const subscribers: SubscriberItem[] = schoolAccounts.map(
+-    (account: any): SubscriberItem => {
+-      const subscription = account.subscription;
++  const subscribers: SubscriberItem[] = schoolAccounts.flatMap(
++    (account: any): SubscriberItem[] => account.users.map((owner: any) => {
++      const subscription = owner.subscriptions?.[0] || null;
+       const computedStatus = getComputedStatus({
+         subscriptionStatus: subscription?.status,
+         endsAt: subscription?.endsAt,
+@@ -184,12 +190,9 @@ export async function GET() {
+         subscription?.endsAt
+       );
+ 
+-      const owner =
+-        account.users.find((user: any) => user.role !== "ADMIN") ||
+-        account.users[0];
+-
+       return {
+         schoolAccountId: account.id,
++        subscriberUserId: owner.id,
+         accountName: account.name,
+         slug: account.slug,
+         isActive: account.isActive,
+@@ -199,7 +202,7 @@ export async function GET() {
+         ownerEmail: owner?.email || "",
+         usersCount: account._count.users,
+         studentsCount: account._count.students,
+-        pendingRequestsCount: pendingCountBySchool.get(account.id) || 0,
++        pendingRequestsCount: pendingCountByUser.get(owner.id) || 0,
+         subscription: subscription
+           ? {
+               id: subscription.id,
+@@ -221,9 +224,10 @@ export async function GET() {
+           computedStatus === "CANCELED" ||
+           computedStatus === "PAST_DUE" ||
+           (remainingDays !== null && remainingDays <= 7) ||
+-          (pendingCountBySchool.get(account.id) || 0) > 0,
++          (pendingCountByUser.get(owner.id) || 0) > 0,
++        users: account.users,
+       };
+-    }
++    })
+   );
+ 
+   const stats = {
+@@ -247,12 +251,15 @@ export async function GET() {
+       (item: SubscriberItem) => item.needsAttention
+     ).length,
+     pendingRequests: pendingRequests.length,
+-    totalUsers: subscribers.reduce(
+-      (sum: number, item: SubscriberItem) => sum + item.usersCount,
++    // Subscriber rows are intentionally one row per user, so school totals
++    // must come from the distinct school-account source rather than being
++    // summed once for every subscriber.
++    totalUsers: schoolAccounts.reduce(
++      (sum: number, account: any) => sum + account._count.users,
+       0
+     ),
+-    totalStudents: subscribers.reduce(
+-      (sum: number, item: SubscriberItem) => sum + item.studentsCount,
++    totalStudents: schoolAccounts.reduce(
++      (sum: number, account: any) => sum + account._count.students,
+       0
+     ),
+   };
+diff --git a/app/api/dashboard/admin/subscriptions/route.ts b/app/api/dashboard/admin/subscriptions/route.ts
+index 964f978..72252dd 100644
+--- a/app/api/dashboard/admin/subscriptions/route.ts
++++ b/app/api/dashboard/admin/subscriptions/route.ts
+@@ -12,6 +12,7 @@ import {
+   assignPlanToSchool,
+   getPlanFeatureValue,
+   getPlanServiceSlugs,
++  syncSchoolServicesFromPlan,
+   syncPlanEntitlementsForSubscribers,
+ } from "@/lib/subscription/subscription-service";
+ import {
+@@ -139,6 +140,15 @@ export async function GET() {
+         updatedAt: "desc",
+       },
+       include: {
++        user: {
++          select: {
++            id: true,
++            name: true,
++            officialName: true,
++            email: true,
++            role: true,
++          },
++        },
+         schoolAccount: {
+           select: {
+             id: true,
+@@ -245,6 +255,7 @@ export async function GET() {
+ 
+     return {
+       ...row,
++      subscriberUser: row.user,
+       schoolAccount: {
+         id: row.schoolAccount.id,
+         name: primaryUser
+@@ -1036,12 +1047,13 @@ export async function POST(request: Request) {
+ 
+   if (action === "assign-plan") {
+     const schoolAccountId = String(payload?.schoolAccountId || "").trim();
++    const userId = String(payload?.userId || "").trim();
+     const planId = String(payload?.planId || "").trim();
+     const days = Number(payload?.days || 0);
+     const status = String(payload?.status || "ACTIVE") as
+       "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
+ 
+-    if (!schoolAccountId || !planId) {
++    if (!schoolAccountId || !planId || !userId) {
+       return NextResponse.json(
+         { error: "اختر الحساب والباقة." },
+         { status: 400 },
+@@ -1064,6 +1076,14 @@ export async function POST(request: Request) {
+       );
+     }
+ 
++    const targetUser = await prisma.user.findFirst({
++      where: { id: userId, schoolAccountId },
++      select: { id: true },
++    });
++    if (!targetUser) {
++      return NextResponse.json({ error: "المستخدم المحدد غير مرتبط بحساب المدرسة." }, { status: 403 });
++    }
++
+     const durationDays =
+       days > 0
+         ? days
+@@ -1072,6 +1092,7 @@ export async function POST(request: Request) {
+           : 30;
+ 
+     const subscription = await assignPlanToSchool({
++      userId: targetUser.id,
+       schoolAccountId,
+       planId,
+       days: durationDays,
+@@ -1084,6 +1105,7 @@ export async function POST(request: Request) {
+       triggerKey: "subscription-activated",
+       actorUserId: current.user.id,
+       sourceRecordId: subscription.id,
++      targetUserId: targetUser.id,
+       variables: { serviceName: plan.name },
+     }).catch(() => undefined);
+ 
+@@ -1128,12 +1150,23 @@ export async function POST(request: Request) {
+       },
+     });
+ 
+-    void dispatchAutomaticPushEvent({
+-      triggerKey: "subscription-activated",
+-      actorUserId: current.user.id,
+-      sourceRecordId: subscription.id,
+-      variables: { serviceName: "Teachix" },
+-    }).catch(() => undefined);
++    if (subscription.userId) {
++      await syncSchoolServicesFromPlan({
++        schoolAccountId: subscription.schoolAccountId,
++        userId: subscription.userId,
++        planId: subscription.planId,
++      });
++    }
++
++    if (subscription.userId) {
++      void dispatchAutomaticPushEvent({
++        triggerKey: "subscription-activated",
++        actorUserId: current.user.id,
++        sourceRecordId: subscription.id,
++        targetUserId: subscription.userId,
++        variables: { serviceName: "Teachix" },
++      }).catch(() => undefined);
++    }
+ 
+     await prisma.manualActivation.create({
+       data: {
+@@ -1182,7 +1215,8 @@ export async function POST(request: Request) {
+     await prisma.$transaction(async (tx) => {
+       await tx.serviceAccess.updateMany({
+         where: {
+-          schoolAccountId: subscription.schoolAccountId,
++          userId: subscription.userId || "__missing__",
++          isPaid: true,
+         },
+         data: {
+           isEnabled: false,
+@@ -1193,6 +1227,7 @@ export async function POST(request: Request) {
+       await tx.manualActivation.create({
+         data: {
+           schoolAccountId: subscription.schoolAccountId,
++          userId: subscription.userId,
+           reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
+           startsAt: now,
+           endsAt: now,
+@@ -1214,6 +1249,7 @@ export async function POST(request: Request) {
+   if (action === "toggle-service-access") {
+     const schoolAccountId = String(payload?.schoolAccountId || "").trim();
+     const serviceId = String(payload?.serviceId || "").trim();
++    const userId = String(payload?.userId || "").trim();
+     const isEnabled = Boolean(payload?.isEnabled);
+     const isPaid = Boolean(payload?.isPaid);
+ 
+@@ -1224,24 +1260,29 @@ export async function POST(request: Request) {
+       );
+     }
+ 
+-    await prisma.serviceAccess.upsert({
+-      where: {
+-        schoolAccountId_serviceId: {
+-          schoolAccountId,
+-          serviceId,
+-        },
+-      },
+-      update: {
+-        isEnabled,
+-        isPaid,
+-      },
+-      create: {
+-        schoolAccountId,
+-        serviceId,
+-        isEnabled,
+-        isPaid,
+-      },
+-    });
++    if (isPaid && !userId) {
++      return NextResponse.json({ error: "حدد المستخدم المستهدف للاستحقاق المدفوع." }, { status: 400 });
++    }
++
++    if (userId) {
++      const target = await prisma.user.findFirst({ where: { id: userId, schoolAccountId }, select: { id: true } });
++      if (!target) return NextResponse.json({ error: "المستخدم المستهدف غير مرتبط بحساب المدرسة." }, { status: 403 });
++    }
++
++    if (userId) {
++      await prisma.serviceAccess.upsert({
++        where: { userId_serviceId: { userId, serviceId } },
++        update: { isEnabled, isPaid },
++        create: { schoolAccountId, userId, serviceId, isEnabled, isPaid },
++      });
++    } else {
++      const existing = await prisma.serviceAccess.findFirst({ where: { schoolAccountId, serviceId, userId: null }, select: { id: true } });
++      if (existing) {
++        await prisma.serviceAccess.update({ where: { id: existing.id }, data: { isEnabled, isPaid: false } });
++      } else {
++        await prisma.serviceAccess.create({ data: { schoolAccountId, serviceId, isEnabled, isPaid: false } });
++      }
++    }
+ 
+     return NextResponse.json({
+       message: "تم تحديث صلاحية الخدمة للحساب.",
+diff --git a/app/api/dashboard/admin/users/route.ts b/app/api/dashboard/admin/users/route.ts
+index 5c1a969..df5c676 100644
+--- a/app/api/dashboard/admin/users/route.ts
++++ b/app/api/dashboard/admin/users/route.ts
+@@ -54,14 +54,14 @@ export async function GET() {
+         createdAt: "desc",
+       },
+       include: {
++        subscriptions: {
++          take: 1,
++          orderBy: { updatedAt: "desc" },
++          include: { plan: true },
++        },
+         schoolAccount: {
+           include: {
+             profile: true,
+-            subscription: {
+-              include: {
+-                plan: true,
+-              },
+-            },
+             _count: {
+               select: {
+                 students: { where: { isActive: true } },
+@@ -207,7 +207,7 @@ export async function GET() {
+   }
+ 
+   const mappedUsers = users.map((user: any) => {
+-    const subscription = user.schoolAccount?.subscription;
++    const subscription = user.subscriptions?.[0] || null;
+     const computedSubscriptionStatus = getSubscriptionStatusLabel(
+       subscription?.status,
+       subscription?.endsAt
+@@ -539,9 +539,7 @@ export async function POST(request: Request) {
+     }
+ 
+     const subscription = await prisma.subscription.findUnique({
+-      where: {
+-        schoolAccountId: targetUser.schoolAccountId,
+-      },
++      where: { userId: userId },
+     });
+ 
+     if (!subscription) {
+@@ -563,7 +561,8 @@ export async function POST(request: Request) {
+ 
+     await prisma.serviceAccess.updateMany({
+       where: {
+-        schoolAccountId: targetUser.schoolAccountId,
++        userId,
++        isPaid: true,
+       },
+       data: {
+         isEnabled: false,
+diff --git a/app/api/dashboard/payments/[transactionId]/invoice/route.ts b/app/api/dashboard/payments/[transactionId]/invoice/route.ts
+index 35503e8..9667ac3 100644
+--- a/app/api/dashboard/payments/[transactionId]/invoice/route.ts
++++ b/app/api/dashboard/payments/[transactionId]/invoice/route.ts
+@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+         id: true,
+         metadataJson: true,
+         subscription: {
+-          select: { schoolAccountId: true },
++          select: { schoolAccountId: true, userId: true },
+         },
+       },
+     });
+@@ -50,7 +50,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+     if (
+       !transaction ||
+       !ownerSchoolAccountId ||
+-      ownerSchoolAccountId !== current.user.schoolAccountId
++      ownerSchoolAccountId !== current.user.schoolAccountId ||
++      transaction.subscription?.userId !== current.user.id
+     ) {
+       return NextResponse.json(
+         { ok: false, error: "لم يتم العثور على الفاتورة المطلوبة." },
+diff --git a/app/api/dashboard/plans/route.ts b/app/api/dashboard/plans/route.ts
+index 6821949..26251e5 100644
+--- a/app/api/dashboard/plans/route.ts
++++ b/app/api/dashboard/plans/route.ts
+@@ -10,7 +10,8 @@ import {
+   isPlanSelfServiceVisible,
+ } from "@/lib/subscription/plan-audience";
+ import {
+-  assignPlanToSchool,
++  assignPlanToUser,
++  getUserSubscriptionOverview,
+   getPlanFeatureValue,
+   getPlanServiceSlugs,
+   getRemainingDays,
+@@ -76,14 +77,7 @@ export async function GET() {
+       },
+     }),
+ 
+-    prisma.subscription.findUnique({
+-      where: {
+-        schoolAccountId: current.user.schoolAccountId,
+-      },
+-      include: {
+-        plan: true,
+-      },
+-    }),
++    getUserSubscriptionOverview(current.user.id).then((result) => result.subscription),
+   ]);
+ 
+   const salesExperience = await resolveSalesExperienceForUser(current.user.id);
+@@ -320,7 +314,8 @@ export async function POST(request: Request) {
+   }
+ 
+   if (amount <= 0) {
+-    const subscription = await assignPlanToSchool({
++    const subscription = await assignPlanToUser({
++      userId: current.user.id,
+       schoolAccountId: current.user.schoolAccountId,
+       planId: plan.id,
+       days: durationDays,
+diff --git a/app/api/dashboard/subscription/bank-transfer/route.ts b/app/api/dashboard/subscription/bank-transfer/route.ts
+index 3e5a57e..7efd781 100644
+--- a/app/api/dashboard/subscription/bank-transfer/route.ts
++++ b/app/api/dashboard/subscription/bank-transfer/route.ts
+@@ -50,6 +50,7 @@ export async function POST(request: Request) {
+   await prisma.bankTransferRequest.create({
+     data: {
+       schoolAccountId: current.user.schoolAccountId,
++      requesterUserId: current.user.id,
+       amount,
+       currency: "SAR",
+       senderName,
+diff --git a/app/api/dashboard/subscription/route.ts b/app/api/dashboard/subscription/route.ts
+index 62e41a7..843ee61 100644
+--- a/app/api/dashboard/subscription/route.ts
++++ b/app/api/dashboard/subscription/route.ts
+@@ -5,7 +5,7 @@ import {
+   assignDefaultFreePlanIfEligible,
+   DEFAULT_FREE_PLAN_SLUG,
+ } from "@/lib/subscription/default-free-plan";
+-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
++import { getUserSubscriptionOverview } from "@/lib/subscription/subscription-service";
+ 
+ export async function GET() {
+   const current = await getCurrentSessionUser();
+@@ -34,10 +34,11 @@ export async function GET() {
+   }
+ 
+   const [overview, pendingBankRequests] = await Promise.all([
+-    getSchoolSubscriptionOverview(current.user.schoolAccountId),
++    getUserSubscriptionOverview(current.user.id),
+     prisma.bankTransferRequest.count({
+       where: {
+         schoolAccountId: current.user.schoolAccountId,
++        requesterUserId: current.user.id,
+         status: "PENDING",
+       },
+     }),
+diff --git a/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts b/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
+index 3dc8701..163d623 100644
+--- a/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
++++ b/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
+@@ -266,7 +266,7 @@ async function requirePdfAccess(surveyId: string) {
+       };
+     }
+ 
+-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
++    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId, current.user.id);
+ 
+     if (!overview.usable) {
+       return {
+@@ -1181,4 +1181,4 @@ export async function GET(request: Request, context: RouteContext) {
+       { status: 500 },
+     );
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/app/api/dashboard/surveys/[surveyId]/export/route.ts b/app/api/dashboard/surveys/[surveyId]/export/route.ts
+index 1038ed8..171aaf0 100644
+--- a/app/api/dashboard/surveys/[surveyId]/export/route.ts
++++ b/app/api/dashboard/surveys/[surveyId]/export/route.ts
+@@ -77,7 +77,7 @@ async function requireExportAccess(surveyId: string) {
+       };
+     }
+ 
+-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
++    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId, current.user.id);
+ 
+     if (!overview.usable) {
+       return {
+diff --git a/bin/require-auth.ts b/bin/require-auth.ts
+index bd01d54..81bbb1e 100644
+--- a/bin/require-auth.ts
++++ b/bin/require-auth.ts
+@@ -4,8 +4,8 @@ import {
+   type SchoolDashboardContext,
+ } from "@/lib/auth/dashboard-context";
+ import {
+-  getSchoolSubscriptionOverview,
+-  isServiceAllowedForSchool,
++  getUserSubscriptionOverview,
++  isServiceAllowedForUser,
+ } from "@/lib/subscription/subscription-service";
+ import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
+ 
+@@ -40,7 +40,7 @@ export async function requireActiveSubscriptionForCurrentUser(
+     return context;
+   }
+ 
+-  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
++  const overview = await getUserSubscriptionOverview(context.user.id);
+ 
+   if (!overview.usable) {
+     return buildSubscriptionRequiredResponse();
+@@ -67,7 +67,8 @@ export async function requireServiceAccessForCurrentUser(
+     return context;
+   }
+ 
+-  const result = await isServiceAllowedForSchool({
++  const result = await isServiceAllowedForUser({
++    userId: context.user.id,
+     schoolAccountId: context.schoolAccountId,
+     serviceSlug,
+   });
+diff --git a/components/activation/admin-activations-center.tsx b/components/activation/admin-activations-center.tsx
+index d306eaf..308cd40 100644
+--- a/components/activation/admin-activations-center.tsx
++++ b/components/activation/admin-activations-center.tsx
+@@ -34,10 +34,19 @@ type ActivationData = {
+     status: string;
+     adminNote: string | null;
+     planId?: string | null;
++    requesterUserId?: string | null;
+     durationDays?: number | null;
+     billingCycle?: string | null;
+     createdAt: string;
+   }>;
++  users: Array<{
++    id: string;
++    schoolAccountId: string | null;
++    name: string | null;
++    officialName: string | null;
++    email: string;
++    role: string;
++  }>;
+   subscriptions: Array<{
+     id: string;
+     status: string;
+@@ -115,6 +124,7 @@ export function AdminActivationsCenter() {
+   const [processing, setProcessing] = useState(false);
+   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+   const [requestDays, setRequestDays] = useState<Record<string, string>>({});
++  const [requestOwner, setRequestOwner] = useState<Record<string, string>>({});
+   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+ 
+   const [modal, setModal] = useState<ModalState>({
+@@ -144,6 +154,7 @@ export function AdminActivationsCenter() {
+         requests: result.requests || [],
+         subscriptions: result.subscriptions || [],
+         schools: result.schools || [],
++        users: result.users || [],
+         plans: result.plans || [],
+       });
+     } else {
+@@ -266,6 +277,8 @@ export function AdminActivationsCenter() {
+ 
+   async function approveRequest(id: string) {
+     setProcessingRequestId(id);
++    const request = data?.requests.find((item) => item.id === id);
++    const userId = request?.requesterUserId || requestOwner[id] || "";
+ 
+     const response = await fetch(
+       `/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+@@ -276,6 +289,7 @@ export function AdminActivationsCenter() {
+         },
+         body: JSON.stringify({
+           days: Number(requestDays[id] || 0),
++          ...(userId ? { userId } : {}),
+         }),
+       }
+     );
+@@ -592,6 +606,28 @@ export function AdminActivationsCenter() {
+                             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                           />
+ 
++                          {!request.requesterUserId ? (
++                            <select
++                              value={requestOwner[request.id] || ""}
++                              onChange={(event) =>
++                                setRequestOwner((current) => ({
++                                  ...current,
++                                  [request.id]: event.target.value,
++                                }))
++                              }
++                              className="h-10 rounded-xl border border-amber-200 bg-amber-50 px-3 text-xs font-black text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
++                            >
++                              <option value="">Ø§Ø®ØªØ± Ù…Ø§Ù„Ùƒ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ</option>
++                              {(data?.users || [])
++                                .filter((user) => user.schoolAccountId === request.schoolAccountId)
++                                .map((user) => (
++                                  <option key={user.id} value={user.id}>
++                                    {user.officialName || user.name || user.email}
++                                  </option>
++                                ))}
++                            </select>
++                          ) : null}
++
+                           <input
+                             value={rejectReason[request.id] || ""}
+                             onChange={(event) =>
+diff --git a/components/subscription/admin-subscribers-center.tsx b/components/subscription/admin-subscribers-center.tsx
+index 54489fa..3970976 100644
+--- a/components/subscription/admin-subscribers-center.tsx
++++ b/components/subscription/admin-subscribers-center.tsx
+@@ -32,6 +32,7 @@ type SubscriberStatus =
+ 
+ type Subscriber = {
+   schoolAccountId: string;
++  subscriberUserId: string;
+   accountName: string;
+   slug: string;
+   isActive: boolean;
+@@ -44,6 +45,13 @@ type Subscriber = {
+   pendingRequestsCount: number;
+   computedStatus: SubscriberStatus;
+   needsAttention: boolean;
++  users: Array<{
++    id: string;
++    name: string | null;
++    officialName: string | null;
++    email: string;
++    role: string;
++  }>;
+   subscription: null | {
+     id: string;
+     status: string;
+@@ -74,6 +82,7 @@ type Service = {
+ 
+ type ServiceAccess = {
+   schoolAccountId: string;
++  userId: string | null;
+   serviceId: string;
+   isEnabled: boolean;
+   isPaid: boolean;
+@@ -154,6 +163,7 @@ export function AdminSubscribersCenter() {
+   const [message, setMessage] = useState<string | null>(null);
+   const [processingId, setProcessingId] = useState<string | null>(null);
+   const [selectedId, setSelectedId] = useState<string | null>(null);
++  const [selectedUserId, setSelectedUserId] = useState("");
+   const [selectedPlanId, setSelectedPlanId] = useState("");
+   const [selectedStatus, setSelectedStatus] = useState("ACTIVE");
+   const [selectedDays, setSelectedDays] = useState("");
+@@ -171,7 +181,7 @@ export function AdminSubscribersCenter() {
+ 
+     if (response.ok) {
+       setData(result);
+-      setSelectedId((current) => current || result.subscribers?.[0]?.schoolAccountId || null);
++      setSelectedId((current) => current || result.subscribers?.[0]?.subscriberUserId || null);
+     } else {
+       setMessage(result.error || "تعذر تحميل المشتركين.");
+     }
+@@ -241,21 +251,18 @@ export function AdminSubscribersCenter() {
+   }, [data?.subscribers, planId, query, sortBy, status]);
+ 
+   const selectedSubscriber =
+-    filteredSubscribers.find((item) => item.schoolAccountId === selectedId) ||
++    filteredSubscribers.find((item) => item.subscriberUserId === selectedId) ||
+     filteredSubscribers[0] ||
+     null;
+ 
+   const selectedServiceAccess = useMemo(() => {
+     if (!selectedSubscriber?.schoolAccountId || !selectedServiceId) return null;
+ 
+-    return (
+-      data?.serviceAccess.find(
+-        (item) =>
+-          item.schoolAccountId === selectedSubscriber.schoolAccountId &&
+-          item.serviceId === selectedServiceId,
+-      ) || null
++    const rows = (data?.serviceAccess || []).filter(
++      (item) => item.schoolAccountId === selectedSubscriber.schoolAccountId && item.serviceId === selectedServiceId,
+     );
+-  }, [data?.serviceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId]);
++    return rows.find((item) => item.userId === selectedUserId) || rows.find((item) => item.userId === null) || null;
++  }, [data?.serviceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId, selectedUserId]);
+ 
+   const priorityItems = useMemo(() => {
+     return [...(data?.subscribers || [])]
+@@ -284,11 +291,13 @@ export function AdminSubscribersCenter() {
+         : "ACTIVE",
+     );
+     setSelectedDays("");
++    setSelectedUserId(selectedSubscriber.users?.[0]?.id || "");
+   }, [
+     availablePlans,
+     selectedSubscriber?.schoolAccountId,
+     selectedSubscriber?.subscription?.planId,
+     selectedSubscriber?.subscription?.status,
++    selectedSubscriber?.users,
+   ]);
+ 
+   useEffect(() => {
+@@ -386,6 +395,7 @@ export function AdminSubscribersCenter() {
+       body: JSON.stringify({
+         action: "assign-plan",
+         schoolAccountId: selectedSubscriber.schoolAccountId,
++        userId: selectedUserId,
+         planId: selectedPlanId,
+         status: selectedStatus,
+         days: selectedDays,
+@@ -424,6 +434,7 @@ export function AdminSubscribersCenter() {
+         serviceId: selectedServiceId,
+         isEnabled: serviceEnabled,
+         isPaid: servicePaid,
++        userId: selectedUserId,
+       }),
+     });
+ 
+@@ -584,12 +595,12 @@ export function AdminSubscribersCenter() {
+             <div className="grid gap-3 p-4">
+               {filteredSubscribers.map((item) => (
+                 <button
+-                  key={item.schoolAccountId}
++                  key={item.subscriberUserId}
+                   type="button"
+-                  onClick={() => setSelectedId(item.schoolAccountId)}
++                  onClick={() => setSelectedId(item.subscriberUserId)}
+                   className={[
+                     "rounded-[1.5rem] border p-4 text-right transition hover:bg-slate-50",
+-                    selectedSubscriber?.schoolAccountId === item.schoolAccountId
++                    selectedSubscriber?.subscriberUserId === item.subscriberUserId
+                       ? "border-sky-200 bg-sky-50/70 ring-1 ring-sky-100"
+                       : "border-slate-100 bg-white",
+                   ].join(" ")}
+@@ -663,9 +674,9 @@ export function AdminSubscribersCenter() {
+               {priorityItems.length > 0 ? (
+                 priorityItems.map((item) => (
+                   <button
+-                    key={item.schoolAccountId}
++                    key={item.subscriberUserId}
+                     type="button"
+-                    onClick={() => setSelectedId(item.schoolAccountId)}
++                    onClick={() => setSelectedId(item.subscriberUserId)}
+                     className="w-full rounded-3xl bg-amber-50 p-4 text-right transition hover:bg-amber-100"
+                   >
+                     <p className="font-black text-amber-900">
+@@ -749,6 +760,19 @@ export function AdminSubscribersCenter() {
+                     </div>
+ 
+                     <div className="mt-4 space-y-3">
++                      <select
++                        value={selectedUserId}
++                        onChange={(event) => setSelectedUserId(event.target.value)}
++                        className="input"
++                      >
++                        <option value="">اختر المشترك المستهدف</option>
++                        {selectedSubscriber.users?.map((user) => (
++                          <option key={user.id} value={user.id}>
++                            {user.officialName || user.name || user.email} · {user.role}
++                          </option>
++                        ))}
++                      </select>
++
+                       <select
+                         value={selectedPlanId}
+                         onChange={(event) => setSelectedPlanId(event.target.value)}
+diff --git a/lib/activation/activation-service.ts b/lib/activation/activation-service.ts
+index 77820b5..af2a9e7 100644
+--- a/lib/activation/activation-service.ts
++++ b/lib/activation/activation-service.ts
+@@ -51,6 +51,7 @@ export async function ensureSimpleActivationPlan() {
+ 
+ export async function grantAllActiveServiceAccess(input: {
+   schoolAccountId: string;
++  userId: string;
+   isPaid: boolean;
+ }) {
+   const services = await prisma.service.findMany({
+@@ -65,8 +66,8 @@ export async function grantAllActiveServiceAccess(input: {
+   for (const service of services) {
+     await prisma.serviceAccess.upsert({
+       where: {
+-        schoolAccountId_serviceId: {
+-          schoolAccountId: input.schoolAccountId,
++        userId_serviceId: {
++          userId: input.userId,
+           serviceId: service.id,
+         },
+       },
+@@ -76,6 +77,7 @@ export async function grantAllActiveServiceAccess(input: {
+       },
+       create: {
+         schoolAccountId: input.schoolAccountId,
++        userId: input.userId,
+         serviceId: service.id,
+         isEnabled: true,
+         isPaid: input.isPaid,
+@@ -84,10 +86,13 @@ export async function grantAllActiveServiceAccess(input: {
+   }
+ }
+ 
+-export async function ensureTrialSubscription(schoolAccountId: string) {
++export async function ensureTrialSubscription(schoolAccountId: string, userId?: string) {
++  if (!userId) throw new Error("SUBSCRIPTION_USER_REQUIRED");
++  const owner = await prisma.user.findFirst({ where: { id: userId, schoolAccountId }, select: { id: true } });
++  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
+   const existing = await prisma.subscription.findUnique({
+     where: {
+-      schoolAccountId,
++      userId,
+     },
+     include: {
+       plan: true,
+@@ -98,6 +103,7 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
+     if (isSubscriptionUsable(existing.status, existing.endsAt)) {
+       await grantAllActiveServiceAccess({
+         schoolAccountId,
++        userId,
+         isPaid: existing.status === "ACTIVE",
+       });
+     }
+@@ -109,6 +115,7 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
+ 
+   const subscription = await prisma.subscription.create({
+     data: {
++      userId,
+       schoolAccountId,
+       planId: plan.id,
+       status: "TRIAL",
+@@ -122,19 +129,21 @@ export async function ensureTrialSubscription(schoolAccountId: string) {
+ 
+   await grantAllActiveServiceAccess({
+     schoolAccountId,
++    userId,
+     isPaid: false,
+   });
+ 
+   return subscription;
+ }
+ 
+-export async function getActivationOverview(schoolAccountId: string) {
+-  const subscription = await ensureTrialSubscription(schoolAccountId);
++export async function getActivationOverview(schoolAccountId: string, userId?: string) {
++  const subscription = await ensureTrialSubscription(schoolAccountId, userId);
+ 
+   const pendingBankRequests = await prisma.bankTransferRequest.count({
+     where: {
+       schoolAccountId,
+       status: "PENDING",
++      requesterUserId: userId,
+     },
+   });
+ 
+@@ -150,18 +159,21 @@ export async function getActivationOverview(schoolAccountId: string) {
+ }
+ 
+ export async function activateSchoolAccount(input: {
++  userId: string;
+   schoolAccountId: string;
+   days?: number;
+   status?: PaymentStatus;
+   reason?: string;
+   activatedById?: string;
+ }) {
++  const owner = await prisma.user.findFirst({ where: { id: input.userId, schoolAccountId: input.schoolAccountId }, select: { id: true } });
++  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
+   const plan = await ensureSimpleActivationPlan();
+ 
+   const now = new Date();
+   const current = await prisma.subscription.findUnique({
+     where: {
+-      schoolAccountId: input.schoolAccountId,
++      userId: input.userId,
+     },
+   });
+ 
+@@ -170,7 +182,7 @@ export async function activateSchoolAccount(input: {
+ 
+   const subscription = await prisma.subscription.upsert({
+     where: {
+-      schoolAccountId: input.schoolAccountId,
++      userId: input.userId,
+     },
+     update: {
+       planId: plan.id,
+@@ -179,6 +191,7 @@ export async function activateSchoolAccount(input: {
+       endsAt: nextEndsAt,
+     },
+     create: {
++      userId: input.userId,
+       schoolAccountId: input.schoolAccountId,
+       planId: plan.id,
+       status: "ACTIVE",
+@@ -189,12 +202,14 @@ export async function activateSchoolAccount(input: {
+ 
+   await grantAllActiveServiceAccess({
+     schoolAccountId: input.schoolAccountId,
++    userId: input.userId,
+     isPaid: true,
+   });
+ 
+   await prisma.manualActivation.create({
+     data: {
+       schoolAccountId: input.schoolAccountId,
++      userId: input.userId,
+       activatedById: input.activatedById,
+       reason: input.reason || `تفعيل لمدة ${durationDays} يوم`,
+       startsAt: now,
+@@ -257,6 +272,7 @@ export async function redeemActivationCode(input: {
+   }
+ 
+   await activateSchoolAccount({
++    userId: input.userId,
+     schoolAccountId: input.schoolAccountId,
+     days: activationCode.durationDays,
+     reason: `تفعيل بواسطة الكود ${activationCode.code}`,
+diff --git a/lib/admin/bank-transfer-payments.ts b/lib/admin/bank-transfer-payments.ts
+index 0cc7fd8..9b58472 100644
+--- a/lib/admin/bank-transfer-payments.ts
++++ b/lib/admin/bank-transfer-payments.ts
+@@ -128,6 +128,7 @@ export async function createPaidBankTransferPaymentTransaction(
+ 
+   const subscription = await prisma.subscription.findFirst({
+     where: {
++      userId: request.requesterUserId || "__missing__",
+       schoolAccountId: request.schoolAccountId,
+     },
+     orderBy: {
+diff --git a/lib/admin/system-health-service.ts b/lib/admin/system-health-service.ts
+index 4ee9007..b0b5c32 100644
+--- a/lib/admin/system-health-service.ts
++++ b/lib/admin/system-health-service.ts
+@@ -55,7 +55,7 @@ export async function generateSystemHealthReport(): Promise<SystemHealthReport>
+     prisma.schoolAccount.count({
+       where: {
+         isActive: true,
+-        subscription: null,
++        subscriptions: { none: {} },
+       },
+     }),
+ 
+diff --git a/lib/assignments/internal-assignment-service.ts b/lib/assignments/internal-assignment-service.ts
+index 07e005a..60c86f4 100644
+--- a/lib/assignments/internal-assignment-service.ts
++++ b/lib/assignments/internal-assignment-service.ts
+@@ -79,6 +79,7 @@ async function getEligibleReportSelection(context: SchoolDashboardContext) {
+       serviceSlug,
+       access: await isServiceAllowedForSchool({
+         schoolAccountId: context.schoolAccountId,
++        userId: context.user.id,
+         serviceSlug,
+       }),
+     })),
+diff --git a/lib/notifications/push-center-service.ts b/lib/notifications/push-center-service.ts
+index be6da92..e5c22ab 100644
+--- a/lib/notifications/push-center-service.ts
++++ b/lib/notifications/push-center-service.ts
+@@ -316,12 +316,13 @@ async function runSubscriptionPushEvents() {
+   if (!actor) return;
+   const now = new Date();
+   const horizon = new Date(now.getTime() + 3 * 86_400_000);
+-  const subscriptions = await prisma.subscription.findMany({ where: { endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, schoolAccountId: true, endsAt: true } });
++  const subscriptions = await prisma.subscription.findMany({ where: { userId: { not: null }, endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, userId: true, endsAt: true } });
+   for (const subscription of subscriptions) {
+     if (!subscription.endsAt) continue;
+     const triggerKey = subscription.endsAt <= now ? "subscription-expired" : "subscription-expiring";
+     const eventDate = subscription.endsAt.toISOString().slice(0, 10);
+-    await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
++    if (!subscription.userId) continue;
++    await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, targetUserId: subscription.userId, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
+   }
+ }
+ 
+@@ -402,7 +403,7 @@ export async function recordPushOpen(input: { deliveryId?: string; campaignId?:
+   return { recorded: result.count > 0 };
+ }
+ 
+-export async function dispatchAutomaticPushEvent(input: { triggerKey: string; actorUserId: string; sourceRecordId?: string; variables?: Record<string, string> }) {
++export async function dispatchAutomaticPushEvent(input: { triggerKey: string; actorUserId: string; sourceRecordId?: string; variables?: Record<string, string>; targetUserId?: string }) {
+   const rule = await prisma.pushAutomaticRule.findUnique({ where: { triggerKey: input.triggerKey } });
+   if (!rule?.enabled) return { dispatched: false, reason: "RULE_DISABLED" as const };
+   const eventKey = input.sourceRecordId ? `${input.triggerKey}:${input.sourceRecordId}` : null;
+@@ -417,7 +418,16 @@ export async function dispatchAutomaticPushEvent(input: { triggerKey: string; ac
+   }
+   const replace = (template: string) => template.replace(/\{\{(userName|serviceName|surveyTitle|assignmentTitle)\}\}/g, (_match, key: string) => input.variables?.[key] || "");
+   const config = rule.audienceConfig as Record<string, unknown>;
+-  const campaign = await createPushCampaign({ title: replace(rule.titleTemplate), body: replace(rule.bodyTemplate), route: rule.route, campaignType: PushCampaignType.AUTOMATIC, sendNow: true, audienceType: rule.audienceType, ...(typeof config.role === "string" ? { role: config.role } : {}), ...(typeof config.userId === "string" ? { userId: config.userId } : {}), ...(Array.isArray(config.userIds) ? { userIds: config.userIds as string[] } : {}), ...(typeof config.schoolAccountId === "string" ? { schoolAccountId: config.schoolAccountId } : {}) }, input.actorUserId);
++  const audience = input.targetUserId
++    ? { audienceType: "USER" as const, userId: input.targetUserId }
++    : {
++        audienceType: rule.audienceType,
++        ...(typeof config.role === "string" ? { role: config.role } : {}),
++        ...(typeof config.userId === "string" ? { userId: config.userId } : {}),
++        ...(Array.isArray(config.userIds) ? { userIds: config.userIds as string[] } : {}),
++        ...(typeof config.schoolAccountId === "string" ? { schoolAccountId: config.schoolAccountId } : {}),
++      };
++  const campaign = await createPushCampaign({ title: replace(rule.titleTemplate), body: replace(rule.bodyTemplate), route: rule.route, campaignType: PushCampaignType.AUTOMATIC, sendNow: true, ...audience }, input.actorUserId);
+   if (eventId && campaign?.id) await prisma.pushAutomaticEvent.update({ where: { id: eventId }, data: { campaignId: campaign.id } });
+   await prisma.pushAutomaticRule.update({ where: { id: rule.id }, data: { lastTriggeredAt: new Date(), totalSends: { increment: 1 }, lastResult: "SUCCESS", lastErrorCode: null } });
+   return { dispatched: true, campaignId: campaign?.id || null };
+diff --git a/lib/payments/electronic-payments.ts b/lib/payments/electronic-payments.ts
+index 4246a1b..57eddb7 100644
+--- a/lib/payments/electronic-payments.ts
++++ b/lib/payments/electronic-payments.ts
+@@ -332,13 +332,21 @@ export async function applyPaidElectronicPaymentTransaction(
+       ? metadata.requesterUserId
+       : null;
+ 
+-  if (!planId || !schoolAccountId) {
++  if (!planId || !schoolAccountId || !requesterUserId) {
+     throw new ElectronicPaymentError(
+       "بيانات عملية الدفع غير مكتملة للتفعيل.",
+       409,
+     );
+   }
+ 
++  const payer = await prisma.user.findFirst({
++    where: { id: requesterUserId, schoolAccountId },
++    select: { id: true },
++  });
++  if (!payer) {
++    throw new ElectronicPaymentError("Ø§Ù„Ù…Ø´ØªØ±ÙŠ ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø§Ù„Ù…Ø¯Ø±Ø³Ø©.", 403);
++  }
++
+   const couponCodeForPayment =
+     typeof metadata.couponCode === "string" ? metadata.couponCode : null;
+   if (couponCodeForPayment) {
+@@ -379,7 +387,7 @@ export async function applyPaidElectronicPaymentTransaction(
+   const paidTransaction = await prisma.$transaction(async (tx) => {
+     const subscription = await tx.subscription.upsert({
+       where: {
+-        schoolAccountId,
++        userId: requesterUserId,
+       },
+       update: {
+         planId,
+@@ -388,6 +396,7 @@ export async function applyPaidElectronicPaymentTransaction(
+         endsAt,
+       },
+       create: {
++        userId: requesterUserId,
+         schoolAccountId,
+         planId,
+         status: SubscriptionStatus.ACTIVE,
+diff --git a/lib/portfolio/service-outputs/service-output-registry.ts b/lib/portfolio/service-outputs/service-output-registry.ts
+index 28f14c9..d3f3bec 100644
+--- a/lib/portfolio/service-outputs/service-output-registry.ts
++++ b/lib/portfolio/service-outputs/service-output-registry.ts
+@@ -25,8 +25,8 @@ function sourceReference(link: LinkRecord) {
+ }
+ 
+ const serviceOutputResolvers: Record<string, ServiceOutputResolver> = {
+-  "curriculum-distribution": async ({ schoolAccountId, link }) => {
+-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
++  "curriculum-distribution": async ({ schoolAccountId, ownerUserId, link }) => {
++    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
+     if (!access.ok) return null;
+     const reference = sourceReference(link);
+     const subjectId = typeof reference.subjectId === "string" ? reference.subjectId : "";
+@@ -46,12 +46,12 @@ const serviceOutputResolvers: Record<string, ServiceOutputResolver> = {
+     };
+   },
+   "student-activity-plan": async ({ schoolAccountId, ownerUserId, link }) => {
+-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
++    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
+     if (!access.ok) return null;
+     return resolveActivityPlanPortfolioOutput(schoolAccountId, ownerUserId, link);
+   },
+-  "school-activity-team": async ({ schoolAccountId, link }) => {
+-    const access = await isServiceAllowedForSchool({ schoolAccountId, serviceSlug: link.serviceSlug });
++  "school-activity-team": async ({ schoolAccountId, ownerUserId, link }) => {
++    const access = await isServiceAllowedForSchool({ schoolAccountId, userId: ownerUserId, serviceSlug: link.serviceSlug });
+     if (!access.ok) return null;
+     return resolveActivityTeamPortfolioOutput(schoolAccountId, link);
+   },
+diff --git a/lib/reference-library/reference-library-api-access.ts b/lib/reference-library/reference-library-api-access.ts
+index b6db63c..538ba8e 100644
+--- a/lib/reference-library/reference-library-api-access.ts
++++ b/lib/reference-library/reference-library-api-access.ts
+@@ -61,6 +61,7 @@ export async function requireReferenceLibraryApiViewer() {
+       await isServiceAllowedForSchool({
+         schoolAccountId:
+           current.user.schoolAccountId,
++        userId: current.user.id,
+         serviceSlug:
+           COUNSELOR_REFERENCE_LIBRARY_SERVICE_SLUG,
+       });
+@@ -94,4 +95,4 @@ export async function requireReferenceLibraryApiViewer() {
+         current.user.schoolAccountId,
+     }),
+   };
+-}
+\ No newline at end of file
++}
+diff --git a/lib/statistics/statistics-service-selection.ts b/lib/statistics/statistics-service-selection.ts
+index de6783c..be51f4a 100644
+--- a/lib/statistics/statistics-service-selection.ts
++++ b/lib/statistics/statistics-service-selection.ts
+@@ -67,7 +67,7 @@ export async function listAllowedStatisticsServices(context: DashboardContext) {
+ 
+   if (!roleDefinitions?.length) return [];
+ 
+-  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
++  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId, context.user.id);
+   if (!overview.usable) return [];
+ 
+   const planSlugs = new Set(
+diff --git a/lib/subscription/default-free-plan.ts b/lib/subscription/default-free-plan.ts
+index 4f0c312..8e92362 100644
+--- a/lib/subscription/default-free-plan.ts
++++ b/lib/subscription/default-free-plan.ts
+@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
+ import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+ import type { UserRole } from "@prisma/client";
+ import {
+-  assignPlanToSchool,
++  assignPlanToUser,
+   getPlanServiceSlugs,
+   getRemainingDays,
+   isSubscriptionUsable,
+@@ -640,7 +640,7 @@ export async function saveDefaultFreePlanConfig(
+ 
+ export async function assignDefaultFreePlanIfEligible(input: {
+   schoolAccountId: string;
+-  userId?: string;
++  userId: string;
+   source: string;
+ }) {
+   const schoolAccountId = String(input.schoolAccountId || "").trim();
+@@ -662,9 +662,7 @@ export async function assignDefaultFreePlanIfEligible(input: {
+   }
+ 
+   const existingSubscription = await prisma.subscription.findUnique({
+-    where: {
+-      schoolAccountId,
+-    },
++    where: { userId: input.userId },
+     include: {
+       plan: true,
+     },
+@@ -696,7 +694,8 @@ export async function assignDefaultFreePlanIfEligible(input: {
+     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+   );
+ 
+-  await assignPlanToSchool({
++  await assignPlanToUser({
++    userId: input.userId,
+     schoolAccountId,
+     planId: plan.id,
+     days: durationDays,
+diff --git a/lib/subscription/subscription-guard.ts b/lib/subscription/subscription-guard.ts
+index 5d86fea..7d625d0 100644
+--- a/lib/subscription/subscription-guard.ts
++++ b/lib/subscription/subscription-guard.ts
+@@ -1,8 +1,8 @@
+ import { redirect } from "next/navigation";
+ import { getCurrentSessionUser } from "@/lib/auth/current-user";
+ import {
+-  getSchoolSubscriptionOverview,
+-  isServiceAllowedForSchool,
++  getUserSubscriptionOverview,
++  isServiceAllowedForUser,
+ } from "@/lib/subscription/subscription-service";
+ import { isBagModeForCurrentUser } from "@/lib/sales/sales-experience";
+ 
+@@ -25,9 +25,7 @@ export async function requireActiveSubscriptionForCurrentUser() {
+     redirect("/login");
+   }
+ 
+-  const overview = await getSchoolSubscriptionOverview(
+-    current.user.schoolAccountId,
+-  );
++  const overview = await getUserSubscriptionOverview(current.user.id);
+ 
+   if (!overview.usable) {
+     redirect("/dashboard/plans?reason=activation-required");
+@@ -57,7 +55,8 @@ export async function requireServiceAccessForCurrentUser(
+     redirect("/login");
+   }
+ 
+-  const result = await isServiceAllowedForSchool({
++  const result = await isServiceAllowedForUser({
++    userId: current.user.id,
+     schoolAccountId: current.user.schoolAccountId,
+     serviceSlug,
+   });
+diff --git a/lib/subscription/subscription-service.ts b/lib/subscription/subscription-service.ts
+index f30a04d..ec083a7 100644
+--- a/lib/subscription/subscription-service.ts
++++ b/lib/subscription/subscription-service.ts
+@@ -97,6 +97,7 @@ function hasPlanServiceRules(features: PlanFeatureLike[]) {
+ 
+ export async function syncSchoolServicesFromPlan(input: {
+   schoolAccountId: string;
++  userId: string;
+   planId: string;
+ }) {
+   const planFeatures = (
+@@ -113,14 +114,6 @@ export async function syncSchoolServicesFromPlan(input: {
+ 
+   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
+ 
+-  if (!enabledServiceSlugs.length) {
+-    return {
+-      enabledServiceCount: 0,
+-      missingServiceSlugs: [],
+-      skippedReason: "PLAN_HAS_NO_ENABLED_SERVICE_FEATURES",
+-    };
+-  }
+-
+   const enabledServices = await prisma.service.findMany({
+     where: {
+       slug: {
+@@ -147,7 +140,8 @@ export async function syncSchoolServicesFromPlan(input: {
+   await prisma.$transaction(async (tx) => {
+     await tx.serviceAccess.updateMany({
+       where: {
+-        schoolAccountId: input.schoolAccountId,
++        userId: input.userId,
++        isPaid: true,
+       },
+       data: {
+         isEnabled: false,
+@@ -158,8 +152,8 @@ export async function syncSchoolServicesFromPlan(input: {
+     for (const service of enabledServices) {
+       await tx.serviceAccess.upsert({
+         where: {
+-          schoolAccountId_serviceId: {
+-            schoolAccountId: input.schoolAccountId,
++          userId_serviceId: {
++            userId: input.userId,
+             serviceId: service.id,
+           },
+         },
+@@ -169,6 +163,7 @@ export async function syncSchoolServicesFromPlan(input: {
+         },
+         create: {
+           schoolAccountId: input.schoolAccountId,
++          userId: input.userId,
+           serviceId: service.id,
+           isEnabled: true,
+           isPaid: true,
+@@ -197,7 +192,7 @@ export async function syncPlanEntitlementsForSubscribers(input: {
+ 
+   const subscriptions = await prisma.subscription.findMany({
+     where: { planId: input.planId },
+-    select: { schoolAccountId: true },
++    select: { schoolAccountId: true, userId: true },
+   });
+   const services = await prisma.service.findMany({
+     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+@@ -207,13 +202,14 @@ export async function syncPlanEntitlementsForSubscribers(input: {
+ 
+   await prisma.$transaction(async (tx) => {
+     for (const subscription of subscriptions) {
++      if (!subscription.userId) continue;
+       for (const slug of addedSlugs) {
+         const serviceId = serviceBySlug.get(slug);
+         if (!serviceId) continue;
+         await tx.serviceAccess.upsert({
+-          where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
++          where: { userId_serviceId: { userId: subscription.userId, serviceId } },
+           update: { isEnabled: true, isPaid: true },
+-          create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
++          create: { schoolAccountId: subscription.schoolAccountId, userId: subscription.userId, serviceId, isEnabled: true, isPaid: true },
+         });
+       }
+       for (const slug of removedSlugs) {
+@@ -221,7 +217,7 @@ export async function syncPlanEntitlementsForSubscribers(input: {
+         if (!serviceId) continue;
+         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+         await tx.serviceAccess.updateMany({
+-          where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
++          where: { userId: subscription.userId, serviceId, isPaid: true },
+           data: { isEnabled: false, isPaid: false },
+         });
+       }
+@@ -230,7 +226,8 @@ export async function syncPlanEntitlementsForSubscribers(input: {
+   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+ }
+ 
+-export async function assignPlanToSchool(input: {
++export async function assignPlanToUser(input: {
++  userId: string;
+   schoolAccountId: string;
+   planId: string;
+   days?: number;
+@@ -238,6 +235,12 @@ export async function assignPlanToSchool(input: {
+   activatedById?: string;
+   reason?: string;
+ }) {
++  const owner = await prisma.user.findFirst({
++    where: { id: input.userId, schoolAccountId: input.schoolAccountId },
++    select: { id: true },
++  });
++  if (!owner) throw new Error("SUBSCRIPTION_USER_SCHOOL_MISMATCH");
++
+   const plan = await prisma.plan.findUnique({
+     where: {
+       id: input.planId,
+@@ -252,9 +255,7 @@ export async function assignPlanToSchool(input: {
+   }
+ 
+   const currentSubscription = await prisma.subscription.findUnique({
+-    where: {
+-      schoolAccountId: input.schoolAccountId,
+-    },
++    where: { userId: input.userId },
+     include: {
+       plan: {
+         select: {
+@@ -273,9 +274,7 @@ export async function assignPlanToSchool(input: {
+   const endsAt = period.endsAt;
+ 
+   const subscription = await prisma.subscription.upsert({
+-    where: {
+-      schoolAccountId: input.schoolAccountId,
+-    },
++    where: { userId: input.userId },
+     update: {
+       planId: plan.id,
+       status: input.status || "ACTIVE",
+@@ -283,6 +282,7 @@ export async function assignPlanToSchool(input: {
+       endsAt,
+     },
+     create: {
++      userId: input.userId,
+       schoolAccountId: input.schoolAccountId,
+       planId: plan.id,
+       status: input.status || "ACTIVE",
+@@ -291,8 +291,12 @@ export async function assignPlanToSchool(input: {
+     },
+   });
+ 
++  // Keep plan-generated entitlements aligned with the newly assigned plan.
++  // Only paid, user-owned rows are reconciled; manual and legacy school rows
++  // remain untouched.
+   await syncSchoolServicesFromPlan({
+     schoolAccountId: input.schoolAccountId,
++    userId: input.userId,
+     planId: plan.id,
+   });
+ 
+@@ -336,6 +340,7 @@ export async function assignPlanToSchool(input: {
+   try {
+     await prisma.manualActivation.create({
+       data: {
++        userId: input.userId,
+         schoolAccountId: input.schoolAccountId,
+         activatedById: input.activatedById || null,
+         reason: input.reason || `إسناد باقة ${plan.name}`,
+@@ -350,11 +355,9 @@ export async function assignPlanToSchool(input: {
+   return subscription;
+ }
+ 
+-export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
++export async function getUserSubscriptionOverview(userId: string) {
+   const subscription = await prisma.subscription.findUnique({
+-    where: {
+-      schoolAccountId,
+-    },
++    where: { userId },
+     include: {
+       plan: {
+         include: {
+@@ -376,14 +379,15 @@ export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+   };
+ }
+ 
+-export async function isServiceAllowedForSchool(input: {
++export async function isServiceAllowedForUser(input: {
++  userId: string;
+   schoolAccountId: string;
+   serviceSlug: string;
+ }) {
+   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+     input.serviceSlug,
+   );
+-  const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
++  const overview = await getUserSubscriptionOverview(input.userId);
+ 
+   if (!overview.usable) {
+     return {
+@@ -412,25 +416,6 @@ export async function isServiceAllowedForSchool(input: {
+       };
+     }
+ 
+-    await prisma.serviceAccess.upsert({
+-      where: {
+-        schoolAccountId_serviceId: {
+-          schoolAccountId: input.schoolAccountId,
+-          serviceId: service.id,
+-        },
+-      },
+-      update: {
+-        isEnabled: true,
+-        isPaid: true,
+-      },
+-      create: {
+-        schoolAccountId: input.schoolAccountId,
+-        serviceId: service.id,
+-        isEnabled: true,
+-        isPaid: true,
+-      },
+-    });
+-
+     return {
+       ok: true,
+       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+@@ -446,7 +431,10 @@ export async function isServiceAllowedForSchool(input: {
+ 
+   const accessRows = await prisma.serviceAccess.findMany({
+     where: {
+-      schoolAccountId: input.schoolAccountId,
++      OR: [
++        { userId: input.userId },
++        { schoolAccountId: input.schoolAccountId, userId: null, isPaid: false },
++      ],
+     },
+   });
+ 
+@@ -459,7 +447,10 @@ export async function isServiceAllowedForSchool(input: {
+ 
+   const serviceAccess = await prisma.serviceAccess.findFirst({
+     where: {
+-      schoolAccountId: input.schoolAccountId,
++      OR: [
++        { userId: input.userId },
++        { schoolAccountId: input.schoolAccountId, userId: null, isPaid: false },
++      ],
+       service: {
+         slug: billingServiceSlug,
+       },
+@@ -478,3 +469,29 @@ export async function isServiceAllowedForSchool(input: {
+     reason: "SERVICE_INCLUDED" as const,
+   };
+ }
++
++/** Compatibility name for non-entitlement/admin integrations. It is
++ * deliberately fail-closed because a school is not a billing owner anymore.
++ */
++export async function getSchoolSubscriptionOverview(_schoolAccountId: string, userId?: string) {
++  return userId
++    ? getUserSubscriptionOverview(userId)
++    : { subscription: null, usable: false, remainingDays: null };
++}
++
++export async function isServiceAllowedForSchool(input: {
++  schoolAccountId: string;
++  serviceSlug: string;
++  userId?: string;
++}) {
++  return input.userId
++    ? isServiceAllowedForUser(input as { userId: string; schoolAccountId: string; serviceSlug: string })
++    : { ok: false as const, reason: "USER_SUBSCRIPTION_REQUIRED" as const };
++}
++
++/** Compatibility name for older admin callers. New operations must provide
++ * the exact target user; a school alone is never a subscription owner.
++ */
++export async function assignPlanToSchool(input: Parameters<typeof assignPlanToUser>[0]) {
++  return assignPlanToUser(input);
++}
+diff --git a/lib/timetable/timetable-access.ts b/lib/timetable/timetable-access.ts
+index 26936ee..4f070f9 100644
+--- a/lib/timetable/timetable-access.ts
++++ b/lib/timetable/timetable-access.ts
+@@ -32,6 +32,7 @@ export async function requireTimetableApiAccess(options?: {
+   if (options?.requireActiveSubscription) {
+     const overview = await getSchoolSubscriptionOverview(
+       access.schoolAccountId!,
++      access.user.id,
+     );
+ 
+     if (!overview.usable) {
+@@ -51,4 +52,4 @@ export async function requireTimetableApiAccess(options?: {
+   }
+ 
+   return access;
+-}
+\ No newline at end of file
++}
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 1078abd..0d11c99 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -301,7 +301,7 @@ model SchoolAccount {
+   staff                        StaffMember[]
+   services                     ServiceAccess[]
+   cases                        CaseEntry[]
+-  subscription                 Subscription?
++  subscriptions                Subscription[]
+   resultsAnalyses              ResultsAnalysis[]
+   assessmentAnalyses           AssessmentAnalysis[]
+   calendarReminders            CalendarReminder[]
+@@ -438,6 +438,10 @@ model User {
+   id              String         @id @default(cuid())
+   schoolAccountId String?
+   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
++  subscriptions    Subscription[]
++  serviceAccess    ServiceAccess[]
++  manualActivations ManualActivation[]
++  bankTransferRequests BankTransferRequest[]
+ 
+   name              String
+   email             String    @unique
+@@ -1435,7 +1439,9 @@ model PlanFeature {
+ 
+ model Subscription {
+   id              String        @id @default(cuid())
+-  schoolAccountId String        @unique
++  userId          String?
++  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
++  schoolAccountId String
+   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 
+   planId String
+@@ -1450,6 +1456,9 @@ model Subscription {
+ 
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
++
++  @@unique([userId])
++  @@index([schoolAccountId])
+ }
+ 
+ model Promotion {
+@@ -1530,6 +1539,9 @@ model ServiceAccess {
+   schoolAccountId String
+   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 
++  userId String?
++  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
++
+   serviceId String
+   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+ 
+@@ -1539,7 +1551,9 @@ model ServiceAccess {
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+ 
+-  @@unique([schoolAccountId, serviceId])
++  @@index([schoolAccountId, serviceId])
++  @@unique([userId, serviceId])
++  @@index([userId])
+ }
+ 
+ model FeatureFlag {
+@@ -1647,6 +1661,7 @@ model BankTransferRequest {
+   planId          String?
+   durationDays    Int?
+   requesterUserId String?
++  requesterUser   User? @relation(fields: [requesterUserId], references: [id], onDelete: SetNull)
+   billingCycle    String?
+   couponCode      String?
+   promotionId     String?
+@@ -1662,6 +1677,8 @@ model BankTransferRequest {
+ 
+ model ManualActivation {
+   id              String    @id @default(cuid())
++  userId          String?
++  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+   schoolAccountId String
+   activatedById   String?
+   reason          String?
+@@ -1671,6 +1688,7 @@ model ManualActivation {
+   createdAt DateTime @default(now())
+ 
+   @@index([schoolAccountId])
++  @@index([userId])
+ }
+ 
+ model IntegrationProvider {
+diff --git a/scripts/debug-subscription-access.ts b/scripts/debug-subscription-access.ts
+index d51f233..3a1c8a3 100644
+--- a/scripts/debug-subscription-access.ts
++++ b/scripts/debug-subscription-access.ts
+@@ -11,40 +11,29 @@ async function main() {
+       email: true,
+       role: true,
+       schoolAccountId: true,
+-      schoolAccount: {
++      subscriptions: {
++        take: 1,
++        orderBy: { updatedAt: "desc" },
+         select: {
+           id: true,
+-          name: true,
+-          isActive: true,
+-          subscription: {
++          status: true,
++          startsAt: true,
++          endsAt: true,
++          plan: {
+             select: {
+               id: true,
+-              status: true,
+-              startsAt: true,
+-              endsAt: true,
+-              plan: {
+-                select: {
+-                  id: true,
+-                  name: true,
+-                  slug: true,
+-                  features: {
+-                    where: {
+-                      OR: [
+-                        { key: `service:${serviceSlug}` },
+-                        { key: "durationDays" },
+-                        { key: "targetAudience" },
+-                      ],
+-                    },
+-                    select: {
+-                      key: true,
+-                      label: true,
+-                      value: true,
+-                    },
+-                  },
+-                },
+-              },
++              name: true,
++              slug: true,
++              features: true,
+             },
+           },
++        },
++      },
++      schoolAccount: {
++        select: {
++          id: true,
++          name: true,
++          isActive: true,
+           services: {
+             where: {
+               service: {
+@@ -96,4 +85,4 @@ main()
+   })
+   .finally(async () => {
+     await prisma.$disconnect();
+-  });
+\ No newline at end of file
++  });
+diff --git a/scripts/fix-guardian-summons-plan-access.ts b/scripts/fix-guardian-summons-plan-access.ts
+index 6df2423..e4e4782 100644
+--- a/scripts/fix-guardian-summons-plan-access.ts
++++ b/scripts/fix-guardian-summons-plan-access.ts
+@@ -10,6 +10,7 @@ async function main() {
+   const user = await prisma.user.findUnique({
+     where: { email: userEmail },
+     select: {
++      id: true,
+       schoolAccountId: true,
+     },
+   });
+@@ -72,13 +73,14 @@ async function main() {
+ 
+   const syncResult = await syncSchoolServicesFromPlan({
+     schoolAccountId: user.schoolAccountId,
++    userId: user.id,
+     planId: plan.id,
+   });
+ 
+   const access = await prisma.serviceAccess.findUnique({
+     where: {
+-      schoolAccountId_serviceId: {
+-        schoolAccountId: user.schoolAccountId,
++      userId_serviceId: {
++        userId: user.id,
+         serviceId: service.id,
+       },
+     },
+@@ -107,4 +109,4 @@ main()
+   })
+   .finally(async () => {
+     await prisma.$disconnect();
+-  });
+\ No newline at end of file
++  });

@@ -67,7 +67,7 @@ export async function listAllowedStatisticsServices(context: DashboardContext) {
 
   if (!roleDefinitions?.length) return [];
 
-  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
+  const overview = await getSchoolSubscriptionOverview(context.schoolAccountId, context.user.id);
   if (!overview.usable) return [];
 
   const planSlugs = new Set(
