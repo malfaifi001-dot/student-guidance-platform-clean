@@ -7,6 +7,7 @@ import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report
 import { reconcilePrincipalSignaturePayload } from "@/lib/report-signatures/report-two-signature";
 import { getReportSignatureStatus } from "@/lib/report-signatures/report-signature-service";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
@@ -85,6 +86,19 @@ export default async function ReportTwoCaseStudioPage({
   if (!result.ok) {
     notFound();
   }
+  tracePrincipalSignature({
+    stage: "REPORT2_PAGE_BUILDER_RESULT",
+    location: "ReportTwoCaseStudioPage",
+    details: {
+      caseId,
+      viewerId: current.user.id,
+      viewerRole: current.user.role,
+      ownerId: result.reportOwner.id,
+      ownerRole: result.reportOwner.role,
+      ownerSchoolAccountId: result.reportOwner.schoolAccountId,
+    },
+    payload: result.payload,
+  });
 
   if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({
@@ -167,6 +181,7 @@ export default async function ReportTwoCaseStudioPage({
           activeReport?.schoolAccountId || current.user.schoolAccountId || "__missing__",
       },
       select: {
+        schoolAccountId: true,
         principalName: true,
         principalPhone: true,
         principalSignatureUrl: true,
@@ -214,6 +229,20 @@ export default async function ReportTwoCaseStudioPage({
     reportOwner: result.reportOwner,
     selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
   });
+  tracePrincipalSignature({
+    stage: "REPORT2_PAGE_EFFECTIVE_SIGNATURE",
+    location: "ReportTwoCaseStudioPage",
+    details: {
+      caseId,
+      activeReportId: activeReport?.id || null,
+      activeReportStatus: activeReport?.status || null,
+      policy: schoolProfile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+      signLinkSigned: Boolean(signedSignatureRequest),
+      dashboardSignaturePresent: Boolean(activeReport?.principalSignatureUrl),
+    },
+    signature: effectivePrincipalSignature.signatureUrl,
+  });
   // The fresh builder is the canonical base. Reconcile the complete
   // principal-signature state so policy changes cannot leave a stale image in
   // an older active payload.
@@ -221,6 +250,12 @@ export default async function ReportTwoCaseStudioPage({
     result.payload,
     effectivePrincipalSignature,
   );
+  tracePrincipalSignature({
+    stage: "REPORT2_PAGE_RECONCILED_PAYLOAD",
+    location: "ReportTwoCaseStudioPage",
+    details: { caseId, activeReportId: activeReport?.id || null },
+    payload: previewPayload,
+  });
 
   return (
     <ReportTwoStudioRuntime

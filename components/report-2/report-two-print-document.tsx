@@ -337,7 +337,7 @@ export function ReportTwoPrintDocument({
         >
           <div
             ref={previewStageRef}
-            className="report-two-print-preview-stage"
+            className="report-two-print-preview-stage report-two-preview-renderer"
             style={{
               width: previewDimensions.logicalWidth || undefined,
               transform: `scale(${previewDimensions.scale})`,

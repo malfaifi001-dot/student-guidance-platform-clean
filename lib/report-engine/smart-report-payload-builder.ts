@@ -27,6 +27,7 @@ import {
 import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
 import { shouldIncludeReportNarrative } from "@/lib/report-engine/report-narrative-policy";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 
 type CurrentUserLike = {
   user: {
@@ -1049,6 +1050,20 @@ function buildSignatures(
   effectivePrincipalSignatureUrl: string | null,
 ): SmartReportSignature[] {
   const profile = resolveSchoolProfileForReport(caseEntry, current);
+  tracePrincipalSignature({
+    stage: "SCHOOL_PROFILE_LOADED",
+    location: "buildSmartReportPayloadForCase",
+    details: {
+      caseId: caseEntry.id,
+      schoolAccountId: caseEntry.schoolAccountId,
+      viewerId: current.user.id,
+      viewerRole: current.user.role,
+      principalSignatureSignedAtExists: Boolean(profile?.principalSignatureSignedAt),
+      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      principalNamePresent: Boolean(profile?.principalName),
+    },
+    signature: profile?.principalSignatureUrl,
+  });
   const serviceSlug = caseEntry.service?.slug || "";
   const isActivity = isActivityProgramReportService(serviceSlug);
   const hasActivityAssignment = Boolean(caseEntry.activityAssignment);
@@ -1408,6 +1423,27 @@ export async function buildSmartReportPayloadForCase({
     },
     selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
   });
+  tracePrincipalSignature({
+    stage: "REPORT_OWNER_RESOLVED",
+    location: "buildSmartReportPayloadForCase",
+    details: {
+      caseId: caseEntry.id,
+      ownerId: caseEntry.createdById || current.user.id,
+      ownerRole: caseEntry.createdBy?.role || current.user.role,
+      ownerSchoolAccountId: caseEntry.schoolAccountId || current.user.schoolAccountId || null,
+      viewerId: current.user.id,
+      viewerRole: current.user.role,
+      ownerEqualsViewer: (caseEntry.createdById || current.user.id) === current.user.id,
+      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+    },
+  });
+  tracePrincipalSignature({
+    stage: "SMART_PAYLOAD_AFTER_RESOLVER",
+    location: "buildSmartReportPayloadForCase",
+    details: { caseId: caseEntry.id, resolverSource: effectivePrincipalSignature.source },
+    signature: effectivePrincipalSignature.signatureUrl,
+  });
 
   const executionDateField = findByIntent(values, [
     "execution date",
@@ -1617,6 +1653,13 @@ export async function buildSmartReportPayloadForCase({
       notes: [],
     },
   };
+
+  tracePrincipalSignature({
+    stage: "SMART_PAYLOAD_FINAL",
+    location: "buildSmartReportPayloadForCase",
+    details: { caseId: caseEntry.id, expectedPrincipalCardsMax: 1 },
+    payload,
+  });
 
   return {
     ok: true,

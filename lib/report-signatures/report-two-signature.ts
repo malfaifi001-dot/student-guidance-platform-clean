@@ -1,5 +1,6 @@
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import type { PrincipalSignatureResolution } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 
 export type ReportTwoSignatureSnapshot = {
   kind: "REPORT_TWO";
@@ -58,11 +59,18 @@ export function reconcilePrincipalSignaturePayload(
   payload: SmartReportPayload,
   resolution: PrincipalSignatureResolution,
 ): SmartReportPayload {
+  tracePrincipalSignature({
+    stage: "RECONCILE_INPUT",
+    location: "reconcilePrincipalSignaturePayload",
+    details: { resolverSource: resolution.source, resolverStatus: resolution.status },
+    payload,
+    signature: resolution.signatureUrl,
+  });
   const signatureUrl = resolution.signatureUrl || null;
   const signatures = Array.isArray(payload.signatures) ? payload.signatures : [];
   const hasPrincipal = signatures.some((signature) => signature.key === "principal");
 
-  return {
+  const reconciledPayload = {
     ...payload,
     identity: {
       ...(payload.identity || {}),
@@ -86,4 +94,10 @@ export function reconcilePrincipalSignaturePayload(
             : signature,
         ),
   };
+  tracePrincipalSignature({
+    stage: "RECONCILE_OUTPUT",
+    location: "reconcilePrincipalSignaturePayload",
+    payload: reconciledPayload,
+  });
+  return reconciledPayload;
 }

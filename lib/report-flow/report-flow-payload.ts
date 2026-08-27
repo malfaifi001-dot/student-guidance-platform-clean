@@ -15,6 +15,7 @@ import type {
   ReportFlowPreparation,
 } from "@/lib/report-flow/report-flow-types";
 import { isSchoolBroadcastServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 
 const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
   execution_date: "تاريخ التنفيذ / اليوم",
@@ -438,6 +439,11 @@ export function applyReportFlowPreparationToPayload(
   payload: SmartReportPayload,
   preparation: ReportFlowPreparation,
 ): SmartReportPayload {
+  tracePrincipalSignature({
+    stage: "REPORT_FLOW_INPUT",
+    location: "applyReportFlowPreparationToPayload",
+    payload,
+  });
   const languageMode = normalizeReportLanguageMode(preparation.languageMode);
   const showExecutionDescriptionInReport =
     !isSchoolBroadcastServiceSlug(payload.service.slug) &&
@@ -456,7 +462,7 @@ export function applyReportFlowPreparationToPayload(
     languageMode,
   );
 
-  return {
+  const preparedPayload = {
     ...payload,
     // Preparation owns report fields and narrative presentation only. Keep
     // the already-resolved semantic identity/signature state intact for the
@@ -477,6 +483,14 @@ export function applyReportFlowPreparationToPayload(
         cleanText(payload.narrative.body),
     },
   };
+
+  tracePrincipalSignature({
+    stage: "REPORT_FLOW_OUTPUT",
+    location: "applyReportFlowPreparationToPayload",
+    payload: preparedPayload,
+  });
+
+  return preparedPayload;
 }
 
 export function createReportFlowPreparation({

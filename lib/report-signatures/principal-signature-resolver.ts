@@ -1,4 +1,5 @@
 import type { ReportSignatureRequestStatus } from "@prisma/client";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 
 export type PrincipalSignatureResolutionSource =
   | "SCHOOL_IDENTITY"
@@ -70,36 +71,65 @@ export function resolvePrincipalSignatureForReport(input: {
   reportOwner?: { id: string; schoolAccountId?: string | null; role?: string | null } | null;
   selectedStaffAuthorized?: boolean;
 }): PrincipalSignatureResolution {
+  const schoolUrl = cleanUrl(input.schoolIdentity?.principalSignatureUrl);
   const linkUrl = cleanUrl(input.signLink?.signatureUrl);
+  const dashboardUrl = cleanUrl(input.principalDashboard?.principalSignatureUrl);
+  const ownerRole = String(input.reportOwner?.role || "").toUpperCase();
+  const ownerSchoolMatches = Boolean(
+    input.reportOwner?.schoolAccountId &&
+      input.schoolIdentity?.schoolAccountId &&
+      input.reportOwner.schoolAccountId === input.schoolIdentity.schoolAccountId,
+  );
+  const isPrincipalOwner = ownerRole === "PRINCIPAL";
+  const isEligibleStaff = ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER"].includes(ownerRole);
+  tracePrincipalSignature({
+    stage: "RESOLVER_INPUT",
+    location: "resolvePrincipalSignatureForReport",
+    details: {
+      policy: input.reusePolicy || "MANUAL_ONLY",
+      ownerRole,
+      ownerSchoolMatches,
+      isPrincipalOwner,
+      isEligibleStaff,
+      selectedStaffAuthorized: input.selectedStaffAuthorized === true,
+    },
+    signature: schoolUrl,
+  });
+  const finish = (result: PrincipalSignatureResolution) => {
+    tracePrincipalSignature({
+      stage: "RESOLVER_OUTPUT",
+      location: "resolvePrincipalSignatureForReport",
+      details: {
+        status: result.status,
+        source: result.source,
+        authorizationReason: result.authorizationReason,
+        signedAtExists: Boolean(result.signedAt),
+        signedById: result.signedById,
+        isPersistent: result.isPersistent,
+      },
+      signature: result.signatureUrl,
+    });
+    return result;
+  };
   if (
     linkUrl &&
     String(input.signLink?.status || "").toUpperCase() === "SIGNED" &&
     input.signLink?.signedAt
   ) {
-    return signedResult("SIGN_LINK", linkUrl, input.signLink.signedAt, null, false, "REPORT_SIGNATURE");
+    return finish(signedResult("SIGN_LINK", linkUrl, input.signLink.signedAt, null, false, "REPORT_SIGNATURE"));
   }
 
-  const dashboardUrl = cleanUrl(input.principalDashboard?.principalSignatureUrl);
   if (dashboardUrl && input.principalDashboard?.principalSignatureSignedAt) {
-    return signedResult(
+    return finish(signedResult(
       "PRINCIPAL_DASHBOARD",
       dashboardUrl,
       input.principalDashboard.principalSignatureSignedAt,
       input.principalDashboard.principalSignatureSignedById || null,
       false,
       "REPORT_SIGNATURE",
-    );
+    ));
   }
 
-  const schoolUrl = cleanUrl(input.schoolIdentity?.principalSignatureUrl);
-  const ownerSchoolMatches = Boolean(
-    input.reportOwner?.schoolAccountId &&
-      input.schoolIdentity?.schoolAccountId &&
-      input.reportOwner.schoolAccountId === input.schoolIdentity.schoolAccountId,
-  );
-  const ownerRole = String(input.reportOwner?.role || "").toUpperCase();
-  const isPrincipalOwner = ownerRole === "PRINCIPAL";
-  const isEligibleStaff = ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER"].includes(ownerRole);
   const policy = input.reusePolicy || "MANUAL_ONLY";
   const canReuseSchoolSignature =
     Boolean(schoolUrl) &&
@@ -110,17 +140,17 @@ export function resolvePrincipalSignatureForReport(input: {
           (policy === "SELECTED_STAFF" && input.selectedStaffAuthorized === true))));
 
   if (canReuseSchoolSignature && schoolUrl) {
-    return signedResult(
+    return finish(signedResult(
       "SCHOOL_IDENTITY",
       schoolUrl,
       input.schoolIdentity?.principalSignatureSignedAt || null,
       null,
       true,
       "SCHOOL_IDENTITY",
-    );
+    ));
   }
 
-  return {
+  return finish({
     status: "UNSIGNED",
     source: null,
     signatureUrl: null,
@@ -128,5 +158,5 @@ export function resolvePrincipalSignatureForReport(input: {
     signedById: null,
     isPersistent: false,
     authorizationReason: "NONE",
-  };
+  });
 }

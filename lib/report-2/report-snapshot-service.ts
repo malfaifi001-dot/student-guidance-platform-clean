@@ -13,6 +13,7 @@ import {
 } from "@/lib/report-2/report-two-structured-data";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 import {
   clearPrincipalSignatureFromHtml,
   applyPrincipalSignatureToHtml,
@@ -321,6 +322,19 @@ export async function createReportTwoSnapshot(
   const finalSnapshotHtml = effectivePrincipalSignature.signatureUrl
     ? applyPrincipalSignatureToHtml(snapshotHtml, effectivePrincipalSignature.signatureUrl)
     : clearPrincipalSignatureFromHtml(snapshotHtml);
+  tracePrincipalSignature({
+    stage: "REPORT_SNAPSHOT_SIGNATURE_STATE",
+    location: "createReportTwoSnapshot",
+    details: {
+      snapshotId: existingActive?.id || null,
+      caseId: caseEntry.id,
+      approvedStatus: existingActive?.status || "NEW",
+      resolverSource: effectivePrincipalSignature.source,
+      snapshotHtmlHasPrincipalSlot: /data-report-signature-role\s*=\s*["']principal["']/i.test(finalSnapshotHtml),
+    },
+    payload: finalSnapshotPayload,
+    signature: effectivePrincipalSignature.signatureUrl,
+  });
   if (existingActive?.status === "APPROVED" && !input.approvedEditConfirmed) {
     return {
       ok: false as const,

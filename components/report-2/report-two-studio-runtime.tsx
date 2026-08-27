@@ -41,6 +41,10 @@ import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evide
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
 import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
+import {
+  tracePrincipalCards,
+  tracePrincipalSignature,
+} from "@/lib/report-signatures/principal-signature-trace";
 
 
 type ReportTwoCollapsibleCardProps = {
@@ -1370,6 +1374,14 @@ function withReportTwoSignatureBlock(
   payload: SmartReportPayload,
 ): StudioTemplate {
   const signatures = getReportTwoSignatureCardsFromPayload(payload);
+  const signatureBlocks = template.pages.flatMap((page) =>
+    page.blocks.filter((block) => isReportTwoSignatureBlock(block)),
+  );
+  tracePrincipalCards("SIGNATURE_BLOCK_PREPARED", "withReportTwoSignatureBlock", signatures, {
+    signatureBlockCount: signatureBlocks.length,
+    signatureBlockIds: signatureBlocks.map((block) => block.id),
+    hiddenSignatureKeys: signatureBlocks.flatMap((block) => getReportTwoSignatureHiddenKeys(block)),
+  });
   let signatureWasPrepared = false;
 
   return {
@@ -2651,6 +2663,15 @@ export function ReportTwoStudioRuntime({
   const finalActionsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    tracePrincipalSignature({
+      stage: "RUNTIME_PROP_PAYLOAD",
+      location: "ReportTwoStudioRuntime",
+      details: { caseId },
+      payload,
+    });
+  }, [caseId, payload]);
+
+  useEffect(() => {
     if (!finalActionsOpen) return;
     const closeOnOutside = (event: MouseEvent) => {
       if (!finalActionsRef.current?.contains(event.target as Node)) setFinalActionsOpen(false);
@@ -2673,10 +2694,23 @@ export function ReportTwoStudioRuntime({
       loadReportFlowPreparation(caseId, "smart-general-a4");
 
     if (preparation) {
-      setPreparedPayload(applyReportFlowPreparationToPayload(payload, preparation));
+      const nextPreparedPayload = applyReportFlowPreparationToPayload(payload, preparation);
+      tracePrincipalSignature({
+        stage: "RUNTIME_PREPARED_PAYLOAD",
+        location: "ReportTwoStudioRuntime",
+        details: { caseId, preparationFound: true, selectedVariantId },
+        payload: nextPreparedPayload,
+      });
+      setPreparedPayload(nextPreparedPayload);
       return;
     }
 
+    tracePrincipalSignature({
+      stage: "RUNTIME_PREPARED_PAYLOAD_NO_PREPARATION",
+      location: "ReportTwoStudioRuntime",
+      details: { caseId, preparationFound: false, selectedVariantId },
+      payload,
+    });
     setPreparedPayload(payload);
   }, [caseId, payload, selectedVariantId]);
 
@@ -2877,6 +2911,71 @@ export function ReportTwoStudioRuntime({
       ),
     [template, previewCase, preparedPayload],
   );
+
+  useEffect(() => {
+    const cards = getReportTwoSignatureCardsFromPayload(preparedPayload);
+    tracePrincipalCards("SIGNATURE_CARDS_FROM_PAYLOAD", "ReportTwoStudioRuntime", cards, {
+      caseId,
+    });
+    for (const page of previewTemplate.pages) {
+      for (const block of page.blocks) {
+        if (block.kind === "signature-grid") {
+          tracePrincipalSignature({
+            stage: "PREVIEW_TEMPLATE_SIGNATURE_STATE",
+            location: "ReportTwoStudioRuntime",
+            details: {
+              caseId,
+              pageId: page.id,
+              blockId: block.id,
+              blockKind: block.kind,
+              signaturesCount: cards.length,
+              principalExists: cards.some((card) => card.key === "principal"),
+            },
+            signature: cards.find((card) => card.key === "principal")?.imageUrl,
+          });
+        }
+      }
+    }
+  }, [caseId, preparedPayload, previewTemplate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const frameId = window.requestAnimationFrame(() => {
+      const root = reportTwoPreviewExportRef.current;
+      const slot = root?.querySelector<HTMLElement>('[data-report-signature-role="principal"]') || null;
+      const image = slot?.querySelector<HTMLImageElement>("img") || null;
+      const slotRect = slot?.getBoundingClientRect() || null;
+      const page = slot?.closest<HTMLElement>(".pdf-report-page") || null;
+      const pageRect = page?.getBoundingClientRect() || null;
+      const style = image ? window.getComputedStyle(image) : null;
+      tracePrincipalSignature({
+        stage: "PRINCIPAL_SIGNATURE_DOM_CHECK",
+        location: "ReportTwoStudioRuntime",
+        details: {
+          caseId,
+          designTemplateId: template.designTemplateId,
+          principalSignatureCardDomFound: Boolean(slot),
+          imageFound: Boolean(image),
+          imageSrcPresent: Boolean(image?.getAttribute("src")),
+          imageComplete: image?.complete ?? null,
+          naturalWidth: image?.naturalWidth ?? null,
+          naturalHeight: image?.naturalHeight ?? null,
+          cssDisplay: style?.display || null,
+          cssVisibility: style?.visibility || null,
+          cssOpacity: style?.opacity || null,
+          imageWidth: image?.getBoundingClientRect().width ?? null,
+          imageHeight: image?.getBoundingClientRect().height ?? null,
+          slotRectTop: slotRect?.top ?? null,
+          slotRectBottom: slotRect?.bottom ?? null,
+          pageRectTop: pageRect?.top ?? null,
+          pageRectBottom: pageRect?.bottom ?? null,
+          distanceFromPageBottom: pageRect && slotRect ? pageRect.bottom - slotRect.bottom : null,
+        },
+        signature: image?.getAttribute("src") || null,
+      });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [caseId, previewTemplate, template.designTemplateId]);
 
   const visiblePreviewPages = previewTemplate.pages;
 

@@ -10,6 +10,7 @@ import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
 import { MobileFeedbackPopCard } from "@/components/mobile-app/mobile-feedback-pop-card";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
 
 type WorkspaceProps = {
   workspace: PrincipalStaffReportsWorkspace;
@@ -320,7 +321,13 @@ function PreviewDialog({ report, onClose }: { report: PrincipalStaffReportsWorks
 
   return <DialogShell title={report.title} onClose={onClose}>
     <div className="max-h-[calc(92vh-5rem)] overflow-y-auto bg-slate-100 p-3 dark:bg-slate-900 sm:p-6">
-      {previewHtml ? <PortfolioPreviewFit><div ref={previewRootRef} className="bg-white shadow-sm" dangerouslySetInnerHTML={{ __html: previewHtml }} /></PortfolioPreviewFit> : <p ref={previewRootRef} className="p-10 text-center font-bold text-slate-500">لا تتوفر معاينة لهذا التقرير.</p>}
+      {report.reportTwoPreview ? (
+        <div ref={previewRootRef} className="bg-white shadow-sm">
+          <ReportTwoPrintDocument snapshot={report.reportTwoPreview} />
+        </div>
+      ) : previewHtml ? (
+        <PortfolioPreviewFit><div ref={previewRootRef} className="bg-white shadow-sm" dangerouslySetInnerHTML={{ __html: previewHtml }} /></PortfolioPreviewFit>
+      ) : <p ref={previewRootRef} className="p-10 text-center font-bold text-slate-500">لا تتوفر معاينة لهذا التقرير.</p>}
     </div>
   </DialogShell>;
 }

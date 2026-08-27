@@ -6,10 +6,15 @@ import type { UserRole } from "@prisma/client";
 import { ReportSignatureRequestStatus } from "@prisma/client";
 import { isPrincipalStaffReportSigned } from "@/lib/principal/principal-report-signature-service";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 import {
   hasStructuredPrincipalSignature,
   isPrincipalSignaturePresent,
 } from "@/lib/report-signatures/principal-signature-state";
+import {
+  buildReportTwoPreviewCase,
+  buildReportTwoRenderContext,
+} from "@/lib/report-2/report-two-structured-data";
 
 const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
   "TEACHER",
@@ -184,6 +189,13 @@ export type PrincipalStaffReport = {
   status: string;
   issuedAt: string;
   previewHtml: string | null;
+  reportTwoPreview?: {
+    template: unknown;
+    context: Record<string, string>;
+    previewCase: unknown;
+    sourcePayload: unknown;
+    variantId: string | null;
+  };
   linkedTargetIds: string[];
   principalSignatureSigned: boolean;
   principalSignatureSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
@@ -397,6 +409,9 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
         createdAt: true,
         snapshotHtml: true,
         snapshotPayload: true,
+        snapshotTemplateJson: true,
+        snapshotPagesJson: true,
+        variantId: true,
         principalSignatureUrl: true,
         principalSignatureSignedAt: true,
         principalSignatureSignedById: true,
@@ -421,6 +436,11 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
         updatedAt: true,
         renderedHtml: true,
         sourcePayload: true,
+        templateJson: true,
+        pagesJson: true,
+        renderContext: true,
+        previewCase: true,
+        variantId: true,
         principalSignatureUrl: true,
         principalSignatureSignedAt: true,
         principalSignatureSignedById: true,
@@ -444,6 +464,22 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       .map((report) => [report.caseEntryId, report.signatureRequests[0]] as const)
       .filter((entry) => Boolean(entry[1])),
   );
+  for (const report of activeReports) {
+    tracePrincipalSignature({
+      stage: "REPORT_TWO_ACTIVE_SIGNATURE_STATE",
+      location: "getPrincipalStaffReportsWorkspace",
+      details: {
+        reportId: report.id,
+        caseId: report.caseEntryId,
+        status: report.status,
+        principalSignatureSignedAtExists: Boolean(report.principalSignatureSignedAt),
+        signedRequestStatus: report.signatureRequests[0]?.status || null,
+        previewSource: snapshotCaseIds.has(report.caseEntryId) ? "REPORT_SNAPSHOT" : "REPORT_TWO_ACTIVE",
+      },
+      signature: report.principalSignatureUrl,
+      payload: report.sourcePayload as any,
+    });
+  }
   const reports: PrincipalStaffReport[] = [
     ...guidanceReports.map((report) => ({
       id: report.id,
@@ -476,6 +512,21 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       status: "APPROVED",
       issuedAt: (report.approvedAt || report.createdAt).toISOString(),
       previewHtml: report.snapshotHtml,
+      reportTwoPreview:
+        report.snapshotTemplateJson && typeof report.snapshotTemplateJson === "object"
+          ? {
+              template: {
+                ...(report.snapshotTemplateJson as Record<string, unknown>),
+                pages:
+                  report.snapshotPagesJson ||
+                  (report.snapshotTemplateJson as Record<string, unknown>).pages,
+              },
+              context: buildReportTwoRenderContext(report.snapshotPayload as any),
+              previewCase: buildReportTwoPreviewCase(report.snapshotPayload as any),
+              sourcePayload: report.snapshotPayload,
+              variantId: report.variantId,
+            }
+          : undefined,
       linkedTargetIds: [],
       principalSignatureSigned: persistedSignature.signed,
       principalSignatureSource: persistedSignature.source,
@@ -491,6 +542,20 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       status: report.status,
       issuedAt: (report.approvedAt || report.updatedAt).toISOString(),
       previewHtml: report.renderedHtml,
+      reportTwoPreview: report.templateJson && typeof report.templateJson === "object"
+        ? {
+            template: {
+              ...(report.templateJson as Record<string, unknown>),
+              pages:
+                report.pagesJson ||
+                (report.templateJson as Record<string, unknown>).pages,
+            },
+            context: (report.renderContext || buildReportTwoRenderContext(report.sourcePayload as any)) as Record<string, string>,
+            previewCase: report.previewCase || buildReportTwoPreviewCase(report.sourcePayload as any),
+            sourcePayload: report.sourcePayload,
+            variantId: report.variantId,
+          }
+        : undefined,
       linkedTargetIds: [],
       principalSignatureSigned: isPrincipalStaffReportSigned({ source: "REPORT_TWO", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
       principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,

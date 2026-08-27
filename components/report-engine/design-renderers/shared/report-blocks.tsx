@@ -13,6 +13,7 @@ import { BlockTitle, DesignFooter, MetaCard, MiniStat, SideMeta } from "./report
 import { getBlockSetting, getReportFontSizeClass, getReportFontSizeMultiplier, renderText, splitLines, splitParagraphs } from "./report-text";
 import { DesignValueGrid } from "./report-values";
 import { SignatureImage } from "@/components/signatures/signature-image";
+import { tracePrincipalCards } from "@/lib/report-signatures/principal-signature-trace";
 import styles from "./a4-design-page.module.css";
 
 export function A4DesignPage({
@@ -615,6 +616,12 @@ function DesignBlock({
   }
   if (isSignatureGridDesignBlock(block)) {
     const signatures = getDesignSignatureCards(block);
+
+    tracePrincipalCards("SIGNATURE_RENDERER_INPUT", "PageBlocks", signatures as any, {
+      blockId: block.id,
+      blockKind: block.kind,
+      principalHidden: Boolean((block as any).hiddenSignatureKeys?.includes?.("principal")),
+    });
 
     if (!signatures.length) return null;
 

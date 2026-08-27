@@ -62,7 +62,7 @@ export function MinistryElegantReportDesign({
         <div className="mx-[10mm] flex min-h-0 flex-1 flex-col">
           <ReportDesignSmartContent
             availableHeightMm={226}
-            className="h-full min-h-0"
+            className="flex h-full min-h-0 flex-col"
             contentClassName="flex min-h-full flex-col"
             priorityMode="signature"
           >

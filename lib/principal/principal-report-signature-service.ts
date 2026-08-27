@@ -7,6 +7,7 @@ import { applyPrincipalSignatureToHtml } from "@/lib/report-signatures/principal
 import { isPrincipalSignaturePresent } from "@/lib/report-signatures/principal-signature-state";
 import { applyExternalPrincipalSignature } from "@/lib/report-signatures/report-two-signature";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 import type { PrincipalSignatureReusePolicy } from "@/lib/report-signatures/principal-signature-resolver";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import { auditLog } from "@/lib/security/audit";
@@ -125,6 +126,18 @@ export async function signApprovedPrincipalStaffReport(input: {
 
   const now = new Date();
   const signedData = { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: now, principalSignatureSignedById: input.principalUserId };
+  tracePrincipalSignature({
+    stage: "PRINCIPAL_DASHBOARD_SIGNATURE_SOURCE",
+    location: "signApprovedPrincipalStaffReport",
+    details: {
+      reportId: input.reportId,
+      reportType: input.source,
+      staffUserId: input.staffUserId,
+      principalUserId: input.principalUserId,
+      beforeSignaturePresent: false,
+    },
+    signature: signatureUrl,
+  });
   const result = await prisma.$transaction(async (tx) => {
     if (input.source === "GUIDANCE_REPORT") {
       const report = await tx.guidanceReport.findFirst({
@@ -191,6 +204,18 @@ export async function signApprovedPrincipalStaffReport(input: {
   });
 
   if (!result.ok) return result;
+  tracePrincipalSignature({
+    stage: "PRINCIPAL_DASHBOARD_SIGNATURE_APPLIED",
+    location: "signApprovedPrincipalStaffReport",
+    details: {
+      reportId: input.reportId,
+      reportType: input.source,
+      signedById: input.principalUserId,
+      signedAt: now.toISOString(),
+      afterSignaturePresent: true,
+    },
+    signature: signatureUrl,
+  });
   await auditLog({ userId: input.principalUserId, action: "PRINCIPAL_POST_APPROVAL_SIGN", entityType: input.source, entityId: input.reportId, metadata: { schoolAccountId: input.schoolAccountId, staffUserId: input.staffUserId, reportType: input.source, reportTitle: result.title, signatureSource: "school_profile", signedAt: now.toISOString() } });
   return { ok: true as const };
 }

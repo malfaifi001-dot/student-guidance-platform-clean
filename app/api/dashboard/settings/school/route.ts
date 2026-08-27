@@ -8,6 +8,7 @@ import {
   normalizeStatisticalNumber,
 } from "@/lib/principal/principal-school-service";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
 import { schoolSettingsPatchSchema } from "@/lib/settings/school-settings-api-schema";
 
 const LINKABLE_SCHOOL_MEMBER_ROLES = [
@@ -99,6 +100,21 @@ export async function GET() {
         selectedStaffAuthorized: Boolean(currentStaffAuthorization),
       })
     : null;
+  tracePrincipalSignature({
+    stage: "SCHOOL_SETTINGS_EFFECTIVE_SIGNATURE",
+    location: "GET /api/dashboard/settings/school",
+    details: {
+      viewerId: current.user.id,
+      viewerRole: current.user.role,
+      schoolAccountId: current.user.schoolAccountId,
+      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      selectedStaffAuthorized: Boolean(currentStaffAuthorization),
+      isPrincipal,
+    },
+    signature: isPrincipal
+      ? profile?.principalSignatureUrl
+      : effectiveStaffSignature?.signatureUrl,
+  });
   const signatureKind =
     current.user.role === "PRINCIPAL"
       ? "principal"
