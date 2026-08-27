@@ -108,14 +108,19 @@ const HOME_ROUTES = new Set([
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   {
-    label: "تكليفاتي",
-    href: "/dashboard/assignments",
-    icon: ClipboardCheck,
-  },
-  {
     label: "الرئيسية",
     href: "/dashboard",
     icon: Home,
+  },
+  {
+    label: "الحالات",
+    href: OFFICIAL_WORKSPACE_ROUTES.cases,
+    icon: FolderKanban,
+  },
+  {
+    label: "التقارير المعتمدة",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    icon: FileCheck2,
   },
   {
     label: "التقويم والتنبيهات",
@@ -200,6 +205,11 @@ const counselorAssessmentCenterLinks: SidebarLinkItem[] = [
 ];
 
 const counselorToolsLinks: SidebarLinkItem[] = [
+  {
+    label: "تكليفاتي",
+    href: "/dashboard/assignments",
+    icon: ClipboardCheck,
+  },
   {
     label: "رفع بيانات الطلاب",
     href: OFFICIAL_WORKSPACE_ROUTES.studentImport,

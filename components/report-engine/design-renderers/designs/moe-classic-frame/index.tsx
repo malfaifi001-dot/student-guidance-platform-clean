@@ -75,9 +75,11 @@ export function MoeClassicFrameReportDesign({
         </div>
 
         {/* المحتوى */}
-        <div className="absolute inset-x-[12mm] bottom-[11mm] top-[50mm] z-10 overflow-hidden">
+        <div className="absolute inset-x-[12mm] bottom-[11mm] top-[50mm] z-10 flex h-auto min-h-0 flex-col overflow-hidden">
           <ReportDesignSmartContent
             availableHeightMm={236}
+            className="h-full min-h-0"
+            contentClassName="flex min-h-full flex-col"
             priorityMode="signature"
           >
             <PageBlocks

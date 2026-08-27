@@ -38,7 +38,8 @@ export function MinistryFormReportDesign({
 
         <ReportDesignSmartContent
           availableHeightMm={229}
-          className="relative z-10"
+          className="relative z-10 flex h-full min-h-0 flex-col"
+          contentClassName="flex min-h-full flex-col"
           priorityMode="signature"
         >
           <PageBlocks
