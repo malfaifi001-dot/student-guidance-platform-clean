@@ -1,6 +1,7 @@
 import type React from "react";
 import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
 import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 
 type Props = {
   weeks: WeeklyActivityPlan[];
@@ -26,8 +27,7 @@ const DOMAIN_STYLES: Record<string, { background: string; color: string }> = {
 };
 
 function dateLabel(value: string) {
-  const [year, month, day] = value.split("-");
-  return year && month && day ? `${day}/${month}/${year}` : "—";
+  return formatActivityPlanHijriDate(value);
 }
 
 function groups(weeks: WeeklyActivityPlan[]) {

@@ -5,14 +5,14 @@ import { Edit3 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-plan-program-value";
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 
 type Program = { value: string; label: string; isOther: boolean };
 type Item = { domainServiceSlug: string; domainTitle: string; programs: Array<{ value: string; name: string; isOther: boolean }> };
 type Week = { id: string | null; stage: string; weekNumber: number; dateFrom: string; dateTo: string; periodCount: number | null; items: Item[] };
 
 function dateLabel(value: string) {
-  const [year, month, day] = value.split("-");
-  return year && month && day ? `${day}/${month}/${year}` : value;
+  return formatActivityPlanHijriDate(value);
 }
 
 export function WeeklyActivityPlanPanel({ stage }: { stage: string }) {

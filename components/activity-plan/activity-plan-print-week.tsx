@@ -1,10 +1,10 @@
 import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 
 function formatDate(value: string) {
-  const [, month, day] = value.slice(0, 10).split("-");
-  return month && day ? `${day}/${month}` : "";
+  return formatActivityPlanHijriDate(value);
 }
 
 const periods = [1, 2, 3, 4, 5, 6, 7];

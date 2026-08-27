@@ -8,6 +8,7 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import { getOrCreateActivityPlanShareToken } from "@/lib/activity-plan/activity-plan-share-service";
 import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 type ActivityPlanLink = {
@@ -34,7 +35,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
           stage: entry.stage,
           week: String(week.weekNumber),
           day: dateByDay.get(entry.dayOfWeek)?.label || `اليوم ${entry.dayOfWeek}`,
-          date: dateByDay.get(entry.dayOfWeek)?.date || "",
+          date: formatActivityPlanHijriDate(dateByDay.get(entry.dayOfWeek)?.date),
           period: getPeriodLabel(entry.periodNumber),
           activityArea: entry.displayTitle || getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",
           activity: entry.displayTitle || getActivityPlanProgramByKey(entry.programKey)?.title || "نشاط طلابي",

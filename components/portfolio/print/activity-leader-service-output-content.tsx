@@ -68,7 +68,7 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
           </section>
         ))}
         {chunk.shareQrDataUrl ? <div className={`${prefix}-activity-plan-share`}>
-          <div><strong>عرض الخطة التفصيلية الكاملة</strong><a href={chunk.shareUrl} target="_blank" rel="noreferrer">عرض الخطة الكاملة</a><small>{chunk.shareUrl}</small></div>
+          <div><strong>عرض الخطة الأسبوعية الكاملة</strong><a href={chunk.shareUrl} target="_blank" rel="noreferrer">عرض الخطة الكاملة</a><small>{chunk.shareUrl}</small></div>
           <img src={chunk.shareQrDataUrl} alt="رمز QR لعرض خطة النشاط الكاملة" />
         </div> : null}
       </div>

@@ -14,6 +14,7 @@ import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-sta
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
 import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 import { WeeklyActivityPlanPanel } from "@/components/activity-plan/weekly-activity-plan-panel";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 
 type Program = { id: string; key?: string; title: string };
 type Entry = {
@@ -35,8 +36,7 @@ type Cell = { dayOfWeek: number; periodNumber: number; date: string };
 type ServiceLink = { id: string; sourceKey: string; sourceReferenceJson: Record<string, unknown>; targetSectionKey?: string | null; performanceItemKey: string };
 
 function formatDate(value: string) {
-  const [year, month, day] = value.slice(0, 10).split("-");
-  return year && month && day ? `${day}/${month}` : value;
+  return formatActivityPlanHijriDate(value);
 }
 
 export function ActivityPlanShell() {
@@ -157,7 +157,7 @@ export function ActivityPlanShell() {
             <div className="activity-plan-header-controls hidden">
               <label className="flex items-center gap-1 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-9 min-w-[145px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
               <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="نمط خطة النشاط">
-                <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة التفصيلية</button>
+                <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
                 <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => setMode("weekly")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
               </div>
             </div>
@@ -191,7 +191,7 @@ export function ActivityPlanShell() {
           <div><h2 className="text-xl font-black text-slate-950">الجدول الأسبوعي</h2><p className="mt-1 text-xs font-bold text-slate-500">الأيام صفوف والحصص أعمدة. اضغط للإضافة أو التعديل.</p></div>
           <label className="flex shrink-0 items-center gap-2 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-10 min-w-[170px] rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
           <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="activity plan mode">
-            <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`rounded-lg px-3 py-2 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة التفصيلية</button>
+            <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`rounded-lg px-3 py-2 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
             <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => setMode("weekly")} className={`rounded-lg px-3 py-2 text-xs font-black ${mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
           </div>
           <CalendarDays className="h-6 w-6 text-sky-600" />
@@ -236,7 +236,7 @@ function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onMo
   return <div className="activity-plan-table-controls flex flex-wrap items-center gap-2">
     <label className="flex items-center gap-1 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-9 min-w-[145px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
     <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="نمط خطة النشاط">
-      <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة التفصيلية</button>
+      <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
       <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
     </div>
   </div>;
