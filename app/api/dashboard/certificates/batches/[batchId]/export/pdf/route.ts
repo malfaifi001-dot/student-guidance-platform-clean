@@ -88,6 +88,8 @@ export async function POST(request: Request, context: RouteContext) {
     batchSchoolAccountId,
     actor.role,
     actor.name,
+    actor.id,
+    false,
   );
 
   const html = renderCertificatesBatchDocumentHtml(certificates, {

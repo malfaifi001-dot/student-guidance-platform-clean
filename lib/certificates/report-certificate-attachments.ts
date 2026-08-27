@@ -557,6 +557,8 @@ export async function renderLinkedCertificatesAttachmentHtml(
     schoolAccountId,
     options.role,
     options.fallbackIssuerName,
+    undefined,
+    false,
   );
   const renderedCertificates = certificates.map((certificate) =>
     renderCertificateDocumentHtml(

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { formatAdminSubscriptionStatus } from "@/lib/subscription/subscription-presentation";
 import {
   Activity,
   AlertTriangle,
@@ -76,6 +77,7 @@ type ActivityLogItem = {
   action: string;
   severity: string;
   title: string;
+  label?: string;
   details: unknown;
   createdAt: string;
 };
@@ -94,6 +96,13 @@ type UsersPayload = {
   };
   users: AdminUserItem[];
   logs: ActivityLogItem[];
+};
+
+type UserActivityPayload = {
+  logs: ActivityLogItem[];
+  page: number;
+  totalPages: number;
+  total: number;
 };
 
 type UserStatusFilter =
@@ -116,14 +125,8 @@ function roleLabel(role: string) {
   return role;
 }
 
-function subscriptionLabel(status?: string) {
-  if (!status) return "بدون اشتراك";
-  if (status === "ACTIVE") return "مشترك";
-  if (status === "TRIAL") return "تجربة";
-  if (status === "CANCELED") return "ملغي";
-  if (status === "EXPIRED") return "منتهي";
-  if (status === "PAST_DUE") return "بانتظار الدفع";
-  return status;
+function subscriptionLabel(status?: string, planName?: string | null) {
+  return formatAdminSubscriptionStatus(status, planName);
 }
 
 function riskLabel(risk: AdminUserItem["riskLevel"]) {
@@ -151,6 +154,9 @@ export function AdminUsersCommandCenter() {
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [userActivity, setUserActivity] = useState<UserActivityPayload | null>(null);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -174,6 +180,38 @@ export function AdminUsersCommandCenter() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    setActivityPage(1);
+  }, [selectedUser?.id]);
+
+  useEffect(() => {
+    if (!selectedUser) {
+      setUserActivity(null);
+      return;
+    }
+
+    let cancelled = false;
+    setActivityLoading(true);
+    fetch(`/api/dashboard/admin/users/${selectedUser.id}/activity?page=${activityPage}&pageSize=25`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("activity-load-failed");
+        return response.json();
+      })
+      .then((result) => {
+        if (!cancelled) setUserActivity(result);
+      })
+      .catch(() => {
+        if (!cancelled) setUserActivity({ logs: [], page: activityPage, totalPages: 1, total: 0 });
+      })
+      .finally(() => {
+        if (!cancelled) setActivityLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedUser?.id, activityPage]);
 
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -229,17 +267,6 @@ export function AdminUsersCommandCenter() {
         return bLast - aLast;
       });
   }, [data?.users, query, role, status]);
-
-  const selectedLogs = useMemo(() => {
-    if (!selectedUser) return [];
-
-    return (data?.logs || []).filter(
-      (log) =>
-        log.targetUserId === selectedUser.id ||
-        log.actorUserId === selectedUser.id ||
-        log.schoolAccountId === selectedUser.schoolAccountId
-    );
-  }, [data?.logs, selectedUser]);
 
   async function runAction(action: string, user: AdminUserItem, extra?: Record<string, unknown>) {
     setProcessingId(user.id);
@@ -510,7 +537,7 @@ export function AdminUsersCommandCenter() {
                           : "bg-amber-50 text-amber-700",
                       ].join(" ")}
                     >
-                      {subscriptionLabel(user.subscription?.computedStatus)}
+                      {subscriptionLabel(user.subscription?.computedStatus, user.subscription?.planName)}
                     </span>
                   </div>
 
@@ -691,13 +718,19 @@ export function AdminUsersCommandCenter() {
                 </h3>
 
                 <div className="mt-4 space-y-2">
-                  {selectedLogs.slice(0, 10).map((log) => (
+                  {activityLoading ? (
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-400">
+                      جار تحميل سجل المستخدم...
+                    </div>
+                  ) : null}
+
+                  {(userActivity?.logs || []).map((log) => (
                     <div
                       key={log.id}
                       className="rounded-2xl bg-slate-50 p-3"
                     >
                       <p className="text-sm font-black text-slate-800">
-                        {log.title}
+                        {log.label || log.title}
                       </p>
                       <p className="mt-1 text-xs font-bold text-slate-400">
                         {new Date(log.createdAt).toLocaleString("ar-SA")} · {log.category}
@@ -705,9 +738,31 @@ export function AdminUsersCommandCenter() {
                     </div>
                   ))}
 
-                  {selectedLogs.length === 0 ? (
+                  {!activityLoading && (userActivity?.logs || []).length === 0 ? (
                     <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-400">
                       لا يوجد سجل عمليات لهذا المستخدم حتى الآن. سيتم تسجيل العمليات من الآن فصاعدًا.
+                    </div>
+                  ) : null}
+
+                  {(userActivity?.totalPages || 1) > 1 ? (
+                    <div className="flex items-center justify-between gap-2 pt-2 text-xs font-black text-slate-500">
+                      <button
+                        type="button"
+                        disabled={activityPage <= 1 || activityLoading}
+                        onClick={() => setActivityPage((page) => Math.max(1, page - 1))}
+                        className="rounded-xl bg-slate-100 px-3 py-2 disabled:opacity-50"
+                      >
+                        السابق
+                      </button>
+                      <span>{activityPage} / {userActivity?.totalPages || 1}</span>
+                      <button
+                        type="button"
+                        disabled={activityPage >= (userActivity?.totalPages || 1) || activityLoading}
+                        onClick={() => setActivityPage((page) => page + 1)}
+                        className="rounded-xl bg-slate-100 px-3 py-2 disabled:opacity-50"
+                      >
+                        التالي
+                      </button>
                     </div>
                   ) : null}
                 </div>

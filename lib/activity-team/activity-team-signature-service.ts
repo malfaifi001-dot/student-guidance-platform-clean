@@ -23,6 +23,7 @@ import {
 } from "@/lib/activity-team/activity-team-service";
 import { buildSchoolActivityTeamReportSnapshot } from "@/lib/activity-team/activity-team-report";
 import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
 const ACTIVITY_TEAM_SIGNATURE_KIND = "ACTIVITY_TEAM";
 
@@ -58,6 +59,7 @@ async function findActivityTeamRequest(token: string) {
     where: { tokenHash: crypto.createHash("sha256").update(cleanToken, "utf8").digest("hex") },
     select: {
       id: true,
+      requestedById: true,
       schoolAccountId: true,
       status: true,
       expiresAt: true,
@@ -80,6 +82,7 @@ async function findActivityTeamRequest(token: string) {
           },
         },
       },
+      requestedBy: { select: { role: true } },
     },
   });
   if (!request || !isActivityTeamSnapshot(request.reportSnapshot)) return null;
@@ -171,6 +174,14 @@ export async function getPublicActivityTeamSignature(token: string) {
     });
   }
   const options = Array.from(optionByName.values());
+  const principalSignature = await resolveEffectivePrincipalSignature({
+    schoolAccountId: request.schoolAccountId,
+    owner: {
+      id: request.requestedById,
+      role: request.requestedBy?.role || "ACTIVITY_LEADER",
+      schoolAccountId: request.schoolAccountId,
+    },
+  });
 
   const report = buildSchoolActivityTeamReportSnapshot({
     assignments,
@@ -181,7 +192,7 @@ export async function getPublicActivityTeamSignature(token: string) {
     activityLeaderName: profile?.activityLeaderName || request.requesterDisplayName,
     activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl,
     principalName: profile?.principalName || request.principalName,
-    principalSignatureUrl: profile?.principalSignatureUrl,
+    principalSignatureUrl: principalSignature.signatureUrl,
     supervisorSignatures: team.signatures,
   });
 

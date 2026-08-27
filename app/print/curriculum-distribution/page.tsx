@@ -3,6 +3,7 @@ import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscript
 import { getDistribution } from "@/lib/curriculum-distribution/queries";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { CurriculumDistributionPrintDocument } from "@/components/curriculum-distribution/curriculum-distribution-print-document";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
 type PrintSearchParams = Record<string, string | string[] | undefined>;
 
@@ -116,6 +117,12 @@ export default async function CurriculumDistributionStandalonePrintPage({
 
   const profile = current?.user.schoolAccount?.profile;
   const schoolName = profile?.schoolName || current?.user.schoolAccount?.name || "";
+  const principalSignature = current?.user.schoolAccountId && current.user
+    ? await resolveEffectivePrincipalSignature({
+        schoolAccountId: current.user.schoolAccountId,
+        owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
+      })
+    : null;
 
   return (
     <>
@@ -130,7 +137,7 @@ export default async function CurriculumDistributionStandalonePrintPage({
         teacherName={current?.user.officialName || current?.user.name || ""}
         teacherSignatureUrl={current?.user.signatureUrl}
         principalName={profile?.principalName}
-        principalSignatureUrl={profile?.principalSignatureUrl}
+        principalSignatureUrl={principalSignature?.signatureUrl || null}
       />
       <CurriculumDistributionPrintController enabled={firstValue(query.print) === "1"} />
     </>

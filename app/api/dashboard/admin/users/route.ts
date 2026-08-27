@@ -44,7 +44,6 @@ export async function GET() {
 
   const [
     users,
-    logs,
     pendingTransfers,
     casesLast30,
     recentActivity,
@@ -82,13 +81,6 @@ export async function GET() {
           },
         },
       },
-    }),
-
-    prisma.platformActivityLog.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 160,
     }),
 
     prisma.bankTransferRequest.findMany({
@@ -336,7 +328,7 @@ export async function GET() {
   return NextResponse.json({
     stats,
     users: mappedUsers,
-    logs,
+    logs: [],
   });
 }
 

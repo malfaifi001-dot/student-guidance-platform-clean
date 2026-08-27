@@ -442,6 +442,9 @@ export async function PATCH(request: Request) {
                       academicYear: previousProfile.academicYear,
                       currentSemester: previousProfile.currentSemester,
                       logoUrl: previousProfile.logoUrl,
+                      principalSignatureUrl: previousProfile.principalSignatureUrl,
+                      principalSignatureSignedAt: previousProfile.principalSignatureSignedAt,
+                      principalSignatureReusePolicy: previousProfile.principalSignatureReusePolicy,
                     },
                   }
                 : undefined,

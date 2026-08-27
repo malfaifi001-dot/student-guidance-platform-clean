@@ -167,6 +167,7 @@ export async function POST(request: Request) {
     actor.schoolAccountId,
     actor.role,
     actor.name,
+    actor.id,
   );
 
   try {

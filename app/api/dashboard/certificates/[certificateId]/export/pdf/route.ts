@@ -73,6 +73,8 @@ export async function POST(request: Request, context: RouteContext) {
     certificate.schoolAccountId,
     actor.role,
     actor.name,
+    actor.id,
+    false,
   );
 
   const html = renderCertificateDocumentHtml(certificate, {

@@ -82,6 +82,22 @@ export function getSubscriptionSidebarPresentation(
   };
 }
 
+export function formatAdminSubscriptionStatus(
+  status?: string | null,
+  planName?: string | null,
+) {
+  if (status === "ACTIVE") {
+    const normalizedPlanName = planName?.trim();
+    return normalizedPlanName ? `مشترك / ${normalizedPlanName}` : "مشترك";
+  }
+  if (!status) return "بدون اشتراك";
+  if (status === "TRIAL") return "تجربة";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  if (status === "PAST_DUE") return "بانتظار الدفع";
+  return status;
+}
+
 export function getSubscriptionPeriodLabel(cycle?: string | null) {
   const normalizedCycle = String(cycle || "").trim().toUpperCase();
 

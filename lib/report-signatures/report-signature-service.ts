@@ -10,6 +10,7 @@ import {
 } from "@/lib/settings/school-signature-file-storage";
 import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import { recordAuditEvent } from "@/lib/audit/audit-service";
 
 export const REPORT_SIGNATURE_TTL_DAYS = 30;
 
@@ -156,6 +157,7 @@ export async function signReportSignatureRequest(input: {
       prisma.schoolProfile.findUnique({
         where: { schoolAccountId: request.schoolAccountId },
         select: {
+          schoolAccountId: true,
           principalSignatureUrl: true,
           principalSignatureSignedAt: true,
           principalSignatureReusePolicy: true,
@@ -254,6 +256,22 @@ export async function signReportSignatureRequest(input: {
 
     return true;
   });
+
+  if (result) {
+    await recordAuditEvent({
+      action: "REPORT_SIGNATURE_LINK_SIGNED",
+      category: "SIGNATURE",
+      status: "SUCCESS",
+      schoolAccountId: request.schoolAccountId,
+      entityType: "REPORT_SIGNATURE_REQUEST",
+      entityId: request.id,
+      metadata: {
+        reportTwoActiveId: request.reportTwoActiveId || null,
+        consentedToReuse: input.consentToReuse,
+        source: "SIGN_LINK",
+      },
+    });
+  }
 
   return result
     ? { ok: true as const, signatureUrl, signedAt: now }

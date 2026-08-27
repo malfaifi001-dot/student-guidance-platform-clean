@@ -48,6 +48,8 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
     certificate.schoolAccountId,
     current.user.role,
     current.user.officialName || current.user.name || "المستخدم",
+    current.user.id,
+    false,
   );
 
   const html = renderCertificateDocumentHtml(certificate, {

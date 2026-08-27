@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
+import {
+  formatAdminSubscriptionStatus,
+  getSubscriptionPeriodLabel,
+} from "@/lib/subscription/subscription-presentation";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -116,14 +119,9 @@ type FilterStatus =
   | "NO_SUBSCRIPTION"
   | "NEEDS_ATTENTION";
 
-function statusLabel(status: SubscriberStatus) {
-  if (status === "ACTIVE") return "نشط";
-  if (status === "TRIAL") return "تجربة";
-  if (status === "CANCELED") return "ملغي";
-  if (status === "EXPIRED") return "منتهي";
-  if (status === "PAST_DUE") return "بانتظار الدفع";
+function statusLabel(status: SubscriberStatus, planName?: string | null) {
   if (status === "NO_SUBSCRIPTION") return "بدون اشتراك";
-  return status;
+  return formatAdminSubscriptionStatus(status, planName);
 }
 
 function statusClasses(status: SubscriberStatus) {
@@ -618,7 +616,7 @@ export function AdminSubscribersCenter() {
                             statusClasses(item.computedStatus),
                           ].join(" ")}
                         >
-                          {statusLabel(item.computedStatus)}
+                          {statusLabel(item.computedStatus, item.subscription?.planName)}
                         </span>
 
                         <span
@@ -716,7 +714,7 @@ export function AdminSubscribersCenter() {
                     statusClasses(selectedSubscriber.computedStatus),
                   ].join(" ")}
                 >
-                  {statusLabel(selectedSubscriber.computedStatus)}
+                  {statusLabel(selectedSubscriber.computedStatus, selectedSubscriber.subscription?.planName)}
                 </span>
               </div>
 

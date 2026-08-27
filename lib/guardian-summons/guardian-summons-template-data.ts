@@ -5,6 +5,7 @@ import {
   type GuardianSummonsTemplateData,
 } from "@/components/reports/guardian-summons/guardian-summons-template";
 import { prisma } from "@/lib/prisma";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
 
 type WorkflowOptionDefinition = {
@@ -607,9 +608,11 @@ function getDefaultCounselorTitle(gender: UserGender) {
 function buildGuardianSummonsSignatoryData({
   caseEntry,
   currentUser,
+  principalSignatureUrl,
 }: {
   caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
   currentUser: GuardianSummonsCurrentUser;
+  principalSignatureUrl?: string | null;
 }) {
   const schoolProfile = caseEntry.schoolAccount.profile;
   const creator = caseEntry.createdBy;
@@ -631,9 +634,7 @@ function buildGuardianSummonsSignatoryData({
     ),
     principalName: cleanText(schoolProfile?.principalName),
     principalJobTitle: "مدير/ة المدرسة",
-    principalSignatureUrl: normalizeInternalSignatureUrl(
-      schoolProfile?.principalSignatureUrl,
-    ),
+    principalSignatureUrl: normalizeInternalSignatureUrl(principalSignatureUrl),
   };
 }
 
@@ -696,6 +697,8 @@ export async function loadGuardianSummonsCase(
       },
       createdBy: {
         select: {
+          id: true,
+          role: true,
           name: true,
           officialName: true,
           jobTitle: true,
@@ -731,9 +734,11 @@ export async function loadGuardianSummonsCase(
 export function buildGuardianSummonsTemplateData({
   caseEntry,
   currentUser,
+  principalSignatureUrl,
 }: {
   caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
   currentUser: GuardianSummonsCurrentUser;
+  principalSignatureUrl?: string | null;
 }): GuardianSummonsTemplateData {
   const schoolProfile = caseEntry.schoolAccount.profile;
   const student = caseEntry.student;
@@ -778,6 +783,7 @@ export function buildGuardianSummonsTemplateData({
   const signatoryData = buildGuardianSummonsSignatoryData({
     caseEntry,
     currentUser,
+    principalSignatureUrl,
   });
 
   return {
@@ -845,8 +851,13 @@ export async function getGuardianSummonsReportData(
     where: { id: context.user.id },
     select: { name: true, officialName: true, jobTitle: true, gender: true },
   });
+  const owner = caseEntry.createdBy || { id: context.user.id, role: context.user.role };
+  const principalSignature = await resolveEffectivePrincipalSignature({
+    schoolAccountId: caseEntry.schoolAccountId,
+    owner: { id: owner.id, role: owner.role, schoolAccountId: caseEntry.schoolAccountId },
+  });
   return {
     caseEntry,
-    data: buildGuardianSummonsTemplateData({ caseEntry, currentUser }),
+    data: buildGuardianSummonsTemplateData({ caseEntry, currentUser, principalSignatureUrl: principalSignature.signatureUrl }),
   };
 }

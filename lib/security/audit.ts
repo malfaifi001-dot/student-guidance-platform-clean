@@ -1,4 +1,5 @@
 import "server-only";
+import { recordAuditEvent } from "@/lib/audit/audit-service";
 
 export type AuditAction =
   | "LOGIN"
@@ -21,10 +22,22 @@ type AuditInput = {
 };
 
 export async function auditLog(input: AuditInput) {
+  await recordAuditEvent({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    action: input.action,
+    category: input.action.includes("SIGN") ? "SIGNATURE" : "SECURITY",
+    status: "SUCCESS",
+    entityType: input.entityType,
+    entityId: input.entityId,
+    metadata: input.metadata,
+  });
+  return;
+  /*
   // مؤقتًا للتطوير.
   // لاحقًا يربط بجدول AuditLog في Prisma.
   console.info("[AUDIT]", {
     ...input,
     at: new Date().toISOString(),
-  });
+  });*/
 }

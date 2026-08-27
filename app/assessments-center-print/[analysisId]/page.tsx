@@ -3,6 +3,7 @@ import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
 import { AssessmentAnalyticalReport } from "@/components/assessments-center/report/assessment-analytical-report";
 import { buildAssessmentAnalyticalReportData } from "@/lib/assessments-center/assessment-report-payload";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,15 @@ export default async function AssessmentCleanPrintPage({
 
   const data = buildAssessmentAnalyticalReportData(
     analysis.summaryJson,
-    profile || undefined,
+    profile
+      ? {
+          ...profile,
+          principalSignatureUrl: (await resolveEffectivePrincipalSignature({
+            schoolAccountId: context.schoolAccountId!,
+            owner: { id: context.user.id, role: context.user.role, schoolAccountId: context.schoolAccountId },
+          })).signatureUrl,
+        }
+      : undefined,
     context.user.name,
     currentUser?.signatureUrl,
     currentUser?.gender,

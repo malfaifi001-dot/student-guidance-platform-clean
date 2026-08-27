@@ -1,5 +1,5 @@
-import { Prisma} from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { recordAuditEvent } from "@/lib/audit/audit-service";
 
 export type PlatformActivityCategory =
   | "AUTH"
@@ -47,24 +47,23 @@ function toPrismaJsonValue(
 }
 
 export async function logPlatformActivity(input: PlatformActivityInput) {
-  try {
-    await prisma.platformActivityLog.create({
-      data: {
-        actorUserId: input.actorUserId || null,
-        targetUserId: input.targetUserId || null,
-        schoolAccountId: input.schoolAccountId || null,
-        category: input.category,
-        action: input.action,
-        severity: input.severity || "INFO",
-        title: input.title,
-        details: toPrismaJsonValue(input.details),
-        ipAddress: input.ipAddress || null,
-        userAgent: input.userAgent || null,
-      },
-    });
-  } catch (error) {
-    console.error("Failed to write platform activity log:", error);
-  }
+  await recordAuditEvent({
+    actorUserId: input.actorUserId,
+    targetUserId: input.targetUserId,
+    schoolAccountId: input.schoolAccountId,
+    category: input.category,
+    action: input.action,
+    status:
+      input.severity === "ERROR"
+        ? "FAILED"
+        : input.severity === "SUCCESS"
+          ? "SUCCESS"
+          : "INFO",
+    title: input.title,
+    metadata: toPrismaJsonValue(input.details),
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
 }
 
 export async function logAdminActivity(input: PlatformActivityInput) {

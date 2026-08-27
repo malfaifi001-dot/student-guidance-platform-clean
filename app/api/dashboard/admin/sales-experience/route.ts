@@ -50,7 +50,7 @@ export async function GET(request: Request) {
           where: { userId: { not: null } },
           orderBy: { updatedAt: "desc" },
           take: 1,
-          select: { status: true, endsAt: true },
+          select: { status: true, endsAt: true, plan: { select: { name: true } } },
         },
         salesExperienceOverride: { select: { mode: true } },
       },
@@ -75,6 +75,7 @@ export async function GET(request: Request) {
             (!user.subscriptions[0].endsAt ||
               user.subscriptions[0].endsAt > new Date()),
         ),
+        subscriptionPlanName: user.subscriptions[0]?.plan?.name || null,
       })),
     },
     { headers: { "Cache-Control": "no-store" } },

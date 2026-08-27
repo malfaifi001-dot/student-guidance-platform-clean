@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
 export type CertificateSignatureProfile = {
   principalName: string;
@@ -17,6 +18,8 @@ export async function getCertificateSignatureProfile(
   schoolAccountId: string,
   role?: string,
   fallbackIssuerName?: string,
+  ownerUserId?: string,
+  includePrincipalSignature = true,
 ): Promise<CertificateSignatureProfile | null> {
   if (!schoolAccountId) {
     return null;
@@ -53,7 +56,12 @@ export async function getCertificateSignatureProfile(
 
   return {
     principalName: clean(profile.principalName) || "مدير المدرسة",
-    principalSignatureUrl: clean(profile.principalSignatureUrl),
+    principalSignatureUrl: includePrincipalSignature && ownerUserId
+      ? clean((await resolveEffectivePrincipalSignature({
+          schoolAccountId,
+          owner: { id: ownerUserId, role: role || "", schoolAccountId },
+        })).signatureUrl)
+      : "",
     issuerName,
     issuerTitle,
     issuerSignatureUrl,

@@ -4,6 +4,7 @@ import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscript
 import { getSchoolActivityTeam } from "@/lib/activity-team/activity-team-service";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { buildSchoolActivityTeamReportSnapshot } from "@/lib/activity-team/activity-team-report";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export default async function ActivityTeamPrintPage({ searchParams }: { searchPa
   const profile = schoolAccount.profile;
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
   const printEnabled = String(params.print || "") === "1";
+  const principalSignature = await resolveEffectivePrincipalSignature({
+    schoolAccountId: current.user.schoolAccountId,
+    owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
+  });
   const snapshot = buildSchoolActivityTeamReportSnapshot({
     assignments: team.assignments,
     gender: current.user.gender,
@@ -27,7 +32,7 @@ export default async function ActivityTeamPrintPage({ searchParams }: { searchPa
     activityLeaderName: profile?.activityLeaderName || current.user.officialName || current.user.name,
     activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || current.user.signatureUrl,
     principalName: profile?.principalName,
-    principalSignatureUrl: profile?.principalSignatureUrl,
+    principalSignatureUrl: principalSignature.signatureUrl,
     supervisorSignatures: team.signatures,
   });
 

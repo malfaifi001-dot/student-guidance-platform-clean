@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw, Search } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { formatAdminSubscriptionStatus } from "@/lib/subscription/subscription-presentation";
 
 type SalesUser = {
   id: string;
@@ -13,6 +14,7 @@ type SalesUser = {
   effectiveMode: "SERVICE" | "BAG";
   source: "GLOBAL" | "USER_OVERRIDE";
   activeSubscription: boolean;
+  subscriptionPlanName: string | null;
   schoolAccount: { name: string; subscription: unknown } | null;
 };
 
@@ -90,7 +92,7 @@ export function AdminSalesExperiencePanel() {
           <button type="button" onClick={() => void load()} className="rounded-xl bg-slate-950 px-4 text-sm font-black text-white">بحث</button>
         </div>
         {feedback ? <p className="mt-3 rounded-xl bg-sky-50 p-3 text-sm font-bold text-sky-700">{feedback}</p> : null}
-        {loading ? <div className="grid place-items-center p-8"><Loader2 className="h-5 w-5 animate-spin text-violet-600" /></div> : <div className="mt-4 space-y-2">{users.map((user) => <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"><div><strong className="block text-sm font-black">{user.name}</strong><span className="text-xs font-bold text-slate-500">{user.email} · {user.role} · {user.schoolAccount?.name || "دون مدرسة"}</span></div><div className="flex items-center gap-2 text-xs font-black"><span className={`rounded-full px-2 py-1 ${user.effectiveMode === "BAG" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"}`}>{user.effectiveMode === "BAG" ? "BAG" : "SERVICE"}{user.source === "USER_OVERRIDE" ? " · override" : ""}</span><span className="text-slate-500">{user.activeSubscription ? "اشتراك نشط" : "دون اشتراك"}</span>{user.source === "USER_OVERRIDE" ? <button type="button" disabled={working} onClick={() => void post({ action: "remove-override", userId: user.id })} className="rounded-lg bg-rose-50 px-3 py-1.5 text-rose-700">إزالة</button> : <button type="button" disabled={working} onClick={() => void post({ action: "add-override", userId: user.id })} className="rounded-lg bg-violet-600 px-3 py-1.5 text-white">إضافة BAG</button>}</div></div>)}</div>}
+        {loading ? <div className="grid place-items-center p-8"><Loader2 className="h-5 w-5 animate-spin text-violet-600" /></div> : <div className="mt-4 space-y-2">{users.map((user) => <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"><div><strong className="block text-sm font-black">{user.name}</strong><span className="text-xs font-bold text-slate-500">{user.email} · {user.role} · {user.schoolAccount?.name || "دون مدرسة"}</span></div><div className="flex items-center gap-2 text-xs font-black"><span className={`rounded-full px-2 py-1 ${user.effectiveMode === "BAG" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"}`}>{user.effectiveMode === "BAG" ? "BAG" : "SERVICE"}{user.source === "USER_OVERRIDE" ? " · override" : ""}</span><span className="text-slate-500">{user.activeSubscription ? formatAdminSubscriptionStatus("ACTIVE", user.subscriptionPlanName) : formatAdminSubscriptionStatus(null)}</span>{user.source === "USER_OVERRIDE" ? <button type="button" disabled={working} onClick={() => void post({ action: "remove-override", userId: user.id })} className="rounded-lg bg-rose-50 px-3 py-1.5 text-rose-700">إزالة</button> : <button type="button" disabled={working} onClick={() => void post({ action: "add-override", userId: user.id })} className="rounded-lg bg-violet-600 px-3 py-1.5 text-white">إضافة BAG</button>}</div></div>)}</div>}
       </div>
 
       <SmartActionModal open={Boolean(confirmMode)} title="تأكيد تغيير وضع تجربة البيع" description={confirmMode === "BAG" ? "سيظهر عرض حقيبة المعلم، وسيُتجاوز paywall الاشتراك للمستخدمين المؤهلين مع بقاء صلاحيات الأدوار." : "ستعود تجربة البيع وقيود الاشتراك إلى وضع Teachix الحالي."} variant="warning" confirmLabel="تأكيد التغيير" cancelLabel="إلغاء" loading={working} onConfirm={() => confirmMode && void post({ action: "set-global", mode: confirmMode })} onClose={() => !working && setConfirmMode(null)} />

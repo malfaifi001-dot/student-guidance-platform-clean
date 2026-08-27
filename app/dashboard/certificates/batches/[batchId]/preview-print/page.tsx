@@ -59,6 +59,8 @@ export default async function CertificatesBatchPrintPreviewPage({ params }: Page
     batchSchoolAccountId,
     current.user.role,
     current.user.officialName || current.user.name || "المستخدم",
+    current.user.id,
+    false,
   );
 
   const html = renderCertificatesBatchDocumentHtml(certificates, {
