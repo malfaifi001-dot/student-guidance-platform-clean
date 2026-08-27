@@ -1,0 +1,4494 @@
+
+==================================================
+FILE: lib\subscription\default-free-plan.ts
+==================================================
+
+----- MATCH AROUND LINE 5 -----
+    1: import { prisma } from "@/lib/prisma";
+    2: import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+    3: import type { UserRole } from "@prisma/client";
+    4: import {
+    5:   assignPlanToSchool,
+    6:   getPlanServiceSlugs,
+    7:   getRemainingDays,
+    8:   isSubscriptionUsable,
+    9: } from "@/lib/subscription/subscription-service";
+   10: import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+   11: 
+   12: export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   13: export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
+   14: 
+   15: const DEFAULT_FREE_PLAN_NAME = "الباقة التلقائية";
+   16: const DEFAULT_FREE_DURATION_DAYS = 14;
+   17: const DEFAULT_FREE_ACCESS_MODE = "ALL_SERVICES";
+   18: 
+   19: export type DefaultFreePlanAccessMode = "ALL_SERVICES" | "CUSTOM_SERVICES";
+   20: 
+   21: export type DefaultFreePlanMetrics = {
+   22:   currentAccountsCount: number;
+   23:   convertedAccountsCount: number;
+
+----- MATCH AROUND LINE 8 -----
+    1: import { prisma } from "@/lib/prisma";
+    2: import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+    3: import type { UserRole } from "@prisma/client";
+    4: import {
+    5:   assignPlanToSchool,
+    6:   getPlanServiceSlugs,
+    7:   getRemainingDays,
+    8:   isSubscriptionUsable,
+    9: } from "@/lib/subscription/subscription-service";
+   10: import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+   11: 
+   12: export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   13: export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
+   14: 
+   15: const DEFAULT_FREE_PLAN_NAME = "الباقة التلقائية";
+   16: const DEFAULT_FREE_DURATION_DAYS = 14;
+   17: const DEFAULT_FREE_ACCESS_MODE = "ALL_SERVICES";
+   18: 
+   19: export type DefaultFreePlanAccessMode = "ALL_SERVICES" | "CUSTOM_SERVICES";
+   20: 
+   21: export type DefaultFreePlanMetrics = {
+   22:   currentAccountsCount: number;
+   23:   convertedAccountsCount: number;
+   24:   averageDaysBeforeConversion: number | null;
+   25:   sessionCount: number;
+   26:   activeDaysCount: number;
+
+----- MATCH AROUND LINE 9 -----
+    1: import { prisma } from "@/lib/prisma";
+    2: import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+    3: import type { UserRole } from "@prisma/client";
+    4: import {
+    5:   assignPlanToSchool,
+    6:   getPlanServiceSlugs,
+    7:   getRemainingDays,
+    8:   isSubscriptionUsable,
+    9: } from "@/lib/subscription/subscription-service";
+   10: import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+   11: 
+   12: export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   13: export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
+   14: 
+   15: const DEFAULT_FREE_PLAN_NAME = "الباقة التلقائية";
+   16: const DEFAULT_FREE_DURATION_DAYS = 14;
+   17: const DEFAULT_FREE_ACCESS_MODE = "ALL_SERVICES";
+   18: 
+   19: export type DefaultFreePlanAccessMode = "ALL_SERVICES" | "CUSTOM_SERVICES";
+   20: 
+   21: export type DefaultFreePlanMetrics = {
+   22:   currentAccountsCount: number;
+   23:   convertedAccountsCount: number;
+   24:   averageDaysBeforeConversion: number | null;
+   25:   sessionCount: number;
+   26:   activeDaysCount: number;
+   27:   reportCount: number;
+
+----- MATCH AROUND LINE 12 -----
+    2: import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+    3: import type { UserRole } from "@prisma/client";
+    4: import {
+    5:   assignPlanToSchool,
+    6:   getPlanServiceSlugs,
+    7:   getRemainingDays,
+    8:   isSubscriptionUsable,
+    9: } from "@/lib/subscription/subscription-service";
+   10: import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+   11: 
+   12: export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   13: export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
+   14: 
+   15: const DEFAULT_FREE_PLAN_NAME = "الباقة التلقائية";
+   16: const DEFAULT_FREE_DURATION_DAYS = 14;
+   17: const DEFAULT_FREE_ACCESS_MODE = "ALL_SERVICES";
+   18: 
+   19: export type DefaultFreePlanAccessMode = "ALL_SERVICES" | "CUSTOM_SERVICES";
+   20: 
+   21: export type DefaultFreePlanMetrics = {
+   22:   currentAccountsCount: number;
+   23:   convertedAccountsCount: number;
+   24:   averageDaysBeforeConversion: number | null;
+   25:   sessionCount: number;
+   26:   activeDaysCount: number;
+   27:   reportCount: number;
+   28: };
+   29: 
+   30: export type DefaultFreePlanAccount = {
+
+----- MATCH AROUND LINE 31 -----
+   21: export type DefaultFreePlanMetrics = {
+   22:   currentAccountsCount: number;
+   23:   convertedAccountsCount: number;
+   24:   averageDaysBeforeConversion: number | null;
+   25:   sessionCount: number;
+   26:   activeDaysCount: number;
+   27:   reportCount: number;
+   28: };
+   29: 
+   30: export type DefaultFreePlanAccount = {
+   31:   schoolAccountId: string;
+   32:   accountName: string;
+   33:   accountSlug: string;
+   34:   schoolName: string;
+   35:   ownerName: string;
+   36:   ownerEmail: string;
+   37:   ownerPhone: string;
+   38:   ownerRole: UserRole | null;
+   39:   subscriptionStatus: string;
+   40:   startsAt: Date | null;
+   41:   endsAt: Date | null;
+   42:   remainingDays: number | null;
+   43:   usersCount: number;
+   44:   studentsCount: number;
+   45:   sessionsCount: number;
+   46:   activeDaysCount: number;
+   47:   reportsCount: number;
+   48: };
+   49: 
+
+----- MATCH AROUND LINE 39 -----
+   29: 
+   30: export type DefaultFreePlanAccount = {
+   31:   schoolAccountId: string;
+   32:   accountName: string;
+   33:   accountSlug: string;
+   34:   schoolName: string;
+   35:   ownerName: string;
+   36:   ownerEmail: string;
+   37:   ownerPhone: string;
+   38:   ownerRole: UserRole | null;
+   39:   subscriptionStatus: string;
+   40:   startsAt: Date | null;
+   41:   endsAt: Date | null;
+   42:   remainingDays: number | null;
+   43:   usersCount: number;
+   44:   studentsCount: number;
+   45:   sessionsCount: number;
+   46:   activeDaysCount: number;
+   47:   reportsCount: number;
+   48: };
+   49: 
+   50: export type DefaultFreePlanConfig = {
+   51:   planId: string;
+   52:   planName: string;
+   53:   slug: string;
+   54:   enabled: boolean;
+   55:   durationDays: number;
+   56:   accessMode: DefaultFreePlanAccessMode;
+   57:   enabledServiceSlugs: string[];
+
+----- MATCH AROUND LINE 224 -----
+  214:       },
+  215:       update: {
+  216:         name: planName,
+  217:         priceMonthly: 0,
+  218:         priceYearly: 0,
+  219:         isActive: input.enabled,
+  220:         isPublic: false,
+  221:         isArchived: false,
+  222:         visibleRoles: [],
+  223:       },
+  224:       create: {
+  225:         name: planName,
+  226:         slug: DEFAULT_FREE_PLAN_SLUG,
+  227:         priceMonthly: 0,
+  228:         priceYearly: 0,
+  229:         isActive: input.enabled,
+  230:         isPublic: false,
+  231:         isArchived: false,
+  232:         visibleRoles: [],
+  233:       },
+  234:     });
+  235: 
+  236:     await tx.planFeature.deleteMany({
+  237:       where: {
+  238:         planId: nextPlan.id,
+  239:       },
+  240:     });
+  241: 
+  242:     await tx.planFeature.createMany({
+
+----- MATCH AROUND LINE 242 -----
+  232:         visibleRoles: [],
+  233:       },
+  234:     });
+  235: 
+  236:     await tx.planFeature.deleteMany({
+  237:       where: {
+  238:         planId: nextPlan.id,
+  239:       },
+  240:     });
+  241: 
+  242:     await tx.planFeature.createMany({
+  243:       data: featureRows.map((feature) => ({
+  244:         planId: nextPlan.id,
+  245:         key: feature.key,
+  246:         label: feature.label,
+  247:         value: feature.value,
+  248:       })),
+  249:     });
+  250: 
+  251:     return tx.plan.findUniqueOrThrow({
+  252:       where: {
+  253:         id: nextPlan.id,
+  254:       },
+  255:       include: {
+  256:         features: true,
+  257:       },
+  258:     });
+  259:   });
+  260: 
+
+----- MATCH AROUND LINE 268 -----
+  258:     });
+  259:   });
+  260: 
+  261:   return {
+  262:     plan,
+  263:     enabledServiceSlugs,
+  264:   };
+  265: }
+  266: 
+  267: async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePlanMetrics> {
+  268:   const currentSubscriptions = await prisma.subscription.findMany({
+  269:     where: {
+  270:       planId,
+  271:     },
+  272:     select: {
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+
+----- MATCH AROUND LINE 273 -----
+  263:     enabledServiceSlugs,
+  264:   };
+  265: }
+  266: 
+  267: async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePlanMetrics> {
+  268:   const currentSubscriptions = await prisma.subscription.findMany({
+  269:     where: {
+  270:       planId,
+  271:     },
+  272:     select: {
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+
+----- MATCH AROUND LINE 277 -----
+  267: async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePlanMetrics> {
+  268:   const currentSubscriptions = await prisma.subscription.findMany({
+  269:     where: {
+  270:       planId,
+  271:     },
+  272:     select: {
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+
+----- MATCH AROUND LINE 281 -----
+  271:     },
+  272:     select: {
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+
+----- MATCH AROUND LINE 283 -----
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+
+----- MATCH AROUND LINE 288 -----
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+  302:     }
+  303: 
+  304:     const daysValue =
+  305:       log.details &&
+  306:       typeof log.details === "object" &&
+
+----- MATCH AROUND LINE 291 -----
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+  302:     }
+  303: 
+  304:     const daysValue =
+  305:       log.details &&
+  306:       typeof log.details === "object" &&
+  307:       !Array.isArray(log.details) &&
+  308:       "daysOnDefaultFree" in log.details
+  309:         ? Number((log.details as Record<string, unknown>).daysOnDefaultFree)
+
+----- MATCH AROUND LINE 296 -----
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+  289:     },
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+  302:     }
+  303: 
+  304:     const daysValue =
+  305:       log.details &&
+  306:       typeof log.details === "object" &&
+  307:       !Array.isArray(log.details) &&
+  308:       "daysOnDefaultFree" in log.details
+  309:         ? Number((log.details as Record<string, unknown>).daysOnDefaultFree)
+  310:         : NaN;
+  311: 
+  312:     if (Number.isFinite(daysValue) && daysValue >= 0) {
+  313:       conversionDays.push(daysValue);
+  314:     }
+
+----- MATCH AROUND LINE 300 -----
+  290:     select: {
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+  302:     }
+  303: 
+  304:     const daysValue =
+  305:       log.details &&
+  306:       typeof log.details === "object" &&
+  307:       !Array.isArray(log.details) &&
+  308:       "daysOnDefaultFree" in log.details
+  309:         ? Number((log.details as Record<string, unknown>).daysOnDefaultFree)
+  310:         : NaN;
+  311: 
+  312:     if (Number.isFinite(daysValue) && daysValue >= 0) {
+  313:       conversionDays.push(daysValue);
+  314:     }
+  315:   }
+  316: 
+  317:   const averageDaysBeforeConversion = conversionDays.length
+  318:     ? Number(
+
+----- MATCH AROUND LINE 301 -----
+  291:       schoolAccountId: true,
+  292:       details: true,
+  293:     },
+  294:   });
+  295: 
+  296:   const convertedSchoolAccountIds = new Set<string>();
+  297:   const conversionDays: number[] = [];
+  298: 
+  299:   for (const log of conversionLogs) {
+  300:     if (typeof log.schoolAccountId === "string" && log.schoolAccountId) {
+  301:       convertedSchoolAccountIds.add(log.schoolAccountId);
+  302:     }
+  303: 
+  304:     const daysValue =
+  305:       log.details &&
+  306:       typeof log.details === "object" &&
+  307:       !Array.isArray(log.details) &&
+  308:       "daysOnDefaultFree" in log.details
+  309:         ? Number((log.details as Record<string, unknown>).daysOnDefaultFree)
+  310:         : NaN;
+  311: 
+  312:     if (Number.isFinite(daysValue) && daysValue >= 0) {
+  313:       conversionDays.push(daysValue);
+  314:     }
+  315:   }
+  316: 
+  317:   const averageDaysBeforeConversion = conversionDays.length
+  318:     ? Number(
+  319:         (
+
+----- MATCH AROUND LINE 325 -----
+  315:   }
+  316: 
+  317:   const averageDaysBeforeConversion = conversionDays.length
+  318:     ? Number(
+  319:         (
+  320:           conversionDays.reduce((sum, value) => sum + value, 0) / conversionDays.length
+  321:         ).toFixed(1),
+  322:       )
+  323:     : null;
+  324: 
+  325:   if (!schoolAccountIds.length) {
+  326:     return {
+  327:       currentAccountsCount: 0,
+  328:       convertedAccountsCount: convertedSchoolAccountIds.size,
+  329:       averageDaysBeforeConversion,
+  330:       sessionCount: 0,
+  331:       activeDaysCount: 0,
+  332:       reportCount: 0,
+  333:     };
+  334:   }
+  335: 
+  336:   const [sessionRows, reportCount] = await Promise.all([
+  337:     prisma.userSession.findMany({
+  338:       where: {
+  339:         user: {
+  340:           schoolAccountId: {
+  341:             in: schoolAccountIds,
+  342:           },
+  343:         },
+
+----- MATCH AROUND LINE 328 -----
+  318:     ? Number(
+  319:         (
+  320:           conversionDays.reduce((sum, value) => sum + value, 0) / conversionDays.length
+  321:         ).toFixed(1),
+  322:       )
+  323:     : null;
+  324: 
+  325:   if (!schoolAccountIds.length) {
+  326:     return {
+  327:       currentAccountsCount: 0,
+  328:       convertedAccountsCount: convertedSchoolAccountIds.size,
+  329:       averageDaysBeforeConversion,
+  330:       sessionCount: 0,
+  331:       activeDaysCount: 0,
+  332:       reportCount: 0,
+  333:     };
+  334:   }
+  335: 
+  336:   const [sessionRows, reportCount] = await Promise.all([
+  337:     prisma.userSession.findMany({
+  338:       where: {
+  339:         user: {
+  340:           schoolAccountId: {
+  341:             in: schoolAccountIds,
+  342:           },
+  343:         },
+  344:       },
+  345:       select: {
+  346:         id: true,
+
+----- MATCH AROUND LINE 340 -----
+  330:       sessionCount: 0,
+  331:       activeDaysCount: 0,
+  332:       reportCount: 0,
+  333:     };
+  334:   }
+  335: 
+  336:   const [sessionRows, reportCount] = await Promise.all([
+  337:     prisma.userSession.findMany({
+  338:       where: {
+  339:         user: {
+  340:           schoolAccountId: {
+  341:             in: schoolAccountIds,
+  342:           },
+  343:         },
+  344:       },
+  345:       select: {
+  346:         id: true,
+  347:         createdAt: true,
+  348:         lastSeenAt: true,
+  349:       },
+  350:     }),
+  351:     prisma.reportSnapshot.count({
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+
+----- MATCH AROUND LINE 341 -----
+  331:       activeDaysCount: 0,
+  332:       reportCount: 0,
+  333:     };
+  334:   }
+  335: 
+  336:   const [sessionRows, reportCount] = await Promise.all([
+  337:     prisma.userSession.findMany({
+  338:       where: {
+  339:         user: {
+  340:           schoolAccountId: {
+  341:             in: schoolAccountIds,
+  342:           },
+  343:         },
+  344:       },
+  345:       select: {
+  346:         id: true,
+  347:         createdAt: true,
+  348:         lastSeenAt: true,
+  349:       },
+  350:     }),
+  351:     prisma.reportSnapshot.count({
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+  359: 
+
+----- MATCH AROUND LINE 347 -----
+  337:     prisma.userSession.findMany({
+  338:       where: {
+  339:         user: {
+  340:           schoolAccountId: {
+  341:             in: schoolAccountIds,
+  342:           },
+  343:         },
+  344:       },
+  345:       select: {
+  346:         id: true,
+  347:         createdAt: true,
+  348:         lastSeenAt: true,
+  349:       },
+  350:     }),
+  351:     prisma.reportSnapshot.count({
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+
+----- MATCH AROUND LINE 353 -----
+  343:         },
+  344:       },
+  345:       select: {
+  346:         id: true,
+  347:         createdAt: true,
+  348:         lastSeenAt: true,
+  349:       },
+  350:     }),
+  351:     prisma.reportSnapshot.count({
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+  366: 
+  367:   return {
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+
+----- MATCH AROUND LINE 354 -----
+  344:       },
+  345:       select: {
+  346:         id: true,
+  347:         createdAt: true,
+  348:         lastSeenAt: true,
+  349:       },
+  350:     }),
+  351:     prisma.reportSnapshot.count({
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+  366: 
+  367:   return {
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+  372:     activeDaysCount: activeDays.size,
+
+----- MATCH AROUND LINE 362 -----
+  352:       where: {
+  353:         schoolAccountId: {
+  354:           in: schoolAccountIds,
+  355:         },
+  356:       },
+  357:     }),
+  358:   ]);
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+  366: 
+  367:   return {
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+  372:     activeDaysCount: activeDays.size,
+  373:     reportCount,
+  374:   };
+  375: }
+  376: 
+  377: async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
+  378:   const subscriptions = await prisma.subscription.findMany({
+  379:     where: {
+  380:       plan: {
+
+----- MATCH AROUND LINE 368 -----
+  358:   ]);
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+  366: 
+  367:   return {
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+  372:     activeDaysCount: activeDays.size,
+  373:     reportCount,
+  374:   };
+  375: }
+  376: 
+  377: async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
+  378:   const subscriptions = await prisma.subscription.findMany({
+  379:     where: {
+  380:       plan: {
+  381:         slug: DEFAULT_FREE_PLAN_SLUG,
+  382:       },
+  383:     },
+  384:     orderBy: {
+  385:       updatedAt: "desc",
+  386:     },
+
+----- MATCH AROUND LINE 369 -----
+  359: 
+  360:   const activeDays = new Set(
+  361:     sessionRows.map((session) => {
+  362:       const date = session.lastSeenAt || session.createdAt;
+  363:       return date.toISOString().slice(0, 10);
+  364:     }),
+  365:   );
+  366: 
+  367:   return {
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+  372:     activeDaysCount: activeDays.size,
+  373:     reportCount,
+  374:   };
+  375: }
+  376: 
+  377: async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
+  378:   const subscriptions = await prisma.subscription.findMany({
+  379:     where: {
+  380:       plan: {
+  381:         slug: DEFAULT_FREE_PLAN_SLUG,
+  382:       },
+  383:     },
+  384:     orderBy: {
+  385:       updatedAt: "desc",
+  386:     },
+  387:     select: {
+
+----- MATCH AROUND LINE 378 -----
+  368:     currentAccountsCount: schoolAccountIds.length,
+  369:     convertedAccountsCount: convertedSchoolAccountIds.size,
+  370:     averageDaysBeforeConversion,
+  371:     sessionCount: sessionRows.length,
+  372:     activeDaysCount: activeDays.size,
+  373:     reportCount,
+  374:   };
+  375: }
+  376: 
+  377: async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
+  378:   const subscriptions = await prisma.subscription.findMany({
+  379:     where: {
+  380:       plan: {
+  381:         slug: DEFAULT_FREE_PLAN_SLUG,
+  382:       },
+  383:     },
+  384:     orderBy: {
+  385:       updatedAt: "desc",
+  386:     },
+  387:     select: {
+  388:       schoolAccountId: true,
+  389:       status: true,
+  390:       startsAt: true,
+  391:       endsAt: true,
+  392:       schoolAccount: {
+  393:         select: {
+  394:           id: true,
+  395:           name: true,
+  396:           slug: true,
+
+----- MATCH AROUND LINE 388 -----
+  378:   const subscriptions = await prisma.subscription.findMany({
+  379:     where: {
+  380:       plan: {
+  381:         slug: DEFAULT_FREE_PLAN_SLUG,
+  382:       },
+  383:     },
+  384:     orderBy: {
+  385:       updatedAt: "desc",
+  386:     },
+  387:     select: {
+  388:       schoolAccountId: true,
+  389:       status: true,
+  390:       startsAt: true,
+  391:       endsAt: true,
+  392:       schoolAccount: {
+  393:         select: {
+  394:           id: true,
+  395:           name: true,
+  396:           slug: true,
+  397:           profile: {
+  398:             select: {
+  399:               schoolName: true,
+  400:             },
+  401:           },
+  402:           users: {
+  403:             orderBy: {
+  404:               createdAt: "asc",
+  405:             },
+  406:             select: {
+
+----- MATCH AROUND LINE 404 -----
+  394:           id: true,
+  395:           name: true,
+  396:           slug: true,
+  397:           profile: {
+  398:             select: {
+  399:               schoolName: true,
+  400:             },
+  401:           },
+  402:           users: {
+  403:             orderBy: {
+  404:               createdAt: "asc",
+  405:             },
+  406:             select: {
+  407:               name: true,
+  408:               officialName: true,
+  409:               email: true,
+  410:               phone: true,
+  411:               role: true,
+  412:             },
+  413:           },
+  414:           _count: {
+  415:             select: {
+  416:               users: true,
+  417:               students: { where: { isActive: true } },
+  418:             },
+  419:           },
+  420:         },
+  421:       },
+  422:     },
+
+----- MATCH AROUND LINE 425 -----
+  415:             select: {
+  416:               users: true,
+  417:               students: { where: { isActive: true } },
+  418:             },
+  419:           },
+  420:         },
+  421:       },
+  422:     },
+  423:   });
+  424: 
+  425:   const schoolAccountIds = subscriptions.map((subscription) => subscription.schoolAccountId);
+  426: 
+  427:   if (!schoolAccountIds.length) {
+  428:     return [];
+  429:   }
+  430: 
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+
+----- MATCH AROUND LINE 427 -----
+  417:               students: { where: { isActive: true } },
+  418:             },
+  419:           },
+  420:         },
+  421:       },
+  422:     },
+  423:   });
+  424: 
+  425:   const schoolAccountIds = subscriptions.map((subscription) => subscription.schoolAccountId);
+  426: 
+  427:   if (!schoolAccountIds.length) {
+  428:     return [];
+  429:   }
+  430: 
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+
+----- MATCH AROUND LINE 435 -----
+  425:   const schoolAccountIds = subscriptions.map((subscription) => subscription.schoolAccountId);
+  426: 
+  427:   if (!schoolAccountIds.length) {
+  428:     return [];
+  429:   }
+  430: 
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+
+----- MATCH AROUND LINE 436 -----
+  426: 
+  427:   if (!schoolAccountIds.length) {
+  428:     return [];
+  429:   }
+  430: 
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+
+----- MATCH AROUND LINE 441 -----
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+  455:         },
+  456:       },
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+
+----- MATCH AROUND LINE 445 -----
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+  437:           },
+  438:         },
+  439:       },
+  440:       select: {
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+  455:         },
+  456:       },
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+
+----- MATCH AROUND LINE 451 -----
+  441:         createdAt: true,
+  442:         lastSeenAt: true,
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+  455:         },
+  456:       },
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+
+----- MATCH AROUND LINE 453 -----
+  443:         user: {
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+  455:         },
+  456:       },
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+
+----- MATCH AROUND LINE 454 -----
+  444:           select: {
+  445:             schoolAccountId: true,
+  446:           },
+  447:         },
+  448:       },
+  449:     }),
+  450:     prisma.reportSnapshot.groupBy({
+  451:       by: ["schoolAccountId"],
+  452:       where: {
+  453:         schoolAccountId: {
+  454:           in: schoolAccountIds,
+  455:         },
+  456:       },
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+
+----- MATCH AROUND LINE 467 -----
+  457:       _count: {
+  458:         _all: true,
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+
+----- MATCH AROUND LINE 469 -----
+  459:       },
+  460:     }),
+  461:   ]);
+  462: 
+  463:   const sessionCountBySchool = new Map<string, number>();
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+
+----- MATCH AROUND LINE 474 -----
+  464:   const activeDaysBySchool = new Map<string, Set<string>>();
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+
+----- MATCH AROUND LINE 475 -----
+  465: 
+  466:   for (const session of sessionRows) {
+  467:     const schoolAccountId = session.user.schoolAccountId;
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+
+----- MATCH AROUND LINE 478 -----
+  468: 
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+
+----- MATCH AROUND LINE 479 -----
+  469:     if (!schoolAccountId) {
+  470:       continue;
+  471:     }
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+
+----- MATCH AROUND LINE 482 -----
+  472: 
+  473:     sessionCountBySchool.set(
+  474:       schoolAccountId,
+  475:       (sessionCountBySchool.get(schoolAccountId) || 0) + 1,
+  476:     );
+  477: 
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+
+----- MATCH AROUND LINE 488 -----
+  478:     const activeDays = activeDaysBySchool.get(schoolAccountId) || new Set<string>();
+  479:     const activityDate = (session.lastSeenAt || session.createdAt).toISOString().slice(0, 10);
+  480: 
+  481:     activeDays.add(activityDate);
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+
+----- MATCH AROUND LINE 492 -----
+  482:     activeDaysBySchool.set(schoolAccountId, activeDays);
+  483:   }
+  484: 
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+
+----- MATCH AROUND LINE 495 -----
+  485:   const reportCountBySchool = new Map<string, number>();
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+
+----- MATCH AROUND LINE 496 -----
+  486: 
+  487:   for (const row of reportRows) {
+  488:     if (!row.schoolAccountId) {
+  489:       continue;
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+
+----- MATCH AROUND LINE 500 -----
+  490:     }
+  491: 
+  492:     reportCountBySchool.set(row.schoolAccountId, row._count._all);
+  493:   }
+  494: 
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+
+----- MATCH AROUND LINE 509 -----
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+
+----- MATCH AROUND LINE 510 -----
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+
+----- MATCH AROUND LINE 511 -----
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+
+----- MATCH AROUND LINE 512 -----
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+  530:       features: true,
+
+----- MATCH AROUND LINE 515 -----
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+  530:       features: true,
+  531:     },
+  532:   });
+  533: 
+
+----- MATCH AROUND LINE 516 -----
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+  530:       features: true,
+  531:     },
+  532:   });
+  533: 
+  534:   if (!existing) {
+
+----- MATCH AROUND LINE 517 -----
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+  530:       features: true,
+  531:     },
+  532:   });
+  533: 
+  534:   if (!existing) {
+  535:     return (
+
+----- MATCH AROUND LINE 522 -----
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+  529:     include: {
+  530:       features: true,
+  531:     },
+  532:   });
+  533: 
+  534:   if (!existing) {
+  535:     return (
+  536:       await upsertDefaultFreePlan({
+  537:         planName: DEFAULT_FREE_PLAN_NAME,
+  538:         enabled: true,
+  539:         durationDays: DEFAULT_FREE_DURATION_DAYS,
+  540:         accessMode: DEFAULT_FREE_ACCESS_MODE,
+
+----- MATCH AROUND LINE 595 -----
+  585:       planName: existing.name,
+  586:       enabled,
+  587:       durationDays,
+  588:       accessMode,
+  589:       enabledServiceSlugs,
+  590:     })
+  591:   ).plan;
+  592: }
+  593: 
+  594: export async function getDefaultFreePlanConfig(): Promise<DefaultFreePlanConfig> {
+  595:   const plan = await ensureDefaultFreePlan();
+  596:   const accessMode = normalizeAccessMode(
+  597:     String(plan.features.find((feature) => feature.key === "autoFreeAccessMode")?.value || ""),
+  598:   );
+  599:   const enabledServiceSlugs = getPlanServiceSlugs(plan.features);
+  600:   const durationDays = normalizeDurationDays(
+  601:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  602:   );
+  603:   const enabled =
+  604:     plan.isActive &&
+  605:     plan.features.find((feature) => feature.key === DEFAULT_FREE_PLAN_FEATURE_KEY)?.value !==
+  606:       "disabled";
+  607:   const [metrics, accounts] = await Promise.all([
+  608:     getDefaultFreePlanMetrics(plan.id),
+  609:     getDefaultFreePlanAccounts(),
+  610:   ]);
+  611: 
+  612:   return {
+  613:     planId: plan.id,
+
+----- MATCH AROUND LINE 642 -----
+  632:     accessMode: normalizeAccessMode(input.accessMode),
+  633:     enabledServiceSlugs: Array.isArray(input.enabledServiceSlugs)
+  634:       ? input.enabledServiceSlugs
+  635:       : [],
+  636:   });
+  637: 
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+
+----- MATCH AROUND LINE 643 -----
+  633:     enabledServiceSlugs: Array.isArray(input.enabledServiceSlugs)
+  634:       ? input.enabledServiceSlugs
+  635:       : [],
+  636:   });
+  637: 
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+
+----- MATCH AROUND LINE 646 -----
+  636:   });
+  637: 
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+
+----- MATCH AROUND LINE 648 -----
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+
+----- MATCH AROUND LINE 655 -----
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+
+----- MATCH AROUND LINE 664 -----
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+
+----- MATCH AROUND LINE 666 -----
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+
+----- MATCH AROUND LINE 674 -----
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+
+----- MATCH AROUND LINE 675 -----
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+
+----- MATCH AROUND LINE 676 -----
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+
+----- MATCH AROUND LINE 685 -----
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+
+----- MATCH AROUND LINE 686 -----
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+
+----- MATCH AROUND LINE 687 -----
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+
+----- MATCH AROUND LINE 691 -----
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+  706:   });
+  707: 
+  708:   return {
+  709:     applied: true,
+
+----- MATCH AROUND LINE 699 -----
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+  706:   });
+  707: 
+  708:   return {
+  709:     applied: true,
+  710:     reason: "DEFAULT_PLAN_ASSIGNED",
+  711:     source: input.source,
+  712:   } as const;
+  713: }
+
+----- MATCH AROUND LINE 700 -----
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+  706:   });
+  707: 
+  708:   return {
+  709:     applied: true,
+  710:     reason: "DEFAULT_PLAN_ASSIGNED",
+  711:     source: input.source,
+  712:   } as const;
+  713: }
+
+----- MATCH AROUND LINE 704 -----
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+  706:   });
+  707: 
+  708:   return {
+  709:     applied: true,
+  710:     reason: "DEFAULT_PLAN_ASSIGNED",
+  711:     source: input.source,
+  712:   } as const;
+  713: }
+
+==================================================
+FILE: lib\auth\public-registration-service.ts
+==================================================
+
+----- MATCH AROUND LINE 6 -----
+    1: import "server-only";
+    2: 
+    3: import { Prisma } from "@prisma/client";
+    4: import { hashPassword } from "@/lib/auth/password";
+    5: import { buildTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
+    6: import type { PublicRegistrationInput } from "@/lib/auth/public-registration-schema";
+    7: import { prisma } from "@/lib/prisma";
+    8: 
+    9: function createSlugFromName(name: string) {
+   10:   const base = name.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+   11:   return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
+   12: }
+   13: 
+   14: export function getPublicRegistrationJobTitle(role: PublicRegistrationInput["accountType"], gender: PublicRegistrationInput["gender"]) {
+   15:   if (role === "PRINCIPAL") return gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة";
+   16:   if (role === "ACTIVITY_LEADER") return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+   17:   if (role === "TEACHER") return gender === "FEMALE" ? "معلمة" : "معلم";
+   18:   return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
+   19: }
+   20: 
+   21: type SessionInput = { tokenId: string; expiresAt: Date; userAgent: string | null; ipAddress: string | null };
+   22: 
+   23: export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
+   24:   return prisma.$transaction(async (tx) => {
+
+----- MATCH AROUND LINE 9 -----
+    1: import "server-only";
+    2: 
+    3: import { Prisma } from "@prisma/client";
+    4: import { hashPassword } from "@/lib/auth/password";
+    5: import { buildTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
+    6: import type { PublicRegistrationInput } from "@/lib/auth/public-registration-schema";
+    7: import { prisma } from "@/lib/prisma";
+    8: 
+    9: function createSlugFromName(name: string) {
+   10:   const base = name.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+   11:   return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
+   12: }
+   13: 
+   14: export function getPublicRegistrationJobTitle(role: PublicRegistrationInput["accountType"], gender: PublicRegistrationInput["gender"]) {
+   15:   if (role === "PRINCIPAL") return gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة";
+   16:   if (role === "ACTIVITY_LEADER") return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+   17:   if (role === "TEACHER") return gender === "FEMALE" ? "معلمة" : "معلم";
+   18:   return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
+   19: }
+   20: 
+   21: type SessionInput = { tokenId: string; expiresAt: Date; userAgent: string | null; ipAddress: string | null };
+   22: 
+   23: export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
+   24:   return prisma.$transaction(async (tx) => {
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+
+----- MATCH AROUND LINE 14 -----
+    4: import { hashPassword } from "@/lib/auth/password";
+    5: import { buildTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
+    6: import type { PublicRegistrationInput } from "@/lib/auth/public-registration-schema";
+    7: import { prisma } from "@/lib/prisma";
+    8: 
+    9: function createSlugFromName(name: string) {
+   10:   const base = name.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+   11:   return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
+   12: }
+   13: 
+   14: export function getPublicRegistrationJobTitle(role: PublicRegistrationInput["accountType"], gender: PublicRegistrationInput["gender"]) {
+   15:   if (role === "PRINCIPAL") return gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة";
+   16:   if (role === "ACTIVITY_LEADER") return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+   17:   if (role === "TEACHER") return gender === "FEMALE" ? "معلمة" : "معلم";
+   18:   return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
+   19: }
+   20: 
+   21: type SessionInput = { tokenId: string; expiresAt: Date; userAgent: string | null; ipAddress: string | null };
+   22: 
+   23: export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
+   24:   return prisma.$transaction(async (tx) => {
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+   28:       select: { id: true },
+   29:     });
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+
+----- MATCH AROUND LINE 23 -----
+   13: 
+   14: export function getPublicRegistrationJobTitle(role: PublicRegistrationInput["accountType"], gender: PublicRegistrationInput["gender"]) {
+   15:   if (role === "PRINCIPAL") return gender === "FEMALE" ? "مديرة المدرسة" : "مدير المدرسة";
+   16:   if (role === "ACTIVITY_LEADER") return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+   17:   if (role === "TEACHER") return gender === "FEMALE" ? "معلمة" : "معلم";
+   18:   return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
+   19: }
+   20: 
+   21: type SessionInput = { tokenId: string; expiresAt: Date; userAgent: string | null; ipAddress: string | null };
+   22: 
+   23: export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
+   24:   return prisma.$transaction(async (tx) => {
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+   28:       select: { id: true },
+   29:     });
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+
+----- MATCH AROUND LINE 32 -----
+   22: 
+   23: export async function registerPublicAccount(input: PublicRegistrationInput, sessionInput: SessionInput) {
+   24:   return prisma.$transaction(async (tx) => {
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+   28:       select: { id: true },
+   29:     });
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+
+----- MATCH AROUND LINE 35 -----
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+   28:       select: { id: true },
+   29:     });
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+
+----- MATCH AROUND LINE 40 -----
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+
+----- MATCH AROUND LINE 42 -----
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+   59:       data: { userId: user.id, ...sessionInput },
+   60:     });
+
+----- MATCH AROUND LINE 51 -----
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+   59:       data: { userId: user.id, ...sessionInput },
+   60:     });
+   61: 
+   62:     return { user, schoolAccount, session };
+   63:   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+   64: }
+
+----- MATCH AROUND LINE 58 -----
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+   59:       data: { userId: user.id, ...sessionInput },
+   60:     });
+   61: 
+   62:     return { user, schoolAccount, session };
+   63:   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+   64: }
+
+----- MATCH AROUND LINE 59 -----
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+   59:       data: { userId: user.id, ...sessionInput },
+   60:     });
+   61: 
+   62:     return { user, schoolAccount, session };
+   63:   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+   64: }
+
+==================================================
+FILE: lib\subscription\subscription-service.ts
+==================================================
+
+----- MATCH AROUND LINE 2 -----
+    1: import { prisma } from "@/lib/prisma";
+    2: import type { SubscriptionStatus } from "@prisma/client";
+    3: import type { PlanAudience } from "./plan-audience";
+    4: import {
+    5:   getActivityProgramsBillingServiceSlug,
+    6: } from "@/lib/activity-programs/activity-program-catalog";
+    7: import {
+    8:   getPlanCommercialType,
+    9:   getPlanDurationMode,
+   10:   getPlanFixedEndDate,
+   11:   getPlanServiceSlugs,
+   12:   resolvePlanBillingCycle,
+   13:   type CommercialPlanType,
+   14:   type PlanBillingCycle,
+   15:   type PlanDurationMode,
+   16:   type PlanFeatureLike,
+   17: } from "./plan-metadata";
+   18: 
+   19: export {
+   20:   getPlanCommercialType,
+
+----- MATCH AROUND LINE 28 -----
+   18: 
+   19: export {
+   20:   getPlanCommercialType,
+   21:   getPlanDurationMode,
+   22:   getPlanFixedEndDate,
+   23:   getPlanServiceSlugs,
+   24:   resolvePlanBillingCycle,
+   25: } from "./plan-metadata";
+   26: export type { CommercialPlanType, PlanBillingCycle, PlanDurationMode, PlanFeatureLike } from "./plan-metadata";
+   27: 
+   28: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   29: 
+   30: export function resolvePlanSubscriptionPeriod(input: {
+   31:   features: PlanFeatureLike[];
+   32:   days?: number;
+   33:   startsAt?: Date;
+   34: }) {
+   35:   const startsAt = input.startsAt || new Date();
+   36:   const mode = getPlanDurationMode(input.features);
+   37:   if (mode === "FIXED_END_DATE") {
+   38:     const endsAt = getPlanFixedEndDate(input.features);
+   39:     if (!endsAt) throw new Error("FIXED_END_DATE_PLAN_CONFIGURATION_INVALID");
+   40:     if (endsAt.getTime() <= startsAt.getTime()) throw new Error("FIXED_END_DATE_PLAN_EXPIRED");
+   41:     return { startsAt, endsAt, durationMode: mode, durationDays: null };
+   42:   }
+   43:   const configuredDays = Number(getPlanFeatureValue(input.features, "durationDays", "30"));
+   44:   const durationDays = input.days && input.days > 0 ? input.days : configuredDays > 0 ? configuredDays : 30;
+   45:   return { startsAt, endsAt: addDays(startsAt, durationDays), durationMode: mode, durationDays };
+   46: }
+
+----- MATCH AROUND LINE 30 -----
+   20:   getPlanCommercialType,
+   21:   getPlanDurationMode,
+   22:   getPlanFixedEndDate,
+   23:   getPlanServiceSlugs,
+   24:   resolvePlanBillingCycle,
+   25: } from "./plan-metadata";
+   26: export type { CommercialPlanType, PlanBillingCycle, PlanDurationMode, PlanFeatureLike } from "./plan-metadata";
+   27: 
+   28: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   29: 
+   30: export function resolvePlanSubscriptionPeriod(input: {
+   31:   features: PlanFeatureLike[];
+   32:   days?: number;
+   33:   startsAt?: Date;
+   34: }) {
+   35:   const startsAt = input.startsAt || new Date();
+   36:   const mode = getPlanDurationMode(input.features);
+   37:   if (mode === "FIXED_END_DATE") {
+   38:     const endsAt = getPlanFixedEndDate(input.features);
+   39:     if (!endsAt) throw new Error("FIXED_END_DATE_PLAN_CONFIGURATION_INVALID");
+   40:     if (endsAt.getTime() <= startsAt.getTime()) throw new Error("FIXED_END_DATE_PLAN_EXPIRED");
+   41:     return { startsAt, endsAt, durationMode: mode, durationDays: null };
+   42:   }
+   43:   const configuredDays = Number(getPlanFeatureValue(input.features, "durationDays", "30"));
+   44:   const durationDays = input.days && input.days > 0 ? input.days : configuredDays > 0 ? configuredDays : 30;
+   45:   return { startsAt, endsAt: addDays(startsAt, durationDays), durationMode: mode, durationDays };
+   46: }
+   47: 
+   48: export function addDays(date: Date, days: number) {
+
+----- MATCH AROUND LINE 61 -----
+   51:   return next;
+   52: }
+   53: 
+   54: export function getRemainingDays(endsAt?: Date | null) {
+   55:   if (!endsAt) return null;
+   56: 
+   57:   const diff = endsAt.getTime() - Date.now();
+   58:   return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+   59: }
+   60: 
+   61: export function isSubscriptionUsable(
+   62:   status?: SubscriptionStatus | string | null,
+   63:   endsAt?: Date | null
+   64: ) {
+   65:   if (!status) return false;
+   66: 
+   67:   if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+   68:     return false;
+   69:   }
+   70: 
+   71:   if (!endsAt) {
+   72:     return status === "ACTIVE" || status === "TRIAL";
+   73:   }
+   74: 
+   75:   return endsAt.getTime() > Date.now();
+   76: }
+   77: 
+   78: export function getPlanFeatureValue(
+   79:   features: Array<{ key: string; value: string | null }>,
+
+----- MATCH AROUND LINE 62 -----
+   52: }
+   53: 
+   54: export function getRemainingDays(endsAt?: Date | null) {
+   55:   if (!endsAt) return null;
+   56: 
+   57:   const diff = endsAt.getTime() - Date.now();
+   58:   return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+   59: }
+   60: 
+   61: export function isSubscriptionUsable(
+   62:   status?: SubscriptionStatus | string | null,
+   63:   endsAt?: Date | null
+   64: ) {
+   65:   if (!status) return false;
+   66: 
+   67:   if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+   68:     return false;
+   69:   }
+   70: 
+   71:   if (!endsAt) {
+   72:     return status === "ACTIVE" || status === "TRIAL";
+   73:   }
+   74: 
+   75:   return endsAt.getTime() > Date.now();
+   76: }
+   77: 
+   78: export function getPlanFeatureValue(
+   79:   features: Array<{ key: string; value: string | null }>,
+   80:   key: string,
+
+----- MATCH AROUND LINE 99 -----
+   89:   const value = features.find((f) => f.key === "targetAudience")?.value;
+   90:   if (value === "GUIDANCE" || value === "ACTIVITY") return value;
+   91:   return "ALL";
+   92: }
+   93: 
+   94: function hasPlanServiceRules(features: PlanFeatureLike[]) {
+   95:   return features.some((feature) => feature.key.startsWith("service:"));
+   96: }
+   97: 
+   98: export async function syncSchoolServicesFromPlan(input: {
+   99:   schoolAccountId: string;
+  100:   planId: string;
+  101: }) {
+  102:   const planFeatures = (
+  103:     await prisma.planFeature.findMany({
+  104:       where: {
+  105:         planId: input.planId,
+  106:       },
+  107:       select: {
+  108:         key: true,
+  109:         value: true,
+  110:       },
+  111:     })
+  112:   ).filter((feature) => feature.key.startsWith("service:"));
+  113: 
+  114:   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
+  115: 
+  116:   if (!enabledServiceSlugs.length) {
+  117:     return {
+
+----- MATCH AROUND LINE 150 -----
+  140: 
+  141:   if (missingServiceSlugs.length) {
+  142:     throw new Error(
+  143:       `الباقة تحتوي على خدمات غير موجودة في جدول Service: ${missingServiceSlugs.join(", ")}`
+  144:     );
+  145:   }
+  146: 
+  147:   await prisma.$transaction(async (tx) => {
+  148:     await tx.serviceAccess.updateMany({
+  149:       where: {
+  150:         schoolAccountId: input.schoolAccountId,
+  151:       },
+  152:       data: {
+  153:         isEnabled: false,
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+
+----- MATCH AROUND LINE 161 -----
+  151:       },
+  152:       data: {
+  153:         isEnabled: false,
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+  175:         },
+  176:       });
+  177:     }
+  178:   });
+  179: 
+
+----- MATCH AROUND LINE 162 -----
+  152:       data: {
+  153:         isEnabled: false,
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+  175:         },
+  176:       });
+  177:     }
+  178:   });
+  179: 
+  180:   return {
+
+----- MATCH AROUND LINE 170 -----
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+  175:         },
+  176:       });
+  177:     }
+  178:   });
+  179: 
+  180:   return {
+  181:     enabledServiceCount: enabledServices.length,
+  182:     missingServiceSlugs,
+  183:     skippedReason: null,
+  184:   };
+  185: }
+  186: 
+  187: export async function syncPlanEntitlementsForSubscribers(input: {
+  188:   planId: string;
+
+----- MATCH AROUND LINE 171 -----
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+  175:         },
+  176:       });
+  177:     }
+  178:   });
+  179: 
+  180:   return {
+  181:     enabledServiceCount: enabledServices.length,
+  182:     missingServiceSlugs,
+  183:     skippedReason: null,
+  184:   };
+  185: }
+  186: 
+  187: export async function syncPlanEntitlementsForSubscribers(input: {
+  188:   planId: string;
+  189:   previousServiceSlugs: string[];
+
+----- MATCH AROUND LINE 198 -----
+  188:   planId: string;
+  189:   previousServiceSlugs: string[];
+  190:   nextServiceSlugs: string[];
+  191: }) {
+  192:   const previous = new Set(input.previousServiceSlugs);
+  193:   const next = new Set(input.nextServiceSlugs);
+  194:   const addedSlugs = [...next].filter((slug) => !previous.has(slug));
+  195:   const removedSlugs = [...previous].filter((slug) => !next.has(slug));
+  196:   if (!addedSlugs.length && !removedSlugs.length) return { affectedSubscribers: 0, addedSlugs, removedSlugs };
+  197: 
+  198:   const subscriptions = await prisma.subscription.findMany({
+  199:     where: { planId: input.planId },
+  200:     select: { schoolAccountId: true },
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+
+----- MATCH AROUND LINE 200 -----
+  190:   nextServiceSlugs: string[];
+  191: }) {
+  192:   const previous = new Set(input.previousServiceSlugs);
+  193:   const next = new Set(input.nextServiceSlugs);
+  194:   const addedSlugs = [...next].filter((slug) => !previous.has(slug));
+  195:   const removedSlugs = [...previous].filter((slug) => !next.has(slug));
+  196:   if (!addedSlugs.length && !removedSlugs.length) return { affectedSubscribers: 0, addedSlugs, removedSlugs };
+  197: 
+  198:   const subscriptions = await prisma.subscription.findMany({
+  199:     where: { planId: input.planId },
+  200:     select: { schoolAccountId: true },
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+
+----- MATCH AROUND LINE 209 -----
+  199:     where: { planId: input.planId },
+  200:     select: { schoolAccountId: true },
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+
+----- MATCH AROUND LINE 214 -----
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+
+----- MATCH AROUND LINE 216 -----
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+
+----- MATCH AROUND LINE 224 -----
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+
+----- MATCH AROUND LINE 230 -----
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+
+----- MATCH AROUND LINE 233 -----
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+
+----- MATCH AROUND LINE 234 -----
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+
+----- MATCH AROUND LINE 237 -----
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+
+----- MATCH AROUND LINE 254 -----
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+  256:       schoolAccountId: input.schoolAccountId,
+  257:     },
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+
+----- MATCH AROUND LINE 256 -----
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+  256:       schoolAccountId: input.schoolAccountId,
+  257:     },
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+
+----- MATCH AROUND LINE 268 -----
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+
+----- MATCH AROUND LINE 275 -----
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+
+----- MATCH AROUND LINE 277 -----
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+
+----- MATCH AROUND LINE 285 -----
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+
+----- MATCH AROUND LINE 286 -----
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+
+----- MATCH AROUND LINE 295 -----
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+
+----- MATCH AROUND LINE 300 -----
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+
+----- MATCH AROUND LINE 307 -----
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+
+----- MATCH AROUND LINE 313 -----
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+
+----- MATCH AROUND LINE 315 -----
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+
+----- MATCH AROUND LINE 316 -----
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+
+----- MATCH AROUND LINE 317 -----
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+
+----- MATCH AROUND LINE 322 -----
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+  338:       data: {
+  339:         schoolAccountId: input.schoolAccountId,
+  340:         activatedById: input.activatedById || null,
+
+----- MATCH AROUND LINE 325 -----
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+  338:       data: {
+  339:         schoolAccountId: input.schoolAccountId,
+  340:         activatedById: input.activatedById || null,
+  341:         reason: input.reason || `إسناد باقة ${plan.name}`,
+  342:         startsAt: now,
+  343:         endsAt,
+
+----- MATCH AROUND LINE 337 -----
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+  338:       data: {
+  339:         schoolAccountId: input.schoolAccountId,
+  340:         activatedById: input.activatedById || null,
+  341:         reason: input.reason || `إسناد باقة ${plan.name}`,
+  342:         startsAt: now,
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+
+----- MATCH AROUND LINE 339 -----
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+  338:       data: {
+  339:         schoolAccountId: input.schoolAccountId,
+  340:         activatedById: input.activatedById || null,
+  341:         reason: input.reason || `إسناد باقة ${plan.name}`,
+  342:         startsAt: now,
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+
+----- MATCH AROUND LINE 350 -----
+  340:         activatedById: input.activatedById || null,
+  341:         reason: input.reason || `إسناد باقة ${plan.name}`,
+  342:         startsAt: now,
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+
+----- MATCH AROUND LINE 353 -----
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+
+----- MATCH AROUND LINE 354 -----
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+
+----- MATCH AROUND LINE 356 -----
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+
+----- MATCH AROUND LINE 367 -----
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+
+----- MATCH AROUND LINE 368 -----
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+
+----- MATCH AROUND LINE 369 -----
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+
+----- MATCH AROUND LINE 373 -----
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+
+----- MATCH AROUND LINE 375 -----
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+
+----- MATCH AROUND LINE 380 -----
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+
+----- MATCH AROUND LINE 386 -----
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+  399:     const service = await prisma.service.findFirst({
+  400:       where: {
+  401:         slug: billingServiceSlug,
+  402:       },
+  403:       select: {
+  404:         id: true,
+
+----- MATCH AROUND LINE 391 -----
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+  399:     const service = await prisma.service.findFirst({
+  400:       where: {
+  401:         slug: billingServiceSlug,
+  402:       },
+  403:       select: {
+  404:         id: true,
+  405:       },
+  406:     });
+  407: 
+  408:     if (!service) {
+  409:       return {
+
+----- MATCH AROUND LINE 395 -----
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+  399:     const service = await prisma.service.findFirst({
+  400:       where: {
+  401:         slug: billingServiceSlug,
+  402:       },
+  403:       select: {
+  404:         id: true,
+  405:       },
+  406:     });
+  407: 
+  408:     if (!service) {
+  409:       return {
+  410:         ok: false,
+  411:         reason: "SERVICE_NOT_FOUND" as const,
+  412:       };
+  413:     }
+
+----- MATCH AROUND LINE 417 -----
+  407: 
+  408:     if (!service) {
+  409:       return {
+  410:         ok: false,
+  411:         reason: "SERVICE_NOT_FOUND" as const,
+  412:       };
+  413:     }
+  414: 
+  415:     await prisma.serviceAccess.upsert({
+  416:       where: {
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+  431:       },
+  432:     });
+  433: 
+  434:     return {
+  435:       ok: true,
+
+----- MATCH AROUND LINE 418 -----
+  408:     if (!service) {
+  409:       return {
+  410:         ok: false,
+  411:         reason: "SERVICE_NOT_FOUND" as const,
+  412:       };
+  413:     }
+  414: 
+  415:     await prisma.serviceAccess.upsert({
+  416:       where: {
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+  431:       },
+  432:     });
+  433: 
+  434:     return {
+  435:       ok: true,
+  436:       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+
+----- MATCH AROUND LINE 426 -----
+  416:       where: {
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+  431:       },
+  432:     });
+  433: 
+  434:     return {
+  435:       ok: true,
+  436:       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+  437:     };
+  438:   }
+  439: 
+  440:   if (hasPlanServiceRules(planFeatures)) {
+  441:     return {
+  442:       ok: false,
+  443:       reason: "SERVICE_NOT_INCLUDED" as const,
+  444:     };
+
+----- MATCH AROUND LINE 427 -----
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+  431:       },
+  432:     });
+  433: 
+  434:     return {
+  435:       ok: true,
+  436:       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+  437:     };
+  438:   }
+  439: 
+  440:   if (hasPlanServiceRules(planFeatures)) {
+  441:     return {
+  442:       ok: false,
+  443:       reason: "SERVICE_NOT_INCLUDED" as const,
+  444:     };
+  445:   }
+
+----- MATCH AROUND LINE 449 -----
+  439: 
+  440:   if (hasPlanServiceRules(planFeatures)) {
+  441:     return {
+  442:       ok: false,
+  443:       reason: "SERVICE_NOT_INCLUDED" as const,
+  444:     };
+  445:   }
+  446: 
+  447:   const accessRows = await prisma.serviceAccess.findMany({
+  448:     where: {
+  449:       schoolAccountId: input.schoolAccountId,
+  450:     },
+  451:   });
+  452: 
+  453:   if (accessRows.length === 0) {
+  454:     return {
+  455:       ok: true,
+  456:       reason: "NO_SERVICE_RULES_YET" as const,
+  457:     };
+  458:   }
+  459: 
+  460:   const serviceAccess = await prisma.serviceAccess.findFirst({
+  461:     where: {
+  462:       schoolAccountId: input.schoolAccountId,
+  463:       service: {
+  464:         slug: billingServiceSlug,
+  465:       },
+  466:     },
+  467:   });
+
+----- MATCH AROUND LINE 462 -----
+  452: 
+  453:   if (accessRows.length === 0) {
+  454:     return {
+  455:       ok: true,
+  456:       reason: "NO_SERVICE_RULES_YET" as const,
+  457:     };
+  458:   }
+  459: 
+  460:   const serviceAccess = await prisma.serviceAccess.findFirst({
+  461:     where: {
+  462:       schoolAccountId: input.schoolAccountId,
+  463:       service: {
+  464:         slug: billingServiceSlug,
+  465:       },
+  466:     },
+  467:   });
+  468: 
+  469:   if (!serviceAccess?.isEnabled) {
+  470:     return {
+  471:       ok: false,
+  472:       reason: "SERVICE_NOT_INCLUDED" as const,
+  473:     };
+  474:   }
+  475: 
+  476:   return {
+  477:     ok: true,
+  478:     reason: "SERVICE_INCLUDED" as const,
+  479:   };
+  480: }

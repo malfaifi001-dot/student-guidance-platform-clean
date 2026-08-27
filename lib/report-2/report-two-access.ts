@@ -67,6 +67,8 @@ export async function getAuthorizedReportTwoCase(
     select: {
       id: true,
       schoolAccountId: true,
+      createdById: true,
+      createdBy: { select: { id: true, role: true, schoolAccountId: true } },
       serviceId: true,
       title: true,
       service: { select: { slug: true, name: true } },

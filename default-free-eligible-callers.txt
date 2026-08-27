@@ -1,0 +1,166 @@
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\auth\login\route.ts
+==================================================
+    3: type LoginTransactionClient = Pick<typeof prisma, "user" | "userSession">;
+    4: import { verifyPassword } from "@/lib/auth/password";
+    5: import { getRequestDeviceInfo } from "@/lib/auth/current-user";
+    6: import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
+    7: import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
+    8: import { logAuthLoginEvent } from "@/lib/admin/activity-events";
+    9: import { getPostLoginRedirectPath } from "@/lib/auth/dashboard-redirects";
+   10: import { assignDefaultFreePlanIfEligible } from "@/lib/subscription/default-free-plan";
+   11: import {
+   12:   createSessionToken,
+   13:   createTokenId,
+   14:   getSessionCookieOptions,
+   15:   getSessionExpiryDate,
+   16:   SESSION_COOKIE_NAME,
+   17: } from "@/lib/auth/session";
+   18: import {
+   19:   classifyLoginIdentifier,
+   20:   normalizeLoginIdentifier,
+   21: } from "@/lib/auth/login-identifier";
+   22: 
+   23: const INVALID_CREDENTIALS_MESSAGE =
+
+  100: 
+  101:     const deviceInfo = await getRequestDeviceInfo();
+  102:     const tokenId = createTokenId();
+  103:     const expiresAt = getSessionExpiryDate();
+  104: 
+  105:     if (user.role !== "ADMIN" && user.schoolAccountId) {
+  106:       try {
+  107:         await assignDefaultFreePlanIfEligible({
+  108:           schoolAccountId: user.schoolAccountId,
+  109:           userId: user.id,
+  110:           source: "login",
+  111:         });
+  112:       } catch (error) {
+  113:         console.error("LOGIN_DEFAULT_FREE_PLAN_ERROR", error);
+  114:       }
+  115:     }
+  116: 
+  117:     const session = await prisma.$transaction(async (tx: LoginTransactionClient) => {
+  118:       if (shouldLimitActiveSessions()) {
+  119:         await tx.userSession.updateMany({
+  120:           where: {
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\auth\register\route.ts
+==================================================
+   10: import {
+   11:   createSessionToken,
+   12:   createTokenId,
+   13:   getSessionCookieOptions,
+   14:   getSessionExpiryDate,
+   15:   SESSION_COOKIE_NAME,
+   16: } from "@/lib/auth/session";
+   17: import { assignDefaultFreePlanIfEligible } from "@/lib/subscription/default-free-plan";
+   18: 
+   19: export async function POST(request: Request) {
+   20:   try {
+   21:     const rawBody = await request.json().catch(() => null);
+   22:     const phoneIdentity = String(rawBody?.phone || "").trim();
+   23:     const rateLimitResponse = enforceRateLimit(request, {
+   24:       namespace: "auth-register",
+   25:       identity: phoneIdentity || "register",
+   26:       limit: 5,
+   27:       windowMs: 30 * 60 * 1000,
+   28:     });
+   29:     if (rateLimitResponse) return rateLimitResponse;
+   30: 
+
+   41:       tokenId,
+   42:       expiresAt: getSessionExpiryDate(),
+   43:       userAgent: deviceInfo.userAgent,
+   44:       ipAddress: deviceInfo.ipAddress,
+   45:     });
+   46: 
+   47:     try {
+   48:       await assignDefaultFreePlanIfEligible({
+   49:         schoolAccountId: result.schoolAccount.id,
+   50:         userId: result.user.id,
+   51:         source: "register",
+   52:       });
+   53:     } catch (error) {
+   54:       console.error("REGISTER_DEFAULT_FREE_PLAN_ERROR", error);
+   55:     }
+   56: 
+   57:     if (result.user.role === "PRINCIPAL") {
+   58:       await logPlatformActivity({
+   59:         actorUserId: result.user.id,
+   60:         targetUserId: result.user.id,
+   61:         schoolAccountId: result.schoolAccount.id,
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\subscription\route.ts
+==================================================
+    1: import { NextResponse } from "next/server";
+    2: import { prisma } from "@/lib/prisma";
+    3: import { getCurrentSessionUser } from "@/lib/auth/current-user";
+    4: import {
+    5:   assignDefaultFreePlanIfEligible,
+    6:   DEFAULT_FREE_PLAN_SLUG,
+    7: } from "@/lib/subscription/default-free-plan";
+    8: import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+    9: 
+   10: export async function GET() {
+   11:   const current = await getCurrentSessionUser();
+   12: 
+   13:   if (!current?.user?.schoolAccountId) {
+   14:     return NextResponse.json(
+   15:       {
+   16:         error: "يجب تسجيل الدخول أولًا.",
+   17:       },
+   18:       {
+
+   19:         status: 401,
+   20:       },
+   21:     );
+   22:   }
+   23: 
+   24:   if (current.user.role !== "ADMIN") {
+   25:     try {
+   26:       await assignDefaultFreePlanIfEligible({
+   27:         schoolAccountId: current.user.schoolAccountId,
+   28:         userId: current.user.id,
+   29:         source: "subscription-overview",
+   30:       });
+   31:     } catch (error) {
+   32:       console.error("SUBSCRIPTION_OVERVIEW_DEFAULT_FREE_PLAN_ERROR", error);
+   33:     }
+   34:   }
+   35: 
+   36:   const [overview, pendingBankRequests] = await Promise.all([
+   37:     getSchoolSubscriptionOverview(current.user.schoolAccountId),
+   38:     prisma.bankTransferRequest.count({
+   39:       where: {
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\default-free-plan.ts
+==================================================
+  634:       ? input.enabledServiceSlugs
+  635:       : [],
+  636:   });
+  637: 
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 

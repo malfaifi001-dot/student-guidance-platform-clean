@@ -326,6 +326,7 @@ model SchoolAccount {
   activityPlanEntries          ActivityPlanEntry[]
   activityPlanShareTokens      ActivityPlanShareToken[]
   savedCurriculumSubjects      TeacherSavedCurriculum[]
+  principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
 }
 
 // Imported, platform-owned curriculum catalog. This data is not school-scoped.
@@ -491,6 +492,7 @@ model User {
   activityPlanShareTokens       ActivityPlanShareToken[]
   savedCurriculumSubjects       TeacherSavedCurriculum[]
   salesExperienceOverride       SalesExperienceUserOverride?
+  principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
 
   @@index([schoolAccountId])
 }
@@ -781,6 +783,7 @@ model SchoolProfile {
   principalSignatureToken       String?   @unique
   principalSignatureRequestedAt DateTime?
   principalSignatureSignedAt    DateTime?
+  principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
 
   activityLeaderName         String?
   activityLeaderSignatureUrl String?
@@ -801,6 +804,25 @@ model SchoolProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum PrincipalSignatureReusePolicy {
+  ALL_STAFF
+  SELECTED_STAFF
+  MANUAL_ONLY
+}
+
+model PrincipalSignatureReuseAuthorization {
+  id              String       @id @default(cuid())
+  schoolAccountId String
+  userId          String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([schoolAccountId, userId])
+  @@index([userId])
 }
 
 model SchoolActivityTeam {
@@ -1815,6 +1837,10 @@ model GuidanceReport {
   approvedAt DateTime?
   archivedAt DateTime?
 
+  principalSignatureUrl      String?  @db.Text
+  principalSignatureSignedAt DateTime?
+  principalSignatureSignedById String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1849,6 +1875,10 @@ model ReportSnapshot {
   approvedById   String?
   approvedByName String?
   approvedAt     DateTime @default(now())
+
+  principalSignatureUrl      String?  @db.Text
+  principalSignatureSignedAt DateTime?
+  principalSignatureSignedById String?
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -1886,6 +1916,9 @@ model ReportTwoActive {
   approvedById   String?
   approvedByName String?
   approvedAt     DateTime?
+  principalSignatureUrl      String?  @db.Text
+  principalSignatureSignedAt DateTime?
+  principalSignatureSignedById String?
   savedAt        DateTime  @default(now())
   lastSyncedAt   DateTime?
   syncMeta       Json?

@@ -176,3 +176,46 @@ export async function POST(request: Request) {
     signedAt: signedAt.toISOString(),
   });
 }
+
+export async function DELETE() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user.schoolAccountId) {
+    return NextResponse.json(
+      { success: false, error: "يلزم تسجيل الدخول." },
+      { status: 401 },
+    );
+  }
+
+  if (current.user.role !== "PRINCIPAL") {
+    return NextResponse.json(
+      { success: false, error: "لا تملك صلاحية حذف توقيع مدير المدرسة." },
+      { status: 403 },
+    );
+  }
+
+  const result = await prisma.schoolProfile.updateMany({
+    where: {
+      schoolAccountId: current.user.schoolAccountId,
+      principalSignatureUrl: { not: null },
+    },
+    data: {
+      principalSignatureUrl: null,
+      principalSignatureSignedAt: null,
+      principalSignatureToken: null,
+      principalSignatureRequestedAt: null,
+    },
+  });
+
+  if (!result.count) {
+    return NextResponse.json(
+      { success: false, error: "لا يوجد توقيع مدير محفوظ للحذف." },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "تم حذف توقيع مدير المدرسة المحفوظ من هوية المدرسة.",
+  });
+}

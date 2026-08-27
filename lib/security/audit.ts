@@ -9,6 +9,7 @@ export type AuditAction =
   | "CLOSE_CASE"
   | "UPLOAD_EVIDENCE"
   | "EXPORT_REPORT"
+  | "PRINCIPAL_POST_APPROVAL_SIGN"
   | "UPLOAD_WORKFLOW";
 
 type AuditInput = {

@@ -3,6 +3,13 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getPrincipalSchoolContext } from "@/lib/principal/principal-school-service";
 import type { UserRole } from "@prisma/client";
+import { ReportSignatureRequestStatus } from "@prisma/client";
+import { isPrincipalStaffReportSigned } from "@/lib/principal/principal-report-signature-service";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import {
+  hasStructuredPrincipalSignature,
+  isPrincipalSignaturePresent,
+} from "@/lib/report-signatures/principal-signature-state";
 
 const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
   "TEACHER",
@@ -61,7 +68,10 @@ async function querySchoolTeachers(schoolAccountId: string) {
         select: {
           id: true,
           createdById: true,
-          guidanceReports: { select: { id: true } },
+          guidanceReports: {
+            where: { status: { in: ["APPROVED", "ARCHIVED"] }, approvedAt: { not: null } },
+            select: { id: true },
+          },
           _count: { select: { evidences: true } },
         },
       })
@@ -73,7 +83,7 @@ async function querySchoolTeachers(schoolAccountId: string) {
   const [activeReports, reportSnapshots] = reportTwoCaseIds.length
     ? await Promise.all([
         prisma.reportTwoActive.findMany({
-          where: { schoolAccountId, caseEntryId: { in: reportTwoCaseIds } },
+          where: { schoolAccountId, status: "APPROVED", approvedAt: { not: null }, caseEntryId: { in: reportTwoCaseIds } },
           select: { id: true, caseEntryId: true },
         }),
         prisma.reportSnapshot.findMany({
@@ -101,7 +111,18 @@ async function querySchoolTeachers(schoolAccountId: string) {
         caseEntry._count.evidences,
     );
   }
-  for (const report of [...activeReports, ...reportSnapshots]) {
+  const snapshotCaseIds = new Set(reportSnapshots.map((report) => report.caseEntryId));
+  for (const report of reportSnapshots) {
+    const ownerId = caseOwnerById.get(report.caseEntryId);
+    if (!ownerId) continue;
+    const reportIds = reportIdsByUserId.get(ownerId) ?? new Set();
+    reportIds.add(`report-two:${report.id}`);
+    reportIdsByUserId.set(ownerId, reportIds);
+  }
+  // An approved Report2 active row and its immutable snapshot are one
+  // lifecycle. The snapshot is the canonical principal-facing record.
+  for (const report of activeReports) {
+    if (snapshotCaseIds.has(report.caseEntryId)) continue;
     const ownerId = caseOwnerById.get(report.caseEntryId);
     if (!ownerId) continue;
     const reportIds = reportIdsByUserId.get(ownerId) ?? new Set();
@@ -164,7 +185,100 @@ export type PrincipalStaffReport = {
   issuedAt: string;
   previewHtml: string | null;
   linkedTargetIds: string[];
+  principalSignatureSigned: boolean;
+  principalSignatureSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+  principalSignatureDebug: PrincipalSignatureDebugInfo;
 };
+
+export type PrincipalSignatureDebugInfo = {
+  resolverStatus: "SIGNED" | "UNSIGNED";
+  resolverSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+  isPersistent: boolean;
+  hasSignatureUrl: boolean;
+  signedAt: string | null;
+  signedById: string | null;
+  hasSchoolIdentitySignature: boolean;
+  hasSignedLinkSignature: boolean;
+  hasDashboardSignature: boolean;
+  renderedHtmlHasPrincipalSlot: boolean;
+  sourcePayloadHasPrincipalSignature: boolean;
+};
+
+function buildPrincipalSignatureDebug(input: {
+  report: {
+    principalSignatureUrl?: string | null;
+    principalSignatureSignedAt?: Date | null;
+    principalSignatureSignedById?: string | null;
+  };
+  schoolIdentity: { principalSignatureUrl: string | null; principalSignatureSignedAt: Date | null };
+  signedLink?: { status?: string | null; signedAt?: Date | null; signatureUrl?: string | null } | null;
+  reusePolicy?: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY" | null;
+  reportOwner?: { id: string; schoolAccountId?: string | null; role?: string | null } | null;
+  selectedStaffAuthorized?: boolean;
+  sourcePayload?: unknown;
+  approvedHtml?: string | null;
+}): PrincipalSignatureDebugInfo {
+  const resolved = resolvePrincipalSignatureForReport({
+    schoolIdentity: input.schoolIdentity,
+    signLink: input.signedLink,
+    principalDashboard: input.report,
+    reusePolicy: input.reusePolicy,
+    reportOwner: input.reportOwner,
+    selectedStaffAuthorized: input.selectedStaffAuthorized,
+  });
+  const hasSignedLinkSignature = Boolean(
+    input.signedLink?.status === ReportSignatureRequestStatus.SIGNED &&
+      input.signedLink.signedAt &&
+      input.signedLink.signatureUrl,
+  );
+
+  return {
+    resolverStatus: resolved.status,
+    resolverSource: resolved.source,
+    isPersistent: resolved.isPersistent,
+    hasSignatureUrl: Boolean(resolved.signatureUrl),
+    signedAt: resolved.signedAt?.toISOString() || null,
+    signedById: resolved.signedById,
+    hasSchoolIdentitySignature: Boolean(input.schoolIdentity.principalSignatureUrl?.trim()),
+    hasSignedLinkSignature,
+    hasDashboardSignature: Boolean(
+      input.report.principalSignatureUrl?.trim() && input.report.principalSignatureSignedAt,
+    ),
+    renderedHtmlHasPrincipalSlot: /data-report-signature-role\s*=\s*["']principal["']/i.test(
+      input.approvedHtml || "",
+    ),
+    sourcePayloadHasPrincipalSignature: hasStructuredPrincipalSignature(input.sourcePayload),
+  };
+}
+
+function getPersistedSnapshotSignatureState(input: {
+  report: {
+    principalSignatureUrl?: string | null;
+    principalSignatureSignedAt?: Date | null;
+  };
+  signedRequest?: { status: ReportSignatureRequestStatus; signedAt: Date | null; signatureUrl: string | null } | null;
+  schoolSignatureUrl: string | null;
+  snapshotPayload: unknown;
+  snapshotHtml: string | null;
+}) {
+  const signed = isPrincipalSignaturePresent({
+    source: "REPORT_SNAPSHOT",
+    report: input.report,
+    signedRequest: input.signedRequest,
+    signatureUrl: input.schoolSignatureUrl,
+    structuredPayload: input.snapshotPayload,
+    approvedHtml: input.snapshotHtml,
+  });
+
+  if (!signed) return { signed: false, source: null as PrincipalStaffReport["principalSignatureSource"] };
+  if (input.signedRequest?.status === ReportSignatureRequestStatus.SIGNED) {
+    return { signed: true, source: "SIGN_LINK" as const };
+  }
+  if (input.report.principalSignatureUrl && input.report.principalSignatureSignedAt) {
+    return { signed: true, source: "PRINCIPAL_DASHBOARD" as const };
+  }
+  return { signed: true, source: "SCHOOL_IDENTITY" as const };
+}
 
 export type PrincipalStaffReportsWorkspace = {
   staff: {
@@ -205,6 +319,13 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
 
   if (!staff) return null;
 
+  const schoolIdentity = {
+    schoolAccountId: context.schoolAccountId,
+    principalSignatureUrl: context.schoolAccount.profile?.principalSignatureUrl || null,
+    principalSignatureSignedAt: context.schoolAccount.profile?.principalSignatureSignedAt || null,
+  };
+  const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "MANUAL_ONLY";
+
   const caseScope = {
     schoolAccountId: context.schoolAccountId,
     createdById: staff.id,
@@ -215,12 +336,29 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     select: { id: true },
   });
   const ownedCaseIds = ownedCases.map((item) => item.id);
+  const selectedStaffAuthorization = await prisma.principalSignatureReuseAuthorization.findUnique({
+    where: {
+      schoolAccountId_userId: {
+        schoolAccountId: context.schoolAccountId,
+        userId: staff.id,
+      },
+    },
+    select: { id: true },
+  });
+  const signatureResolverContext = {
+    reusePolicy,
+    reportOwner: { id: staff.id, schoolAccountId: context.schoolAccountId, role: staff.role },
+    selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+  };
 
   const [guidanceReports, snapshots, activeReports] = await Promise.all([
     prisma.guidanceReport.findMany({
       where: {
         caseEntryId: { in: ownedCaseIds },
-        status: { in: ["GENERATED", "APPROVED", "ARCHIVED"] },
+        // The principal workspace is a finalized-report inbox. GENERATED is
+        // only issued/prepared content and must not appear until approved.
+        status: { in: ["APPROVED", "ARCHIVED"] },
+        approvedAt: { not: null },
       },
       orderBy: { generatedAt: "desc" },
       select: {
@@ -232,6 +370,11 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
         approvedAt: true,
         updatedAt: true,
         renderedContent: true,
+        reportDataSnapshot: true,
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureSignedById: true,
+        signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
         caseEntry: { select: { service: { select: { name: true } } } },
       },
     }),
@@ -246,23 +389,30 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       orderBy: { approvedAt: "desc" },
       select: {
         id: true,
+        caseEntryId: true,
         reportTitle: true,
         serviceSlug: true,
         serviceName: true,
         approvedAt: true,
         createdAt: true,
         snapshotHtml: true,
+        snapshotPayload: true,
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureSignedById: true,
       },
     }),
     prisma.reportTwoActive.findMany({
       where: {
         schoolAccountId: context.schoolAccountId,
         status: "APPROVED",
+        approvedAt: { not: null },
         caseEntryId: { in: ownedCaseIds },
       },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
+        caseEntryId: true,
         reportTitle: true,
         serviceSlug: true,
         serviceName: true,
@@ -270,10 +420,30 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
         approvedAt: true,
         updatedAt: true,
         renderedHtml: true,
+        sourcePayload: true,
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureSignedById: true,
+        signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
       },
     }),
   ]);
 
+  const snapshotCaseIds = new Set(snapshots.map((report) => report.caseEntryId));
+  // A case has one principal-facing approved Report2 representation: its
+  // latest immutable snapshot. Older snapshots remain untouched in storage.
+  const latestSnapshotByCaseId = new Map<string, (typeof snapshots)[number]>();
+  for (const snapshot of snapshots) {
+    if (!latestSnapshotByCaseId.has(snapshot.caseEntryId)) {
+      latestSnapshotByCaseId.set(snapshot.caseEntryId, snapshot);
+    }
+  }
+  const canonicalSnapshots = Array.from(latestSnapshotByCaseId.values());
+  const signedRequestByCaseId = new Map(
+    activeReports
+      .map((report) => [report.caseEntryId, report.signatureRequests[0]] as const)
+      .filter((entry) => Boolean(entry[1])),
+  );
   const reports: PrincipalStaffReport[] = [
     ...guidanceReports.map((report) => ({
       id: report.id,
@@ -285,8 +455,19 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       issuedAt: (report.generatedAt || report.approvedAt || report.updatedAt).toISOString(),
       previewHtml: report.renderedContent,
       linkedTargetIds: [],
+      principalSignatureSigned: isPrincipalStaffReportSigned({ source: "GUIDANCE_REPORT", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.reportDataSnapshot, approvedHtml: report.renderedContent, ...signatureResolverContext }),
+      principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+      principalSignatureDebug: buildPrincipalSignatureDebug({ report, schoolIdentity, signedLink: report.signatureRequests[0], sourcePayload: report.reportDataSnapshot, approvedHtml: report.renderedContent, ...signatureResolverContext }),
     })),
-    ...snapshots.map((report) => ({
+    ...canonicalSnapshots.map((report) => {
+      const persistedSignature = getPersistedSnapshotSignatureState({
+        report,
+        signedRequest: signedRequestByCaseId.get(report.caseEntryId) || null,
+        schoolSignatureUrl: schoolIdentity.principalSignatureUrl,
+        snapshotPayload: report.snapshotPayload,
+        snapshotHtml: report.snapshotHtml,
+      });
+      return {
       id: report.id,
       source: "REPORT_SNAPSHOT" as const,
       title: report.reportTitle,
@@ -296,8 +477,12 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       issuedAt: (report.approvedAt || report.createdAt).toISOString(),
       previewHtml: report.snapshotHtml,
       linkedTargetIds: [],
-    })),
-    ...activeReports.map((report) => ({
+      principalSignatureSigned: persistedSignature.signed,
+      principalSignatureSource: persistedSignature.source,
+      principalSignatureDebug: buildPrincipalSignatureDebug({ report, schoolIdentity, signedLink: signedRequestByCaseId.get(report.caseEntryId) || null, sourcePayload: report.snapshotPayload, approvedHtml: report.snapshotHtml, ...signatureResolverContext }),
+      };
+    }),
+    ...activeReports.filter((report) => !snapshotCaseIds.has(report.caseEntryId)).map((report) => ({
       id: report.id,
       source: "REPORT_TWO" as const,
       title: report.reportTitle,
@@ -307,6 +492,9 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       issuedAt: (report.approvedAt || report.updatedAt).toISOString(),
       previewHtml: report.renderedHtml,
       linkedTargetIds: [],
+      principalSignatureSigned: isPrincipalStaffReportSigned({ source: "REPORT_TWO", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
+      principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+      principalSignatureDebug: buildPrincipalSignatureDebug({ report, schoolIdentity, signedLink: report.signatureRequests[0], sourcePayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
     })),
   ].sort((left, right) => right.issuedAt.localeCompare(left.issuedAt));
 

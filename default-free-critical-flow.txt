@@ -1,0 +1,131 @@
+  580:     return existing;
+  581:   }
+  582: 
+  583:   return (
+  584:     await upsertDefaultFreePlan({
+  585:       planName: existing.name,
+  586:       enabled,
+  587:       durationDays,
+  588:       accessMode,
+  589:       enabledServiceSlugs,
+  590:     })
+  591:   ).plan;
+  592: }
+  593: 
+  594: export async function getDefaultFreePlanConfig(): Promise<DefaultFreePlanConfig> {
+  595:   const plan = await ensureDefaultFreePlan();
+  596:   const accessMode = normalizeAccessMode(
+  597:     String(plan.features.find((feature) => feature.key === "autoFreeAccessMode")?.value || ""),
+  598:   );
+  599:   const enabledServiceSlugs = getPlanServiceSlugs(plan.features);
+  600:   const durationDays = normalizeDurationDays(
+  601:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  602:   );
+  603:   const enabled =
+  604:     plan.isActive &&
+  605:     plan.features.find((feature) => feature.key === DEFAULT_FREE_PLAN_FEATURE_KEY)?.value !==
+  606:       "disabled";
+  607:   const [metrics, accounts] = await Promise.all([
+  608:     getDefaultFreePlanMetrics(plan.id),
+  609:     getDefaultFreePlanAccounts(),
+  610:   ]);
+  611: 
+  612:   return {
+  613:     planId: plan.id,
+  614:     planName: plan.name,
+  615:     slug: plan.slug,
+  616:     enabled,
+  617:     durationDays,
+  618:     accessMode,
+  619:     enabledServiceSlugs,
+  620:     metrics,
+  621:     accounts,
+  622:   };
+  623: }
+  624: 
+  625: export async function saveDefaultFreePlanConfig(
+  626:   input: SaveDefaultFreePlanInput,
+  627: ): Promise<DefaultFreePlanConfig> {
+  628:   await upsertDefaultFreePlan({
+  629:     planName: normalizePlanName(input.planName),
+  630:     enabled: Boolean(input.enabled),
+  631:     durationDays: normalizeDurationDays(input.durationDays),
+  632:     accessMode: normalizeAccessMode(input.accessMode),
+  633:     enabledServiceSlugs: Array.isArray(input.enabledServiceSlugs)
+  634:       ? input.enabledServiceSlugs
+  635:       : [],
+  636:   });
+  637: 
+  638:   return getDefaultFreePlanConfig();
+  639: }
+  640: 
+  641: export async function assignDefaultFreePlanIfEligible(input: {
+  642:   schoolAccountId: string;
+  643:   userId?: string;
+  644:   source: string;
+  645: }) {
+  646:   const schoolAccountId = String(input.schoolAccountId || "").trim();
+  647: 
+  648:   if (!schoolAccountId) {
+  649:     return {
+  650:       applied: false,
+  651:       reason: "MISSING_SCHOOL_ACCOUNT",
+  652:     } as const;
+  653:   }
+  654: 
+  655:   const plan = await ensureDefaultFreePlan();
+  656: 
+  657:   if (!plan.isActive) {
+  658:     return {
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  676:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  677:   ) {
+  678:     return {
+  679:       applied: false,
+  680:       reason: "DEFAULT_PLAN_ALREADY_ACTIVE",
+  681:     } as const;
+  682:   }
+  683: 
+  684:   if (
+  685:     existingSubscription &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  687:     isSubscriptionUsable(existingSubscription.status, existingSubscription.endsAt)
+  688:   ) {
+  689:     return {
+  690:       applied: false,
+  691:       reason: "HAS_VALID_SUBSCRIPTION",
+  692:     } as const;
+  693:   }
+  694: 
+  695:   const durationDays = normalizeDurationDays(
+  696:     Number(plan.features.find((feature) => feature.key === "durationDays")?.value || 0),
+  697:   );
+  698: 
+  699:   await assignPlanToSchool({
+  700:     schoolAccountId,
+  701:     planId: plan.id,
+  702:     days: durationDays,
+  703:     status: "ACTIVE",
+  704:     activatedById: input.userId,
+  705:     reason: "تفعيل الباقة التلقائية",
+  706:   });
+  707: 
+  708:   return {
+  709:     applied: true,
+  710:     reason: "DEFAULT_PLAN_ASSIGNED",

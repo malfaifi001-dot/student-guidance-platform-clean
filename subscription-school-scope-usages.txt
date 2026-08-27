@@ -1,0 +1,1045 @@
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\activity-plan\route.ts
+==================================================
+  187:     return NextResponse.json({ success: false, error: "تاريخ الخلية غير متاح." }, { status: 400 });
+  188:   }
+  189: 
+  190:   const entryData = { programKey: encodeActivityPlanProgramValue(domainServiceSlug, programName), stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  191:   if (entryId) {
+  192:     const ownedEntry = await prisma.activityPlanEntry.findFirst({ where: { id: entryId, schoolAccountId }, select: { id: true } });
+  193:     if (!ownedEntry) return NextResponse.json({ success: false, error: "الإدخال غير موجود." }, { status: 404 });
+  194:   }
+  195:   const entry = entryId
+  196:     ? await prisma.activityPlanEntry.update({ where: { id: entryId }, data: entryData })
+  197:     : await prisma.activityPlanEntry.upsert({
+  198:       where: { schoolAccountId_stage_weekNumber_dayOfWeek_periodNumber: { schoolAccountId, stage, weekNumber: week, dayOfWeek, periodNumber } },
+  199:       update: entryData,
+  200:       create: { schoolAccountId, createdById: auth.current.user.id, ...entryData },
+  201:     });
+  202: 
+  203:   return NextResponse.json({
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\cancel\route.ts
+==================================================
+   19:   const payload = await request.json().catch(() => null);
+   20: 
+   21:   const subscriptionId = String(payload?.subscriptionId || "").trim();
+   22:   const schoolAccountIdFromPayload = String(payload?.schoolAccountId || "").trim();
+   23: 
+   24:   if (!subscriptionId && !schoolAccountIdFromPayload) {
+   25:     return NextResponse.json(
+   26:       { error: "رقم الاشتراك أو حساب المدرسة مطلوب لإلغاء الاشتراك." },
+   27:       { status: 400 }
+   28:     );
+   29:   }
+   30: 
+   31:   const subscription = subscriptionId
+   32:     ? await prisma.subscription.findUnique({
+   33:         where: { id: subscriptionId },
+   34:         include: { schoolAccount: true },
+   35:       })
+
+   27:       { status: 400 }
+   28:     );
+   29:   }
+   30: 
+   31:   const subscription = subscriptionId
+   32:     ? await prisma.subscription.findUnique({
+   33:         where: { id: subscriptionId },
+   34:         include: { schoolAccount: true },
+   35:       })
+   36:     : await prisma.subscription.findUnique({
+   37:         where: { schoolAccountId: schoolAccountIdFromPayload },
+   38:         include: { schoolAccount: true },
+   39:       });
+   40: 
+   41:   if (!subscription) {
+   42:     return NextResponse.json(
+   43:       { error: "لم يتم العثور على اشتراك مطابق للطلب." },
+
+   31:   const subscription = subscriptionId
+   32:     ? await prisma.subscription.findUnique({
+   33:         where: { id: subscriptionId },
+   34:         include: { schoolAccount: true },
+   35:       })
+   36:     : await prisma.subscription.findUnique({
+   37:         where: { schoolAccountId: schoolAccountIdFromPayload },
+   38:         include: { schoolAccount: true },
+   39:       });
+   40: 
+   41:   if (!subscription) {
+   42:     return NextResponse.json(
+   43:       { error: "لم يتم العثور على اشتراك مطابق للطلب." },
+   44:       { status: 404 }
+   45:     );
+   46:   }
+   47: 
+
+   57:     },
+   58:   });
+   59: 
+   60:   await prisma.serviceAccess.updateMany({
+   61:     where: {
+   62:       schoolAccountId: subscription.schoolAccountId,
+   63:     },
+   64:     data: {
+   65:       isEnabled: false,
+   66:     },
+   67:   });
+   68: 
+   69:   await prisma.manualActivation.create({
+   70:     data: {
+   71:       schoolAccountId: subscription.schoolAccountId,
+   72:       activatedById: current.user.id,
+   73:       reason: `إلغاء اشتراك المدرسة: ${subscription.schoolAccount.name}`,
+
+   66:     },
+   67:   });
+   68: 
+   69:   await prisma.manualActivation.create({
+   70:     data: {
+   71:       schoolAccountId: subscription.schoolAccountId,
+   72:       activatedById: current.user.id,
+   73:       reason: `إلغاء اشتراك المدرسة: ${subscription.schoolAccount.name}`,
+   74:       startsAt: now,
+   75:       endsAt: now,
+   76:     },
+   77:   });
+   78: 
+   79:   return NextResponse.json({
+   80:     message: "تم إلغاء اشتراك المدرسة وتعطيل خدماتها.",
+   81:   });
+   82: }
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+==================================================
+ 1095: 
+ 1096:   if (action === "extend-subscription") {
+ 1097:     const subscriptionId = String(payload?.subscriptionId || "").trim();
+ 1098:     const days = Number(payload?.days || 30);
+ 1099: 
+ 1100:     const subscription = await prisma.subscription.findUnique({
+ 1101:       where: {
+ 1102:         id: subscriptionId,
+ 1103:       },
+ 1104:     });
+ 1105: 
+ 1106:     if (!subscription) {
+ 1107:       return NextResponse.json(
+ 1108:         { error: "الاشتراك غير موجود." },
+ 1109:         { status: 404 },
+ 1110:       );
+ 1111:     }
+
+ 1135:       variables: { serviceName: "Teachix" },
+ 1136:     }).catch(() => undefined);
+ 1137: 
+ 1138:     await prisma.manualActivation.create({
+ 1139:       data: {
+ 1140:         schoolAccountId: subscription.schoolAccountId,
+ 1141:         activatedById: current.user.id,
+ 1142:         reason: `تمديد اشتراك لمدة ${days || 30} يوم`,
+ 1143:         startsAt: now,
+ 1144:         endsAt,
+ 1145:       },
+ 1146:     });
+ 1147: 
+ 1148:     return NextResponse.json({
+ 1149:       message: "تم تمديد الاشتراك.",
+ 1150:     });
+ 1151:   }
+
+ 1158:         { error: "رقم الاشتراك مطلوب." },
+ 1159:         { status: 400 },
+ 1160:       );
+ 1161:     }
+ 1162: 
+ 1163:     const subscription = await prisma.subscription.findUnique({
+ 1164:       where: {
+ 1165:         id: subscriptionId,
+ 1166:       },
+ 1167:       include: {
+ 1168:         schoolAccount: true,
+ 1169:         plan: true,
+ 1170:       },
+ 1171:     });
+ 1172: 
+ 1173:     if (!subscription) {
+ 1174:       return NextResponse.json(
+
+ 1180:     const now = new Date();
+ 1181: 
+ 1182:     await prisma.$transaction(async (tx) => {
+ 1183:       await tx.serviceAccess.updateMany({
+ 1184:         where: {
+ 1185:           schoolAccountId: subscription.schoolAccountId,
+ 1186:         },
+ 1187:         data: {
+ 1188:           isEnabled: false,
+ 1189:           isPaid: false,
+ 1190:         },
+ 1191:       });
+ 1192: 
+ 1193:       await tx.manualActivation.create({
+ 1194:         data: {
+ 1195:           schoolAccountId: subscription.schoolAccountId,
+ 1196:           reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
+
+ 1190:         },
+ 1191:       });
+ 1192: 
+ 1193:       await tx.manualActivation.create({
+ 1194:         data: {
+ 1195:           schoolAccountId: subscription.schoolAccountId,
+ 1196:           reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
+ 1197:           startsAt: now,
+ 1198:           endsAt: now,
+ 1199:         },
+ 1200:       });
+ 1201: 
+ 1202:       await tx.subscription.delete({
+ 1203:         where: {
+ 1204:           id: subscription.id,
+ 1205:         },
+ 1206:       });
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+==================================================
+  536:         { error: "المستخدم غير مرتبط بحساب مدرسة." },
+  537:         { status: 400 }
+  538:       );
+  539:     }
+  540: 
+  541:     const subscription = await prisma.subscription.findUnique({
+  542:       where: {
+  543:         schoolAccountId: targetUser.schoolAccountId,
+  544:       },
+  545:     });
+  546: 
+  547:     if (!subscription) {
+  548:       return NextResponse.json(
+  549:         { error: "لا يوجد اشتراك مرتبط بهذا الحساب." },
+  550:         { status: 404 }
+  551:       );
+  552:     }
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\assessments-center\route.ts
+==================================================
+   43:   const grade = url.searchParams.get("grade")?.trim() || "";
+   44:   const classroom = url.searchParams.get("classroom")?.trim() || "";
+   45:   const [students, studentCount, profile, grades, classrooms, current, analyses] = await Promise.all([
+   46:     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, ...(grade ? { grade } : {}), ...(classroom ? { classroom } : {}) }, select: { id: true, fullName: true, grade: true, classroom: true }, orderBy: { fullName: "asc" }, take: 2000 }),
+   47:     prisma.student.count({ where: { schoolAccountId: context.schoolAccountId, isActive: true } }),
+   48:     prisma.schoolProfile.findUnique({ where: { schoolAccountId: context.schoolAccountId }, select: { schoolName: true, logoUrl: true, principalName: true, educationDepartment: true, educationOffice: true, academicYear: true, currentSemester: true } }),
+   49:     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, grade: { not: null } }, distinct: ["grade"], select: { grade: true }, orderBy: { grade: "asc" } }),
+   50:     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, ...(grade ? { grade } : {}), classroom: { not: null } }, distinct: ["classroom"], select: { classroom: true }, orderBy: { classroom: "asc" } }),
+   51:     getCurrentSessionUser(),
+   52:     prisma.assessmentAnalysis.findMany({ where: { schoolAccountId: context.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, orderBy: { updatedAt: "desc" }, take: 50, select: { id: true, title: true, uploadMode: true, totalStudents: true, averagePercentage: true, createdAt: true, updatedAt: true, summaryJson: true } }),
+   53:   ]);
+   54:   return NextResponse.json({ success: true, hasStudentData: studentCount > 0, students, grades: grades.map((item) => item.grade).filter(Boolean), classrooms: classrooms.map((item) => item.classroom).filter(Boolean), profile, teacherName: current?.user?.name || null, analyses });
+   55: }
+   56: 
+   57: export async function POST(request: Request) {
+   58:   const context = await requireSchoolDashboardApiContext();
+   59:   if (context instanceof Response) return context;
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\assessments-center\ai\route.ts
+==================================================
+   16:   if (serviceGuard) return serviceGuard;
+   17:   try {
+   18:     const body = await request.json() as { analysisId?: unknown; snapshot?: NafsSnapshot };
+   19:     const analysisId = String(body.analysisId || "");
+   20:     if (!analysisId) return NextResponse.json({ success: false, error: "ANALYSIS_REQUIRED" }, { status: 400 });
+   21:     const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: context.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { summaryJson: true, uploadMode: true } });
+   22:     if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
+   23:     const snapshot = (body.snapshot || analysis.summaryJson) as NafsSnapshot;
+   24:     const ai = "periodMetrics" in (snapshot as object) ? await generateMultiPeriodAiAnalysis(snapshot as never) : await generateNafsAiAnalysis(snapshot);
+   25:     const nextSnapshot = { ...snapshot, ai, aiMeta: { provider: "deepseek", model: process.env.DEEPSEEK_MODEL?.trim() || "deepseek-chat", generatedAt: new Date().toISOString() } };
+   26:     await prisma.assessmentAnalysis.update({ where: { id: analysisId }, data: { summaryJson: nextSnapshot } });
+   27:     const current = await getCurrentSessionUser();
+   28:     await logPlatformActivity({ actorUserId: current?.user?.id, schoolAccountId: context.schoolAccountId, category: "REPORT", action: "nafs-ai-generated", severity: "SUCCESS", title: "NAFS AI analysis generated", details: { analysisId } });
+   29:     return NextResponse.json({ success: true, snapshot: nextSnapshot });
+   30:   } catch (error) {
+   31:     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "AI_UNAVAILABLE" }, { status: 503 });
+   32:   }
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+==================================================
+   74:       orderBy: {
+   75:         name: "asc",
+   76:       },
+   77:     }),
+   78: 
+   79:     prisma.subscription.findUnique({
+   80:       where: {
+   81:         schoolAccountId: current.user.schoolAccountId,
+   82:       },
+   83:       include: {
+   84:         plan: true,
+   85:       },
+   86:     }),
+   87:   ]);
+   88: 
+   89:   const salesExperience = await resolveSalesExperienceForUser(current.user.id);
+   90: 
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\principal\school-profile\route.ts
+==================================================
+   14: export async function GET() {
+   15:   const guard = await requirePrincipalApi({ requireSchool: false });
+   16:   if (!guard.ok) return guard.response;
+   17: 
+   18:   const school = guard.schoolAccountId
+   19:     ? await prisma.schoolAccount.findUnique({ where: { id: guard.schoolAccountId }, include: { profile: true } })
+   20:     : null;
+   21: 
+   22:   return NextResponse.json({
+   23:     success: true,
+   24:     linked: Boolean(school),
+   25:     profile: {
+   26:       schoolName: school?.profile?.schoolName || school?.name || "",
+   27:       principalName: school?.profile?.principalName || guard.user.officialName || guard.user.name || "",
+   28:       schoolStatisticalNumber: school?.profile?.schoolStatisticalNumber || "",
+   29:       educationDepartment: school?.profile?.educationDepartment || "",
+   30:       city: school?.profile?.city || "",
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\subscription\route.ts
+==================================================
+   32:       console.error("SUBSCRIPTION_OVERVIEW_DEFAULT_FREE_PLAN_ERROR", error);
+   33:     }
+   34:   }
+   35: 
+   36:   const [overview, pendingBankRequests] = await Promise.all([
+   37:     getSchoolSubscriptionOverview(current.user.schoolAccountId),
+   38:     prisma.bankTransferRequest.count({
+   39:       where: {
+   40:         schoolAccountId: current.user.schoolAccountId,
+   41:         status: "PENDING",
+   42:       },
+   43:     }),
+   44:   ]);
+   45: 
+   46:   return NextResponse.json({
+   47:     subscription: overview.subscription
+   48:       ? {
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\dashboard\layout.tsx
+==================================================
+   35: }) {
+   36:   const current = await requireDashboardUser();
+   37:   const salesExperience = await resolveSalesExperienceForUser(current.user.id);
+   38:   const subscriptionOverview =
+   39:     current.user.role !== "ADMIN" && current.user.schoolAccountId
+   40:       ? await getSchoolSubscriptionOverview(current.user.schoolAccountId)
+   41:       : null;
+   42:   const subscriptionPresentation =
+   43:     current.user.role === "ADMIN"
+   44:       ? undefined
+   45:       : getSubscriptionSidebarPresentation(
+   46:           subscriptionOverview?.usable && subscriptionOverview.subscription
+   47:             ? {
+   48:                 planName: subscriptionOverview.subscription.plan.name,
+   49:                 planSlug: subscriptionOverview.subscription.plan.slug,
+   50:                 durationDays: Number(
+   51:                   subscriptionOverview.subscription.plan.features.find(
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\activation\activation-service.ts
+==================================================
+   82:       },
+   83:     });
+   84:   }
+   85: }
+   86: 
+   87: export async function ensureTrialSubscription(schoolAccountId: string) {
+   88:   const existing = await prisma.subscription.findUnique({
+   89:     where: {
+   90:       schoolAccountId,
+   91:     },
+   92:     include: {
+   93:       plan: true,
+   94:     },
+   95:   });
+   96: 
+   97:   if (existing) {
+   98:     if (isSubscriptionUsable(existing.status, existing.endsAt)) {
+
+   83:     });
+   84:   }
+   85: }
+   86: 
+   87: export async function ensureTrialSubscription(schoolAccountId: string) {
+   88:   const existing = await prisma.subscription.findUnique({
+   89:     where: {
+   90:       schoolAccountId,
+   91:     },
+   92:     include: {
+   93:       plan: true,
+   94:     },
+   95:   });
+   96: 
+   97:   if (existing) {
+   98:     if (isSubscriptionUsable(existing.status, existing.endsAt)) {
+   99:       await grantAllActiveServiceAccess({
+
+  127: 
+  128:   return subscription;
+  129: }
+  130: 
+  131: export async function getActivationOverview(schoolAccountId: string) {
+  132:   const subscription = await ensureTrialSubscription(schoolAccountId);
+  133: 
+  134:   const pendingBankRequests = await prisma.bankTransferRequest.count({
+  135:     where: {
+  136:       schoolAccountId,
+  137:       status: "PENDING",
+  138:     },
+  139:   });
+  140: 
+  141:   const remainingDays = getRemainingDays(subscription.endsAt);
+  142:   const usable = isSubscriptionUsable(subscription.status, subscription.endsAt);
+  143: 
+
+  157:   activatedById?: string;
+  158: }) {
+  159:   const plan = await ensureSimpleActivationPlan();
+  160: 
+  161:   const now = new Date();
+  162:   const current = await prisma.subscription.findUnique({
+  163:     where: {
+  164:       schoolAccountId: input.schoolAccountId,
+  165:     },
+  166:   });
+  167: 
+  168:   const durationDays = input.days || DEFAULT_ACTIVATION_DAYS;
+  169:   const nextEndsAt = addDays(now, durationDays);
+  170: 
+  171:   const subscription = await prisma.subscription.upsert({
+  172:     where: {
+  173:       schoolAccountId: input.schoolAccountId,
+
+  166:   });
+  167: 
+  168:   const durationDays = input.days || DEFAULT_ACTIVATION_DAYS;
+  169:   const nextEndsAt = addDays(now, durationDays);
+  170: 
+  171:   const subscription = await prisma.subscription.upsert({
+  172:     where: {
+  173:       schoolAccountId: input.schoolAccountId,
+  174:     },
+  175:     update: {
+  176:       planId: plan.id,
+  177:       status: "ACTIVE",
+  178:       startsAt: current?.startsAt || now,
+  179:       endsAt: nextEndsAt,
+  180:     },
+  181:     create: {
+  182:       schoolAccountId: input.schoolAccountId,
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\admin\bank-transfer-payments.ts
+==================================================
+  124:       skippedReason: null,
+  125:       transaction: existingTransaction,
+  126:     };
+  127:   }
+  128: 
+  129:   const subscription = await prisma.subscription.findFirst({
+  130:     where: {
+  131:       schoolAccountId: request.schoolAccountId,
+  132:     },
+  133:     orderBy: {
+  134:       startsAt: "desc",
+  135:     },
+  136:     select: {
+  137:       id: true,
+  138:       planId: true,
+  139:       status: true,
+  140:       startsAt: true,
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\noor-import\commit-noor-import-session.ts
+==================================================
+   64:         continue;
+   65:       }
+   66: 
+   67:       let guardianId: string | null = null;
+   68:       if (row.guardianName?.trim()) {
+   69:         const existingGuardian = await tx.guardian.findFirst({ where: { schoolAccountId, name: row.guardianName.trim() } });
+   70:         if (existingGuardian) {
+   71:           guardianId = existingGuardian.id;
+   72:           if (row.guardianPhone && !existingGuardian.phone) {
+   73:             await tx.guardian.update({ where: { id: existingGuardian.id }, data: { phone: row.guardianPhone } });
+   74:           }
+   75:         } else {
+   76:           const createdGuardian = await tx.guardian.create({
+   77:             data: {
+   78:               schoolAccountId,
+   79:               name: row.guardianName.trim(),
+   80:               phone: row.guardianPhone || null,
+
+   84:           guardianId = createdGuardian.id;
+   85:         }
+   86:       }
+   87: 
+   88:       const existingStudent = row.nationalId
+   89:         ? await tx.student.findFirst({ where: { schoolAccountId, nationalId: row.nationalId } })
+   90:         : await tx.student.findFirst({ where: { schoolAccountId, fullName: row.fullName, grade: row.grade, classroom: row.classroom } });
+   91: 
+   92:       const studentData = {
+   93:         fullName: row.fullName,
+   94:         nationalId: row.nationalId || null,
+   95:         gender: row.gender,
+   96:         stage: row.stage || null,
+   97:         grade: row.grade || null,
+   98:         classroom: row.classroom || null,
+   99:         guardianId,
+  100:         isActive: true,
+
+   85:         }
+   86:       }
+   87: 
+   88:       const existingStudent = row.nationalId
+   89:         ? await tx.student.findFirst({ where: { schoolAccountId, nationalId: row.nationalId } })
+   90:         : await tx.student.findFirst({ where: { schoolAccountId, fullName: row.fullName, grade: row.grade, classroom: row.classroom } });
+   91: 
+   92:       const studentData = {
+   93:         fullName: row.fullName,
+   94:         nationalId: row.nationalId || null,
+   95:         gender: row.gender,
+   96:         stage: row.stage || null,
+   97:         grade: row.grade || null,
+   98:         classroom: row.classroom || null,
+   99:         guardianId,
+  100:         isActive: true,
+  101:       };
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\notifications\push-center-service.ts
+==================================================
+  314: async function runSubscriptionPushEvents() {
+  315:   const actor = await prisma.user.findFirst({ where: { role: UserRole.ADMIN, isActive: true }, select: { id: true } });
+  316:   if (!actor) return;
+  317:   const now = new Date();
+  318:   const horizon = new Date(now.getTime() + 3 * 86_400_000);
+  319:   const subscriptions = await prisma.subscription.findMany({ where: { endsAt: { lte: horizon }, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] } }, select: { id: true, schoolAccountId: true, endsAt: true } });
+  320:   for (const subscription of subscriptions) {
+  321:     if (!subscription.endsAt) continue;
+  322:     const triggerKey = subscription.endsAt <= now ? "subscription-expired" : "subscription-expiring";
+  323:     const eventDate = subscription.endsAt.toISOString().slice(0, 10);
+  324:     await dispatchAutomaticPushEvent({ triggerKey, actorUserId: actor.id, sourceRecordId: `${subscription.id}:${eventDate}`, variables: { serviceName: "Teachix" } }).catch(() => undefined);
+  325:   }
+  326: }
+  327: 
+  328: export async function getPushOverview() {
+  329:   const [campaigns, sent, scheduled, automatic, devices, activeDevices, deliveries, successes, failures, opened] = await Promise.all([
+  330:     prisma.pushCampaign.count(),
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\payments\electronic-payments.ts
+==================================================
+  375:   }
+  376:   const startsAt = period.startsAt;
+  377:   const endsAt = period.endsAt;
+  378: 
+  379:   const paidTransaction = await prisma.$transaction(async (tx) => {
+  380:     const subscription = await tx.subscription.upsert({
+  381:       where: {
+  382:         schoolAccountId,
+  383:       },
+  384:       update: {
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\portfolio\service-outputs\adapters\activity-plan.ts
+==================================================
+   41:         })),
+   42:       };
+   43:     });
+   44: 
+   45:   const rows = populatedWeeks.flatMap((week) => week.entries);
+   46:   const profile = await prisma.schoolProfile.findUnique({ where: { schoolAccountId }, select: { academicYear: true, currentSemester: true } });
+   47:   const share = await getOrCreateActivityPlanShareToken({ schoolAccountId, createdById: ownerUserId });
+   48:   const shareUrl = share.url;
+   49:   const shareQrDataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 2, errorCorrectionLevel: "M" });
+   50:   const activityAreas = Array.from(new Set(rows.map((row) => row.activityArea).filter(Boolean)));
+   51: 
+   52:   return {
+   53:     id: link.id,
+   54:     serviceSlug: link.serviceSlug,
+   55:     resourceType: link.resourceType,
+   56:     performanceItemKey: link.performanceItemKey,
+   57:     targetSectionKey: link.targetSectionKey || link.performanceItemKey,
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\statistics\statistics-service-selection.ts
+==================================================
+   65:     context.user.role,
+   66:   );
+   67: 
+   68:   if (!roleDefinitions?.length) return [];
+   69: 
+   70:   const overview = await getSchoolSubscriptionOverview(context.schoolAccountId);
+   71:   if (!overview.usable) return [];
+   72: 
+   73:   const planSlugs = new Set(
+   74:     getPlanServiceSlugs(overview.subscription?.plan?.features || []),
+   75:   );
+   76:   const scopedDefinitions = roleDefinitions.filter((definition) =>
+   77:     planSlugs.has(definition.slug),
+   78:   );
+   79: 
+   80:   if (!scopedDefinitions.length) return [];
+   81: 
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\default-free-plan.ts
+==================================================
+  272:     select: {
+  273:       schoolAccountId: true,
+  274:     },
+  275:   });
+  276: 
+  277:   const schoolAccountIds = currentSubscriptions.map((subscription) => subscription.schoolAccountId);
+  278: 
+  279:   const conversionLogs = await prisma.platformActivityLog.findMany({
+  280:     where: {
+  281:       category: "SUBSCRIPTION",
+  282:       action: "default-free-plan-converted",
+  283:       schoolAccountId: {
+  284:         not: null,
+  285:       },
+  286:     },
+  287:     orderBy: {
+  288:       createdAt: "desc",
+
+  420:         },
+  421:       },
+  422:     },
+  423:   });
+  424: 
+  425:   const schoolAccountIds = subscriptions.map((subscription) => subscription.schoolAccountId);
+  426: 
+  427:   if (!schoolAccountIds.length) {
+  428:     return [];
+  429:   }
+  430: 
+  431:   const [sessionRows, reportRows] = await Promise.all([
+  432:     prisma.userSession.findMany({
+  433:       where: {
+  434:         user: {
+  435:           schoolAccountId: {
+  436:             in: schoolAccountIds,
+
+  495:   return subscriptions.map((subscription) => {
+  496:     const schoolAccount = subscription.schoolAccount;
+  497:     const owner = pickAccountOwner(schoolAccount.users);
+  498: 
+  499:     return {
+  500:       schoolAccountId: subscription.schoolAccountId,
+  501:       accountName: schoolAccount.name,
+  502:       accountSlug: schoolAccount.slug,
+  503:       schoolName: getSchoolDisplayName(schoolAccount),
+  504:       ownerName:
+  505:         String(owner?.officialName || owner?.name || owner?.email || "").trim() || "غير محدد",
+  506:       ownerEmail: String(owner?.email || "").trim(),
+  507:       ownerPhone: String(owner?.phone || "").trim(),
+  508:       ownerRole: owner?.role ?? null,
+  509:       subscriptionStatus: subscription.status,
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+
+  510:       startsAt: subscription.startsAt,
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+
+  511:       endsAt: subscription.endsAt,
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+
+  512:       remainingDays: getRemainingDays(subscription.endsAt),
+  513:       usersCount: schoolAccount._count.users,
+  514:       studentsCount: schoolAccount._count.students,
+  515:       sessionsCount: sessionCountBySchool.get(subscription.schoolAccountId) || 0,
+  516:       activeDaysCount: activeDaysBySchool.get(subscription.schoolAccountId)?.size || 0,
+  517:       reportsCount: reportCountBySchool.get(subscription.schoolAccountId) || 0,
+  518:     };
+  519:   });
+  520: }
+  521: 
+  522: export async function ensureDefaultFreePlan() {
+  523:   await ensureDefaultPlatformServices();
+  524: 
+  525:   const existing = await prisma.plan.findUnique({
+  526:     where: {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  528:     },
+
+  659:       applied: false,
+  660:       reason: "DEFAULT_PLAN_DISABLED",
+  661:     } as const;
+  662:   }
+  663: 
+  664:   const existingSubscription = await prisma.subscription.findUnique({
+  665:     where: {
+  666:       schoolAccountId,
+  667:     },
+  668:     include: {
+  669:       plan: true,
+  670:     },
+  671:   });
+  672: 
+  673:   if (
+  674:     existingSubscription &&
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\subscription-service.ts
+==================================================
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+  256:       schoolAccountId: input.schoolAccountId,
+  257:     },
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-import\timetable-v3-import-persistence.ts
+==================================================
+   83: 
+   84: export async function persistReviewedTimetableImport(input: PersistenceInput) {
+   85:   const validation = validateEntries(input.entries), entries = validation.entries, projectName = clean(input.name) || "جدول تشغيلي مستورد", academicYear = clean(input.academicYear) || "غير محدد", semester = clean(input.semester) || "الفصل الدراسي الأول";
+   86:   const teacherNames = [...new Set(entries.map((entry) => entry.teacherName))], classNames = [...new Set(entries.map((entry) => entry.classroomName))], unresolvedSubjects = entries.some((entry) => !entry.subjectName), importedAt = new Date().toISOString();
+   87:   return prisma.$transaction(async (tx) => {
+   88:     const owner = await tx.user.findFirst({ where: { id: input.createdById, schoolAccountId: input.schoolAccountId, role: "PRINCIPAL", isActive: true }, select: { id: true } });
+   89:     if (!owner) throw new TimetableImportValidationError("School ownership validation failed.");
+   90:     const project = await tx.timetableProject.create({ data: { schoolAccountId: input.schoolAccountId, createdById: input.createdById, name: projectName, academicYear, semester, status: "PUBLISHED", daysJson: json(DAYS.map((day, index) => ({ id: day.id, label: day.label, order: index + 1 }))), periodsJson: json(Array.from({ length: 7 }, (_, index) => ({ id: `PERIOD_${index + 1}`, label: `الحصة ${index + 1}`, order: index + 1, isBreak: false, startTime: null, endTime: null }))), settingsJson: json({ timetableV3: { version: 3, setupVersion: 1, stages: [] }, import: { source: IMPORT_SOURCE, sourceType: input.sourceType ?? "EXCEL", importedAt, reviewed: true, unresolvedSubjects } }) } });
+   91:     const teachers = new Map<string, string>();
+   92:     for (const name of teacherNames) { const teacher = await tx.timetableTeacher.create({ data: { projectId: project.id, name } }); teachers.set(name, teacher.id); }
+   93:     const classes = new Map<string, string>();
+   94:     for (const name of classNames) { const timetableClass = await tx.timetableClass.create({ data: { projectId: project.id, name } }); classes.set(name, timetableClass.id); }
+   95:     const entryClassIds = entries.map((entry) => classes.get(entry.classroomName)!);
+   96:     const usedInternalClassNames = new Set(classNames);
+   97:     for (const collision of validation.classroomCollisionWarnings) {
+   98:       for (const entryIndex of collision.entryIndexes.slice(1)) {
+   99:         let internalClassName = `${collision.classroomName}__IMPORT_DISAMBIGUATED_${entryIndex}`;
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-v3\history\timetable-history-service.ts
+==================================================
+  626:   if (actionType.endsWith("REMOVED")) return "تم الحذف بنجاح.";
+  627:   return "تم حفظ التعديل بنجاح.";
+  628: }
+  629: 
+  630: async function requireHistoryProject(projectId: string, schoolAccountId: string) {
+  631:   const project = await prisma.timetableProject.findFirst({ where: { id: projectId, schoolAccountId }, select: { id: true } });
+  632:   if (!project) throw new Error("PROJECT_NOT_FOUND");
+  633: }
+  634: 
+  635: export async function undoTimetableHistory(projectId: string, schoolAccountId: string) {
+  636:   await requireHistoryProject(projectId, schoolAccountId);
+  637:   const actorUserId = await actorId();
+  638:   return prisma.$transaction(async (tx) => {
+  639:     const entry = await tx.timetableProjectHistoryEntry.findFirst({
+  640:       where: { projectId, schoolAccountId, state: "ACTIVE" },
+  641:       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  642:     });
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\prisma\backups\dev-before-delete-workflows-20260604-230652.db
+==================================================
+  548:     "status" TEXT NOT NULL DEFAULT 'TRIAL',
+  549:     "startsAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  550:     "endsAt" DATETIME,
+  551:     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  552:     "updatedAt" DATETIME NOT NULL,
+  553:     CONSTRAINT "Subscription_schoolAccountId_fkey" FOREIGN KEY ("schoolAccountId") REFERENCES "SchoolAccount" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  554:     CONSTRAINT "Subscription_planId_fkey" FOREIGN KEY ("planId") REFERENCES "Plan" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  555: )   WI# indexsqlite_autoindex_PlanFeature_1PlanFeature(  �##�tablePlanFeatuE4Y3 C2W1 indexsqlite_autoindex_PaymentTransaction_1PaymentTransaction7�	111�=tablePaymentTransactionPaymentTransaction6CREATE TABLE "PaymentTransaction" (
+  556:     "id" TEXT NOT NULL PRIMARY KEY,
+  557:     "subscriptionId" TEXT,
+  558:     "providerId" TEXT,
+  559:     "amount" INTEGER NOT NULL,
+  560:     "currency" TEXT NOT NULL DEFAULT 'SAR',
+  561:     "method" TEXT NOT NULL,
+  562:     "status" TEXT NOT NULL DEFAULT 'PENDING',
+  563:     "externalRef" TEXT,
+  564:     "metadataJson" JSONB,
+
+ 1296: #e�qindexWorkflow_serviceId_workflowType_isActive_idxWorkflowlCREATE INDEX "Workflow_serviceId_workflowType_isActive_idx" ON "Workflow"("serviceId", "workflowType", "isActive")
+ 1297:  m9�
+ 1298: indexWorkflow_serviceId_idxWorkflowkCREATE INDEX "Workflow_serviceId_idx" ON "Workflow"("serviceId")_a-�indexService_slug_keyServicejCREATE UNIQUE INDEX "Service_slug_key" ON "Service"("slug")�	`K#�1indexStaffMember_schoolAccountId_idxStaffMemberiCREATE INDEX "StaffMember_schoolAccountId_idx" ON "StaffMember"("schoolAccountId")d_5�indexStudent_fullName_idxStudenthCREATE INDEX "Student_fullName_idx" ON "Student"("fullName")j^9�
+ 1299: indexStudent_guardianId_idxStudentfCREATE INDEX "Student_guardianId_idx" ON "Student"("guardianId")ev3#�indexPlanFeature_key_idxPlanFeatureCREATE INDEX "PlanFeature_key_idx" ON "PlanFeature"("key")nu9#�
+ 1300: indexPlanFeature_planId_idxPlanFeature~CREATE INDEX "PlanFeature_planId_idx" ON "PlanFeature"("planId")Rt'windexPlan_slug_keyPlan}CREATE UNIQUE INDEX "Plan_slug_key" ON "Plan"("slug")�	sI)�-indexExportTemplate_serviceSlug_idxExportTemplate|CREATE INDEX "ExportTemplate_serviceSlug_idx" ON "ExportTemplate"("serviceSlug")qr=�indexEvidence_caseEntryId_idxEvidence{CREATE INDEX "Evidence_caseEntryId_idx" ON "Evidence"("caseEntryId")lq9�
+ 1301: indexCaseValue_fieldKey_idxCaseValuezCREATE INDEX "CaseValue_fieldKey_idx" ON "CaseValue"("fieldKey")up?�indexCaseValue_caseEntryId_idxCaseValueyCREATE INDEX "CaseValue_caseEntryId_idx" ON "CaseValue"("caseEntryId")fo5�indexCaseEntry_status_idxCaseEntryxCREATE INDEX "CaseEntry_status_idx" ON "CaseEntry"("status")y]C�!indexStudent_schoolAccountId_idxStudenteCREATE INDEX "Student_schoolAccountId_idx" ON "Student"("schoolAccountId")   ��:xc'�uindexServiceAccess_schoolAccountId_serviceId_keyServiceAccess �CREATE UNIQUE INDEX "ServiceAccess_schoolAccountId_serviceId_key" ON "ServiceAccess"("schoolAccountId", "serviceId")�wM%�CindexSubscription_schoolAccountId_keySubscription �CREATE UNIQUE INDEX "Subscription_schoolAccountId_key" ON "Subscription"("schoolAccountId")}\E�%indexGuardian_schoolAccountId_idxGuardiandCREATE INDEX "Guardian_schoolAccountId_idx" ON "Guardian"("schoolAccountId")�[O'�GindexSchoolProfile_schoolAccountId_keySchoolProfilecCREATE UNIQUE INDEX "SchoolProfile_schoolAccountId_key" ON "SchoolProfile"("schoolAccountId")wZ?#�indexUserSession_expiresAt_idxUserSessionbCREATE INDEX "UserSession_expiresAt_idx" ON "UserSession"("expiresAt")� �   j��i���z��4�J	��"��	���	ln<�	<	���U%
+ 1302: �
+ 1303: ��S
+ 1304: �!���
+ 1305: kX*
+ 1306: E �
+ 1307: R��oG&��� � ��~V*��^�3
+ 1308: �
+ 1309: �
+ 1310: zwK�
+ 1311: F                         /cمحمد سالم ملفي القحطانيR0eمحمد أشرف سعيد آل النعميQ+[فهد علي ماهل القحطانيP3kعمر عبدالعزيز علي المشيطيO*Yعماد فهد سعيد آل هتانN3kعبدالله ناصر إبراهيم فلقيM;{عبدالله مرعي عبدالله القحطانيL1gعبدالله محمد علي الاسمريKB�عبدالعزيز عبدالله بن سعيد بن زايرJ@�عبدالرحمن نايف عبدالرحمن الربعيI7sزياد عبدالعزيز سالم المالكيH,]ريان علي معدى آل حوبانG1gريان راجح عبدالله الربعيF)Wرائد يحي علي الحسانيE3kخالد عبدالله محمد العاطفيD%Oحسن علي حسن الربعيC/cحاتم مريع بن علي آل سعيدB'Sجياد نايف يحي عسيريA5oبندر عبدالله زمزمي العسيري@3kبندر بن يحيى بن محمد عسيري?-_احمد عامر احمد الاسمري>6qابراهيم سلطان بن مفرح عسيري=-_أصيل بندر ابراهيم طارش<2iأحمد عبدالله محمد آل لعمى;E�
+ 1312: الإدارة العامة للتعليم بمنطقة عسير:2iالمملكة العربية السعودية9(Uيزن عايض علي ال عايض8.aوليد سعيد محمد آل مداوي7+[وسيم شعبان عايض عسيري68uوسيم سالم بن عبدالله المالكي5)Wنادر مفرح احمد عسيري4'Sمهند حسن زيد النعمى3'Sمشعل حسن زيد النعمى2+[محمد ملحم يحي الاحمري1'Sمحمد علي محمد عسيري0+[محمد شعبان عايض عسيري/+[محمد سعد صالح الوادعي.)Wمالك مفرح احمد عسيري-)Wعلي ياسر علي الصوقعي,-_عزام يحيى احمد السهيمي+,]عزام محمد زايد آل عطاف*5oعبدالله محمد مفرح الشهراني))Wسعيد حزام ناصر عسيري()Wسطام ذياب مشبب ممباش',]زياد سبران علي آل شاعي&/cريان محمد مفرح الشهراني%'Sرائد حسن محمد عسيري$'Sحسن محمد حسن الشهري#3kجبران محمد جبران القحطاني"1gأصيل لاحق بن احمد آل هادي!#Kأحمد عايض علي علي 3kيزن عبدالعزيز يحي المالكي'Sهتان محمد علي عسيري2iهتان محمد عبدالله آل جمعه0eنواف عبدالله علي ال عائض,]نواف سعد بن محمد عسيري*Yناصر حسن ناصر آل مرعي)Wمهند يحيى مريع عسيري)Wمعاذ مغرم محمد عسيري-_مازن هادي علي القحطاني2iكرم ابراهيم بن احمد عسيري3kفهد عبدالله مفطر العلياني'Sفهد جمعان يحي عسيري6qفلاح محمد ابن مفرح القحطاني7sفزاع عبدالرحمن علي القحطاني0eفارس سالم بن جبران مشنوي5oعمر عبدالعزيز جبران خبراني%Oعلي محمد علي فضيلي)Wعزام عدنان علي عسيري9wعبدالعزيز محمد عبدالله عسيري
+
+ 1320: �
+ 1321: ��>�g�2����Z �y
+ 1322: �
+ 1323: m	�� M	q             �
+ 1324: �I)�-indexReportTemplate_serviceSlug_idxReportTemplate �CREATE INDEX "ReportTemplate_serviceSlug_idx" ON "ReportTemplate"("serviceSlug")|�?+�indexResultsAnalysis_grade_idxResultsAnalysis �CREATE INDEX "ResultsAnalysis_grade_idx" ON "ResultsAnalysis"("grade")��
+ 1325: S+�AindexResultsAnalysis_schoolAccountId_idxResultsAnalysis �CREATE INDEX "ResultsAnalysis_schoolAccountId_idx" ON "ResultsAnalysis"("schoolAccountId")��	I+�-indexExternalSyncLog_entityType_idxExternalSyncLog �CREATE INDEX "ExternalSyncLog_entityType_idx" ON "ExternalSyncLog"("entityType")��I+�-indexExternalSyncLog_providerId_idxExternalSyncLog �CREATE INDEX "ExternalSyncLog_providerId_idx" ON "ExternalSyncLog"("providerId")|�A%�indexWebhookEvent_processed_idxWebhookEvent �CREATE INDEX "WebhookEvent_processed_idx" ON "WebhookEvent"("processed")�C%�!indexWebhookEvent_providerId_idxWebhookEvent �CREATE INDEX "WebhookEvent_providerId_idx" ON "WebhookEvent"("providerId")��E'�%indexApiCredential_providerId_idxApiCredential �CREATE INDEX "ApiCredential_providerId_idx" ON "ApiCredential"("providerId")��E3�3indexIntegrationProvider_slug_keyIntegrationProvider �CREATE UNIQUE INDEX "IntegrationProvider_slug_key" ON "IntegrationProvider"("slug")��U-�EindexManualActivation_schoolAccountId_idxManualActivation �CREATE INDEX "ManualActivation_schoolAccountId_idx" ON "ManualActivation"("schoolAccountId")��I3�-indexBankTransferRequest_status_idxBankTransferRequest �CREATE INDEX "BankTransferRequest_status_idx" ON "BankTransferRequest"("status")�*�[3�QindexBankTransferRequest_schoolAccountId_idxBankTransferRequest �CREATE INDEX "BankTransferRequest_schoolAccountId_idx" ON "BankTransferRequest"("schoolAccountId")�� G1�)indexPaymentTransaction_status_idxPaymentTransaction �CREATE INDEX "PaymentTransaction_status_idx" ON "PaymentTransaction"("status")�O1�9indexPaymentTransaction_providerId_idxPaymentTransaction �CREATE INDEX "PaymentTransaction_providerId_idx" ON "PaymentTransaction"("providerId")�#~W1�IindexPaymentTransaction_subscriptionId_idxPaymentTransaction �CREATE INDEX "PaymentTransaction_subscriptionId_idx" ON "PaymentTransaction"("subscriptionId")� }=+�#indexPaymentProvider_slug_keyPaymentProvider �CREATE UNIQUE INDEX "PaymentProvider_slug_key" ON "PaymentProvider"("slug")< A#�i�.my3#�indexFeatureFlag_key_keyFeatureFlag �CREATE UNIQUE INDEX "FeatureFlag_key_key" ON "FeatureFlag"("key")��G)�)indexGuidanceReport_templateId_idxGuidanceReport �CREATE INDEX "GuidanceReport_templateId_idx" ON "GuidanceReport"("templateId"){�?)�indexGuidanceReport_status_idxGuidanceReport �CREATE INDEX "GuidanceReport_status_idx" ON "GuidanceReport"("status")�
+ 1326: �I)�-indexGuidanceReport_serviceSlug_idxGuidanceReport �CREATE INDEX "GuidanceReport_serviceSlug_idx" ON "GuidanceReport"("serviceSlug")�
+ 1327: �
+ 1328: I)�-indexGuidanceReport_caseEntryId_idxGuidanceReport �CREATE INDEX "GuidanceReport_caseEntryId_idx" ON "GuidanceReport"("caseEntryId")��G+�)indexResultsAnalysis_classroom_idxResultsAnalysis �CREATE INDEX "ResultsAnalysis_classroom_idx" ON "ResultsAnalysis"("classroom"){|A#�indexUsageRecord_featureKey_idxUsageRecord �CREATE INDEX "UsageRecord_featureKey_idx" ON "UsageRecord"("featureKey")�
+ 1329: {K#�1indexUsageRecord_schoolAccountId_idxUsageRecord �CREATE INDEX "UsageRecord_schoolAccountId_idx" ON "UsageRecord"("schoolAccountId")�zQ!�QindexUsageLimit_planSlug_featureKey_keyUsageLimit �CREATE UNIQUE INDEX "UsageLimit_planSlug_featureKey_key" ON "UsageLimit"("planSlug", "featureKey")   y3#�indexFeatureFlag_key_keyFeatureFlag �CR~�A)�indexReportEvidence_visible_idxReportEvidence �CREATE INDEX "Re�
+ 1330: �I)�-indexGuidanceReport_generatedAt_idxGuidanceReport �CREATE INDEX "GuidanceReport_generatedAt_idx" ON "GuidanceReport"("generatedAt")�:xc'�uindexServiceAccess_schoolAccountId_serviceId_keyServiceAccess �CREATE UNIQUE INDEX "ServiceAccess_schoolAccountId_serviceId_key" ON "ServiceAccess"("schoolAccountId", "serviceId")
+ 1331:     � B~
+ 1332: ���
+ 1333:  	������� �                                                                                                                                   �f	??3�GGGcmpz4womh001m44no3mdi1ablcmpz4wol6000044nodw1nnjez5. العملياتإجراء العملية المناسبة بعد اكتمال بيانات البرنامج.2026-06-04T06:48:47.994+00:002026-06-04T06:48:47.994+00:00�,	??U�1GGcmpz4womf001c44now762h01gcmpz4wol6000044nodw1nnjez4. الشواهد والمرفقاتاختيار نوع الشاهد المقترح حسب آلية التنفيذ، ورفع الملفات يظهر في هذه الخطوة فقط.2026-06-04T06:48:47.994+00:002026-06-04T06:48:47.994+00:00�	??M�GGcmpz4woma000s44noxt26h3xacmpz4wol6000044nodw1nnjez3. التنفيذ والقياساختيار الإجراء ثم تظهر آلية التنفيذ الخاصة به فقط، ومؤشر القياس حقل نصي.2026-06-04T06:48:47.994+00:002026-06-04T06:48:47.994+00:00�g	??;�AGGcmpz4wom9000m44norc4d2v2lcmpz4wol6000044nodw1nnjez2. المستفيدوناختيار الفئة المستهدفة، ويمكن اختيار أكثر من فئة.2026-06-04T06:48:47.994+00:002026-06-04T06:48:47.994+00:00�	??g�u	GGcmpz4wom1000144noiy3asj5fcmpz4wol6000044nodw1nnjez1. بيانات البرنامج والزمناختيار البرنامج والزمن. البرنامج يحدد الإجراءات التابعة له فقط.2026-06-04T06:48:47.994+00:002026-06-04T06:48:47.994+00:00�f	??3�GGGcmpy9b7qx009ujgnonx2hrbb5cmpy9b7310088jgnofrrzrak65. العملياتإجراء العملية المناسبة بعد اكتمال بيانات البرنامج.2026-06-03T16:04:18.298+00:002026-06-03T16:04:18.298+00:00�,
+ 1334: 	??U�1GGcmpy9b7mj009kjgnolxk7qov8cmpy9b7310088jgnofrrzrak64. الشواهد والمرفقاتاختيار نوع الشاهد المقترح حسب آلية التنفيذ، ورفع الملفات يظهر في هذه الخطوة فقط.2026-06-03T16:04:18.139+00:002026-06-03T16:04:18.139+00:00�		??M�GGcmpy9b7eg0090jgnowbbves2ycmpy9b7310088jgnofrrzrak63. التنفيذ والقياساختيار الإجراء ثم تظهر آلية التنفيذ الخاصة به فقط، ومؤشر القياس حقل نصي.2026-06-03T16:04:17.848+00:002026-06-03T16:04:17.848+00:00�g	??;�AGGcmpy9b7c3008ujgnonbv4m6g9cmpy9b7310088jgnofrrzrak62. المستفيدوناختيار الفئة المستهدفة، ويمكن اختيار أكثر من فئة.2026-06-03T16:04:17.763+00:002026-06-03T16:04:17.763+00:00�	??g�u	GGcmpy9b73j0089jgnojj162urrcmpy9b7310088jgnofrrzrak61. بيانات البرنامج والزمناختيار البرنامج والزمن. البرنامج يحدد الإجراءات التابعة له فقط.2026-06-03T16:04:17.455+00:002026-06-03T16:04:17.455+00:00�U	??O�	GGcmpwnfoof001dh0noqyloegy1cmpwnfooa0011h0nou13a5bbiالإجراء ÙˆالنتيجةÙˆث�‘ق الإجراء المتخذ Ùˆالنتيجة.2026-06-02T13:04:09.130+00:002026-06-02T13:04:09.130+00:00�`	??A�/	GGcmpwnfooc0012h0noby5ltzuwcmpwnfooa0011h0nou13a5bbiتصني� الحالةاختر ن�ˆع المش�ƒلة Ùˆالتصني� المرتبط بها.2026-06-02T13:04:09.130+00:002026-06-02T13:04:09.130+00:00�Z	??K�GGcmpwnfon4000uh0noi36zvru4cmpwnfon1000kh0noe3xz36tcالإجراء والنتيجةاختبر حفظ القيم كمسودة أو إرسال نهائي.2026-06-02T13:04:09.085+00:002026-06-02T13:04:09.085+00:00�J	???�	GGcmpwnfon2000lh0nonurgiuq2cmpwnfon1000kh0noe3xz36tcبيانات الحالةاختبر الحقول الأساسية والتبعيات.2026-06-02T13:04:09.085+00:002026-06-02T13:04:09.085+00:00�A???sGGcmpwnfoie000ch0noghffggekcmpwnfoi90002h0nolyhuw1r5محتوى التواصلوثّق ما تم مناقشته والنتيجة.2026-06-02T13:04:08.913+00:002026-06-02T13:04:08.913+00:00�;??Ce	GGcmpwnfoia0003h0nopr9x757rcmpwnfoi90002h0nolyhuw1r5بيانات التواصلحدد طريقة التواصل وسببه.2026-06-02T13:04:08.913+00:002026-06-02T13:04:08.913+00:00
+ 1335:    z� ����kM/���?!
+ 1336: �
+
+
+==================================================
+FILE: D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql
+==================================================
+  356:     `startsAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  357:     `endsAt` DATETIME(3) NULL,
+  358:     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  359:     `updatedAt` DATETIME(3) NOT NULL,
+  360: 
+  361:     UNIQUE INDEX `Subscription_schoolAccountId_key`(`schoolAccountId`),
+  362:     PRIMARY KEY (`id`)
+  363: ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  364: 
+  365: -- CreateTable
+  366: CREATE TABLE `ServiceAccess` (
+  367:     `id` VARCHAR(191) NOT NULL,
+  368:     `schoolAccountId` VARCHAR(191) NOT NULL,
+  369:     `serviceId` VARCHAR(191) NOT NULL,
+  370:     `isEnabled` BOOLEAN NOT NULL DEFAULT true,
+  371:     `isPaid` BOOLEAN NOT NULL DEFAULT false,
+  372:     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+  992: 
+  993: -- AddForeignKey
+  994: ALTER TABLE `PlanFeature` ADD CONSTRAINT `PlanFeature_planId_fkey` FOREIGN KEY (`planId`) REFERENCES `Plan`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  995: 
+  996: -- AddForeignKey
+  997: ALTER TABLE `Subscription` ADD CONSTRAINT `Subscription_schoolAccountId_fkey` FOREIGN KEY (`schoolAccountId`) REFERENCES `SchoolAccount`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  998: 
+  999: -- AddForeignKey
+ 1000: ALTER TABLE `Subscription` ADD CONSTRAINT `Subscription_planId_fkey` FOREIGN KEY (`planId`) REFERENCES `Plan`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ 1001: 
+ 1002: -- AddForeignKey
+ 1003: ALTER TABLE `ServiceAccess` ADD CONSTRAINT `ServiceAccess_schoolAccountId_fkey` FOREIGN KEY (`schoolAccountId`) REFERENCES `SchoolAccount`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ 1004: 
+ 1005: -- AddForeignKey
+ 1006: ALTER TABLE `ServiceAccess` ADD CONSTRAINT `ServiceAccess_serviceId_fkey` FOREIGN KEY (`serviceId`) REFERENCES `Service`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ 1007: 
+ 1008: -- AddForeignKey

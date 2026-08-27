@@ -1,0 +1,2959 @@
+
+==================================================
+FILE: lib\auth\public-registration-service.ts
+==================================================
+
+----- MATCH AROUND LINE 32 -----
+   24:   return prisma.$transaction(async (tx) => {
+   25:     const internalEmail = buildTransitionalPhoneEmail(input.phone);
+   26:     const existingUser = await tx.user.findFirst({
+   27:       where: { OR: [{ phone: input.phone }, { email: internalEmail }] },
+   28:       select: { id: true },
+   29:     });
+   30:     if (existingUser) throw new Error("DUPLICATE_PHONE");
+   31: 
+   32:     const schoolAccount = await tx.schoolAccount.create({
+   33:       data: {
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+
+----- MATCH AROUND LINE 42 -----
+   34:         name: `مدرسة ${input.name}`,
+   35:         slug: createSlugFromName(input.name),
+   36:       },
+   37:       select: { id: true, name: true },
+   38:     });
+   39: 
+   40:     const user = await tx.user.create({
+   41:       data: {
+   42:         schoolAccountId: schoolAccount.id,
+   43:         name: input.name,
+   44:         officialName: input.name,
+   45:         // Transitional compatibility value while User.email remains required.
+   46:         email: internalEmail,
+   47:         phone: input.phone,
+   48:         passwordHash: hashPassword(input.password),
+   49:         role: input.accountType,
+   50:         gender: input.gender,
+   51:         jobTitle: getPublicRegistrationJobTitle(input.accountType, input.gender),
+   52:         onboardingCompleted: false,
+   53:         onboardingCompletedAt: null,
+   54:         onboardingSkippedAt: new Date(),
+
+----- MATCH AROUND LINE 62 -----
+   54:         onboardingSkippedAt: new Date(),
+   55:       },
+   56:     });
+   57: 
+   58:     const session = await tx.userSession.create({
+   59:       data: { userId: user.id, ...sessionInput },
+   60:     });
+   61: 
+   62:     return { user, schoolAccount, session };
+   63:   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+   64: }
+
+==================================================
+FILE: lib\auth\dashboard-context.ts
+==================================================
+
+----- MATCH AROUND LINE 21 -----
+   13:   | "SCHOOL_OWNER"
+   14:   | "STAFF";
+   15: 
+   16: export type DashboardAuthUser = {
+   17:   id: string;
+   18:   name: string | null;
+   19:   email: string;
+   20:   role: DashboardRole | string;
+   21:   schoolAccountId: string | null;
+   22:   isActive?: boolean | null;
+   23:   gender?: string | null;
+   24: };
+   25: 
+   26: export type DashboardContext = {
+   27:   user: DashboardAuthUser;
+   28:   schoolAccountId: string | null;
+   29:   isAdmin: boolean;
+   30: };
+   31: 
+   32: export type SchoolDashboardContext = DashboardContext & {
+   33:   schoolAccountId: string;
+
+----- MATCH AROUND LINE 28 -----
+   20:   role: DashboardRole | string;
+   21:   schoolAccountId: string | null;
+   22:   isActive?: boolean | null;
+   23:   gender?: string | null;
+   24: };
+   25: 
+   26: export type DashboardContext = {
+   27:   user: DashboardAuthUser;
+   28:   schoolAccountId: string | null;
+   29:   isAdmin: boolean;
+   30: };
+   31: 
+   32: export type SchoolDashboardContext = DashboardContext & {
+   33:   schoolAccountId: string;
+   34: };
+   35: 
+   36: type RawSessionUser = {
+   37:   id?: unknown;
+   38:   name?: unknown;
+   39:   email?: unknown;
+   40:   role?: unknown;
+
+----- MATCH AROUND LINE 33 -----
+   25: 
+   26: export type DashboardContext = {
+   27:   user: DashboardAuthUser;
+   28:   schoolAccountId: string | null;
+   29:   isAdmin: boolean;
+   30: };
+   31: 
+   32: export type SchoolDashboardContext = DashboardContext & {
+   33:   schoolAccountId: string;
+   34: };
+   35: 
+   36: type RawSessionUser = {
+   37:   id?: unknown;
+   38:   name?: unknown;
+   39:   email?: unknown;
+   40:   role?: unknown;
+   41:   schoolAccountId?: unknown;
+   42:   isActive?: unknown;
+   43:   gender?: unknown;
+   44: };
+   45: 
+
+----- MATCH AROUND LINE 41 -----
+   33:   schoolAccountId: string;
+   34: };
+   35: 
+   36: type RawSessionUser = {
+   37:   id?: unknown;
+   38:   name?: unknown;
+   39:   email?: unknown;
+   40:   role?: unknown;
+   41:   schoolAccountId?: unknown;
+   42:   isActive?: unknown;
+   43:   gender?: unknown;
+   44: };
+   45: 
+   46: function toNullableString(value: unknown) {
+   47:   if (typeof value !== "string") return null;
+   48: 
+   49:   const clean = value.trim();
+   50:   return clean ? clean : null;
+   51: }
+   52: 
+   53: function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
+
+----- MATCH AROUND LINE 69 -----
+   61:     return null;
+   62:   }
+   63: 
+   64:   return {
+   65:     id,
+   66:     email,
+   67:     role,
+   68:     name: toNullableString(user?.name),
+   69:     schoolAccountId: toNullableString(user?.schoolAccountId),
+   70:     isActive:
+   71:       typeof user?.isActive === "boolean" ? user.isActive : null,
+   72:     gender: toNullableString(user?.gender),
+   73:   };
+   74: }
+   75: 
+   76: function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+   77:   return {
+   78:     user,
+   79:     schoolAccountId: user.schoolAccountId,
+   80:     isAdmin: user.role === "ADMIN",
+   81:   };
+
+----- MATCH AROUND LINE 79 -----
+   71:       typeof user?.isActive === "boolean" ? user.isActive : null,
+   72:     gender: toNullableString(user?.gender),
+   73:   };
+   74: }
+   75: 
+   76: function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+   77:   return {
+   78:     user,
+   79:     schoolAccountId: user.schoolAccountId,
+   80:     isAdmin: user.role === "ADMIN",
+   81:   };
+   82: }
+   83: 
+   84: export async function getDashboardContext(): Promise<DashboardContext | null> {
+   85:   const current = await getCurrentSessionUser();
+   86:   const user = normalizeDashboardUser(current?.user);
+   87: 
+   88:   if (!user) {
+   89:     return null;
+   90:   }
+   91: 
+
+----- MATCH AROUND LINE 138 -----
+  130:   options: { allowPrincipal?: boolean } = {},
+  131: ) {
+  132:   const contextOrResponse = await requireDashboardApiContext(options);
+  133: 
+  134:   if (contextOrResponse instanceof NextResponse) {
+  135:     return contextOrResponse;
+  136:   }
+  137: 
+  138:   if (!contextOrResponse.schoolAccountId) {
+  139:     return NextResponse.json(
+  140:       {
+  141:         success: false,
+  142:         error: "لم يتم ربط الحساب بمدرسة.",
+  143:         code: "SCHOOL_ACCOUNT_REQUIRED",
+  144:       },
+  145:       { status: 403 }
+  146:     );
+  147:   }
+  148: 
+  149:   return contextOrResponse as SchoolDashboardContext;
+  150: }
+
+----- MATCH AROUND LINE 169 -----
+  161:   }
+  162: 
+  163:   return context;
+  164: }
+  165: 
+  166: export async function requireSchoolDashboardPageContext() {
+  167:   const context = await requireDashboardPageContext();
+  168: 
+  169:   if (!context.schoolAccountId) {
+  170:     redirect("/dashboard/onboarding?required=true");
+  171:   }
+  172: 
+  173:   return context as SchoolDashboardContext;
+  174: }
+  175: 
+  176: export function canAccessSchool(
+  177:   context: DashboardContext,
+  178:   schoolAccountId?: string | null
+  179: ) {
+  180:   if (context.isAdmin) return true;
+  181: 
+
+----- MATCH AROUND LINE 178 -----
+  170:     redirect("/dashboard/onboarding?required=true");
+  171:   }
+  172: 
+  173:   return context as SchoolDashboardContext;
+  174: }
+  175: 
+  176: export function canAccessSchool(
+  177:   context: DashboardContext,
+  178:   schoolAccountId?: string | null
+  179: ) {
+  180:   if (context.isAdmin) return true;
+  181: 
+  182:   return Boolean(
+  183:     schoolAccountId &&
+  184:       context.schoolAccountId &&
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+
+----- MATCH AROUND LINE 183 -----
+  175: 
+  176: export function canAccessSchool(
+  177:   context: DashboardContext,
+  178:   schoolAccountId?: string | null
+  179: ) {
+  180:   if (context.isAdmin) return true;
+  181: 
+  182:   return Boolean(
+  183:     schoolAccountId &&
+  184:       context.schoolAccountId &&
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+  191:   schoolAccountId?: string | null
+  192: ) {
+  193:   if (canAccessSchool(context, schoolAccountId)) {
+  194:     return null;
+  195:   }
+
+----- MATCH AROUND LINE 184 -----
+  176: export function canAccessSchool(
+  177:   context: DashboardContext,
+  178:   schoolAccountId?: string | null
+  179: ) {
+  180:   if (context.isAdmin) return true;
+  181: 
+  182:   return Boolean(
+  183:     schoolAccountId &&
+  184:       context.schoolAccountId &&
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+  191:   schoolAccountId?: string | null
+  192: ) {
+  193:   if (canAccessSchool(context, schoolAccountId)) {
+  194:     return null;
+  195:   }
+  196: 
+
+----- MATCH AROUND LINE 185 -----
+  177:   context: DashboardContext,
+  178:   schoolAccountId?: string | null
+  179: ) {
+  180:   if (context.isAdmin) return true;
+  181: 
+  182:   return Boolean(
+  183:     schoolAccountId &&
+  184:       context.schoolAccountId &&
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+  191:   schoolAccountId?: string | null
+  192: ) {
+  193:   if (canAccessSchool(context, schoolAccountId)) {
+  194:     return null;
+  195:   }
+  196: 
+  197:   return NextResponse.json(
+
+----- MATCH AROUND LINE 191 -----
+  183:     schoolAccountId &&
+  184:       context.schoolAccountId &&
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+  191:   schoolAccountId?: string | null
+  192: ) {
+  193:   if (canAccessSchool(context, schoolAccountId)) {
+  194:     return null;
+  195:   }
+  196: 
+  197:   return NextResponse.json(
+  198:     {
+  199:       success: false,
+  200:       error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+  201:       code: "NOT_FOUND",
+  202:     },
+  203:     { status: 404 }
+
+----- MATCH AROUND LINE 193 -----
+  185:       schoolAccountId === context.schoolAccountId
+  186:   );
+  187: }
+  188: 
+  189: export function requireSameSchoolApi(
+  190:   context: DashboardContext,
+  191:   schoolAccountId?: string | null
+  192: ) {
+  193:   if (canAccessSchool(context, schoolAccountId)) {
+  194:     return null;
+  195:   }
+  196: 
+  197:   return NextResponse.json(
+  198:     {
+  199:       success: false,
+  200:       error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+  201:       code: "NOT_FOUND",
+  202:     },
+  203:     { status: 404 }
+  204:   );
+  205: }
+
+----- MATCH AROUND LINE 209 -----
+  201:       code: "NOT_FOUND",
+  202:     },
+  203:     { status: 404 }
+  204:   );
+  205: }
+  206: 
+  207: export function requireSameSchoolPage(
+  208:   context: DashboardContext,
+  209:   schoolAccountId?: string | null
+  210: ) {
+  211:   if (!canAccessSchool(context, schoolAccountId)) {
+  212:     notFound();
+  213:   }
+  214: }
+  215: 
+  216: export function caseOwnershipWhere(
+  217:   context: DashboardContext,
+  218:   caseId: string
+  219: ) {
+  220:   if (context.isAdmin) {
+  221:     return {
+
+----- MATCH AROUND LINE 211 -----
+  203:     { status: 404 }
+  204:   );
+  205: }
+  206: 
+  207: export function requireSameSchoolPage(
+  208:   context: DashboardContext,
+  209:   schoolAccountId?: string | null
+  210: ) {
+  211:   if (!canAccessSchool(context, schoolAccountId)) {
+  212:     notFound();
+  213:   }
+  214: }
+  215: 
+  216: export function caseOwnershipWhere(
+  217:   context: DashboardContext,
+  218:   caseId: string
+  219: ) {
+  220:   if (context.isAdmin) {
+  221:     return {
+  222:       id: caseId,
+  223:     };
+
+----- MATCH AROUND LINE 228 -----
+  220:   if (context.isAdmin) {
+  221:     return {
+  222:       id: caseId,
+  223:     };
+  224:   }
+  225: 
+  226:   return {
+  227:     id: caseId,
+  228:     schoolAccountId: context.schoolAccountId,
+  229:     ...(context.user.role === "PRINCIPAL"
+  230:       ? { createdById: context.user.id }
+  231:       : {}),
+  232:   };
+  233: }
+  234: 
+  235: export function studentOwnershipWhere(
+  236:   context: DashboardContext,
+  237:   studentId: string
+  238: ) {
+  239:   if (context.isAdmin) {
+  240:     return {
+
+----- MATCH AROUND LINE 247 -----
+  239:   if (context.isAdmin) {
+  240:     return {
+  241:       id: studentId,
+  242:     };
+  243:   }
+  244: 
+  245:   return {
+  246:     id: studentId,
+  247:     schoolAccountId: context.schoolAccountId,
+  248:   };
+  249: }
+  250: 
+  251: export function reportOwnershipWhere(
+  252:   context: DashboardContext,
+  253:   reportId: string
+  254: ) {
+  255:   if (context.isAdmin) {
+  256:     return {
+  257:       id: reportId,
+  258:     };
+  259:   }
+
+----- MATCH AROUND LINE 264 -----
+  256:     return {
+  257:       id: reportId,
+  258:     };
+  259:   }
+  260: 
+  261:   return {
+  262:     id: reportId,
+  263:     caseEntry: {
+  264:       schoolAccountId: context.schoolAccountId,
+  265:       ...(context.user.role === "PRINCIPAL"
+  266:         ? { createdById: context.user.id }
+  267:         : {}),
+  268:     },
+  269:   };
+  270: }
+  271: 
+  272: export function reportEvidenceOwnershipWhere(
+  273:   context: DashboardContext,
+  274:   reportEvidenceId: string,
+  275:   reportId?: string
+  276: ) {
+
+----- MATCH AROUND LINE 289 -----
+  281:     };
+  282:   }
+  283: 
+  284:   return {
+  285:     id: reportEvidenceId,
+  286:     ...(reportId ? { reportId } : {}),
+  287:     report: {
+  288:       caseEntry: {
+  289:         schoolAccountId: context.schoolAccountId,
+  290:         ...(context.user.role === "PRINCIPAL"
+  291:           ? { createdById: context.user.id }
+  292:           : {}),
+  293:       },
+  294:     },
+  295:   };
+  296: }
+  297: 
+  298: export function schoolScopedWhere(context: DashboardContext) {
+  299:   if (context.isAdmin) {
+  300:     return {};
+  301:   }
+
+----- MATCH AROUND LINE 304 -----
+  296: }
+  297: 
+  298: export function schoolScopedWhere(context: DashboardContext) {
+  299:   if (context.isAdmin) {
+  300:     return {};
+  301:   }
+  302: 
+  303:   return {
+  304:     schoolAccountId: context.schoolAccountId,
+  305:   };
+  306: }
+
+==================================================
+FILE: lib\security\tenant.ts
+==================================================
+
+----- MATCH AROUND LINE 9 -----
+    1: import "server-only";
+    2: 
+    3: import { notFound } from "next/navigation";
+    4: import type { CurrentUser } from "./auth";
+    5: 
+    6: export type TenantScopedEntity = {
+    7:   tenantId?: string | null;
+    8:   schoolId?: string | null;
+    9:   schoolAccountId?: string | null;
+   10: };
+   11: 
+   12: function getEntitySchoolAccountId(entity: TenantScopedEntity) {
+   13:   return entity.schoolAccountId || entity.schoolId || entity.tenantId || null;
+   14: }
+   15: 
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+
+----- MATCH AROUND LINE 12 -----
+    4: import type { CurrentUser } from "./auth";
+    5: 
+    6: export type TenantScopedEntity = {
+    7:   tenantId?: string | null;
+    8:   schoolId?: string | null;
+    9:   schoolAccountId?: string | null;
+   10: };
+   11: 
+   12: function getEntitySchoolAccountId(entity: TenantScopedEntity) {
+   13:   return entity.schoolAccountId || entity.schoolId || entity.tenantId || null;
+   14: }
+   15: 
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+
+----- MATCH AROUND LINE 13 -----
+    5: 
+    6: export type TenantScopedEntity = {
+    7:   tenantId?: string | null;
+    8:   schoolId?: string | null;
+    9:   schoolAccountId?: string | null;
+   10: };
+   11: 
+   12: function getEntitySchoolAccountId(entity: TenantScopedEntity) {
+   13:   return entity.schoolAccountId || entity.schoolId || entity.tenantId || null;
+   14: }
+   15: 
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+   25:     notFound();
+
+----- MATCH AROUND LINE 21 -----
+   13:   return entity.schoolAccountId || entity.schoolId || entity.tenantId || null;
+   14: }
+   15: 
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+   25:     notFound();
+   26:   }
+   27: 
+   28:   if (entitySchoolAccountId !== userSchoolAccountId) {
+   29:     notFound();
+   30:   }
+   31: }
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+
+----- MATCH AROUND LINE 22 -----
+   14: }
+   15: 
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+   25:     notFound();
+   26:   }
+   27: 
+   28:   if (entitySchoolAccountId !== userSchoolAccountId) {
+   29:     notFound();
+   30:   }
+   31: }
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+   34:   if (user.role === "ADMIN") {
+
+----- MATCH AROUND LINE 24 -----
+   16: export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+   17:   if (user.role === "ADMIN") {
+   18:     return;
+   19:   }
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+   25:     notFound();
+   26:   }
+   27: 
+   28:   if (entitySchoolAccountId !== userSchoolAccountId) {
+   29:     notFound();
+   30:   }
+   31: }
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+   34:   if (user.role === "ADMIN") {
+   35:     return {};
+   36:   }
+
+----- MATCH AROUND LINE 28 -----
+   20: 
+   21:   const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+   22:   const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+   23: 
+   24:   if (!userSchoolAccountId || !entitySchoolAccountId) {
+   25:     notFound();
+   26:   }
+   27: 
+   28:   if (entitySchoolAccountId !== userSchoolAccountId) {
+   29:     notFound();
+   30:   }
+   31: }
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+   34:   if (user.role === "ADMIN") {
+   35:     return {};
+   36:   }
+   37: 
+   38:   if (!user.schoolAccountId) {
+   39:     return {
+   40:       schoolAccountId: "__missing_school_account__",
+
+----- MATCH AROUND LINE 38 -----
+   30:   }
+   31: }
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+   34:   if (user.role === "ADMIN") {
+   35:     return {};
+   36:   }
+   37: 
+   38:   if (!user.schoolAccountId) {
+   39:     return {
+   40:       schoolAccountId: "__missing_school_account__",
+   41:     };
+   42:   }
+   43: 
+   44:   return {
+   45:     schoolAccountId: user.schoolAccountId,
+   46:   };
+   47: }
+   48: 
+   49: export function legacyTenantWhere(user: CurrentUser) {
+   50:   if (user.role === "ADMIN") {
+
+----- MATCH AROUND LINE 40 -----
+   32: 
+   33: export function tenantWhere(user: CurrentUser) {
+   34:   if (user.role === "ADMIN") {
+   35:     return {};
+   36:   }
+   37: 
+   38:   if (!user.schoolAccountId) {
+   39:     return {
+   40:       schoolAccountId: "__missing_school_account__",
+   41:     };
+   42:   }
+   43: 
+   44:   return {
+   45:     schoolAccountId: user.schoolAccountId,
+   46:   };
+   47: }
+   48: 
+   49: export function legacyTenantWhere(user: CurrentUser) {
+   50:   if (user.role === "ADMIN") {
+   51:     return {};
+   52:   }
+
+----- MATCH AROUND LINE 45 -----
+   37: 
+   38:   if (!user.schoolAccountId) {
+   39:     return {
+   40:       schoolAccountId: "__missing_school_account__",
+   41:     };
+   42:   }
+   43: 
+   44:   return {
+   45:     schoolAccountId: user.schoolAccountId,
+   46:   };
+   47: }
+   48: 
+   49: export function legacyTenantWhere(user: CurrentUser) {
+   50:   if (user.role === "ADMIN") {
+   51:     return {};
+   52:   }
+   53: 
+   54:   return {
+   55:     tenantId: user.schoolAccountId,
+   56:     schoolId: user.schoolAccountId,
+   57:   };
+
+----- MATCH AROUND LINE 55 -----
+   47: }
+   48: 
+   49: export function legacyTenantWhere(user: CurrentUser) {
+   50:   if (user.role === "ADMIN") {
+   51:     return {};
+   52:   }
+   53: 
+   54:   return {
+   55:     tenantId: user.schoolAccountId,
+   56:     schoolId: user.schoolAccountId,
+   57:   };
+   58: }
+
+----- MATCH AROUND LINE 56 -----
+   48: 
+   49: export function legacyTenantWhere(user: CurrentUser) {
+   50:   if (user.role === "ADMIN") {
+   51:     return {};
+   52:   }
+   53: 
+   54:   return {
+   55:     tenantId: user.schoolAccountId,
+   56:     schoolId: user.schoolAccountId,
+   57:   };
+   58: }
+
+==================================================
+FILE: lib\subscription\subscription-service.ts
+==================================================
+
+----- MATCH AROUND LINE 2 -----
+    1: import { prisma } from "@/lib/prisma";
+    2: import type { SubscriptionStatus } from "@prisma/client";
+    3: import type { PlanAudience } from "./plan-audience";
+    4: import {
+    5:   getActivityProgramsBillingServiceSlug,
+    6: } from "@/lib/activity-programs/activity-program-catalog";
+    7: import {
+    8:   getPlanCommercialType,
+    9:   getPlanDurationMode,
+   10:   getPlanFixedEndDate,
+   11:   getPlanServiceSlugs,
+   12:   resolvePlanBillingCycle,
+   13:   type CommercialPlanType,
+   14:   type PlanBillingCycle,
+
+----- MATCH AROUND LINE 30 -----
+   22:   getPlanFixedEndDate,
+   23:   getPlanServiceSlugs,
+   24:   resolvePlanBillingCycle,
+   25: } from "./plan-metadata";
+   26: export type { CommercialPlanType, PlanBillingCycle, PlanDurationMode, PlanFeatureLike } from "./plan-metadata";
+   27: 
+   28: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+   29: 
+   30: export function resolvePlanSubscriptionPeriod(input: {
+   31:   features: PlanFeatureLike[];
+   32:   days?: number;
+   33:   startsAt?: Date;
+   34: }) {
+   35:   const startsAt = input.startsAt || new Date();
+   36:   const mode = getPlanDurationMode(input.features);
+   37:   if (mode === "FIXED_END_DATE") {
+   38:     const endsAt = getPlanFixedEndDate(input.features);
+   39:     if (!endsAt) throw new Error("FIXED_END_DATE_PLAN_CONFIGURATION_INVALID");
+   40:     if (endsAt.getTime() <= startsAt.getTime()) throw new Error("FIXED_END_DATE_PLAN_EXPIRED");
+   41:     return { startsAt, endsAt, durationMode: mode, durationDays: null };
+   42:   }
+
+----- MATCH AROUND LINE 61 -----
+   53: 
+   54: export function getRemainingDays(endsAt?: Date | null) {
+   55:   if (!endsAt) return null;
+   56: 
+   57:   const diff = endsAt.getTime() - Date.now();
+   58:   return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+   59: }
+   60: 
+   61: export function isSubscriptionUsable(
+   62:   status?: SubscriptionStatus | string | null,
+   63:   endsAt?: Date | null
+   64: ) {
+   65:   if (!status) return false;
+   66: 
+   67:   if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+   68:     return false;
+   69:   }
+   70: 
+   71:   if (!endsAt) {
+   72:     return status === "ACTIVE" || status === "TRIAL";
+   73:   }
+
+----- MATCH AROUND LINE 62 -----
+   54: export function getRemainingDays(endsAt?: Date | null) {
+   55:   if (!endsAt) return null;
+   56: 
+   57:   const diff = endsAt.getTime() - Date.now();
+   58:   return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+   59: }
+   60: 
+   61: export function isSubscriptionUsable(
+   62:   status?: SubscriptionStatus | string | null,
+   63:   endsAt?: Date | null
+   64: ) {
+   65:   if (!status) return false;
+   66: 
+   67:   if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+   68:     return false;
+   69:   }
+   70: 
+   71:   if (!endsAt) {
+   72:     return status === "ACTIVE" || status === "TRIAL";
+   73:   }
+   74: 
+
+----- MATCH AROUND LINE 99 -----
+   91:   return "ALL";
+   92: }
+   93: 
+   94: function hasPlanServiceRules(features: PlanFeatureLike[]) {
+   95:   return features.some((feature) => feature.key.startsWith("service:"));
+   96: }
+   97: 
+   98: export async function syncSchoolServicesFromPlan(input: {
+   99:   schoolAccountId: string;
+  100:   planId: string;
+  101: }) {
+  102:   const planFeatures = (
+  103:     await prisma.planFeature.findMany({
+  104:       where: {
+  105:         planId: input.planId,
+  106:       },
+  107:       select: {
+  108:         key: true,
+  109:         value: true,
+  110:       },
+  111:     })
+
+----- MATCH AROUND LINE 150 -----
+  142:     throw new Error(
+  143:       `الباقة تحتوي على خدمات غير موجودة في جدول Service: ${missingServiceSlugs.join(", ")}`
+  144:     );
+  145:   }
+  146: 
+  147:   await prisma.$transaction(async (tx) => {
+  148:     await tx.serviceAccess.updateMany({
+  149:       where: {
+  150:         schoolAccountId: input.schoolAccountId,
+  151:       },
+  152:       data: {
+  153:         isEnabled: false,
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+
+----- MATCH AROUND LINE 161 -----
+  153:         isEnabled: false,
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+
+----- MATCH AROUND LINE 162 -----
+  154:         isPaid: false,
+  155:       },
+  156:     });
+  157: 
+  158:     for (const service of enabledServices) {
+  159:       await tx.serviceAccess.upsert({
+  160:         where: {
+  161:           schoolAccountId_serviceId: {
+  162:             schoolAccountId: input.schoolAccountId,
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+
+----- MATCH AROUND LINE 171 -----
+  163:             serviceId: service.id,
+  164:           },
+  165:         },
+  166:         update: {
+  167:           isEnabled: true,
+  168:           isPaid: true,
+  169:         },
+  170:         create: {
+  171:           schoolAccountId: input.schoolAccountId,
+  172:           serviceId: service.id,
+  173:           isEnabled: true,
+  174:           isPaid: true,
+  175:         },
+  176:       });
+  177:     }
+  178:   });
+  179: 
+  180:   return {
+  181:     enabledServiceCount: enabledServices.length,
+  182:     missingServiceSlugs,
+  183:     skippedReason: null,
+
+----- MATCH AROUND LINE 198 -----
+  190:   nextServiceSlugs: string[];
+  191: }) {
+  192:   const previous = new Set(input.previousServiceSlugs);
+  193:   const next = new Set(input.nextServiceSlugs);
+  194:   const addedSlugs = [...next].filter((slug) => !previous.has(slug));
+  195:   const removedSlugs = [...previous].filter((slug) => !next.has(slug));
+  196:   if (!addedSlugs.length && !removedSlugs.length) return { affectedSubscribers: 0, addedSlugs, removedSlugs };
+  197: 
+  198:   const subscriptions = await prisma.subscription.findMany({
+  199:     where: { planId: input.planId },
+  200:     select: { schoolAccountId: true },
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+
+----- MATCH AROUND LINE 200 -----
+  192:   const previous = new Set(input.previousServiceSlugs);
+  193:   const next = new Set(input.nextServiceSlugs);
+  194:   const addedSlugs = [...next].filter((slug) => !previous.has(slug));
+  195:   const removedSlugs = [...previous].filter((slug) => !next.has(slug));
+  196:   if (!addedSlugs.length && !removedSlugs.length) return { affectedSubscribers: 0, addedSlugs, removedSlugs };
+  197: 
+  198:   const subscriptions = await prisma.subscription.findMany({
+  199:     where: { planId: input.planId },
+  200:     select: { schoolAccountId: true },
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+
+----- MATCH AROUND LINE 209 -----
+  201:   });
+  202:   const services = await prisma.service.findMany({
+  203:     where: { slug: { in: [...new Set([...addedSlugs, ...removedSlugs])] } },
+  204:     select: { id: true, slug: true },
+  205:   });
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+
+----- MATCH AROUND LINE 214 -----
+  206:   const serviceBySlug = new Map(services.map((service) => [service.slug, service.id]));
+  207: 
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+
+----- MATCH AROUND LINE 216 -----
+  208:   await prisma.$transaction(async (tx) => {
+  209:     for (const subscription of subscriptions) {
+  210:       for (const slug of addedSlugs) {
+  211:         const serviceId = serviceBySlug.get(slug);
+  212:         if (!serviceId) continue;
+  213:         await tx.serviceAccess.upsert({
+  214:           where: { schoolAccountId_serviceId: { schoolAccountId: subscription.schoolAccountId, serviceId } },
+  215:           update: { isEnabled: true, isPaid: true },
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+
+----- MATCH AROUND LINE 224 -----
+  216:           create: { schoolAccountId: subscription.schoolAccountId, serviceId, isEnabled: true, isPaid: true },
+  217:         });
+  218:       }
+  219:       for (const slug of removedSlugs) {
+  220:         const serviceId = serviceBySlug.get(slug);
+  221:         if (!serviceId) continue;
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+
+----- MATCH AROUND LINE 230 -----
+  222:         // Plan-generated entitlements are marked paid. Manual overrides remain untouched.
+  223:         await tx.serviceAccess.updateMany({
+  224:           where: { schoolAccountId: subscription.schoolAccountId, serviceId, isPaid: true },
+  225:           data: { isEnabled: false, isPaid: false },
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+
+----- MATCH AROUND LINE 234 -----
+  226:         });
+  227:       }
+  228:     }
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+
+----- MATCH AROUND LINE 237 -----
+  229:   });
+  230:   return { affectedSubscribers: subscriptions.length, addedSlugs, removedSlugs };
+  231: }
+  232: 
+  233: export async function assignPlanToSchool(input: {
+  234:   schoolAccountId: string;
+  235:   planId: string;
+  236:   days?: number;
+  237:   status?: SubscriptionStatus;
+  238:   activatedById?: string;
+  239:   reason?: string;
+  240: }) {
+  241:   const plan = await prisma.plan.findUnique({
+  242:     where: {
+  243:       id: input.planId,
+  244:     },
+  245:     include: {
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+
+----- MATCH AROUND LINE 254 -----
+  246:       features: true,
+  247:     },
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+  256:       schoolAccountId: input.schoolAccountId,
+  257:     },
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+
+----- MATCH AROUND LINE 256 -----
+  248:   });
+  249: 
+  250:   if (!plan) {
+  251:     throw new Error("الباقة غير موجودة.");
+  252:   }
+  253: 
+  254:   const currentSubscription = await prisma.subscription.findUnique({
+  255:     where: {
+  256:       schoolAccountId: input.schoolAccountId,
+  257:     },
+  258:     include: {
+  259:       plan: {
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+
+----- MATCH AROUND LINE 268 -----
+  260:         select: {
+  261:           slug: true,
+  262:           name: true,
+  263:         },
+  264:       },
+  265:     },
+  266:   });
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+
+----- MATCH AROUND LINE 275 -----
+  267: 
+  268:   const period = resolvePlanSubscriptionPeriod({
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+
+----- MATCH AROUND LINE 277 -----
+  269:     features: plan.features,
+  270:     days: input.days,
+  271:   });
+  272:   const now = period.startsAt;
+  273:   const endsAt = period.endsAt;
+  274: 
+  275:   const subscription = await prisma.subscription.upsert({
+  276:     where: {
+  277:       schoolAccountId: input.schoolAccountId,
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+
+----- MATCH AROUND LINE 286 -----
+  278:     },
+  279:     update: {
+  280:       planId: plan.id,
+  281:       status: input.status || "ACTIVE",
+  282:       startsAt: now,
+  283:       endsAt,
+  284:     },
+  285:     create: {
+  286:       schoolAccountId: input.schoolAccountId,
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+
+----- MATCH AROUND LINE 295 -----
+  287:       planId: plan.id,
+  288:       status: input.status || "ACTIVE",
+  289:       startsAt: now,
+  290:       endsAt,
+  291:     },
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+
+----- MATCH AROUND LINE 300 -----
+  292:   });
+  293: 
+  294:   await syncSchoolServicesFromPlan({
+  295:     schoolAccountId: input.schoolAccountId,
+  296:     planId: plan.id,
+  297:   });
+  298: 
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+
+----- MATCH AROUND LINE 307 -----
+  299:   if (
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  302:   ) {
+  303:     try {
+  304:       const convertedAt = new Date();
+  305:       const daysOnDefaultFree = Math.max(
+  306:         Math.ceil(
+  307:           (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+
+----- MATCH AROUND LINE 316 -----
+  308:             (1000 * 60 * 60 * 24),
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+
+----- MATCH AROUND LINE 317 -----
+  309:         ),
+  310:         0,
+  311:       );
+  312: 
+  313:       await prisma.platformActivityLog.create({
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+
+----- MATCH AROUND LINE 322 -----
+  314:         data: {
+  315:           actorUserId: input.activatedById || null,
+  316:           schoolAccountId: input.schoolAccountId,
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+
+----- MATCH AROUND LINE 325 -----
+  317:           category: "SUBSCRIPTION",
+  318:           action: "default-free-plan-converted",
+  319:           severity: "SUCCESS",
+  320:           title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+  321:           details: {
+  322:             fromPlanSlug: currentSubscription.plan.slug,
+  323:             toPlanId: plan.id,
+  324:             toPlanName: plan.name,
+  325:             startedAt: currentSubscription.startsAt.toISOString(),
+  326:             convertedAt: convertedAt.toISOString(),
+  327:             daysOnDefaultFree,
+  328:           },
+  329:         },
+  330:       });
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+
+----- MATCH AROUND LINE 339 -----
+  331:     } catch (error) {
+  332:       console.error("default free plan conversion audit failed", error);
+  333:     }
+  334:   }
+  335: 
+  336:   try {
+  337:     await prisma.manualActivation.create({
+  338:       data: {
+  339:         schoolAccountId: input.schoolAccountId,
+  340:         activatedById: input.activatedById || null,
+  341:         reason: input.reason || `إسناد باقة ${plan.name}`,
+  342:         startsAt: now,
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+
+----- MATCH AROUND LINE 350 -----
+  342:         startsAt: now,
+  343:         endsAt,
+  344:       },
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+
+----- MATCH AROUND LINE 353 -----
+  345:     });
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+
+----- MATCH AROUND LINE 354 -----
+  346:   } catch (error) {
+  347:     console.error("manual activation audit failed", error);
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+
+----- MATCH AROUND LINE 356 -----
+  348:   }
+  349: 
+  350:   return subscription;
+  351: }
+  352: 
+  353: export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  354:   const subscription = await prisma.subscription.findUnique({
+  355:     where: {
+  356:       schoolAccountId,
+  357:     },
+  358:     include: {
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+
+----- MATCH AROUND LINE 367 -----
+  359:       plan: {
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+
+----- MATCH AROUND LINE 368 -----
+  360:         include: {
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+
+----- MATCH AROUND LINE 369 -----
+  361:           features: true,
+  362:         },
+  363:       },
+  364:     },
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+
+----- MATCH AROUND LINE 373 -----
+  365:   });
+  366: 
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+
+----- MATCH AROUND LINE 375 -----
+  367:   const usable = isSubscriptionUsable(
+  368:     subscription?.status,
+  369:     subscription?.endsAt
+  370:   );
+  371: 
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+
+----- MATCH AROUND LINE 380 -----
+  372:   return {
+  373:     subscription,
+  374:     usable,
+  375:     remainingDays: getRemainingDays(subscription?.endsAt),
+  376:   };
+  377: }
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+
+----- MATCH AROUND LINE 386 -----
+  378: 
+  379: export async function isServiceAllowedForSchool(input: {
+  380:   schoolAccountId: string;
+  381:   serviceSlug: string;
+  382: }) {
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+
+----- MATCH AROUND LINE 391 -----
+  383:   const billingServiceSlug = getActivityProgramsBillingServiceSlug(
+  384:     input.serviceSlug,
+  385:   );
+  386:   const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+  399:     const service = await prisma.service.findFirst({
+  400:       where: {
+  401:         slug: billingServiceSlug,
+  402:       },
+  403:       select: {
+
+----- MATCH AROUND LINE 395 -----
+  387: 
+  388:   if (!overview.usable) {
+  389:     return {
+  390:       ok: false,
+  391:       reason: "SUBSCRIPTION_INACTIVE" as const,
+  392:     };
+  393:   }
+  394: 
+  395:   const planFeatures = overview.subscription?.plan?.features || [];
+  396:   const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+  397: 
+  398:   if (planServiceSlugs.includes(billingServiceSlug)) {
+  399:     const service = await prisma.service.findFirst({
+  400:       where: {
+  401:         slug: billingServiceSlug,
+  402:       },
+  403:       select: {
+  404:         id: true,
+  405:       },
+  406:     });
+  407: 
+
+----- MATCH AROUND LINE 417 -----
+  409:       return {
+  410:         ok: false,
+  411:         reason: "SERVICE_NOT_FOUND" as const,
+  412:       };
+  413:     }
+  414: 
+  415:     await prisma.serviceAccess.upsert({
+  416:       where: {
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+
+----- MATCH AROUND LINE 418 -----
+  410:         ok: false,
+  411:         reason: "SERVICE_NOT_FOUND" as const,
+  412:       };
+  413:     }
+  414: 
+  415:     await prisma.serviceAccess.upsert({
+  416:       where: {
+  417:         schoolAccountId_serviceId: {
+  418:           schoolAccountId: input.schoolAccountId,
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+
+----- MATCH AROUND LINE 427 -----
+  419:           serviceId: service.id,
+  420:         },
+  421:       },
+  422:       update: {
+  423:         isEnabled: true,
+  424:         isPaid: true,
+  425:       },
+  426:       create: {
+  427:         schoolAccountId: input.schoolAccountId,
+  428:         serviceId: service.id,
+  429:         isEnabled: true,
+  430:         isPaid: true,
+  431:       },
+  432:     });
+  433: 
+  434:     return {
+  435:       ok: true,
+  436:       reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+  437:     };
+  438:   }
+  439: 
+
+----- MATCH AROUND LINE 449 -----
+  441:     return {
+  442:       ok: false,
+  443:       reason: "SERVICE_NOT_INCLUDED" as const,
+  444:     };
+  445:   }
+  446: 
+  447:   const accessRows = await prisma.serviceAccess.findMany({
+  448:     where: {
+  449:       schoolAccountId: input.schoolAccountId,
+  450:     },
+  451:   });
+  452: 
+  453:   if (accessRows.length === 0) {
+  454:     return {
+  455:       ok: true,
+  456:       reason: "NO_SERVICE_RULES_YET" as const,
+  457:     };
+  458:   }
+  459: 
+  460:   const serviceAccess = await prisma.serviceAccess.findFirst({
+  461:     where: {
+
+----- MATCH AROUND LINE 462 -----
+  454:     return {
+  455:       ok: true,
+  456:       reason: "NO_SERVICE_RULES_YET" as const,
+  457:     };
+  458:   }
+  459: 
+  460:   const serviceAccess = await prisma.serviceAccess.findFirst({
+  461:     where: {
+  462:       schoolAccountId: input.schoolAccountId,
+  463:       service: {
+  464:         slug: billingServiceSlug,
+  465:       },
+  466:     },
+  467:   });
+  468: 
+  469:   if (!serviceAccess?.isEnabled) {
+  470:     return {
+  471:       ok: false,
+  472:       reason: "SERVICE_NOT_INCLUDED" as const,
+  473:     };
+  474:   }
+
+==================================================
+FILE: lib\payments\electronic-payments.ts
+==================================================
+
+----- MATCH AROUND LINE 5 -----
+    1: import {
+    2:   PaymentMethod,
+    3:   PaymentStatus,
+    4:   Prisma,
+    5:   SubscriptionStatus,
+    6: } from "@prisma/client";
+    7: import { logAdminActivity } from "@/lib/admin/activity-log";
+    8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+    9: import { prisma } from "@/lib/prisma";
+   10: import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+   11: import {
+   12:   resolvePlanBillingCycle,
+   13:   resolvePlanSubscriptionPeriod,
+   14: } from "@/lib/subscription/subscription-service";
+   15: import {
+   16:   getCouponQuote,
+   17:   redeemCoupon,
+
+----- MATCH AROUND LINE 8 -----
+    1: import {
+    2:   PaymentMethod,
+    3:   PaymentStatus,
+    4:   Prisma,
+    5:   SubscriptionStatus,
+    6: } from "@prisma/client";
+    7: import { logAdminActivity } from "@/lib/admin/activity-log";
+    8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+    9: import { prisma } from "@/lib/prisma";
+   10: import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+   11: import {
+   12:   resolvePlanBillingCycle,
+   13:   resolvePlanSubscriptionPeriod,
+   14: } from "@/lib/subscription/subscription-service";
+   15: import {
+   16:   getCouponQuote,
+   17:   redeemCoupon,
+   18:   redeemCouponWithClient,
+   19: } from "@/lib/promotions/coupon-service";
+   20: import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+
+----- MATCH AROUND LINE 10 -----
+    2:   PaymentMethod,
+    3:   PaymentStatus,
+    4:   Prisma,
+    5:   SubscriptionStatus,
+    6: } from "@prisma/client";
+    7: import { logAdminActivity } from "@/lib/admin/activity-log";
+    8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+    9: import { prisma } from "@/lib/prisma";
+   10: import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+   11: import {
+   12:   resolvePlanBillingCycle,
+   13:   resolvePlanSubscriptionPeriod,
+   14: } from "@/lib/subscription/subscription-service";
+   15: import {
+   16:   getCouponQuote,
+   17:   redeemCoupon,
+   18:   redeemCouponWithClient,
+   19: } from "@/lib/promotions/coupon-service";
+   20: import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+   21: import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+   22: 
+
+----- MATCH AROUND LINE 13 -----
+    5:   SubscriptionStatus,
+    6: } from "@prisma/client";
+    7: import { logAdminActivity } from "@/lib/admin/activity-log";
+    8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+    9: import { prisma } from "@/lib/prisma";
+   10: import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+   11: import {
+   12:   resolvePlanBillingCycle,
+   13:   resolvePlanSubscriptionPeriod,
+   14: } from "@/lib/subscription/subscription-service";
+   15: import {
+   16:   getCouponQuote,
+   17:   redeemCoupon,
+   18:   redeemCouponWithClient,
+   19: } from "@/lib/promotions/coupon-service";
+   20: import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+   21: import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+   22: 
+   23: export class ElectronicPaymentError extends Error {
+   24:   status: number;
+   25: 
+
+----- MATCH AROUND LINE 14 -----
+    6: } from "@prisma/client";
+    7: import { logAdminActivity } from "@/lib/admin/activity-log";
+    8: import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
+    9: import { prisma } from "@/lib/prisma";
+   10: import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
+   11: import {
+   12:   resolvePlanBillingCycle,
+   13:   resolvePlanSubscriptionPeriod,
+   14: } from "@/lib/subscription/subscription-service";
+   15: import {
+   16:   getCouponQuote,
+   17:   redeemCoupon,
+   18:   redeemCouponWithClient,
+   19: } from "@/lib/promotions/coupon-service";
+   20: import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+   21: import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+   22: 
+   23: export class ElectronicPaymentError extends Error {
+   24:   status: number;
+   25: 
+   26:   constructor(message: string, status = 400) {
+
+----- MATCH AROUND LINE 37 -----
+   29:     this.status = status;
+   30:   }
+   31: }
+   32: 
+   33: type BillingCycle = "MONTHLY" | "YEARLY";
+   34: 
+   35: type CheckoutInput = {
+   36:   requesterUserId: string;
+   37:   schoolAccountId: string;
+   38:   planId: string;
+   39:   billingCycle: BillingCycle;
+   40:   providerSlug: string;
+   41:   couponCode?: string;
+   42: };
+   43: 
+   44: type WebhookApplyInput = {
+   45:   transactionId?: string | null;
+   46:   externalRef?: string | null;
+   47:   providerSlug: string;
+   48:   payload: unknown;
+   49: };
+
+----- MATCH AROUND LINE 134 -----
+  126:       },
+  127:       select: {
+  128:         id: true,
+  129:         name: true,
+  130:         officialName: true,
+  131:         email: true,
+  132:         jobTitle: true,
+  133:         role: true,
+  134:         schoolAccountId: true,
+  135:       },
+  136:     }),
+  137:   ]);
+  138: 
+  139:   if (
+  140:     !plan ||
+  141:     !requesterUser ||
+  142:     !isPlanSelfServiceVisible(plan, requesterUser.role)
+  143:   ) {
+  144:     throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  145:   }
+  146: 
+
+----- MATCH AROUND LINE 155 -----
+  147:   if (!provider || !provider.isActive) {
+  148:     throw new ElectronicPaymentError("مزود الدفع غير متاح حاليًا.", 404);
+  149:   }
+  150: 
+  151:   billingCycle = resolvePlanBillingCycle(plan.features, billingCycle);
+  152: 
+  153:   if (
+  154:     !requesterUser ||
+  155:     requesterUser.schoolAccountId !== input.schoolAccountId
+  156:   ) {
+  157:     throw new ElectronicPaymentError(
+  158:       "لا يمكن إنشاء عملية الدفع لهذا الحساب.",
+  159:       403,
+  160:     );
+  161:   }
+  162: 
+  163:   const salesExperience = await resolveSalesExperienceForUser(requesterUser.id);
+  164: 
+  165:   const originalAmount = getCheckoutAmount(plan, billingCycle);
+  166:   const couponQuote = input.couponCode
+  167:     ? await getCouponQuote({
+
+----- MATCH AROUND LINE 171 -----
+  163:   const salesExperience = await resolveSalesExperienceForUser(requesterUser.id);
+  164: 
+  165:   const originalAmount = getCheckoutAmount(plan, billingCycle);
+  166:   const couponQuote = input.couponCode
+  167:     ? await getCouponQuote({
+  168:         code: input.couponCode,
+  169:         planId: plan.id,
+  170:         billingCycle,
+  171:         schoolAccountId: input.schoolAccountId,
+  172:       })
+  173:     : null;
+  174:   const automaticPricing = input.couponCode
+  175:     ? null
+  176:     : await getAutomaticPlanPricing({
+  177:         planId: plan.id,
+  178:         plan,
+  179:         billingCycle,
+  180:       });
+  181:   const amount =
+  182:     couponQuote?.finalAmount ?? automaticPricing?.finalAmount ?? originalAmount;
+  183: 
+
+----- MATCH AROUND LINE 204 -----
+  196:         source: "CHECKOUT",
+  197:         salesExperienceMode: salesExperience.effectiveMode,
+  198:         productTitle:
+  199:           salesExperience.isBagMode ? "الحقيبة الشاملة" : plan.name,
+  200:         planId: plan.id,
+  201:         planSlug: plan.slug,
+  202:         planName: plan.name,
+  203:         billingCycle,
+  204:         schoolAccountId: input.schoolAccountId,
+  205:         requesterUserId: requesterUser.id,
+  206:         requesterName: requesterUser.officialName || requesterUser.name,
+  207:         requesterEmail: requesterUser.email,
+  208:         requesterJobTitle: requesterUser.jobTitle,
+  209:         providerSlug: provider.slug,
+  210:         couponCode: couponQuote?.couponCode || null,
+  211:         promotionId: automaticPricing?.promotionId || null,
+  212:         originalAmount,
+  213:         discountAmount:
+  214:           couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
+  215:         finalAmount: amount,
+  216:         createdAt: new Date().toISOString(),
+
+----- MATCH AROUND LINE 250 -----
+  242:       transactionId: updatedTransaction.id,
+  243:       externalRef,
+  244:       amount,
+  245:       currency: updatedTransaction.currency,
+  246:       planId: plan.id,
+  247:       planName: plan.name,
+  248:       billingCycle,
+  249:       providerSlug: provider.slug,
+  250:       schoolAccountId: input.schoolAccountId,
+  251:     },
+  252:   });
+  253: 
+  254:   const publicConfig = getPublicProviderConfig(provider.configJson);
+  255: 
+  256:   const checkoutUrl = publicConfig.checkoutBaseUrl
+  257:     ? `${publicConfig.checkoutBaseUrl}${
+  258:         publicConfig.checkoutBaseUrl.includes("?") ? "&" : "?"
+  259:       }transactionId=${encodeURIComponent(updatedTransaction.id)}&externalRef=${encodeURIComponent(
+  260:         externalRef,
+  261:       )}&amount=${encodeURIComponent(String(amount))}&currency=SAR`
+  262:     : buildInternalCheckoutUrl(updatedTransaction.id);
+
+----- MATCH AROUND LINE 297 -----
+  289:   if (transaction.status === PaymentStatus.PAID) {
+  290:     const paidMetadata = getObject(transaction.metadataJson);
+  291:     const paidCouponCode =
+  292:       typeof paidMetadata.couponCode === "string"
+  293:         ? paidMetadata.couponCode
+  294:         : null;
+  295:     const paidPlanId =
+  296:       typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+  297:     const paidSchoolAccountId =
+  298:       typeof paidMetadata.schoolAccountId === "string"
+  299:         ? paidMetadata.schoolAccountId
+  300:         : null;
+  301:     if (
+  302:       paidCouponCode &&
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+
+----- MATCH AROUND LINE 298 -----
+  290:     const paidMetadata = getObject(transaction.metadataJson);
+  291:     const paidCouponCode =
+  292:       typeof paidMetadata.couponCode === "string"
+  293:         ? paidMetadata.couponCode
+  294:         : null;
+  295:     const paidPlanId =
+  296:       typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+  297:     const paidSchoolAccountId =
+  298:       typeof paidMetadata.schoolAccountId === "string"
+  299:         ? paidMetadata.schoolAccountId
+  300:         : null;
+  301:     if (
+  302:       paidCouponCode &&
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+
+----- MATCH AROUND LINE 299 -----
+  291:     const paidCouponCode =
+  292:       typeof paidMetadata.couponCode === "string"
+  293:         ? paidMetadata.couponCode
+  294:         : null;
+  295:     const paidPlanId =
+  296:       typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+  297:     const paidSchoolAccountId =
+  298:       typeof paidMetadata.schoolAccountId === "string"
+  299:         ? paidMetadata.schoolAccountId
+  300:         : null;
+  301:     if (
+  302:       paidCouponCode &&
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+  311:         schoolAccountId: paidSchoolAccountId,
+
+----- MATCH AROUND LINE 304 -----
+  296:       typeof paidMetadata.planId === "string" ? paidMetadata.planId : null;
+  297:     const paidSchoolAccountId =
+  298:       typeof paidMetadata.schoolAccountId === "string"
+  299:         ? paidMetadata.schoolAccountId
+  300:         : null;
+  301:     if (
+  302:       paidCouponCode &&
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+  311:         schoolAccountId: paidSchoolAccountId,
+  312:         subscriptionId: transaction.subscriptionId,
+  313:         paymentTransactionId: transaction.id,
+  314:       });
+  315:     }
+  316:     return {
+
+----- MATCH AROUND LINE 305 -----
+  297:     const paidSchoolAccountId =
+  298:       typeof paidMetadata.schoolAccountId === "string"
+  299:         ? paidMetadata.schoolAccountId
+  300:         : null;
+  301:     if (
+  302:       paidCouponCode &&
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+  311:         schoolAccountId: paidSchoolAccountId,
+  312:         subscriptionId: transaction.subscriptionId,
+  313:         paymentTransactionId: transaction.id,
+  314:       });
+  315:     }
+  316:     return {
+  317:       transaction,
+
+----- MATCH AROUND LINE 311 -----
+  303:       paidPlanId &&
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+  311:         schoolAccountId: paidSchoolAccountId,
+  312:         subscriptionId: transaction.subscriptionId,
+  313:         paymentTransactionId: transaction.id,
+  314:       });
+  315:     }
+  316:     return {
+  317:       transaction,
+  318:       wasActivated: false,
+  319:       wasAlreadyPaid: true,
+  320:     };
+  321:   }
+  322: 
+  323:   const metadata = getObject(transaction.metadataJson);
+
+----- MATCH AROUND LINE 312 -----
+  304:       paidSchoolAccountId &&
+  305:       transaction.subscriptionId
+  306:     ) {
+  307:       await redeemCoupon({
+  308:         code: paidCouponCode,
+  309:         planId: paidPlanId,
+  310:         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
+  311:         schoolAccountId: paidSchoolAccountId,
+  312:         subscriptionId: transaction.subscriptionId,
+  313:         paymentTransactionId: transaction.id,
+  314:       });
+  315:     }
+  316:     return {
+  317:       transaction,
+  318:       wasActivated: false,
+  319:       wasAlreadyPaid: true,
+  320:     };
+  321:   }
+  322: 
+  323:   const metadata = getObject(transaction.metadataJson);
+  324:   const planId = typeof metadata.planId === "string" ? metadata.planId : null;
+
+----- MATCH AROUND LINE 325 -----
+  317:       transaction,
+  318:       wasActivated: false,
+  319:       wasAlreadyPaid: true,
+  320:     };
+  321:   }
+  322: 
+  323:   const metadata = getObject(transaction.metadataJson);
+  324:   const planId = typeof metadata.planId === "string" ? metadata.planId : null;
+  325:   const schoolAccountId =
+  326:     typeof metadata.schoolAccountId === "string"
+  327:       ? metadata.schoolAccountId
+  328:       : null;
+  329:   const billingCycle = normalizeBillingCycle(metadata.billingCycle);
+  330:   const requesterUserId =
+  331:     typeof metadata.requesterUserId === "string"
+  332:       ? metadata.requesterUserId
+  333:       : null;
+  334: 
+  335:   if (!planId || !schoolAccountId) {
+  336:     throw new ElectronicPaymentError(
+  337:       "بيانات عملية الدفع غير مكتملة للتفعيل.",
+
+----- MATCH AROUND LINE 326 -----
+  318:       wasActivated: false,
+  319:       wasAlreadyPaid: true,
+  320:     };
+  321:   }
+  322: 
+  323:   const metadata = getObject(transaction.metadataJson);
+  324:   const planId = typeof metadata.planId === "string" ? metadata.planId : null;
+  325:   const schoolAccountId =
+  326:     typeof metadata.schoolAccountId === "string"
+  327:       ? metadata.schoolAccountId
+  328:       : null;
+  329:   const billingCycle = normalizeBillingCycle(metadata.billingCycle);
+  330:   const requesterUserId =
+  331:     typeof metadata.requesterUserId === "string"
+  332:       ? metadata.requesterUserId
+  333:       : null;
+  334: 
+  335:   if (!planId || !schoolAccountId) {
+  336:     throw new ElectronicPaymentError(
+  337:       "بيانات عملية الدفع غير مكتملة للتفعيل.",
+  338:       409,
+
+----- MATCH AROUND LINE 327 -----
+  319:       wasAlreadyPaid: true,
+  320:     };
+  321:   }
+  322: 
+  323:   const metadata = getObject(transaction.metadataJson);
+  324:   const planId = typeof metadata.planId === "string" ? metadata.planId : null;
+  325:   const schoolAccountId =
+  326:     typeof metadata.schoolAccountId === "string"
+  327:       ? metadata.schoolAccountId
+  328:       : null;
+  329:   const billingCycle = normalizeBillingCycle(metadata.billingCycle);
+  330:   const requesterUserId =
+  331:     typeof metadata.requesterUserId === "string"
+  332:       ? metadata.requesterUserId
+  333:       : null;
+  334: 
+  335:   if (!planId || !schoolAccountId) {
+  336:     throw new ElectronicPaymentError(
+  337:       "بيانات عملية الدفع غير مكتملة للتفعيل.",
+  338:       409,
+  339:     );
+
+----- MATCH AROUND LINE 335 -----
+  327:       ? metadata.schoolAccountId
+  328:       : null;
+  329:   const billingCycle = normalizeBillingCycle(metadata.billingCycle);
+  330:   const requesterUserId =
+  331:     typeof metadata.requesterUserId === "string"
+  332:       ? metadata.requesterUserId
+  333:       : null;
+  334: 
+  335:   if (!planId || !schoolAccountId) {
+  336:     throw new ElectronicPaymentError(
+  337:       "بيانات عملية الدفع غير مكتملة للتفعيل.",
+  338:       409,
+  339:     );
+  340:   }
+  341: 
+  342:   const couponCodeForPayment =
+  343:     typeof metadata.couponCode === "string" ? metadata.couponCode : null;
+  344:   if (couponCodeForPayment) {
+  345:     const quote = await getCouponQuote({
+  346:       code: couponCodeForPayment,
+  347:       planId,
+
+----- MATCH AROUND LINE 349 -----
+  341: 
+  342:   const couponCodeForPayment =
+  343:     typeof metadata.couponCode === "string" ? metadata.couponCode : null;
+  344:   if (couponCodeForPayment) {
+  345:     const quote = await getCouponQuote({
+  346:       code: couponCodeForPayment,
+  347:       planId,
+  348:       billingCycle,
+  349:       schoolAccountId,
+  350:     });
+  351:     if (quote.finalAmount !== transaction.amount) {
+  352:       throw new ElectronicPaymentError("تغيرت صلاحية أو قيمة الكوبون.", 409);
+  353:     }
+  354:   }
+  355: 
+  356:   const paidPlan = await prisma.plan.findUnique({
+  357:     where: { id: planId },
+  358:     select: { features: true },
+  359:   });
+  360:   if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  361:   let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
+
+----- MATCH AROUND LINE 361 -----
+  353:     }
+  354:   }
+  355: 
+  356:   const paidPlan = await prisma.plan.findUnique({
+  357:     where: { id: planId },
+  358:     select: { features: true },
+  359:   });
+  360:   if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  361:   let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
+  362:   try {
+  363:     period = resolvePlanSubscriptionPeriod({
+  364:       features: paidPlan.features,
+  365:       startsAt: new Date(),
+  366:       days: billingCycle === "YEARLY" ? 365 : 30,
+  367:     });
+  368:   } catch (error) {
+  369:     if (
+  370:       error instanceof Error &&
+  371:       error.message === "FIXED_END_DATE_PLAN_EXPIRED"
+  372:     )
+  373:       throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
+
+----- MATCH AROUND LINE 363 -----
+  355: 
+  356:   const paidPlan = await prisma.plan.findUnique({
+  357:     where: { id: planId },
+  358:     select: { features: true },
+  359:   });
+  360:   if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  361:   let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
+  362:   try {
+  363:     period = resolvePlanSubscriptionPeriod({
+  364:       features: paidPlan.features,
+  365:       startsAt: new Date(),
+  366:       days: billingCycle === "YEARLY" ? 365 : 30,
+  367:     });
+  368:   } catch (error) {
+  369:     if (
+  370:       error instanceof Error &&
+  371:       error.message === "FIXED_END_DATE_PLAN_EXPIRED"
+  372:     )
+  373:       throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
+  374:     throw new ElectronicPaymentError("إعداد مدة الباقة غير صالح.", 409);
+  375:   }
+
+----- MATCH AROUND LINE 380 -----
+  372:     )
+  373:       throw new ElectronicPaymentError("انتهى تاريخ صلاحية هذه الباقة.", 409);
+  374:     throw new ElectronicPaymentError("إعداد مدة الباقة غير صالح.", 409);
+  375:   }
+  376:   const startsAt = period.startsAt;
+  377:   const endsAt = period.endsAt;
+  378: 
+  379:   const paidTransaction = await prisma.$transaction(async (tx) => {
+  380:     const subscription = await tx.subscription.upsert({
+  381:       where: {
+  382:         schoolAccountId,
+  383:       },
+  384:       update: {
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+  392:         planId,
+
+----- MATCH AROUND LINE 382 -----
+  374:     throw new ElectronicPaymentError("إعداد مدة الباقة غير صالح.", 409);
+  375:   }
+  376:   const startsAt = period.startsAt;
+  377:   const endsAt = period.endsAt;
+  378: 
+  379:   const paidTransaction = await prisma.$transaction(async (tx) => {
+  380:     const subscription = await tx.subscription.upsert({
+  381:       where: {
+  382:         schoolAccountId,
+  383:       },
+  384:       update: {
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+  392:         planId,
+  393:         status: SubscriptionStatus.ACTIVE,
+  394:         startsAt,
+
+----- MATCH AROUND LINE 386 -----
+  378: 
+  379:   const paidTransaction = await prisma.$transaction(async (tx) => {
+  380:     const subscription = await tx.subscription.upsert({
+  381:       where: {
+  382:         schoolAccountId,
+  383:       },
+  384:       update: {
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+  392:         planId,
+  393:         status: SubscriptionStatus.ACTIVE,
+  394:         startsAt,
+  395:         endsAt,
+  396:       },
+  397:     });
+  398: 
+
+----- MATCH AROUND LINE 391 -----
+  383:       },
+  384:       update: {
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+  392:         planId,
+  393:         status: SubscriptionStatus.ACTIVE,
+  394:         startsAt,
+  395:         endsAt,
+  396:       },
+  397:     });
+  398: 
+  399:     if (couponCodeForPayment) {
+  400:       await redeemCouponWithClient(tx, {
+  401:         code: couponCodeForPayment,
+  402:         planId,
+  403:         billingCycle,
+
+----- MATCH AROUND LINE 393 -----
+  385:         planId,
+  386:         status: SubscriptionStatus.ACTIVE,
+  387:         startsAt,
+  388:         endsAt,
+  389:       },
+  390:       create: {
+  391:         schoolAccountId,
+  392:         planId,
+  393:         status: SubscriptionStatus.ACTIVE,
+  394:         startsAt,
+  395:         endsAt,
+  396:       },
+  397:     });
+  398: 
+  399:     if (couponCodeForPayment) {
+  400:       await redeemCouponWithClient(tx, {
+  401:         code: couponCodeForPayment,
+  402:         planId,
+  403:         billingCycle,
+  404:         schoolAccountId,
+  405:         subscriptionId: subscription.id,
+
+----- MATCH AROUND LINE 404 -----
+  396:       },
+  397:     });
+  398: 
+  399:     if (couponCodeForPayment) {
+  400:       await redeemCouponWithClient(tx, {
+  401:         code: couponCodeForPayment,
+  402:         planId,
+  403:         billingCycle,
+  404:         schoolAccountId,
+  405:         subscriptionId: subscription.id,
+  406:         paymentTransactionId: transaction.id,
+  407:       });
+  408:     }
+  409: 
+  410:     return tx.paymentTransaction.update({
+  411:       where: {
+  412:         id: transaction.id,
+  413:       },
+  414:       data: {
+  415:         subscriptionId: subscription.id,
+  416:         status: PaymentStatus.PAID,
+
+----- MATCH AROUND LINE 405 -----
+  397:     });
+  398: 
+  399:     if (couponCodeForPayment) {
+  400:       await redeemCouponWithClient(tx, {
+  401:         code: couponCodeForPayment,
+  402:         planId,
+  403:         billingCycle,
+  404:         schoolAccountId,
+  405:         subscriptionId: subscription.id,
+  406:         paymentTransactionId: transaction.id,
+  407:       });
+  408:     }
+  409: 
+  410:     return tx.paymentTransaction.update({
+  411:       where: {
+  412:         id: transaction.id,
+  413:       },
+  414:       data: {
+  415:         subscriptionId: subscription.id,
+  416:         status: PaymentStatus.PAID,
+  417:         metadataJson: asJson({
+
+----- MATCH AROUND LINE 415 -----
+  407:       });
+  408:     }
+  409: 
+  410:     return tx.paymentTransaction.update({
+  411:       where: {
+  412:         id: transaction.id,
+  413:       },
+  414:       data: {
+  415:         subscriptionId: subscription.id,
+  416:         status: PaymentStatus.PAID,
+  417:         metadataJson: asJson({
+  418:           ...metadata,
+  419:           providerSlug: input.providerSlug,
+  420:           webhookPayload: input.payload,
+  421:           paidAt: new Date().toISOString(),
+  422:           activatedAt: new Date().toISOString(),
+  423:           startsAt: startsAt.toISOString(),
+  424:           endsAt: endsAt.toISOString(),
+  425:         }),
+  426:       },
+  427:       include: {
+
+----- MATCH AROUND LINE 429 -----
+  421:           paidAt: new Date().toISOString(),
+  422:           activatedAt: new Date().toISOString(),
+  423:           startsAt: startsAt.toISOString(),
+  424:           endsAt: endsAt.toISOString(),
+  425:         }),
+  426:       },
+  427:       include: {
+  428:         provider: true,
+  429:         subscription: {
+  430:           include: {
+  431:             plan: true,
+  432:             schoolAccount: true,
+  433:           },
+  434:         },
+  435:       },
+  436:     });
+  437:   });
+  438: 
+  439:   await getOrCreateInvoiceForPaymentTransaction(
+  440:     paidTransaction.id,
+  441:     requesterUserId || null,
+
+----- MATCH AROUND LINE 432 -----
+  424:           endsAt: endsAt.toISOString(),
+  425:         }),
+  426:       },
+  427:       include: {
+  428:         provider: true,
+  429:         subscription: {
+  430:           include: {
+  431:             plan: true,
+  432:             schoolAccount: true,
+  433:           },
+  434:         },
+  435:       },
+  436:     });
+  437:   });
+  438: 
+  439:   await getOrCreateInvoiceForPaymentTransaction(
+  440:     paidTransaction.id,
+  441:     requesterUserId || null,
+  442:   );
+  443: 
+  444:   if (couponCodeForPayment) {
+
+----- MATCH AROUND LINE 439 -----
+  431:             plan: true,
+  432:             schoolAccount: true,
+  433:           },
+  434:         },
+  435:       },
+  436:     });
+  437:   });
+  438: 
+  439:   await getOrCreateInvoiceForPaymentTransaction(
+  440:     paidTransaction.id,
+  441:     requesterUserId || null,
+  442:   );
+  443: 
+  444:   if (couponCodeForPayment) {
+  445:     await logAdminActivity({
+  446:       actorUserId: requesterUserId || null,
+  447:       schoolAccountId,
+  448:       category: "SUBSCRIPTION",
+  449:       action: "COUPON_REDEEMED",
+  450:       severity: "SUCCESS",
+  451:       title: "استخدام كوبون خصم بعد نجاح الدفع",
+
+----- MATCH AROUND LINE 447 -----
+  439:   await getOrCreateInvoiceForPaymentTransaction(
+  440:     paidTransaction.id,
+  441:     requesterUserId || null,
+  442:   );
+  443: 
+  444:   if (couponCodeForPayment) {
+  445:     await logAdminActivity({
+  446:       actorUserId: requesterUserId || null,
+  447:       schoolAccountId,
+  448:       category: "SUBSCRIPTION",
+  449:       action: "COUPON_REDEEMED",
+  450:       severity: "SUCCESS",
+  451:       title: "استخدام كوبون خصم بعد نجاح الدفع",
+  452:       details: {
+  453:         couponCode: couponCodeForPayment,
+  454:         planId,
+  455:         transactionId: paidTransaction.id,
+  456:       },
+  457:     });
+  458:   }
+  459: 
+
+----- MATCH AROUND LINE 448 -----
+  440:     paidTransaction.id,
+  441:     requesterUserId || null,
+  442:   );
+  443: 
+  444:   if (couponCodeForPayment) {
+  445:     await logAdminActivity({
+  446:       actorUserId: requesterUserId || null,
+  447:       schoolAccountId,
+  448:       category: "SUBSCRIPTION",
+  449:       action: "COUPON_REDEEMED",
+  450:       severity: "SUCCESS",
+  451:       title: "استخدام كوبون خصم بعد نجاح الدفع",
+  452:       details: {
+  453:         couponCode: couponCodeForPayment,
+  454:         planId,
+  455:         transactionId: paidTransaction.id,
+  456:       },
+  457:     });
+  458:   }
+  459: 
+  460:   await logAdminActivity({
+
+----- MATCH AROUND LINE 462 -----
+  454:         planId,
+  455:         transactionId: paidTransaction.id,
+  456:       },
+  457:     });
+  458:   }
+  459: 
+  460:   await logAdminActivity({
+  461:     actorUserId: requesterUserId || null,
+  462:     schoolAccountId,
+  463:     category: "PAYMENT",
+  464:     action: "ELECTRONIC_PAYMENT_PAID_AND_SUBSCRIPTION_ACTIVATED",
+  465:     severity: "SUCCESS",
+  466:     title: "نجاح دفع إلكتروني وتفعيل الاشتراك",
+  467:     details: {
+  468:       transactionId: paidTransaction.id,
+  469:       externalRef: paidTransaction.externalRef,
+  470:       amount: paidTransaction.amount,
+  471:       currency: paidTransaction.currency,
+  472:       planId,
+  473:       billingCycle,
+  474:       providerSlug: input.providerSlug,
+
+----- MATCH AROUND LINE 464 -----
+  456:       },
+  457:     });
+  458:   }
+  459: 
+  460:   await logAdminActivity({
+  461:     actorUserId: requesterUserId || null,
+  462:     schoolAccountId,
+  463:     category: "PAYMENT",
+  464:     action: "ELECTRONIC_PAYMENT_PAID_AND_SUBSCRIPTION_ACTIVATED",
+  465:     severity: "SUCCESS",
+  466:     title: "نجاح دفع إلكتروني وتفعيل الاشتراك",
+  467:     details: {
+  468:       transactionId: paidTransaction.id,
+  469:       externalRef: paidTransaction.externalRef,
+  470:       amount: paidTransaction.amount,
+  471:       currency: paidTransaction.currency,
+  472:       planId,
+  473:       billingCycle,
+  474:       providerSlug: input.providerSlug,
+  475:       subscriptionId: paidTransaction.subscriptionId,
+  476:     },
+
+----- MATCH AROUND LINE 475 -----
+  467:     details: {
+  468:       transactionId: paidTransaction.id,
+  469:       externalRef: paidTransaction.externalRef,
+  470:       amount: paidTransaction.amount,
+  471:       currency: paidTransaction.currency,
+  472:       planId,
+  473:       billingCycle,
+  474:       providerSlug: input.providerSlug,
+  475:       subscriptionId: paidTransaction.subscriptionId,
+  476:     },
+  477:   });
+  478: 
+  479:   return {
+  480:     transaction: paidTransaction,
+  481:     wasActivated: true,
+  482:     wasAlreadyPaid: false,
+  483:   };
+  484: }
+  485: 
+  486: export async function applyFailedElectronicPaymentTransaction(input: {
+  487:   transactionId?: string | null;
+
+----- MATCH AROUND LINE 538 -----
+  530:     },
+  531:   });
+  532: 
+  533:   await logAdminActivity({
+  534:     actorUserId:
+  535:       typeof metadata.requesterUserId === "string"
+  536:         ? metadata.requesterUserId
+  537:         : null,
+  538:     schoolAccountId:
+  539:       typeof metadata.schoolAccountId === "string"
+  540:         ? metadata.schoolAccountId
+  541:         : null,
+  542:     category: "PAYMENT",
+  543:     action:
+  544:       input.status === "CANCELED"
+  545:         ? "ELECTRONIC_PAYMENT_CANCELED_BY_WEBHOOK"
+  546:         : "ELECTRONIC_PAYMENT_FAILED_BY_WEBHOOK",
+  547:     severity: input.status === "CANCELED" ? "WARNING" : "ERROR",
+  548:     title:
+  549:       input.status === "CANCELED"
+  550:         ? "إلغاء عملية دفع إلكتروني عبر Webhook"
+
+----- MATCH AROUND LINE 539 -----
+  531:   });
+  532: 
+  533:   await logAdminActivity({
+  534:     actorUserId:
+  535:       typeof metadata.requesterUserId === "string"
+  536:         ? metadata.requesterUserId
+  537:         : null,
+  538:     schoolAccountId:
+  539:       typeof metadata.schoolAccountId === "string"
+  540:         ? metadata.schoolAccountId
+  541:         : null,
+  542:     category: "PAYMENT",
+  543:     action:
+  544:       input.status === "CANCELED"
+  545:         ? "ELECTRONIC_PAYMENT_CANCELED_BY_WEBHOOK"
+  546:         : "ELECTRONIC_PAYMENT_FAILED_BY_WEBHOOK",
+  547:     severity: input.status === "CANCELED" ? "WARNING" : "ERROR",
+  548:     title:
+  549:       input.status === "CANCELED"
+  550:         ? "إلغاء عملية دفع إلكتروني عبر Webhook"
+  551:         : "فشل عملية دفع إلكتروني عبر Webhook",
+
+----- MATCH AROUND LINE 540 -----
+  532: 
+  533:   await logAdminActivity({
+  534:     actorUserId:
+  535:       typeof metadata.requesterUserId === "string"
+  536:         ? metadata.requesterUserId
+  537:         : null,
+  538:     schoolAccountId:
+  539:       typeof metadata.schoolAccountId === "string"
+  540:         ? metadata.schoolAccountId
+  541:         : null,
+  542:     category: "PAYMENT",
+  543:     action:
+  544:       input.status === "CANCELED"
+  545:         ? "ELECTRONIC_PAYMENT_CANCELED_BY_WEBHOOK"
+  546:         : "ELECTRONIC_PAYMENT_FAILED_BY_WEBHOOK",
+  547:     severity: input.status === "CANCELED" ? "WARNING" : "ERROR",
+  548:     title:
+  549:       input.status === "CANCELED"
+  550:         ? "إلغاء عملية دفع إلكتروني عبر Webhook"
+  551:         : "فشل عملية دفع إلكتروني عبر Webhook",
+  552:     details: {

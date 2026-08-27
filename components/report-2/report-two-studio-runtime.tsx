@@ -3208,12 +3208,34 @@ export function ReportTwoStudioRuntime({
 
     if (!source) return "";
 
-    const clone = source.cloneNode(true) as HTMLElement;
+    // Keep the stable preview-stage wrapper around the physical document.
+    // The wrapper supplies the same flex/height contract used by the live
+    // preview, while the physical renderer remains the only report content.
+    const documentSource = source.querySelector<HTMLElement>(
+      ".report-two-preview-renderer",
+    ) || (
+      source.matches('[data-report-export-document="true"]')
+        ? source
+        : source.querySelector<HTMLElement>(
+            '[data-report-export-document="true"]',
+          )
+    );
+
+    if (!documentSource) return "";
+
+    const clone = documentSource.cloneNode(true) as HTMLElement;
     clone.removeAttribute("aria-hidden");
     clone.removeAttribute("style");
-    clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+    clone
+      .querySelectorAll('[data-report-design-switcher="true"]')
+      .forEach((element) => element.closest("section")?.remove());
+
+    const sourceStyles = Array.from(source.querySelectorAll("style"))
+      .map((style) => style.outerHTML)
+      .join("\n");
 
     return `
+      ${sourceStyles}
       <style>
         .report-two-snapshot-approved-root {
           background: #ffffff;
@@ -3246,7 +3268,9 @@ export function ReportTwoStudioRuntime({
           }
         }
       </style>
-      ${clone.outerHTML}
+      <div class="report-two-a4-host report-two-snapshot-approved-root">
+        ${clone.outerHTML}
+      </div>
     `;
   }
 

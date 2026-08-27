@@ -1,0 +1,468 @@
+﻿TEACHIX PRINCIPAL SIGNATURE FULL AUDIT
+Generated: 2026-08-27 08:27:20
+Project: D:\student-guidance-platform-clean
+
+
+################################################################################
+UNIQUE MATCHED FILES
+################################################################################
+
+
+################################################################################
+PRISMA MODELS / ENUMS RELATED TO SIGNATURES
+################################################################################
+
+    STUDENT_PICKER
+    PARENT_PICKER
+    STAFF_PICKER
+    REPEATER
+>   SIGNATURE
+    RICH_TEXT
+  }
+  
+  enum ActivityAssignmentStatus {
+    SENT
+    OPENED
+    SUBMITTED
+    APPROVED
+    timetableSupervisionDuties   TimetableSupervisionDuty[]
+    timetableSubjectBank         TimetableSubjectBankEntry[]
+    timetableCurriculumTemplates TimetableCurriculumTemplate[]
+    couponRedemptions            CouponRedemption[]
+>   reportSignatureRequests      ReportSignatureRequest[]
+    activityPlanEntries          ActivityPlanEntry[]
+    activityPlanShareTokens      ActivityPlanShareToken[]
+    savedCurriculumSubjects      TeacherSavedCurriculum[]
+>   principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
+  }
+  
+  // Imported, platform-owned curriculum catalog. This data is not school-scoped.
+  model CurriculumStage {
+    id        String            @id @default(cuid())
+    sourceKey String            @unique @db.VarChar(191)
+    name      String
+    parentId  String?
+    role              UserRole  @default(COUNSELOR)
+    gender            Gender    @default(UNKNOWN)
+    officialName      String?
+    jobTitle          String?
+>   signatureUrl      String?   @db.Text
+>   signatureSignedAt DateTime?
+  
+    teachingStages      Json?
+    teachingSpecialties Json?
+    teachingSubjects    Json?
+    isActive            Boolean @default(true)
+  
+    onboardingCompleted   Boolean   @default(false)
+    onboardingCompletedAt DateTime?
+    timetableHistoryEntries       TimetableProjectHistoryEntry[] @relation("TimetableHistoryActor")
+    timetableHistoryReversions    TimetableProjectHistoryEntry[] @relation("TimetableHistoryReverter")
+    timetableTeacherProfiles      TimetableTeacher[]
+    serviceOutputLinks            ServiceOutputLink[]
+>   reportSignatureRequests       ReportSignatureRequest[]
+    activityPlanShareTokens       ActivityPlanShareToken[]
+    savedCurriculumSubjects       TeacherSavedCurriculum[]
+    salesExperienceOverride       SalesExperienceUserOverride?
+>   principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
+  
+    @@index([schoolAccountId])
+  }
+  
+  model ServiceOutputLink {
+    id                  String   @id @default(cuid())
+    schoolAccountId     String?
+    ownerUserId         String
+  
+    schoolName                    String
+    principalName                 String?
+    principalPhone                String?
+>   principalSignatureUrl         String?
+>   principalSignatureToken       String?   @unique
+>   principalSignatureRequestedAt DateTime?
+>   principalSignatureSignedAt    DateTime?
+>   principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
+  
+    activityLeaderName         String?
+>   activityLeaderSignatureUrl String?
+    activityLeaderSignedAt     DateTime?
+  
+>   counselorSignatureUrl String?
+    counselorSignedAt     DateTime?
+  
+    educationDepartment     String?
+    educationOffice         String?
+    schoolStatisticalNumber String? @db.VarChar(50)
+    city                    String?
+    district                String?
+    stage                   String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  }
+  
+> enum PrincipalSignatureReusePolicy {
+    ALL_STAFF
+    SELECTED_STAFF
+    MANUAL_ONLY
+  }
+  
+> model PrincipalSignatureReuseAuthorization {
+    id              String       @id @default(cuid())
+    schoolAccountId String
+    userId          String
+    schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+    user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt       DateTime     @default(now())
+    updatedAt       DateTime     @updatedAt
+  
+    id              String        @id @default(cuid())
+    schoolAccountId String        @unique
+    schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+    assignments     Json
+>   supervisorSignatures SchoolActivityTeamSupervisorSignature[]
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+  
+    @@index([schoolAccountId])
+  }
+  
+> model SchoolActivityTeamSupervisorSignature {
+    id             String           @id @default(cuid())
+    activityTeamId String
+    activityTeam   SchoolActivityTeam @relation(fields: [activityTeamId], references: [id], onDelete: Cascade)
+    supervisorName String           @db.VarChar(160)
+    fieldKeys      Json
+>   signatureUrl   String           @db.Text
+    signedAt       DateTime         @default(now())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+  
+    @@unique([activityTeamId, supervisorName], map: "ActivityTeamSign_uq")
+    @@index([activityTeamId, signedAt], map: "ATS_time_idx")
+  }
+  
+    teacherName  String
+    teacherPhone String
+    teacherEmail String?
+  
+>   teacherSignatureUrl String?
+    teacherSignedName   String?
+    teacherSignedAt     DateTime?
+  
+    dueDate DateTime?
+    note    String?   @db.Text
+  
+    submittedValues        Json?
+    submittedEvidenceItems Json?
+    DRAFT
+    APPROVED
+  }
+  
+> enum ReportSignatureRequestStatus {
+    PENDING
+    SIGNED
+    EXPIRED
+    CANCELED
+  }
+  
+  enum ReportTemplateType {
+    SYSTEM
+  
+    approvedAt DateTime?
+    archivedAt DateTime?
+  
+>   principalSignatureUrl      String?  @db.Text
+>   principalSignatureSignedAt DateTime?
+>   principalSignatureSignedById String?
+  
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  
+    evidenceItems       ReportEvidence[]
+>   signatureRequests   ReportSignatureRequest[]
+    internalAssignments InternalAssignment[]
+  
+    @@index([caseEntryId])
+    @@index([serviceSlug])
+    @@index([status])
+    @@index([templateId])
+    @@index([generatedAt])
+  }
+    approvedById   String?
+    approvedByName String?
+    approvedAt     DateTime @default(now())
+  
+>   principalSignatureUrl      String?  @db.Text
+>   principalSignatureSignedAt DateTime?
+>   principalSignatureSignedById String?
+  
+    createdAt           DateTime             @default(now())
+    updatedAt           DateTime             @updatedAt
+    internalAssignments InternalAssignment[]
+  
+    @@index([caseEntryId])
+    @@index([schoolAccountId])
+    @@index([serviceSlug])
+  
+    approvedById   String?
+    approvedByName String?
+    approvedAt     DateTime?
+>   principalSignatureUrl      String?  @db.Text
+>   principalSignatureSignedAt DateTime?
+>   principalSignatureSignedById String?
+    savedAt        DateTime  @default(now())
+    lastSyncedAt   DateTime?
+    syncMeta       Json?
+    version        Int       @default(1)
+  
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  
+>   signatureRequests ReportSignatureRequest[]
+  
+    @@index([schoolAccountId])
+    @@index([serviceSlug])
+    @@index([status])
+    @@index([approvedAt])
+  }
+  
+> model ReportSignatureRequest {
+    id String @id @default(cuid())
+  
+    reportId String?
+    report   GuidanceReport? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+    reportTwoActiveId String?
+    reportTwoActive   ReportTwoActive? @relation(fields: [reportTwoActiveId], references: [id], onDelete: Cascade)
+  
+  
+    requesterDisplayName String
+    principalName        String
+    tokenHash            String                       @unique @db.VarChar(64)
+>   status               ReportSignatureRequestStatus @default(PENDING)
+    reportSnapshot       Json
+>   signatureUrl         String?                      @db.Text
+    consentedToReuse     Boolean                      @default(false)
+    expiresAt            DateTime
+    openedAt             DateTime?
+    signedAt             DateTime?
+    canceledAt           DateTime?
+    createdAt            DateTime                     @default(now())
+    updatedAt            DateTime                     @updatedAt
+  
+
+################################################################################
+MIGRATIONS RELATED TO SIGNATURES
+################################################################################
+
+D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:185
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:183:    `key` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:184:    `label` VARCHAR(191) NOT NULL,
+> D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:185:    `type` ENUM('TEXT', 'TEXTAREA', 'NUMBER', 'DATE', 'SELECT', 'MULTI_SELECT', 'CHECKBOX', 'RADIO', 'FILE_UPLOAD', 'IMAGE_UPLOAD', 'STUDENT_PICKER', 'PARENT_PICKER', 'STAFF_PICKER', 'REPEATER', 'SIGNATURE', 'RICH_TEXT') NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:186:    `placeholder` VARCHAR(191) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:187:    `helpText` VARCHAR(191) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:188:    `isRequired` BOOLEAN NOT NULL DEFAULT false,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:189:    `order` INTEGER NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260607214544_mysql_baseline_current_schema\migration.sql:190:    `dependsOnFieldKey` VARCHAR(191) NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260610123000_add_teacher_signature_to_activity_assignments\migration.sql:2
+  D:\student-guidance-platform-clean\prisma\migrations\20260610123000_add_teacher_signature_to_activity_assignments\migration.sql:1:ALTER TABLE `ActivityAssignment`
+> D:\student-guidance-platform-clean\prisma\migrations\20260610123000_add_teacher_signature_to_activity_assignments\migration.sql:2:  ADD COLUMN `teacherSignatureUrl` VARCHAR(191) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260610123000_add_teacher_signature_to_activity_assignments\migration.sql:3:  ADD COLUMN `teacherSignedName` VARCHAR(191) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260610123000_add_teacher_signature_to_activity_assignments\migration.sql:4:  ADD COLUMN `teacherSignedAt` DATETIME(3) NULL;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260803120000_add_user_personal_signature\migration.sql:2
+  D:\student-guidance-platform-clean\prisma\migrations\20260803120000_add_user_personal_signature\migration.sql:1:ALTER TABLE `User`
+> D:\student-guidance-platform-clean\prisma\migrations\20260803120000_add_user_personal_signature\migration.sql:2:    ADD COLUMN `signatureUrl` TEXT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260803120000_add_user_personal_signature\migration.sql:3
+> D:\student-guidance-platform-clean\prisma\migrations\20260803120000_add_user_personal_signature\migration.sql:3:    ADD COLUMN `signatureSignedAt` DATETIME(3) NULL;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:1
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:1:CREATE TABLE `ReportSignatureRequest` (
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:2:    `id` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:3:    `reportId` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:4:    `schoolAccountId` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:5:    `requestedById` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:6:    `requesterDisplayName` VARCHAR(191) NOT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:11
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:9:    `status` ENUM('PENDING', 'SIGNED', 'EXPIRED', 'CANCELED') NOT NULL DEFAULT 'PENDING',
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:10:    `reportSnapshot` JSON NOT NULL,
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:11:    `signatureUrl` TEXT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:12:    `consentedToReuse` BOOLEAN NOT NULL DEFAULT false,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:13:    `expiresAt` DATETIME(3) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:14:    `signedAt` DATETIME(3) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:15:    `canceledAt` DATETIME(3) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:16:    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:19
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:17:    `updatedAt` DATETIME(3) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:18:
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:19:    UNIQUE INDEX `ReportSignatureRequest_tokenHash_key`(`tokenHash`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:20
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:20:    INDEX `ReportSignatureRequest_reportId_status_idx`(`reportId`, `status`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:21
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:21:    INDEX `ReportSignatureRequest_schoolAccountId_status_idx`(`schoolAccountId`, `status`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:22
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:22:    INDEX `ReportSignatureRequest_requestedById_idx`(`requestedById`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:23
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:23:    INDEX `ReportSignatureRequest_expiresAt_idx`(`expiresAt`),
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:24:    PRIMARY KEY (`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:25:) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:26:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:27
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:27:ALTER TABLE `ReportSignatureRequest`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:28
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:28:    ADD CONSTRAINT `ReportSignatureRequest_reportId_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:29:    FOREIGN KEY (`reportId`) REFERENCES `GuidanceReport`(`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:30:    ON DELETE CASCADE ON UPDATE CASCADE;
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:31:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:32
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:32:ALTER TABLE `ReportSignatureRequest`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:33
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:33:    ADD CONSTRAINT `ReportSignatureRequest_schoolAccountId_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:34:    FOREIGN KEY (`schoolAccountId`) REFERENCES `SchoolAccount`(`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:35:    ON DELETE CASCADE ON UPDATE CASCADE;
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:36:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:37
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:37:ALTER TABLE `ReportSignatureRequest`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:38
+> D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:38:    ADD CONSTRAINT `ReportSignatureRequest_requestedById_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:39:    FOREIGN KEY (`requestedById`) REFERENCES `User`(`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:40:    ON DELETE RESTRICT ON UPDATE CASCADE;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:1
+> D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:1:ALTER TABLE `ReportSignatureRequest`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:2:  MODIFY `reportId` VARCHAR(191) NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:3:  ADD COLUMN `reportTwoActiveId` VARCHAR(191) NULL;
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:4:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:5
+> D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:5:CREATE INDEX `ReportSignatureRequest_reportTwoActiveId_status_idx`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:6
+> D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:6:  ON `ReportSignatureRequest`(`reportTwoActiveId`, `status`);
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:7:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:8
+> D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:8:ALTER TABLE `ReportSignatureRequest`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:9
+> D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:9:  ADD CONSTRAINT `ReportSignatureRequest_reportTwoActiveId_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:10:  FOREIGN KEY (`reportTwoActiveId`) REFERENCES `ReportTwoActive`(`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:11:  ON DELETE CASCADE ON UPDATE CASCADE;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260814213000_add_report_signature_opened_at\migration.sql:1
+> D:\student-guidance-platform-clean\prisma\migrations\20260814213000_add_report_signature_opened_at\migration.sql:1:ALTER TABLE `ReportSignatureRequest`
+  D:\student-guidance-platform-clean\prisma\migrations\20260814213000_add_report_signature_opened_at\migration.sql:2:  ADD COLUMN `openedAt` DATETIME(3) NULL;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:1
+> D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:1:CREATE TABLE `SchoolActivityTeamSupervisorSignature` (
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:2:    `id` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:3:    `activityTeamId` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:4:    `supervisorName` VARCHAR(160) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:5:    `fieldKeys` JSON NOT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:6
+> D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:6:    `signatureUrl` TEXT NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:7:    `signedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:8:    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:9:    `updatedAt` DATETIME(3) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:10:
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:11:    UNIQUE INDEX `ActivityTeamSign_uq`(`activityTeamId`, `supervisorName`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:14
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:12:    INDEX `ATS_time_idx`(`activityTeamId`, `signedAt`),
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:13:    PRIMARY KEY (`id`),
+> D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:14:    CONSTRAINT `SchoolActivityTeamSupervisorSignature_activityTeamId_fkey` FOREIGN KEY (`activityTeamId`) REFERENCES `SchoolActivityTeam`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  D:\student-guidance-platform-clean\prisma\migrations\20260823120000_add_activity_team_supervisor_signatures\migration.sql:15:) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:2
+  D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:1:ALTER TABLE `GuidanceReport`
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:2:  ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:3
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:3:  ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:4
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:4:  ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+  D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:5:
+  D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:6:ALTER TABLE `ReportSnapshot`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:7
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:7:  ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:8
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:8:  ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:9
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:9:  ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+  D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:10:
+  D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:11:ALTER TABLE `ReportTwoActive`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:12
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:12:  ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:13
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:13:  ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:14
+> D:\student-guidance-platform-clean\prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:14:  ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:1:-- AlterTable
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:2:ALTER TABLE `SchoolProfile`
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3:  ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:4:
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:5:-- CreateTable
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:6
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:6:CREATE TABLE `PrincipalSignatureReuseAuthorization` (
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:7:  `id` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:8:  `schoolAccountId` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:9:  `userId` VARCHAR(191) NOT NULL,
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:10:  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:11:  `updatedAt` DATETIME(3) NOT NULL,
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:13
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:12:
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:13:  UNIQUE INDEX `PrincipalSignatureReuseAuthorization_schoolAccountId_userId_key`(`schoolAccountId`, `userId`),
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:14
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:14:  INDEX `PrincipalSignatureReuseAuthorization_userId_idx`(`userId`),
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:15:  PRIMARY KEY (`id`)
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:16:) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:17:
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:18:-- AddForeignKey
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:19
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:19:ALTER TABLE `PrincipalSignatureReuseAuthorization`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:20
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:20:  ADD CONSTRAINT `PrincipalSignatureReuseAuthorization_schoolAccountId_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:21:  FOREIGN KEY (`schoolAccountId`) REFERENCES `SchoolAccount`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:22:
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:23
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:23:ALTER TABLE `PrincipalSignatureReuseAuthorization`
+
+D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:24
+> D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:24:  ADD CONSTRAINT `PrincipalSignatureReuseAuthorization_userId_fkey`
+  D:\student-guidance-platform-clean\prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:25:  FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+################################################################################
+IMPORT DEPENDENCY HINTS
+################################################################################
+

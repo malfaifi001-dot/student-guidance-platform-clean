@@ -1,0 +1,1892 @@
+﻿TEACHIX PRINCIPAL SIGNATURE FULL CODE AUDIT
+Generated: 2026-08-27 08:30:20
+Project: D:\student-guidance-platform-clean
+
+====================================================================================================
+PATTERN: principalSignatureUrl
+====================================================================================================
+local-db-before-clean-20260624-132028.sql:5672
+    ('04881aac-2dbb-4ef8-95f8-4a99a527e6d5','CERT-20260618-1MRJKM','cmqfurkey0000swnonua5xsf8','cmqfurkgj0001swno7f4xlgkz','cert_tpl_official_green',NULL,'thanks','student','╪┤╪│┘è╪¿╪┤╪│',NULL,NULL,'╪┤┘ç╪º╪»╪⌐ ╪┤┘â╪▒ ┘ê╪¬┘é╪»┘è╪▒','╪┤╪│┘è╪¿╪│╪┤┘è╪¿','╪¬╪¬┘é╪»┘à ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à╪»╪▒╪│╪⌐ ╪¿╪«╪º┘ä╪╡ ╪┤┘â╪▒ ┘ê╪¬┘é╪»┘è╪▒ ╪Ñ┘ä┘ë ╪º┘ä╪╖╪º┘ä╪¿ ╪┤╪│┘è╪¿╪┤╪│╪î ┘ê╪░┘ä┘â ┘å╪╕┘è╪▒ ╪┤╪│┘è╪¿╪│╪┤┘è╪¿╪î ╪│╪º╪ª┘ä┘è┘å ╪º┘ä┘ä┘ç ┘ä┘ç ╪»┘ê╪º┘à ╪º┘ä╪¬┘ê┘ü┘è┘é ┘ê╪º┘ä╪¬┘à┘è╪▓.','2026-06-18 00:00:00.000','ISSUED','MANUAL',NULL,NULL,NULL,'{\"principalName\":\"┘à┘ê╪╢┘è ╪º┘ä┘ü┘è┘ü┘è\",\"principalSignatureUrl\":\"\",\"issuerName\":\"╪º╪│╪¬╪º╪░╪⌐ ╪¡┘ê╪▒┘è╪⌐ ╪º┘ä┘ü┘è┘ü┘è\",\"issuerTitle\":\"╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"issuerSignatureUrl\":\"\"}','2026-06-18 06:53:25.787','2026-06-18 06:53:25.787'),
+
+local-db-before-clean-20260624-132028.sql:5694
+    ('e6596744-9d39-4a0d-9baa-1f4083b03544','CERT-20260618-DMZBEG','cmqfurkey0000swnonua5xsf8','cmqfurkgj0001swno7f4xlgkz','cert_tpl_official_green',NULL,'thanks','student_female','┘ä╪│┘è╪¿┘ä',NULL,NULL,'╪┤┘ç╪º╪»╪⌐ ╪┤┘â╪▒ ┘ê╪¬┘é╪»┘è╪▒','╪┤╪│┘è╪¿╪┤┘ä╪¿╪│┘è╪¿┘ä','╪¬╪¬┘é╪»┘à ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à╪»╪▒╪│╪⌐ ╪¿╪«╪º┘ä╪╡ ╪┤┘â╪▒ ┘ê╪¬┘é╪»┘è╪▒ ╪Ñ┘ä┘ë ╪º┘ä╪╖╪º┘ä╪¿╪⌐ ┘ä╪│┘è╪¿┘ä╪î ┘ê╪░┘ä┘â ┘å╪╕┘è╪▒ ╪┤╪│┘è╪¿╪┤┘ä╪¿╪│┘è╪¿┘ä╪î ╪│╪º╪ª┘ä┘è┘å ╪º┘ä┘ä┘ç ┘ä┘ç ╪»┘ê╪º┘à ╪º┘ä╪¬┘ê┘ü┘è┘é ┘ê╪º┘ä╪¬┘à┘è╪▓.','2026-06-18 00:00:00.000','ISSUED','MANUAL',NULL,NULL,NULL,'{\"principalName\":\"┘à┘ê╪╢┘è ╪º┘ä┘ü┘è┘ü┘è\",\"principalSignatureUrl\":\"\",\"issuerName\":\"╪º╪│╪¬╪º╪░╪⌐ ╪¡┘ê╪▒┘è╪⌐ ╪º┘ä┘ü┘è┘ü┘è\",\"issuerTitle\":\"╪º┘ä┘à┘ê╪¼┘ç ╪º┘ä╪╖┘ä╪º╪¿┘è\",\"issuerSignatureUrl\":\"/uploads/school-signatures/cmqfurkey0000swnonua5xsf8/activityLeader-signature-1781765523662.png\"}','2026-06-18 07:09:27.763','2026-06-18 07:09:27.763');
+
+local-db-before-clean-20260624-132028.sql:6921
+    `principalSignatureUrl` varchar(191) DEFAULT NULL,
+
+app\api\dashboard\certificates\route.ts:267
+    principalSignatureUrl: signatureProfile?.principalSignatureUrl || "",
+
+app\api\dashboard\certificates\bulk\issue\route.ts:245
+    principalSignatureUrl:
+
+app\api\dashboard\certificates\bulk\issue\route.ts:246
+    signatureProfile?.principalSignatureUrl || "",
+
+app\api\dashboard\settings\school\route.ts:88
+    ? profile?.principalSignatureUrl || ""
+
+app\api\dashboard\settings\school\route.ts:112
+    principalSignatureUrl: profile?.principalSignatureUrl || "",
+
+app\api\dashboard\settings\school\signature\route.ts:137
+    principalSignatureUrl: signatureUrl,
+
+app\api\dashboard\settings\school\signature\route.ts:157
+    principalSignatureUrl: signatureUrl,
+
+app\api\dashboard\settings\school\signature\route.ts:200
+    principalSignatureUrl: { not: null },
+
+app\api\dashboard\settings\school\signature\route.ts:203
+    principalSignatureUrl: null,
+
+app\print\activity-plan\page.tsx:72
+    return <><style dangerouslySetInnerHTML={{ __html: printStyles }} /><ActivityPlanPrintDocument weeks={stageWeeks} stage={stage} academicYear={academicYear} schoolName={profile?.schoolName || current.user.schoolAccount?.name || ""} educationDepartment={profile?.educationDepartment} logoUrl={profile?.logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={profile?.activityLeaderSignatureUrl || null} principalName={profile?.principalName} principalSignatureUrl={profile?.principalSignatureUrl} /><CurriculumDistributionPrintController enabled={printEnabled} /></>;
+
+app\print\activity-team\page.tsx:30
+    principalSignatureUrl: profile?.principalSignatureUrl,
+
+app\print\curriculum-distribution\page.tsx:133
+    principalSignatureUrl={profile?.principalSignatureUrl}
+
+components\activity-plan\activity-plan-print-document.tsx:14
+    principalSignatureUrl?: string | null;
+
+components\activity-plan\activity-plan-print-week.tsx:23
+    principalSignatureUrl?: string | null;
+
+components\activity-plan\activity-plan-print-week.tsx:36
+    principalSignatureUrl,
+
+components\activity-plan\activity-plan-print-week.tsx:93
+    <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />
+
+components\activity-programs\reports\activity-execution-card-report.tsx:74
+    principalSignatureUrl?: string;
+
+components\activity-programs\reports\activity-execution-card-report.tsx:557
+    {data.approvals.principalSignatureUrl ? (
+
+components\activity-programs\reports\activity-execution-card-report.tsx:559
+    src={data.approvals.principalSignatureUrl}
+
+components\assessments-center\report\assessment-analytical-report.tsx:25
+    teacherSignatureUrl?: string; principalSignatureUrl?: string;
+
+components\assessments-center\report\assessment-analytical-report.tsx:576
+    <SignatureBox label="مدير / مديرة المدرسة" name={data.school.principalName} imageUrl={data.school.principalSignatureUrl} />
+
+components\assessments-center\report\assessment-analytical-report.tsx:598
+    <section className="report-page report-page--closing"><ReportBrand data={data} /><SectionTitle title="الخاتمة" /><div className="closing-content"><div className="closing-summary"><p>يلخص هذا التقرير النتائج التحليلية المتاحة، ويوضح نقاط القوة ومجالات التحسين، ويدعم تنفيذ إجراءات علاجية وإثرائية وخطة تطوير قابلة للمتابعة. وينبغي الاستفادة من القياسات القادمة لتقييم أثر الإجراءات وتحديث الخطة وفق النتائج اللاحقة.</p></div><div className="follow-up-box follow-up-box--final"><h3>المتابعة الختامية</h3><InsightList items={followUp} /></div></div><div className="report-signatures"><SignatureBox label="المعلم / المعلمة" name={data.school.teacherName} imageUrl={data.school.teacherSignatureUrl} /><SignatureBox label="مدير / مديرة المدرسة" name={data.school.principalName} imageUrl={data.school.principalSignatureUrl} /></div><PageFooter page={4} /></section>
+
+components\curriculum-distribution\curriculum-distribution-print-document.tsx:16
+    principalSignatureUrl?: string | null;
+
+components\curriculum-distribution\curriculum-distribution-print-document.tsx:41
+    <CurriculumDocumentFooter primaryRoleLabel="معلم المادة" primaryName={props.teacherName} primarySignatureUrl={props.teacherSignatureUrl} primarySignatureAlt="توقيع معلم المادة" principalName={props.principalName} principalSignatureUrl={props.principalSignatureUrl} />
+
+components\curriculum-distribution\curriculum-document-identity.tsx:18
+    principalSignatureUrl?: string | null;
+
+components\curriculum-distribution\curriculum-document-identity.tsx:75
+    principalSignatureUrl,
+
+components\curriculum-distribution\curriculum-document-identity.tsx:88
+    {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+
+components\report-engine\smart-report-document-renderer.tsx:253
+    principalSignatureUrl: principalSignature?.imageUrl || undefined,
+
+components\reports\report-studio-editor.tsx:1465
+    imageUrl: "{{identity.principalSignatureUrl}}",
+
+components\reports\guardian-summons\guardian-summons-template.tsx:30
+    principalSignatureUrl?: string | null;
+
+components\reports\guardian-summons\guardian-summons-template.tsx:586
+    signatureUrl={data.principalSignatureUrl}
+
+components\settings\school-settings-form.tsx:50
+    principalSignatureUrl: string;
+
+components\settings\school-settings-form.tsx:85
+    principalSignatureUrl: data?.principalSignatureUrl || "",
+
+components\settings\school-settings-form.tsx:122
+    principalSignatureUrl: "",
+
+components\settings\school-settings-form.tsx:486
+    principalSignatureUrl: "",
+
+components\settings\school-settings-form.tsx:494
+    principalSignatureUrl: "",
+
+components\settings\school-settings-form.tsx:609
+    data-principal-signature-ready={Boolean(form.principalSignatureUrl)}
+
+components\settings\school-settings-form.tsx:1081
+    <SignatureStatusBadge signed={Boolean(form.principalSignatureUrl)} />
+
+components\settings\school-settings-form.tsx:1085
+    {form.principalSignatureUrl ? (
+
+components\settings\school-settings-form.tsx:1087
+    src={form.principalSignatureUrl}
+
+lib\activity-team\activity-team-report.ts:26
+    principalSignatureUrl?: string | null;
+
+lib\activity-team\activity-team-report.ts:60
+    imageUrl: clean(input.principalSignatureUrl),
+
+lib\activity-team\activity-team-report.ts:84
+    principalSignatureUrl: clean(input.principalSignatureUrl),
+
+lib\activity-team\activity-team-signature-service.ts:78
+    principalSignatureUrl: true,
+
+lib\activity-team\activity-team-signature-service.ts:184
+    principalSignatureUrl: profile?.principalSignatureUrl,
+
+lib\assessments-center\assessment-report-payload.ts:5
+    type Identity = { schoolName?: string | null; logoUrl?: string | null; principalName?: string | null; principalSignatureUrl?: string | null; educationDepartment?: string | null; educationOffice?: string | null; academicYear?: string | null; currentSemester?: string | null; gender?: string | null };
+
+lib\assessments-center\assessment-report-payload.ts:54
+    school: { name: identity?.schoolName || "مدرسة Teachix", educationAdministration: identity?.educationDepartment || undefined, educationOffice: identity?.educationOffice || undefined, principalName: identity?.principalName || undefined, teacherName: teacherName || undefined, teacherSignatureUrl: teacherSignatureUrl || undefined, principalSignatureUrl: identity?.principalSignatureUrl || undefined, logoUrl: identity?.logoUrl || undefined, ministryLogoUrl: "/uploads/school-logos/MOE.png" },
+
+lib\certificates\certificate-renderer.ts:117
+    const principalSignatureUrl =
+
+lib\certificates\certificate-renderer.ts:118
+    clean(data.principalSignatureUrl) || profile?.principalSignatureUrl || "";
+
+lib\certificates\certificate-renderer.ts:423
+    signatureUrl: principalSignatureUrl,
+
+lib\certificates\certificate-signature-profile.ts:5
+    principalSignatureUrl: string;
+
+lib\certificates\certificate-signature-profile.ts:31
+    principalSignatureUrl: true,
+
+lib\certificates\certificate-signature-profile.ts:56
+    principalSignatureUrl: clean(profile.principalSignatureUrl),
+
+lib\guardian-summons\guardian-summons-template-data.ts:634
+    principalSignatureUrl: normalizeInternalSignatureUrl(
+
+lib\guardian-summons\guardian-summons-template-data.ts:635
+    schoolProfile?.principalSignatureUrl,
+
+lib\principal\principal-report-signature-service.ts:26
+    principalSignatureUrl: input.signatureUrl,
+
+lib\principal\principal-report-signature-service.ts:75
+    select: { principalSignatureUrl: true, principalSignatureReusePolicy: true },
+
+lib\principal\principal-report-signature-service.ts:77
+    const signatureUrl = profile?.principalSignatureUrl?.trim();
+
+lib\principal\principal-report-signature-service.ts:103
+    principalSignatureUrl: signatureUrl,
+
+lib\principal\principal-report-signature-service.ts:127
+    const signedData = { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: now, principalSignatureSignedById: input.principalUserId };
+
+lib\principal\principal-report-signature-service.ts:132
+    select: { id: true, title: true, renderedContent: true, reportDataSnapshot: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:144
+    select: { id: true, caseEntryId: true, reportTitle: true, snapshotHtml: true, snapshotPayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true },
+
+lib\principal\principal-report-signature-service.ts:169
+    select: { id: true, caseEntryId: true, reportTitle: true, renderedHtml: true, sourcePayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-teachers-service.ts:206
+    principalSignatureUrl?: string | null;
+
+lib\principal\principal-teachers-service.ts:210
+    schoolIdentity: { principalSignatureUrl: string | null; principalSignatureSignedAt: Date | null };
+
+lib\principal\principal-teachers-service.ts:239
+    hasSchoolIdentitySignature: Boolean(input.schoolIdentity.principalSignatureUrl?.trim()),
+
+lib\principal\principal-teachers-service.ts:242
+    input.report.principalSignatureUrl?.trim() && input.report.principalSignatureSignedAt,
+
+lib\principal\principal-teachers-service.ts:292
+    principalSignatureUrl: context.schoolAccount.profile?.principalSignatureUrl || null,
+
+lib\principal\principal-teachers-service.ts:342
+    principalSignatureUrl: true,
+
+lib\principal\principal-teachers-service.ts:368
+    principalSignatureUrl: true,
+
+lib\principal\principal-teachers-service.ts:392
+    principalSignatureUrl: true,
+
+lib\principal\principal-teachers-service.ts:417
+    principalSignatureSigned: isPrincipalStaffReportSigned({ source: "GUIDANCE_REPORT", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.reportDataSnapshot, approvedHtml: report.renderedContent, ...signatureResolverContext }),
+
+lib\principal\principal-teachers-service.ts:431
+    principalSignatureSigned: isPrincipalStaffReportSigned({ source: "REPORT_SNAPSHOT", report, signedRequest: signedRequestByCaseId.get(report.caseEntryId) || null, signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.snapshotPayload, approvedHtml: report.snapshotHtml, ...signatureResolverContext }),
+
+lib\principal\principal-teachers-service.ts:445
+    principalSignatureSigned: isPrincipalStaffReportSigned({ source: "REPORT_TWO", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
+
+lib\report-engine\smart-report-payload-builder.ts:47
+    principalSignatureUrl?: string | null;
+
+lib\report-engine\smart-report-payload-builder.ts:1049
+    effectivePrincipalSignatureUrl: string | null,
+
+lib\report-engine\smart-report-payload-builder.ts:1073
+    imageUrl: effectivePrincipalSignatureUrl,
+
+lib\report-engine\smart-report-payload-builder.ts:1090
+    imageUrl: effectivePrincipalSignatureUrl,
+
+lib\report-engine\smart-report-payload-builder.ts:1379
+    principalSignatureUrl: true,
+
+lib\report-engine\smart-report-payload-builder.ts:1398
+    principalSignatureUrl: profile?.principalSignatureUrl,
+
+lib\report-engine\smart-report-payload-builder.ts:1535
+    principalSignatureUrl: effectivePrincipalSignature.signatureUrl || "",
+
+lib\report-engine\smart-report-types.ts:69
+    principalSignatureUrl?: string;
+
+lib\report-signatures\principal-signature-html.ts:13
+    const placeholderPattern = /\{\{(?:identity\.)?principalSignatureUrl\}\}/g;
+
+lib\report-signatures\principal-signature-resolver.ts:24
+    principalSignatureUrl?: string | null;
+
+lib\report-signatures\principal-signature-resolver.ts:31
+    principalSignatureUrl?: string | null;
+
+lib\report-signatures\principal-signature-resolver.ts:82
+    const dashboardUrl = cleanUrl(input.principalDashboard?.principalSignatureUrl);
+
+lib\report-signatures\principal-signature-resolver.ts:94
+    const schoolUrl = cleanUrl(input.schoolIdentity?.principalSignatureUrl);
+
+lib\report-signatures\principal-signature-state.ts:28
+    if (isSignatureUrl(identity?.principalSignatureUrl, signatureUrl) || isSignatureUrl(identity?.schoolLeaderSignatureUrl, signatureUrl)) {
+
+lib\report-signatures\principal-signature-state.ts:56
+    report: { principalSignatureUrl?: string | null; principalSignatureSignedAt?: Date | null };
+
+lib\report-signatures\principal-signature-state.ts:63
+    if (input.report.principalSignatureUrl && input.report.principalSignatureSignedAt) return true;
+
+lib\report-signatures\report-signature-service.ts:159
+    principalSignatureUrl: true,
+
+lib\report-signatures\report-signature-service.ts:171
+    principalSignatureUrl: true,
+
+lib\report-signatures\report-signature-service.ts:242
+    principalSignatureUrl: signatureUrl,
+
+lib\report-signatures\report-signature-service.ts:249
+    principalSignatureUrl: signatureUrl,
+
+lib\report-signatures\report-two-signature.ts:31
+    principalSignatureUrl: signatureUrl,
+
+prisma\schema.prisma:782
+    principalSignatureUrl         String?
+
+prisma\schema.prisma:1840
+    principalSignatureUrl      String?  @db.Text
+
+prisma\schema.prisma:1879
+    principalSignatureUrl      String?  @db.Text
+
+prisma\schema.prisma:1919
+    principalSignatureUrl      String?  @db.Text
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:2
+    ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:7
+    ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:12
+    ADD COLUMN `principalSignatureUrl` TEXT NULL,
+
+_local-backups\reference-library-20260719-040701\prisma\schema.prisma:269
+    principalSignatureUrl         String?
+
+====================================================================================================
+PATTERN: principalSignatureSignedAt
+====================================================================================================
+local-db-before-clean-20260624-132028.sql:6924
+    `principalSignatureSignedAt` datetime(3) DEFAULT NULL,
+
+app\api\dashboard\settings\school\route.ts:98
+    ? profile?.principalSignatureSignedAt?.toISOString() || ""
+
+app\api\dashboard\settings\school\route.ts:115
+    principalSignatureSignedAt:
+
+app\api\dashboard\settings\school\route.ts:116
+    profile?.principalSignatureSignedAt?.toISOString() || "",
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:63
+    update: { principalName, principalPhone, principalSignatureToken: token, principalSignatureRequestedAt: requestedAt, principalSignatureSignedAt: null },
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:71
+    principalSignatureSignedAt: null,
+
+app\api\dashboard\settings\school\signature\route.ts:138
+    principalSignatureSignedAt: signedAt,
+
+app\api\dashboard\settings\school\signature\route.ts:158
+    principalSignatureSignedAt: signedAt,
+
+app\api\dashboard\settings\school\signature\route.ts:204
+    principalSignatureSignedAt: null,
+
+components\settings\school-settings-form.tsx:52
+    principalSignatureSignedAt: string;
+
+components\settings\school-settings-form.tsx:87
+    principalSignatureSignedAt: data?.principalSignatureSignedAt || "",
+
+components\settings\school-settings-form.tsx:124
+    principalSignatureSignedAt: "",
+
+components\settings\school-settings-form.tsx:487
+    principalSignatureSignedAt: "",
+
+components\settings\school-settings-form.tsx:495
+    principalSignatureSignedAt: "",
+
+components\settings\school-settings-form.tsx:1098
+    {form.principalSignatureSignedAt ? (
+
+components\settings\school-settings-form.tsx:1100
+    آخر توقيع: {formatSignatureDate(form.principalSignatureSignedAt)}
+
+lib\principal\principal-report-signature-service.ts:127
+    const signedData = { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: now, principalSignatureSignedById: input.principalUserId };
+
+lib\principal\principal-report-signature-service.ts:132
+    select: { id: true, title: true, renderedContent: true, reportDataSnapshot: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:136
+    const saved = await tx.guidanceReport.updateMany({ where: { id: report.id, principalSignatureSignedAt: null }, data: { ...signedData, reportDataSnapshot: applySignatureToReportDataSnapshot(report.reportDataSnapshot, signatureUrl) as any, renderedContent: applyPrincipalSignatureToHtml(report.renderedContent, signatureUrl) } });
+
+lib\principal\principal-report-signature-service.ts:144
+    select: { id: true, caseEntryId: true, reportTitle: true, snapshotHtml: true, snapshotPayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true },
+
+lib\principal\principal-report-signature-service.ts:148
+    const saved = await tx.reportSnapshot.updateMany({ where: { id: report.id, principalSignatureSignedAt: null }, data: { ...signedData, snapshotPayload: applyExternalPrincipalSignature(report.snapshotPayload as SmartReportPayload, signatureUrl) as any, snapshotHtml: applyPrincipalSignatureToHtml(report.snapshotHtml, signatureUrl) } });
+
+lib\principal\principal-report-signature-service.ts:156
+    where: { id: active.id, principalSignatureSignedAt: null },
+
+lib\principal\principal-report-signature-service.ts:169
+    select: { id: true, caseEntryId: true, reportTitle: true, renderedHtml: true, sourcePayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:173
+    const saved = await tx.reportTwoActive.updateMany({ where: { id: report.id, principalSignatureSignedAt: null }, data: { ...signedData, sourcePayload: applyExternalPrincipalSignature(report.sourcePayload as SmartReportPayload, signatureUrl) as any, renderedHtml: applyPrincipalSignatureToHtml(report.renderedHtml, signatureUrl) } });
+
+lib\principal\principal-report-signature-service.ts:182
+    where: { id: snapshot.id, principalSignatureSignedAt: null },
+
+lib\principal\principal-teachers-service.ts:207
+    principalSignatureSignedAt?: Date | null;
+
+lib\principal\principal-teachers-service.ts:210
+    schoolIdentity: { principalSignatureUrl: string | null; principalSignatureSignedAt: Date | null };
+
+lib\principal\principal-teachers-service.ts:242
+    input.report.principalSignatureUrl?.trim() && input.report.principalSignatureSignedAt,
+
+lib\principal\principal-teachers-service.ts:293
+    principalSignatureSignedAt: context.schoolAccount.profile?.principalSignatureSignedAt || null,
+
+lib\principal\principal-teachers-service.ts:343
+    principalSignatureSignedAt: true,
+
+lib\principal\principal-teachers-service.ts:369
+    principalSignatureSignedAt: true,
+
+lib\principal\principal-teachers-service.ts:393
+    principalSignatureSignedAt: true,
+
+lib\report-engine\smart-report-payload-builder.ts:1380
+    principalSignatureSignedAt: true,
+
+lib\report-engine\smart-report-payload-builder.ts:1399
+    principalSignatureSignedAt: profile?.principalSignatureSignedAt || null,
+
+lib\report-signatures\principal-signature-resolver.ts:25
+    principalSignatureSignedAt?: Date | null;
+
+lib\report-signatures\principal-signature-resolver.ts:32
+    principalSignatureSignedAt?: Date | null;
+
+lib\report-signatures\principal-signature-resolver.ts:83
+    if (dashboardUrl && input.principalDashboard?.principalSignatureSignedAt) {
+
+lib\report-signatures\principal-signature-resolver.ts:87
+    input.principalDashboard.principalSignatureSignedAt,
+
+lib\report-signatures\principal-signature-resolver.ts:116
+    input.schoolIdentity?.principalSignatureSignedAt || null,
+
+lib\report-signatures\principal-signature-state.ts:56
+    report: { principalSignatureUrl?: string | null; principalSignatureSignedAt?: Date | null };
+
+lib\report-signatures\principal-signature-state.ts:63
+    if (input.report.principalSignatureUrl && input.report.principalSignatureSignedAt) return true;
+
+lib\report-signatures\report-signature-service.ts:160
+    principalSignatureSignedAt: true,
+
+lib\report-signatures\report-signature-service.ts:172
+    principalSignatureSignedAt: true,
+
+lib\report-signatures\report-signature-service.ts:243
+    principalSignatureSignedAt: now,
+
+lib\report-signatures\report-signature-service.ts:250
+    principalSignatureSignedAt: now,
+
+prisma\schema.prisma:785
+    principalSignatureSignedAt    DateTime?
+
+prisma\schema.prisma:1841
+    principalSignatureSignedAt DateTime?
+
+prisma\schema.prisma:1880
+    principalSignatureSignedAt DateTime?
+
+prisma\schema.prisma:1920
+    principalSignatureSignedAt DateTime?
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:3
+    ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:8
+    ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:13
+    ADD COLUMN `principalSignatureSignedAt` DATETIME(3) NULL,
+
+_local-backups\reference-library-20260719-040701\prisma\schema.prisma:272
+    principalSignatureSignedAt    DateTime?
+
+====================================================================================================
+PATTERN: principalSignatureSignedById
+====================================================================================================
+lib\principal\principal-report-signature-service.ts:127
+    const signedData = { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: now, principalSignatureSignedById: input.principalUserId };
+
+lib\principal\principal-report-signature-service.ts:132
+    select: { id: true, title: true, renderedContent: true, reportDataSnapshot: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:144
+    select: { id: true, caseEntryId: true, reportTitle: true, snapshotHtml: true, snapshotPayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true },
+
+lib\principal\principal-report-signature-service.ts:169
+    select: { id: true, caseEntryId: true, reportTitle: true, renderedHtml: true, sourcePayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-teachers-service.ts:208
+    principalSignatureSignedById?: string | null;
+
+lib\principal\principal-teachers-service.ts:344
+    principalSignatureSignedById: true,
+
+lib\principal\principal-teachers-service.ts:370
+    principalSignatureSignedById: true,
+
+lib\principal\principal-teachers-service.ts:394
+    principalSignatureSignedById: true,
+
+lib\report-engine\smart-report-payload-builder.ts:1381
+    principalSignatureSignedById: true,
+
+lib\report-signatures\principal-signature-resolver.ts:26
+    principalSignatureSignedById?: string | null;
+
+lib\report-signatures\principal-signature-resolver.ts:88
+    input.principalDashboard.principalSignatureSignedById || null,
+
+lib\report-signatures\report-signature-service.ts:173
+    principalSignatureSignedById: true,
+
+prisma\schema.prisma:1842
+    principalSignatureSignedById String?
+
+prisma\schema.prisma:1881
+    principalSignatureSignedById String?
+
+prisma\schema.prisma:1921
+    principalSignatureSignedById String?
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:4
+    ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:9
+    ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql:14
+    ADD COLUMN `principalSignatureSignedById` VARCHAR(191) NULL;
+
+====================================================================================================
+PATTERN: principalSignatureRequestedAt
+====================================================================================================
+local-db-before-clean-20260624-132028.sql:6923
+    `principalSignatureRequestedAt` datetime(3) DEFAULT NULL,
+
+app\api\dashboard\settings\school\route.ts:113
+    principalSignatureRequestedAt:
+
+app\api\dashboard\settings\school\route.ts:114
+    profile?.principalSignatureRequestedAt?.toISOString() || "",
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:63
+    update: { principalName, principalPhone, principalSignatureToken: token, principalSignatureRequestedAt: requestedAt, principalSignatureSignedAt: null },
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:70
+    principalSignatureRequestedAt: requestedAt,
+
+app\api\dashboard\settings\school\signature\route.ts:206
+    principalSignatureRequestedAt: null,
+
+components\settings\school-settings-form.tsx:51
+    principalSignatureRequestedAt: string;
+
+components\settings\school-settings-form.tsx:86
+    principalSignatureRequestedAt: data?.principalSignatureRequestedAt || "",
+
+components\settings\school-settings-form.tsx:123
+    principalSignatureRequestedAt: "",
+
+components\settings\school-settings-form.tsx:488
+    principalSignatureRequestedAt: "",
+
+components\settings\school-settings-form.tsx:496
+    principalSignatureRequestedAt: "",
+
+components\settings\school-settings-form.tsx:568
+    principalSignatureRequestedAt: data.requestedAt || "",
+
+components\settings\school-settings-form.tsx:1102
+    ) : form.principalSignatureRequestedAt ? (
+
+components\settings\school-settings-form.tsx:1104
+    تم إرسال طلب توقيع: {formatSignatureDate(form.principalSignatureRequestedAt)}
+
+prisma\schema.prisma:784
+    principalSignatureRequestedAt DateTime?
+
+_local-backups\reference-library-20260719-040701\prisma\schema.prisma:271
+    principalSignatureRequestedAt DateTime?
+
+====================================================================================================
+PATTERN: principalSignatureToken
+====================================================================================================
+local-db-before-clean-20260624-132028.sql:6922
+    `principalSignatureToken` varchar(191) DEFAULT NULL,
+
+local-db-before-clean-20260624-132028.sql:6932
+    UNIQUE KEY `SchoolProfile_principalSignatureToken_key` (`principalSignatureToken`),
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:63
+    update: { principalName, principalPhone, principalSignatureToken: token, principalSignatureRequestedAt: requestedAt, principalSignatureSignedAt: null },
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:69
+    principalSignatureToken: token,
+
+app\api\dashboard\settings\school\signature\route.ts:205
+    principalSignatureToken: null,
+
+prisma\schema.prisma:783
+    principalSignatureToken       String?   @unique
+
+_local-backups\reference-library-20260719-040701\prisma\schema.prisma:270
+    principalSignatureToken       String?   @unique
+
+====================================================================================================
+PATTERN: principalSignatureReusePolicy
+====================================================================================================
+app\api\dashboard\settings\school\route.ts:117
+    principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+app\api\dashboard\settings\school\route.ts:220
+    principalSignatureReusePolicy,
+
+app\api\dashboard\settings\school\route.ts:442
+    const requestedIds = principalSignatureReusePolicy === "SELECTED_STAFF"
+
+components\settings\school-settings-form.tsx:53
+    principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+
+components\settings\school-settings-form.tsx:88
+    principalSignatureReusePolicy: data?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:125
+    principalSignatureReusePolicy: "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:653
+    onChangePrincipalReusePolicy={(policy) => update("principalSignatureReusePolicy", policy)}
+
+components\settings\school-settings-form.tsx:926
+    onChangePrincipalReusePolicy: (policy: SchoolSettingsFormState["principalSignatureReusePolicy"]) => void;
+
+components\settings\school-settings-form.tsx:985
+    <input type="radio" name="principalSignatureReusePolicy" value={value} checked={form.principalSignatureReusePolicy === value} onChange={() => onChangePrincipalReusePolicy(value)} />
+
+components\settings\school-settings-form.tsx:990
+    {form.principalSignatureReusePolicy === "SELECTED_STAFF" ? (
+
+lib\principal\principal-report-signature-service.ts:10
+    import type { PrincipalSignatureReusePolicy } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-report-signature-service.ts:17
+    reusePolicy?: PrincipalSignatureReusePolicy | null;
+
+lib\principal\principal-report-signature-service.ts:75
+    select: { principalSignatureUrl: true, principalSignatureReusePolicy: true },
+
+lib\principal\principal-report-signature-service.ts:105
+    reusePolicy: profile?.principalSignatureReusePolicy,
+
+lib\principal\principal-teachers-service.ts:295
+    const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "MANUAL_ONLY";
+
+lib\report-engine\smart-report-payload-builder.ts:48
+    principalSignatureReusePolicy?:
+
+lib\report-engine\smart-report-payload-builder.ts:1403
+    reusePolicy: profile?.principalSignatureReusePolicy,
+
+lib\report-signatures\principal-signature-resolver.ts:8
+    export type PrincipalSignatureReusePolicy =
+
+lib\report-signatures\principal-signature-resolver.ts:69
+    reusePolicy?: PrincipalSignatureReusePolicy | null;
+
+lib\report-signatures\report-signature-service.ts:161
+    principalSignatureReusePolicy: true,
+
+lib\report-signatures\report-signature-service.ts:197
+    reusePolicy: schoolProfile?.principalSignatureReusePolicy,
+
+lib\settings\school-settings-api-schema.ts:71
+    principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+
+prisma\schema.prisma:786
+    principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
+
+prisma\schema.prisma:809
+    enum PrincipalSignatureReusePolicy {
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+    ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+
+====================================================================================================
+PATTERN: PrincipalSignatureReuseAuthorization
+====================================================================================================
+app\api\dashboard\settings\school\route.ts:61
+    prisma.principalSignatureReuseAuthorization.findMany({
+
+app\api\dashboard\settings\school\route.ts:458
+    await tx.principalSignatureReuseAuthorization.deleteMany({
+
+app\api\dashboard\settings\school\route.ts:462
+    await tx.principalSignatureReuseAuthorization.createMany({
+
+lib\principal\principal-report-signature-service.ts:91
+    const selectedStaffAuthorization = await prisma.principalSignatureReuseAuthorization.findUnique({
+
+lib\principal\principal-teachers-service.ts:307
+    const selectedStaffAuthorization = await prisma.principalSignatureReuseAuthorization.findUnique({
+
+lib\report-engine\smart-report-payload-builder.ts:1366
+    ? prisma.principalSignatureReuseAuthorization.findUnique({
+
+lib\report-signatures\report-signature-service.ts:184
+    ? Boolean(await prisma.principalSignatureReuseAuthorization.findUnique({
+
+prisma\schema.prisma:329
+    principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
+
+prisma\schema.prisma:495
+    principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
+
+prisma\schema.prisma:815
+    model PrincipalSignatureReuseAuthorization {
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:6
+    CREATE TABLE `PrincipalSignatureReuseAuthorization` (
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:13
+    UNIQUE INDEX `PrincipalSignatureReuseAuthorization_schoolAccountId_userId_key`(`schoolAccountId`, `userId`),
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:14
+    INDEX `PrincipalSignatureReuseAuthorization_userId_idx`(`userId`),
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:19
+    ALTER TABLE `PrincipalSignatureReuseAuthorization`
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:20
+    ADD CONSTRAINT `PrincipalSignatureReuseAuthorization_schoolAccountId_fkey`
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:23
+    ALTER TABLE `PrincipalSignatureReuseAuthorization`
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:24
+    ADD CONSTRAINT `PrincipalSignatureReuseAuthorization_userId_fkey`
+
+====================================================================================================
+PATTERN: PrincipalSignatureReusePolicy
+====================================================================================================
+app\api\dashboard\settings\school\route.ts:117
+    principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+app\api\dashboard\settings\school\route.ts:220
+    principalSignatureReusePolicy,
+
+app\api\dashboard\settings\school\route.ts:442
+    const requestedIds = principalSignatureReusePolicy === "SELECTED_STAFF"
+
+components\settings\school-settings-form.tsx:53
+    principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+
+components\settings\school-settings-form.tsx:88
+    principalSignatureReusePolicy: data?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:125
+    principalSignatureReusePolicy: "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:653
+    onChangePrincipalReusePolicy={(policy) => update("principalSignatureReusePolicy", policy)}
+
+components\settings\school-settings-form.tsx:926
+    onChangePrincipalReusePolicy: (policy: SchoolSettingsFormState["principalSignatureReusePolicy"]) => void;
+
+components\settings\school-settings-form.tsx:985
+    <input type="radio" name="principalSignatureReusePolicy" value={value} checked={form.principalSignatureReusePolicy === value} onChange={() => onChangePrincipalReusePolicy(value)} />
+
+components\settings\school-settings-form.tsx:990
+    {form.principalSignatureReusePolicy === "SELECTED_STAFF" ? (
+
+lib\principal\principal-report-signature-service.ts:10
+    import type { PrincipalSignatureReusePolicy } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-report-signature-service.ts:17
+    reusePolicy?: PrincipalSignatureReusePolicy | null;
+
+lib\principal\principal-report-signature-service.ts:75
+    select: { principalSignatureUrl: true, principalSignatureReusePolicy: true },
+
+lib\principal\principal-report-signature-service.ts:105
+    reusePolicy: profile?.principalSignatureReusePolicy,
+
+lib\principal\principal-teachers-service.ts:295
+    const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "MANUAL_ONLY";
+
+lib\report-engine\smart-report-payload-builder.ts:48
+    principalSignatureReusePolicy?:
+
+lib\report-engine\smart-report-payload-builder.ts:1403
+    reusePolicy: profile?.principalSignatureReusePolicy,
+
+lib\report-signatures\principal-signature-resolver.ts:8
+    export type PrincipalSignatureReusePolicy =
+
+lib\report-signatures\principal-signature-resolver.ts:69
+    reusePolicy?: PrincipalSignatureReusePolicy | null;
+
+lib\report-signatures\report-signature-service.ts:161
+    principalSignatureReusePolicy: true,
+
+lib\report-signatures\report-signature-service.ts:197
+    reusePolicy: schoolProfile?.principalSignatureReusePolicy,
+
+lib\settings\school-settings-api-schema.ts:71
+    principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+
+prisma\schema.prisma:786
+    principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
+
+prisma\schema.prisma:809
+    enum PrincipalSignatureReusePolicy {
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+    ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+
+====================================================================================================
+PATTERN: schoolLeaderSignatureUrl
+====================================================================================================
+lib\report-engine\smart-report-payload-builder.ts:1539
+    schoolLeaderSignatureUrl: effectivePrincipalSignature.signatureUrl || "",
+
+lib\report-engine\smart-report-types.ts:73
+    schoolLeaderSignatureUrl?: string;
+
+lib\report-signatures\principal-signature-state.ts:28
+    if (isSignatureUrl(identity?.principalSignatureUrl, signatureUrl) || isSignatureUrl(identity?.schoolLeaderSignatureUrl, signatureUrl)) {
+
+lib\report-signatures\report-two-signature.ts:32
+    schoolLeaderSignatureUrl: signatureUrl,
+
+====================================================================================================
+PATTERN: ReportSignatureRequest
+====================================================================================================
+components\report-2\report-two-studio-runtime.tsx:19
+    ReportSignatureRequestCard,
+
+components\report-2\report-two-studio-runtime.tsx:20
+    type ReportSignatureRequestView,
+
+components\report-2\report-two-studio-runtime.tsx:328
+    initialSignatureRequest?: ReportSignatureRequestView | null;
+
+components\report-2\report-two-studio-runtime.tsx:4633
+    <ReportSignatureRequestCard
+
+components\report-signatures\report-signature-request-card.tsx:9
+    export type ReportSignatureRequestView = {
+
+components\report-signatures\report-signature-request-card.tsx:18
+    const statusLabels: Record<ReportSignatureRequestView["status"], string> = {
+
+components\report-signatures\report-signature-request-card.tsx:25
+    function requestStatusLabel(request: ReportSignatureRequestView) {
+
+components\report-signatures\report-signature-request-card.tsx:51
+    export function ReportSignatureRequestCard({
+
+components\report-signatures\report-signature-request-card.tsx:61
+    initialRequest: ReportSignatureRequestView | null;
+
+lib\activity-team\activity-team-signature-service.ts:4
+    import { Prisma, ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\activity-team\activity-team-signature-service.ts:9
+    expireReportSignatureRequestIfNeeded,
+
+lib\activity-team\activity-team-signature-service.ts:57
+    const request = await prisma.reportSignatureRequest.findUnique({
+
+lib\activity-team\activity-team-signature-service.ts:87
+    const status = await expireReportSignatureRequestIfNeeded(request);
+
+lib\activity-team\activity-team-signature-service.ts:108
+    const pending = await prisma.reportSignatureRequest.findMany({
+
+lib\activity-team\activity-team-signature-service.ts:109
+    where: { schoolAccountId: input.schoolAccountId, status: ReportSignatureRequestStatus.PENDING },
+
+lib\activity-team\activity-team-signature-service.ts:118
+    await tx.reportSignatureRequest.updateMany({
+
+lib\activity-team\activity-team-signature-service.ts:119
+    where: { id: { in: matchingIds }, status: ReportSignatureRequestStatus.PENDING },
+
+lib\activity-team\activity-team-signature-service.ts:120
+    data: { status: ReportSignatureRequestStatus.CANCELED, canceledAt: new Date() },
+
+lib\activity-team\activity-team-signature-service.ts:123
+    await tx.reportSignatureRequest.create({
+
+lib\activity-team\activity-team-signature-service.ts:208
+    if (getReportSignatureStatus(request) !== ReportSignatureRequestStatus.PENDING) {
+
+lib\principal\principal-report-signature-service.ts:3
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\principal\principal-report-signature-service.ts:119
+    const existingRequest = await prisma.reportSignatureRequest.findFirst({
+
+lib\principal\principal-report-signature-service.ts:120
+    where: { reportTwoActiveId: input.reportId, status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } },
+
+lib\principal\principal-report-signature-service.ts:132
+    select: { id: true, title: true, renderedContent: true, reportDataSnapshot: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:169
+    select: { id: true, caseEntryId: true, reportTitle: true, renderedHtml: true, sourcePayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-teachers-service.ts:6
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\principal\principal-teachers-service.ts:227
+    input.signedLink?.status === ReportSignatureRequestStatus.SIGNED &&
+
+lib\principal\principal-teachers-service.ts:345
+    signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
+
+lib\principal\principal-teachers-service.ts:395
+    signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
+
+lib\report-signatures\principal-signature-resolver.ts:1
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\report-signatures\principal-signature-resolver.ts:36
+    status?: ReportSignatureRequestStatus | string | null;
+
+lib\report-signatures\principal-signature-state.ts:1
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\report-signatures\principal-signature-state.ts:4
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:4
+    import { ReportSignatureRequestStatus, type Prisma } from "@prisma/client";
+
+lib\report-signatures\report-signature-service.ts:44
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:48
+    input.status === ReportSignatureRequestStatus.PENDING &&
+
+lib\report-signatures\report-signature-service.ts:51
+    return ReportSignatureRequestStatus.EXPIRED;
+
+lib\report-signatures\report-signature-service.ts:57
+    export async function expireReportSignatureRequestIfNeeded(request: {
+
+lib\report-signatures\report-signature-service.ts:59
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:64
+    if (status === ReportSignatureRequestStatus.EXPIRED) {
+
+lib\report-signatures\report-signature-service.ts:65
+    await prisma.reportSignatureRequest.updateMany({
+
+lib\report-signatures\report-signature-service.ts:68
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:71
+    data: { status: ReportSignatureRequestStatus.EXPIRED },
+
+lib\report-signatures\report-signature-service.ts:78
+    export async function getPublicReportSignatureRequest(token: string) {
+
+lib\report-signatures\report-signature-service.ts:85
+    const request = await prisma.reportSignatureRequest.findUnique({
+
+lib\report-signatures\report-signature-service.ts:102
+    const status = await expireReportSignatureRequestIfNeeded(request);
+
+lib\report-signatures\report-signature-service.ts:104
+    if (status === ReportSignatureRequestStatus.PENDING && !openedAt) {
+
+lib\report-signatures\report-signature-service.ts:106
+    const marked = await prisma.reportSignatureRequest.updateMany({
+
+lib\report-signatures\report-signature-service.ts:109
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:126
+    export async function signReportSignatureRequest(input: {
+
+lib\report-signatures\report-signature-service.ts:134
+    const request = await prisma.reportSignatureRequest.findUnique({
+
+lib\report-signatures\report-signature-service.ts:149
+    const status = await expireReportSignatureRequestIfNeeded(request);
+
+lib\report-signatures\report-signature-service.ts:150
+    if (status !== ReportSignatureRequestStatus.PENDING) {
+
+lib\report-signatures\report-signature-service.ts:220
+    const claimed = await tx.reportSignatureRequest.updateMany({
+
+lib\report-signatures\report-signature-service.ts:224
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:228
+    status: ReportSignatureRequestStatus.SIGNED,
+
+prisma\schema.prisma:325
+    reportSignatureRequests      ReportSignatureRequest[]
+
+prisma\schema.prisma:491
+    reportSignatureRequests       ReportSignatureRequest[]
+
+prisma\schema.prisma:1801
+    enum ReportSignatureRequestStatus {
+
+prisma\schema.prisma:1848
+    signatureRequests   ReportSignatureRequest[]
+
+prisma\schema.prisma:1930
+    signatureRequests ReportSignatureRequest[]
+
+prisma\schema.prisma:1938
+    model ReportSignatureRequest {
+
+prisma\schema.prisma:1956
+    status               ReportSignatureRequestStatus @default(PENDING)
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:1
+    CREATE TABLE `ReportSignatureRequest` (
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:19
+    UNIQUE INDEX `ReportSignatureRequest_tokenHash_key`(`tokenHash`),
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:20
+    INDEX `ReportSignatureRequest_reportId_status_idx`(`reportId`, `status`),
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:21
+    INDEX `ReportSignatureRequest_schoolAccountId_status_idx`(`schoolAccountId`, `status`),
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:22
+    INDEX `ReportSignatureRequest_requestedById_idx`(`requestedById`),
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:23
+    INDEX `ReportSignatureRequest_expiresAt_idx`(`expiresAt`),
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:27
+    ALTER TABLE `ReportSignatureRequest`
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:28
+    ADD CONSTRAINT `ReportSignatureRequest_reportId_fkey`
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:32
+    ALTER TABLE `ReportSignatureRequest`
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:33
+    ADD CONSTRAINT `ReportSignatureRequest_schoolAccountId_fkey`
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:37
+    ALTER TABLE `ReportSignatureRequest`
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:38
+    ADD CONSTRAINT `ReportSignatureRequest_requestedById_fkey`
+
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:1
+    ALTER TABLE `ReportSignatureRequest`
+
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:5
+    CREATE INDEX `ReportSignatureRequest_reportTwoActiveId_status_idx`
+
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:6
+    ON `ReportSignatureRequest`(`reportTwoActiveId`, `status`);
+
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:8
+    ALTER TABLE `ReportSignatureRequest`
+
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql:9
+    ADD CONSTRAINT `ReportSignatureRequest_reportTwoActiveId_fkey`
+
+prisma\migrations\20260814213000_add_report_signature_opened_at\migration.sql:1
+    ALTER TABLE `ReportSignatureRequest`
+
+====================================================================================================
+PATTERN: SIGN_LINK
+====================================================================================================
+lib\principal\principal-teachers-service.ts:186
+    principalSignatureSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\principal\principal-teachers-service.ts:192
+    resolverSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\report-signatures\principal-signature-resolver.ts:5
+    | "SIGN_LINK"
+
+lib\report-signatures\principal-signature-resolver.ts:79
+    return signedResult("SIGN_LINK", linkUrl, input.signLink.signedAt, null, false, "REPORT_SIGNATURE");
+
+====================================================================================================
+PATTERN: PRINCIPAL_DASHBOARD
+====================================================================================================
+lib\auth\dashboard-redirects.ts:5
+    export const PRINCIPAL_DASHBOARD_PATH = "/dashboard/principal";
+
+lib\auth\dashboard-redirects.ts:11
+    if (role === "PRINCIPAL") return PRINCIPAL_DASHBOARD_PATH;
+
+lib\auth\dashboard-redirects.ts:22
+    PRINCIPAL_DASHBOARD_PATH,
+
+lib\auth\dashboard-redirects.ts:41
+    if (input.role === "PRINCIPAL") return PRINCIPAL_DASHBOARD_PATH;
+
+lib\principal\principal-teachers-service.ts:186
+    principalSignatureSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\principal\principal-teachers-service.ts:192
+    resolverSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\report-signatures\principal-signature-resolver.ts:6
+    | "PRINCIPAL_DASHBOARD";
+
+lib\report-signatures\principal-signature-resolver.ts:85
+    "PRINCIPAL_DASHBOARD",
+
+====================================================================================================
+PATTERN: SCHOOL_IDENTITY
+====================================================================================================
+components\guidance\role-onboarding-controller.tsx:94
+    case "STUDIO": { const returnUrl = `${window.location.pathname}${window.location.search}`; update({ phase: "SCHOOL_IDENTITY", returnUrl, caseId: state.caseId || getCaseIdFromJourneyPath(pathname) }); router.push("/dashboard/settings/school"); break; }
+
+components\guidance\role-onboarding-controller.tsx:95
+    case "SCHOOL_IDENTITY": next("SCHOOL_WAIT"); break;
+
+components\guidance\teacher-onboarding-controller.tsx:137
+    if (state.phase !== "SCHOOL_IDENTITY" && state.phase !== "SCHOOL_WAIT" && state.phase !== "PRINCIPAL_NAME") return;
+
+components\guidance\teacher-onboarding-controller.tsx:143
+    if ((state.phase === "SCHOOL_IDENTITY" || state.phase === "SCHOOL_WAIT") && schoolReady) {
+
+components\guidance\teacher-onboarding-controller.tsx:241
+    update({ phase: "SCHOOL_IDENTITY", returnUrl, reportId, caseId: state.caseId || getCaseIdFromJourneyPath(pathname) });
+
+components\guidance\teacher-onboarding-controller.tsx:245
+    case "SCHOOL_IDENTITY": next("SCHOOL_WAIT"); break;
+
+lib\school-identity-readiness.ts:27
+    export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
+
+lib\school-identity-readiness.ts:83
+    const readinessItems = SCHOOL_IDENTITY_READINESS_ITEMS.map((item) => {
+
+lib\guidance\role-onboarding-journey.ts:6
+    export type RoleOnboardingPhase = "WELCOME" | "SELECT_SERVICE" | "CREATE_WORK" | "WORKFLOW_FORM" | "EVIDENCE" | "WORKING" | "PREPARE" | "DESCRIPTION" | "PREPARE_WAIT" | "STUDIO" | "SCHOOL_IDENTITY" | "SCHOOL_WAIT" | "RETURN_STUDIO" | "SAVE_REPORT" | "SAVE_REPORT_WAIT" | "PORTFOLIO" | "COMPLETED";
+
+lib\guidance\role-onboarding-journey.ts:53
+    SCHOOL_IDENTITY: { target: "teacher-school-identity", title: "هوية التقرير", description: "أكمل البيانات الأساسية والتوقيع المطلوب للتقرير.", primaryLabel: "فهمت" },
+
+lib\guidance\teacher-onboarding-journey.ts:20
+    "SCHOOL_IDENTITY",
+
+lib\guidance\teacher-onboarding-journey.ts:175
+    SCHOOL_IDENTITY: {
+
+lib\principal\principal-teachers-service.ts:186
+    principalSignatureSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\principal\principal-teachers-service.ts:192
+    resolverSource: "SCHOOL_IDENTITY" | "SIGN_LINK" | "PRINCIPAL_DASHBOARD" | null;
+
+lib\report-signatures\principal-signature-resolver.ts:4
+    | "SCHOOL_IDENTITY"
+
+lib\report-signatures\principal-signature-resolver.ts:20
+    authorizationReason: "REPORT_SIGNATURE" | "SCHOOL_IDENTITY" | "NONE";
+
+lib\report-signatures\principal-signature-resolver.ts:52
+    authorizationReason: "REPORT_SIGNATURE" | "SCHOOL_IDENTITY",
+
+lib\report-signatures\principal-signature-resolver.ts:114
+    "SCHOOL_IDENTITY",
+
+lib\report-signatures\principal-signature-resolver.ts:119
+    "SCHOOL_IDENTITY",
+
+====================================================================================================
+PATTERN: MANUAL_ONLY
+====================================================================================================
+app\api\dashboard\settings\school\route.ts:117
+    principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:53
+    principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+
+components\settings\school-settings-form.tsx:88
+    principalSignatureReusePolicy: data?.principalSignatureReusePolicy || "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:125
+    principalSignatureReusePolicy: "MANUAL_ONLY",
+
+components\settings\school-settings-form.tsx:982
+    ["MANUAL_ONLY", "توقيع يدوي فقط"],
+
+lib\principal\principal-teachers-service.ts:212
+    reusePolicy?: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY" | null;
+
+lib\principal\principal-teachers-service.ts:295
+    const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "MANUAL_ONLY";
+
+lib\report-engine\smart-report-payload-builder.ts:51
+    | "MANUAL_ONLY";
+
+lib\report-signatures\principal-signature-resolver.ts:11
+    | "MANUAL_ONLY";
+
+lib\report-signatures\principal-signature-resolver.ts:103
+    const policy = input.reusePolicy || "MANUAL_ONLY";
+
+lib\settings\school-settings-api-schema.ts:71
+    principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+
+prisma\schema.prisma:786
+    principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
+
+prisma\schema.prisma:812
+    MANUAL_ONLY
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+    ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+
+====================================================================================================
+PATTERN: ALL_STAFF
+====================================================================================================
+components\settings\school-settings-form.tsx:53
+    principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+
+components\settings\school-settings-form.tsx:980
+    ["ALL_STAFF", "جميع المنسوبين"],
+
+lib\principal\principal-teachers-service.ts:212
+    reusePolicy?: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY" | null;
+
+lib\report-engine\smart-report-payload-builder.ts:49
+    | "ALL_STAFF"
+
+lib\report-signatures\principal-signature-resolver.ts:9
+    | "ALL_STAFF"
+
+lib\report-signatures\principal-signature-resolver.ts:109
+    (policy === "ALL_STAFF" ||
+
+lib\settings\school-settings-api-schema.ts:71
+    principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+
+prisma\schema.prisma:810
+    ALL_STAFF
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+    ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+
+====================================================================================================
+PATTERN: SELECTED_STAFF
+====================================================================================================
+app\api\dashboard\settings\school\route.ts:442
+    const requestedIds = principalSignatureReusePolicy === "SELECTED_STAFF"
+
+components\settings\school-settings-form.tsx:53
+    principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+
+components\settings\school-settings-form.tsx:981
+    ["SELECTED_STAFF", "منسوبون محددون"],
+
+components\settings\school-settings-form.tsx:990
+    {form.principalSignatureReusePolicy === "SELECTED_STAFF" ? (
+
+lib\principal\principal-teachers-service.ts:212
+    reusePolicy?: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY" | null;
+
+lib\report-engine\smart-report-payload-builder.ts:50
+    | "SELECTED_STAFF"
+
+lib\report-signatures\principal-signature-resolver.ts:10
+    | "SELECTED_STAFF"
+
+lib\report-signatures\principal-signature-resolver.ts:110
+    (policy === "SELECTED_STAFF" && input.selectedStaffAuthorized === true))));
+
+lib\settings\school-settings-api-schema.ts:71
+    principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+
+prisma\schema.prisma:811
+    SELECTED_STAFF
+
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql:3
+    ADD COLUMN `principalSignatureReusePolicy` ENUM('ALL_STAFF', 'SELECTED_STAFF', 'MANUAL_ONLY') NOT NULL DEFAULT 'MANUAL_ONLY';
+
+====================================================================================================
+PATTERN: consentedToReuse
+====================================================================================================
+lib\report-signatures\report-signature-service.ts:231
+    consentedToReuse: input.consentToReuse,
+
+prisma\schema.prisma:1959
+    consentedToReuse     Boolean                      @default(false)
+
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql:12
+    `consentedToReuse` BOOLEAN NOT NULL DEFAULT false,
+
+====================================================================================================
+PATTERN: resolvePrincipalSignature
+====================================================================================================
+lib\principal\principal-report-signature-service.ts:9
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-report-signature-service.ts:23
+    return resolvePrincipalSignatureForReport({
+
+lib\principal\principal-report-signature-service.ts:114
+    if (resolvePrincipalSignatureForReport({ ...resolverContext }).status === "SIGNED") {
+
+lib\principal\principal-teachers-service.ts:8
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-teachers-service.ts:218
+    const resolved = resolvePrincipalSignatureForReport({
+
+lib\principal\principal-teachers-service.ts:418
+    principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+
+lib\principal\principal-teachers-service.ts:432
+    principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: signedRequestByCaseId.get(report.caseEntryId) || null, principalDashboard: report, ...signatureResolverContext }).source,
+
+lib\principal\principal-teachers-service.ts:446
+    principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+
+lib\report-engine\smart-report-payload-builder.ts:29
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\report-engine\smart-report-payload-builder.ts:1395
+    const effectivePrincipalSignature = resolvePrincipalSignatureForReport({
+
+lib\report-signatures\principal-signature-resolver.ts:65
+    export function resolvePrincipalSignatureForReport(input: {
+
+lib\report-signatures\report-signature-service.ts:12
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\report-signatures\report-signature-service.ts:194
+    const effective = resolvePrincipalSignatureForReport({
+
+====================================================================================================
+PATTERN: principal-signature-resolver
+====================================================================================================
+lib\principal\principal-report-signature-service.ts:9
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-report-signature-service.ts:10
+    import type { PrincipalSignatureReusePolicy } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\principal\principal-teachers-service.ts:8
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\report-engine\smart-report-payload-builder.ts:29
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+lib\report-signatures\report-signature-service.ts:12
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+====================================================================================================
+PATTERN: signatureRequests
+====================================================================================================
+app\api\dashboard\settings\school\principal-signature-request\route.ts:6
+    import { principalSignatureRequestSchema } from "@/lib/settings/school-settings-api-schema";
+
+app\api\dashboard\settings\school\principal-signature-request\route.ts:53
+    const payloadResult = principalSignatureRequestSchema.safeParse(body);
+
+lib\activity-team\activity-team-signature-service.ts:4
+    import { Prisma, ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\activity-team\activity-team-signature-service.ts:109
+    where: { schoolAccountId: input.schoolAccountId, status: ReportSignatureRequestStatus.PENDING },
+
+lib\activity-team\activity-team-signature-service.ts:119
+    where: { id: { in: matchingIds }, status: ReportSignatureRequestStatus.PENDING },
+
+lib\activity-team\activity-team-signature-service.ts:120
+    data: { status: ReportSignatureRequestStatus.CANCELED, canceledAt: new Date() },
+
+lib\activity-team\activity-team-signature-service.ts:208
+    if (getReportSignatureStatus(request) !== ReportSignatureRequestStatus.PENDING) {
+
+lib\principal\principal-report-signature-service.ts:3
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\principal\principal-report-signature-service.ts:120
+    where: { reportTwoActiveId: input.reportId, status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } },
+
+lib\principal\principal-report-signature-service.ts:132
+    select: { id: true, title: true, renderedContent: true, reportDataSnapshot: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-report-signature-service.ts:169
+    select: { id: true, caseEntryId: true, reportTitle: true, renderedHtml: true, sourcePayload: true, principalSignatureUrl: true, principalSignatureSignedAt: true, principalSignatureSignedById: true, signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } } },
+
+lib\principal\principal-teachers-service.ts:6
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\principal\principal-teachers-service.ts:227
+    input.signedLink?.status === ReportSignatureRequestStatus.SIGNED &&
+
+lib\principal\principal-teachers-service.ts:345
+    signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
+
+lib\principal\principal-teachers-service.ts:395
+    signatureRequests: { where: { status: ReportSignatureRequestStatus.SIGNED, signedAt: { not: null }, signatureUrl: { not: null } }, orderBy: { signedAt: "desc" }, take: 1, select: { status: true, signedAt: true, signatureUrl: true } },
+
+lib\principal\principal-teachers-service.ts:403
+    .map((report) => [report.caseEntryId, report.signatureRequests[0]] as const)
+
+lib\principal\principal-teachers-service.ts:417
+    principalSignatureSigned: isPrincipalStaffReportSigned({ source: "GUIDANCE_REPORT", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.reportDataSnapshot, approvedHtml: report.renderedContent, ...signatureResolverContext }),
+
+lib\principal\principal-teachers-service.ts:418
+    principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+
+lib\principal\principal-teachers-service.ts:419
+    principalSignatureDebug: buildPrincipalSignatureDebug({ report, schoolIdentity, signedLink: report.signatureRequests[0], sourcePayload: report.reportDataSnapshot, approvedHtml: report.renderedContent, ...signatureResolverContext }),
+
+lib\principal\principal-teachers-service.ts:445
+    principalSignatureSigned: isPrincipalStaffReportSigned({ source: "REPORT_TWO", report, signedRequest: report.signatureRequests[0], signatureUrl: schoolIdentity.principalSignatureUrl, structuredPayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
+
+lib\principal\principal-teachers-service.ts:446
+    principalSignatureSource: resolvePrincipalSignatureForReport({ schoolIdentity, signLink: report.signatureRequests[0], principalDashboard: report, ...signatureResolverContext }).source,
+
+lib\principal\principal-teachers-service.ts:447
+    principalSignatureDebug: buildPrincipalSignatureDebug({ report, schoolIdentity, signedLink: report.signatureRequests[0], sourcePayload: report.sourcePayload, approvedHtml: report.renderedHtml, ...signatureResolverContext }),
+
+lib\report-engine\smart-report-payload-builder.ts:1382
+    signatureRequests: {
+
+lib\report-engine\smart-report-payload-builder.ts:1401
+    signLink: reportTwoActive?.signatureRequests[0] || null,
+
+lib\report-signatures\principal-signature-resolver.ts:1
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\report-signatures\principal-signature-resolver.ts:36
+    status?: ReportSignatureRequestStatus | string | null;
+
+lib\report-signatures\principal-signature-state.ts:1
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+lib\report-signatures\principal-signature-state.ts:4
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:4
+    import { ReportSignatureRequestStatus, type Prisma } from "@prisma/client";
+
+lib\report-signatures\report-signature-service.ts:44
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:48
+    input.status === ReportSignatureRequestStatus.PENDING &&
+
+lib\report-signatures\report-signature-service.ts:51
+    return ReportSignatureRequestStatus.EXPIRED;
+
+lib\report-signatures\report-signature-service.ts:59
+    status: ReportSignatureRequestStatus;
+
+lib\report-signatures\report-signature-service.ts:64
+    if (status === ReportSignatureRequestStatus.EXPIRED) {
+
+lib\report-signatures\report-signature-service.ts:68
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:71
+    data: { status: ReportSignatureRequestStatus.EXPIRED },
+
+lib\report-signatures\report-signature-service.ts:104
+    if (status === ReportSignatureRequestStatus.PENDING && !openedAt) {
+
+lib\report-signatures\report-signature-service.ts:109
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:150
+    if (status !== ReportSignatureRequestStatus.PENDING) {
+
+lib\report-signatures\report-signature-service.ts:224
+    status: ReportSignatureRequestStatus.PENDING,
+
+lib\report-signatures\report-signature-service.ts:228
+    status: ReportSignatureRequestStatus.SIGNED,
+
+lib\settings\school-settings-api-schema.ts:75
+    export const principalSignatureRequestSchema = z.object({
+
+prisma\schema.prisma:325
+    reportSignatureRequests      ReportSignatureRequest[]
+
+prisma\schema.prisma:491
+    reportSignatureRequests       ReportSignatureRequest[]
+
+prisma\schema.prisma:1801
+    enum ReportSignatureRequestStatus {
+
+prisma\schema.prisma:1848
+    signatureRequests   ReportSignatureRequest[]
+
+prisma\schema.prisma:1930
+    signatureRequests ReportSignatureRequest[]
+
+prisma\schema.prisma:1956
+    status               ReportSignatureRequestStatus @default(PENDING)
+
+====================================================================================================
+PATTERN: key="principal"
+====================================================================================================
+NO MATCHES
+
+====================================================================================================
+PATTERN: data-report-signature-role="principal"
+====================================================================================================
+components\principal\principal-staff-reports-page.tsx:233
+    '[data-report-signature-role="principal"]',
+
+
+####################################################################################################
+UNIQUE MATCHED FILES
+####################################################################################################
+
+_local-backups\reference-library-20260719-040701\prisma\schema.prisma
+app\api\dashboard\certificates\bulk\issue\route.ts
+app\api\dashboard\certificates\route.ts
+app\api\dashboard\settings\school\principal-signature-request\route.ts
+app\api\dashboard\settings\school\route.ts
+app\api\dashboard\settings\school\signature\route.ts
+app\print\activity-plan\page.tsx
+app\print\activity-team\page.tsx
+app\print\curriculum-distribution\page.tsx
+components\activity-plan\activity-plan-print-document.tsx
+components\activity-plan\activity-plan-print-week.tsx
+components\activity-programs\reports\activity-execution-card-report.tsx
+components\assessments-center\report\assessment-analytical-report.tsx
+components\curriculum-distribution\curriculum-distribution-print-document.tsx
+components\curriculum-distribution\curriculum-document-identity.tsx
+components\guidance\role-onboarding-controller.tsx
+components\guidance\teacher-onboarding-controller.tsx
+components\principal\principal-staff-reports-page.tsx
+components\report-2\report-two-studio-runtime.tsx
+components\report-engine\smart-report-document-renderer.tsx
+components\reports\guardian-summons\guardian-summons-template.tsx
+components\reports\report-studio-editor.tsx
+components\report-signatures\report-signature-request-card.tsx
+components\settings\school-settings-form.tsx
+lib\activity-team\activity-team-report.ts
+lib\activity-team\activity-team-signature-service.ts
+lib\assessments-center\assessment-report-payload.ts
+lib\auth\dashboard-redirects.ts
+lib\certificates\certificate-renderer.ts
+lib\certificates\certificate-signature-profile.ts
+lib\guardian-summons\guardian-summons-template-data.ts
+lib\guidance\role-onboarding-journey.ts
+lib\guidance\teacher-onboarding-journey.ts
+lib\principal\principal-report-signature-service.ts
+lib\principal\principal-teachers-service.ts
+lib\report-engine\smart-report-payload-builder.ts
+lib\report-engine\smart-report-types.ts
+lib\report-signatures\principal-signature-html.ts
+lib\report-signatures\principal-signature-resolver.ts
+lib\report-signatures\principal-signature-state.ts
+lib\report-signatures\report-signature-service.ts
+lib\report-signatures\report-two-signature.ts
+lib\school-identity-readiness.ts
+lib\settings\school-settings-api-schema.ts
+local-db-before-clean-20260624-132028.sql
+prisma\migrations\20260814143000_add_report_signature_requests\migration.sql
+prisma\migrations\20260814190000_link_report_two_signature_requests\migration.sql
+prisma\migrations\20260814213000_add_report_signature_opened_at\migration.sql
+prisma\migrations\20260826170000_add_post_approval_principal_signature\migration.sql
+prisma\migrations\20260827120000_add_principal_signature_reuse_policy\migration.sql
+prisma\schema.prisma
+
+####################################################################################################
+IMPORTS FOR MATCHED TYPESCRIPT FILES
+####################################################################################################
+
+
+FILE: app\api\dashboard\certificates\bulk\issue\route.ts
+    import { randomUUID } from "crypto";
+    import { NextResponse } from "next/server";
+    import { certificatePrisma } from "@/lib/certificates/certificate-db";
+    import { getCertificateActor } from "@/lib/certificates/certificate-auth";
+    import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
+    import {
+
+FILE: app\api\dashboard\certificates\route.ts
+    import { randomUUID } from "crypto";
+    import { NextResponse } from "next/server";
+    import { certificatePrisma } from "@/lib/certificates/certificate-db";
+    import { getCertificateActor } from "@/lib/certificates/certificate-auth";
+    import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
+    import {
+
+FILE: app\api\dashboard\settings\school\principal-signature-request\route.ts
+    import crypto from "node:crypto";
+    import { NextResponse } from "next/server";
+    import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
+    import { getCurrentSessionUser } from "@/lib/auth/current-user";
+    import { prisma } from "@/lib/prisma";
+    import { principalSignatureRequestSchema } from "@/lib/settings/school-settings-api-schema";
+
+FILE: app\api\dashboard\settings\school\route.ts
+    import { Prisma } from "@prisma/client";
+    import { NextResponse } from "next/server";
+    import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
+    import { getCurrentSessionUser } from "@/lib/auth/current-user";
+    import { prisma } from "@/lib/prisma";
+    import {
+    import { schoolSettingsPatchSchema } from "@/lib/settings/school-settings-api-schema";
+
+FILE: app\api\dashboard\settings\school\signature\route.ts
+    import { randomUUID } from "node:crypto";
+    import { NextResponse } from "next/server";
+    import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
+    import { getCurrentSessionUser } from "@/lib/auth/current-user";
+    import { prisma } from "@/lib/prisma";
+    import { schoolSignaturePostSchema } from "@/lib/settings/school-settings-api-schema";
+    import {
+    import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
+    import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
+
+FILE: app\print\activity-plan\page.tsx
+    import { redirect } from "next/navigation";
+    import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+    import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
+    import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
+    import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
+    import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
+    import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+
+FILE: app\print\activity-team\page.tsx
+    import { redirect } from "next/navigation";
+    import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+    import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+    import { getSchoolActivityTeam } from "@/lib/activity-team/activity-team-service";
+    import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
+    import { buildSchoolActivityTeamReportSnapshot } from "@/lib/activity-team/activity-team-report";
+
+FILE: app\print\curriculum-distribution\page.tsx
+    import { notFound, redirect } from "next/navigation";
+    import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+    import { getDistribution } from "@/lib/curriculum-distribution/queries";
+    import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
+    import { CurriculumDistributionPrintDocument } from "@/components/curriculum-distribution/curriculum-distribution-print-document";
+
+FILE: components\activity-plan\activity-plan-print-document.tsx
+    import type { ActivityPlanPrintWeek } from "@/lib/activity-plan/activity-plan-print-data";
+    import { ActivityPlanPrintWeek as ActivityPlanPrintWeekView } from "./activity-plan-print-week";
+
+FILE: components\activity-plan\activity-plan-print-week.tsx
+    import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
+    import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+    import type { ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
+
+FILE: components\activity-programs\reports\activity-execution-card-report.tsx
+    import {
+    import { SignatureImage } from "@/components/signatures/signature-image";
+    import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+    import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+    import type {
+
+FILE: components\assessments-center\report\assessment-analytical-report.tsx
+    import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+    import type { AnalysisPresentation } from "@/lib/assessments-center/analysis-presentation";
+
+FILE: components\curriculum-distribution\curriculum-distribution-print-document.tsx
+    import type { CurriculumDistribution } from "@/lib/curriculum-distribution/types";
+    import { getCurriculumCalendarItems } from "@/lib/curriculum-distribution/calendar";
+    import { CurriculumDistributionPrintTable } from "./curriculum-distribution-print-table";
+    import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "./curriculum-document-identity";
+
+FILE: components\curriculum-distribution\curriculum-document-identity.tsx
+    import { getDesignLogoSrc } from "@/components/report-engine/design-renderers/shared/report-logo";
+    import { SignatureImage } from "@/components/signatures/signature-image";
+
+FILE: components\guidance\role-onboarding-controller.tsx
+    import { usePathname, useRouter } from "next/navigation";
+    import { useCallback, useEffect, useMemo, useState } from "react";
+    import { TeacherOnboardingPopCard } from "@/components/guidance/teacher-onboarding-pop-card";
+    import { normalizeGuidanceGender } from "@/lib/guidance/arabic-gender-copy";
+    import { getCaseIdFromJourneyPath } from "@/lib/guidance/teacher-onboarding-journey";
+    import { readRoleOnboardingState, writeRoleOnboardingState } from "@/lib/guidance/guidance-storage";
+    import { getRoleOnboardingServices, getRoleOnboardingStartPath, getRoleOnboardingCard, getRolePortfolioPath, ROLE_ONBOARDING_INITIAL_STATE, type GuidedWorkspaceRole, type RoleOnboardingPhase, type RoleOnboardingState } from "@/lib/guidance/role-onboarding-journey";
+
+FILE: components\guidance\teacher-onboarding-controller.tsx
+    import { usePathname, useRouter } from "next/navigation";
+    import { useCallback, useEffect, useMemo, useState } from "react";
+    import { TeacherOnboardingPopCard } from "@/components/guidance/teacher-onboarding-pop-card";
+    import { normalizeGuidanceGender } from "@/lib/guidance/arabic-gender-copy";
+    import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+    import {
+    import {
+
+FILE: components\principal\principal-staff-reports-page.tsx
+    import Link from "next/link";
+    import { useEffect, useMemo, useRef, useState } from "react";
+    import { ArrowRight, FileText, Link2, X } from "lucide-react";
+    import type { PrincipalStaffReportsWorkspace } from "@/lib/principal/principal-teachers-service";
+    import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
+    import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
+    import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
+    import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
+    import { MobileFeedbackPopCard } from "@/components/mobile-app/mobile-feedback-pop-card";
+
+FILE: components\report-2\report-two-studio-runtime.tsx
+    import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+    import { useRouter } from "next/navigation";
+    import {
+    import { isReportDesignId } from "@/components/report-engine/design-renderers/report-design-registry";
+    import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+    import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+    import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
+    import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+    import {
+    import { GuidanceScope } from "@/components/guidance/guidance-scope";
+    import { MoreVertical } from "lucide-react";
+    import {
+    import type {
+    import {
+    import {
+    import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+    import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+    import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
+    import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
+
+FILE: components\report-engine\smart-report-document-renderer.tsx
+    import {
+    import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+    import {
+    import type {
+
+FILE: components\reports\guardian-summons\guardian-summons-template.tsx
+    import { SignatureImage } from "@/components/signatures/signature-image";
+
+FILE: components\reports\report-studio-editor.tsx
+    import Link from "next/link";
+    import { useMemo, useState, useTransition } from "react";
+    import { useRouter } from "next/navigation";
+    import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+    import { GuidanceScope } from "@/components/guidance/guidance-scope";
+    import {
+
+FILE: components\report-signatures\report-signature-request-card.tsx
+    import { useEffect, useState } from "react";
+    import { useRouter } from "next/navigation";
+    import { SmartActionModal } from "@/components/ui/smart-action-modal";
+    import { openExternalUrl } from "@/lib/native/external-url-handler";
+
+FILE: components\settings\school-settings-form.tsx
+    import {
+    import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
+    import {
+    import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
+    import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+    import { SignatureImage } from "@/components/signatures/signature-image";
+    import {
+    import {
+
+FILE: lib\activity-team\activity-team-report.ts
+    import {
+    import {
+    import type {
+    import { SCHOOL_ACTIVITY_TEAM_FIELDS } from "@/lib/activity-team/activity-team-config";
+    import { getArabicActivitySupervisorLabel, getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
+    import { getReportLanguageModeFromUserGender } from "@/lib/report-engine/report-language-mode";
+    import { isCurrentSupervisorSignatureForField } from "@/lib/activity-team/activity-team-service";
+
+FILE: lib\activity-team\activity-team-signature-service.ts
+    import "server-only";
+    import crypto from "node:crypto";
+    import { Prisma, ReportSignatureRequestStatus } from "@prisma/client";
+    import { prisma } from "@/lib/prisma";
+    import {
+    import {
+    import {
+    import { buildSchoolActivityTeamReportSnapshot } from "@/lib/activity-team/activity-team-report";
+    import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
+
+FILE: lib\assessments-center\assessment-report-payload.ts
+    import type { AssessmentAnalyticalReportData } from "@/components/assessments-center/report/assessment-analytical-report";
+    import { getAssessmentAudienceLabels } from "@/lib/students/student-audience-labels";
+    import { resolveAnalysisPresentation } from "@/lib/assessments-center/analysis-presentation";
+
+FILE: lib\auth\dashboard-redirects.ts
+
+FILE: lib\certificates\certificate-renderer.ts
+    import type { CertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
+
+FILE: lib\certificates\certificate-signature-profile.ts
+    import { prisma } from "@/lib/prisma";
+
+FILE: lib\guardian-summons\guardian-summons-template-data.ts
+    import { notFound } from "next/navigation";
+    import {
+    import { prisma } from "@/lib/prisma";
+    import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+FILE: lib\guidance\role-onboarding-journey.ts
+    import type { AppService, WorkflowServiceOwnerRole } from "@/lib/constants/services";
+    import { workflowServicesByRole } from "@/lib/constants/services";
+    import type { GuidanceGender } from "@/lib/guidance/arabic-gender-copy";
+
+FILE: lib\guidance\teacher-onboarding-journey.ts
+    import type { GuidanceGender } from "@/lib/guidance/arabic-gender-copy";
+    import { teacherGenderCopy } from "@/lib/guidance/arabic-gender-copy";
+    import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+
+FILE: lib\principal\principal-report-signature-service.ts
+    import "server-only";
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+    import { prisma } from "@/lib/prisma";
+    import { applyPrincipalSignatureToHtml } from "@/lib/report-signatures/principal-signature-html";
+    import { isPrincipalSignaturePresent } from "@/lib/report-signatures/principal-signature-state";
+    import { applyExternalPrincipalSignature } from "@/lib/report-signatures/report-two-signature";
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+    import type { PrincipalSignatureReusePolicy } from "@/lib/report-signatures/principal-signature-resolver";
+    import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+    import { auditLog } from "@/lib/security/audit";
+
+FILE: lib\principal\principal-teachers-service.ts
+    import "server-only";
+    import { prisma } from "@/lib/prisma";
+    import { getPrincipalSchoolContext } from "@/lib/principal/principal-school-service";
+    import type { UserRole } from "@prisma/client";
+    import { ReportSignatureRequestStatus } from "@prisma/client";
+    import { isPrincipalStaffReportSigned } from "@/lib/principal/principal-report-signature-service";
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+    import { hasStructuredPrincipalSignature } from "@/lib/report-signatures/principal-signature-state";
+
+FILE: lib\report-engine\smart-report-payload-builder.ts
+    import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+    import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+    import { extractSmartReportTables } from "@/lib/report-engine/report-structured-table-extractor";
+    import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+    import {
+    import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+    import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
+    import type {
+    import { prisma } from "@/lib/prisma";
+    import {
+    import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
+    import { shouldIncludeReportNarrative } from "@/lib/report-engine/report-narrative-policy";
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+FILE: lib\report-engine\smart-report-types.ts
+    import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+
+FILE: lib\report-signatures\principal-signature-html.ts
+
+FILE: lib\report-signatures\principal-signature-resolver.ts
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+FILE: lib\report-signatures\principal-signature-state.ts
+    import type { ReportSignatureRequestStatus } from "@prisma/client";
+
+FILE: lib\report-signatures\report-signature-service.ts
+    import "server-only";
+    import crypto from "node:crypto";
+    import { ReportSignatureRequestStatus, type Prisma } from "@prisma/client";
+    import { prisma } from "@/lib/prisma";
+    import {
+    import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
+    import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+
+FILE: lib\report-signatures\report-two-signature.ts
+    import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+FILE: lib\school-identity-readiness.ts
+    import {
+
+FILE: lib\settings\school-settings-api-schema.ts
+    import { z } from "zod";
+    import {
+    import { SAUDI_CITY_OTHER_OPTION } from "@/lib/constants/saudi-cities";

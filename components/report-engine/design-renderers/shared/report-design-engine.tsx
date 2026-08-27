@@ -346,7 +346,7 @@ export function ReportDesignRenderer({
               </label>
             ) : null}
 
-          <div className={[
+          <div data-report-design-switcher="true" className={[
             "flex flex-wrap items-center gap-2 lg:justify-end",
             useMobileDesignSelect ? "hidden sm:flex" : "",
           ].join(" ")}>

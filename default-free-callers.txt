@@ -1,0 +1,77 @@
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\manual\route.ts
+==================================================
+    6:   assignPlanToSchool,
+   65:   await assignPlanToSchool({
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+==================================================
+    4: import { DEFAULT_FREE_PLAN_SLUG } from "@/lib/subscription/default-free-plan";
+  127:           not: DEFAULT_FREE_PLAN_SLUG,
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+==================================================
+   12:   assignPlanToSchool,
+  740:     if (existingPlan.slug === "default-free-auto") {
+  954:     if (plan.slug === "default-free-auto")
+ 1074:     const subscription = await assignPlanToSchool({
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+==================================================
+    6: import { DEFAULT_FREE_PLAN_SLUG } from "@/lib/subscription/default-free-plan";
+   13:   assignPlanToSchool,
+   62:           not: DEFAULT_FREE_PLAN_SLUG,
+  112:       plan.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  261:   if (plan.slug === DEFAULT_FREE_PLAN_SLUG) {
+  323:     const subscription = await assignPlanToSchool({
+
+==================================================
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\subscription\route.ts
+==================================================
+    6:   DEFAULT_FREE_PLAN_SLUG,
+   54:             overview.subscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\default-free-plan.ts
+==================================================
+    5:   assignPlanToSchool,
+   12: export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+  213:         slug: DEFAULT_FREE_PLAN_SLUG,
+  226:         slug: DEFAULT_FREE_PLAN_SLUG,
+  381:         slug: DEFAULT_FREE_PLAN_SLUG,
+  522: export async function ensureDefaultFreePlan() {
+  527:       slug: DEFAULT_FREE_PLAN_SLUG,
+  595:   const plan = await ensureDefaultFreePlan();
+  655:   const plan = await ensureDefaultFreePlan();
+  675:     existingSubscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  686:     existingSubscription.plan?.slug !== DEFAULT_FREE_PLAN_SLUG &&
+  699:   await assignPlanToSchool({
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\subscription-presentation.ts
+==================================================
+   18:   return planSlug === "default-free-auto";
+
+==================================================
+FILE: D:\student-guidance-platform-clean\lib\subscription\subscription-service.ts
+==================================================
+   28: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+  233: export async function assignPlanToSchool(input: {
+  300:     currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+  301:     plan.slug !== DEFAULT_FREE_PLAN_SLUG
+
+==================================================
+FILE: D:\student-guidance-platform-clean\components\subscription\admin-subscriptions-control-center.tsx
+==================================================
+   45: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+  209:         (plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG,
+
+==================================================
+FILE: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+==================================================
+   22: const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+  457:         (plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG,

@@ -12,6 +12,13 @@ import {
   buildReportTwoRenderContext,
 } from "@/lib/report-2/report-two-structured-data";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
+import {
+  clearPrincipalSignatureFromHtml,
+  applyPrincipalSignatureToHtml,
+} from "@/lib/report-signatures/principal-signature-html";
+import { reconcilePrincipalSignaturePayload } from "@/lib/report-signatures/report-two-signature";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 
 type JsonValue = unknown;
 
@@ -258,6 +265,62 @@ export async function createReportTwoSnapshot(
   const existingActive = await prisma.reportTwoActive.findUnique({
     where: { caseEntryId: caseEntry.id },
   });
+
+  const [schoolProfile, signedRequest, selectedStaffAuthorization] = await Promise.all([
+    prisma.schoolProfile.findUnique({
+      where: { schoolAccountId: caseEntry.schoolAccountId },
+      select: {
+        schoolAccountId: true,
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureReusePolicy: true,
+      },
+    }),
+    existingActive
+      ? prisma.reportSignatureRequest.findFirst({
+          where: {
+            reportTwoActiveId: existingActive.id,
+            status: "SIGNED",
+            signedAt: { not: null },
+            signatureUrl: { not: null },
+          },
+          orderBy: { signedAt: "desc" },
+          select: { status: true, signedAt: true, signatureUrl: true },
+        })
+      : null,
+    caseEntry.createdById
+      ? prisma.principalSignatureReuseAuthorization.findUnique({
+          where: {
+            schoolAccountId_userId: {
+              schoolAccountId: caseEntry.schoolAccountId,
+              userId: caseEntry.createdById,
+            },
+          },
+          select: { id: true },
+        })
+      : null,
+  ]);
+  const effectivePrincipalSignature = resolvePrincipalSignatureForReport({
+    schoolIdentity: schoolProfile,
+    signLink: signedRequest,
+    principalDashboard: existingActive,
+    reusePolicy: schoolProfile?.principalSignatureReusePolicy,
+    reportOwner: caseEntry.createdById
+      ? {
+          id: caseEntry.createdById,
+          schoolAccountId: caseEntry.createdBy?.schoolAccountId || caseEntry.schoolAccountId,
+          role: caseEntry.createdBy?.role,
+        }
+      : null,
+    selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+  });
+  const finalSnapshotPayload = reconcilePrincipalSignaturePayload(
+    (input.snapshotPayload || {}) as SmartReportPayload,
+    effectivePrincipalSignature,
+  );
+  const finalSnapshotHtml = effectivePrincipalSignature.signatureUrl
+    ? applyPrincipalSignatureToHtml(snapshotHtml, effectivePrincipalSignature.signatureUrl)
+    : clearPrincipalSignatureFromHtml(snapshotHtml);
   if (existingActive?.status === "APPROVED" && !input.approvedEditConfirmed) {
     return {
       ok: false as const,
@@ -279,7 +342,7 @@ export async function createReportTwoSnapshot(
             templateId: toNullableString(input.templateId),
             templateName: toNullableString(input.templateName),
             variantId: toNullableString(input.variantId),
-            snapshotPayload: toPrismaJson(input.snapshotPayload, {}) as any,
+            snapshotPayload: toPrismaJson(finalSnapshotPayload, {}) as any,
             snapshotTemplateJson: toPrismaJson(
               input.snapshotTemplateJson,
               null,
@@ -288,7 +351,7 @@ export async function createReportTwoSnapshot(
               input.snapshotPagesJson,
               null,
             ) as any,
-            snapshotHtml,
+            snapshotHtml: finalSnapshotHtml,
             pdfUrl: toNullableString(input.pdfUrl),
             approvedById: context.user.id,
             approvedByName:
@@ -311,17 +374,17 @@ export async function createReportTwoSnapshot(
       templateId: toNullableString(input.templateId),
       templateName: toNullableString(input.templateName),
       variantId: toNullableString(input.variantId),
-      sourcePayload: toPrismaJson(input.snapshotPayload, {}) as any,
+      sourcePayload: toPrismaJson(finalSnapshotPayload, {}) as any,
       editorState: toPrismaJson(input.editorState, null) as any,
       templateJson: toPrismaJson(input.snapshotTemplateJson, null) as any,
       pagesJson: toPrismaJson(input.snapshotPagesJson, null) as any,
-      renderedHtml: snapshotHtml,
+      renderedHtml: finalSnapshotHtml,
       renderContext: toPrismaJson(
-        buildReportTwoRenderContext(input.snapshotPayload as any),
+        buildReportTwoRenderContext(finalSnapshotPayload as any),
         {},
       ) as any,
       previewCase: toPrismaJson(
-        buildReportTwoPreviewCase(input.snapshotPayload as any),
+        buildReportTwoPreviewCase(finalSnapshotPayload as any),
         {},
       ) as any,
       pdfUrl: toNullableString(input.pdfUrl),
@@ -335,17 +398,17 @@ export async function createReportTwoSnapshot(
       templateId: toNullableString(input.templateId),
       templateName: toNullableString(input.templateName),
       variantId: toNullableString(input.variantId),
-      sourcePayload: toPrismaJson(input.snapshotPayload, {}) as any,
+      sourcePayload: toPrismaJson(finalSnapshotPayload, {}) as any,
       editorState: toPrismaJson(input.editorState, null) as any,
       templateJson: toPrismaJson(input.snapshotTemplateJson, null) as any,
       pagesJson: toPrismaJson(input.snapshotPagesJson, null) as any,
-      renderedHtml: snapshotHtml,
+      renderedHtml: finalSnapshotHtml,
       renderContext: toPrismaJson(
-        buildReportTwoRenderContext(input.snapshotPayload as any),
+        buildReportTwoRenderContext(finalSnapshotPayload as any),
         {},
       ) as any,
       previewCase: toPrismaJson(
-        buildReportTwoPreviewCase(input.snapshotPayload as any),
+        buildReportTwoPreviewCase(finalSnapshotPayload as any),
         {},
       ) as any,
       pdfUrl: toNullableString(input.pdfUrl),

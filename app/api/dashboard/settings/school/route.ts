@@ -51,6 +51,19 @@ export async function GET() {
   }
 
   const profile = current.user.schoolAccount?.profile;
+  const [eligibleSignatureStaff, selectedSignatureStaff] = current.user.role === "PRINCIPAL" && current.user.schoolAccountId
+    ? await Promise.all([
+        prisma.user.findMany({
+          where: { schoolAccountId: current.user.schoolAccountId, role: { in: [...LINKABLE_SCHOOL_MEMBER_ROLES] }, isActive: true },
+          orderBy: [{ officialName: "asc" }, { name: "asc" }],
+          select: { id: true, name: true, officialName: true, role: true },
+        }),
+        prisma.principalSignatureReuseAuthorization.findMany({
+          where: { schoolAccountId: current.user.schoolAccountId },
+          select: { userId: true },
+        }),
+      ])
+    : [[], []];
   const signatureKind =
     current.user.role === "PRINCIPAL"
       ? "principal"
@@ -101,6 +114,13 @@ export async function GET() {
         profile?.principalSignatureRequestedAt?.toISOString() || "",
       principalSignatureSignedAt:
         profile?.principalSignatureSignedAt?.toISOString() || "",
+      principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      principalSignatureReuseUserIds: selectedSignatureStaff.map((item) => item.userId),
+      principalSignatureReuseStaff: eligibleSignatureStaff.map((item) => ({
+        id: item.id,
+        name: item.officialName || item.name,
+        role: item.role,
+      })),
       activityLeaderName: profile?.activityLeaderName || "",
       activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
       activityLeaderSignedAt:
@@ -197,6 +217,8 @@ export async function PATCH(request: Request) {
       district,
       stage,
       logoUrl,
+      principalSignatureReusePolicy,
+      principalSignatureReuseUserIds,
     } = payloadResult.data;
 
     await prisma.$transaction(async (tx) => {
@@ -415,6 +437,37 @@ export async function PATCH(request: Request) {
           logoUrl,
         },
       });
+
+      if (authenticatedUser.role === "PRINCIPAL") {
+        const requestedIds = principalSignatureReusePolicy === "SELECTED_STAFF"
+          ? Array.from(new Set(principalSignatureReuseUserIds))
+          : [];
+        const eligibleUsers = requestedIds.length
+          ? await tx.user.findMany({
+              where: {
+                id: { in: requestedIds },
+                schoolAccountId: authenticatedUser.schoolAccountId,
+                role: { in: [...LINKABLE_SCHOOL_MEMBER_ROLES] },
+              },
+              select: { id: true },
+            })
+          : [];
+        if (eligibleUsers.length !== requestedIds.length) {
+          throw new Error("INVALID_PRINCIPAL_SIGNATURE_STAFF_SELECTION");
+        }
+        await tx.principalSignatureReuseAuthorization.deleteMany({
+          where: { schoolAccountId: authenticatedUser.schoolAccountId },
+        });
+        if (requestedIds.length) {
+          await tx.principalSignatureReuseAuthorization.createMany({
+            data: requestedIds.map((userId) => ({
+              schoolAccountId: authenticatedUser.schoolAccountId as string,
+              userId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
 
       if (authenticatedUser.role === "PRINCIPAL" && matchingSchools.length > 0) {
         await tx.user.updateMany({

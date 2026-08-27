@@ -77,8 +77,8 @@ export function PageBlocks({
   );
 
   return (
-    <main className={`relative flex flex-col ${className}`}>
-      <div className="flex min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
+    <main className={`relative flex h-full min-h-full flex-col ${className}`}>
+      <div className="flex h-full min-h-[inherit] flex-1 flex-col gap-[var(--report-block-gap,1rem)]">
         {flowBlocks.map((block: any) => (
           <div
             key={block.id}
@@ -655,6 +655,7 @@ function DesignBlock({
           {signatures.map((signature: any) => (
             <div
               key={signature.key}
+              data-report-signature-role={signature.key}
               className={[
                 "text-center",
                 signatures.length >= 3

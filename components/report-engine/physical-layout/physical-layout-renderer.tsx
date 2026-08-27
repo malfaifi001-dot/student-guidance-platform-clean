@@ -176,6 +176,7 @@ export function PhysicalLayoutRenderer({
   return (
     <div
       data-physical-layout-renderer="true"
+      data-report-export-document="true"
       data-physical-layout-frozen="true"
       data-physical-layout-pages={
         plan.pages.length

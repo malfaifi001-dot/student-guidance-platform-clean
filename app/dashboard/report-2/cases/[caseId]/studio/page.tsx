@@ -4,8 +4,9 @@ import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
-import { applyExternalPrincipalSignature } from "@/lib/report-signatures/report-two-signature";
+import { reconcilePrincipalSignaturePayload } from "@/lib/report-signatures/report-two-signature";
 import { getReportSignatureStatus } from "@/lib/report-signatures/report-signature-service";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
 import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
@@ -157,13 +158,19 @@ export default async function ReportTwoCaseStudioPage({
 
   const isSchoolManager = current.user.role === "PRINCIPAL";
 
-  const [schoolProfile, signatureRequest] = await Promise.all([
+  const [schoolProfile, signatureRequest, signedSignatureRequest, selectedStaffAuthorization] = await Promise.all([
     prisma.schoolProfile.findUnique({
       where: {
         schoolAccountId:
           activeReport?.schoolAccountId || current.user.schoolAccountId || "__missing__",
       },
-      select: { principalName: true, principalPhone: true },
+      select: {
+        principalName: true,
+        principalPhone: true,
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureReusePolicy: true,
+      },
     }),
     !isSchoolManager && activeReport
       ? prisma.reportSignatureRequest.findFirst({
@@ -171,15 +178,46 @@ export default async function ReportTwoCaseStudioPage({
           orderBy: { createdAt: "desc" },
         })
       : null,
+    activeReport
+      ? prisma.reportSignatureRequest.findFirst({
+          where: {
+            reportTwoActiveId: activeReport.id,
+            status: "SIGNED",
+            signedAt: { not: null },
+            signatureUrl: { not: null },
+          },
+          orderBy: { signedAt: "desc" },
+        })
+      : null,
+    result.reportOwner.schoolAccountId
+      ? prisma.principalSignatureReuseAuthorization.findUnique({
+          where: {
+            schoolAccountId_userId: {
+              schoolAccountId: result.reportOwner.schoolAccountId,
+              userId: result.reportOwner.id,
+            },
+          },
+          select: { id: true },
+        })
+      : null,
   ]);
   const effectiveRequestStatus = signatureRequest
     ? getReportSignatureStatus(signatureRequest)
     : undefined;
-  const previewPayload = applyExternalPrincipalSignature(
+  const effectivePrincipalSignature = resolvePrincipalSignatureForReport({
+    schoolIdentity: schoolProfile,
+    signLink: signedSignatureRequest,
+    principalDashboard: activeReport,
+    reusePolicy: schoolProfile?.principalSignatureReusePolicy,
+    reportOwner: result.reportOwner,
+    selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+  });
+  // The fresh builder is the canonical base. Reconcile the complete
+  // principal-signature state so policy changes cannot leave a stale image in
+  // an older active payload.
+  const previewPayload = reconcilePrincipalSignaturePayload(
     result.payload,
-    !isSchoolManager && effectiveRequestStatus === "SIGNED"
-      ? signatureRequest?.signatureUrl
-      : null,
+    effectivePrincipalSignature,
   );
 
   return (

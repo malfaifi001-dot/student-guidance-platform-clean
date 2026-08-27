@@ -26,6 +26,7 @@ import {
 } from "@/lib/workflow-values/workflow-display-value";
 import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
 import { shouldIncludeReportNarrative } from "@/lib/report-engine/report-narrative-policy";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
 
 type CurrentUserLike = {
   user: {
@@ -44,6 +45,10 @@ type CurrentUserLike = {
         schoolName?: string | null;
         principalName?: string | null;
         principalSignatureUrl?: string | null;
+        principalSignatureReusePolicy?:
+          | "ALL_STAFF"
+          | "SELECTED_STAFF"
+          | "MANUAL_ONLY";
         activityLeaderName?: string | null;
         activityLeaderSignatureUrl?: string | null;
         counselorSignatureUrl?: string | null;
@@ -63,6 +68,11 @@ type BuildSmartReportPayloadResult =
       payload: SmartReportPayload;
       serviceSlug: string;
       caseEntryId: string;
+      reportOwner: {
+        id: string;
+        schoolAccountId: string | null;
+        role: string | null;
+      };
     }
   | {
       ok: false;
@@ -1036,6 +1046,7 @@ function buildSignatures(
   caseEntry: any,
   current: CurrentUserLike,
   languageMode: ReportLanguageMode,
+  effectivePrincipalSignatureUrl: string | null,
 ): SmartReportSignature[] {
   const profile = resolveSchoolProfileForReport(caseEntry, current);
   const serviceSlug = caseEntry.service?.slug || "";
@@ -1059,7 +1070,7 @@ function buildSignatures(
           current.user.officialName ||
           current.user.name,
         signerTitle: managerLabel,
-        imageUrl: profile?.principalSignatureUrl || null,
+        imageUrl: effectivePrincipalSignatureUrl,
         required: false,
       },
     ];
@@ -1072,7 +1083,11 @@ function buildSignatures(
     label: transformTitle("مدير المدرسة"),
     signerName: profile?.principalName || "مدير المدرسة",
     signerTitle: transformTitle("مدير المدرسة"),
-    imageUrl: profile?.principalSignatureUrl || null,
+    // The effective school-identity signature is part of the semantic report
+    // payload. The resolver remains the authority for other report-specific
+    // signature sources; this builder preserves the approved school identity
+    // signature in the same principal slot when it is available.
+    imageUrl: effectivePrincipalSignatureUrl,
     required: false,
   });
 
@@ -1346,6 +1361,53 @@ export async function buildSmartReportPayloadForCase({
   const serviceName = caseEntry.service?.name || "خدمة";
   const reportType = buildReportType(serviceSlug);
   const profile = resolveSchoolProfileForReport(caseEntry, current);
+  const [selectedStaffAuthorization, reportTwoActive] = await Promise.all([
+    caseEntry.schoolAccountId && caseEntry.createdById
+      ? prisma.principalSignatureReuseAuthorization.findUnique({
+          where: {
+            schoolAccountId_userId: {
+              schoolAccountId: caseEntry.schoolAccountId,
+              userId: caseEntry.createdById,
+            },
+          },
+          select: { id: true },
+        })
+      : null,
+    prisma.reportTwoActive.findUnique({
+      where: { caseEntryId: caseEntry.id },
+      select: {
+        principalSignatureUrl: true,
+        principalSignatureSignedAt: true,
+        principalSignatureSignedById: true,
+        signatureRequests: {
+          where: {
+            status: "SIGNED",
+            signedAt: { not: null },
+            signatureUrl: { not: null },
+          },
+          orderBy: { signedAt: "desc" },
+          take: 1,
+          select: { status: true, signedAt: true, signatureUrl: true },
+        },
+      },
+    }),
+  ]);
+  const effectivePrincipalSignature = resolvePrincipalSignatureForReport({
+    schoolIdentity: {
+      schoolAccountId: caseEntry.schoolAccountId || current.user.schoolAccountId || null,
+      principalSignatureUrl: profile?.principalSignatureUrl,
+      principalSignatureSignedAt: profile?.principalSignatureSignedAt || null,
+    },
+    signLink: reportTwoActive?.signatureRequests[0] || null,
+    principalDashboard: reportTwoActive,
+    reusePolicy: profile?.principalSignatureReusePolicy,
+    reportOwner: {
+      id: caseEntry.createdById || current.user.id,
+      schoolAccountId: caseEntry.schoolAccountId || current.user.schoolAccountId || null,
+      role: caseEntry.createdBy?.role || current.user.role,
+    },
+    selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
+  });
 
   const executionDateField = findByIntent(values, [
     "execution date",
@@ -1470,15 +1532,15 @@ export async function buildSmartReportPayloadForCase({
       counselorName: current.user.officialName || current.user.name || "",
       counselorSignatureUrl: profile?.counselorSignatureUrl || "",
       principalName: profile?.principalName || "",
-      principalSignatureUrl: profile?.principalSignatureUrl || "",
+      principalSignatureUrl: effectivePrincipalSignature.signatureUrl || "",
       activityLeaderName: profile?.activityLeaderName || "",
       activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
       schoolLeaderName: profile?.principalName || "",
-      schoolLeaderSignatureUrl: profile?.principalSignatureUrl || "",
+      schoolLeaderSignatureUrl: effectivePrincipalSignature.signatureUrl || "",
       userName: current.user.officialName || current.user.name || "",
       userSignatureUrl:
         current.user.role === "PRINCIPAL"
-          ? profile?.principalSignatureUrl || ""
+          ? effectivePrincipalSignature.signatureUrl || ""
           : current.user.role === "TEACHER"
           ? current.user.signatureUrl || ""
           : profile?.counselorSignatureUrl ||
@@ -1547,7 +1609,7 @@ export async function buildSmartReportPayloadForCase({
       layout: "GRID_2X2",
       items: evidence,
     },
-    signatures: buildSignatures(caseEntry, current, languageMode),
+    signatures: buildSignatures(caseEntry, current, languageMode, effectivePrincipalSignature.signatureUrl),
     readiness: {
       status: missingItems.length ? "NEEDS_REVIEW" : "READY",
       percentage,
@@ -1561,5 +1623,10 @@ export async function buildSmartReportPayloadForCase({
     payload,
     serviceSlug,
     caseEntryId: caseEntry.id,
+    reportOwner: {
+      id: caseEntry.createdById || current.user.id,
+      schoolAccountId: caseEntry.schoolAccountId || current.user.schoolAccountId || null,
+      role: caseEntry.createdBy?.role || current.user.role || null,
+    },
   };
 }

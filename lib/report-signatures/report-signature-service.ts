@@ -9,6 +9,7 @@ import {
   writeSchoolSignatureFile,
 } from "@/lib/settings/school-signature-file-storage";
 import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
 
 export const REPORT_SIGNATURE_TTL_DAYS = 30;
 
@@ -135,6 +136,7 @@ export async function signReportSignatureRequest(input: {
     select: {
       id: true,
       schoolAccountId: true,
+      reportTwoActiveId: true,
       principalName: true,
       status: true,
       expiresAt: true,
@@ -147,6 +149,60 @@ export async function signReportSignatureRequest(input: {
   const status = await expireReportSignatureRequestIfNeeded(request);
   if (status !== ReportSignatureRequestStatus.PENDING) {
     return { ok: false as const, code: status as string };
+  }
+
+  if (request.reportTwoActiveId) {
+    const [schoolProfile, report] = await Promise.all([
+      prisma.schoolProfile.findUnique({
+        where: { schoolAccountId: request.schoolAccountId },
+        select: {
+          principalSignatureUrl: true,
+          principalSignatureSignedAt: true,
+          principalSignatureReusePolicy: true,
+        },
+      }),
+      prisma.reportTwoActive.findFirst({
+        where: {
+          id: request.reportTwoActiveId,
+          schoolAccountId: request.schoolAccountId,
+        },
+        select: {
+          caseEntryId: true,
+          principalSignatureUrl: true,
+          principalSignatureSignedAt: true,
+          principalSignatureSignedById: true,
+        },
+      }),
+    ]);
+    const owner = report?.caseEntryId
+      ? await prisma.caseEntry.findUnique({
+          where: { id: report.caseEntryId },
+          select: { createdById: true, schoolAccountId: true, createdBy: { select: { role: true } } },
+        })
+      : null;
+    const selectedStaffAuthorized = owner?.createdById
+      ? Boolean(await prisma.principalSignatureReuseAuthorization.findUnique({
+          where: {
+            schoolAccountId_userId: {
+              schoolAccountId: request.schoolAccountId,
+              userId: owner.createdById,
+            },
+          },
+          select: { id: true },
+        }))
+      : false;
+    const effective = resolvePrincipalSignatureForReport({
+      schoolIdentity: schoolProfile,
+      principalDashboard: report,
+      reusePolicy: schoolProfile?.principalSignatureReusePolicy,
+      reportOwner: owner?.createdById && owner.createdBy
+        ? { id: owner.createdById, schoolAccountId: owner.schoolAccountId, role: owner.createdBy.role }
+        : null,
+      selectedStaffAuthorized,
+    });
+    if (effective.status === "SIGNED") {
+      return { ok: false as const, code: "SIGNED" as const };
+    }
   }
 
   const signature = await processSignatureDataUrl(input.dataUrl);

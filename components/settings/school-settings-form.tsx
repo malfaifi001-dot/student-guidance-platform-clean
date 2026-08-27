@@ -50,6 +50,9 @@ type SchoolSettingsFormState = {
   principalSignatureUrl: string;
   principalSignatureRequestedAt: string;
   principalSignatureSignedAt: string;
+  principalSignatureReusePolicy: "ALL_STAFF" | "SELECTED_STAFF" | "MANUAL_ONLY";
+  principalSignatureReuseUserIds: string[];
+  principalSignatureReuseStaff: Array<{ id: string; name: string; role: string }>;
   activityLeaderName: string;
   activityLeaderSignatureUrl: string;
   activityLeaderSignedAt: string;
@@ -82,6 +85,9 @@ function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | nu
     principalSignatureUrl: data?.principalSignatureUrl || "",
     principalSignatureRequestedAt: data?.principalSignatureRequestedAt || "",
     principalSignatureSignedAt: data?.principalSignatureSignedAt || "",
+    principalSignatureReusePolicy: data?.principalSignatureReusePolicy || "MANUAL_ONLY",
+    principalSignatureReuseUserIds: data?.principalSignatureReuseUserIds || [],
+    principalSignatureReuseStaff: data?.principalSignatureReuseStaff || [],
     activityLeaderName: data?.activityLeaderName || "",
     activityLeaderSignatureUrl: data?.activityLeaderSignatureUrl || "",
     activityLeaderSignedAt: data?.activityLeaderSignedAt || "",
@@ -116,6 +122,9 @@ const EMPTY_FORM: SchoolSettingsFormState = {
   principalSignatureUrl: "",
   principalSignatureRequestedAt: "",
   principalSignatureSignedAt: "",
+  principalSignatureReusePolicy: "MANUAL_ONLY",
+  principalSignatureReuseUserIds: [],
+  principalSignatureReuseStaff: [],
   activityLeaderName: "",
   activityLeaderSignatureUrl: "",
   activityLeaderSignedAt: "",
@@ -157,6 +166,8 @@ export function SchoolSettingsForm() {
       whatsappUrl: string;
       messageText: string;
     }>(null);
+  const [deletePrincipalSignatureConfirmationOpen, setDeletePrincipalSignatureConfirmationOpen] = useState(false);
+  const [deletingPrincipalSignature, setDeletingPrincipalSignature] = useState(false);
   const [principalWhatsAppLink, setPrincipalWhatsAppLink] = useState("");
   const identityCopy = getArabicUserRoleIdentityCopy({
     role: form.currentUserRole,
@@ -454,6 +465,51 @@ export function SchoolSettingsForm() {
     }
   }
 
+  async function deletePrincipalSignature() {
+    if (deletingPrincipalSignature) return;
+
+    setDeletingPrincipalSignature(true);
+    try {
+      const response = await fetch("/api/dashboard/settings/school/signature", {
+        method: "DELETE",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "تعذر حذف توقيع مدير المدرسة.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        currentUserSignatureUrl: "",
+        currentUserSignedAt: "",
+        principalSignatureUrl: "",
+        principalSignatureSignedAt: "",
+        principalSignatureRequestedAt: "",
+      }));
+      setInitialForm((current) => ({
+        ...current,
+        currentUserSignatureUrl: "",
+        currentUserSignedAt: "",
+        principalSignatureUrl: "",
+        principalSignatureSignedAt: "",
+        principalSignatureRequestedAt: "",
+      }));
+      setDeletePrincipalSignatureConfirmationOpen(false);
+      setFeedback({
+        type: "success",
+        message: "تم حذف توقيع مدير المدرسة المحفوظ من هوية المدرسة. التواقيع السابقة داخل التقارير واللقطات لم تتغير.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "تعذر حذف توقيع مدير المدرسة.",
+      });
+    } finally {
+      setDeletingPrincipalSignature(false);
+    }
+  }
+
   async function sendPrincipalSignatureRequest(phoneOverride?: string) {
     setFeedback(null);
     const principalPhone = String(phoneOverride ?? form.principalPhone).trim();
@@ -592,7 +648,30 @@ ${signatureUrl}`;
             setSchoolSignaturePadOpen(form.currentUserSignatureKind);
           }
         }}
+        deletingPrincipalSignature={deletingPrincipalSignature}
+        onRequestDeletePrincipalSignature={() => setDeletePrincipalSignatureConfirmationOpen(true)}
+        onChangePrincipalReusePolicy={(policy) => update("principalSignatureReusePolicy", policy)}
+        onTogglePrincipalReuseStaff={(userId) => setForm((current) => ({
+          ...current,
+          principalSignatureReuseUserIds: current.principalSignatureReuseUserIds.includes(userId)
+            ? current.principalSignatureReuseUserIds.filter((id) => id !== userId)
+            : [...current.principalSignatureReuseUserIds, userId],
+        }))}
         onRefresh={reloadSchoolSettingsFromApi}
+      />
+
+      <SmartFeedbackModal
+        open={deletePrincipalSignatureConfirmationOpen}
+        type="warning"
+        title="حذف التوقيع الحالي؟"
+        description="سيؤدي هذا إلى إزالة توقيع مدير المدرسة المحفوظ من هوية المدرسة وإيقاف استخدامه تلقائيًا في التقارير الجديدة. لن يتم حذف التواقيع الموجودة مسبقًا داخل التقارير أو اللقطات المحفوظة."
+        primaryActionLabel={deletingPrincipalSignature ? "جارٍ الحذف..." : "تأكيد حذف التوقيع"}
+        secondaryActionLabel="إلغاء"
+        onPrimaryAction={() => {
+          void deletePrincipalSignature();
+        }}
+        onSecondaryAction={() => setDeletePrincipalSignatureConfirmationOpen(false)}
+        onOpenChange={setDeletePrincipalSignatureConfirmationOpen}
       />
 
       {principalPhoneModalOpen ? (
@@ -829,6 +908,10 @@ function SchoolSignaturesCard({
   principalWhatsAppLink,
   onSendPrincipalSignatureRequest,
   onOpenCurrentUserSignature,
+  deletingPrincipalSignature,
+  onRequestDeletePrincipalSignature,
+  onChangePrincipalReusePolicy,
+  onTogglePrincipalReuseStaff,
   onRefresh,
 }: {
   form: SchoolSettingsFormState;
@@ -838,6 +921,10 @@ function SchoolSignaturesCard({
   principalWhatsAppLink: string;
   onSendPrincipalSignatureRequest: () => void;
   onOpenCurrentUserSignature: () => void;
+  deletingPrincipalSignature: boolean;
+  onRequestDeletePrincipalSignature: () => void;
+  onChangePrincipalReusePolicy: (policy: SchoolSettingsFormState["principalSignatureReusePolicy"]) => void;
+  onTogglePrincipalReuseStaff: (userId: string) => void;
   onRefresh: () => void;
 }) {
   const isSchoolManager =
@@ -884,6 +971,35 @@ function SchoolSignaturesCard({
       </div>
 
       <div className={`mt-6 grid gap-4 ${isSchoolManager ? "max-w-xl" : "lg:grid-cols-2"}`}>
+        {isSchoolManager ? (
+          <article className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50/60 p-5 sm:col-span-2">
+            <h3 className="text-lg font-black text-slate-950">سياسة استخدام توقيع مدير المدرسة</h3>
+            <p className="mt-1 text-xs font-bold leading-6 text-slate-600">ربط المنسوب بالمدرسة يوفّر هوية المدرسة واسم المدير فقط، ولا يمنحه صلاحية استخدام التوقيع تلقائيًا.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {([
+                ["ALL_STAFF", "جميع المنسوبين"],
+                ["SELECTED_STAFF", "منسوبون محددون"],
+                ["MANUAL_ONLY", "توقيع يدوي فقط"],
+              ] as const).map(([value, label]) => (
+                <label key={value} className="flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-3 text-sm font-black text-slate-700">
+                  <input type="radio" name="principalSignatureReusePolicy" value={value} checked={form.principalSignatureReusePolicy === value} onChange={() => onChangePrincipalReusePolicy(value)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            {form.principalSignatureReusePolicy === "SELECTED_STAFF" ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {form.principalSignatureReuseStaff.length ? form.principalSignatureReuseStaff.map((member) => (
+                  <label key={member.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700">
+                    <input type="checkbox" checked={form.principalSignatureReuseUserIds.includes(member.id)} onChange={() => onTogglePrincipalReuseStaff(member.id)} />
+                    <span>{member.name}</span>
+                  </label>
+                )) : <p className="text-xs font-bold text-slate-500">لا يوجد منسوبون مؤهلون حاليًا.</p>}
+              </div>
+            ) : null}
+          </article>
+        ) : null}
+
         <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -938,6 +1054,17 @@ function SchoolSignaturesCard({
                   ? "تحديث التوقيع"
                   : "إضافة توقيع"}
           </button>
+
+          {isSchoolManager && form.currentUserSignatureUrl ? (
+            <button
+              type="button"
+              onClick={onRequestDeletePrincipalSignature}
+              disabled={Boolean(signatureSavingKind) || deletingPrincipalSignature}
+              className="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deletingPrincipalSignature ? "جارٍ حذف التوقيع..." : "حذف التوقيع الحالي"}
+            </button>
+          ) : null}
         </article>
 
         {!isSchoolManager ? <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
