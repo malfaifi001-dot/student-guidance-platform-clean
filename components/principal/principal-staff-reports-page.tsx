@@ -141,6 +141,8 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
                 </button>
                 {report.principalSignatureSigned || signedReportKeys.has(`${report.source}:${report.id}`) ? (
                   <span className="inline-flex min-h-10 items-center rounded-xl bg-emerald-50 px-3 text-xs font-black text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">✓ موقّع مسبقًا</span>
+                ) : report.principalSignatureRequestStatus === "PENDING" ? (
+                  <span className="inline-flex min-h-10 items-center rounded-xl bg-amber-50 px-3 text-xs font-black text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">بانتظار توقيع المدير</span>
                 ) : report.status === "APPROVED" || report.status === "ARCHIVED" ? (
                   <button type="button" onClick={() => setSignReport(report)} className="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 px-3 text-xs font-black text-emerald-700 transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
                     توقيع المدير

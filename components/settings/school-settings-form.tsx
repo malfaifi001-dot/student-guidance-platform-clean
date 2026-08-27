@@ -16,6 +16,7 @@ import {
 import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { SignatureImage } from "@/components/signatures/signature-image";
+import { SignaturePad, type SignaturePadHandle } from "@/components/signatures/signature-pad";
 import {
   SAUDI_CITIES,
   SAUDI_CITY_OTHER_OPTION,
@@ -1363,6 +1364,7 @@ function SchoolSignaturePadModal({
   onClose: () => void;
   onSave: (dataUrl: string) => void;
 }) {
+  const signaturePadRef = useRef<SignaturePadHandle | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const hasSignatureRef = useRef(false);
@@ -1453,6 +1455,9 @@ function SchoolSignaturePadModal({
   }
 
   function clearSignature() {
+    signaturePadRef.current?.clear();
+    return;
+    /*
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
 
@@ -1464,6 +1469,7 @@ function SchoolSignaturePadModal({
 
     hasSignatureRef.current = false;
     setDraftSignature("");
+    */
   }
 
   useEffect(() => {
@@ -1498,13 +1504,10 @@ function SchoolSignaturePadModal({
         </div>
 
         <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-300 bg-white shadow-inner">
-          <canvas
-            ref={canvasRef}
-            className="block h-[220px] w-full touch-none bg-white"
-            onPointerDown={startDrawing}
-            onPointerMove={draw}
-            onPointerUp={stopDrawing}
-            onPointerCancel={stopDrawing}
+          <SignaturePad
+            ref={signaturePadRef}
+            disabled={saving}
+            onChange={setDraftSignature}
           />
         </div>
 

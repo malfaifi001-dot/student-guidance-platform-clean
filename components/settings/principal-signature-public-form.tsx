@@ -2,6 +2,7 @@
 
 import type { PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SignaturePad, type SignaturePadHandle } from "@/components/signatures/signature-pad";
 
 type SignaturePageData = {
   schoolName: string;
@@ -26,6 +27,7 @@ function formatDate(value: string) {
 }
 
 export function PrincipalSignaturePublicForm({ token }: { token: string }) {
+  const signaturePadRef = useRef<SignaturePadHandle | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const hasSignatureRef = useRef(false);
@@ -158,6 +160,9 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
   }
 
   function clearSignature() {
+    signaturePadRef.current?.clear();
+    return;
+    /*
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
 
@@ -169,6 +174,7 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
 
     hasSignatureRef.current = false;
     setDraftSignature("");
+    */
   }
 
   async function saveSignature() {
@@ -324,13 +330,11 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
                 </p>
 
                 <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-300 bg-white shadow-inner">
-                  <canvas
-                    ref={canvasRef}
-                    className="block h-[230px] w-full touch-none bg-white"
-                    onPointerDown={startDrawing}
-                    onPointerMove={draw}
-                    onPointerUp={stopDrawing}
-                    onPointerCancel={stopDrawing}
+                  <SignaturePad
+                    ref={signaturePadRef}
+                    height={230}
+                    disabled={saving}
+                    onChange={setDraftSignature}
                   />
                 </div>
 

@@ -1,8 +1,12 @@
 "use client";
 
-import type { PointerEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  SignaturePad,
+  type SignaturePadHandle,
+} from "@/components/signatures/signature-pad";
 
 type RequestStatus = "PENDING" | "SIGNED" | "EXPIRED" | "CANCELED";
 
@@ -31,9 +35,7 @@ export function PublicReportSignatureForm({
 }) {
   const activityMode = mode === "activity-team";
   const router = useRouter();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawingRef = useRef(false);
-  const hasSignatureRef = useRef(false);
+  const signaturePadRef = useRef<SignaturePadHandle | null>(null);
   const [signature, setSignature] = useState("");
   const [consentToReuse, setConsentToReuse] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -44,68 +46,9 @@ export function PublicReportSignatureForm({
   const [activityOptions, setActivityOptions] = useState(supervisorOptions);
   const [activitySuccess, setActivitySuccess] = useState("");
 
-  useEffect(() => {
-    if (status !== "PENDING" || !showSignature) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const prepare = () => {
-      const rect = canvas.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.max(320, Math.floor(rect.width * ratio));
-      canvas.height = Math.floor(220 * ratio);
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.lineWidth = 3;
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.strokeStyle = "#0f172a";
-    };
-    prepare();
-    window.addEventListener("resize", prepare);
-    return () => window.removeEventListener("resize", prepare);
-  }, [showSignature, status]);
-
-  function point(event: PointerEvent<HTMLCanvasElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-  }
-
-  function start(event: PointerEvent<HTMLCanvasElement>) {
-    if (saving) return;
-    const context = event.currentTarget.getContext("2d");
-    if (!context) return;
-    drawingRef.current = true;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const current = point(event);
-    context.beginPath();
-    context.moveTo(current.x, current.y);
-  }
-
-  function draw(event: PointerEvent<HTMLCanvasElement>) {
-    if (!drawingRef.current || saving) return;
-    const context = event.currentTarget.getContext("2d");
-    if (!context) return;
-    const current = point(event);
-    context.lineTo(current.x, current.y);
-    context.stroke();
-    hasSignatureRef.current = true;
-  }
-
-  function stop(event: PointerEvent<HTMLCanvasElement>) {
-    if (!drawingRef.current) return;
-    drawingRef.current = false;
-    try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
-    if (hasSignatureRef.current) setSignature(event.currentTarget.toDataURL("image/png"));
-  }
-
   function clear() {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context || saving) return;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    hasSignatureRef.current = false;
-    setSignature("");
+    if (saving) return;
+    signaturePadRef.current?.clear();
   }
 
   async function confirm() {
@@ -191,19 +134,26 @@ export function PublicReportSignatureForm({
             <h2 className="text-xl font-black text-slate-950">{activityMode ? "إضافة توقيع المشرف" : "إضافة توقيع المدير"}</h2>
             <p className="mt-2 text-sm font-bold text-slate-500">وقّع داخل المساحة البيضاء ثم أكد التوقيع.</p>
             <div className="mt-4 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-inner">
-              <canvas ref={canvasRef} className="block h-[220px] w-full touch-none" onPointerDown={start} onPointerMove={draw} onPointerUp={stop} onPointerCancel={stop} />
+              <SignaturePad
+                ref={signaturePadRef}
+                disabled={saving}
+                onChange={setSignature}
+              />
             </div>
-            {!activityMode && signature ? (
-              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold leading-7 text-slate-700">
-                <input type="checkbox" checked={consentToReuse} onChange={(event) => setConsentToReuse(event.target.checked)} className="mt-1 h-5 w-5" />
-                <span>أوافق على حفظ توقيعي والسماح باستخدامه في التقارير المستقبلية لهذه المدرسة/المستخدم: {requesterDisplayName}.</span>
-              </label>
-            ) : null}
             {error ? <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p> : null}
             <div className="mt-5 flex flex-wrap gap-2">
               <button type="button" onClick={clear} disabled={saving} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 disabled:opacity-50">مسح التوقيع</button>
               <button type="button" onClick={() => void confirm()} disabled={!signature || saving} className="rounded-2xl bg-blue-700 px-6 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">{saving ? "جاري حفظ التوقيع..." : "تأكيد التوقيع"}</button>
             </div>
+          </section>
+        ) : null}
+
+        {!activityMode && signature ? (
+          <section className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-sm sm:p-7">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold leading-7 text-slate-700">
+              <input type="checkbox" checked={consentToReuse} onChange={(event) => setConsentToReuse(event.target.checked)} className="mt-1 h-5 w-5" />
+              <span>أوافق على حفظ توقيعي والسماح باستخدامه في التقارير المستقبلية لهذه المدرسة/المستخدم: {requesterDisplayName}.</span>
+            </label>
           </section>
         ) : null}
       </div>
