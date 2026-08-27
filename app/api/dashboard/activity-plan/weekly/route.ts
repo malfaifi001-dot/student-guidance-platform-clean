@@ -40,6 +40,6 @@ export async function POST(request: Request) {
     const plan = await saveWeeklyActivityPlan({ schoolAccountId: auth.current.user.schoolAccountId as string, createdById: auth.current.user.id, stage, weekNumber, periodCount, items: body?.items });
     return NextResponse.json({ success: true, plan });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "تعذر حفظ الخطة الأسبوعية." }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "تعذر حفظ الخطة الفصلية." }, { status: 400 });
   }
 }

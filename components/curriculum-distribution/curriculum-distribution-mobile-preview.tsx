@@ -163,7 +163,7 @@ export function CurriculumDistributionMobilePreview({
   }
 
   function startDrag(event: TouchEvent<HTMLDivElement>) {
-    if (event.touches.length !== 1 || pinchRef.current) return;
+    if (event.touches.length !== 1 || pinchRef.current || scale <= fitScale + 0.01) return;
     const touch = event.touches[0];
     dragRef.current = {
       startX: touch.clientX,
@@ -214,7 +214,10 @@ export function CurriculumDistributionMobilePreview({
   }
 
   function endPinch(event: TouchEvent<HTMLDivElement>) {
-    if (event.touches.length < 2) pinchRef.current = null;
+    if (event.touches.length < 2) {
+      pinchRef.current = null;
+      if (event.touches.length === 1 && scale > fitScale + 0.01) startDrag(event);
+    }
     if (event.touches.length === 0) dragRef.current = null;
   }
 
@@ -249,6 +252,7 @@ export function CurriculumDistributionMobilePreview({
       dir="rtl"
       onClick={onClose}
     >
+      <style>{`@media (hover: none) and (pointer: coarse) { .curriculum-preview-gesture-frame iframe { pointer-events: none !important; } }`}</style>
       <section
         className="flex h-[80dvh] max-h-[80dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
@@ -281,7 +285,7 @@ export function CurriculumDistributionMobilePreview({
 
         <div
           ref={frameRef}
-          className="relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3"
+          className="curriculum-preview-gesture-frame relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3"
           onTouchStart={(event) => {
             startPinch(event);
             startDrag(event);

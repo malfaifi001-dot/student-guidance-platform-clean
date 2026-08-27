@@ -1,4 +1,5 @@
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
 import type { PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
 import { activityPlanTableRows, activityTeamTableRows, PortfolioStructuredTable } from "@/components/portfolio/print/shared/portfolio-structured-table";
 import { WeeklyActivityPlanMatrix } from "@/components/activity-plan/weekly-activity-plan-print-document";
@@ -16,14 +17,26 @@ const activityPlanColumns = [
   { key: "supervisor", label: "المشرف", width: "9%" },
 ];
 
+function getWeeklyPlanStats(weeks: WeeklyActivityPlan[]) {
+  const activeDomains = new Set(weeks.flatMap((week) => week.items.filter((item) => item.programs.length > 0).map((item) => item.domainServiceSlug)));
+  return {
+    activities: weeks.reduce((total, week) => total + week.items.reduce((count, item) => count + item.programs.length, 0), 0),
+    domains: activeDomains.size,
+    periods: weeks.reduce((total, week) => total + (typeof week.periodCount === "number" && Number.isFinite(week.periodCount) ? week.periodCount : 0), 0),
+  };
+}
+
 export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: PortfolioServiceOutputChunk; design: ActivityLeaderPortfolioDesign }) {
   const prefix = `portfolio-${design}`;
 
   if (chunk.kind === "weekly-activity-plan") {
+    const stats = getWeeklyPlanStats(chunk.weeks);
     return (
       <div className={`${prefix}-activity-output-body weekly-activity-plan-achievement-output`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="weekly-activity-plan">
         <style>{`.weekly-activity-plan-achievement-output{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.weekly-activity-plan-achievement-output .weekly-plan-bands{gap:3px!important}.weekly-activity-plan-achievement-output table{font-size:7px!important}.weekly-activity-plan-achievement-output th,.weekly-activity-plan-achievement-output td{padding:2px!important}.weekly-activity-plan-achievement-output .weekly-plan-band{break-inside:avoid;page-break-inside:avoid}.weekly-activity-plan-achievement-output .weekly-plan-band+ .weekly-plan-band{margin-top:3px}`}</style>
-        <h3 className={`${prefix}-activity-plan-stage-heading`}>{chunk.stage} · الخطة الأسبوعية للنشاط الطلابي</h3>
+        <style>{`.${prefix}-activity-plan-stats{display:flex;flex-wrap:wrap;gap:2mm;margin:0 0 2mm;font-size:9px;line-height:1.4}.${prefix}-activity-plan-stats b{padding:1.5mm 2mm;border:1px solid #c9a77e;border-radius:1.5mm;color:#604a35;background:#fffaf4}.${prefix}-activity-plan-stats strong{margin-inline-start:1mm;font-size:11px}`}</style>
+        <h3 className={`${prefix}-activity-plan-stage-heading`}>{chunk.stage} · الخطة الفصلية للنشاط الطلابي</h3>
+        <div className={`${prefix}-activity-plan-stats`}><b>الأنشطة المخططة <strong>{stats.activities}</strong></b><b>المجالات المفعّلة <strong>{stats.domains}</strong></b><b>إجمالي الحصص <strong>{stats.periods}</strong></b></div>
         <WeeklyActivityPlanMatrix weeks={chunk.weeks} />
       </div>
     );

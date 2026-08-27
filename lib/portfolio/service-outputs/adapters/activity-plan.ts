@@ -46,7 +46,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
 
   const rows = populatedWeeks.flatMap((week) => week.entries);
   const profile = await prisma.schoolProfile.findUnique({ where: { schoolAccountId }, select: { academicYear: true, currentSemester: true } });
-  const weeklyPlans = await Promise.all(REAL_ACTIVITY_PLAN_STAGES.map(async (stage) => ({ stage, weeks: await getWeeklyActivityPlans(schoolAccountId, stage) })));
+  const weeklyPlans = (await Promise.all(REAL_ACTIVITY_PLAN_STAGES.map(async (stage) => ({ stage, weeks: await getWeeklyActivityPlans(schoolAccountId, stage) })))).filter(({ weeks }) => weeks.some((week) => week.items.some((item) => item.programs.length > 0) || (typeof week.periodCount === "number" && Number.isFinite(week.periodCount))));
   const share = await getOrCreateActivityPlanShareToken({ schoolAccountId, createdById: ownerUserId });
   const shareUrl = share.url;
   const shareQrDataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 2, errorCorrectionLevel: "M" });

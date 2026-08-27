@@ -48,34 +48,34 @@ function PlanCell({ week, row }: { week: WeeklyActivityPlan; row: "domain" | "pr
   return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{week.items.flatMap((item) => item.programs.map((program, index) => <CellText key={`${item.domainServiceSlug}-${program.value}-${index}`}>{program.name}</CellText>))}</div>;
 }
 
-const border: React.CSSProperties = { border: "1px solid #9dadad" };
-const bodyCell: React.CSSProperties = { ...border, background: "#fff", padding: "3px 4px", textAlign: "center", verticalAlign: "middle" };
-const labelCell: React.CSSProperties = { ...border, width: 70, background: "#e5efed", color: "#31524d", padding: "4px", fontSize: 9, fontWeight: 900, textAlign: "center", verticalAlign: "middle" };
+const border: React.CSSProperties = { border: "1px solid #c7d2d0" };
+const bodyCell: React.CSSProperties = { ...border, background: "#ffffff", padding: "5px 5px", textAlign: "center", verticalAlign: "middle" };
+const labelCell: React.CSSProperties = { ...border, width: 70, background: "#f1f6f5", color: "#31524d", padding: "5px", fontSize: 9.5, fontWeight: 900, textAlign: "center", verticalAlign: "middle" };
 
 function Band({ weeks }: { weeks: WeeklyActivityPlan[] }) {
-  return <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", direction: "rtl" }}>
+  return <div className="weekly-plan-band-frame" style={{ overflow: "hidden", border: "1px solid #c7b79b", borderRadius: 14, background: "#fff" }}><table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", direction: "rtl" }}>
     <colgroup><col style={{ width: 70 }} />{weeks.map((week) => <col key={week.weekNumber} />)}</colgroup>
     <tbody>
-      <tr><th style={{ ...border, background: "#087e8b", color: "#fff", padding: 4, fontSize: 9, fontWeight: 900 }}>الأسابيع</th>{weeks.map((week) => <th key={week.weekNumber} style={{ ...border, background: "#087e8b", color: "#fff", padding: "4px 2px", fontSize: 9, lineHeight: 1.3 }}><div>الأسبوع {week.weekNumber}</div><small dir="ltr" style={{ display: "block", color: "#eaf8f7", fontSize: 7.2 }}>{dateLabel(week.dateFrom)} - {dateLabel(week.dateTo)}</small></th>)}</tr>
+      <tr><th style={{ ...border, background: "#0f766e", color: "#fff", padding: 5, fontSize: 9.5, fontWeight: 900 }}>الأسابيع</th>{weeks.map((week) => <th key={week.weekNumber} style={{ ...border, background: "#0f766e", color: "#fff", padding: "5px 3px", fontSize: 9.5, lineHeight: 1.35 }}><div>الأسبوع {week.weekNumber}</div><small dir="ltr" style={{ display: "block", color: "#d9f3ef", fontSize: 7.5, marginTop: 2 }}>{dateLabel(week.dateFrom)} - {dateLabel(week.dateTo)}</small></th>)}</tr>
       <tr><th style={labelCell}>المجال</th>{weeks.map((week) => <td key={week.weekNumber} style={bodyCell}><PlanCell week={week} row="domain" /></td>)}</tr>
       <tr><th style={labelCell}>البرنامج</th>{weeks.map((week) => <td key={week.weekNumber} style={bodyCell}><PlanCell week={week} row="program" /></td>)}</tr>
       <tr><th style={labelCell}>عدد الحصص</th>{weeks.map((week) => <td key={week.weekNumber} style={{ ...bodyCell, height: 25 }}><PlanCell week={week} row="periods" /></td>)}</tr>
     </tbody>
-  </table>;
+  </table></div>;
 }
 
 export function WeeklyActivityPlanMatrix({ weeks }: { weeks: WeeklyActivityPlan[] }) {
-  return <div className="weekly-plan-bands" style={{ display: "flex", flexDirection: "column", gap: 5 }}>{groups(weeks).map((group, index) => <div key={`band-${index}`} className="weekly-plan-band"><Band weeks={group} /></div>)}</div>;
+  return <div className="weekly-plan-bands" style={{ display: "flex", flexDirection: "column", gap: 8 }}>{groups(weeks).map((group, index) => <div key={`band-${index}`} className="weekly-plan-band"><Band weeks={group} /></div>)}</div>;
 }
 
 export function WeeklyActivityPlanPrintDocument({ weeks, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
   return <>
-    <style>{`@page { size: A4 landscape; margin: 8mm; } .weekly-activity-plan-print-page { height: auto !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; page-break-after: auto !important; break-after: auto !important; } .weekly-plan-a4 { width: 100%; min-height: 194mm; display: flex; flex-direction: column; } .weekly-plan-band { break-inside: avoid; page-break-inside: avoid; } @media print { html, body { margin: 0 !important; padding: 0 !important; } .weekly-plan-a4 { min-height: 194mm; } }`}</style>
+    <style>{`@page { size: A4 landscape; margin: 8mm; } .weekly-activity-plan-print-page { height: auto !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; page-break-after: auto !important; break-after: auto !important; } .weekly-plan-a4 { width: 100%; min-height: 194mm; display: flex; flex-direction: column; } .weekly-plan-band, .weekly-plan-band-frame { break-inside: avoid; page-break-inside: avoid; } @media print { html, body { margin: 0 !important; padding: 0 !important; } .weekly-plan-a4 { min-height: 194mm; } .weekly-plan-band-frame { box-shadow: none !important; } }`}</style>
     <main className="activity-plan-print-root" dir="rtl">
       <section className="activity-plan-print-page weekly-activity-plan-print-page" dir="rtl">
         <div className="weekly-plan-a4">
-          <CurriculumDocumentHeader title="الخطة الأسبوعية للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>الخطة الأسبوعية للنشاط الطلابي</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>المرحلة</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
+          <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>الخطة الفصلية للنشاط الطلابي</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>المرحلة</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
           <div style={{ flex: 1 }}><WeeklyActivityPlanMatrix weeks={weeks} /></div>
           <div style={{ marginTop: 5 }}><CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} /></div>
         </div>
