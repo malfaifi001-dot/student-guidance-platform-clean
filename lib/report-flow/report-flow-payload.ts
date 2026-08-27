@@ -458,6 +458,13 @@ export function applyReportFlowPreparationToPayload(
 
   return {
     ...payload,
+    // Preparation owns report fields and narrative presentation only. Keep
+    // the already-resolved semantic identity/signature state intact for the
+    // Report2 renderer and its principal signature slot.
+    identity: payload.identity ? { ...payload.identity } : payload.identity,
+    signatures: payload.signatures
+      ? payload.signatures.map((signature) => ({ ...signature }))
+      : payload.signatures,
     languageMode,
     primaryFields,
     detailFields,

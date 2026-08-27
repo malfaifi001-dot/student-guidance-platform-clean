@@ -7,6 +7,7 @@ import {
   createPrincipalSchoolSlug,
   normalizeStatisticalNumber,
 } from "@/lib/principal/principal-school-service";
+import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
 import { schoolSettingsPatchSchema } from "@/lib/settings/school-settings-api-schema";
 
 const LINKABLE_SCHOOL_MEMBER_ROLES = [
@@ -51,7 +52,11 @@ export async function GET() {
   }
 
   const profile = current.user.schoolAccount?.profile;
-  const [eligibleSignatureStaff, selectedSignatureStaff] = current.user.role === "PRINCIPAL" && current.user.schoolAccountId
+  const isPrincipal = current.user.role === "PRINCIPAL";
+  const isEligibleSignatureStaff = LINKABLE_SCHOOL_MEMBER_ROLES.includes(
+    current.user.role as (typeof LINKABLE_SCHOOL_MEMBER_ROLES)[number],
+  );
+  const [eligibleSignatureStaff, selectedSignatureStaff, currentStaffAuthorization] = current.user.role === "PRINCIPAL" && current.user.schoolAccountId
     ? await Promise.all([
         prisma.user.findMany({
           where: { schoolAccountId: current.user.schoolAccountId, role: { in: [...LINKABLE_SCHOOL_MEMBER_ROLES] }, isActive: true },
@@ -63,7 +68,37 @@ export async function GET() {
           select: { userId: true },
         }),
       ])
-    : [[], []];
+    : await Promise.all([
+        Promise.resolve([]),
+        Promise.resolve([]),
+        isEligibleSignatureStaff && current.user.schoolAccountId
+          ? prisma.principalSignatureReuseAuthorization.findUnique({
+              where: {
+                schoolAccountId_userId: {
+                  schoolAccountId: current.user.schoolAccountId,
+                  userId: current.user.id,
+                },
+              },
+              select: { id: true },
+            })
+          : Promise.resolve(null),
+      ]);
+  const effectiveStaffSignature = isEligibleSignatureStaff
+    ? resolvePrincipalSignatureForReport({
+        schoolIdentity: {
+          schoolAccountId: current.user.schoolAccountId,
+          principalSignatureUrl: profile?.principalSignatureUrl || null,
+          principalSignatureSignedAt: profile?.principalSignatureSignedAt || null,
+        },
+        reusePolicy: profile?.principalSignatureReusePolicy,
+        reportOwner: {
+          id: current.user.id,
+          schoolAccountId: current.user.schoolAccountId,
+          role: current.user.role,
+        },
+        selectedStaffAuthorized: Boolean(currentStaffAuthorization),
+      })
+    : null;
   const signatureKind =
     current.user.role === "PRINCIPAL"
       ? "principal"
@@ -109,7 +144,9 @@ export async function GET() {
       schoolStatisticalNumber: profile?.schoolStatisticalNumber || "",
       principalName: profile?.principalName || "",
       principalPhone: profile?.principalPhone || "",
-      principalSignatureUrl: profile?.principalSignatureUrl || "",
+      principalSignatureUrl: isPrincipal
+        ? profile?.principalSignatureUrl || ""
+        : effectiveStaffSignature?.signatureUrl || "",
       principalSignatureRequestedAt:
         profile?.principalSignatureRequestedAt?.toISOString() || "",
       principalSignatureSignedAt:
@@ -421,6 +458,9 @@ export async function PATCH(request: Request) {
           district,
           stage,
           logoUrl,
+          ...(authenticatedUser.role === "PRINCIPAL"
+            ? { principalSignatureReusePolicy }
+            : {}),
         },
         create: {
           schoolAccountId: authenticatedUser.schoolAccountId,
@@ -435,6 +475,9 @@ export async function PATCH(request: Request) {
           district,
           stage,
           logoUrl,
+          ...(authenticatedUser.role === "PRINCIPAL"
+            ? { principalSignatureReusePolicy }
+            : {}),
         },
       });
 
