@@ -531,6 +531,7 @@ export function PortfolioPrintDocument({
         typographyStyle
       }
       data-portfolio-smart-phase="frozen"
+      data-portfolio-pdf-ready="true"
     >
       {renderPortfolioDesign(
         data,

@@ -7,12 +7,16 @@ export async function generatePdfFromUrlWithCloudflare({
   url,
   request,
   waitForSelector = ".pdf-report-page",
+  gotoWaitUntil = "networkidle2",
+  waitForSelectorTimeoutMs = 45_000,
   debugLabel,
   landscape = false,
 }: {
   url: string;
   request?: Request;
   waitForSelector?: string;
+  gotoWaitUntil?: "load" | "domcontentloaded" | "networkidle0" | "networkidle2";
+  waitForSelectorTimeoutMs?: number;
   debugLabel?: "portfolio";
   landscape?: boolean;
 }): Promise<Uint8Array> {
@@ -49,12 +53,12 @@ export async function generatePdfFromUrlWithCloudflare({
     url,
     ...(cookies ? { cookies } : {}),
     gotoOptions: {
-      waitUntil: "networkidle2",
+      waitUntil: gotoWaitUntil,
       timeout: 45_000,
     },
     waitForSelector: {
       selector: waitForSelector,
-      timeout: 45_000,
+      timeout: waitForSelectorTimeoutMs,
       visible: true,
     },
     pdfOptions: {
@@ -75,20 +79,15 @@ export async function generatePdfFromUrlWithCloudflare({
     }
 
     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-      url,
-      urlJson: JSON.stringify(url),
-      urlLength: url.length,
-      parsedHref: parsedUrl?.href || null,
+      stage: "browser-rendering-request",
+      urlPath: parsedUrl
+        ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
       parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+      waitForSelectorTimeoutMs,
       cookiesSent: Boolean(cookies?.length),
-      selector: waitForSelector,
-      requestBody: {
-        ...requestBody,
-        cookies: cookies?.map((cookie) => ({
-          ...cookie,
-          value: "[REDACTED]",
-        })),
-      },
     });
   }
 

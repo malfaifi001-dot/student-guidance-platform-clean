@@ -33,11 +33,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ snap
     const previewUrl = `${getRequestOrigin(request)}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
       stage: "export-route",
-      previewUrl,
+      previewPath: "/portfolio-export-preview/[token]?pdf=1",
     });
     const pdf = await generatePdfFromUrlWithCloudflare({
       url: previewUrl,
-      waitForSelector: ".portfolio-page, .portfolio-report-page",
+      gotoWaitUntil: "domcontentloaded",
+      waitForSelector: '[data-portfolio-pdf-ready="true"]',
+      waitForSelectorTimeoutMs: 30_000,
       debugLabel: "portfolio",
     });
 
