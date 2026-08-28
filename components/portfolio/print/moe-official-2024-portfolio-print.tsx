@@ -719,6 +719,7 @@ export function MoeOfficial2024PortfolioPrint({
             min-width: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
+            gap: 0 !important;
             background: #ffffff !important;
           }
 

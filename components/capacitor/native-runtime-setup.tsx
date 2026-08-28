@@ -74,7 +74,7 @@ export function NativeRuntimeSetup() {
     };
 
     const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
-      const pathnameBefore = window.location.pathname;
+      const pathnameBefore = `${window.location.pathname}${window.location.search}`;
       let safePath: string | null = null;
 
       try {
@@ -171,7 +171,11 @@ export function NativeRuntimeSetup() {
       return true;
     };
 
-    void FirebaseMessaging.addListener("notificationActionPerformed", ({ notification }) => {
+    const appUrlListenerPromise = App.addListener("appUrlOpen", ({ url }) => {
+      handleIncomingUrl(url);
+    });
+
+    const pushActionListenerPromise = FirebaseMessaging.addListener("notificationActionPerformed", ({ notification }) => {
       const data = notification.data;
       const route = typeof data === "object" && data !== null && "route" in data
         ? (data as { route?: unknown }).route
@@ -205,7 +209,8 @@ export function NativeRuntimeSetup() {
         });
         handleIncomingUrl("https://teachix.sa/dashboard");
       }
-    }).then((handle) => {
+    });
+    pushActionListenerPromise.then((handle) => {
       if (disposed) {
         void handle.remove();
       } else {
@@ -266,15 +271,15 @@ export function NativeRuntimeSetup() {
         coldStart: true,
       });
 
-      const urlHandle = await App.addListener("appUrlOpen", ({ url }) => {
-        handleIncomingUrl(url);
-      });
+      const urlHandle = await appUrlListenerPromise;
 
       if (disposed) {
         void urlHandle.remove();
       } else {
         removeUrlListener = () => urlHandle.remove();
       }
+
+      await pushActionListenerPromise;
 
       let launchUrl: Awaited<ReturnType<typeof App.getLaunchUrl>>;
       try {
@@ -302,10 +307,11 @@ export function NativeRuntimeSetup() {
 
       const coldPath = launchSafePath || pendingStartupPath;
       if (coldPath && !coldStartNavigationCompleted) {
+        const currentRoute = `${window.location.pathname}${window.location.search}`;
         const serverResolvedDashboardPath =
           coldPath === "/dashboard" && isDashboardHomePath(window.location.pathname);
 
-        if (window.location.pathname === coldPath || serverResolvedDashboardPath) {
+        if (currentRoute === coldPath || serverResolvedDashboardPath) {
           deepLinkHandled = true;
           lastHandledSafePath = coldPath;
           pendingStartupPath = null;
@@ -368,7 +374,8 @@ export function NativeRuntimeSetup() {
         });
       } else {
         const lastRoute = readNativeLastRoute();
-        if (lastRoute && lastRoute !== window.location.pathname) {
+        const currentRoute = `${window.location.pathname}${window.location.search}`;
+        if (lastRoute && lastRoute !== currentRoute) {
           logNativeRuntimeDiagnostic("startup-gate-held-for-navigation", {
             reason: "LAST_ROUTE_RESTORE",
             safePath: lastRoute,

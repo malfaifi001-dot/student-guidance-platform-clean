@@ -32,6 +32,7 @@ export async function POST(request: Request) {
     const identifier = classifyLoginIdentifier(normalizedIdentifier);
     const password = String(body?.password || "");
     const loginPath = String(body?.loginPath || "").trim();
+    const nextPath = body?.next;
 
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-login",
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      redirectTo: getPostLoginRedirectPath(user),
+      redirectTo: getPostLoginRedirectPath({ ...user, nextPath }),
     });
 
     response.cookies.set(

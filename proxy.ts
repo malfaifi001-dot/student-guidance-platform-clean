@@ -2,6 +2,15 @@
 
 const SESSION_COOKIE_NAME = "student_guidance_session";
 
+function withRequestedPath(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.set(
+    "x-teachix-requested-path",
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
+  return headers;
+}
+
 const PUBLIC_PATHS = new Set([
   "/login",
   "/teacher/login",
@@ -91,7 +100,7 @@ export function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: withRequestedPath(request) } });
 }
 
 export const config = {

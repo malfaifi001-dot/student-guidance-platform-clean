@@ -1,3 +1,5 @@
+import { getSafeTeachixDashboardRoute } from "@/lib/deep-links/teachix-deep-link";
+
 export const COUNSELOR_DASHBOARD_PATH = "/dashboard";
 export const ADMIN_DASHBOARD_PATH = "/dashboard/admin";
 export const ACTIVITY_LEADER_DASHBOARD_PATH = "/dashboard/activity-leader";
@@ -35,7 +37,11 @@ export function getPostLoginRedirectPath(input: {
   role?: string | null;
   onboardingCompleted?: boolean | null;
   onboardingSkippedAt?: Date | string | null;
+  nextPath?: unknown;
 }) {
+  const safeNextPath = getSafeTeachixDashboardRoute(input.nextPath);
+  if (safeNextPath) return safeNextPath;
+
   if (input.role === "ADMIN") return ADMIN_DASHBOARD_PATH;
   if (input.role === "TEACHER") return TEACHER_DASHBOARD_PATH;
   if (input.role === "PRINCIPAL") return PRINCIPAL_DASHBOARD_PATH;

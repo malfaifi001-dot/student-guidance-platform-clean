@@ -3,6 +3,12 @@ import {
   logNativeRuntimeDiagnostic,
   safeDiagnosticMessage,
 } from "@/lib/native/native-runtime-diagnostics";
+import {
+  getSafeTeachixRoute,
+  getTeachixDeepLinkRejectionReason,
+  resolveTeachixDeepLink,
+  type TeachixDeepLinkRouteKind,
+} from "@/lib/deep-links/teachix-deep-link";
 
 export const NATIVE_LAST_ROUTE_STORAGE_KEY = "teachix_native_last_route";
 
@@ -18,104 +24,45 @@ export function releaseNativeRuntime(): void {
   nativeRuntimeActive = false;
 }
 
-const TECHNICAL_ROUTE_PREFIXES = [
-  "/api",
-  "/portfolio-export-preview/",
-  "/report-2-export-preview/",
-  "/pdf-preview/",
-  "/print/",
-];
-
-const PUBLIC_TOKEN_ROUTE_PREFIXES = [
-  "/school-signature/",
-  "/survey/",
-  "/teacher/activity-assignment/",
-  "/report-signature/",
-];
-
-export type NativeRouteKind =
-  | "DASHBOARD_APP_ROUTE"
-  | "PUBLIC_TOKEN_ROUTE"
-  | "PUBLIC_PAGE"
-  | "TECHNICAL_DENIED_ROUTE"
-  | "INVALID_ROUTE";
+export type NativeRouteKind = TeachixDeepLinkRouteKind;
 
 export function isNativeCapacitor(): boolean {
   return Capacitor.isNativePlatform();
 }
 
-function isTechnicalNativeRoute(pathname: string): boolean {
-  return TECHNICAL_ROUTE_PREFIXES.some((prefix) => {
-    if (prefix === "/api") return pathname === "/api" || pathname.startsWith("/api/");
-    return pathname === prefix.slice(0, -1) || pathname.startsWith(prefix);
-  });
-}
-
 export function getNativeRouteKind(pathname: string): NativeRouteKind {
-  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
-    return "INVALID_ROUTE";
-  }
-
-  if (isTechnicalNativeRoute(pathname)) {
-    return "TECHNICAL_DENIED_ROUTE";
-  }
-
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
-    return "DASHBOARD_APP_ROUTE";
-  }
-
-  if (PUBLIC_TOKEN_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
-    return "PUBLIC_TOKEN_ROUTE";
-  }
-
-  return "PUBLIC_PAGE";
+  return resolveTeachixDeepLink(pathname).routeKind;
 }
 
 function isAllowedNativeRoute(pathname: string): boolean {
-  return getNativeRouteKind(pathname) !== "TECHNICAL_DENIED_ROUTE" &&
-    getNativeRouteKind(pathname) !== "INVALID_ROUTE";
+  return resolveTeachixDeepLink(pathname).accepted;
 }
 
 function isPersistableNativeRoute(pathname: string): boolean {
-  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+  return resolveTeachixDeepLink(pathname).routeKind === "DASHBOARD_APP_ROUTE";
 }
 
 export function getNativeDeepLinkRejectionReason(value: string): string {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "https:") return "UNSAFE_SCHEME";
-    if (url.hostname !== "teachix.sa") return "EXTERNAL_ORIGIN";
-    if (getNativeRouteKind(url.pathname) === "TECHNICAL_DENIED_ROUTE") {
-      return "TECHNICAL_ROUTE_DENIED";
-    }
-    return "INVALID_ROUTE";
-  } catch {
-    return "INVALID_ROUTE";
-  }
+  return getTeachixDeepLinkRejectionReason(value);
 }
 
 export function getNativeDiagnosticPath(pathname: string): string {
-  const tokenizedPrefix = PUBLIC_TOKEN_ROUTE_PREFIXES.find((prefix) => pathname.startsWith(prefix));
+  const tokenizedPrefixes = [
+    "/school-signature/",
+    "/report-signature/",
+    "/survey/",
+    "/teacher/activity-assignment/",
+    "/activity-plan/",
+    "/activity-team-signature/",
+  ];
+  const tokenizedPrefix = tokenizedPrefixes.find((prefix) => pathname.startsWith(prefix));
   if (tokenizedPrefix) return `${tokenizedPrefix}[token]`;
 
   return pathname;
 }
 
 export function getSafeNativeDeepLinkPath(value: string): string | null {
-  try {
-    const url = new URL(value);
-    if (
-      url.protocol !== "https:" ||
-      url.hostname !== "teachix.sa" ||
-      !isAllowedNativeRoute(url.pathname)
-    ) {
-      return null;
-    }
-
-    return url.pathname;
-  } catch {
-    return null;
-  }
+  return getSafeTeachixRoute(value);
 }
 
 export function getSafeNativeRoute(value: string): string | null {
@@ -123,11 +70,11 @@ export function getSafeNativeRoute(value: string): string | null {
 
   try {
     const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin || !isPersistableNativeRoute(url.pathname)) {
+    if (url.origin !== window.location.origin || !isPersistableNativeRoute(`${url.pathname}${url.search}`)) {
       return null;
     }
 
-    return url.pathname;
+    return `${url.pathname}${url.search}`;
   } catch {
     return null;
   }
@@ -138,11 +85,11 @@ export function getSafeNativeNavigationPath(value: string): string | null {
 
   try {
     const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin || !isAllowedNativeRoute(url.pathname)) {
+    if (url.origin !== window.location.origin || !isAllowedNativeRoute(`${url.pathname}${url.search}`)) {
       return null;
     }
 
-    return url.pathname;
+    return `${url.pathname}${url.search}`;
   } catch {
     return null;
   }
@@ -215,7 +162,8 @@ export function navigateNativeDeepLink(pathname: string): boolean {
   const safePath = getSafeNativeNavigationPath(pathname);
   if (!safePath) return false;
 
-  if (window.location.pathname === safePath) {
+  const currentRoute = `${window.location.pathname}${window.location.search}`;
+  if (currentRoute === safePath) {
     persistNativeRoute(safePath);
     return true;
   }
@@ -250,11 +198,12 @@ export function createNativeRouteTracker() {
 
   const originalPushState = window.history.pushState.bind(window.history);
   const originalReplaceState = window.history.replaceState.bind(window.history);
-  const routes = [getSafeNativeNavigationPath(window.location.pathname) || "/dashboard"];
+  const currentRoute = `${window.location.pathname}${window.location.search}`;
+  const routes = [getSafeNativeNavigationPath(currentRoute) || "/dashboard"];
   let currentIndex = 0;
 
   const recordPush = () => {
-    const route = getSafeNativeNavigationPath(window.location.pathname);
+    const route = getSafeNativeNavigationPath(`${window.location.pathname}${window.location.search}`);
     if (!route) return;
 
     routes.splice(currentIndex + 1);
@@ -264,7 +213,7 @@ export function createNativeRouteTracker() {
   };
 
   const recordReplace = () => {
-    const route = getSafeNativeNavigationPath(window.location.pathname);
+    const route = getSafeNativeNavigationPath(`${window.location.pathname}${window.location.search}`);
     if (!route) return;
 
     routes[currentIndex] = route;
@@ -272,7 +221,7 @@ export function createNativeRouteTracker() {
   };
 
   const handlePopState = () => {
-    const route = getSafeNativeNavigationPath(window.location.pathname);
+    const route = getSafeNativeNavigationPath(`${window.location.pathname}${window.location.search}`);
     if (!route) return;
 
     const existingIndex = routes.lastIndexOf(route);

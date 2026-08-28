@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
-import { getNativeRouteKind, navigateNativeDeepLink } from "@/lib/native/native-runtime";
+import { navigateNativeDeepLink } from "@/lib/native/native-runtime";
+import { resolveTeachixDeepLink } from "@/lib/deep-links/teachix-deep-link";
 
 const TEACHIX_HOSTNAMES = new Set(["teachix.sa", "www.teachix.sa"]);
 
@@ -35,9 +36,9 @@ export async function openExternalUrl(url: string, options?: { sameWindow?: bool
   }
 
   if (isTeachixUrl(target) && target.hostname.toLowerCase() === "teachix.sa") {
-    const routeKind = getNativeRouteKind(target.pathname);
-    if (routeKind === "TECHNICAL_DENIED_ROUTE" || routeKind === "INVALID_ROUTE") return;
-    navigateNativeDeepLink(target.pathname);
+    const resolved = resolveTeachixDeepLink(target.toString());
+    if (!resolved.accepted || !resolved.normalizedRoute) return;
+    navigateNativeDeepLink(resolved.normalizedRoute);
     return;
   }
 

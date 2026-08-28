@@ -26,6 +26,7 @@ import {
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import { getSafeTeachixDashboardRoute } from "@/lib/deep-links/teachix-deep-link";
 import {
   buildTeachixSupportWhatsAppUrl,
   TEACHIX_PASSWORD_RECOVERY_WHATSAPP_MESSAGE,
@@ -65,6 +66,9 @@ export default function LoginPage() {
         body: JSON.stringify({
           identifier: normalizedIdentifier,
           password,
+          next: getSafeTeachixDashboardRoute(
+            new URLSearchParams(window.location.search).get("next"),
+          ),
         }),
       });
 

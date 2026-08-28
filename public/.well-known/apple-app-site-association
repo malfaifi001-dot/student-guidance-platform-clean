@@ -15,7 +15,11 @@
           { "/": "/teacher/activity-assignment" },
           { "/": "/teacher/activity-assignment/*" },
           { "/": "/report-signature" },
-          { "/": "/report-signature/*" }
+          { "/": "/report-signature/*" },
+          { "/": "/activity-plan" },
+          { "/": "/activity-plan/*" },
+          { "/": "/activity-team-signature" },
+          { "/": "/activity-team-signature/*" }
         ]
       }
     ]
