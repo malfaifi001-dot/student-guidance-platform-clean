@@ -17,7 +17,7 @@ type WorkspaceProps = {
 };
 
 // Temporary diagnostics for investigating principal-signature placement.
-const ENABLE_PRINCIPAL_SIGNATURE_DEBUG = true;
+const ENABLE_PRINCIPAL_SIGNATURE_DEBUG = process.env.NODE_ENV !== "production";
 
 const dateFormatter = new Intl.DateTimeFormat("ar-SA", {
   dateStyle: "medium",

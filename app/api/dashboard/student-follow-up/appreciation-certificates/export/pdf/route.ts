@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       body.fileName || "appreciation-certificate.pdf"
     );
 
-    const host = request.headers.get("host") || "localhost:3000";
+    const host = request.headers.get("host") || (process.env.NODE_ENV === "production" ? "teachix.sa" : "localhost:3000");
     const protocol =
       request.headers.get("x-forwarded-proto") ||
       (host.includes("localhost") ? "http" : "https");

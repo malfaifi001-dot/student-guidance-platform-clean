@@ -46,7 +46,11 @@ export function resolveActivityPlanPublicOrigin() {
   const configured = clean(
     process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.SITE_URL,
   ).replace(/\/+$/, "");
-  return /^https?:\/\//i.test(configured) ? configured : "http://localhost:3000";
+  return /^https?:\/\//i.test(configured)
+    ? configured
+    : process.env.NODE_ENV === "production"
+      ? "https://teachix.sa"
+      : "http://localhost:3000";
 }
 
 export function buildActivityPlanPublicUrl(token: string) {

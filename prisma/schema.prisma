@@ -466,6 +466,7 @@ model User {
 
   cases                       CaseEntry[]
   sessions                    UserSession[]
+  passwordResetTokens         PasswordResetToken[]
   pushDevices                 PushDevice[]
   pushCampaignsCreated        PushCampaign[]       @relation("PushCampaignCreator")
   pushTemplatesCreated        PushTemplate[]       @relation("PushTemplateCreator")
@@ -612,6 +613,18 @@ model UserSession {
   @@index([tokenId])
   @@index([isActive])
   @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 model PushDevice {

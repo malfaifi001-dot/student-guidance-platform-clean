@@ -157,6 +157,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const conflictingTransaction =
+      await prisma.paymentTransaction.findFirst({
+        where: {
+          externalRef: paymentId,
+          NOT: { id: transaction.id },
+        },
+        select: { id: true },
+      });
+
+    if (conflictingTransaction) {
+      return redirectTo(
+        request,
+        "/dashboard/plans?payment=reference-reused"
+      );
+    }
+
     if (paymentStatus === "PAID") {
       await prisma.paymentTransaction.update({
         where: {

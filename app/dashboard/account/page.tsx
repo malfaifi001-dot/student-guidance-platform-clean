@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import {
   TEACHING_STAGE_OPTIONS,
   TEACHING_SPECIALTY_OPTIONS,
@@ -110,6 +112,9 @@ export default function DashboardAccountPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [loggingOutOthers, setLoggingOutOthers] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePhrase, setDeletePhrase] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const [profileForm, setProfileForm] = useState({
@@ -265,6 +270,26 @@ export default function DashboardAccountPage() {
       setMessage(error instanceof Error ? error.message : "تعذر تنفيذ العملية.");
     } finally {
       setLoggingOutOthers(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deletePhrase.trim() !== "حذف الحساب") return;
+
+    setDeleting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/account", { method: "DELETE" });
+      const result = await readJson(response);
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "تعذر حذف الحساب.");
+      }
+      window.location.href = result.redirectTo || "/login?account=deleted";
+    } catch (error) {
+      setDeleting(false);
+      setDeleteOpen(false);
+      setMessage(error instanceof Error ? error.message : "تعذر حذف الحساب.");
     }
   }
 
@@ -489,8 +514,52 @@ export default function DashboardAccountPage() {
           >
             {loggingOutOthers ? "جاري التنفيذ..." : "تسجيل الخروج من الأجهزة الأخرى"}
           </button>
+
+          <div className="mt-8 border-t border-rose-200 pt-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-950">حذف الحساب</h3>
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
+                  سيتم تعطيل حسابك وإلغاء جميع الجلسات النشطة. لا يمكن التراجع عن هذا الإجراء من داخل الحساب.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="mt-5 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white transition hover:bg-rose-700"
+            >
+              حذف الحساب
+            </button>
+          </div>
         </div>
       </section>
+
+      <SmartActionModal
+        open={deleteOpen}
+        title="تأكيد حذف الحساب"
+        description="اكتب العبارة التالية للتأكيد: حذف الحساب"
+        variant="danger"
+        confirmLabel="حذف الحساب نهائياً"
+        cancelLabel="إلغاء"
+        loading={deleting}
+        onConfirm={() => void deleteAccount()}
+        onClose={() => !deleting && setDeleteOpen(false)}
+      >
+        <label className="block">
+          <span className="text-sm font-black text-slate-700">عبارة التأكيد</span>
+          <input
+            value={deletePhrase}
+            onChange={(event) => setDeletePhrase(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
+            autoComplete="off"
+          />
+        </label>
+      </SmartActionModal>
     </main>
   );
 }

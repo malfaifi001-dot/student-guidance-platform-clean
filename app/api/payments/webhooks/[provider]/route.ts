@@ -312,6 +312,29 @@ async function handleMoyasarWebhook(
     );
   }
 
+  if (transactionId && transactionId !== transaction.id) {
+    return NextResponse.json(
+      { error: "مرجع عملية الدفع غير مطابق.", eventId: event.id },
+      { status: 409 },
+    );
+  }
+
+  const conflictingTransaction =
+    await prisma.paymentTransaction.findFirst({
+      where: {
+        externalRef: providerPaymentId,
+        NOT: { id: transaction.id },
+      },
+      select: { id: true },
+    });
+
+  if (conflictingTransaction) {
+    return NextResponse.json(
+      { error: "مرجع عملية الدفع مستخدم مسبقاً.", eventId: event.id },
+      { status: 409 },
+    );
+  }
+
   const moyasarAmount = getNumber(
     verifiedPayment.amount
   );

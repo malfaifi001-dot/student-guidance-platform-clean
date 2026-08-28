@@ -17,69 +17,74 @@ function clean(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  const denied = await requireAdminApi();
-  if (denied) return denied;
+  try {
+    const denied = await requireAdminApi();
+    if (denied) return denied;
 
-  const url = new URL(request.url);
-  const q = clean(url.searchParams.get("q"));
-  const page = Math.max(Number(url.searchParams.get("page") || 1) || 1, 1);
-  const where = q
-    ? {
-        OR: [
-          { name: { contains: q } },
-          { email: { contains: q } },
-        ],
-      }
-    : {};
+    const url = new URL(request.url);
+    const q = clean(url.searchParams.get("q"));
+    const page = Math.max(Number(url.searchParams.get("page") || 1) || 1, 1);
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { email: { contains: q } },
+          ],
+        }
+      : {};
 
-  const [globalMode, total, users] = await Promise.all([
-    getGlobalSalesExperienceMode(),
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        subscriptions: {
-          where: { userId: { not: null } },
-          orderBy: { updatedAt: "desc" },
-          take: 1,
-          select: { status: true, endsAt: true, plan: { select: { name: true } } },
+    const [globalMode, total, users] = await Promise.all([
+      getGlobalSalesExperienceMode(),
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          subscriptions: {
+            where: { userId: { not: null } },
+            orderBy: { updatedAt: "desc" },
+            take: 1,
+            select: { status: true, endsAt: true, plan: { select: { name: true } } },
+          },
+          salesExperienceOverride: { select: { mode: true } },
         },
-        salesExperienceOverride: { select: { mode: true } },
-      },
-    }),
-  ]);
+      }),
+    ]);
 
-  return NextResponse.json(
-    {
-      globalMode,
-      page,
-      pageSize: PAGE_SIZE,
-      total,
-      users: users.map((user) => ({
-        ...user,
-        effectiveMode: user.salesExperienceOverride?.mode || globalMode,
-        source: user.salesExperienceOverride ? "USER_OVERRIDE" : "GLOBAL",
-        activeSubscription: Boolean(
-          user.subscriptions[0] &&
-            user.subscriptions[0].status !== "CANCELED" &&
-            user.subscriptions[0].status !== "EXPIRED" &&
-            user.subscriptions[0].status !== "PAST_DUE" &&
-            (!user.subscriptions[0].endsAt ||
-              user.subscriptions[0].endsAt > new Date()),
-        ),
-        subscriptionPlanName: user.subscriptions[0]?.plan?.name || null,
-      })),
-    },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+    return NextResponse.json(
+      {
+        globalMode,
+        page,
+        pageSize: PAGE_SIZE,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+        users: users.map((user) => ({
+          ...user,
+          effectiveMode: user.salesExperienceOverride?.mode || globalMode,
+          source: user.salesExperienceOverride ? "USER_OVERRIDE" : "GLOBAL",
+          activeSubscription: Boolean(
+            user.subscriptions[0] &&
+              user.subscriptions[0].status !== "CANCELED" &&
+              user.subscriptions[0].status !== "EXPIRED" &&
+              user.subscriptions[0].status !== "PAST_DUE" &&
+              (!user.subscriptions[0].endsAt ||
+                user.subscriptions[0].endsAt > new Date()),
+          ),
+          subscriptionPlanName: user.subscriptions[0]?.plan?.name || null,
+        })),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json({ error: "تعذر تحميل المستخدمين" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

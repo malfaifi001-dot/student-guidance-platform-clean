@@ -13,7 +13,7 @@ function normalizeSaudiPhone(value: string) {
   return digits;
 }
 
-const DEFAULT_PUBLIC_APP_URL = "https://paleturquoise-mandrill-289573.hostingersite.com";
+const DEFAULT_PUBLIC_APP_URL = "https://teachix.sa";
 
 function cleanBaseUrl(value: string | undefined) {
   const trimmed = String(value || "").trim().replace(/\/+$/, "");

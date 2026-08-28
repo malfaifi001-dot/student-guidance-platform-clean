@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logAdminActivity } from "@/lib/admin/activity-log";
 import { isTransitionalPhoneEmail } from "@/lib/auth/login-identifier";
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session";
 
 function normalizeOptionalString(value: unknown, maxLength: number) {
   const text = String(value || "").trim();
@@ -147,6 +149,53 @@ export async function PATCH(request: Request) {
 
 export async function PUT(request: Request) {
   return updateAccount(request);
+}
+
+export async function DELETE() {
+  const { current, response } = await requireCurrentUser();
+  if (response) return response;
+
+  const userId = current.user.id;
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+      await tx.userSession.updateMany({
+      where: { userId },
+      data: { isActive: false, revokedAt: now },
+      });
+      await tx.pushDevice.updateMany({
+        where: { userId: current.user.id },
+        data: { enabled: false, revokedAt: now },
+      });
+      await tx.passwordResetToken.updateMany({
+        where: { userId: current.user.id, usedAt: null },
+        data: { usedAt: now },
+      });
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        name: "Deleted Teachix Account",
+        officialName: null,
+        email: `deleted-${userId}@deleted.invalid`,
+        phone: null,
+        passwordHash: null,
+        signatureUrl: null,
+        signatureSignedAt: null,
+        teachingStages: Prisma.JsonNull,
+        teachingSpecialties: Prisma.JsonNull,
+        teachingSubjects: Prisma.JsonNull,
+        onboardingCompleted: false,
+        onboardingCompletedAt: null,
+      },
+    });
+  });
+
+  const sessionResponse = NextResponse.json({ success: true, redirectTo: "/login" });
+  sessionResponse.cookies.set(SESSION_COOKIE_NAME, "", {
+    ...getSessionCookieOptions(),
+    maxAge: 0,
+  });
+  return sessionResponse;
 }
 
 async function updateAccount(request: Request) {

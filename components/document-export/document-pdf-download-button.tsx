@@ -114,17 +114,18 @@ export function DocumentPdfDownloadButton({
         return;
       }
 
-      const scanResult = scanUnsupportedColors(target);
+      if (process.env.NODE_ENV !== "production") {
+        const scanResult = scanUnsupportedColors(target);
 
       if (scanResult.length) {
         console.group("PDF export color diagnostics");
         console.warn("تم العثور على ألوان غير مدعومة داخل منطقة التصدير:");
-        console.table(scanResult);
         console.groupEnd();
       } else {
         console.info(
           "PDF export color diagnostics: لم يتم العثور على lab/oklch داخل عنصر الخطاب. إذا ظهر الخطأ فمصدره CSS عام من الصفحة."
         );
+        }
       }
 
       await document.fonts.ready;

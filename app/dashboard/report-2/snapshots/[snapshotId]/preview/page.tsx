@@ -46,7 +46,7 @@ function getBaseUrlFromHeaders(requestHeaders: Headers) {
   const host =
     requestHeaders.get("x-forwarded-host") ||
     requestHeaders.get("host") ||
-    "localhost:3000";
+    process.env.NODE_ENV === "production" ? "teachix.sa" : "localhost:3000";
 
   return `${proto}://${host}`;
 }

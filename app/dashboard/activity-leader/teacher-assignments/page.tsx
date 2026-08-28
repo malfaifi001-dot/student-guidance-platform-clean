@@ -88,7 +88,7 @@ export default async function TeacherAssignmentsPage() {
     },
   });
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://teachix.sa";
 
   return (
     <TeacherAssignmentsClient

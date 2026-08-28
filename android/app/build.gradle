@@ -9,6 +9,13 @@ android {
     def releaseKeyPassword = System.getenv("TEACHIX_ANDROID_KEY_PASSWORD")
     def hasReleaseSigning = [releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword]
         .every { value -> value != null && !value.trim().isEmpty() }
+    def isReleaseTask = gradle.startParameter.taskNames.any { taskName ->
+        taskName.toLowerCase().contains('release')
+    }
+
+    if (isReleaseTask && !hasReleaseSigning) {
+        throw new GradleException('Teachix release signing is not configured. Set TEACHIX_ANDROID_KEYSTORE_PATH, TEACHIX_ANDROID_KEYSTORE_PASSWORD, TEACHIX_ANDROID_KEY_ALIAS, and TEACHIX_ANDROID_KEY_PASSWORD outside the repository.')
+    }
 
     defaultConfig {
         applicationId "sa.teachix.app"
@@ -66,11 +73,17 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
+def servicesJSON = file('google-services.json')
+def hasFirebaseConfig = servicesJSON.isFile() && servicesJSON.length() > 0
+def isReleaseTask = gradle.startParameter.taskNames.any { taskName ->
+    taskName.toLowerCase().contains('release')
+}
+
+if (!hasFirebaseConfig) {
+    if (isReleaseTask) {
+        throw new GradleException('Teachix release requires android/app/google-services.json. Provide the production Firebase file through the secured build workspace or CI before building a release.')
     }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    logger.warn("google-services.json not found; debug push configuration is unavailable")
+} else {
+    apply plugin: 'com.google.gms.google-services'
 }

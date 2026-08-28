@@ -385,6 +385,33 @@ export async function applyPaidElectronicPaymentTransaction(
   const endsAt = period.endsAt;
 
   const paidTransaction = await prisma.$transaction(async (tx) => {
+    // Serialize fulfillment for this transaction. Callback and webhook can arrive
+    // concurrently, so the status must be re-read while holding the row lock.
+    await tx.$queryRaw`SELECT id FROM PaymentTransaction WHERE id = ${transaction.id} FOR UPDATE`;
+    const lockedTransaction = await tx.paymentTransaction.findUnique({
+      where: { id: transaction.id },
+      include: { provider: true },
+    });
+
+    if (!lockedTransaction) {
+      throw new ElectronicPaymentError("عملية الدفع غير موجودة.", 404);
+    }
+
+    if (lockedTransaction.status === PaymentStatus.PAID) {
+      return {
+        ...lockedTransaction,
+        wasAlreadyPaid: true,
+      };
+    }
+
+    if (
+      lockedTransaction.status === PaymentStatus.FAILED ||
+      lockedTransaction.status === PaymentStatus.CANCELED ||
+      lockedTransaction.status === PaymentStatus.REFUNDED
+    ) {
+      throw new ElectronicPaymentError("لا يمكن تفعيل عملية دفع مغلقة.", 409);
+    }
+
     const subscription = await tx.subscription.upsert({
       where: {
         userId: requesterUserId,
@@ -412,13 +439,13 @@ export async function applyPaidElectronicPaymentTransaction(
         billingCycle,
         schoolAccountId,
         subscriptionId: subscription.id,
-        paymentTransactionId: transaction.id,
+        paymentTransactionId: lockedTransaction.id,
       });
     }
 
-    return tx.paymentTransaction.update({
+    const updated = await tx.paymentTransaction.update({
       where: {
-        id: transaction.id,
+        id: lockedTransaction.id,
       },
       data: {
         subscriptionId: subscription.id,
@@ -443,6 +470,8 @@ export async function applyPaidElectronicPaymentTransaction(
         },
       },
     });
+
+    return { ...updated, wasAlreadyPaid: false };
   });
 
   await getOrCreateInvoiceForPaymentTransaction(
@@ -487,8 +516,8 @@ export async function applyPaidElectronicPaymentTransaction(
 
   return {
     transaction: paidTransaction,
-    wasActivated: true,
-    wasAlreadyPaid: false,
+    wasActivated: !paidTransaction.wasAlreadyPaid,
+    wasAlreadyPaid: paidTransaction.wasAlreadyPaid,
   };
 }
 

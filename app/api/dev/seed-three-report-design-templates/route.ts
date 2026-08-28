@@ -182,12 +182,8 @@ const templates = [
 
 export async function GET() {
   if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { ok: false, message: "Dev endpoint is disabled in production." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
   const seeded = [];
 
   for (const template of templates) {

@@ -19,6 +19,7 @@ function getBaseUrl(request: Request) {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
+    (process.env.NODE_ENV === "production" ? "https://teachix.sa" : undefined) ||
     `${url.protocol}//${url.host}`
   );
 }

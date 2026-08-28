@@ -9,8 +9,10 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Trash2,
   UserRound,
 } from "lucide-react";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import {
   clearAnalyticsUserIdentity,
@@ -76,6 +78,9 @@ export function AccountProfileClient() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [endingSessions, setEndingSessions] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePhrase, setDeletePhrase] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | "info";
     message: string;
@@ -257,6 +262,22 @@ export function AccountProfileClient() {
       clearAnalyticsUserIdentity();
     }
     window.location.href = "/login";
+  }
+
+  async function deleteAccount() {
+    if (deletePhrase.trim() !== "حذف الحساب") return;
+    try {
+      setDeleting(true);
+      const response = await fetch("/api/dashboard/account", { method: "DELETE" });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.error || "تعذر حذف الحساب.");
+      clearAnalyticsUserIdentity();
+      window.location.href = "/login?account=deleted";
+    } catch (error) {
+      setDeleting(false);
+      setDeleteOpen(false);
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "تعذر حذف الحساب." });
+    }
   }
 
   if (loading) {
@@ -457,7 +478,27 @@ export function AccountProfileClient() {
             />
           ))}
         </div>
+
+        <div className="mt-8 border-t border-rose-200 pt-6">
+          <SectionTitle
+            icon={<Trash2 className="h-5 w-5" />}
+            eyebrow="الأمان والجلسات"
+            title="حذف الحساب"
+            description="سيتم تعطيل حسابك وإلغاء جميع الجلسات النشطة. لا يمكن التراجع عن هذا الإجراء من داخل الحساب."
+          />
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            className="mt-5 rounded-2xl bg-rose-600 px-6 py-3 text-sm font-black text-white transition hover:bg-rose-700"
+          >
+            حذف الحساب
+          </button>
+        </div>
       </section>
+
+      <SmartActionModal open={deleteOpen} title="تأكيد حذف الحساب" description="هذا الإجراء لا يمكن التراجع عنه. اكتب العبارة التالية للتأكيد: حذف الحساب" variant="danger" confirmLabel="حذف الحساب نهائيًا" cancelLabel="إلغاء" loading={deleting} onConfirm={() => void deleteAccount()} onClose={() => !deleting && setDeleteOpen(false)}>
+        <Input label="عبارة التأكيد" value={deletePhrase} onChange={setDeletePhrase} />
+      </SmartActionModal>
     </div>
   );
 }
