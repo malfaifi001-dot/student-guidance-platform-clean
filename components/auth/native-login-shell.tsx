@@ -4,12 +4,12 @@ import { useState } from "react";
 
 import { BrandLoader } from "@/components/common/brand-loader";
 import { NativeAuthBrand } from "@/components/auth/native-auth-brand";
-import { TEACHIX_WHATSAPP_URL } from "@/lib/marketing/contact-details";
+import {
+  buildTeachixSupportWhatsAppUrl,
+  TEACHIX_PASSWORD_RECOVERY_WHATSAPP_MESSAGE,
+} from "@/lib/marketing/contact-details";
 import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { openNativeOnboardingReview } from "@/lib/native/native-onboarding";
-
-const NATIVE_LOGIN_SUPPORT_MESSAGE =
-  "السلام عليكم، أحتاج مساعدة في استعادة الوصول إلى حساب Teachix.";
 
 type NativeLoginShellProps = {
   identifier: string;
@@ -41,7 +41,7 @@ export function NativeLoginShell({
 
     try {
       await openExternalUrl(
-        `${TEACHIX_WHATSAPP_URL}?text=${encodeURIComponent(NATIVE_LOGIN_SUPPORT_MESSAGE)}`,
+        buildTeachixSupportWhatsAppUrl(TEACHIX_PASSWORD_RECOVERY_WHATSAPP_MESSAGE),
       );
     } catch {
       setSupportError("تعذر فتح واتساب. حاول مرة أخرى أو تواصل مع دعم Teachix.");

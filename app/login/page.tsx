@@ -26,6 +26,10 @@ import {
 } from "@/lib/auth/login-identifier";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import {
+  buildTeachixSupportWhatsAppUrl,
+  TEACHIX_PASSWORD_RECOVERY_WHATSAPP_MESSAGE,
+} from "@/lib/marketing/contact-details";
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
@@ -160,6 +164,15 @@ export default function LoginPage() {
                     setPasswordVisible((current) => !current),
                 }}
               />
+
+              <a
+                href={buildTeachixSupportWhatsAppUrl(TEACHIX_PASSWORD_RECOVERY_WHATSAPP_MESSAGE)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="-mt-2 inline-flex text-sm font-black text-sky-600 transition hover:text-sky-700 hover:underline"
+              >
+                نسيت كلمة المرور؟
+              </a>
 
               <button
                 type="submit"
