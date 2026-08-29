@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Eye, Link2, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Copy, Eye, Link2, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -60,6 +60,7 @@ export function ActivityPlanShell() {
   const [previewWeeks, setPreviewWeeks] = useState<number[]>([]);
   const [previewSetupError, setPreviewSetupError] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
   const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
 
@@ -187,7 +188,7 @@ export function ActivityPlanShell() {
       {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-700">{error}</div> : null}
       <section className="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-sm md:p-5">
         <div className="activity-plan-table-header mb-4 flex flex-wrap items-center justify-between gap-3">
-          <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} />
+          <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
           <div><h2 className="text-xl font-black text-slate-950">الجدول الأسبوعي</h2><p className="mt-1 text-xs font-bold text-slate-500">الأيام صفوف والحصص أعمدة. اضغط للإضافة أو التعديل.</p></div>
           <label className="flex shrink-0 items-center gap-2 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-10 min-w-[170px] rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
           <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="activity plan mode">
@@ -225,6 +226,7 @@ export function ActivityPlanShell() {
       </section>
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <ActivityPlanPreviewSetup open={previewSetupOpen} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} onClose={() => setPreviewSetupOpen(false)} onStageChange={(stage) => { setPreviewStage(stage); setPreviewSetupError(""); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
+      <ActivityPlanCopyModal open={copyOpen} sourceStage={selectedStage} mode={mode} stages={stages} onClose={() => setCopyOpen(false)} />
       <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, false)} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title="معاينة خطة النشاط الطلابي" subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
       <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={stages} selectedStage={selectedStage} gradesByStage={gradesByStage} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.stage === entry.stage && item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
@@ -232,14 +234,63 @@ export function ActivityPlanShell() {
   );
 }
 
-function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "detailed" | "weekly"; onModeChange: (mode: "detailed" | "weekly") => void }) {
+function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "detailed" | "weekly"; onModeChange: (mode: "detailed" | "weekly") => void; onCopy: () => void }) {
   return <div className="activity-plan-table-controls flex flex-wrap items-center gap-2">
     <label className="flex items-center gap-1 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-9 min-w-[145px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
+    <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"><Copy className="h-4 w-4" />نسخ الخطة</button>
     <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="نمط خطة النشاط">
       <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
       <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
     </div>
   </div>;
+}
+
+function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { open: boolean; sourceStage: string; mode: "detailed" | "weekly"; stages: string[]; onClose: () => void }) {
+  const [targets, setTargets] = useState<string[]>([]);
+  const [replaceExisting, setReplaceExisting] = useState(false);
+  const [confirmRequired, setConfirmRequired] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setTargets([]);
+    setReplaceExisting(false);
+    setConfirmRequired(false);
+    setError("");
+    setSuccess("");
+  }, [open, sourceStage, mode]);
+
+  function toggleTarget(stage: string) {
+    setTargets((current) => current.includes(stage) ? current.filter((item) => item !== stage) : [...current, stage]);
+    setConfirmRequired(false);
+    setError("");
+  }
+
+  async function copyPlan() {
+    if (!sourceStage || !targets.length) { setError("اختر مرحلة مستهدفة واحدة على الأقل."); return; }
+    setSaving(true); setError("");
+    try {
+      const response = await fetch("/api/dashboard/activity-plan/copy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceStage, targetStages: targets, mode, replaceExisting }) });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 409 && payload.requiresConfirmation) {
+        setConfirmRequired(true);
+        setReplaceExisting(true);
+        setError(payload.error || "توجد بيانات حالية في المرحلة المستهدفة.");
+        return;
+      }
+      if (!response.ok) throw new Error(payload.error || "تعذر نسخ الخطة.");
+      const count = Array.isArray(payload.copiedStages) ? payload.copiedStages.length : targets.length;
+      setSuccess(count === 1 ? "تم نسخ الخطة إلى المرحلة المحددة بنجاح." : `تم نسخ الخطة إلى ${count} مراحل محددة بنجاح.`);
+      setConfirmRequired(false);
+      setReplaceExisting(false);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "تعذر نسخ الخطة."); }
+    finally { setSaving(false); }
+  }
+
+  const availableStages = stages.filter((stage) => stage !== sourceStage);
+  return <SmartActionModal open={open} title="نسخ الخطة" description={mode === "weekly" ? "الخطة الفصلية" : "الخطة الأسبوعية"} portal onClose={onClose} showFooter={false}><div className="space-y-4" dir="rtl"><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-black text-slate-500">نسخ من</p><p className="mt-1 text-sm font-black text-slate-900">{sourceStage || "—"}</p></div><div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-black text-slate-500">نوع الخطة</p><p className="mt-1 text-sm font-black text-slate-900">{mode === "weekly" ? "الخطة الفصلية" : "الخطة الأسبوعية"}</p></div></div><fieldset><legend className="mb-2 text-sm font-black text-slate-700">نسخ إلى</legend><div className="grid gap-2 sm:grid-cols-2">{availableStages.map((stage) => <label key={stage} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-700 hover:bg-sky-50"><input type="checkbox" checked={targets.includes(stage)} onChange={() => toggleTarget(stage)} />{stage}</label>)}</div></fieldset>{confirmRequired ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-black leading-7 text-amber-800">توجد بيانات حالية في المرحلة المستهدفة. هل تريد استبدالها بالخطة المنسوخة؟</div> : null}{error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}{success ? <p className="rounded-xl bg-emerald-50 p-3 text-xs font-black text-emerald-700">{success}</p> : null}<div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void copyPlan()} disabled={saving || !targets.length} className="h-11 rounded-xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جار النسخ..." : confirmRequired ? "تأكيد النسخ والاستبدال" : "نسخ الخطة"}</button><button type="button" onClick={onClose} disabled={saving} className="h-11 rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-600">إلغاء</button></div></div></SmartActionModal>;
 }
 
 function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, gradesByStage, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; stages: string[]; selectedStage: string; gradesByStage: Record<string, string[]>; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {

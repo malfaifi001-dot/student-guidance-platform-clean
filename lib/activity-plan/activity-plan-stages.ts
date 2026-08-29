@@ -23,6 +23,14 @@ export function getActivityPlanStageOptions(values: Array<string | null | undefi
   return options;
 }
 
+export function getActivityPlanStagesForActivityLeader(teachingStages: unknown, fallbackValues: Array<string | null | undefined>) {
+  const assignedValues = Array.isArray(teachingStages)
+    ? teachingStages.filter((value): value is string => typeof value === "string")
+    : [];
+  const assignedStages = getActivityPlanStageOptions(assignedValues);
+  return assignedStages.length ? assignedStages : getActivityPlanStageOptions(fallbackValues);
+}
+
 export function getActivityPlanStagesFromProfile(value: string | null | undefined) {
   const text = String(value || "").trim();
   if (!text) return [];

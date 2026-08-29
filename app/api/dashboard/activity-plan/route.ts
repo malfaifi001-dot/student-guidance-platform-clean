@@ -7,6 +7,7 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
   getActivityPlanStageOptions,
   getActivityPlanStagesFromProfile,
+  getActivityPlanStagesForActivityLeader,
   normalizeActivityPlanStage,
   REAL_ACTIVITY_PLAN_STAGES,
 } from "@/lib/activity-plan/activity-plan-stages";
@@ -58,11 +59,18 @@ export async function GET(request: Request) {
     prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true, grade: true } }),
     prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
   ]);
-  const stages = REAL_ACTIVITY_PLAN_STAGES.filter((stage) => getActivityPlanStageOptions([
-    ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
-    ...students.map((student) => student.stage),
-    ...stageEntries.map((entry) => entry.stage),
-  ]).includes(stage));
+  const stageValues = auth.current.user.role === "ACTIVITY_LEADER"
+    ? getActivityPlanStagesForActivityLeader(auth.current.user.teachingStages, [
+      ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
+      ...students.map((student) => student.stage),
+      ...stageEntries.map((entry) => entry.stage),
+    ])
+    : getActivityPlanStageOptions([
+      ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
+      ...students.map((student) => student.stage),
+      ...stageEntries.map((entry) => entry.stage),
+    ]);
+  const stages = REAL_ACTIVITY_PLAN_STAGES.filter((stage) => stageValues.includes(stage));
   const normalizedRequestedStage = normalizeActivityPlanStage(requestedStage);
   const selectedStage = normalizedRequestedStage && stages.includes(normalizedRequestedStage)
     ? normalizedRequestedStage
