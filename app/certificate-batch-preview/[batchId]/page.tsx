@@ -1,59 +1,56 @@
 import { notFound, redirect } from "next/navigation";
-import { CertificatePrintButton } from "@/components/certificates/certificate-print-button";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
-import { prisma } from "@/lib/prisma";
+import { certificatePrisma } from "@/lib/certificates/certificate-db";
 import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 import {
-  renderCertificateDocumentHtml,
-  type CertificateRenderRecord,
-} from "@/lib/certificates/certificate-renderer";
+  renderCertificatesBatchDocumentHtml,
+  type BatchCertificateRenderRecord,
+} from "@/lib/certificates/certificate-batch-renderer";
+import { CertificatePrintButton } from "@/components/certificates/certificate-print-button";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{ certificateId: string }>;
+  params: Promise<{ batchId: string }>;
   searchParams?: Promise<{ print?: string | string[] }>;
 };
 
-async function getCertificate(certificateId: string, schoolAccountId: string) {
-  const rows = await prisma.$queryRawUnsafe<CertificateRenderRecord[]>(
+async function getBatchCertificates(batchId: string, schoolAccountId: string) {
+  return certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE id = ? AND schoolAccountId = ?
-    LIMIT 1
+    WHERE batchId = ? AND schoolAccountId = ?
+    ORDER BY recipientName ASC, createdAt ASC
     `,
-    certificateId,
+    batchId,
     schoolAccountId,
   );
-
-  return rows[0] || null;
 }
 
-export default async function CertificateEmbeddedPreviewPage({ params, searchParams }: PageProps) {
+export default async function CertificateBatchPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
 
-  if (!current.user.schoolAccountId) {
-    redirect("/dashboard");
-  }
+  if (!current.user.schoolAccountId) redirect("/dashboard");
 
-  const { certificateId } = await params;
+  const { batchId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const printParam = Array.isArray(resolvedSearchParams.print)
     ? resolvedSearchParams.print[0]
     : resolvedSearchParams.print;
-  const certificate = await getCertificate(certificateId, current.user.schoolAccountId);
+  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId);
 
-  if (!certificate) notFound();
+  if (!certificates.length) notFound();
 
   const signatureProfile = await getCertificateSignatureProfile(
-    certificate.schoolAccountId,
+    certificates[0].schoolAccountId,
     current.user.role,
     current.user.officialName || current.user.name || "المستخدم",
     current.user.id,
     true,
   );
-
-  const html = renderCertificateDocumentHtml(certificate, { signatureProfile });
+  const html = renderCertificatesBatchDocumentHtml(certificates, { signatureProfile });
 
   return (
     <>

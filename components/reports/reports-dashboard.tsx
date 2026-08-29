@@ -67,6 +67,8 @@ type ReportsDashboardProps = {
   stats: ReportsStats;
 };
 
+const SHOW_GENERATED_PDF_ACTION = false;
+
 type SnapshotFilter = "ALL" | "SNAPSHOT" | "LIVE";
 type TemplateFilter =
   "ALL" | "official-long" | "visual-activity" | "executive-brief" | "UNKNOWN";
@@ -619,22 +621,14 @@ function ReportCard({
             </button>
           ) : null}
 
-          {report.generatedPdfUrl ? (
+          {SHOW_GENERATED_PDF_ACTION && report.generatedPdfUrl ? (
             <a
               href={report.generatedPdfUrl}
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-700 transition hover:bg-sky-100"
             >
               ملف PDF
             </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-black text-slate-400"
-            >
-              PDF لاحقًا
-            </button>
-          )}
+          ) : null}
         </ExpandableActionMenu>
       </div>
     </article>

@@ -49,7 +49,7 @@ export function BatchPdfDownloadButton({
 
       await printExport.runPrintExport({
         exportUrl: `/api/dashboard/certificates/batches/${encodeURIComponent(batchId)}/export/pdf`,
-        printUrl: `/dashboard/certificates/batches/${encodeURIComponent(batchId)}/preview-print`,
+        printUrl: `/certificate-batch-preview/${encodeURIComponent(batchId)}`,
         method: "POST",
         body: { fileName },
         fileName,
@@ -119,7 +119,7 @@ export function CertificatePdfDownloadButton({
 
       await printExport.runPrintExport({
         exportUrl: `/api/dashboard/certificates/${encodeURIComponent(certificateId)}/export/pdf`,
-        printUrl: `/dashboard/certificates/${encodeURIComponent(certificateId)}/preview-print`,
+        printUrl: `/certificate-preview/${encodeURIComponent(certificateId)}`,
         method: "POST",
         body: { fileName },
         fileName,

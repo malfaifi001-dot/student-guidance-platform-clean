@@ -295,7 +295,7 @@ export default async function CertificateBatchDetailsPage({ params }: PageProps)
 
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`/dashboard/certificates/batches/${batch.id}/preview-print`}
+              href={`/certificate-batch-preview/${batch.id}`}
               target="_blank"
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
             >
@@ -372,7 +372,7 @@ export default async function CertificateBatchDetailsPage({ params }: PageProps)
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
                   <Link
-                    href={`/dashboard/certificates/${certificate.id}/preview-print`}
+                    href={`/certificate-preview/${certificate.id}`}
                     target="_blank"
                     className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                   >

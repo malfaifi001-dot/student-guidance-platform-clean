@@ -148,7 +148,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       fallback: "PRINT_PREVIEW",
-      previewUrl: `/dashboard/certificates/batches/${batchId}/preview-print`,
+      previewUrl: `/certificate-batch-preview/${batchId}`,
     });
   }
 }

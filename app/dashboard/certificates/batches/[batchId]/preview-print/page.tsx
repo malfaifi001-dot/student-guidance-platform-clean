@@ -12,6 +12,9 @@ type PageProps = {
   params: Promise<{
     batchId: string;
   }>;
+  searchParams?: Promise<{
+    print?: string | string[];
+  }>;
 };
 
 async function getBatchCertificates(batchId: string, schoolAccountId: string) {
@@ -30,7 +33,7 @@ async function getBatchCertificates(batchId: string, schoolAccountId: string) {
   return rows;
 }
 
-export default async function CertificatesBatchPrintPreviewPage({ params }: PageProps) {
+export default async function CertificatesBatchPrintPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
 
   if (!current.user.schoolAccountId) {
@@ -38,7 +41,18 @@ export default async function CertificatesBatchPrintPreviewPage({ params }: Page
   }
 
   const { batchId } = await params;
-  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId);
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const printParam = Array.isArray(resolvedSearchParams.print)
+    ? resolvedSearchParams.print[0]
+    : resolvedSearchParams.print;
+
+  redirect(
+    `/certificate-batch-preview/${encodeURIComponent(batchId)}${
+      printParam === "1" ? "?print=1" : ""
+    }`,
+  );
+
+  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId!);
 
   if (!certificates.length) {
     notFound();

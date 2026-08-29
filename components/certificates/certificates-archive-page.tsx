@@ -246,7 +246,7 @@ export function CertificatesArchivePage() {
 
       const result = await printExport.runPrintExport({
         exportUrl: `/api/dashboard/certificates/${encodeURIComponent(item.id)}/export/pdf`,
-        printUrl: `/dashboard/certificates/${encodeURIComponent(item.id)}/preview-print`,
+        printUrl: `/certificate-preview/${encodeURIComponent(item.id)}`,
         method: "POST",
         body: { fileName },
         fileName,
@@ -276,7 +276,7 @@ export function CertificatesArchivePage() {
 
       await printExport.runPrintExport({
         exportUrl: `/api/dashboard/certificates/batches/${encodeURIComponent(entry.batchId)}/export/pdf`,
-        printUrl: `/dashboard/certificates/batches/${encodeURIComponent(entry.batchId)}/preview-print`,
+        printUrl: `/certificate-batch-preview/${encodeURIComponent(entry.batchId)}`,
         method: "POST",
         body: { fileName },
         fileName,

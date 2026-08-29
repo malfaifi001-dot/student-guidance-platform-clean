@@ -2,7 +2,13 @@
 
 import { useEffect } from "react";
 
-export function CertificatePrintButton({ autoPrint = false }: { autoPrint?: boolean }) {
+export function CertificatePrintButton({
+  autoPrint = false,
+  showButton = true,
+}: {
+  autoPrint?: boolean;
+  showButton?: boolean;
+}) {
   useEffect(() => {
     if (!autoPrint) return;
 
@@ -18,6 +24,8 @@ export function CertificatePrintButton({ autoPrint = false }: { autoPrint?: bool
     window.addEventListener("load", print, { once: true });
     return () => window.removeEventListener("load", print);
   }, [autoPrint]);
+
+  if (!showButton) return null;
 
   return (
     <button

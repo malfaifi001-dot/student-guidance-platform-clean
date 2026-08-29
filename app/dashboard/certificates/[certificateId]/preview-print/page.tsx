@@ -49,7 +49,14 @@ export default async function CertificatePrintPreviewPage({ params, searchParams
   const embedParam = Array.isArray(resolvedSearchParams.embed)
     ? resolvedSearchParams.embed[0]
     : resolvedSearchParams.embed;
-  const certificate = await getCertificate(certificateId, current.user.schoolAccountId);
+
+  redirect(
+    `/certificate-preview/${encodeURIComponent(certificateId)}${
+      printParam === "1" ? "?print=1" : ""
+    }`,
+  );
+
+  const certificate = await getCertificate(certificateId, current.user.schoolAccountId!);
 
   if (!certificate) {
     notFound();

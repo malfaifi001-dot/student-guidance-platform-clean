@@ -35,6 +35,8 @@ type ReportTwoArchiveClientProps = {
   readOnly?: boolean;
 };
 
+const SHOW_REPORT_TWO_PDF_ACTION = false;
+
 type SortKey = "newest" | "oldest" | "title" | "service";
 
 function formatDate(value: string | null | undefined) {
@@ -310,7 +312,7 @@ export function ReportTwoArchiveClient({
                     <Eye className="h-4 w-4" />
                   </Link>
 
-                  {!readOnly ? <ReportTwoPdfDownloadButton
+                  {!readOnly && SHOW_REPORT_TWO_PDF_ACTION ? <ReportTwoPdfDownloadButton
                     snapshot={{
                       caseEntryId: snapshot.caseEntryId,
                       reportTitle: snapshot.reportTitle,
