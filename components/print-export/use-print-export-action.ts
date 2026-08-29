@@ -14,7 +14,10 @@ import type {
 } from "@/lib/print-export/print-export-types";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
-import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
+import {
+  savePrintPreviewAsNativePdf,
+  shareBlobAsNativeFile,
+} from "@/lib/native/native-download";
 
 function getPrintExportFallbackUrl(
   payload: unknown,
@@ -234,7 +237,11 @@ export function usePrintExportAction() {
 
           if (response.ok && contentType.includes("application/pdf")) {
             const blob = await response.blob();
-            await downloadBlobAsFile(blob, options.fileName || "report.pdf");
+            if (isNativeCapacitor() && options.nativeDelivery === "share") {
+              await shareBlobAsNativeFile(blob, options.fileName || "report.pdf");
+            } else {
+              await downloadBlobAsFile(blob, options.fileName || "report.pdf");
+            }
             await finishProgress();
             setStatus("success");
             if (options.analytics) {

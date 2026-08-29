@@ -149,24 +149,65 @@ export async function downloadBlobAsNativeFile(
   }
 }
 
+/**
+ * Stores a generated export in the native cache and opens the platform share
+ * sheet. This is intentionally separate from downloadBlobAsNativeFile so the
+ * existing Android download behavior for other services remains unchanged.
+ */
+export async function shareBlobAsNativeFile(
+  blob: Blob,
+  fileName: string,
+): Promise<NativeDownloadResult | null> {
+  if (!Capacitor.isNativePlatform()) return null;
+
+  const safeFileName = sanitizeFileName(fileName);
+
+  try {
+    const data = await blobToBase64(blob);
+    const path = `teachix-exports/${Date.now()}-${safeFileName}`;
+    const result = await Filesystem.writeFile({
+      path,
+      data,
+      directory: Directory.Cache,
+      recursive: true,
+    });
+
+    await Share.share({
+      title: safeFileName,
+      url: result.uri,
+      dialogTitle: "مشاركة ملف PDF",
+    });
+
+    dispatchDownloadFeedback("success", safeFileName);
+    return { fileName: safeFileName, uri: result.uri };
+  } catch (error) {
+    dispatchDownloadFeedback(
+      "error",
+      safeFileName,
+      "تعذر تجهيز الملف للمشاركة، حاول مرة أخرى",
+    );
+    throw error;
+  }
+}
+
 export async function savePrintPreviewAsNativePdf(url: string, fileName: string): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
 
   const safeFeedbackFileName = sanitizeFileName(fileName);
 
   try {
+    const safeUrl = getSafePreviewUrl(url);
+    if (!safeUrl) throw new Error("UNSAFE_PRINT_PREVIEW_URL");
+
     if (Capacitor.getPlatform() === "android") {
       const safeFileName = fileName.trim() || "report.pdf";
-      await TeachixPdf.renderHtmlToPdf({ url, fileName: safeFileName });
+      await TeachixPdf.renderHtmlToPdf({ url: safeUrl, fileName: safeFileName });
       return true;
     }
 
     if (Capacitor.getPlatform() !== "ios") return false;
 
     const safeFileName = sanitizeFileName(fileName);
-
-    const safeUrl = getSafePreviewUrl(url);
-    if (!safeUrl) throw new Error("UNSAFE_PRINT_PREVIEW_URL");
 
     const { Browser } = await import("@capacitor/browser");
     await Browser.open({ url: safeUrl });

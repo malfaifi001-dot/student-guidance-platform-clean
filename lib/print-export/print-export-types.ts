@@ -30,6 +30,8 @@ export type PrintExportActionOptions = {
   progressMessage?: string;
   fallbackProgressTitle?: string;
   fallbackProgressMessage?: string;
+  /** Share a generated PDF through the native iOS/Android share sheet. */
+  nativeDelivery?: "share";
   analytics?: {
     eventName: AnalyticsEventName;
     params?: import("@/lib/analytics/analytics-types").AnalyticsEventParams;
