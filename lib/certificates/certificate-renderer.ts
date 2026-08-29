@@ -1,4 +1,6 @@
 import type { CertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
+import { getCertificateTemplateByKey } from "@/lib/certificates/certificate-template-registry";
+import { getCertificateTemplateLayout } from "@/lib/certificates/certificate-template-layouts";
 
 export type CertificateRenderRecord = {
   id: string;
@@ -19,6 +21,8 @@ export type CertificateRenderOptions = {
   signatureProfile?: CertificateSignatureProfile | null;
 };
 
+export const DEFAULT_CERTIFICATE_TEMPLATE_KEY = "certificate-modern-blue" as const;
+
 export function readCertificateDataJson(value: unknown): Record<string, unknown> {
   if (!value) return {};
   if (typeof value === "object" && !Array.isArray(value)) {
@@ -27,7 +31,6 @@ export function readCertificateDataJson(value: unknown): Record<string, unknown>
 
   try {
     const parsed = JSON.parse(String(value));
-
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }
@@ -53,11 +56,10 @@ function clean(value: unknown) {
 
 function resolveUrl(url: unknown, baseUrl?: string) {
   const raw = clean(url);
-
   if (!raw) return "";
   if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
 
-  if (baseUrl && raw.startsWith("/uploads/")) {
+  if (baseUrl && raw.startsWith("/")) {
     try {
       return new URL(raw, baseUrl).toString();
     } catch {
@@ -70,10 +72,7 @@ function resolveUrl(url: unknown, baseUrl?: string) {
 
 export function formatCertificateDate(value: Date | string) {
   const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+  if (Number.isNaN(date.getTime())) return "";
 
   return date.toLocaleDateString("ar-SA-u-ca-gregory", {
     year: "numeric",
@@ -94,15 +93,18 @@ function renderSignatureBox(input: {
     <div class="signature-box">
       <div class="signature-title">${escapeHtml(input.title)}</div>
       <div class="signature-image-wrap">
-        ${
-          signatureUrl
-            ? `<img src="${escapeHtml(signatureUrl)}" alt="${escapeHtml(input.title)}" />`
-            : `<div class="signature-line"></div>`
-        }
+        ${signatureUrl
+          ? `<img src="${escapeHtml(signatureUrl)}" alt="${escapeHtml(input.title)}" />`
+          : `<div class="signature-line"></div>`}
       </div>
       <div class="signature-name">${escapeHtml(input.name || "........................")}</div>
     </div>
   `;
+}
+
+function resolveTemplateKey(data: Record<string, unknown>) {
+  const requested = clean(data.templateKey);
+  return getCertificateTemplateByKey(requested)?.key || DEFAULT_CERTIFICATE_TEMPLATE_KEY;
 }
 
 export function renderCertificateDocumentHtml(
@@ -110,24 +112,18 @@ export function renderCertificateDocumentHtml(
   options: CertificateRenderOptions = {},
 ) {
   const data = readCertificateDataJson(certificate.dataJson);
+  const templateKey = resolveTemplateKey(data);
+  const template = getCertificateTemplateByKey(templateKey) || getCertificateTemplateByKey(DEFAULT_CERTIFICATE_TEMPLATE_KEY)!;
+  const layout = getCertificateTemplateLayout(template.key);
   const profile = options.signatureProfile;
 
-  const principalName =
-    clean(data.principalName) || profile?.principalName || "مدير المدرسة";
-  const principalSignatureUrl =
-    clean(data.principalSignatureUrl) || profile?.principalSignatureUrl || "";
-
-  const issuerTitle =
-    clean(data.issuerTitle) || profile?.issuerTitle || "الموجه الطلابي";
-  const issuerName =
-    clean(data.issuerName) || profile?.issuerName || "الموجه الطلابي";
-  const issuerSignatureUrl =
-    clean(data.issuerSignatureUrl) ||
-    profile?.issuerSignatureUrl ||
-    "";
-
-  const ministryLogoUrl = resolveUrl("/uploads/school-logos/MOE.png", options.baseUrl);
-  const visionLogoUrl = resolveUrl("/uploads/school-logos/VISION2030.png", options.baseUrl);
+  const principalName = clean(data.principalName) || profile?.principalName || "مدير المدرسة";
+  const principalSignatureUrl = clean(data.principalSignatureUrl) || profile?.principalSignatureUrl || "";
+  const issuerTitle = clean(data.issuerTitle) || profile?.issuerTitle || "الموجه الطلابي";
+  const issuerName = clean(data.issuerName) || profile?.issuerName || "الموجه الطلابي";
+  const issuerSignatureUrl = clean(data.issuerSignatureUrl) || profile?.issuerSignatureUrl || "";
+  const artworkUrl = resolveUrl(template.templatePath, options.baseUrl);
+  const ministryLogoUrl = resolveUrl("/templates/certificates/moe-logo.svg", options.baseUrl);
 
   return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -136,11 +132,8 @@ export function renderCertificateDocumentHtml(
   <title>${escapeHtml(certificate.title || "شهادة")}</title>
   <style>
     @page { size: A4 landscape; margin: 0; }
-
     * { box-sizing: border-box; }
-
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       background: #e5e7eb;
@@ -149,285 +142,164 @@ export function renderCertificateDocumentHtml(
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-
     .certificate-shell {
       width: 297mm;
       height: 210mm;
       margin: 0 auto;
-      background: #fbfdf9;
       position: relative;
       overflow: hidden;
-      color: #0f172a;
+      background: #fff;
+      color: #102a43;
+      page-break-after: always;
+      break-after: page;
     }
-
-    .top {
+    .certificate-shell.last { page-break-after: auto; break-after: auto; }
+    .certificate-artwork {
       position: absolute;
-      inset-inline: 0;
-      top: 0;
-      height: 38mm;
-      background: #0f7a57;
-      border-bottom-left-radius: 45%;
-      border-bottom-right-radius: 45%;
-    }
-
-    .bottom {
-      position: absolute;
-      inset-inline: 0;
-      bottom: 0;
-      height: 33mm;
-      background: #0f7a57;
-      border-top-left-radius: 45%;
-      border-top-right-radius: 45%;
-    }
-
-    .gold-top {
-      position: absolute;
-      inset-inline: 0;
-      top: 31mm;
-      height: 8mm;
-      background: #d6b15f;
-      opacity: .9;
-      border-bottom-left-radius: 60%;
-      border-bottom-right-radius: 60%;
-    }
-
-    .gold-bottom {
-      position: absolute;
-      inset-inline: 0;
-      bottom: 29mm;
-      height: 8mm;
-      background: #d6b15f;
-      opacity: .9;
-      border-top-left-radius: 60%;
-      border-top-right-radius: 60%;
-    }
-
-    .outer {
-      position: absolute;
-      inset: 15mm;
-      border: 1.3mm solid #d6b15f;
-      border-radius: 9mm;
-    }
-
-    .inner {
-      position: absolute;
-      inset: 21mm;
-      border: .45mm solid rgba(15, 122, 87, .35);
-      border-radius: 7mm;
-    }
-
-    .logo {
-      position: absolute;
-      top: 23mm;
-      width: 48mm;
-      height: 19mm;
-      border-radius: 5mm;
-      background: rgba(255,255,255,.94);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #0f7a57;
-      font-weight: 900;
-      font-size: 11px;
-      overflow: hidden;
-      padding: 2mm;
-    }
-
-    .logo img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
       display: block;
     }
-
-    .vision { left: 26mm; }
-    .moe { right: 26mm; }
-
-    .medal {
+    .certificate-overlay {
       position: absolute;
-      top: 39mm;
-      left: 50%;
-      width: 23mm;
-      height: 23mm;
-      transform: translateX(-50%);
-      border: 1.4mm solid #d6b15f;
-      border-radius: 999px;
-      background: #f7f0d7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #0f7a57;
-      font-size: 28px;
-      font-weight: 900;
-    }
-
-    .content {
-      position: absolute;
-      top: 70mm;
-      left: 32mm;
-      right: 32mm;
+      inset: 0;
+      direction: rtl;
       text-align: center;
     }
-
+    .content {
+      position: absolute;
+      top: ${layout.contentTop};
+      left: ${layout.contentLeft};
+      right: ${layout.contentRight};
+      width: auto;
+      max-width: ${layout.contentWidth};
+      margin: 0 auto;
+    }
     .title {
-      color: #0f7a57;
-      font-size: 36px;
+      margin: 0;
+      color: ${layout.titleColor};
+      font-size: ${layout.titleSize};
       line-height: 1.2;
       font-weight: 900;
-      margin: 0;
     }
-
-    .line {
-      width: 95mm;
-      height: 1.2mm;
-      background: #d6b15f;
+    .accent-line {
+      width: 72mm;
+      height: 1mm;
+      margin: ${layout.contentGap} auto 0;
+      background: ${layout.accentColor};
       border-radius: 99px;
-      margin: 8mm auto 0;
     }
-
     .intro {
-      margin: 10mm 0 0;
-      color: #374151;
-      font-size: 18px;
+      margin: ${layout.introMarginTop} 0 0;
+      color: ${layout.bodyColor};
+      font-size: ${layout.introSize};
       font-weight: 700;
     }
-
     .name {
-      margin: 8mm 0 0;
-      color: #111827;
-      font-size: 34px;
-      font-weight: 900;
+      margin: ${layout.nameMarginTop} 0 0;
+      color: ${layout.titleColor};
+      font-size: ${layout.nameSize};
       line-height: 1.25;
+      font-weight: 900;
     }
-
     .body {
-      margin: 8mm auto 0;
-      max-width: 205mm;
-      color: #374151;
-      font-size: 18px;
-      line-height: 1.9;
+      max-width: 100%;
+      margin: ${layout.bodyMarginTop} auto 0;
+      color: ${layout.bodyColor};
+      font-size: ${layout.bodySize};
+      line-height: 1.75;
       font-weight: 700;
     }
-
     .reason {
-      margin: 4mm auto 0;
-      color: #64748b;
-      font-size: 13px;
-      line-height: 1.7;
+      margin: ${layout.reasonMarginTop} auto 0;
+      color: #627d98;
+      font-size: ${layout.reasonSize};
+      line-height: 1.5;
       font-weight: 800;
     }
-
     .signatures {
       position: absolute;
-      left: 26mm;
-      right: 26mm;
-      bottom: 24mm;
+      left: ${layout.signatureLeft};
+      right: ${layout.signatureRight};
+      bottom: ${layout.signatureBottom};
       display: flex;
+      direction: ${layout.swapSignatureSides ? "ltr" : "rtl"};
       align-items: flex-end;
       justify-content: space-between;
       gap: 20mm;
     }
-
     .signature-box {
-      width: 62mm;
+      width: ${layout.signatureWidth};
+      color: ${layout.signatureColor};
       text-align: center;
-      color: #374151;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
     }
-
-    .signature-title {
-      margin-bottom: 2mm;
-    }
-
+    .signature-title { margin-bottom: 2mm; }
     .signature-image-wrap {
-      height: 17mm;
+      height: 15mm;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2mm;
+      margin-bottom: 1mm;
     }
-
-    .signature-image-wrap img {
-      max-width: 58mm;
-      max-height: 17mm;
-      object-fit: contain;
-      display: block;
-    }
-
-    .signature-line {
-      width: 100%;
-      height: .6mm;
-      background: #0f7a57;
-      margin-top: 12mm;
-    }
-
-    .signature-name {
-      color: #64748b;
-      font-size: 11px;
-      font-weight: 800;
-      min-height: 5mm;
-    }
-
+    .signature-image-wrap img { max-width: 55mm; max-height: 15mm; object-fit: contain; display: block; }
+    .signature-line { width: 100%; height: .5mm; background: ${layout.accentColor}; margin-top: 11mm; }
+    .signature-name { min-height: 5mm; color: #627d98; font-size: 10px; font-weight: 800; }
     .meta {
       position: absolute;
-      left: 50%;
-      bottom: 28mm;
+      left: ${layout.metaLeft};
+      bottom: ${layout.metaBottom};
       transform: translateX(-50%);
+      color: #627d98;
       text-align: center;
-      color: #64748b;
-      font-size: 11px;
-      line-height: 1.7;
+      font-size: 10px;
+      line-height: 1.6;
       font-weight: 800;
+      white-space: nowrap;
     }
-
+    .ministry-logo {
+      position: absolute;
+      top: ${layout.ministryLogoTop};
+      left: ${layout.ministryLogoLeft};
+      width: ${layout.ministryLogoWidth};
+      max-height: ${layout.ministryLogoMaxHeight};
+      height: auto;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+    }
     @media print {
-      html, body { background: white; }
+      html, body { background: #fff; }
       .certificate-shell { margin: 0; box-shadow: none; }
     }
   </style>
 </head>
 <body>
   <section class="certificate-shell">
-    <div class="top"></div>
-    <div class="gold-top"></div>
-    <div class="bottom"></div>
-    <div class="gold-bottom"></div>
-    <div class="outer"></div>
-    <div class="inner"></div>
-
-    <div class="logo vision"><img src="${escapeHtml(visionLogoUrl)}" alt="رؤية 2030" /></div>
-    <div class="logo moe"><img src="${escapeHtml(ministryLogoUrl)}" alt="وزارة التعليم" /></div>
-    <div class="medal">✓</div>
-
-    <main class="content">
-      <h1 class="title">${escapeHtml(certificate.title || "شهادة")}</h1>
-      <div class="line"></div>
-      <p class="intro">تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى</p>
-      <div class="name">${escapeHtml(certificate.recipientName)}</div>
-      <p class="body">${escapeHtml(certificate.body || "")}</p>
-      ${certificate.reason ? `<p class="reason">سبب التكريم: ${escapeHtml(certificate.reason)}</p>` : ""}
-    </main>
-
-    <div class="signatures">
-      ${renderSignatureBox({
-        title: issuerTitle,
-        name: issuerName,
-        signatureUrl: issuerSignatureUrl,
-        baseUrl: options.baseUrl,
-      })}
-
-      ${renderSignatureBox({
-        title: "مدير المدرسة",
-        name: principalName,
-        signatureUrl: principalSignatureUrl,
-        baseUrl: options.baseUrl,
-      })}
-    </div>
-
-    <div class="meta">
-      <div>تاريخ الإصدار: ${escapeHtml(formatCertificateDate(certificate.issueDate))}</div>
-      <div>رقم الشهادة: ${escapeHtml(certificate.certificateNumber)}</div>
+    <img class="certificate-artwork" src="${escapeHtml(artworkUrl)}" alt="" aria-hidden="true" />
+    <img class="ministry-logo" src="${escapeHtml(ministryLogoUrl)}" alt="وزارة التعليم" />
+    <div class="certificate-overlay">
+      <main class="content">
+        ${layout.showDynamicTitle
+          ? `<h1 class="title">${escapeHtml(certificate.title || "شهادة")}</h1>
+        <div class="accent-line"></div>`
+          : ""}
+        <p class="intro">تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى</p>
+        <div class="name">${escapeHtml(certificate.recipientName)}</div>
+        <p class="body">${escapeHtml(certificate.body || "")}</p>
+        ${certificate.reason ? `<p class="reason">سبب التكريم: ${escapeHtml(certificate.reason)}</p>` : ""}
+      </main>
+      <div class="signatures">
+        ${renderSignatureBox({ title: issuerTitle, name: issuerName, signatureUrl: issuerSignatureUrl, baseUrl: options.baseUrl })}
+        ${renderSignatureBox({ title: "مدير المدرسة", name: principalName, signatureUrl: principalSignatureUrl, baseUrl: options.baseUrl })}
+      </div>
+      <div class="meta">
+        <div>تاريخ الإصدار: ${escapeHtml(formatCertificateDate(certificate.issueDate))}</div>
+        <div>رقم الشهادة: ${escapeHtml(certificate.certificateNumber)}</div>
+      </div>
     </div>
   </section>
 </body>

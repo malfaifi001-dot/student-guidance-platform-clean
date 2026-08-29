@@ -7,6 +7,7 @@ import {
   getCertificateTypeLabel,
   getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
+import { DEFAULT_CERTIFICATE_TEMPLATE_KEY } from "@/lib/certificates/certificate-renderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
       await insertDynamic(tx, "CertificateBatch", batchColumns, {
         id: batchId,
         schoolAccountId: actor.schoolAccountId,
-        templateId: "cert_tpl_official_green",
+        templateId: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
         batchNumber,
         title: batchTitle,
         name: batchTitle,
@@ -215,7 +216,7 @@ export async function POST(request: Request) {
         await insertDynamic(tx, "IssuedCertificate", issuedColumns, {
           id: certificateId,
           schoolAccountId: actor.schoolAccountId,
-          templateId: "cert_tpl_official_green",
+          templateId: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
           batchId,
           certificateNumber,
           recipientType: row.recipientType,
@@ -236,6 +237,7 @@ export async function POST(request: Request) {
           pdfUrl: null,
           htmlSnapshot: null,
           dataJson: JSON.stringify({
+            templateKey: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
             source,
             batchId,
             batchNumber,

@@ -1,7 +1,10 @@
 export const CERTIFICATES_SERVICE_SLUG = "certificates-honors" as const;
 
 export const CERTIFICATE_TEMPLATE_KEYS = {
-  officialGreen: "official-green",
+  modernBlue: "certificate-modern-blue",
+  navyClassic: "certificate-navy-classic",
+  navyModern: "certificate-navy-modern",
+  navyElegant: "certificate-navy-elegant",
 } as const;
 
 export const CERTIFICATE_TYPES = [

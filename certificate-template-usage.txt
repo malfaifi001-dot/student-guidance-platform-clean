@@ -1,0 +1,142 @@
+===== SEARCH: templateKey =====
+app\api\dashboard\surveys\templates\route.ts : Line 93
+const template = getSurveyTemplateByKey(payload.templateKey);
+
+components\surveys\survey-templates-shell.tsx : Line 32
+async function createFromTemplate(templateKey: string, mode: CreateMode) {
+
+components\surveys\survey-templates-shell.tsx : Line 33
+setIsCreatingKey(`${templateKey}:${mode}`);
+
+components\surveys\survey-templates-shell.tsx : Line 43
+templateKey,
+
+lib\surveys\survey-api-schemas.ts : Line 113
+templateKey: z.string().trim().min(1).max(120),
+
+
+===== SEARCH: CERTIFICATE_TEMPLATE_KEYS =====
+lib\certificates\certificate-template-registry.ts : Line 1
+import { CERTIFICATE_TEMPLATE_KEYS } from "./certificate-types";
+
+lib\certificates\certificate-template-registry.ts : Line 5
+key: CERTIFICATE_TEMPLATE_KEYS.officialGreen,
+
+lib\certificates\certificate-types.ts : Line 3
+export const CERTIFICATE_TEMPLATE_KEYS = {
+
+
+===== SEARCH: certificateTemplateRegistry =====
+lib\certificates\certificate-template-registry.ts : Line 3
+export const certificateTemplateRegistry = [
+
+lib\certificates\certificate-template-registry.ts : Line 16
+return certificateTemplateRegistry.find((template) => template.key === key);
+
+
+===== SEARCH: getCertificateTemplateByKey =====
+lib\certificates\certificate-template-registry.ts : Line 15
+export function getCertificateTemplateByKey(key: string) {
+
+
+===== SEARCH: renderCertificateDocumentHtml =====
+app\api\dashboard\certificates\[certificateId]\export\pdf\route.ts : Line 8
+renderCertificateDocumentHtml,
+
+app\api\dashboard\certificates\[certificateId]\export\pdf\route.ts : Line 80
+const html = renderCertificateDocumentHtml(certificate, {
+
+app\dashboard\certificates\[certificateId]\preview-print\page.tsx : Line 7
+renderCertificateDocumentHtml,
+
+app\dashboard\certificates\[certificateId]\preview-print\page.tsx : Line 55
+const html = renderCertificateDocumentHtml(certificate, {
+
+lib\certificates\certificate-batch-renderer.ts : Line 2
+renderCertificateDocumentHtml,
+
+lib\certificates\certificate-batch-renderer.ts : Line 43
+const html = renderCertificateDocumentHtml(certificate, options);
+
+lib\certificates\certificate-batch-renderer.ts : Line 52
+const firstHtml = renderCertificateDocumentHtml(safeCertificates[0], options);
+
+lib\certificates\certificate-renderer.ts : Line 108
+export function renderCertificateDocumentHtml(
+
+lib\certificates\report-certificate-attachments.ts : Line 4
+renderCertificateDocumentHtml,
+
+lib\certificates\report-certificate-attachments.ts : Line 564
+renderCertificateDocumentHtml(
+
+
+===== SEARCH: officialGreen =====
+lib\certificates\certificate-template-registry.ts : Line 5
+key: CERTIFICATE_TEMPLATE_KEYS.officialGreen,
+
+lib\certificates\certificate-types.ts : Line 4
+officialGreen: "official-green",
+
+
+===== SEARCH: official-green =====
+lib\certificates\certificate-template-registry.ts : Line 8
+templatePath: "/templates/certificates/official-green.svg",
+
+lib\certificates\certificate-template-registry.ts : Line 9
+previewImagePath: "/templates/certificates/official-green.svg",
+
+lib\certificates\certificate-types.ts : Line 4
+officialGreen: "official-green",
+
+
+===== CERTIFICATE FILES =====
+app\api\dashboard\certificates\route.ts
+app\api\dashboard\certificates\batches\[batchId]\export\pdf\route.ts
+app\api\dashboard\certificates\bulk\issue\route.ts
+app\api\dashboard\certificates\bulk\preview\route.ts
+app\api\dashboard\certificates\bulk\template\route.ts
+app\api\dashboard\certificates\linking\route.ts
+app\api\dashboard\certificates\students\route.ts
+app\api\dashboard\certificates\students\options\route.ts
+app\api\dashboard\certificates\[certificateId]\export\pdf\route.ts
+app\api\dashboard\student-follow-up\appreciation-certificates\export\pdf\route.ts
+app\api\dashboard\student-follow-up\appreciation-certificates\identity\route.ts
+app\dashboard\admin\document-designs\appreciation-certificate\page.tsx
+app\dashboard\assessment-center\certificates-linking\page.tsx
+app\dashboard\certificates\page.tsx
+app\dashboard\certificates\archive\page.tsx
+app\dashboard\certificates\batches\[batchId]\page.tsx
+app\dashboard\certificates\batches\[batchId]\preview-print\page.tsx
+app\dashboard\certificates\bulk\page.tsx
+app\dashboard\certificates\linking\page.tsx
+app\dashboard\certificates\new\page.tsx
+app\dashboard\certificates\new\preview\page.tsx
+app\dashboard\certificates\[certificateId]\preview-print\page.tsx
+app\dashboard\student-follow-up\appreciation-certificates\layout.tsx
+app\dashboard\student-follow-up\appreciation-certificates\page.tsx
+app\dashboard\teacher\certificates\page.tsx
+app\pdf-preview\appreciation-certificate\page.tsx
+components\certificates\bulk-certificates-page.tsx
+components\certificates\certificate-batch-details-actions.tsx
+components\certificates\certificate-preview-page.tsx
+components\certificates\certificate-print-button.tsx
+components\certificates\certificate-report-linking-page.tsx
+components\certificates\certificates-archive-page.tsx
+components\certificates\new-certificate-form.tsx
+components\document-export\appreciation-certificate-pdf-button.tsx
+components\report-engine\appreciation-certificate-preview.tsx
+components\student-follow-up\appreciation-certificate-statistics-client.tsx
+components\student-follow-up\appreciation-certificates-client.tsx
+components\student-follow-up\appreciation-certificates-tabs.tsx
+lib\certificates\certificate-auth.ts
+lib\certificates\certificate-batch-renderer.ts
+lib\certificates\certificate-bulk-parser.ts
+lib\certificates\certificate-copy.ts
+lib\certificates\certificate-db.ts
+lib\certificates\certificate-number.ts
+lib\certificates\certificate-renderer.ts
+lib\certificates\certificate-signature-profile.ts
+lib\certificates\certificate-template-registry.ts
+lib\certificates\certificate-types.ts
+lib\certificates\report-certificate-attachments.ts

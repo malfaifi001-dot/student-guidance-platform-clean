@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import {
   getCertificateTypeLabel,
-  getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
+import { CertificateTemplatePreview } from "@/components/certificates/certificate-template-preview";
 
 type CertificateDraft = {
+  templateKey: string;
   recipientType: string;
   recipientName: string;
   studentId?: string | null;
@@ -176,78 +177,13 @@ export function CertificatePreviewPage() {
             <div>
               <p className="text-xs font-black text-sky-700">المعاينة النهائية</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">
-                القالب الرسمي الأخضر
+                معاينة التصميم المختار
               </h2>
             </div>
           </div>
 
           <div className="overflow-x-auto rounded-[2rem] bg-slate-100 p-4">
-            <div className="relative mx-auto h-[520px] min-w-[880px] overflow-hidden rounded-[2rem] bg-[#fbfdf9] shadow-sm ring-1 ring-slate-200">
-              <div className="absolute inset-x-0 top-0 h-28 rounded-b-[55%] bg-emerald-800" />
-              <div className="absolute inset-x-0 top-24 h-6 rounded-b-[60%] bg-[#d6b15f]" />
-              <div className="absolute inset-x-0 bottom-0 h-24 rounded-t-[55%] bg-emerald-800" />
-              <div className="absolute inset-x-0 bottom-20 h-6 rounded-t-[60%] bg-[#d6b15f]" />
-
-              <div className="absolute inset-8 rounded-[2rem] border-4 border-[#d6b15f]" />
-              <div className="absolute inset-14 rounded-[1.5rem] border border-emerald-700/30" />
-
-              <div className="absolute left-12 top-14 flex h-14 w-36 items-center justify-center rounded-2xl bg-white/95 text-xs font-black text-emerald-800">
-                شعار رؤية 2030
-              </div>
-
-              <div className="absolute right-12 top-14 flex h-14 w-36 items-center justify-center rounded-2xl bg-white/95 text-xs font-black text-emerald-800">
-                شعار وزارة التعليم
-              </div>
-
-              <div className="absolute left-1/2 top-24 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full border-4 border-[#d6b15f] bg-[#f7f0d7] text-3xl font-black text-emerald-800">
-                ✓
-              </div>
-
-              <div className="absolute left-24 right-24 top-48 text-center">
-                <h3 className="text-4xl font-black text-emerald-800">
-                  {getCertificateTypeLabel(draft.certificateType)}
-                </h3>
-
-                <div className="mx-auto mt-5 h-1.5 w-64 rounded-full bg-[#d6b15f]" />
-
-                <p className="mt-8 text-lg font-bold text-slate-600">
-                  تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى
-                </p>
-
-                <p className="mt-5 text-4xl font-black text-slate-950">
-                  {draft.recipientName}
-                </p>
-
-                <p className="mx-auto mt-6 max-w-3xl text-lg font-bold leading-9 text-slate-600">
-                  {draft.body}
-                </p>
-
-                <p className="mt-4 text-sm font-bold text-slate-400">
-                  {draft.reason}
-                </p>
-              </div>
-
-              <div className="absolute bottom-20 left-16 w-44 text-center text-sm font-black text-slate-600">
-                <p>الموجه / رائد النشاط</p>
-                <div className="my-3 h-0.5 bg-emerald-800" />
-                <p className="text-xs font-bold text-slate-400">
-                  {draft.issuerName || "حسب الحساب"}
-                </p>
-              </div>
-
-              <div className="absolute bottom-20 right-16 w-44 text-center text-sm font-black text-slate-600">
-                <p>مدير المدرسة</p>
-                <div className="my-3 h-0.5 bg-emerald-800" />
-                <p className="text-xs font-bold text-slate-400">
-                  {draft.principalName || "مدير المدرسة"}
-                </p>
-              </div>
-
-              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center text-xs font-bold leading-6 text-slate-500">
-                <p>تاريخ الإصدار: {formatDate(draft.issueDate)}</p>
-                <p>{getRecipientPrefix(draft.recipientType)}</p>
-              </div>
-            </div>
+            <CertificateTemplatePreview data={draft} />
           </div>
         </div>
 

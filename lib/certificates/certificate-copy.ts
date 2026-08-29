@@ -4,6 +4,7 @@ import {
 } from "./certificate-types";
 
 export type CertificateDraft = {
+  templateKey?: string;
   certificateType: string;
   recipientType: string;
   recipientName: string;
@@ -60,6 +61,7 @@ export function normalizeCertificateDraft(input: Partial<CertificateDraft>): Cer
   const reason = String(input.reason || "").trim();
 
   return {
+    templateKey: String(input.templateKey || "certificate-modern-blue").trim() || "certificate-modern-blue",
     certificateType,
     recipientType,
     recipientName,

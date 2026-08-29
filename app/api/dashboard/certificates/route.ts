@@ -7,6 +7,8 @@ import {
   getCertificateTypeLabel,
   getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
+import { getCertificateTemplateByKey } from "@/lib/certificates/certificate-template-registry";
+import { DEFAULT_CERTIFICATE_TEMPLATE_KEY } from "@/lib/certificates/certificate-renderer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -202,6 +204,9 @@ export async function POST(request: Request) {
   const recipientName = safeString(payload.recipientName);
   const recipientType = safeString(payload.recipientType) || "student";
   const certificateType = safeString(payload.certificateType) || "thanks";
+  const templateKey =
+    getCertificateTemplateByKey(safeString(payload.templateKey))?.key ||
+    DEFAULT_CERTIFICATE_TEMPLATE_KEY;
   const reason = safeString(payload.reason);
   const issueDate = normalizeIssueDate(payload.issueDate);
   const title = buildCertificateTitle(certificateType);
@@ -240,7 +245,7 @@ export async function POST(request: Request) {
   await insertDynamic("IssuedCertificate", columns, {
     id: certificateId,
     schoolAccountId: actor.schoolAccountId,
-    templateId: "cert_tpl_official_green",
+    templateId: templateKey,
     batchId: null,
     certificateNumber,
     recipientType,
@@ -261,6 +266,7 @@ export async function POST(request: Request) {
     pdfUrl: null,
     htmlSnapshot: null,
     dataJson: JSON.stringify({
+      templateKey,
       principalName:
         safeString(payload.principalName) ||
         signatureProfile?.principalName ||
