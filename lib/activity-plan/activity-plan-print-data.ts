@@ -41,11 +41,11 @@ function resolveLegacyProgramKey(title: string | null | undefined) {
   return match?.key || "";
 }
 
-export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null, weekNumbers?: number[]): Promise<ActivityPlanPrintWeek[]> {
+export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null, weekNumbers?: number[], ownerUserId?: string): Promise<ActivityPlanPrintWeek[]> {
   const selectedStage = normalizeActivityPlanStage(stage);
   const selectedWeeks = weekNumbers?.length ? Array.from(new Set(weekNumbers.filter((week) => Number.isInteger(week) && week >= 1 && week <= 20))) : [];
   const entries = await prisma.activityPlanEntry.findMany({
-    where: { schoolAccountId, ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: selectedWeeks.length ? { in: selectedWeeks } : { gte: 1, lte: 20 } },
+    where: { schoolAccountId, ...(ownerUserId ? { createdById: ownerUserId } : {}), ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: selectedWeeks.length ? { in: selectedWeeks } : { gte: 1, lte: 20 } },
     select: {
       weekNumber: true,
       dayOfWeek: true,

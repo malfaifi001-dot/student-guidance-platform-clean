@@ -31,6 +31,10 @@ const statusLabels: Record<string, string> = {
 
 export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
   const [selectedService, setSelectedService] = useState("all");
+  const [selectedFamily, setSelectedFamily] = useState<PrincipalStaffReportsWorkspace["outputFamilies"][number]["key"]>(() => {
+    if (workspace.reports.length) return "REPORTS";
+    return workspace.outputFamilies.find((family) => family.outputs.length)?.key || workspace.outputFamilies[0]?.key || "REPORTS";
+  });
   const [previewReport, setPreviewReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
   const [linkReport, setLinkReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
   const [signReport, setSignReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
@@ -42,6 +46,17 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
     const timeoutId = window.setTimeout(() => setLinkSaved(false), 4000);
     return () => window.clearTimeout(timeoutId);
   }, [linkSaved]);
+
+  useEffect(() => {
+    if (workspace.outputFamilies.some((family) => family.key === selectedFamily)) return;
+    setSelectedFamily(workspace.outputFamilies[0]?.key || "REPORTS");
+  }, [selectedFamily, workspace.outputFamilies]);
+
+  useEffect(() => {
+    if (workspace.reports.length || selectedFamily !== "REPORTS") return;
+    const populatedFamily = workspace.outputFamilies.find((family) => family.outputs.length);
+    if (populatedFamily) setSelectedFamily(populatedFamily.key);
+  }, [selectedFamily, workspace.outputFamilies, workspace.reports.length]);
 
   const services = useMemo(() => {
     const map = new Map<string, { title: string; count: number }>();
@@ -91,7 +106,26 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
         </div>
       </section>
 
-      {services.length ? (
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-wrap gap-2">
+          {workspace.outputFamilies.map((family) => (
+            <button
+              key={family.key}
+              type="button"
+              onClick={() => {
+                setSelectedFamily(family.key);
+                setSelectedService("all");
+              }}
+              className={familyButtonClass(selectedFamily === family.key)}
+            >
+              {family.title}
+              {family.key === "REPORTS" ? <span>{workspace.reports.length}</span> : <span>{family.outputs.length}</span>}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {selectedFamily === "REPORTS" && services.length ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-black text-slate-900 dark:text-white">الخدمات ذات التقارير</h2>
@@ -123,7 +157,7 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
         </section>
       ) : null}
 
-      <section className="space-y-3">
+      {selectedFamily === "REPORTS" ? <section className="space-y-3">
         {visibleReports.length ? visibleReports.map((report) => (
           <article key={`${report.source}:${report.id}`} className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -160,7 +194,7 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
             <h2 className="mt-3 text-lg font-black text-slate-900 dark:text-white">لا توجد تقارير صادرة</h2>
           </section>
         )}
-      </section>
+      </section> : <OutputFamilySection family={workspace.outputFamilies.find((item) => item.key === selectedFamily)} />}
 
       {previewReport ? <PreviewDialog report={previewReport} onClose={() => setPreviewReport(null)} /> : null}
       {signReport ? <PrincipalSignatureDialog report={signReport} staffName={workspace.staff.name} userId={workspace.staff.id} onClose={() => setSignReport(null)} onSigned={() => {
@@ -191,6 +225,46 @@ function serviceButtonClass(active: boolean) {
       ? "border-indigo-700 bg-indigo-700 text-white"
       : "border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-200 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
   ].join(" ");
+}
+
+function familyButtonClass(active: boolean) {
+  return [
+    "inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
+    active
+      ? "border-indigo-700 bg-indigo-700 text-white"
+      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-200 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
+  ].join(" ");
+}
+
+function OutputFamilySection({ family }: { family?: PrincipalStaffReportsWorkspace["outputFamilies"][number] }) {
+  if (!family) return null;
+
+  return (
+    <section className="space-y-3" aria-label={family.title}>
+      {family.outputs.length ? family.outputs.map((output) => (
+        <article key={`${output.sourceType}:${output.sourceId}`} className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{family.title}</span>
+              <h2 className="mt-3 text-lg font-black text-slate-950 dark:text-white">{output.title}</h2>
+              <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">{output.status}</p>
+            </div>
+            {output.canPreview && output.previewHref ? (
+              <Link href={output.previewHref} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-xs font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <FileText className="h-4 w-4" /> معاينة
+              </Link>
+            ) : null}
+          </div>
+        </article>
+      )) : (
+        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-950">
+          <FileText className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
+          <h2 className="mt-3 text-lg font-black text-slate-900 dark:text-white">لا توجد مخرجات محفوظة</h2>
+          <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">ستظهر هنا المستندات النهائية الخاصة بهذا المنسوب.</p>
+        </section>
+      )}
+    </section>
+  );
 }
 
 function DialogShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {

@@ -284,3 +284,10 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     status: "soon",
   },
 ];
+
+/** Canonical role menu used by workspace surfaces that need to mirror staff availability. */
+export function getWorkspaceModulesForRole(role: WorkspaceRole): WorkspaceModule[] {
+  if (role === "TEACHER") return teacherWorkspaceModules;
+  if (role === "ACTIVITY_LEADER") return activityLeaderWorkspaceModules;
+  return counselorWorkspaceModules;
+}

@@ -97,11 +97,11 @@ export function getWeeklyDateRange(weekNumber: number) {
   return dateRange(weekNumber);
 }
 
-export async function getWeeklyActivityPlans(schoolAccountId: string, stage: string) {
+export async function getWeeklyActivityPlans(schoolAccountId: string, stage: string, ownerUserId?: string) {
   const selectedStage = normalizeActivityPlanStage(stage);
   if (!selectedStage) return [];
   const records = await prisma.weeklyActivityPlanEntry.findMany({
-    where: { schoolAccountId, stage: selectedStage },
+    where: { schoolAccountId, stage: selectedStage, ...(ownerUserId ? { createdById: ownerUserId } : {}) },
     orderBy: { weekNumber: "asc" },
   });
   const byWeek = new Map(records.map((record) => [record.weekNumber, weeklyPlanFromRecord(record)]));

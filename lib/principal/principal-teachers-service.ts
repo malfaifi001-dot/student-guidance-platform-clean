@@ -15,6 +15,9 @@ import {
   buildReportTwoPreviewCase,
   buildReportTwoRenderContext,
 } from "@/lib/report-2/report-two-structured-data";
+import { getWorkspaceModulesForRole } from "@/lib/workspace/workspace-modules";
+import { isServiceAllowedForUser } from "@/lib/subscription/subscription-service";
+import { getDistribution } from "@/lib/curriculum-distribution/queries";
 
 const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
   "TEACHER",
@@ -320,7 +323,47 @@ export type PrincipalStaffReportsWorkspace = {
     lastActivityAt: string | null;
   };
   reports: PrincipalStaffReport[];
+  outputFamilies: PrincipalStaffOutputFamily[];
 };
+
+export type PrincipalStaffOutputFamilyKey =
+  | "REPORTS"
+  | "CURRICULUM_DISTRIBUTION"
+  | "ACTIVITY_PLAN"
+  | "SURVEYS"
+  | "CERTIFICATES"
+  | "PORTFOLIO"
+  | "ASSESSMENTS";
+
+export type PrincipalStaffOutput = {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  ownerUserId: string;
+  ownerRole: UserRole;
+  serviceSlug: string;
+  title: string;
+  issuedAt: string;
+  status: string;
+  canPreview: boolean;
+  canPrincipalSign: boolean;
+  canLink: boolean;
+  previewHref: string | null;
+  printHref: string | null;
+};
+
+export type PrincipalStaffOutputFamily = {
+  key: PrincipalStaffOutputFamilyKey;
+  title: string;
+  menuAvailable: boolean;
+  outputs: PrincipalStaffOutput[];
+};
+
+function hasStaffMenuPath(role: UserRole, paths: string[]) {
+  if (role !== "TEACHER" && role !== "ACTIVITY_LEADER" && role !== "COUNSELOR") return false;
+  const modules = getWorkspaceModulesForRole(role);
+  return paths.some((path) => modules.some((module) => module.href === path || module.href.startsWith(`${path}/`)));
+}
 
 export async function getPrincipalStaffReportsWorkspace(userId: string) {
   const context = await getPrincipalSchoolContext();
@@ -622,6 +665,210 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     report.linkedTargetIds = linksByReport.get(`${sourceType}:${report.id}`) || [];
   }
 
+  const [certificateRows, activityPlanRows, weeklyPlanRows, surveyRows, portfolioRows, savedCurriculumRows] = await Promise.all([
+    prisma.issuedCertificate.findMany({
+      where: { schoolAccountId: context.schoolAccountId, createdById: staff.id, status: "ISSUED" },
+      orderBy: { issueDate: "desc" },
+      select: { id: true, certificateType: true, recipientName: true, issueDate: true },
+    }),
+    prisma.activityPlanEntry.findMany({
+      where: { schoolAccountId: context.schoolAccountId, createdById: staff.id },
+      orderBy: { updatedAt: "desc" },
+      distinct: ["stage"],
+      select: { stage: true, updatedAt: true },
+    }),
+    prisma.weeklyActivityPlanEntry.findMany({
+      where: { schoolAccountId: context.schoolAccountId, createdById: staff.id },
+      orderBy: { updatedAt: "desc" },
+      distinct: ["stage"],
+      select: { stage: true, updatedAt: true },
+    }),
+    prisma.survey.findMany({
+      where: {
+        schoolAccountId: context.schoolAccountId,
+        createdById: staff.id,
+        status: { in: ["PUBLISHED", "CLOSED", "ARCHIVED"] },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true, updatedAt: true, status: true },
+    }),
+    prisma.portfolioSnapshot.findMany({
+      where: { schoolAccountId: context.schoolAccountId, ownerUserId: staff.id, roleAtCreation: staff.role },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, createdAt: true },
+    }),
+    prisma.teacherSavedCurriculum.findMany({
+      where: { schoolAccountId: context.schoolAccountId, ownerUserId: staff.id, serviceSlug: "curriculum-distribution" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, subjectId: true, semesterId: true, updatedAt: true },
+    }),
+  ]);
+
+  const outputBase = (input: Omit<PrincipalStaffOutput, "ownerUserId" | "ownerRole">): PrincipalStaffOutput => ({
+    ...input,
+    ownerUserId: staff.id,
+    ownerRole: staff.role,
+  });
+  const certificateOutputs = certificateRows.map((certificate) => outputBase({
+    id: certificate.id,
+    sourceType: "ISSUED_CERTIFICATE",
+    sourceId: certificate.id,
+    serviceSlug: "certificates-honors",
+    title: `${certificate.recipientName} — ${certificate.certificateType}`,
+    issuedAt: certificate.issueDate.toISOString(),
+    status: "ISSUED",
+    canPreview: true,
+    canPrincipalSign: false,
+    canLink: false,
+    previewHref: `/certificate-preview/${encodeURIComponent(certificate.id)}`,
+    printHref: `/certificate-preview/${encodeURIComponent(certificate.id)}?print=1`,
+  }));
+  const stageRows = new Map<string, { updatedAt: Date; weekly: boolean; semester: boolean }>();
+  for (const row of activityPlanRows) {
+    const stage = row.stage.trim();
+    if (!stage || stage === "غير محددة") continue;
+    const current = stageRows.get(stage);
+    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: true, semester: current?.semester || false });
+  }
+  for (const row of weeklyPlanRows) {
+    const stage = row.stage.trim();
+    if (!stage || stage === "غير محددة") continue;
+    const current = stageRows.get(stage);
+    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: current?.weekly || false, semester: true });
+  }
+  const curriculumOutputs = Array.from(stageRows, ([stage, state]) => [
+    ...(state.weekly ? [outputBase({
+      id: `curriculum:weekly:${stage}`,
+      sourceType: "CURRICULUM_DISTRIBUTION_WEEKLY",
+      sourceId: stage,
+      serviceSlug: "curriculum-distribution",
+      title: `الخطة الأسبوعية — ${stage}`,
+      issuedAt: state.updatedAt.toISOString(),
+      status: "SAVED",
+      canPreview: true,
+      canPrincipalSign: false,
+      canLink: false,
+      previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=weekly`,
+      printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=weekly&print=1`,
+    })] : []),
+    ...(state.semester ? [outputBase({
+      id: `curriculum:semester:${stage}`,
+      sourceType: "CURRICULUM_DISTRIBUTION_SEMESTER",
+      sourceId: stage,
+      serviceSlug: "curriculum-distribution",
+      title: `الخطة الفصلية — ${stage}`,
+      issuedAt: state.updatedAt.toISOString(),
+      status: "SAVED",
+      canPreview: true,
+      canPrincipalSign: false,
+      canLink: false,
+      previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=semester`,
+      printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=semester&print=1`,
+    })] : []),
+  ]).flat();
+  const savedCurriculumWithDistribution = await Promise.all(savedCurriculumRows.map(async (row) => ({ ...row, distribution: await getDistribution(row.subjectId, row.semesterId) })));
+  const curriculumDistributionOutputs = savedCurriculumWithDistribution.filter((row) => row.distribution).map((row) => outputBase({
+    id: row.id,
+    sourceType: "CURRICULUM_DISTRIBUTION",
+    sourceId: row.id,
+    serviceSlug: "curriculum-distribution",
+    title: `توزيع المنهج — ${row.distribution?.subject.name || "مادة دراسية"}`,
+    issuedAt: row.updatedAt.toISOString(),
+    status: "SAVED",
+    canPreview: true,
+    canPrincipalSign: false,
+    canLink: false,
+    previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum-distribution/${encodeURIComponent(row.id)}`,
+    printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum-distribution/${encodeURIComponent(row.id)}?print=1`,
+  }));
+  const surveyOutputs = surveyRows.map((survey) => outputBase({
+    id: survey.id,
+    sourceType: "SURVEY_ANALYSIS",
+    sourceId: survey.id,
+    serviceSlug: "surveys",
+    title: survey.title,
+    issuedAt: survey.updatedAt.toISOString(),
+    status: survey.status,
+    canPreview: true,
+    canPrincipalSign: false,
+    canLink: false,
+    previewHref: `/dashboard/surveys/${encodeURIComponent(survey.id)}/analysis`,
+    printHref: `/dashboard/surveys/${encodeURIComponent(survey.id)}/pdf`,
+  }));
+  const portfolioOutputs = portfolioRows.map((snapshot) => outputBase({
+    id: snapshot.id,
+    sourceType: "PORTFOLIO_SNAPSHOT",
+    sourceId: snapshot.id,
+    serviceSlug: "portfolio",
+    title: snapshot.name,
+    issuedAt: snapshot.createdAt.toISOString(),
+    status: "SAVED",
+    canPreview: true,
+    canPrincipalSign: false,
+    canLink: false,
+    previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/portfolio/${encodeURIComponent(snapshot.id)}`,
+    printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/portfolio/${encodeURIComponent(snapshot.id)}?print=1`,
+  }));
+
+  const [reportsAccess, curriculumAccess, activityPlanAccess, surveysAccess, certificatesAccess, portfolioAccess, assessmentsAccess] = await Promise.all([
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "reports" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "curriculum-distribution" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "student-activity-plan" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "surveys" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "certificates-honors" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "portfolio" }),
+    isServiceAllowedForUser({ userId: staff.id, schoolAccountId: context.schoolAccountId, serviceSlug: "assessment-center" }),
+  ]);
+
+  const outputFamilies: PrincipalStaffOutputFamily[] = ([
+    {
+      key: "REPORTS",
+      title: "التقارير",
+      // Keep approved historical reports visible if current access changes.
+      menuAvailable: reports.length > 0 || (hasStaffMenuPath(staff.role, ["/dashboard/report-2", "/dashboard/reports"]) && reportsAccess.ok),
+      outputs: [],
+    },
+    {
+      key: "CURRICULUM_DISTRIBUTION",
+      title: "توزيع المنهج",
+      menuAvailable: (hasStaffMenuPath(staff.role, ["/dashboard/teacher/curriculum-distribution"]) && curriculumAccess.ok) || curriculumDistributionOutputs.length > 0,
+      outputs: curriculumDistributionOutputs,
+    },
+    {
+      key: "ACTIVITY_PLAN",
+      title: "خطة النشاط الطلابي",
+      menuAvailable: (hasStaffMenuPath(staff.role, ["/dashboard/activity-leader/activity-plan"]) && activityPlanAccess.ok) || curriculumOutputs.length > 0,
+      outputs: curriculumOutputs,
+    },
+    {
+      key: "SURVEYS",
+      title: "الاستبيانات",
+      menuAvailable: (hasStaffMenuPath(staff.role, ["/dashboard/surveys", "/dashboard/teacher/surveys", "/dashboard/activity-leader/surveys"]) && surveysAccess.ok) || surveyOutputs.length > 0,
+      outputs: surveyOutputs,
+    },
+    {
+      key: "CERTIFICATES",
+      title: "الشهادات",
+      menuAvailable: (hasStaffMenuPath(staff.role, ["/dashboard/certificates"]) && certificatesAccess.ok) || certificateOutputs.length > 0,
+      outputs: certificateOutputs,
+    },
+    {
+      key: "PORTFOLIO",
+      title: "ملف الإنجاز",
+      menuAvailable: (hasStaffMenuPath(staff.role, ["/dashboard/portfolio", "/dashboard/teacher/portfolio", "/dashboard/activity-leader/portfolio"]) && portfolioAccess.ok) || portfolioOutputs.length > 0,
+      outputs: portfolioOutputs,
+    },
+    {
+      key: "ASSESSMENTS",
+      title: "تحليل النتائج",
+      menuAvailable: hasStaffMenuPath(staff.role, ["/dashboard/assessment-center", "/dashboard/assessments-center"]) && assessmentsAccess.ok,
+      // AssessmentAnalysis/ResultsAnalysis are school-scoped and currently
+      // have no creator/owner relation, so they cannot be attributed safely
+      // to the selected staff member.
+      outputs: [],
+    },
+  ] as PrincipalStaffOutputFamily[]).filter((family) => family.menuAvailable);
+
   return {
     staff: {
       id: staff.id,
@@ -632,5 +879,6 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       lastActivityAt: staff.sessions[0]?.lastSeenAt.toISOString() || null,
     },
     reports,
+    outputFamilies,
   } satisfies PrincipalStaffReportsWorkspace;
 }
