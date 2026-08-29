@@ -1,24 +1,23 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Award,
-  CalendarDays,
   Download,
   Eye,
-  FileText,
+  Link2,
   Plus,
   Search,
-  Users,
 } from "lucide-react";
 import {
   CERTIFICATE_RECIPIENT_TYPES,
   CERTIFICATE_TYPES,
   getCertificateTypeLabel,
 } from "@/lib/certificates/certificate-types";
-import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 
 type CertificateArchiveItem = {
   id: string;
@@ -27,7 +26,9 @@ type CertificateArchiveItem = {
   recipientType: string;
   recipientName: string;
   reason?: string | null;
+  body?: string | null;
   title: string;
+  dataJson?: string | null;
   issueDate: string;
   status: string;
   pdfUrl?: string | null;
@@ -167,41 +168,17 @@ function buildArchiveEntries(items: CertificateArchiveItem[]): ArchiveEntry[] {
   });
 }
 
-function SimpleMetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-          {icon}
-        </div>
-
-        <div>
-          <p className="text-xs font-black text-slate-400">{label}</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 export function CertificatesArchivePage() {
   const [items, setItems] = useState<CertificateArchiveItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [recipientType, setRecipientType] = useState("");
   const [loading, setLoading] = useState(true);
   const [exportingId, setExportingId] = useState("");
   const [exportingBatchId, setExportingBatchId] = useState("");
+  const printExport = usePrintExportAction();
   const [error, setError] = useState("");
+  const [previewItem, setPreviewItem] = useState<CertificateArchiveItem | null>(null);
 
   const params = useMemo(() => {
     const search = new URLSearchParams();
@@ -214,28 +191,6 @@ export function CertificatesArchivePage() {
   }, [query, type, recipientType]);
 
   const archiveEntries = useMemo(() => buildArchiveEntries(items), [items]);
-
-  const batchCount = useMemo(() => {
-    return archiveEntries.filter((entry) => entry.kind === "batch").length;
-  }, [archiveEntries]);
-
-  const singleCount = useMemo(() => {
-    return archiveEntries.filter((entry) => entry.kind === "single").length;
-  }, [archiveEntries]);
-
-  const issuedThisMonth = useMemo(() => {
-    const now = new Date();
-
-    return items.filter((item) => {
-      const date = new Date(item.issueDate);
-
-      return (
-        !Number.isNaN(date.getTime()) &&
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth()
-      );
-    }).length;
-  }, [items]);
 
   useEffect(() => {
     let ignore = false;
@@ -257,7 +212,6 @@ export function CertificatesArchivePage() {
 
         if (!ignore) {
           setItems(data.items || []);
-          setTotal(data.total || 0);
         }
       } catch (err) {
         if (!ignore) {
@@ -277,8 +231,8 @@ export function CertificatesArchivePage() {
     };
   }, [params]);
 
-  async function exportPdf(item: CertificateArchiveItem) {
-    if (exportingId) return;
+  async function exportPdf(item: CertificateArchiveItem): Promise<boolean> {
+    if (exportingId) return false;
 
     setExportingId(item.id);
     setError("");
@@ -290,43 +244,19 @@ export function CertificatesArchivePage() {
         } - ${formatCertificateFileDate(item.issueDate)}.pdf`,
       );
 
-      const response = await fetch(
-        `/api/dashboard/certificates/${encodeURIComponent(item.id)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fileName }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("تعذر تصدير PDF.");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/json")) {
-        const json = await response.json();
-
-        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
-          const previewWindow = window.open(
-            json.previewUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
-
-          if (!previewWindow) {
-            window.location.href = json.previewUrl;
-          }
-
-          return;
-        }
-      }
-
-      await downloadResponseAsFile(response, fileName);
-    } catch (err) {
+      const result = await printExport.runPrintExport({
+        exportUrl: `/api/dashboard/certificates/${encodeURIComponent(item.id)}/export/pdf`,
+        printUrl: `/dashboard/certificates/${encodeURIComponent(item.id)}/preview-print`,
+        method: "POST",
+        body: { fileName },
+        fileName,
+        blockedTitle: "معاينة طباعة الشهادة",
+        errorTitle: "تصدير الشهادة",
+        errorMessage: "تعذر تصدير الشهادة أو فتح معاينة الطباعة.",
+      });
+      return result !== "error";
+    } catch (err: any) {
+      return false;
       setError(err instanceof Error ? err.message : "تعذر تصدير PDF.");
     } finally {
       setExportingId("");
@@ -344,42 +274,16 @@ export function CertificatesArchivePage() {
         `دفعة شهادات - ${entry.batchNumber || entry.batchId} - ${formatCertificateFileDate(entry.issueDate)}.pdf`,
       );
 
-      const response = await fetch(
-        `/api/dashboard/certificates/batches/${encodeURIComponent(entry.batchId)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fileName }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("تعذر تحميل الدفعة.");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/json")) {
-        const json = await response.json();
-
-        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
-          const previewWindow = window.open(
-            json.previewUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
-
-          if (!previewWindow) {
-            window.location.href = json.previewUrl;
-          }
-
-          return;
-        }
-      }
-
-      await downloadResponseAsFile(response, fileName);
+      await printExport.runPrintExport({
+        exportUrl: `/api/dashboard/certificates/batches/${encodeURIComponent(entry.batchId)}/export/pdf`,
+        printUrl: `/dashboard/certificates/batches/${encodeURIComponent(entry.batchId)}/preview-print`,
+        method: "POST",
+        body: { fileName },
+        fileName,
+        blockedTitle: "معاينة طباعة الدفعة",
+        errorTitle: "تصدير الدفعة",
+        errorMessage: "تعذر تحميل الدفعة أو فتح معاينة الطباعة.",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تحميل الدفعة.");
     } finally {
@@ -389,26 +293,14 @@ export function CertificatesArchivePage() {
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <p className="text-sm font-black text-sky-100">الشهادات</p>
+            <h1 className="text-2xl font-black sm:text-4xl">الشهادات</h1>
 
-            <h1 className="mt-3 text-4xl font-black">الشهادات والتكريم</h1>
-
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              إدارة الشهادات والدفعات.
-            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/dashboard/certificates/linking"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/15 px-6 py-3 text-sm font-black text-white ring-1 ring-white/30 transition hover:bg-white/20"
-            >
-              ربط بالتقرير
-            </Link>
-
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Link
               href="/dashboard/certificates/bulk"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/15 px-6 py-3 text-sm font-black text-white ring-1 ring-white/30 transition hover:bg-white/20"
@@ -418,7 +310,7 @@ export function CertificatesArchivePage() {
 
             <Link
               href="/dashboard/certificates/new"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50 sm:w-auto sm:px-6"
             >
               <Plus className="h-4 w-4" />
               إنشاء شهادة جديدة
@@ -427,108 +319,55 @@ export function CertificatesArchivePage() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SimpleMetricCard
-          icon={<Award className="h-5 w-5" />}
-          label="إجمالي الشهادات"
-          value={formatCount(total)}
-        />
-
-        <SimpleMetricCard
-          icon={<Users className="h-5 w-5" />}
-          label="الدفعات"
-          value={formatCount(batchCount)}
-        />
-
-        <SimpleMetricCard
-          icon={<FileText className="h-5 w-5" />}
-          label="شهادات فردية"
-          value={formatCount(singleCount)}
-        />
-
-        <SimpleMetricCard
-          icon={<CalendarDays className="h-5 w-5" />}
-          label="هذا الشهر"
-          value={formatCount(issuedThisMonth)}
-        />
-      </section>
-
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-black text-sky-700">البحث والفلاتر</p>
-
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              أرشيف الدفعات والشهادات الفردية
-            </h2>
-
-            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              ابحث وفلتر الشهادات.
-            </p>
-          </div>
-
-          
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.8fr_0.8fr]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="بحث سريع..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-11 pl-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:bg-white"
-            />
-          </div>
-
-          <select
-            value={type}
-            onChange={(event) => setType(event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 focus:bg-white"
-          >
-            <option value="">كل أنواع الشهادات</option>
-            {CERTIFICATE_TYPES.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={recipientType}
-            onChange={(event) => setRecipientType(event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 focus:bg-white"
-          >
-            <option value="">كل المستفيدين</option>
-            {CERTIFICATE_RECIPIENT_TYPES.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {error ? (
-          <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
-            {error}
-          </div>
-        ) : null}
-      </section>
-
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black text-sky-700">السجلات</p>
 
             <h2 className="mt-1 text-2xl font-black text-slate-950">
-              الدفعات والشهادات الفردية
+              الشهادات الفردية والجماعية
             </h2>
 
-            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              عرض الدفعات والشهادات.
-            </p>
           </div>
         </div>
+
+        <div className="mb-5 grid gap-2 rounded-2xl bg-slate-50 p-2 ring-1 ring-slate-100 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,.8fr)_minmax(0,.8fr)] sm:p-2.5">
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="بحث سريع..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pr-10 pl-3 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200"
+            />
+          </div>
+          <select
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200"
+          >
+            <option value="">كل أنواع الشهادات</option>
+            {CERTIFICATE_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+          <select
+            value={recipientType}
+            onChange={(event) => setRecipientType(event.target.value)}
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200"
+          >
+            <option value="">كل المستفيدين</option>
+            {CERTIFICATE_RECIPIENT_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {error ? (
+          <div className="mb-5 rounded-2xl bg-rose-50 p-3 text-sm font-black text-rose-700 ring-1 ring-rose-100">
+            {error}
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
@@ -615,9 +454,43 @@ export function CertificatesArchivePage() {
               return (
                 <article
                   key={item.id}
-                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                  className="relative rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
                 >
-                  <div className="min-w-0">
+                  <div className="absolute left-5 top-5 z-10">
+                    <ExpandableActionMenu menuId={`certificate:${item.id}`} overlayStrip>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewItem(item)}
+                        aria-label="عرض الشهادة"
+                        title="عرض الشهادة"
+                        className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                      >
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                      </button>
+
+                      <Link
+                        href={`/dashboard/certificates/linking?certificateId=${encodeURIComponent(item.id)}`}
+                        aria-label="ربط الشهادة بالتقرير"
+                        title="ربط الشهادة بالتقرير"
+                        className="grid h-10 w-10 place-items-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                      >
+                        <Link2 className="h-4 w-4" aria-hidden="true" />
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => exportPdf(item)}
+                        disabled={exportingId === item.id}
+                        aria-label="تحميل الشهادة"
+                        title={exportingId === item.id ? "جاري التحميل" : "تحميل الشهادة"}
+                        className="grid h-10 w-10 place-items-center rounded-full bg-sky-700 text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </ExpandableActionMenu>
+                  </div>
+
+                  <div className="min-w-0 pt-14">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={[
@@ -650,27 +523,6 @@ export function CertificatesArchivePage() {
                     سبب التكريم: {item.reason || "غير محدد"}
                   </div>
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                    <a
-                      href={`/dashboard/certificates/${item.id}/preview-print`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                      عرض
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={() => exportPdf(item)}
-                      disabled={exportingId === item.id}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
-                    >
-                      <Download className="h-4 w-4" />
-                      {exportingId === item.id ? "جاري التحميل" : "تحميل فردي"}
-                    </button>
-                  </div>
                 </article>
               );
             })}
@@ -699,6 +551,29 @@ export function CertificatesArchivePage() {
           </div>
         )}
       </section>
+
+      <PrintExportPopCard
+        modal={printExport.modal}
+        onClose={printExport.closeModal}
+        onOpenFallback={printExport.openFallbackPrintUrl}
+      />
+
+      <CurriculumDistributionMobilePreview
+        open={Boolean(previewItem)}
+        previewUrl={previewItem ? `/certificate-preview/${encodeURIComponent(previewItem.id)}` : ""}
+        onClose={() => setPreviewItem(null)}
+        onDownload={async () => {
+          if (!previewItem) return false;
+          const itemToExport = previewItem;
+          setPreviewItem(null);
+          return Boolean(await exportPdf(itemToExport));
+        }}
+        title="معاينة الشهادة"
+        subtitle="راجع الشهادة قبل تحميلها أو طباعتها."
+        documentSelector=".certificate-shell"
+        documentLabel="الشهادة"
+        documentOrientation="landscape"
+      />
     </main>
   );
 }

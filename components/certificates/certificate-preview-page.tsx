@@ -5,15 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Award,
   CheckCircle2,
   FileText,
   PencilLine,
 } from "lucide-react";
-import {
-  getCertificateTypeLabel,
-} from "@/lib/certificates/certificate-types";
 import { CertificateTemplatePreview } from "@/components/certificates/certificate-template-preview";
+import { CertificateWizardActionRow } from "@/components/certificates/certificate-wizard-action-row";
+import { CertificateWizardNavigation } from "@/components/certificates/certificate-wizard-navigation";
+import { CERTIFICATE_DRAFT_STORAGE_KEY } from "@/components/certificates/new-certificate-form";
 
 type CertificateDraft = {
   templateKey: string;
@@ -31,7 +30,15 @@ type CertificateDraft = {
   issuerName?: string;
 };
 
-const DRAFT_STORAGE_KEY = "certificate-draft";
+type CertificateSignatureProfile = {
+  principalName: string;
+  principalSignatureUrl: string;
+  issuerName: string;
+  issuerTitle: string;
+  issuerSignatureUrl: string;
+};
+
+const LEGACY_DRAFT_STORAGE_KEY = "certificate-draft";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -50,25 +57,44 @@ function formatDate(value: string) {
 export function CertificatePreviewPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<CertificateDraft | null>(null);
+  const [signatureProfile, setSignatureProfile] = useState<CertificateSignatureProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    let cancelled = false;
 
-      if (!raw) {
-        setDraft(null);
-        return;
+    async function load() {
+      try {
+        const raw = window.localStorage.getItem(CERTIFICATE_DRAFT_STORAGE_KEY)
+          || window.sessionStorage.getItem(LEGACY_DRAFT_STORAGE_KEY);
+        if (!raw) {
+          if (!cancelled) setDraft(null);
+          return;
+        }
+
+        if (!cancelled) setDraft(JSON.parse(raw) as CertificateDraft);
+
+        const response = await fetch("/api/dashboard/certificates/signature-profile", {
+          cache: "no-store",
+        });
+        const text = await response.text();
+        const result = text ? JSON.parse(text) : {};
+        if (!cancelled && response.ok) {
+          setSignatureProfile(result.profile || null);
+        }
+      } catch {
+        if (!cancelled) setSignatureProfile(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setDraft(JSON.parse(raw) as CertificateDraft);
-    } catch {
-      setDraft(null);
-    } finally {
-      setLoading(false);
     }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function issueCertificate() {
@@ -101,7 +127,8 @@ export function CertificatePreviewPage() {
         throw new Error(result?.details || result?.error || "تعذر إصدار الشهادة.");
       }
 
-      window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(CERTIFICATE_DRAFT_STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
       router.push("/dashboard/certificates");
       router.refresh();
     } catch (err) {
@@ -151,11 +178,11 @@ export function CertificatePreviewPage() {
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
             <p className="text-sm font-black text-sky-100">Certificates Runtime</p>
-            <h1 className="mt-3 text-4xl font-black">معاينة الشهادة</h1>
+            <h1 className="mt-3 text-2xl font-black sm:text-4xl">معاينة الشهادة</h1>
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
               راجع بيانات الشهادة، ثم اضغط إصدار عند التأكد.
             </p>
@@ -171,8 +198,10 @@ export function CertificatePreviewPage() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_340px]">
-        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <CertificateWizardNavigation currentStep={3} onStepSelect={(step) => router.push(`/dashboard/certificates/new?step=${step}`)} />
+
+      <section className="w-full rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
+        <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black text-sky-700">المعاينة النهائية</p>
@@ -183,79 +212,34 @@ export function CertificatePreviewPage() {
           </div>
 
           <div className="overflow-x-auto rounded-[2rem] bg-slate-100 p-4">
-            <CertificateTemplatePreview data={draft} />
+            <CertificateTemplatePreview
+              data={{
+                ...draft,
+                issuerName: signatureProfile?.issuerName || draft.issuerName,
+                issuerTitle: signatureProfile?.issuerTitle,
+                issuerSignatureUrl: signatureProfile?.issuerSignatureUrl,
+                principalName: signatureProfile?.principalName || draft.principalName,
+                principalSignatureUrl: signatureProfile?.principalSignatureUrl,
+              }}
+            />
           </div>
         </div>
+        {error ? (
+          <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
+            {error}
+          </div>
+        ) : null}
 
-        <aside className="space-y-5">
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-black text-sky-700">جاهزية الإصدار</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              تأكيد الشهادة
-            </h2>
-
-            <div className="mt-5 space-y-3">
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">المستفيد</p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {draft.recipientName}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">نوع الشهادة</p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {getCertificateTypeLabel(draft.certificateType)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">التاريخ</p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {formatDate(draft.issueDate)}
-                </p>
-              </div>
-            </div>
-
-            {error ? (
-              <div className="mt-5 rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
-                {error}
-              </div>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={issueCertificate}
-              disabled={issuing}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              {issuing ? "جاري الإصدار..." : "إصدار الشهادة"}
-            </button>
-
-            <Link
-              href="/dashboard/certificates/new"
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-            >
-              <PencilLine className="h-4 w-4" />
-              تعديل
-            </Link>
-          </section>
-
-          <section className="rounded-[2rem] border border-sky-100 bg-sky-50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-sky-100">
-                <Award className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-sky-950">بعد الإصدار</p>
-                <p className="mt-1 text-xs font-bold leading-6 text-sky-700">
-                  ستنتقل الشهادة للأرشيف، ويمكن عرضها أو تحميلها PDF.
-                </p>
-              </div>
-            </div>
-          </section>
-        </aside>
+        <div className="mt-6">
+          <CertificateWizardActionRow
+            primaryLabel={issuing ? "جاري الإصدار..." : "إصدار الشهادة"}
+            onPrimary={issueCertificate}
+            primaryDisabled={issuing}
+            primaryIcon={<CheckCircle2 className="h-4 w-4" />}
+            secondaryLabel="السابق"
+            onSecondary={() => router.push("/dashboard/certificates/new?step=2")}
+          />
+        </div>
       </section>
     </main>
   );

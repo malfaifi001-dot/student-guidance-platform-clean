@@ -74,7 +74,7 @@ export async function POST(request: Request, context: RouteContext) {
     actor.role,
     actor.name,
     actor.id,
-    false,
+    true,
   );
 
   const html = renderCertificateDocumentHtml(certificate, {
@@ -100,6 +100,22 @@ export async function POST(request: Request, context: RouteContext) {
 
       await page.setContent(html, {
         waitUntil: "domcontentloaded",
+      });
+
+      await page.evaluate(async () => {
+        await document.fonts?.ready;
+        await Promise.all(
+          Array.from(document.images).map((image) => {
+            if (image.complete) {
+              return image.decode?.().catch(() => undefined);
+            }
+
+            return new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), { once: true });
+            });
+          }),
+        );
       });
 
       const pdfBuffer = await page.pdf({

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
+import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
 
 export type CertificateSignatureProfile = {
   principalName: string;
@@ -39,20 +40,40 @@ export async function getCertificateSignatureProfile(
     },
   });
 
+  const user = ownerUserId
+    ? await prisma.user.findUnique({
+        where: { id: ownerUserId, schoolAccountId },
+        select: {
+          name: true,
+          officialName: true,
+          jobTitle: true,
+          gender: true,
+          signatureUrl: true,
+        },
+      })
+    : null;
+
   if (!profile) {
     return null;
   }
 
-  const isActivityLeader = clean(role) === "ACTIVITY_LEADER";
+  const normalizedRole = clean(role).toUpperCase();
+  const isActivityLeader = normalizedRole === "ACTIVITY_LEADER";
+  const isTeacher = normalizedRole === "TEACHER";
+  const isPrincipal = normalizedRole === "PRINCIPAL";
+  const roleTitle = getArabicUserRoleLabel({ role: normalizedRole, gender: user?.gender });
+  const currentUserName = clean(user?.officialName) || clean(user?.name) || clean(fallbackIssuerName);
 
-  const issuerTitle = isActivityLeader ? "رائد النشاط" : "الموجه الطلابي";
+  const issuerTitle = clean(user?.jobTitle) || roleTitle;
   const issuerName = isActivityLeader
-    ? clean(profile.activityLeaderName) || clean(fallbackIssuerName) || issuerTitle
-    : clean(fallbackIssuerName) || "الموجه الطلابي";
+    ? clean(profile.activityLeaderName) || currentUserName || issuerTitle
+    : currentUserName || issuerTitle;
 
   const issuerSignatureUrl = isActivityLeader
-    ? clean(profile.activityLeaderSignatureUrl)
-    : clean(profile.counselorSignatureUrl);
+    ? clean(profile.activityLeaderSignatureUrl) || clean(user?.signatureUrl)
+    : isTeacher || isPrincipal
+      ? clean(user?.signatureUrl) || clean(profile.counselorSignatureUrl)
+      : clean(profile.counselorSignatureUrl) || clean(user?.signatureUrl);
 
   return {
     principalName: clean(profile.principalName) || "مدير المدرسة",

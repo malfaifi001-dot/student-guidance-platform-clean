@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { getCertificateTypeLabel } from "@/lib/certificates/certificate-types";
-import { downloadResponseAsFile } from "@/lib/print-export/print-export-download";
-import { isNativeCapacitor } from "@/lib/native/native-runtime";
-import { savePrintPreviewAsNativePdf } from "@/lib/native/native-download";
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 
 function sanitizeFileName(value: string) {
   return value
@@ -24,36 +23,6 @@ function formatFileDate(value: string) {
   return date.toISOString().slice(0, 10);
 }
 
-async function downloadPdfFromResponse(response: Response, fileName: string) {
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    const json = await response.json();
-
-    if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
-      if (isNativeCapacitor()) {
-        const opened = await savePrintPreviewAsNativePdf(json.previewUrl, fileName);
-        if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
-        return;
-      }
-
-      const previewWindow = window.open(
-        json.previewUrl,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      if (!previewWindow) {
-        window.location.href = json.previewUrl;
-      }
-
-      return;
-    }
-  }
-
-  await downloadResponseAsFile(response, fileName);
-}
-
 export function BatchPdfDownloadButton({
   batchId,
   batchNumber,
@@ -65,6 +34,7 @@ export function BatchPdfDownloadButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const printExport = usePrintExportAction();
 
   async function downloadBatch() {
     if (loading) return;
@@ -77,22 +47,16 @@ export function BatchPdfDownloadButton({
         `دفعة شهادات - ${batchNumber || batchId} - ${formatFileDate(createdAt)}.pdf`,
       );
 
-      const response = await fetch(
-        `/api/dashboard/certificates/batches/${encodeURIComponent(batchId)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fileName }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("تعذر تحميل الدفعة.");
-      }
-
-      await downloadPdfFromResponse(response, fileName);
+      await printExport.runPrintExport({
+        exportUrl: `/api/dashboard/certificates/batches/${encodeURIComponent(batchId)}/export/pdf`,
+        printUrl: `/dashboard/certificates/batches/${encodeURIComponent(batchId)}/preview-print`,
+        method: "POST",
+        body: { fileName },
+        fileName,
+        blockedTitle: "معاينة طباعة الدفعة",
+        errorTitle: "تحميل الدفعة",
+        errorMessage: "تعذر تحميل الدفعة أو فتح معاينة الطباعة.",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تحميل الدفعة.");
     } finally {
@@ -115,6 +79,12 @@ export function BatchPdfDownloadButton({
       {error ? (
         <p className="text-xs font-black text-rose-600">{error}</p>
       ) : null}
+
+      <PrintExportPopCard
+        modal={printExport.modal}
+        onClose={printExport.closeModal}
+        onOpenFallback={printExport.openFallbackPrintUrl}
+      />
     </div>
   );
 }
@@ -132,6 +102,7 @@ export function CertificatePdfDownloadButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const printExport = usePrintExportAction();
 
   async function downloadCertificate() {
     if (loading) return;
@@ -146,22 +117,16 @@ export function CertificatePdfDownloadButton({
         } - ${formatFileDate(issueDate)}.pdf`,
       );
 
-      const response = await fetch(
-        `/api/dashboard/certificates/${encodeURIComponent(certificateId)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fileName }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("تعذر تحميل الشهادة.");
-      }
-
-      await downloadPdfFromResponse(response, fileName);
+      await printExport.runPrintExport({
+        exportUrl: `/api/dashboard/certificates/${encodeURIComponent(certificateId)}/export/pdf`,
+        printUrl: `/dashboard/certificates/${encodeURIComponent(certificateId)}/preview-print`,
+        method: "POST",
+        body: { fileName },
+        fileName,
+        blockedTitle: "معاينة طباعة الشهادة",
+        errorTitle: "تحميل الشهادة",
+        errorMessage: "تعذر تحميل الشهادة أو فتح معاينة الطباعة.",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تحميل الشهادة.");
     } finally {
@@ -184,6 +149,12 @@ export function CertificatePdfDownloadButton({
       {error ? (
         <p className="text-xs font-black text-rose-600">{error}</p>
       ) : null}
+
+      <PrintExportPopCard
+        modal={printExport.modal}
+        onClose={printExport.closeModal}
+        onOpenFallback={printExport.openFallbackPrintUrl}
+      />
     </div>
   );
 }

@@ -219,14 +219,14 @@ export default async function CertificateBatchDetailsPage({ params }: PageProps)
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
             <p className="text-sm font-black text-sky-100">
               Certificates Batch
             </p>
 
-            <h1 className="mt-3 text-4xl font-black">تفاصيل دفعة الشهادات</h1>
+            <h1 className="mt-3 text-2xl font-black sm:text-4xl">تفاصيل دفعة الشهادات</h1>
 
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
               راجع شهادات الدفعة، حمّلها كاملة، أو حمّل شهادة فردية عند الحاجة.
@@ -269,7 +269,7 @@ export default async function CertificateBatchDetailsPage({ params }: PageProps)
         />
       </section>
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
             <p className="text-xs font-black text-sky-700">بيانات الدفعة</p>

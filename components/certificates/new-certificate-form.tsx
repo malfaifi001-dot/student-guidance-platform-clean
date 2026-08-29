@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
-  Award,
   CalendarDays,
   FileText,
   Search,
   UserRound,
-  Users,
 } from "lucide-react";
 import {
   CERTIFICATE_RECIPIENT_TYPES,
@@ -19,6 +17,8 @@ import {
   getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
 import { CertificateTemplateSelector } from "@/components/certificates/certificate-template-preview";
+import { CertificateWizardActionRow } from "@/components/certificates/certificate-wizard-action-row";
+import { CertificateWizardNavigation } from "@/components/certificates/certificate-wizard-navigation";
 
 type StudentSearchResult = {
   id: string;
@@ -45,7 +45,24 @@ type CertificateDraft = {
   issuerName?: string;
 };
 
-const DRAFT_STORAGE_KEY = "certificate-draft";
+export const CERTIFICATE_DRAFT_STORAGE_KEY = "teachix:certificates:new-draft:v1";
+const LEGACY_DRAFT_STORAGE_KEY = "certificate-draft";
+
+const DEFAULT_DRAFT: CertificateDraft = {
+  templateKey: "certificate-modern-blue",
+  recipientType: "student",
+  recipientName: "",
+  studentId: null,
+  nationalId: "",
+  grade: "",
+  classroom: "",
+  certificateType: "thanks",
+  reason: "",
+  body: "",
+  issueDate: getTodayInputDate(),
+  principalName: "",
+  issuerName: "",
+};
 
 function getTodayInputDate() {
   return new Date().toISOString().slice(0, 10);
@@ -69,32 +86,56 @@ function isStudentRecipient(value: string) {
 
 export function NewCertificateForm() {
   const router = useRouter();
-  const [draft, setDraft] = useState<CertificateDraft>({
-    templateKey: "certificate-modern-blue",
-    recipientType: "student",
-    recipientName: "",
-    studentId: null,
-    nationalId: "",
-    grade: "",
-    classroom: "",
-    certificateType: "thanks",
-    reason: "",
-    body: "",
-    issueDate: getTodayInputDate(),
-    principalName: "",
-    issuerName: "",
-  });
+  const searchParams = useSearchParams();
+  const [draft, setDraft] = useState<CertificateDraft>(DEFAULT_DRAFT);
 
   const [studentQuery, setStudentQuery] = useState("");
   const [studentResults, setStudentResults] = useState<StudentSearchResult[]>([]);
   const [studentLoading, setStudentLoading] = useState(false);
   const [bodyTouched, setBodyTouched] = useState(false);
   const [error, setError] = useState("");
+  const [step, setStep] = useState<1 | 2>(searchParams.get("step") === "2" ? 2 : 1);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
   const autoBody = useMemo(() => buildAutoBody(draft), [draft]);
 
   useEffect(() => {
-    if (bodyTouched) return;
+    try {
+      const raw = window.localStorage.getItem(CERTIFICATE_DRAFT_STORAGE_KEY)
+        || window.sessionStorage.getItem(LEGACY_DRAFT_STORAGE_KEY);
+
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<CertificateDraft> & { bodyTouched?: boolean; step?: number };
+        const { bodyTouched: savedBodyTouched, step: savedStep, ...savedDraft } = saved;
+        setDraft({ ...DEFAULT_DRAFT, ...savedDraft });
+        setBodyTouched(savedBodyTouched === true);
+
+        if (searchParams.get("step") !== "2") {
+          setStep(savedStep === 2 ? 2 : 1);
+        }
+      }
+    } catch {
+      // Ignore malformed or unavailable browser storage and keep a fresh draft.
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+
+    try {
+      window.localStorage.setItem(
+        CERTIFICATE_DRAFT_STORAGE_KEY,
+        JSON.stringify({ ...draft, bodyTouched, step }),
+      );
+    } catch {
+      // Storage can be unavailable in private browsing; the in-memory draft remains usable.
+    }
+  }, [bodyTouched, draft, draftHydrated, step]);
+
+  useEffect(() => {
+    if (!draftHydrated || bodyTouched) return;
 
     setDraft((current) => {
       const nextBody = buildAutoBody(current);
@@ -182,43 +223,69 @@ export function NewCertificateForm() {
     setBodyTouched(false);
   }
 
-  function goToPreview() {
+  function validateRecipientStep() {
     setError("");
 
     if (!draft.recipientName.trim()) {
       setError("اكتب اسم المستفيد قبل المتابعة.");
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  function validateCertificateStep() {
+    setError("");
 
     if (!draft.reason.trim()) {
       setError("اكتب سبب التكريم قبل المتابعة.");
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  function goToCertificateStep() {
+    if (validateRecipientStep()) {
+      setStep(2);
+    }
+  }
+
+  function goToPreview() {
+    if (!validateCertificateStep()) return;
 
     const finalDraft = {
       ...draft,
       body: draft.body.trim() || autoBody,
     };
 
-    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(finalDraft));
+    try {
+      window.localStorage.setItem(
+        CERTIFICATE_DRAFT_STORAGE_KEY,
+        JSON.stringify({ ...finalDraft, bodyTouched, step: 2 }),
+      );
+    } catch {
+      // The preview route can still use the in-memory navigation fallback if storage is unavailable.
+    }
     router.push("/dashboard/certificates/new/preview");
+  }
+
+  function goBackToRecipientStep() {
+    setError("");
+    setStep(1);
   }
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <p className="text-sm font-black text-sky-100">Certificates Runtime</p>
-            <h1 className="mt-3 text-4xl font-black">إنشاء شهادة جديدة</h1>
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              أدخل بيانات المستفيد، ثم راجع المعاينة قبل إصدار الشهادة.
-            </p>
+            <h1 className="text-2xl font-black sm:text-4xl">إنشاء شهادة جديدة</h1>
           </div>
 
           <Link
             href="/dashboard/certificates"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50 sm:w-auto"
           >
             <ArrowRight className="h-4 w-4" />
             العودة للأرشيف
@@ -226,47 +293,16 @@ export function NewCertificateForm() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
-        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-              <Users className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-slate-400">الخطوة الأولى</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">المستفيد</p>
-            </div>
-          </div>
-        </article>
+      <CertificateWizardNavigation
+        currentStep={step}
+        onStepSelect={(selectedStep) => {
+          if (selectedStep === 1) goBackToRecipientStep();
+          if (selectedStep === 2 && validateRecipientStep()) setStep(2);
+        }}
+      />
 
-        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-              <Award className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-slate-400">الخطوة الثانية</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">الشهادة</p>
-            </div>
-          </div>
-        </article>
-
-        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-slate-400">الخطوة الثالثة</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">المعاينة</p>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-        <div className="space-y-5">
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="w-full space-y-5">
+          {step === 1 ? <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
             <div className="mb-5">
               <p className="text-xs font-black text-sky-700">بيانات المستفيد</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">
@@ -357,7 +393,7 @@ export function NewCertificateForm() {
               </div>
             ) : null}
 
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
               <label className="space-y-2">
                 <span className="text-xs font-black text-slate-500">الصف</span>
                 <input
@@ -365,7 +401,7 @@ export function NewCertificateForm() {
                   onChange={(event) => updateDraft("grade", event.target.value)}
                   disabled={!isStudentRecipient(draft.recipientType)}
                   placeholder="اختياري"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none transition disabled:opacity-50 focus:border-sky-200 focus:bg-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none transition disabled:opacity-50 focus:border-sky-200 focus:bg-white"
                 />
               </label>
 
@@ -376,7 +412,7 @@ export function NewCertificateForm() {
                   onChange={(event) => updateDraft("classroom", event.target.value)}
                   disabled={!isStudentRecipient(draft.recipientType)}
                   placeholder="اختياري"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none transition disabled:opacity-50 focus:border-sky-200 focus:bg-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none transition disabled:opacity-50 focus:border-sky-200 focus:bg-white"
                 />
               </label>
 
@@ -386,17 +422,20 @@ export function NewCertificateForm() {
                   value={draft.nationalId || ""}
                   onChange={(event) => updateDraft("nationalId", event.target.value)}
                   placeholder="اختياري"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
                 />
               </label>
             </div>
-          </section>
+          </section> : null}
 
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+          {step === 2 ? <>
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
+          <div className="grid items-start gap-6 md:grid-cols-2">
+          <div>
             <div className="mb-5">
               <p className="text-xs font-black text-sky-700">بيانات الشهادة</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">
-                سبب التكريم والنص
+                نوع الشهادة وسبب التكريم
               </h2>
             </div>
 
@@ -446,21 +485,28 @@ export function NewCertificateForm() {
               />
             </label>
 
-            <label className="mt-4 block space-y-2">
-              <span className="text-xs font-black text-slate-500">نص الشهادة</span>
-              <textarea
-                value={draft.body || autoBody}
-                onChange={(event) => {
-                  updateDraft("body", event.target.value);
-                  setBodyTouched(true);
-                }}
-                rows={5}
-                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
-              />
-            </label>
+          </div>
+
+          <div>
+            <div className="mb-5">
+              <p className="text-xs font-black text-sky-700">نص الشهادة</p>
+              <h2 className="mt-1 text-2xl font-black text-slate-950">النص القابل للتحرير</h2>
+            </div>
+
+            <textarea
+              value={draft.body || autoBody}
+              onChange={(event) => {
+                updateDraft("body", event.target.value);
+                setBodyTouched(true);
+              }}
+              rows={4}
+              className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
+            />
+          </div>
+          </div>
           </section>
 
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
             <div className="mb-5">
               <p className="text-xs font-black text-sky-700">تصميم الشهادة</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">
@@ -475,55 +521,36 @@ export function NewCertificateForm() {
               onChange={(templateKey) => updateDraft("templateKey", templateKey)}
             />
           </section>
-        </div>
 
-        <aside className="space-y-5">
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-black text-sky-700">ملخص سريع</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              قبل المعاينة
-            </h2>
-
-            <div className="mt-5 space-y-3">
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">المستفيد</p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {draft.recipientName || "لم يتم الإدخال"}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">نوع الشهادة</p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {getCertificateTypeLabel(draft.certificateType)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p className="text-xs font-black text-slate-400">سبب التكريم</p>
-                <p className="mt-1 text-sm font-bold leading-7 text-slate-600">
-                  {draft.reason || "لم يتم الإدخال"}
-                </p>
-              </div>
+          {error ? (
+            <div className="rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
+              {error}
             </div>
+          ) : null}
 
-            {error ? (
-              <div className="mt-5 rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
-                {error}
-              </div>
-            ) : null}
+          <CertificateWizardActionRow
+            primaryLabel="معاينة الشهادة"
+            onPrimary={goToPreview}
+            primaryIcon={<FileText className="h-4 w-4" />}
+            secondaryLabel="السابق"
+            onSecondary={goBackToRecipientStep}
+          />
+          </> : null}
 
-            <button
-              type="button"
-              onClick={goToPreview}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
-            >
-              معاينة الشهادة
-              <FileText className="h-4 w-4" />
-            </button>
-          </section>
-        </aside>
-      </section>
+          {step === 1 ? (
+            <>
+              {error ? (
+                <div className="rounded-2xl bg-rose-50 p-4 text-sm font-black text-rose-700 ring-1 ring-rose-100">
+                  {error}
+                </div>
+              ) : null}
+              <CertificateWizardActionRow
+                primaryLabel="التالي"
+                onPrimary={goToCertificateStep}
+              />
+            </>
+          ) : null}
+      </div>
     </main>
   );
 }

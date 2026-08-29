@@ -89,7 +89,7 @@ export async function POST(request: Request, context: RouteContext) {
     actor.role,
     actor.name,
     actor.id,
-    false,
+    true,
   );
 
   const html = renderCertificatesBatchDocumentHtml(certificates, {

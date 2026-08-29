@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Award,
@@ -65,6 +66,8 @@ function getStatusLabel(status: string) {
 }
 
 export function CertificateReportLinkingPage() {
+  const searchParams = useSearchParams();
+  const requestedCertificateId = searchParams.get("certificateId") || "";
   const [reports, setReports] = useState<ReportOption[]>([]);
   const [certificates, setCertificates] = useState<CertificateOption[]>([]);
   const [selectedReportId, setSelectedReportId] = useState("");
@@ -115,9 +118,17 @@ export function CertificateReportLinkingPage() {
           setReports(nextReports);
           setCertificates(nextCertificates);
 
+          const requestedCertificateExists = requestedCertificateId
+            ? nextCertificates.some((certificate: CertificateOption) => certificate.id === requestedCertificateId)
+            : false;
+
           if (!selectedReportId && nextReports.length) {
             setSelectedReportId(nextReports[0].id);
-            setSelectedCertificateIds(nextReports[0].linkedCertificateIds || []);
+            setSelectedCertificateIds(
+              requestedCertificateExists
+                ? [requestedCertificateId]
+                : nextReports[0].linkedCertificateIds || [],
+            );
           } else if (selectedReportId) {
             const stillSelected = nextReports.find((report: ReportOption) => report.id === selectedReportId);
 
@@ -146,7 +157,7 @@ export function CertificateReportLinkingPage() {
       ignore = true;
       window.clearTimeout(timer);
     };
-  }, [reportQuery, certificateQuery]);
+  }, [reportQuery, certificateQuery, requestedCertificateId]);
 
   function selectReport(report: ReportOption) {
     setSelectedReportId(report.id);
@@ -214,11 +225,11 @@ export function CertificateReportLinkingPage() {
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
             <p className="text-sm font-black text-sky-100">Certificates Linking</p>
-            <h1 className="mt-3 text-4xl font-black">ربط الشهادات بالتقارير</h1>
+            <h1 className="mt-3 text-2xl font-black sm:text-4xl">ربط الشهادات بالتقارير</h1>
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
               اختر تقريرًا صادرًا، ثم اربط شهادة أو أكثر. عند تحميل التقرير PDF ستضاف الشهادات في آخر التقرير مباشرة.
             </p>
@@ -254,7 +265,7 @@ export function CertificateReportLinkingPage() {
         />
       </section>
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
             <p className="text-xs font-black text-sky-700">الربط النشط</p>
@@ -305,7 +316,7 @@ export function CertificateReportLinkingPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
           <div className="mb-5">
             <p className="text-xs font-black text-sky-700">التقارير الصادرة</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">اختر التقرير</h2>
@@ -377,7 +388,7 @@ export function CertificateReportLinkingPage() {
           </div>
         </section>
 
-        <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
           <div className="mb-5">
             <p className="text-xs font-black text-sky-700">الشهادات الصادرة</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">اختر شهادة أو أكثر</h2>

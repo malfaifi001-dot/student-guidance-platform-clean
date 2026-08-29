@@ -12,6 +12,10 @@ type PageProps = {
   params: Promise<{
     certificateId: string;
   }>;
+  searchParams?: Promise<{
+    print?: string | string[];
+    embed?: string | string[];
+  }>;
 };
 
 async function getCertificate(certificateId: string, schoolAccountId: string) {
@@ -30,7 +34,7 @@ async function getCertificate(certificateId: string, schoolAccountId: string) {
   return rows[0] || null;
 }
 
-export default async function CertificatePrintPreviewPage({ params }: PageProps) {
+export default async function CertificatePrintPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
 
   if (!current.user.schoolAccountId) {
@@ -38,6 +42,13 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
   }
 
   const { certificateId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const printParam = Array.isArray(resolvedSearchParams.print)
+    ? resolvedSearchParams.print[0]
+    : resolvedSearchParams.print;
+  const embedParam = Array.isArray(resolvedSearchParams.embed)
+    ? resolvedSearchParams.embed[0]
+    : resolvedSearchParams.embed;
   const certificate = await getCertificate(certificateId, current.user.schoolAccountId);
 
   if (!certificate) {
@@ -49,7 +60,7 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
     current.user.role,
     current.user.officialName || current.user.name || "المستخدم",
     current.user.id,
-    false,
+    true,
   );
 
   const html = renderCertificateDocumentHtml(certificate, {
@@ -58,7 +69,7 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
 
   return (
     <main className="min-h-screen bg-slate-200" dir="rtl">
-      <div className="no-print sticky top-0 z-50 border-b border-slate-200 bg-white/95 p-3 backdrop-blur">
+      {embedParam === "1" ? null : <div className="no-print sticky top-0 z-50 border-b border-slate-200 bg-white/95 p-3 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div>
             <p className="text-sm font-bold text-slate-950">معاينة الطباعة</p>
@@ -71,10 +82,10 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
             >
               العودة للأرشيف
             </a>
-            <CertificatePrintButton />
+            <CertificatePrintButton autoPrint={printParam === "1"} />
           </div>
         </div>
-      </div>
+      </div>}
 
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </main>

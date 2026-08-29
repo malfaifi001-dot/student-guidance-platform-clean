@@ -1,6 +1,24 @@
 "use client";
 
-export function CertificatePrintButton() {
+import { useEffect } from "react";
+
+export function CertificatePrintButton({ autoPrint = false }: { autoPrint?: boolean }) {
+  useEffect(() => {
+    if (!autoPrint) return;
+
+    const print = () => {
+      window.requestAnimationFrame(() => window.print());
+    };
+
+    if (document.readyState === "complete") {
+      print();
+      return;
+    }
+
+    window.addEventListener("load", print, { once: true });
+    return () => window.removeEventListener("load", print);
+  }, [autoPrint]);
+
   return (
     <button
       type="button"

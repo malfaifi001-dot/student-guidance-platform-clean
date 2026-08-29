@@ -216,7 +216,7 @@ export async function POST(request: Request) {
         await insertDynamic(tx, "IssuedCertificate", issuedColumns, {
           id: certificateId,
           schoolAccountId: actor.schoolAccountId,
-          templateId: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
+          templateId: null,
           batchId,
           certificateNumber,
           recipientType: row.recipientType,

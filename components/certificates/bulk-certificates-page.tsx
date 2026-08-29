@@ -261,11 +261,11 @@ export function BulkCertificatesPage() {
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
             <p className="text-sm font-black text-sky-100">الشهادات</p>
-            <h1 className="mt-3 text-4xl font-black">إصدار جماعي للشهادات</h1>
+            <h1 className="mt-3 text-2xl font-black sm:text-4xl">إصدار جماعي للشهادات</h1>
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
               اختر الطلاب ثم أصدر الشهادات.
             </p>
@@ -287,7 +287,7 @@ export function BulkCertificatesPage() {
         <Metric icon={<Award className="h-5 w-5" />} label="تحتاج مراجعة" value={String(invalidCount)} />
       </section>
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black text-sky-700">طريقة الإدخال</p>
@@ -345,7 +345,7 @@ export function BulkCertificatesPage() {
       {tab === "students" ? (
         <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
           <aside className="space-y-5">
-            <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
               <p className="text-xs font-black text-sky-700">إعدادات الشهادة</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">تطبق على المحددين</h2>
 
@@ -387,7 +387,7 @@ export function BulkCertificatesPage() {
             </section>
           </aside>
 
-          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black text-sky-700">اختيار الطلاب</p>
@@ -497,7 +497,7 @@ export function BulkCertificatesPage() {
           </section>
         </section>
       ) : (
-        <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2.5rem] sm:p-6">
           <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
             <div>
               <p className="text-xs font-black text-sky-700">رفع Excel</p>

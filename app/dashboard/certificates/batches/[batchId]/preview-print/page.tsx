@@ -60,7 +60,7 @@ export default async function CertificatesBatchPrintPreviewPage({ params }: Page
     current.user.role,
     current.user.officialName || current.user.name || "المستخدم",
     current.user.id,
-    false,
+    true,
   );
 
   const html = renderCertificatesBatchDocumentHtml(certificates, {

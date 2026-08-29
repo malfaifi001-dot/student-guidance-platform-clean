@@ -24,7 +24,9 @@ type CertificateListRow = {
   recipientType: string;
   recipientName: string;
   reason: string | null;
+  body: string | null;
   title: string;
+  dataJson: string | null;
   issueDate: Date | string;
   status: string;
   pdfUrl: string | null;
@@ -155,13 +157,15 @@ export async function GET(request: Request) {
       c.recipientType,
       c.recipientName,
       c.reason,
+      c.body,
       c.title,
       c.issueDate,
       c.status,
       c.pdfUrl,
       c.batchId,
       b.batchNumber,
-      c.createdAt
+      c.createdAt,
+      c.dataJson
     FROM IssuedCertificate c
     LEFT JOIN CertificateBatch b ON b.id = c.batchId
     WHERE ${whereSql}
@@ -245,7 +249,7 @@ export async function POST(request: Request) {
   await insertDynamic("IssuedCertificate", columns, {
     id: certificateId,
     schoolAccountId: actor.schoolAccountId,
-    templateId: templateKey,
+    templateId: null,
     batchId: null,
     certificateNumber,
     recipientType,
@@ -268,12 +272,10 @@ export async function POST(request: Request) {
     dataJson: JSON.stringify({
       templateKey,
       principalName:
-        safeString(payload.principalName) ||
         signatureProfile?.principalName ||
         "مدير المدرسة",
       principalSignatureUrl: signatureProfile?.principalSignatureUrl || "",
       issuerName:
-        safeString(payload.issuerName) ||
         signatureProfile?.issuerName ||
         actor.name,
       issuerTitle: signatureProfile?.issuerTitle || "الموجه الطلابي",
