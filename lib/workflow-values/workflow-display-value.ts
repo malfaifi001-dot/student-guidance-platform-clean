@@ -1,4 +1,5 @@
 import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+import { formatHijriDateWithDay } from "@/lib/workflow-values/hijri-date";
 
 export type WorkflowOptionLike = {
   label?: string | null;
@@ -40,6 +41,10 @@ export function formatWorkflowDisplayValue(
   const fieldKey = getWorkflowFieldKey(item);
   const rawValue = getRawWorkflowValue(item);
   const otherValue = getOtherValueForField(fieldKey, allValues);
+
+  if (String(item.field?.type || "").toUpperCase() === "DATE") {
+    return formatHijriDateWithDay(String(rawValue || "")) || String(rawValue || "");
+  }
 
   return formatValueByFieldOptions(
     rawValue,

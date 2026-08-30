@@ -22,6 +22,7 @@ import type {
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
 import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
+import { HijriDatePicker } from "@/components/workflow/hijri-date-picker";
 
 type DynamicFieldRendererProps = {
   field: RuntimeField;
@@ -113,6 +114,10 @@ function RepeaterEditorInput({
         className={baseInputClass}
       />
     );
+  }
+
+  if (field.type === "DATE") {
+    return <HijriDatePicker value={value} onChange={onChange} className={baseInputClass} />;
   }
 
   return (
@@ -559,19 +564,21 @@ export function DynamicFieldRenderer({
           onUpdateFieldLabel={onUpdateFieldLabel}
         />
 
-        <input
-          type={
-            field.type === "NUMBER"
-              ? "number"
-              : field.type === "DATE"
-                ? "date"
-                : "text"
-          }
-          value={String(value ?? "")}
-          placeholder={repairPotentialUtf8Mojibake(field.placeholder) ?? ""}
-          onChange={(event) => onChange(field.key, event.target.value)}
-          className={baseInputClass}
-        />
+        {field.type === "DATE" ? (
+          <HijriDatePicker
+            value={String(value ?? "")}
+            onChange={(nextValue) => onChange(field.key, nextValue)}
+            className={baseInputClass}
+          />
+        ) : (
+          <input
+            type={field.type === "NUMBER" ? "number" : "text"}
+            value={String(value ?? "")}
+            placeholder={repairPotentialUtf8Mojibake(field.placeholder) ?? ""}
+            onChange={(event) => onChange(field.key, event.target.value)}
+            className={baseInputClass}
+          />
+        )}
 
         <HelpText text={field.helpText} />
 

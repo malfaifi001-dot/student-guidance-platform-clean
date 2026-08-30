@@ -20,6 +20,7 @@ import { TeachixLogo } from "@/components/brand/teachix-logo";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixStructuredData } from "@/components/marketing/teachix-structured-data";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
+import { SocialSection } from "@/components/marketing/social-section";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 
 const homeDescription =
@@ -549,6 +550,8 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <SocialSection />
 
       <MarketingFooter />
     </div>

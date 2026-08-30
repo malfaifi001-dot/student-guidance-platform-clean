@@ -40,6 +40,7 @@ import {
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
+import { dedupeReportTwoDateRows } from "@/lib/report-2/report-two-structured-data";
 import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
 import {
   tracePrincipalCards,
@@ -160,6 +161,7 @@ type StudioPageKind =
 type ReportTwoDynamicField = {
   id: string;
   key: string;
+  fieldType?: string;
   label: string;
   value: string;
   valueItems?: string[];
@@ -1190,7 +1192,7 @@ function getPreviewCase(payload: SmartReportPayload, template?: StudioTemplate) 
       guardianName: cleanText(student.guardianName),
       guardianPhone: cleanText(student.guardianPhone),
     },
-    values: fields.map((field: any, index: number) => {
+    values: dedupeReportTwoDateRows(fields.map((field: any, index: number) => {
       const fieldKey =
         cleanText(field.key) ||
         cleanText(field.fieldKey) ||
@@ -1205,6 +1207,7 @@ function getPreviewCase(payload: SmartReportPayload, template?: StudioTemplate) 
 
       return {
         fieldKey,
+        fieldType: cleanText(field.fieldType),
         fieldLabel: getReportTwoReadableFieldLabel(field, index),
         value,
         ...(valueItems.length > 1 ? { valueItems } : {}),
@@ -1212,7 +1215,7 @@ function getPreviewCase(payload: SmartReportPayload, template?: StudioTemplate) 
           ? field.value.map((item: unknown) => cleanText(item)).filter(Boolean).join("، ")
           : cleanText(field.value),
       };
-    }),
+    })),
     evidences: collectEvidences(payload),
   };
 }
@@ -1922,6 +1925,7 @@ function getReportTwoDynamicFieldsFromPreviewCase(
       return {
         id: key || `workflow-field-${index + 1}`,
         key,
+        fieldType: cleanText(item.fieldType),
         label,
         value,
         ...(valueItems.length > 1 ? { valueItems } : {}),
@@ -2002,14 +2006,29 @@ function getDynamicFieldsForBlock(
     return {
       id: field.id || source?.id || `dynamic-field-${index + 1}`,
       key,
+      fieldType: field.fieldType || source?.fieldType,
       label: field.label ?? cleanText(source?.label) ?? getReportTwoFieldLabel(field.key, field.label) ?? key,
       value,
       ...(valueItems.length > 1 ? { valueItems } : {}),
       visible: field.visible !== false,
     };
-  });
+    });
 
-  return ensureUniqueReportTwoDynamicFieldIds(fields);
+  const configuredKeys = new Set(fields.map((field) => getReportTwoLookupKey(field.key)));
+  const dateAliases = sourceFields.filter((field) =>
+    /^execution_date(?:_\d+)?$/i.test(field.key),
+  );
+  const hasDateAlias = dateAliases.length > 0;
+
+  return ensureUniqueReportTwoDynamicFieldIds([
+    ...fields,
+    ...dateAliases.filter((field) => !configuredKeys.has(getReportTwoLookupKey(field.key))),
+  ].filter(
+    (field) =>
+      !hasDateAlias ||
+      field.fieldType?.toUpperCase() !== "DATE" ||
+      /^execution_date(?:_\d+)?$/i.test(field.key),
+  ));
 }
 function getReportTwoTableSettings(
   settings?: Record<string, any>,

@@ -83,6 +83,7 @@ type BuildSmartReportPayloadResult =
 
 type CaseValueItem = {
   key: string;
+  fieldType?: string;
   label: string;
   value: string;
   payloadValue?: string[];
@@ -790,6 +791,7 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
 
       return {
         key,
+        fieldType: fieldMap.get(key)?.type || item.field?.type || undefined,
         label,
         value,
         ...(payloadValue && payloadValue.length > 1 ? { payloadValue } : {}),
@@ -907,6 +909,7 @@ function makeDetailField(
 
   return {
     key: item.key,
+    fieldType: item.fieldType,
     label: applyReportLanguageModeToText(item.label, languageMode),
     value,
     importance: item.importance,
@@ -1456,6 +1459,11 @@ export async function buildSmartReportPayloadForCase({
     "اليوم",
   ]);
 
+  const firstDateField = values.find((item) =>
+    String(workflowFields.find((field: any) => field?.key === item.key)?.type || "").toUpperCase() === "DATE",
+  );
+  const resolvedExecutionDateField = executionDateField || firstDateField || null;
+
   const semesterField = findByIntent(values, [
     "semester",
     "term",
@@ -1501,10 +1509,10 @@ export async function buildSmartReportPayloadForCase({
   ]);
 
   const dateText =
-    executionDateField?.value ||
+    resolvedExecutionDateField?.value ||
     formatDateOnly(caseEntry.submittedAt || caseEntry.createdAt);
 
-  const dayText = formatDayName(executionDateField?.value || caseEntry.createdAt);
+  const dayText = formatDayName(resolvedExecutionDateField?.value || caseEntry.createdAt);
   const executionDateText = dayText ? `${dateText} - ${dayText}` : dateText;
 
   const semesterText =
@@ -1528,7 +1536,14 @@ export async function buildSmartReportPayloadForCase({
   const executionMethodText = executionMethodField?.value || "غير محدد";
 
   const evidence = normalizeEvidence(caseEntry);
-  const primaryFields: SmartReportField[] = [];
+  const dateFields = values.filter((item) => item.fieldType?.toUpperCase() === "DATE");
+  const primaryFields: SmartReportField[] = dateFields.map((item, index) => ({
+    key: index === 0 ? "execution_date" : `execution_date_${index + 1}`,
+    fieldType: "DATE",
+    label: index === 0 ? "تاريخ التنفيذ" : `تاريخ التنفيذ ${index + 1}`,
+    value: item.value,
+    importance: "PRIMARY",
+  }));
 
   const detailFields: SmartReportField[] = values.map((item) =>
     makeDetailField(item, languageMode),

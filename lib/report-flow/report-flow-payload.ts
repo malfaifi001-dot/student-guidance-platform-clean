@@ -416,7 +416,7 @@ function applyFields(
 ): SmartReportField[] {
   const selectedIds = new Set(preparation.selectedFieldIds);
 
-  return preparation.fields
+  const applied = preparation.fields
     .filter((field) => field.source === source)
     .filter((field) => selectedIds.has(field.id))
     .map((field) => {
@@ -433,6 +433,15 @@ function applyFields(
         value: resolvePreparedFieldValue(original, field, languageMode),
       } as SmartReportField;
     });
+
+  const appliedKeys = new Set(applied.map((field) => field.key));
+  const preservedDateFields = sourceFields.filter(
+    (field) =>
+      field.fieldType?.toUpperCase() === "DATE" &&
+      !appliedKeys.has(field.key),
+  );
+
+  return [...applied, ...preservedDateFields];
 }
 
 export function applyReportFlowPreparationToPayload(

@@ -31,6 +31,7 @@ export type SmartReportEvidenceLayout =
 
 export type SmartReportField = {
   key: string;
+  fieldType?: string;
   label: string;
   value: string | string[] | number | boolean | null;
   importance: SmartReportFieldImportance;

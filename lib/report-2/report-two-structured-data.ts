@@ -17,6 +17,22 @@ function fieldItems(payload: SmartReportPayload) {
   ] as Array<Record<string, unknown>>;
 }
 
+export function dedupeReportTwoDateRows<T extends Record<string, unknown>>(rows: T[]) {
+  const aliases = new Set(
+    rows
+      .filter((row) => /^execution_date(?:_\d+)?$/i.test(clean(row.fieldKey || row.key)))
+      .map((row) => clean(row.value)),
+  );
+
+  if (!aliases.size) return rows;
+
+  return rows.filter((row) => {
+    const key = clean(row.fieldKey || row.key);
+    const isDate = clean(row.fieldType).toUpperCase() === "DATE";
+    return !isDate || /^execution_date(?:_\d+)?$/i.test(key) || !aliases.has(clean(row.value));
+  });
+}
+
 export function buildReportTwoRenderContext(payload: SmartReportPayload) {
   const data = payload as unknown as Record<string, any>;
   const caseInfo = asRecord(data.caseInfo);
@@ -95,14 +111,15 @@ export function buildReportTwoPreviewCase(payload: SmartReportPayload) {
     updatedAt: clean(caseInfo.updatedAt),
     serviceName: clean(service.name),
     serviceSlug: clean(service.slug),
-    values: fieldItems(payload).map((field, index) => ({
+    values: dedupeReportTwoDateRows(fieldItems(payload).map((field, index) => ({
       fieldKey: clean(field.key) || `field-${index + 1}`,
+      fieldType: clean(field.fieldType),
       fieldLabel: clean(field.label) || clean(field.key),
       value: clean(field.value),
       valueItems: Array.isArray(field.payloadValue)
         ? field.payloadValue.map(clean).filter(Boolean)
         : undefined,
-    })),
+    }))),
     evidences: collectEvidence(payload),
   };
 }
