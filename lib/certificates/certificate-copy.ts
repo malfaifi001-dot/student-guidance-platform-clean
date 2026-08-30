@@ -1,7 +1,4 @@
-import {
-  getCertificateTypeLabel,
-  getRecipientPrefix,
-} from "./certificate-types";
+import { getCertificateTypeLabel } from "./certificate-types";
 
 export type CertificateDraft = {
   templateKey?: string;
@@ -30,28 +27,30 @@ export function buildCertificateBody(input: {
   recipientName: string;
   reason?: string;
 }) {
-  const prefix = getRecipientPrefix(input.recipientType);
-  const name = [prefix, input.recipientName].filter(Boolean).join(" ");
-  const typeLabel = getCertificateTypeLabel(input.certificateType);
-  const reason = input.reason?.trim();
+  const reason = normalizeCertificateReason(input.reason);
+  const feminine = ["student_female", "teacher_female", "guardian_female"].includes(
+    input.recipientType,
+  );
+  const pronoun = feminine ? "لها" : "له";
 
-  if (input.certificateType === "participation") {
-    return `تقديرًا لمشاركة ${name} الفاعلة${reason ? ` في ${reason}` : ""}.`;
+  if (reason) {
+    return `تقديرًا ${feminine ? "لجهودها وتميزها" : "لجهوده وتميزه"} ${reason}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
   }
 
-  if (input.certificateType === "excellence") {
-    return `نظير تميز ${name}${reason ? ` في ${reason}` : ""}.`;
-  }
+  const efforts = feminine ? "لجهودها وتميزها" : "لجهوده وتميزه";
 
-  if (input.certificateType === "achievement") {
-    return `تقديرًا لإنجاز ${name}${reason ? ` في ${reason}` : ""}.`;
-  }
+  return `تقديرًا ${efforts}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
+}
 
-  if (input.certificateType === "cooperation") {
-    return `نظير تعاون ${name} المثمر${reason ? ` في ${reason}` : ""}.`;
-  }
+function normalizeCertificateReason(value?: string) {
+  const reason = String(value || "").trim();
 
-  return `تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى ${name}${reason ? ` وذلك تقديرًا لـ ${reason}` : ""}.`;
+  if (!reason) return "";
+
+  return reason
+    .replace(/[.,،،。؛;!؟?]+$/u, "")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 export function normalizeCertificateDraft(input: Partial<CertificateDraft>): CertificateDraft {

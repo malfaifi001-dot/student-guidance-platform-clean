@@ -13,9 +13,8 @@ import {
 import {
   CERTIFICATE_RECIPIENT_TYPES,
   CERTIFICATE_TYPES,
-  getCertificateTypeLabel,
-  getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
+import { buildCertificateBody } from "@/lib/certificates/certificate-copy";
 import { CertificateTemplateSelector } from "@/components/certificates/certificate-template-preview";
 import { CertificateWizardActionRow } from "@/components/certificates/certificate-wizard-action-row";
 import { CertificateWizardNavigation } from "@/components/certificates/certificate-wizard-navigation";
@@ -69,15 +68,7 @@ function getTodayInputDate() {
 }
 
 function buildAutoBody(draft: CertificateDraft) {
-  const prefix = getRecipientPrefix(draft.recipientType);
-  const typeLabel = getCertificateTypeLabel(draft.certificateType);
-  const reason = draft.reason.trim();
-
-  if (reason) {
-    return `تتقدم إدارة المدرسة بخالص ${typeLabel} إلى ${prefix} ${draft.recipientName || "المستفيد"}، وذلك نظير ${reason}، سائلين الله له دوام التوفيق والتميز.`;
-  }
-
-  return `تتقدم إدارة المدرسة بخالص ${typeLabel} إلى ${prefix} ${draft.recipientName || "المستفيد"}، تقديرًا لجهوده وتميزه، سائلين الله له دوام التوفيق والنجاح.`;
+  return buildCertificateBody(draft);
 }
 
 function isStudentRecipient(value: string) {
