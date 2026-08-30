@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
 import { AssessmentAnalyticalReport } from "@/components/assessments-center/report/assessment-analytical-report";
@@ -13,13 +14,13 @@ export default async function AssessmentCleanPrintPage({
   params: Promise<{ analysisId: string }>;
 }) {
   await requireServiceAccessForCurrentUser("assessment-center");
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
   const { analysisId } = await params;
 
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      ...(context.isAdmin ? {} : { schoolAccountId: context.schoolAccountId }),
+      ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)),
       uploadMode: {
         in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"],
       },

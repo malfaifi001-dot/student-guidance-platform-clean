@@ -8,6 +8,7 @@ const STATISTICS_ALLOWED_ROLES = new Set([
   "ADMIN",
   "COUNSELOR",
   "TEACHER",
+  "PRINCIPAL",
 ]);
 
 export function canAccessStatistics(context: DashboardContext) {

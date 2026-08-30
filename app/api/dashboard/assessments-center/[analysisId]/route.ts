@@ -8,28 +8,29 @@ import { calculateMultiPeriod } from "@/lib/assessments-center/multi-period-calc
 import { calculateNafsAnalysis } from "@/lib/assessments-center/nafs-calculations";
 import type { MultiPeriodInput } from "@/lib/assessments-center/assessment-types";
 import type { NafsAnalysisInput } from "@/lib/assessments-center/nafs-types";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, context: { params: Promise<{ analysisId: string }> }) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
-  const guard = await requireServiceAccessApi("assessment-center");
+  const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, schoolAccountId: auth.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
   if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ success: true, analysis });
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ analysisId: string }> }) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
-  const guard = await requireServiceAccessApi("assessment-center");
+  const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
   const { analysisId } = await context.params;
   const body = await request.json().catch(() => null) as { ai?: unknown; input?: unknown } | null;
   if (body?.input !== undefined) {
-    const existing = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: auth.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, uploadMode: true, summaryJson: true } });
+    const existing = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, uploadMode: true, summaryJson: true } });
     if (!existing) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
     const input = body.input as Record<string, unknown>;
     try {
@@ -62,7 +63,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ analy
   }
   const validation = validateAiPatch(body?.ai);
   if (!validation.success) return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: auth.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, summaryJson: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, summaryJson: true } });
   if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
   const snapshot = analysis.summaryJson && typeof analysis.summaryJson === "object" ? analysis.summaryJson as Record<string, unknown> : {};
   const nextSnapshot = { ...snapshot, ai: mergeEditableAi(snapshot.ai, validation.value), aiMeta: { ...(snapshot.aiMeta && typeof snapshot.aiMeta === "object" ? snapshot.aiMeta : {}), aiManuallyEdited: true, editedAt: new Date().toISOString() } };
@@ -71,16 +72,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ analy
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ analysisId: string }> }) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
-  const guard = await requireServiceAccessApi("assessment-center");
+  const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
 
   const { analysisId } = await context.params;
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      schoolAccountId: auth.schoolAccountId,
+      ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)),
       uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] },
     },
     select: { id: true },

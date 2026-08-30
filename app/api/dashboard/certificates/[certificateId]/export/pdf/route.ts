@@ -22,17 +22,18 @@ function safeFileName(value: string) {
     .slice(0, 120);
 }
 
-async function getCertificate(certificateId: string, schoolAccountId: string) {
+async function getCertificate(certificateId: string, schoolAccountId: string, createdById: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE id = ? AND schoolAccountId = ?
+    WHERE id = ? AND schoolAccountId = ? AND createdById = ?
     LIMIT 1
     `,
     certificateId,
     schoolAccountId,
+    createdById,
   );
 
   return rows[0] || null;
@@ -46,7 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const { certificateId } = await context.params;
-  const certificate = await getCertificate(certificateId, actor.schoolAccountId);
+  const certificate = await getCertificate(certificateId, actor.schoolAccountId, actor.id);
 
   if (!certificate) {
     return NextResponse.json({ error: "الشهادة غير موجودة." }, { status: 404 });

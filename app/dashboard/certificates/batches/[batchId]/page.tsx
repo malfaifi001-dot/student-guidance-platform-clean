@@ -133,7 +133,7 @@ function getStatusLabel(status: string | null | undefined) {
   return status || "مصدرة";
 }
 
-async function getBatch(batchId: string, schoolAccountId: string) {
+async function getBatch(batchId: string, schoolAccountId: string, createdById: string) {
   const columns = await getColumns("CertificateBatch");
 
   const select = [
@@ -151,17 +151,18 @@ async function getBatch(batchId: string, schoolAccountId: string) {
     `
     SELECT ${select}
     FROM CertificateBatch
-    WHERE id = ? AND schoolAccountId = ?
+    WHERE id = ? AND schoolAccountId = ? AND createdById = ?
     LIMIT 1
     `,
     batchId,
     schoolAccountId,
+    createdById,
   );
 
   return rows[0] || null;
 }
 
-async function getCertificates(batchId: string, schoolAccountId: string) {
+async function getCertificates(batchId: string, schoolAccountId: string, createdById: string) {
   const columns = await getColumns("IssuedCertificate");
 
   const select = [
@@ -185,11 +186,12 @@ async function getCertificates(batchId: string, schoolAccountId: string) {
     `
     SELECT ${select}
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ?
+    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
     schoolAccountId,
+    createdById,
   );
 
   return rows;
@@ -204,8 +206,8 @@ export default async function CertificateBatchDetailsPage({ params }: PageProps)
 
   const { batchId } = await params;
   const [batch, certificates] = await Promise.all([
-    getBatch(batchId, current.user.schoolAccountId),
-    getCertificates(batchId, current.user.schoolAccountId),
+    getBatch(batchId, current.user.schoolAccountId, current.user.id),
+    getCertificates(batchId, current.user.schoolAccountId, current.user.id),
   ]);
 
   if (!batch || !certificates.length) {

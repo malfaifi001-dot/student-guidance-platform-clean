@@ -4,6 +4,7 @@ import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-gua
 import { getRequestOrigin } from "@/lib/http/request-origin";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 import { prisma } from "@/lib/prisma";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export const runtime = "nodejs";
 
@@ -35,17 +36,17 @@ function getPdfContentDisposition(fileName: string) {
 }
 
 export async function GET(request: Request, context: RouteContext) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
 
-  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  const serviceGuard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (serviceGuard) return serviceGuard;
 
   const { analysisId } = await context.params;
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      schoolAccountId: auth.schoolAccountId,
+      ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)),
       uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] },
     },
     select: { id: true, title: true },

@@ -18,17 +18,18 @@ type PageProps = {
   }>;
 };
 
-async function getCertificate(certificateId: string, schoolAccountId: string) {
+async function getCertificate(certificateId: string, schoolAccountId: string, createdById: string) {
   const rows = await prisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE id = ? AND schoolAccountId = ?
+    WHERE id = ? AND schoolAccountId = ? AND createdById = ?
     LIMIT 1
     `,
     certificateId,
     schoolAccountId,
+    createdById,
   );
 
   return rows[0] || null;
@@ -56,7 +57,7 @@ export default async function CertificatePrintPreviewPage({ params, searchParams
     }`,
   );
 
-  const certificate = await getCertificate(certificateId, current.user.schoolAccountId!);
+  const certificate = await getCertificate(certificateId, current.user.schoolAccountId!, current.user.id);
 
   if (!certificate) {
     notFound();

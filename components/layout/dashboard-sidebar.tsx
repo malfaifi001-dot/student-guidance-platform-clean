@@ -551,6 +551,29 @@ const principalEvaluationAccreditationLinks: SidebarLinkItem[] =
     shortLabel: service.shortTitle,
   }));
 
+const principalAdditionalLinks: SidebarLinkItem[] = [
+  {
+    label: "تحليل نتائج الطلاب",
+    href: "/dashboard/assessments-center",
+    icon: BarChart3,
+  },
+  {
+    label: "رفع الطلاب",
+    href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
+    icon: UploadCloud,
+  },
+  {
+    label: "الشهادات",
+    href: OFFICIAL_WORKSPACE_ROUTES.certificates,
+    icon: Medal,
+  },
+  {
+    label: "الاستبيانات",
+    href: OFFICIAL_WORKSPACE_ROUTES.surveys,
+    icon: ListChecks,
+  },
+];
+
 const principalAccountLinks: SidebarLinkItem[] = [
   {
     label: "الباقات",
@@ -1480,6 +1503,22 @@ function PrincipalSidebar({
         collapsed={collapsed}
       >
         {principalEvaluationAccreditationLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            collapsed={collapsed}
+            compact
+          />
+        ))}
+      </SidebarDropdown>
+
+      <SidebarDropdown
+        title="الأدوات الإضافية"
+        defaultOpen={hasActive(pathname, principalAdditionalLinks)}
+        collapsed={collapsed}
+      >
+        {principalAdditionalLinks.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}

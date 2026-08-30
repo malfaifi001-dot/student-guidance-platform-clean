@@ -14,17 +14,18 @@ type RouteContext = {
   }>;
 };
 
-async function getBatchCertificates(batchId: string, schoolAccountId: string) {
+async function getBatchCertificates(batchId: string, schoolAccountId: string, createdById: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ?
+    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
     schoolAccountId,
+    createdById,
   );
 
   return rows;
@@ -46,7 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const { batchId } = await context.params;
-  const certificates = await getBatchCertificates(batchId, actor.schoolAccountId);
+  const certificates = await getBatchCertificates(batchId, actor.schoolAccountId, actor.id);
 
   if (!certificates.length) {
     return NextResponse.json(

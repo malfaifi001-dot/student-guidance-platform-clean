@@ -5,6 +5,7 @@ const surveyOwnerRoleSchema = z.enum([
   "COUNSELOR",
   "ACTIVITY_LEADER",
   "TEACHER",
+  "PRINCIPAL",
 ]);
 
 const surveyQuestionTypeSchema = z.enum([

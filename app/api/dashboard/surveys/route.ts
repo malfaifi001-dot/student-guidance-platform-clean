@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
 
   if (!context.isAdmin) {
     where.schoolAccountId = context.schoolAccountId;
+    where.createdById = context.user.id;
   }
 
   if (ownerRole) {

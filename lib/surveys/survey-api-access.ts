@@ -16,7 +16,9 @@ type SurveyAccessResult<TInclude extends Prisma.SurveyInclude | undefined> = {
 };
 
 export async function requireSurveyServiceContext() {
-  const context = await requireServiceAccessForCurrentUser(SURVEY_SERVICE_SLUG);
+  const context = await requireServiceAccessForCurrentUser(SURVEY_SERVICE_SLUG, {
+    allowPrincipal: true,
+  });
 
   if (context instanceof Response) {
     return {
@@ -47,9 +49,15 @@ export async function requireSurveyAccess<
     } as SurveyAccessResult<TInclude>;
   }
 
-  const survey = await prisma.survey.findUnique({
+  const survey = await prisma.survey.findFirst({
     where: {
       id: surveyId,
+      ...(context.isAdmin
+        ? {}
+        : {
+            schoolAccountId: context.schoolAccountId,
+            createdById: context.user.id,
+          }),
     },
     include,
   }) as SurveyAccessResult<TInclude>["survey"];

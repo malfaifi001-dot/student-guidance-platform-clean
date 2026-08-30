@@ -37,11 +37,11 @@ function isTargetType(value: string): value is TargetType {
 
 async function ensureTargetAccess(targetType: TargetType) {
   if (targetType === "ASSESSMENT_ANALYSIS") {
-    return requireServiceAccessApi("assessment-center");
+    return requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   }
 
   if (targetType === "SURVEY_ANALYSIS") {
-    return requireServiceAccessApi("surveys");
+    return requireServiceAccessApi("surveys", { allowPrincipal: true });
   }
 
   return null;
@@ -307,7 +307,7 @@ async function validTargetIds({
 }
 
 export async function GET(request: Request) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
 
   if (auth instanceof Response) {
     return auth;
@@ -421,7 +421,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireSchoolDashboardApiContext();
+  const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
 
   if (auth instanceof Response) {
     return auth;

@@ -11,9 +11,9 @@ const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase().r
 const isName = (value: unknown) => nameAliases.some((alias) => normalize(value).includes(normalize(alias)));
 
 export async function POST(request: Request) {
-  const context = await requireSchoolDashboardApiContext();
+  const context = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (context instanceof Response) return context;
-  const guard = await requireServiceAccessApi("assessment-center");
+  const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
   const form = await request.formData();
   const file = form.get("file");

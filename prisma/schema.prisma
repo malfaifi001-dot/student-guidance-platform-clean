@@ -478,6 +478,7 @@ model User {
   createdInternalAssignments  InternalAssignment[] @relation("InternalAssignmentsCreatedBy")
   receivedInternalAssignments InternalAssignment[] @relation("InternalAssignmentsAssignedTo")
   createdSurveys              Survey[]             @relation("SurveysCreatedBy")
+  assessmentAnalysesCreated   AssessmentAnalysis[] @relation("AssessmentAnalysisCreator")
   activityPlanEntries         ActivityPlanEntry[]
   weeklyActivityPlanEntries   WeeklyActivityPlanEntry[]
 
@@ -1793,6 +1794,8 @@ model AssessmentAnalysis {
   id              String         @id @default(cuid())
   schoolAccountId String?
   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  createdById     String?
+  createdBy       User?          @relation("AssessmentAnalysisCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   title      String
   sourceFile String?
@@ -1811,6 +1814,7 @@ model AssessmentAnalysis {
   updatedAt DateTime @updatedAt
 
   @@index([schoolAccountId])
+  @@index([createdById])
   @@index([status])
   @@index([createdAt])
 }

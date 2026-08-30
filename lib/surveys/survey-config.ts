@@ -1,6 +1,6 @@
 export const SURVEY_SERVICE_SLUG = "surveys";
 
-export type SurveyBoardRole = "ADMIN" | "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+export type SurveyBoardRole = "ADMIN" | "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER" | "PRINCIPAL";
 
 export type SurveyQuestionInputType =
   | "TEXT"
@@ -116,4 +116,5 @@ export const surveyBoardLabels: Record<SurveyBoardRole, string> = {
   COUNSELOR: "مركز استبيانات التوجيه الطلابي",
   ACTIVITY_LEADER: "مركز استبيانات ريادة النشاط",
   TEACHER: "مركز استبيانات المعلم",
+  PRINCIPAL: "مركز استبيانات مدير المدرسة",
 };

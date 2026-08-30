@@ -88,8 +88,8 @@ export async function GET(request: Request) {
       reportParams.push(reportLike, reportLike, reportLike, reportLike);
     }
 
-    const certificateWhere: string[] = ["schoolAccountId = ?"];
-    const certificateParams: unknown[] = [actor.schoolAccountId];
+    const certificateWhere: string[] = ["schoolAccountId = ?", "createdById = ?"];
+    const certificateParams: unknown[] = [actor.schoolAccountId, actor.id];
 
     if (certificateQuery) {
       const certificateLike = `%${certificateQuery}%`;
@@ -235,9 +235,10 @@ export async function POST(request: Request) {
       `
       SELECT id
       FROM IssuedCertificate
-      WHERE schoolAccountId = ? AND id IN (${placeholders})
+      WHERE schoolAccountId = ? AND createdById = ? AND id IN (${placeholders})
       `,
       actor.schoolAccountId,
+      actor.id,
       ...uniqueIds,
     );
 

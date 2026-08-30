@@ -124,8 +124,8 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type")?.trim() || "";
   const recipientType = url.searchParams.get("recipientType")?.trim() || "";
 
-  const where: string[] = ["c.schoolAccountId = ?"];
-  const params: unknown[] = [actor.schoolAccountId];
+  const where: string[] = ["c.schoolAccountId = ?", "c.createdById = ?"];
+  const params: unknown[] = [actor.schoolAccountId, actor.id];
 
   if (query) {
     const like = `%${query}%`;

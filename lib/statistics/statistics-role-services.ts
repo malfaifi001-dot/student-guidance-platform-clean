@@ -41,5 +41,14 @@ export function getStatisticsServiceDefinitionsForRole(
     );
   }
 
+  if (role === "PRINCIPAL") {
+    return uniqueDefinitions(
+      TEACHER_PERFORMANCE_SERVICES.map((service) => ({
+        slug: service.slug,
+        name: service.title,
+      })),
+    );
+  }
+
   return [];
 }

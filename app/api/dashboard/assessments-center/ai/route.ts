@@ -6,19 +6,20 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logPlatformActivity } from "@/lib/admin/activity-log";
 import { generateMultiPeriodAiAnalysis, generateNafsAiAnalysis } from "@/lib/assessments-center/nafs-ai";
 import type { NafsSnapshot } from "@/lib/assessments-center/nafs-types";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const context = await requireSchoolDashboardApiContext();
+  const context = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (context instanceof Response) return context;
-  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  const serviceGuard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (serviceGuard) return serviceGuard;
   try {
     const body = await request.json() as { analysisId?: unknown; snapshot?: NafsSnapshot };
     const analysisId = String(body.analysisId || "");
     if (!analysisId) return NextResponse.json({ success: false, error: "ANALYSIS_REQUIRED" }, { status: 400 });
-    const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: context.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { summaryJson: true, uploadMode: true } });
+    const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, ...(context.isAdmin ? { schoolAccountId: context.schoolAccountId } : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { summaryJson: true, uploadMode: true } });
     if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
     const snapshot = (body.snapshot || analysis.summaryJson) as NafsSnapshot;
     const ai = "periodMetrics" in (snapshot as object) ? await generateMultiPeriodAiAnalysis(snapshot as never) : await generateNafsAiAnalysis(snapshot);

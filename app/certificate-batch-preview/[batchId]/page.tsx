@@ -15,17 +15,18 @@ type PageProps = {
   searchParams?: Promise<{ print?: string | string[] }>;
 };
 
-async function getBatchCertificates(batchId: string, schoolAccountId: string) {
+async function getBatchCertificates(batchId: string, schoolAccountId: string, createdById: string) {
   return certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ?
+    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
     schoolAccountId,
+    createdById,
   );
 }
 
@@ -39,7 +40,7 @@ export default async function CertificateBatchPreviewPage({ params, searchParams
   const printParam = Array.isArray(resolvedSearchParams.print)
     ? resolvedSearchParams.print[0]
     : resolvedSearchParams.print;
-  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId);
+  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId, current.user.id);
 
   if (!certificates.length) notFound();
 

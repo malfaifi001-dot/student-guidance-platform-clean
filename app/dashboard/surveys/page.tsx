@@ -19,5 +19,9 @@ export default async function CounselorSurveysPage() {
     return <SurveyCenterShell ownerRole="TEACHER" boardPath="/dashboard/surveys" />;
   }
 
+  if (current.user.role === "PRINCIPAL") {
+    return <SurveyCenterShell ownerRole="PRINCIPAL" boardPath="/dashboard/surveys" />;
+  }
+
   return <SurveyCenterShell ownerRole="COUNSELOR" boardPath="/dashboard/surveys" />;
 }

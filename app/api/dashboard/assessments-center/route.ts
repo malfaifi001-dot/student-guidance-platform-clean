@@ -8,6 +8,7 @@ import { calculateNafsAnalysis } from "@/lib/assessments-center/nafs-calculation
 import type { NafsAnalysisInput } from "@/lib/assessments-center/nafs-types";
 import { calculateMultiPeriod } from "@/lib/assessments-center/multi-period-calculations";
 import type { MultiPeriodInput } from "@/lib/assessments-center/assessment-types";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export const runtime = "nodejs";
 
@@ -35,9 +36,9 @@ function normalizeInput(value: unknown): NafsAnalysisInput {
 }
 
 export async function GET(request: Request) {
-  const context = await requireSchoolDashboardApiContext();
+  const context = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (context instanceof Response) return context;
-  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  const serviceGuard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (serviceGuard) return serviceGuard;
   const url = new URL(request.url);
   const grade = url.searchParams.get("grade")?.trim() || "";
@@ -49,15 +50,15 @@ export async function GET(request: Request) {
     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, grade: { not: null } }, distinct: ["grade"], select: { grade: true }, orderBy: { grade: "asc" } }),
     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, ...(grade ? { grade } : {}), classroom: { not: null } }, distinct: ["classroom"], select: { classroom: true }, orderBy: { classroom: "asc" } }),
     getCurrentSessionUser(),
-    prisma.assessmentAnalysis.findMany({ where: { schoolAccountId: context.schoolAccountId, uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, orderBy: { updatedAt: "desc" }, take: 50, select: { id: true, title: true, uploadMode: true, totalStudents: true, averagePercentage: true, createdAt: true, updatedAt: true, summaryJson: true } }),
+    prisma.assessmentAnalysis.findMany({ where: { ...(context.isAdmin ? { schoolAccountId: context.schoolAccountId } : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, orderBy: { updatedAt: "desc" }, take: 50, select: { id: true, title: true, uploadMode: true, totalStudents: true, averagePercentage: true, createdAt: true, updatedAt: true, summaryJson: true } }),
   ]);
   return NextResponse.json({ success: true, hasStudentData: studentCount > 0, students, grades: grades.map((item) => item.grade).filter(Boolean), classrooms: classrooms.map((item) => item.classroom).filter(Boolean), profile, teacherName: current?.user?.name || null, analyses });
 }
 
 export async function POST(request: Request) {
-  const context = await requireSchoolDashboardApiContext();
+  const context = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (context instanceof Response) return context;
-  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  const serviceGuard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (serviceGuard) return serviceGuard;
   try {
     const body = await request.json();
@@ -67,14 +68,14 @@ export async function POST(request: Request) {
       const linkedIds = input.students.map((student) => student.studentId).filter((id): id is string => typeof id === "string" && id.length > 0);
       if (linkedIds.length) { const count = await prisma.student.count({ where: { schoolAccountId: context.schoolAccountId, isActive: true, id: { in: linkedIds } } }); if (count !== linkedIds.length) throw new Error("INVALID_STUDENT_LINK"); }
       const snapshot = calculateMultiPeriod(input);
-      const analysis = await prisma.assessmentAnalysis.create({ data: { schoolAccountId: context.schoolAccountId, title: input.title, status: input.type, uploadMode: input.type, totalStudents: input.students.length, totalRows: input.students.length, totalSubjects: 1, averagePercentage: snapshot.periodMetrics.at(-1)?.average, summaryJson: JSON.parse(JSON.stringify(snapshot)), rowsJson: JSON.parse(JSON.stringify(snapshot.students)) } });
+      const analysis = await prisma.assessmentAnalysis.create({ data: { schoolAccountId: context.schoolAccountId, createdById: context.user.id, title: input.title, status: input.type, uploadMode: input.type, totalStudents: input.students.length, totalRows: input.students.length, totalSubjects: 1, averagePercentage: snapshot.periodMetrics.at(-1)?.average, summaryJson: JSON.parse(JSON.stringify(snapshot)), rowsJson: JSON.parse(JSON.stringify(snapshot.students)) } });
       await logPlatformActivity({ actorUserId: context.user.id, schoolAccountId: context.schoolAccountId, category: "REPORT", action: "assessment-analysis-created", severity: "SUCCESS", title: "Assessment analysis created", details: { analysisId: analysis.id, type: input.type } });
       return NextResponse.json({ success: true, analysisId: analysis.id, snapshot });
     }
     const input = normalizeInput(body);
     const result = calculateNafsAnalysis(input);
     const snapshot = { ...input, ...result, ai: null, aiMeta: null };
-    const analysis = await prisma.assessmentAnalysis.create({ data: { schoolAccountId: context.schoolAccountId, title: input.title, status: "NAFS_PRE_POST", uploadMode: "NAFS_PRE_POST", totalStudents: result.statistics.studentCount, totalRows: result.statistics.studentCount, totalSubjects: 1, averagePercentage: result.statistics.postAverage, summaryJson: snapshot, rowsJson: result.students } });
+    const analysis = await prisma.assessmentAnalysis.create({ data: { schoolAccountId: context.schoolAccountId, createdById: context.user.id, title: input.title, status: "NAFS_PRE_POST", uploadMode: "NAFS_PRE_POST", totalStudents: result.statistics.studentCount, totalRows: result.statistics.studentCount, totalSubjects: 1, averagePercentage: result.statistics.postAverage, summaryJson: snapshot, rowsJson: result.students } });
     await logPlatformActivity({ actorUserId: context.user.id, schoolAccountId: context.schoolAccountId, category: "REPORT", action: "nafs-analysis-created", severity: "SUCCESS", title: "NAFS analysis created", details: { analysisId: analysis.id } });
     return NextResponse.json({ success: true, analysisId: analysis.id, snapshot });
   } catch (error) {

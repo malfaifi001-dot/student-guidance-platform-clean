@@ -88,6 +88,8 @@ export async function POST(request: NextRequest) {
         ? "ACTIVITY_LEADER"
         : context.user.role === "TEACHER"
           ? "TEACHER"
+          : context.user.role === "PRINCIPAL"
+            ? "PRINCIPAL"
           : "COUNSELOR";
 
   const template = getSurveyTemplateByKey(payload.templateKey);

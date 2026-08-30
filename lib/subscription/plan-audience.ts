@@ -51,6 +51,9 @@ const LEGACY_ALL_OPERATIONAL_PLAN_ROLES: PlanVisibleRole[] = [
 
 const PRINCIPAL_PLAN_SERVICE_SLUGS = new Set<string>(
   [
+    "assessment-center",
+    "certificates-honors",
+    "surveys",
     ...PRINCIPAL_PERFORMANCE_ITEMS.map((item) => item.serviceSlug),
     ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map(
       (service) => service.serviceSlug,
