@@ -408,6 +408,7 @@ export function CurriculumDistributionShell({
         previewUrl={getPreviewUrl()}
         onDownload={printDistribution}
         onClose={() => setMobilePreviewOpen(false)}
+        hideDocumentScrollbars
       />
        <CurriculumSendPopCard open={Boolean(sendItem)} status={sendStatus} onClose={closeSendCard} onDownload={() => void downloadWeeklyFile()} onSingle={() => { if (sendItem) void sendWeekly(sendItem, false); }} onAll={() => { if (sendItem) void sendWeekly(sendItem, true); }} />
     </div>

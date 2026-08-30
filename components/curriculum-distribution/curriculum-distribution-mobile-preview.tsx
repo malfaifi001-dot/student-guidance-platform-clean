@@ -39,6 +39,7 @@ export function CurriculumDistributionMobilePreview({
   documentSelector = ".curriculum-print-paper",
   documentLabel = "توزيع المنهج",
   allowDocumentScroll = false,
+  hideDocumentScrollbars = false,
   documentOrientation = "landscape",
 }: {
   open: boolean;
@@ -50,6 +51,7 @@ export function CurriculumDistributionMobilePreview({
   documentSelector?: string;
   documentLabel?: string;
   allowDocumentScroll?: boolean;
+  hideDocumentScrollbars?: boolean;
   documentOrientation?: "landscape" | "portrait";
 }) {
   const documentWidth = documentOrientation === "portrait" ? A4_PORTRAIT_WIDTH : A4_LANDSCAPE_WIDTH;
@@ -95,7 +97,7 @@ export function CurriculumDistributionMobilePreview({
   useEffect(() => {
     if (!open) return;
     setZoomPercent(100);
-    setFitMode(window.innerWidth < 640);
+    setFitMode(true);
     setPan({ x: 0, y: 0 });
     pinchRef.current = null;
     dragRef.current = null;
@@ -252,7 +254,7 @@ export function CurriculumDistributionMobilePreview({
       dir="rtl"
       onClick={onClose}
     >
-      <style>{`@media (hover: none) and (pointer: coarse) { .curriculum-preview-gesture-frame iframe { pointer-events: none !important; } }`}</style>
+      <style>{`@media (hover: none) and (pointer: coarse) { .curriculum-preview-gesture-frame:not(.curriculum-preview-document-scroll) iframe { pointer-events: none !important; } }`}</style>
       <section
         className="flex h-[80dvh] max-h-[80dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
@@ -285,7 +287,7 @@ export function CurriculumDistributionMobilePreview({
 
         <div
           ref={frameRef}
-          className="curriculum-preview-gesture-frame relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3"
+          className={`curriculum-preview-gesture-frame relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3${allowDocumentScroll ? " curriculum-preview-document-scroll" : ""}`}
           onTouchStart={(event) => {
             startPinch(event);
             startDrag(event);
@@ -327,6 +329,21 @@ export function CurriculumDistributionMobilePreview({
                   frameReadyRef.current = true;
                   setPreviewError(`تعذر العثور على مستند ${documentLabel} في المعاينة.`);
                   return;
+                }
+
+                if (hideDocumentScrollbars) {
+                  const style = reportDocument.createElement("style");
+                  style.textContent = `
+                    html, body {
+                      scrollbar-width: none !important;
+                      -ms-overflow-style: none !important;
+                    }
+                    html::-webkit-scrollbar,
+                    body::-webkit-scrollbar {
+                      display: none !important;
+                    }
+                  `;
+                  reportDocument.head.appendChild(style);
                 }
 
                 let attempts = 0;

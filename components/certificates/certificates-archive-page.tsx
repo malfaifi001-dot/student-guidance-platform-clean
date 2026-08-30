@@ -575,6 +575,7 @@ export function CertificatesArchivePage() {
         documentSelector=".certificate-shell"
         documentLabel="الشهادة"
         documentOrientation="landscape"
+        hideDocumentScrollbars
       />
     </main>
   );
