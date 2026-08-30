@@ -11,7 +11,7 @@ import {
 } from "@/lib/activity-competitions/activity-competitions-service";
 
 export async function POST(request: Request) {
-  const authResult = await requireSchoolDashboardApiContext();
+  const authResult = await requireSchoolDashboardApiContext({ allowPrincipal: true });
 
   if (authResult instanceof Response) {
     return authResult;
@@ -52,7 +52,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const serviceGuard = await requireServiceAccessApi(getActivityProgramsBillingServiceSlug(service.slug));
+    const serviceGuard = await requireServiceAccessApi(
+      getActivityProgramsBillingServiceSlug(service.slug),
+      { allowPrincipal: true },
+    );
     if (serviceGuard) return serviceGuard;
 
     if (

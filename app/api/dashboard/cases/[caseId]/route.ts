@@ -31,7 +31,7 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const authResult = await requireDashboardApiContext();
+  const authResult = await requireDashboardApiContext({ allowPrincipal: true });
 
   if (authResult instanceof Response) {
     return authResult;
@@ -78,7 +78,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const authResult = await requireDashboardApiContext();
+  const authResult = await requireDashboardApiContext({ allowPrincipal: true });
 
   if (authResult instanceof Response) {
     return authResult;
@@ -159,6 +159,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const serviceGuard = await requireServiceAccessApi(
       getActivityProgramsBillingServiceSlug(editableCase.service.slug),
+      { allowPrincipal: true },
     );
     if (serviceGuard) return serviceGuard;
 
@@ -296,7 +297,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const authResult = await requireDashboardApiContext();
+  const authResult = await requireDashboardApiContext({ allowPrincipal: true });
 
   if (authResult instanceof Response) return authResult;
 

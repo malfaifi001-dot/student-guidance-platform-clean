@@ -159,6 +159,23 @@ enum ActivityAssignmentStatus {
   CANCELED
 }
 
+enum AccountabilityRequestStatus {
+  DRAFT
+  SENT
+  OPENED
+  RESPONDED
+  NEEDS_COMPLETION
+  CLOSED
+  REFERRED
+  EXPIRED
+  CANCELED
+}
+
+enum AccountabilityDeliveryMethod {
+  SYSTEM
+  WHATSAPP
+}
+
 enum InternalAssignmentStatus {
   PENDING
   OPENED
@@ -301,6 +318,7 @@ model SchoolAccount {
   staff                        StaffMember[]
   services                     ServiceAccess[]
   cases                        CaseEntry[]
+  accountabilityRequests      AccountabilityRequest[] @relation("AccountabilityRequestsBySchool")
   subscriptions                Subscription[]
   resultsAnalyses              ResultsAnalysis[]
   assessmentAnalyses           AssessmentAnalysis[]
@@ -479,6 +497,8 @@ model User {
   receivedInternalAssignments InternalAssignment[] @relation("InternalAssignmentsAssignedTo")
   createdSurveys              Survey[]             @relation("SurveysCreatedBy")
   assessmentAnalysesCreated   AssessmentAnalysis[] @relation("AssessmentAnalysisCreator")
+  accountabilityRequestsCreated AccountabilityRequest[] @relation("AccountabilityRequestsCreatedBy")
+  accountabilityRequestsResponded AccountabilityRequest[] @relation("AccountabilityRequestsRespondent")
   activityPlanEntries         ActivityPlanEntry[]
   weeklyActivityPlanEntries   WeeklyActivityPlanEntry[]
 
@@ -1031,6 +1051,7 @@ model Service {
   access                         ServiceAccess[]
   calendarReminders              CalendarReminder[]
   activityAssignments            ActivityAssignment[] @relation("ActivityAssignmentsService")
+  accountabilityRequests         AccountabilityRequest[]
   originatingInternalAssignments InternalAssignment[] @relation("InternalAssignmentsOriginService")
   sourcedInternalAssignments     InternalAssignment[] @relation("InternalAssignmentsSourceService")
   surveys                        Survey[]             @relation("SurveysService")
@@ -1062,6 +1083,7 @@ model Workflow {
   steps               WorkflowStep[]
   cases               CaseEntry[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+  accountabilityRequests AccountabilityRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1172,6 +1194,7 @@ model CaseEntry {
   updatedAt              DateTime         @updatedAt
   caseEvidences          CaseEvidence[]
   createdReportTemplates ReportTemplate[]
+  accountabilityRequest AccountabilityRequest?
 
   @@index([schoolAccountId])
   @@index([serviceId])
@@ -1198,6 +1221,68 @@ model CaseValue {
 
   @@index([caseEntryId])
   @@index([fieldKey])
+}
+
+model AccountabilityRequest {
+  id              String   @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("AccountabilityRequestsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User @relation("AccountabilityRequestsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+
+  caseEntryId String? @unique
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  respondentUserId String?
+  respondentUser   User? @relation("AccountabilityRequestsRespondent", fields: [respondentUserId], references: [id], onDelete: SetNull)
+  respondentName   String
+  respondentPhone  String?
+  respondentEmail  String?
+  respondentJobTitle String?
+
+  categoryKey String
+  typeKey     String
+  title       String
+
+  managerValues    Json
+  respondentValues Json?
+  reviewValues     Json?
+
+  officialTextSnapshot String @db.LongText
+
+  deliveryMethod AccountabilityDeliveryMethod @default(SYSTEM)
+  token          String @unique @db.VarChar(255)
+  tokenExpiresAt DateTime?
+
+  sentAt      DateTime?
+  openedAt    DateTime?
+  respondedAt DateTime?
+  returnedAt  DateTime?
+  reviewedAt  DateTime?
+  closedAt    DateTime?
+  referredAt  DateTime?
+  canceledAt  DateTime?
+
+  returnedReason String? @db.Text
+  evidenceItems Json?
+
+  status AccountabilityRequestStatus @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId, createdById, status])
+  @@index([respondentUserId, status])
+  @@index([serviceId, workflowId])
+  @@index([tokenExpiresAt, status])
+  @@index([createdAt])
 }
 
 model Evidence {

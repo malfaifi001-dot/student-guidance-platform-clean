@@ -4,6 +4,7 @@ import { PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/principal/perform
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
 import { STUDENT_ACTIVITY_PLAN_SERVICE } from "@/lib/activity-plan/activity-plan-service";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
+import { ACCOUNTABILITY_SERVICE } from "@/lib/accountability/accountability-types";
 
 export const DEFAULT_PLATFORM_SERVICES = [
   {
@@ -46,6 +47,11 @@ export const DEFAULT_PLATFORM_SERVICES = [
     slug: "surveys",
     name: "الاستبيانات",
     description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+  },
+  {
+    slug: ACCOUNTABILITY_SERVICE.slug,
+    name: ACCOUNTABILITY_SERVICE.title,
+    description: ACCOUNTABILITY_SERVICE.description,
   },
   ...PRINCIPAL_PERFORMANCE_WORKFLOW_SERVICES.map((service) => ({
     slug: service.slug,

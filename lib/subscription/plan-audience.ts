@@ -7,6 +7,7 @@ import {
   PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES,
   isPrincipalEvaluationAccreditationServiceSlug,
 } from "@/lib/principal/evaluation-accreditation-services";
+import { ACCOUNTABILITY_SERVICE } from "@/lib/accountability/accountability-types";
 
 export const PLAN_AUDIENCE_FEATURE_KEY = "targetAudience";
 
@@ -54,6 +55,7 @@ const PRINCIPAL_PLAN_SERVICE_SLUGS = new Set<string>(
     "assessment-center",
     "certificates-honors",
     "surveys",
+    ACCOUNTABILITY_SERVICE.slug,
     ...PRINCIPAL_PERFORMANCE_ITEMS.map((item) => item.serviceSlug),
     ...PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES.map(
       (service) => service.serviceSlug,

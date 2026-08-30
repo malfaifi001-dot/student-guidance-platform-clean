@@ -213,7 +213,7 @@ function resolveCaseWorkflow(caseEntry: any): {
 
 export default async function EditCasePage({ params }: PageProps) {
   const { caseId } = await params;
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal: true });
 
   const schoolAccountId = context.schoolAccountId;
 

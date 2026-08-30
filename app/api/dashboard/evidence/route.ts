@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { logEvidenceUploadedEvent } from "@/lib/admin/activity-events";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import {
   saveEvidenceFiles,
   validateEvidenceFiles,
@@ -15,11 +16,19 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-async function assertCaseAccess(caseEntryId: string, schoolAccountId: string) {
+async function assertCaseAccess(
+  caseEntryId: string,
+  user: {
+    id: string;
+    role: string;
+    email: string;
+    schoolAccountId: string;
+  },
+) {
   const caseEntry = await prisma.caseEntry.findFirst({
     where: {
+      ...buildCaseEntryWhereForUser(user),
       id: caseEntryId,
-      schoolAccountId,
     },
     select: {
       id: true,
@@ -44,13 +53,17 @@ async function assertCaseAccess(caseEntryId: string, schoolAccountId: string) {
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireSchoolDashboardApiContext();
+  const authResult = await requireSchoolDashboardApiContext({
+    allowPrincipal: true,
+  });
 
   if (authResult instanceof Response) {
     return authResult;
   }
 
-  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser({
+    allowPrincipal: true,
+  });
   if (subscriptionGuard instanceof Response) {
     return subscriptionGuard;
   }
@@ -90,7 +103,12 @@ export async function POST(request: Request) {
     if (caseEntryId) {
       verifiedCase = await assertCaseAccess(
         caseEntryId,
-        authResult.schoolAccountId,
+        {
+          id: authResult.user.id,
+          role: authResult.user.role,
+          email: authResult.user.email,
+          schoolAccountId: authResult.schoolAccountId,
+        },
       );
 
       if (

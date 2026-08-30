@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 
 export async function POST() {
-  const authResult = await requireSchoolDashboardApiContext();
+  const authResult = await requireSchoolDashboardApiContext({ allowPrincipal: true });
 
   if (authResult instanceof Response) {
     return authResult;
