@@ -1,0 +1,74 @@
+Teachix - Teacher Workspace File Map
+Generated: 08/30/2026 16:09:38
+Project: D:\student-guidance-platform-clean
+
+===== app\dashboard\teacher =====
+app\dashboard\teacher\layout.tsx
+app\dashboard\teacher\page.tsx
+app\dashboard\teacher\ai-report2\page.tsx
+app\dashboard\teacher\ai-report2\new\page.tsx
+app\dashboard\teacher\assessment-center\page.tsx
+app\dashboard\teacher\assessment_methods_diversity\page.tsx
+app\dashboard\teacher\assessment_methods_diversity\new\page.tsx
+app\dashboard\teacher\assignments\page.tsx
+app\dashboard\teacher\calendar\page.tsx
+app\dashboard\teacher\certificates\page.tsx
+app\dashboard\teacher\classroom_management\page.tsx
+app\dashboard\teacher\classroom_management\new\page.tsx
+app\dashboard\teacher\curriculum-distribution\page.tsx
+app\dashboard\teacher\curriculum-distribution\print\page.tsx
+app\dashboard\teacher\evidence\page.tsx
+app\dashboard\teacher\family-community\page.tsx
+app\dashboard\teacher\job_duties_performance\page.tsx
+app\dashboard\teacher\job_duties_performance\new\page.tsx
+app\dashboard\teacher\learner_results_analysis\page.tsx
+app\dashboard\teacher\learner_results_analysis\new\page.tsx
+app\dashboard\teacher\learner_results_improvement\page.tsx
+app\dashboard\teacher\learner_results_improvement\new\page.tsx
+app\dashboard\teacher\learning_environment\page.tsx
+app\dashboard\teacher\learning_environment\new\page.tsx
+app\dashboard\teacher\learning_plan_preparation\page.tsx
+app\dashboard\teacher\learning_plan_preparation\new\page.tsx
+app\dashboard\teacher\learning_technology_tools\page.tsx
+app\dashboard\teacher\learning_technology_tools\new\page.tsx
+app\dashboard\teacher\parents_interaction\page.tsx
+app\dashboard\teacher\parents_interaction\new\page.tsx
+app\dashboard\teacher\portfolio\page.tsx
+app\dashboard\teacher\portfolio\preview\page.tsx
+app\dashboard\teacher\portfolio\snapshots\[snapshotId]\page.tsx
+app\dashboard\teacher\professional_community_interaction\page.tsx
+app\dashboard\teacher\professional_community_interaction\new\page.tsx
+app\dashboard\teacher\report-issuance\layout.tsx
+app\dashboard\teacher\report-issuance\page.tsx
+app\dashboard\teacher\report-issuance\new\page.tsx
+app\dashboard\teacher\report-workflow\page.tsx
+app\dashboard\teacher\special-report\new\page.tsx
+app\dashboard\teacher\special-report\[caseId]\report\page.tsx
+app\dashboard\teacher\student-data\page.tsx
+app\dashboard\teacher\surveys\page.tsx
+app\dashboard\teacher\teaching_strategies_diversity\page.tsx
+app\dashboard\teacher\teaching_strategies_diversity\new\page.tsx
+
+===== components\teacher =====
+NOT FOUND
+
+===== components\dashboard =====
+components\dashboard\activity-leader-dashboard.tsx
+components\dashboard\activity-leader-feature-page.tsx
+components\dashboard\creative-dashboard.tsx
+components\dashboard\dashboard-attention-mini-card.tsx
+components\dashboard\dashboard-attention-panel.tsx
+components\dashboard\soft-blue-dashboard.tsx
+components\dashboard\student-guidance-dashboard.tsx
+
+===== components\layout =====
+components\layout\dashboard-header.tsx
+components\layout\dashboard-mobile-bottom-nav.tsx
+components\layout\dashboard-navigation-refresh.tsx
+components\layout\dashboard-sidebar.tsx
+
+===== lib\constants =====
+lib\constants\brand.ts
+lib\constants\saudi-cities.ts
+lib\constants\school-profile-options.ts
+lib\constants\services.ts

@@ -1,0 +1,211 @@
+============================================================
+FILE: app\dashboard\layout.tsx
+============================================================
+
+import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
+import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
+import { GuidanceProvider } from "@/components/guidance/guidance-provider";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getUserSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { getSubscriptionSidebarPresentation } from "@/lib/subscription/subscription-presentation";
+import { AuthenticatedAnalyticsIdentity } from "@/components/analytics/authenticated-analytics-identity";
+import { getAnalyticsUserId } from "@/lib/analytics/analytics-user-id";
+import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-bottom-nav";
+import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
+import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
+import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const current = await requireDashboardUser();
+  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
+  const subscriptionOverview =
+    current.user.role !== "ADMIN" && current.user.schoolAccountId
+      ? await getUserSubscriptionOverview(current.user.id)
+      : null;
+  const subscriptionPresentation =
+    current.user.role === "ADMIN"
+      ? undefined
+      : getSubscriptionSidebarPresentation(
+          subscriptionOverview?.usable && subscriptionOverview.subscription
+            ? {
+                planName: subscriptionOverview.subscription.plan.name,
+                planSlug: subscriptionOverview.subscription.plan.slug,
+                durationDays: Number(
+                  subscriptionOverview.subscription.plan.features.find(
+                    (feature) => feature.key === "durationDays",
+                  )?.value || 0,
+                ),
+                status: subscriptionOverview.subscription.status,
+                startsAt: subscriptionOverview.subscription.startsAt,
+                endsAt: subscriptionOverview.subscription.endsAt,
+              }
+            : null,
+        );
+  const analyticsUserId = getAnalyticsUserId(current.user.id);
+
+  return (
+    <>
+      <AuthenticatedAnalyticsIdentity
+        analyticsUserId={analyticsUserId}
+        role={current.user.role}
+      />
+      <GuidanceProvider userId={current.user.id} role={current.user.role} gender={current.user.gender} displayName={current.user.officialName || current.user.name}>
+      <div
+        dir="rtl"
+        className="h-[100dvh] overflow-x-hidden overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+        style={MOBILE_LAYER_STYLE}
+      >
+        <div className="flex h-[100dvh] min-w-0">
+          <DashboardSidebar
+            user={current.user}
+            subscription={subscriptionPresentation}
+            salesMode={salesExperience.effectiveMode}
+          />
+
+          <main className="h-[100dvh] w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+            <DashboardHeader
+              user={current.user}
+              subscription={subscriptionPresentation}
+              salesMode={salesExperience.effectiveMode}
+            />
+
+            {current.user.role !== "PRINCIPAL" ? (
+              <>
+                <DashboardOnboardingReminder
+                  onboardingCompleted={current.user.onboardingCompleted}
+                  onboardingSkippedAt={current.user.onboardingSkippedAt}
+                />
+                <CalendarLoginPopup />
+              </>
+            ) : null}
+
+            <div className={`mx-auto w-full min-w-0 max-w-[1680px] px-2.5 ${MOBILE_BOTTOM_CLEARANCE_CLASS} pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5`}>
+              {children}
+            </div>
+
+            <FloatingWhatsAppSupport />
+          </main>
+        </div>
+      </div>
+      </GuidanceProvider>
+      <DashboardMobileBottomNav role={current.user.role} />
+    </>
+  );
+}
+
+
+
+============================================================
+FILE: components\layout\dashboard-mobile-bottom-nav.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { BriefcaseBusiness, FileCheck2, FolderKanban, Home } from "lucide-react";
+
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import { MOBILE_LAYER_Z_INDEX } from "@/components/mobile-app/mobile-layer-contract";
+
+type DashboardMobileBottomNavProps = {
+  role?: string | null;
+};
+
+type MobileNavItem = {
+  label: string;
+  href: string;
+  icon: typeof Home;
+  isHome?: boolean;
+};
+
+const roleNavigation: Record<string, MobileNavItem[]> = {
+  COUNSELOR: [
+    { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.counselorHome, icon: Home, isHome: true },
+    { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+    { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileCheck2 },
+    { label: "ملف الإنجاز", href: "/dashboard/portfolio", icon: BriefcaseBusiness },
+  ],
+  ACTIVITY_LEADER: [
+    { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome, icon: Home, isHome: true },
+    { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+    { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileCheck2 },
+    { label: "ملف الإنجاز", href: "/dashboard/activity-leader/portfolio", icon: BriefcaseBusiness },
+  ],
+  TEACHER: [
+    { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home, isHome: true },
+    { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+    { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileCheck2 },
+    { label: "ملف الإنجاز", href: "/dashboard/teacher/portfolio", icon: BriefcaseBusiness },
+  ],
+};
+
+function isActivePath(pathname: string, item: MobileNavItem) {
+  if (item.isHome) return pathname === item.href;
+
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps) {
+  const pathname = usePathname();
+  const items = role ? roleNavigation[role] : undefined;
+
+  if (!items) return null;
+
+  return (
+    <nav
+      aria-label="التنقل الرئيسي للهاتف"
+      data-mobile-bottom-nav="true"
+      className={`fixed left-1/2 bottom-0 ${MOBILE_LAYER_Z_INDEX.navigation} h-16 w-[calc(100%-44px)] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-[32px] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.08)] dark:bg-[#102138] dark:shadow-[0_8px_28px_rgba(2,6,23,0.32)] md:hidden`}
+      style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="grid h-16 w-full grid-cols-4">
+        {items.map((item) => {
+          const active = isActivePath(pathname, item);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-center text-[12px] leading-4 transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-600 ${
+                active
+                  ? "font-semibold text-sky-600"
+                  : "font-normal text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300"
+              }`}
+            >
+              <span className="grid h-6 w-6 place-items-center" aria-hidden="true">
+                <Icon className="h-6 w-6" strokeWidth={active ? 2 : 1.75} />
+              </span>
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+
