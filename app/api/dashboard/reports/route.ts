@@ -17,7 +17,49 @@ type CreateReportBody = {
   caseId?: string;
   title?: string;
   templateId?: string;
+  preparedReportData?: unknown;
 };
+
+function mergePreparedReportValues(
+  serverReportData: ReportMappedCase,
+  preparedReportData: unknown,
+): ReportMappedCase {
+  if (!preparedReportData || typeof preparedReportData !== "object") {
+    return serverReportData;
+  }
+
+  const preparedValues = (preparedReportData as { values?: unknown }).values;
+  if (!Array.isArray(preparedValues)) {
+    return serverReportData;
+  }
+
+  const preparedByKey = new Map<string, string>();
+  for (const item of preparedValues) {
+    if (!item || typeof item !== "object") continue;
+
+    const fieldKey = (item as { fieldKey?: unknown }).fieldKey;
+    const value = (item as { value?: unknown }).value;
+    if (typeof fieldKey !== "string" || typeof value !== "string") continue;
+
+    const normalizedKey = fieldKey.trim();
+    if (normalizedKey) {
+      preparedByKey.set(normalizedKey, value);
+    }
+  }
+
+  if (!preparedByKey.size) {
+    return serverReportData;
+  }
+
+  return {
+    ...serverReportData,
+    values: serverReportData.values.map((item) =>
+      preparedByKey.has(item.fieldKey)
+        ? { ...item, value: preparedByKey.get(item.fieldKey) || "" }
+        : item,
+    ),
+  };
+}
 
 function parseBuilderTemplateJson(value: unknown) {
   if (!value) {
@@ -207,7 +249,11 @@ export async function POST(request: Request) {
     const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
     if (serviceGuard) return serviceGuard;
 
-    const reportData = mapCaseEntryToReportData(caseEntry);
+    const serverReportData = mapCaseEntryToReportData(caseEntry);
+    const reportData = mergePreparedReportValues(
+      serverReportData,
+      body.preparedReportData,
+    );
 
     const reportTitle =
       body.title?.trim() ||

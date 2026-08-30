@@ -317,6 +317,7 @@ export function NewReportCasePicker({
           caseEntryId: selectedCaseId,
           title: `تقرير - ${preparedReportData.title}`,
           templateId: selectedTemplateId,
+          preparedReportData,
         }),
       });
 

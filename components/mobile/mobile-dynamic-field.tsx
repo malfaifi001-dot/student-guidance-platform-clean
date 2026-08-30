@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 
 import type { RuntimeField } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
-import { HijriDateInput } from "@/components/workflow/hijri-date-input";
 
 type MobileDynamicFieldProps = {
   field: RuntimeField;
@@ -301,29 +300,23 @@ export function MobileDynamicField({
   const inputType =
     type === "NUMBER"
       ? "number"
-      : type === "EMAIL"
-        ? "email"
-        : type === "PHONE"
-          ? "tel"
-          : "text";
+      : type === "DATE"
+        ? "date"
+        : type === "EMAIL"
+          ? "email"
+          : type === "PHONE"
+            ? "tel"
+            : "text";
 
   return (
     <FieldShell field={field}>
-      {type === "DATE" ? (
-        <HijriDateInput
-          value={value}
-          onChange={(nextValue) => onChange(field.key, nextValue)}
-          className={baseInputClass()}
-        />
-      ) : (
-        <input
-          type={inputType}
-          value={asString(value)}
-          onChange={(event) => onChange(field.key, event.target.value)}
-          placeholder={field.placeholder || "اكتب هنا..."}
-          className={baseInputClass()}
-        />
-      )}
+      <input
+        type={inputType}
+        value={asString(value)}
+        onChange={(event) => onChange(field.key, event.target.value)}
+        placeholder={field.placeholder || "اكتب هنا..."}
+        className={baseInputClass()}
+      />
     </FieldShell>
   );
 }
