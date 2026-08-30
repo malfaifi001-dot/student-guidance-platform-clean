@@ -22,6 +22,7 @@ import type {
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
 import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
+import { HijriDateInput } from "@/components/workflow/hijri-date-input";
 
 type DynamicFieldRendererProps = {
   field: RuntimeField;
@@ -115,15 +116,15 @@ function RepeaterEditorInput({
     );
   }
 
-  return (
+  return field.type === "DATE" ? (
+    <HijriDateInput
+      value={value}
+      onChange={onChange}
+      className={baseInputClass}
+    />
+  ) : (
     <input
-      type={
-        field.type === "NUMBER"
-          ? "number"
-          : field.type === "DATE"
-            ? "date"
-            : "text"
-      }
+      type={field.type === "NUMBER" ? "number" : "text"}
       value={value}
       placeholder={repairPotentialUtf8Mojibake(field.placeholder) ?? ""}
       onChange={(event) => onChange(event.target.value)}
@@ -559,19 +560,21 @@ export function DynamicFieldRenderer({
           onUpdateFieldLabel={onUpdateFieldLabel}
         />
 
-        <input
-          type={
-            field.type === "NUMBER"
-              ? "number"
-              : field.type === "DATE"
-                ? "date"
-                : "text"
-          }
-          value={String(value ?? "")}
-          placeholder={repairPotentialUtf8Mojibake(field.placeholder) ?? ""}
-          onChange={(event) => onChange(field.key, event.target.value)}
-          className={baseInputClass}
-        />
+        {field.type === "DATE" ? (
+          <HijriDateInput
+            value={value}
+            onChange={(nextValue) => onChange(field.key, nextValue)}
+            className={baseInputClass}
+          />
+        ) : (
+          <input
+            type={field.type === "NUMBER" ? "number" : "text"}
+            value={String(value ?? "")}
+            placeholder={repairPotentialUtf8Mojibake(field.placeholder) ?? ""}
+            onChange={(event) => onChange(field.key, event.target.value)}
+            className={baseInputClass}
+          />
+        )}
 
         <HelpText text={field.helpText} />
 

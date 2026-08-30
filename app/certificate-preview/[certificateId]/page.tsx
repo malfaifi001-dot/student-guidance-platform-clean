@@ -53,7 +53,7 @@ export default async function CertificateEmbeddedPreviewPage({ params, searchPar
     true,
   );
 
-  const html = renderCertificateDocumentHtml(certificate, { signatureProfile });
+  const html = renderCertificateDocumentHtml(certificate, { signatureProfile, last: true });
 
   return (
     <>

@@ -19,6 +19,11 @@ export type CertificateRenderRecord = {
 export type CertificateRenderOptions = {
   baseUrl?: string;
   signatureProfile?: CertificateSignatureProfile | null;
+  /**
+   * Mark the certificate as the last page so its trailing page break is
+   * suppressed. Prevents a blank second page for a single certificate.
+   */
+  last?: boolean;
 };
 
 export const DEFAULT_CERTIFICATE_TEMPLATE_KEY = "certificate-modern-blue" as const;
@@ -313,7 +318,7 @@ export function renderCertificateDocumentHtml(
   </style>
 </head>
 <body>
-  <section class="certificate-shell">
+  <section class="certificate-shell${options.last ? " last" : ""}">
     <img class="certificate-artwork" src="${escapeHtml(artworkUrl)}" alt="" aria-hidden="true" />
     ${logoMarkup}
     <div class="certificate-overlay">

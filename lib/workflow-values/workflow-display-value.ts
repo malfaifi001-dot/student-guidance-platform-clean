@@ -1,4 +1,5 @@
 import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+import { formatWorkflowHijriDate } from "@/lib/workflows/workflow-date";
 
 export type WorkflowOptionLike = {
   label?: string | null;
@@ -45,6 +46,7 @@ export function formatWorkflowDisplayValue(
     rawValue,
     item.field?.options || [],
     otherValue,
+    item.field?.type,
   );
 }
 
@@ -117,6 +119,7 @@ function formatValueByFieldOptions(
   value: unknown,
   options: WorkflowOptionLike[],
   otherValue?: string,
+  fieldType?: string | null,
 ): string {
   if (value === null || value === undefined || value === "") {
     return "";
@@ -129,7 +132,9 @@ function formatValueByFieldOptions(
       .join("، ");
   }
 
-  return formatSingleChoice(value, options, otherValue);
+  const formatted = formatSingleChoice(value, options, otherValue);
+
+  return fieldType === "DATE" ? formatWorkflowHijriDate(formatted) : formatted;
 }
 
 function formatSingleChoice(
