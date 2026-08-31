@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Copy, Eye, Link2, Plus, Trash2 } from "lucide-react";
+import { Copy, Eye, Link2, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -12,7 +12,6 @@ import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-
 import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
-import { ServiceOutputLinkActions } from "@/components/performance-links/service-output-link-actions";
 import { WeeklyActivityPlanPanel } from "@/components/activity-plan/weekly-activity-plan-panel";
 import { TenPercentActivityPlanPanel } from "@/components/activity-plan/ten-percent-activity-plan-panel";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
@@ -102,10 +101,6 @@ export function ActivityPlanShell() {
     () => new Map(entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry])),
     [entries],
   );
-  const currentDate = dates[0]?.date && dates[dates.length - 1]?.date
-    ? `${formatDate(dates[0].date)} — ${formatDate(dates[dates.length - 1].date)}`
-    : "";
-
   async function printActivityPlan() {
     const result = await print.runPrintExport({
       exportUrl: "/api/dashboard/activity-plan/export/pdf",
@@ -141,92 +136,58 @@ export function ActivityPlanShell() {
   }
 
   return (
-    <main className="space-y-6" dir="rtl">
-      <style>{`.activity-plan-header>div>div:first-child>span,.activity-plan-header>div>div:first-child>p{display:none}.activity-plan-header>div>div:nth-child(2)>button:first-of-type{display:none}.activity-plan-header>div>div:nth-child(2)>button{height:2.25rem!important;border-color:#dbe4ef!important;background:#fff!important;color:#123b5d!important;box-shadow:none!important}.activity-plan-header>div>div:nth-child(2)>button:hover{background:#f3f7fb!important}.activity-plan-header .activity-plan-header-controls{display:none!important}.activity-plan-header .activity-plan-week-chip{display:none!important}`}</style>
-      <style>{`.activity-plan-header>div>div:nth-child(2)>button:first-of-type{display:none}.activity-plan-header>div>div:nth-child(2)>button{height:2.25rem!important;color:#075985!important}`}</style>
-      <style>{`.activity-plan-table-header>div:nth-child(4){display:none}`}</style>
-      <style>{`.activity-plan-header h1{color:#0f172a!important;font-size:1.75rem!important;line-height:1.2}.activity-plan-header>div>div:first-child>span{color:#0369a1!important}.activity-plan-header>div>div:first-child>p{color:#64748b!important}.activity-plan-week-chip{background:#f0f9ff!important;color:#075985!important;ring:0}.activity-plan-week-chip p,.activity-plan-week-chip strong,.activity-plan-week-chip span{color:#075985!important}.activity-plan-week-chip p{display:none}.activity-plan-week-chip strong{font-size:.75rem!important}.activity-plan-header button{border-color:#dbeafe!important;background:#fff!important;color:#075985!important;box-shadow:none!important}.activity-plan-header button:hover{background:#f0f9ff!important}.activity-plan-header .activity-plan-header-controls{order:3;flex-basis:100%;justify-content:flex-start}.activity-plan-table-header>label,.activity-plan-table-header>div:nth-child(3){display:none}`}</style>
-      <style>{`.activity-plan-table-header>div:first-child{order:2}.activity-plan-table-header>div:nth-child(2){order:1}.activity-plan-table-header>svg{display:none}.activity-plan-table-controls{width:100%;direction:rtl}.activity-plan-table-controls>label{flex:1}.activity-plan-table-controls select{height:2.75rem!important;width:100%;min-width:0!important;border-color:#cbdbea!important;border-radius:.75rem!important}.activity-plan-table-controls>[role=tablist]{display:flex;height:2.75rem;flex:1;border:1px solid #dbe7f0;background:#f8fafc;padding:.25rem}.activity-plan-table-controls>[role=tablist]>button{min-height:2.25rem;flex:1;white-space:nowrap;border-radius:.5rem}.activity-plan-table-controls>[role=tablist]>button[aria-selected=true]{color:#075985;background:#fff}.activity-plan-table-header>div:nth-child(2){width:100%}@media (min-width:768px){.activity-plan-table-header>div:first-child{width:auto}.activity-plan-table-header>div:nth-child(2){width:auto}.activity-plan-table-controls{width:auto;min-width:fit-content}.activity-plan-table-controls>label{flex:0 0 auto}.activity-plan-table-controls select{width:auto;min-width:145px!important}.activity-plan-table-controls>[role=tablist]{flex:0 0 auto}.activity-plan-table-controls>[role=tablist]>button{flex:0 0 auto}}@media (max-width:767px){.activity-plan-table-header{align-items:stretch}.activity-plan-table-header>div:first-child,.activity-plan-table-header>div:nth-child(2){width:100%}.activity-plan-table-controls{align-items:stretch}.activity-plan-table-controls>label{width:100%}.activity-plan-table-controls>[role=tablist]>button{font-size:.8rem}}`}</style>
-      <style>{`.activity-plan-header{overflow:hidden!important;border:0!important;border-radius:2.5rem!important;background:linear-gradient(135deg,#075985,#0e7490 55%,#0ea5e9)!important;padding:1.5rem!important;color:#fff!important;box-shadow:0 20px 25px -5px rgb(8 47 73 / .18)!important}.activity-plan-header h1{color:#fff!important;font-size:2.25rem!important}.activity-plan-header>div{display:grid!important;gap:1.5rem!important}@media (min-width:1280px){.activity-plan-header>div{grid-template-columns:1fr auto;align-items:end}}.activity-plan-header>div>div:nth-child(2){display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}.activity-plan-header>div>div:nth-child(2)>details{display:none!important}.activity-plan-header>div>div:nth-child(2)>button{height:2.75rem!important;border-color:rgb(255 255 255 / .3)!important;background:rgb(255 255 255 / .12)!important;color:#fff!important;box-shadow:none!important}.activity-plan-header>div>div:nth-child(2)>button:hover{background:rgb(255 255 255 / .22)!important}.activity-plan-header>div>div:nth-child(2)>details>summary{height:2.75rem!important;border-color:rgb(255 255 255 / .3)!important;background:rgb(255 255 255 / .12)!important;color:#fff!important}.activity-plan-header .activity-plan-header-controls,.activity-plan-header .activity-plan-week-chip{display:none!important}`}</style>
-      <section className="activity-plan-header rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-6 text-white shadow-xl">
-        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
-          <div>
-            <span className="text-sm font-black text-cyan-200">رائد النشاط</span>
-            <h1 className="mt-2 text-3xl font-black md:text-4xl">خطة النشاط الطلابي</h1>
-            <p className="mt-3 text-sm font-bold leading-7 text-sky-100">نظّم برامج النشاط في شبكة أسبوعية واضحة.</p>
-          </div>
+    <main className="space-y-4" dir="rtl">
+      <section className="activity-plan-header rounded-2xl border border-sky-200 bg-gradient-to-l from-sky-800 via-cyan-700 to-sky-600 px-4 py-3 text-white shadow-sm dark:border-sky-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-black tracking-tight">خطة النشاط الطلابي</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="activity-plan-header-controls hidden">
-              <label className="flex items-center gap-1 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-9 min-w-[145px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
-              <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="نمط خطة النشاط">
-                <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
-                <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => setMode("weekly")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
-                <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => setMode("ten-percent")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "ten-percent" ? "bg-white text-amber-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية (10%)</button>
+            <button type="button" onClick={openPreviewSetup} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-black text-sky-900 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><Eye className="h-4 w-4" />معاينة</button>
+            <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/40 bg-white/10 px-3.5 py-2 text-sm font-black text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><Link2 className="h-4 w-4" />تعديل الربط</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="activity-plan-controls-surface rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
+      </section>
+
+      {mode === "detailed" ? <section className="rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
+        <div className="flex max-w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="اختيار الأسبوع">
+          {Array.from({ length: 20 }, (_, index) => index + 1).map((item) => (
+            <button type="button" key={item} onClick={() => setWeek(item)} aria-pressed={item === week} className={item === week ? "h-8 min-w-8 rounded-lg bg-sky-700 px-2 text-xs font-black text-white shadow-sm" : "h-8 min-w-8 rounded-lg bg-white px-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200 transition hover:bg-sky-100 hover:text-sky-800 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-sky-950/50"}>{item}</button>
+          ))}
+        </div>
+      </section> : null}
+
+      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-black text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-200">{error}</div> : null}
+      {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} /> : <section className={`rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
+        {mode === "weekly" ? <WeeklyActivityPlanPanel stage={selectedStage} /> : <>
+          <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 [scrollbar-width:thin] dark:border-slate-700" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="min-w-[1220px]">
+              <div className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))] bg-sky-50/70 dark:bg-sky-950/30" dir="rtl">
+                <div className="border-b border-l border-sky-100 p-3 text-sm font-black text-slate-500 dark:border-sky-900/60 dark:text-slate-300">اليوم / الحصص</div>
+                {ACTIVITY_PLAN_PERIODS.map((period) => <div key={period} className="border-b border-l border-sky-100 p-3 text-center text-sm font-black text-slate-700 dark:border-sky-900/60 dark:text-slate-200">{getPeriodLabel(period)}</div>)}
               </div>
-            </div>
-            {existingLink ? <details className="relative order-4"><summary className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-xl border border-slate-200 bg-white text-lg font-black text-slate-500 hover:bg-slate-50" aria-label="إجراءات إضافية">⋯</summary><div className="absolute left-0 top-11 z-20 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><ServiceOutputLinkActions link={existingLink} onDeleted={() => setServiceLinks((current) => current.filter((item) => item.id !== existingLink.id))} /></div></details> : null}
-            <div className="activity-plan-week-chip rounded-full bg-white/10 px-3 py-2 text-center ring-1 ring-white/15">
-              <p className="text-xs font-bold text-cyan-100">الأسبوع الحالي</p>
-              <strong className="mt-1 block text-2xl font-black">الأسبوع {week} من 20</strong>
-              {currentDate ? <span className="mt-1 block text-xs font-bold text-sky-100">{currentDate}</span> : null}
-            </div>
-            {existingLink ? <ServiceOutputLinkActions link={existingLink} onDeleted={() => setServiceLinks((current) => current.filter((item) => item.id !== existingLink.id))} /> : null}
-            <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20"><Link2 className="h-4 w-4" />{existingLink ? "تعديل الربط" : "ربط بملف الإنجاز"}</button>
-            <button type="button" onClick={openPreviewSetup} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-sky-900 shadow-lg shadow-sky-950/20 transition hover:bg-cyan-50"><Eye className="h-4 w-4" />معاينة</button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-        <div className="flex justify-center">
-          <div className="flex max-w-full gap-2 overflow-x-auto pb-1" aria-label="اختيار الأسبوع">
-            {Array.from({ length: 20 }, (_, index) => index + 1).map((item) => (
-              <button type="button" key={item} onClick={() => setWeek(item)} className={item === week ? "h-10 min-w-10 rounded-2xl bg-sky-700 px-3 text-sm font-black text-white shadow-lg shadow-sky-100" : "h-10 min-w-10 rounded-2xl bg-slate-50 px-3 text-sm font-black text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}>{item}</button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-black text-rose-700">{error}</div> : null}
-      <section className={`rounded-[2rem] border p-3 shadow-sm md:p-5 ${mode === "ten-percent" ? "border-amber-300 bg-amber-50/30 dark:border-amber-900/70 dark:bg-amber-950/10" : mode === "weekly" ? "border-emerald-200 bg-emerald-50/20 dark:border-emerald-900/60 dark:bg-emerald-950/10" : "border-sky-200 bg-sky-50/20 dark:border-sky-900/60 dark:bg-sky-950/10"}`}>
-        <div className="activity-plan-table-header mb-4 flex flex-wrap items-center justify-between gap-3">
-          <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
-          <div><h2 className="text-xl font-black text-slate-950">{mode === "ten-percent" ? "الخطة الفصلية (10%)" : mode === "weekly" ? "الخطة الفصلية" : "الجدول الأسبوعي"}</h2><p className="mt-1 text-xs font-bold text-slate-500">{mode === "ten-percent" ? "أضف صفوف الخطة بحسب المجال والبرنامج وأسبوع التنفيذ." : "الأيام صفوف والحصص أعمدة. اضغط للإضافة أو التعديل."}</p></div>
-          <label className="flex shrink-0 items-center gap-2 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)} className="h-10 min-w-[170px] rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
-          <div className="flex max-w-full overflow-x-auto rounded-xl bg-slate-100 p-1" role="tablist" aria-label="activity plan mode">
-            <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => setMode("detailed")} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
-            <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => setMode("weekly")} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-black ${mode === "weekly" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
-            <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => setMode("ten-percent")} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-black ${mode === "ten-percent" ? "bg-white text-amber-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية (10%)</button>
-          </div>
-          <CalendarDays className="h-6 w-6 text-sky-600" />
-        </div>
-        {mode === "weekly" ? <WeeklyActivityPlanPanel stage={selectedStage} /> : mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} /> : <>
-        <div className="overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200 [scrollbar-width:thin]" style={{ WebkitOverflowScrolling: "touch" }}>
-          <div className="min-w-[1220px]">
-            <div className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))] bg-slate-50" dir="rtl">
-              <div className="border-b border-l border-slate-200 p-4 text-sm font-black text-slate-500">اليوم / الحصص</div>
-              {ACTIVITY_PLAN_PERIODS.map((period) => <div key={period} className="border-b border-l border-slate-200 p-4 text-center text-sm font-black text-slate-700">{getPeriodLabel(period)}</div>)}
-            </div>
-            {dates.map((day) => (
-              <div key={day.dayOfWeek} className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))]" dir="rtl">
-                <div className="flex min-h-[148px] flex-col justify-center border-b border-l border-slate-200 bg-slate-50 p-3 text-center">
-                  <span className="text-sm font-black text-slate-900">{day.label}</span><span className="mt-1 text-xs font-bold text-sky-700">{formatDate(day.date)}</span>
+              {dates.map((day) => (
+                <div key={day.dayOfWeek} className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))]" dir="rtl">
+                  <div className="flex min-h-[136px] flex-col justify-center border-b border-l border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-900">
+                    <span className="text-sm font-black text-slate-900 dark:text-slate-100">{day.label}</span><span className="mt-1 text-xs font-bold text-sky-700 dark:text-sky-300">{formatDate(day.date)}</span>
+                  </div>
+                  {ACTIVITY_PLAN_PERIODS.map((period) => {
+                    const entry = entryByCell.get(`${day.dayOfWeek}-${period}`);
+                    const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+                    const colorClass = domainProgram?.colorClass || "";
+                    return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[136px] border-b border-l border-slate-200 bg-white p-2 text-right transition hover:bg-sky-50/50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-sky-950/30">
+                      {entry ? <div className={`h-full rounded-xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"}`}><p className="break-words whitespace-normal text-center text-[13px] font-black leading-5">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-300">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-400">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100 dark:text-sky-300">اضغط للتعديل</span></div> : <span className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-xs font-bold text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-sky-700 dark:group-hover:bg-sky-950/30 dark:group-hover:text-sky-300"><Plus className="h-4 w-4" /><span className="sr-only">إضافة إدخال</span><span aria-hidden="true">إضافة</span></span>}
+                    </button>;
+                  })}
                 </div>
-                {ACTIVITY_PLAN_PERIODS.map((period) => {
-                  const entry = entryByCell.get(`${day.dayOfWeek}-${period}`);
-                  const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
-                  const colorClass = domainProgram?.colorClass || "";
-                  return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[148px] border-b border-l border-slate-200 bg-white p-3 text-right transition hover:bg-sky-50/50">
-                    {entry ? <div className={`h-full rounded-2xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="break-words whitespace-normal text-[13px] font-black leading-5 text-center">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100">اضغط للتعديل</span></div> : <span className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700"><Plus className="h-6 w-6" /><span className="text-xs font-black">إضافة</span></span>}
-                  </button>;
-                })}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-        {loading ? <p className="py-4 text-center text-xs font-black text-slate-400">جارٍ تحميل خطة الأسبوع...</p> : null}
+          {loading ? <p className="py-3 text-center text-xs font-black text-slate-400">جارٍ تحميل خطة الأسبوع...</p> : null}
         </>}
-      </section>
+      </section>}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <ActivityPlanPreviewSetup open={previewSetupOpen} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} onClose={() => setPreviewSetupOpen(false)} onStageChange={(stage) => { setPreviewStage(stage); setPreviewSetupError(""); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
       {mode !== "ten-percent" ? <ActivityPlanCopyModal open={copyOpen} sourceStage={selectedStage} mode={mode} stages={stages} onClose={() => setCopyOpen(false)} /> : null}
@@ -238,14 +199,17 @@ export function ActivityPlanShell() {
 }
 
 function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "detailed" | "weekly" | "ten-percent"; onModeChange: (mode: "detailed" | "weekly" | "ten-percent") => void; onCopy: () => void }) {
-  return <div className="activity-plan-table-controls flex flex-wrap items-center gap-2">
-    <label className="flex items-center gap-1 text-xs font-black text-slate-600">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-9 min-w-[145px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-black text-slate-800 outline-none focus:border-sky-500" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
-    {mode !== "ten-percent" ? <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex h-9 items-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"><Copy className="h-4 w-4" />نسخ الخطة</button> : null}
-    <div className="flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="نمط خطة النشاط">
-      <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500"}`}>الخطة الأسبوعية</button>
-      <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "weekly" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية</button>
-      <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`rounded-lg px-3 py-1.5 text-xs font-black ${mode === "ten-percent" ? "bg-white text-amber-700 shadow-sm" : "text-slate-500"}`}>الخطة الفصلية (10%)</button>
+  const selectedTabClass = mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : mode === "weekly" ? "bg-white text-blue-700 shadow-sm" : "bg-white text-green-700 shadow-sm";
+  return <div className="flex flex-col gap-2 md:flex-row md:items-center">
+    <label className="flex min-h-10 items-center gap-2 text-xs font-black text-slate-600 dark:text-slate-300">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 md:min-w-[155px]" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
+    <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
+      <div className="flex min-w-max gap-1">
+        <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "detailed" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-sky-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الأسبوعية</button>
+        <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "weekly" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية</button>
+        <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "ten-percent" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-green-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية (10%)</button>
+      </div>
     </div>
+    {mode !== "ten-percent" ? <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-950/50"><Copy className="h-4 w-4" />نسخ الخطة</button> : null}
   </div>;
 }
 

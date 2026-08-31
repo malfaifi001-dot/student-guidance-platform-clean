@@ -92,50 +92,45 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
   };
 
   return (
-    <section className="ten-percent-activity-plan-panel rounded-2xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/10 md:p-4">
-      <style>{`.ten-percent-activity-plan-panel{border-color:#BBF7D0!important;background:#F0FDF4!important}.dark .ten-percent-activity-plan-panel{background:#052e16!important;border-color:#166534!important}.ten-percent-activity-plan-panel>div:first-of-type h3{color:#166534!important}.dark .ten-percent-activity-plan-panel>div:first-of-type h3{color:#bbf7d0!important}.ten-percent-activity-plan-panel>div:first-of-type p{color:#166534!important}.dark .ten-percent-activity-plan-panel>div:first-of-type p{color:#bbf7d0!important}.ten-percent-activity-plan-panel>div:first-of-type>button{background:#22C55E!important;color:#fff!important}.ten-percent-activity-plan-panel>div:first-of-type>button:hover{background:#16A34A!important}.ten-percent-activity-plan-panel>div:nth-of-type(2){border-color:#BBF7D0!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>thead{background:#DCFCE7!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>thead th{border-color:#BBF7D0!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody tr:hover td{background:#F0FDF4!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody td{border-color:#DCFCE7!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody button{background:#DCFCE7!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody button:hover{background:#BBF7D0!important}.ten-percent-activity-plan-panel>p{color:#166534!important}.dark .ten-percent-activity-plan-panel>p{color:#bbf7d0!important}`}</style>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-black text-amber-950 dark:text-amber-100">الخطة الفصلية (10%)</h3>
-          <p className="mt-1 text-xs font-bold text-amber-800/80 dark:text-amber-200/80">خطة مستقلة للبرامج المنفذة ضمن مادة 10% للمرحلة المحددة.</p>
-        </div>
-        <button type="button" onClick={openNew} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-700 px-4 text-sm font-black text-white shadow-sm transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+    <section className="ten-percent-activity-plan-panel rounded-2xl border border-[#B9D8E8] bg-[#F3F8FC] p-2 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 md:p-3">
+      <div className="mb-3 flex justify-end">
+        <button type="button" onClick={openNew} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0F7FA8] px-3.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0B6B8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E8FB8]">
           <Plus className="h-4 w-4" /> إضافة صف
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="overflow-x-auto rounded-xl border border-[#B9D8E8] bg-white shadow-sm dark:border-sky-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
         <table className="min-w-[1080px] w-full border-collapse text-right" dir="rtl">
-          <thead className="bg-amber-100/80 text-xs font-black text-amber-950 dark:bg-amber-950/50 dark:text-amber-100">
+          <thead className="bg-[#DCECF6] text-xs font-black text-[#0F5F7A] dark:bg-sky-950/50 dark:text-sky-100">
             <tr>
-              <th className="border-b border-l border-amber-200 p-3">المجال</th>
-              <th className="border-b border-l border-amber-200 p-3">البرنامج</th>
-              <th className="border-b border-l border-amber-200 p-3">عدد الحصص</th>
-              <th className="border-b border-l border-amber-200 p-3">أسبوع التنفيذ</th>
-              <th className="border-b border-l border-amber-200 p-3">مادة 10%</th>
-              <th className="border-b border-l border-amber-200 p-3">الصف</th>
-              <th className="border-b border-l border-amber-200 p-3">المعلم</th>
-              <th className="border-b border-amber-200 p-3">إجراء</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">المجال</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">البرنامج</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">عدد الحصص</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">أسبوع التنفيذ</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">مادة 10%</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">الصف</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">المعلم</th>
+              <th className="border-b border-[#B9D8E8] p-3">إجراء</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="align-top transition hover:bg-amber-50/50 dark:hover:bg-amber-950/20">
-                <td className="border-b border-l border-amber-100 p-3"><div className="flex flex-wrap gap-1.5">{row.domains.map((domain) => <span key={domain.serviceSlug} className={`rounded-lg border px-2 py-1 text-[11px] font-black ${domainStyle(domain).colorClass}`}>{domain.title}</span>)}</div></td>
-                <td className="border-b border-l border-amber-100 p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="space-y-1">{row.programs.map((program) => <div key={`${program.domainServiceSlug}-${program.value}`}><span className="text-[10px] text-slate-500 dark:text-slate-400">{program.domainTitle}</span><p>{program.name}</p></div>)}</div></td>
-                <td className="border-b border-l border-amber-100 p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100">{row.periodCount || "—"}</td>
-                <td className="border-b border-l border-amber-100 p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100" dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
-                <td className="border-b border-l border-amber-100 p-3 text-sm font-bold text-slate-800 dark:text-slate-100">{row.subject || "—"}</td>
-                <td className="border-b border-l border-amber-100 p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.grades.join("\n") || "—"}</div></td>
-                <td className="border-b border-l border-amber-100 p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.teacherNames.join("\n") || "—"}</div></td>
-                <td className="border-b border-amber-100 p-3 text-center"><button type="button" onClick={() => openEdit(row)} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-amber-100 px-3 py-2 text-xs font-black text-amber-900 transition hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-100"><Edit3 className="h-4 w-4" /> تعديل</button></td>
+              <tr key={row.id} className="align-top transition hover:bg-[#EAF4FA] dark:hover:bg-sky-950/20">
+                <td className="border-b border-l border-[#DCECF6] p-3"><div className="flex flex-wrap gap-1.5">{row.domains.map((domain) => <span key={domain.serviceSlug} className={`rounded-lg border px-2 py-1 text-[11px] font-black ${domainStyle(domain).colorClass}`}>{domain.title}</span>)}</div></td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="space-y-1">{row.programs.map((program) => <div key={`${program.domainServiceSlug}-${program.value}`}><span className="text-[10px] text-slate-500 dark:text-slate-400">{program.domainTitle}</span><p>{program.name}</p></div>)}</div></td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100">{row.periodCount || "—"}</td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100" dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100">{row.subject || "—"}</td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.grades.join("\n") || "—"}</div></td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.teacherNames.join("\n") || "—"}</div></td>
+                <td className="border-b border-[#DCECF6] p-3 text-center"><button type="button" title="تعديل الصف" aria-label="تعديل الصف" onClick={() => openEdit(row)} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-[#EAF4FA] px-2.5 py-2 text-xs font-black text-[#0F5F7A] transition hover:bg-[#DCECF6] dark:bg-sky-950/60 dark:text-sky-100"><Edit3 className="h-4 w-4" /><span className="sr-only">تعديل</span></button></td>
               </tr>
             ))}
             {!rows.length && !loading ? <tr><td colSpan={8} className="p-10 text-center text-sm font-bold text-slate-500 dark:text-slate-400">لا توجد صفوف محفوظة لهذه المرحلة بعد.</td></tr> : null}
           </tbody>
         </table>
       </div>
-      {loading ? <p className="py-4 text-center text-xs font-black text-amber-800 dark:text-amber-200">جار تحميل خطة 10%...</p> : null}
+      {loading ? <p className="py-4 text-center text-xs font-black text-[#0F5F7A] dark:text-sky-200">جار تحميل خطة 10%...</p> : null}
       {error ? <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">{error}</p> : null}
       <TenPercentActivityPlanModal
         open={modalOpen}
