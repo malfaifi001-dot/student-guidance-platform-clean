@@ -36,7 +36,10 @@ import {
 } from "@/lib/workflows/workflow-runtime-settings";
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
-import { OPTIONAL_STUDENT_PICKER_LABEL } from "@/lib/workflows/workflow-runtime-copy";
+import {
+  getVisibleWorkflowStepDescription,
+  OPTIONAL_STUDENT_PICKER_LABEL,
+} from "@/lib/workflows/workflow-runtime-copy";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
@@ -772,6 +775,9 @@ export function DynamicFormRenderer({
           })),
       }
     : null;
+  const visibleCurrentStepDescription = getVisibleWorkflowStepDescription(
+    currentStep?.description,
+  );
 
   useEffect(() => {
     setFieldLabelOverrides({});
@@ -1308,7 +1314,7 @@ export function DynamicFormRenderer({
   }
 
   return (
-    <main className={embedded ? "space-y-5" : "space-y-8"} data-workflow-supports-evidence={supportsEvidence}>
+    <main className={embedded ? "space-y-4" : "space-y-5"} data-workflow-supports-evidence={supportsEvidence}>
       {!embedded ? <GuidanceScope context="workflow-runtime" /> : null}
       <SmartFeedbackModal
         open={feedback.open}
@@ -1349,26 +1355,18 @@ export function DynamicFormRenderer({
           </h2>
         </section>
       ) : (
-      <section data-guidance="workflow-step" className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
-        <h1 className="text-4xl font-black">{title || workflow.name}</h1>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-            الخطوة {currentStepIndex + 1} من {steps.length}
-          </span>
-
-          {supportsStudentPicker ? (
-            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              اختيار الطالب/الطالبة
-            </span>
-          ) : null}
-
-          {supportsEvidence ? (
-            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              يدعم الشواهد
-            </span>
-          ) : null}
+      <section data-guidance="workflow-step" className="rounded-2xl bg-gradient-to-l from-slate-950 via-sky-900 to-cyan-700 px-5 py-4 text-white shadow-md sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h1 className="text-2xl font-black leading-tight sm:text-3xl">{title || workflow.name}</h1>
+          <p className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-sky-50 ring-1 ring-white/10">
+            الخطوة {currentStepIndex + 1} من {steps.length} · {currentStep.title}
+          </p>
         </div>
+        {visibleCurrentStepDescription ? (
+          <p className="mt-2 max-w-3xl text-xs font-bold leading-6 text-sky-100/85">
+            {visibleCurrentStepDescription}
+          </p>
+        ) : null}
       </section>
       )}
 
@@ -1387,10 +1385,6 @@ export function DynamicFormRenderer({
             setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
           }}
         />
-      ) : null}
-
-      {!embedded ? (
-        <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
       ) : null}
 
       {displayCurrentStep ? (
@@ -1413,9 +1407,9 @@ export function DynamicFormRenderer({
       ) : null}
 
       {showEvidenceCard ? (
-        <section data-guidance="workflow-evidence" className={embedded ? "border-t border-slate-100 pt-5" : "rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"}>
+        <section data-guidance="workflow-evidence" className={embedded ? "border-t border-slate-100 pt-4" : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"}>
           <div className={embedded ? "mb-4" : "mb-6"}>
-            <h2 className={embedded ? "text-base font-black text-slate-900" : "text-3xl font-black text-slate-900"}>
+            <h2 className={embedded ? "text-base font-black text-slate-900" : "text-xl font-black text-slate-900"}>
               الشواهد والمرفقات
             </h2>
           </div>
@@ -1431,7 +1425,7 @@ export function DynamicFormRenderer({
             }
           />
 
-          <div className="mt-6">
+          <div className="mt-4">
             <EvidencePreviewGrid
               items={evidenceItems}
               onDelete={handleDeleteEvidence}
@@ -1443,10 +1437,10 @@ export function DynamicFormRenderer({
       {!embedded || isLastStep ? beforeSubmit : null}
 
       <section data-guidance="workflow-actions" className={[
-        "flex flex-wrap items-center justify-between gap-4",
+        "flex flex-wrap items-center justify-between gap-3",
         embedded
           ? "border-t border-slate-100 pt-5"
-          : "rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm",
+          : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm",
       ].join(" ")}>
         {!embedded || !isFirstStep || !isLastStep ? (
         <div className="flex gap-3">
@@ -1454,7 +1448,7 @@ export function DynamicFormRenderer({
             type="button"
             onClick={goPrevious}
             disabled={isFirstStep || loading}
-            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             السابق
           </button>
@@ -1464,7 +1458,7 @@ export function DynamicFormRenderer({
               type="button"
               onClick={goNext}
               disabled={loading}
-              className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               التالي
             </button>
@@ -1478,7 +1472,7 @@ export function DynamicFormRenderer({
               type="button"
               onClick={() => handleSave("draft")}
               disabled={loading}
-              className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {previewMode ? "معاينة فقط" : "حفظ مسودة"}
             </button>
@@ -1490,7 +1484,7 @@ export function DynamicFormRenderer({
             onClick={() => handleSave("submit")}
             data-guidance="workflow-submit"
             disabled={loading}
-            className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? <BrandLoader variant="button" size="xs" label="جاري الحفظ..." /> : submitLabel || (caseId ? "تحديث الحالة" : "إرسال")}
           </button>
@@ -1641,42 +1635,6 @@ function getSelectedStudentsPreview(students: SmartStudent[], maxPreview = 3) {
   }
 
   return `${names.slice(0, maxPreview).join("، ")} +${names.length - maxPreview}`;
-}
-
-function StepProgress({
-  currentStepIndex,
-  steps,
-}: {
-  currentStepIndex: number;
-  steps: RuntimeStep[];
-}) {
-  return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap gap-2">
-        {steps.map((step, index) => {
-          const isActive = index === currentStepIndex;
-          const isDone = index < currentStepIndex;
-
-          return (
-            <div
-              key={step.id}
-              className={[
-                "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black",
-                isActive
-                  ? "border-sky-200 bg-sky-50 text-sky-700"
-                  : isDone
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-slate-50 text-slate-500",
-              ].join(" ")}
-            >
-              <span>{index + 1}</span>
-              <span>{step.title}</span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
 }
 
 function SmartStudentPickerCard({

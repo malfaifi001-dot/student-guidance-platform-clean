@@ -1,4 +1,5 @@
 import { WorkspaceHome } from "@/components/workspace/workspace-home";
+import { DashboardContextCard } from "@/components/dashboard/dashboard-context-card";
 import {
   OFFICIAL_WORKSPACE_ROUTES,
   teacherWorkspaceModules,
@@ -39,6 +40,10 @@ export async function TeacherWorkspacePage({
   }
 
   const notices: { title: string; helper: string }[] = [];
+  let contextItems = [
+    { label: "التكليفات", value: "—" },
+    { label: "أقرب مهمة", value: "لا توجد" },
+  ];
 
   let stats: {
     label: string;
@@ -142,6 +147,14 @@ export async function TeacherWorkspacePage({
       },
     });
 
+    contextItems = [
+      { label: "التكليفات", value: formatCount(assignmentCount) },
+      {
+        label: "أقرب مهمة",
+        value: upcomingReminders[0]?.title || "لا توجد",
+      },
+    ];
+
     const lateReminders = await prisma.calendarReminder.count({
       where: {
         schoolAccountId,
@@ -198,6 +211,10 @@ export async function TeacherWorkspacePage({
           },
         ]}
         notices={notices}
+        compactDashboard
+        contextSlot={
+          <DashboardContextCard title="ملخص المعلم" items={contextItems} />
+        }
       />
 
       <style>{`

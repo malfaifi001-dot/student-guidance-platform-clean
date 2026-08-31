@@ -34,13 +34,13 @@ function renderValue(value: unknown) {
             return (
               <div
                 key={index}
-                className="rounded-2xl border border-slate-200 bg-white p-4"
+                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
               >
                 {Object.entries(row)
                   .filter(([key]) => key !== "id")
                   .map(([key, itemValue]) => (
-                    <p key={key} className="text-sm leading-7 text-slate-700">
-                      <span className="font-black text-slate-900">{key}: </span>
+                    <p key={key} className="text-sm leading-7 text-slate-700 dark:text-slate-300">
+                      <span className="font-black text-slate-900 dark:text-white">{key}: </span>
                       {stringifySimple(itemValue) || "بيانات محفوظة"}
                     </p>
                   ))}
@@ -77,9 +77,9 @@ function renderValue(value: unknown) {
 
 export function CaseValueRenderer({ label, value }: CaseValueRendererProps) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
       <p className="text-xs font-black text-slate-400">{label}</p>
-      <div className="mt-3 text-sm font-bold leading-7 text-slate-800">
+      <div className="mt-2 text-sm font-bold leading-7 text-slate-800 dark:text-slate-200">
         {renderValue(value)}
       </div>
     </div>

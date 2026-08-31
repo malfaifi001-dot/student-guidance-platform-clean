@@ -301,10 +301,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
 
   return (
     <div className="space-y-6" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-l from-sky-800 to-cyan-700 p-4 text-white shadow-sm">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
-            <h1 className="text-4xl font-black leading-tight">
+            <h1 className="text-2xl font-black leading-tight">
               {analysis.survey.title}
             </h1>
           </div>

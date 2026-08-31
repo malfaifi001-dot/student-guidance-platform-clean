@@ -201,13 +201,13 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 text-right text-slate-950 dark:bg-slate-950 dark:text-slate-100 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-4 dark:from-sky-950/40 dark:via-slate-900 dark:to-emerald-950/30 md:p-5">
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-            <h1 className="mt-2 text-2xl font-black md:text-4xl">سجل {labels.students}</h1>
-            <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
+            <h1 className="mt-1 text-xl font-black md:text-2xl">سجل {labels.students}</h1>
+            <p className="mt-1 max-w-4xl text-xs font-bold text-slate-600 dark:text-slate-400">
               هذا هو السجل الناتج من {labels.studentData} لمدرسة {schoolName}.
             </p>
             {importedCount ? (
@@ -221,7 +221,7 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
         {message ? (
           <section
             className={[
-              "rounded-3xl border px-5 py-4 text-sm font-bold leading-7 shadow-sm",
+              "rounded-2xl border px-4 py-3 text-sm font-bold leading-7 shadow-sm",
               message.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : message.type === "error"
@@ -233,42 +233,42 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
           </section>
         ) : null}
 
-        <section className="grid gap-3 md:grid-cols-5">
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <section className="flex flex-wrap gap-2">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-black text-slate-400">إجمالي {labels.students}</p>
-            <p className="mt-1 text-2xl font-black">{stats.total}</p>
+            <p className="mt-1 text-xl font-black">{stats.total}</p>
           </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-black text-slate-400">النشطون</p>
-            <p className="mt-1 text-2xl font-black">{stats.active}</p>
+            <p className="mt-1 text-xl font-black">{stats.active}</p>
           </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-black text-slate-400">غير النشطين</p>
-            <p className="mt-1 text-2xl font-black">{stats.inactive}</p>
+            <p className="mt-1 text-xl font-black">{stats.inactive}</p>
           </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-black text-slate-400">الصفوف</p>
-            <p className="mt-1 text-2xl font-black">{stats.grades}</p>
+            <p className="mt-1 text-xl font-black">{stats.grades}</p>
           </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-black text-slate-400">الفصول</p>
-            <p className="mt-1 text-2xl font-black">{stats.classrooms}</p>
+            <p className="mt-1 text-xl font-black">{stats.classrooms}</p>
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="grid gap-3 md:grid-cols-[1fr_180px_160px_160px]">
             <input
               value={q}
               onChange={(event) => setQ(event.target.value)}
               placeholder="اكتب اسم الطالب، الهوية، ولي الأمر، الصف أو الفصل..."
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
 
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               {statusOptions.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -280,7 +280,7 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
             <select
               value={grade}
               onChange={(event) => setGrade(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="">كل الصفوف</option>
               {grades.map((item) => (
@@ -293,7 +293,7 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
             <select
               value={classroom}
               onChange={(event) => setClassroom(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="">كل الفصول</option>
               {classrooms.map((item) => (
@@ -304,7 +304,7 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
             </select>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/60">
             <p className="text-xs font-bold text-slate-500">
               البحث يعمل تلقائيًا أثناء الكتابة.
               {isLoading ? " جاري التحديث..." : ""}
@@ -326,10 +326,10 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
             ) : null}
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
             <div className="max-h-[620px] overflow-auto">
               <table className="w-full min-w-[1050px] border-collapse text-sm">
-                <thead className="sticky top-0 bg-slate-100 text-xs font-black text-slate-600">
+                <thead className="sticky top-0 bg-slate-100 text-xs font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <tr>
                     <th className="px-4 py-3 text-right">الطالب</th>
                     <th className="px-4 py-3 text-right">الهوية</th>
@@ -343,7 +343,7 @@ export function StudentsCenterClient({ schoolName, gender, importedCount, import
 
                 <tbody className="divide-y divide-slate-100">
                   {students.map((student) => (
-                    <tr key={student.id} className="bg-white hover:bg-slate-50">
+                    <tr key={student.id} className="bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800">
                       <td className="px-4 py-3">
                         <p className="font-black text-slate-950">{student.fullName}</p>
                         <p className="mt-1 text-xs font-bold text-slate-400">{student.stage || "—"}</p>

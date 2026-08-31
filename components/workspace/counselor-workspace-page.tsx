@@ -1,4 +1,5 @@
 import { WorkspaceHome } from "@/components/workspace/workspace-home";
+import { DashboardContextCard } from "@/components/dashboard/dashboard-context-card";
 import {
   counselorWorkspaceModules,
   OFFICIAL_WORKSPACE_ROUTES,
@@ -41,8 +42,8 @@ export function CounselorWorkspacePage({
     <div className="counselor-workspace-page">
       <WorkspaceHome
         eyebrow="التوجيه الطلابي"
-        title=""
-        description=""
+        title="خدمات التوجيه الطلابي"
+        description="تابع الحالات والمهام القادمة من مساحة عمل واحدة."
         userName={user?.officialName || user?.name}
         userId={user?.id}
         schoolIdentityComplete={schoolIdentityComplete}
@@ -102,6 +103,16 @@ export function CounselorWorkspacePage({
             helper: "استخدم مركز تحليل النتائج عند الحاجة إلى تدخلات ذكية.",
           },
         ]}
+        compactDashboard
+        contextSlot={
+          <DashboardContextCard
+            title="ملخص التوجيه"
+            items={[
+              { label: "حالات جاهزة", value: formatCount(stats.readyForReport) },
+              { label: "متابعات قريبة", value: formatCount(remindersCount) },
+            ]}
+          />
+        }
       />
 
       <style>{`

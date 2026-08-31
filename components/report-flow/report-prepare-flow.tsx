@@ -91,7 +91,6 @@ function buildInitialSummarySource(): ReportFlowExecutionSummarySource {
 export function ReportPrepareFlow({
   payload,
   selectedVariantId,
-  variants,
   continueHref,
 }: ReportPrepareFlowProps) {
   const router = useRouter();
@@ -179,9 +178,6 @@ export function ReportPrepareFlow({
 
     return fields.filter((field) => getFieldSearchText(field).includes(query));
   }, [fields, search]);
-
-  const selectedVariant =
-    variants.find((variant) => variant.id === selectedVariantId) || variants[0];
 
   function applyLanguageMode(nextMode: ReportLanguageMode) {
     const normalizedMode = normalizeReportLanguageMode(nextMode);
@@ -411,14 +407,14 @@ export function ReportPrepareFlow({
         className="min-h-screen bg-slate-50 px-4 py-5 transition-colors dark:bg-slate-950 sm:px-6"
         dir="rtl"
       >
-        <div className="mx-auto max-w-7xl space-y-5">
-          <section className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition-colors lg:flex-row lg:items-center lg:justify-between print:hidden dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+        <div className="mx-auto max-w-7xl space-y-4">
+          <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors lg:flex-row lg:items-center lg:justify-between print:hidden dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
             <div>
               <p className="text-sm font-black text-emerald-700">المعاينة والتعديل</p>
               <h1 className="mt-1 text-2xl font-black text-slate-950">
                 {documentDraft.title}
               </h1>
-              <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
                 تم تجهيز التقرير من الحقول التي اخترتها فقط.
               </p>
             </div>
@@ -426,7 +422,7 @@ export function ReportPrepareFlow({
             <button
               type="button"
               onClick={() => setStep("prepare")}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               العودة للتحضير
             </button>
@@ -449,40 +445,27 @@ export function ReportPrepareFlow({
         dir="rtl"
       >
         <div className="mx-auto max-w-6xl space-y-5">
-          <div className="flex items-center">
-            <Link
-              href={`/dashboard/cases/${payload.caseInfo.id}`}
-              aria-label="العودة إلى الحالة"
-              title="العودة إلى الحالة"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              <ArrowRight className="h-5 w-5" aria-hidden="true" />
-            </Link>
-          </div>
-          <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-black text-sky-100">
-                  تحضير التقرير
-                </p>
-
-                <h1 className="mt-2 text-3xl font-black leading-tight lg:text-4xl">
+          <section className="rounded-2xl bg-gradient-to-l from-slate-950 via-sky-900 to-sky-600 px-5 py-4 text-white shadow-md sm:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  href={`/dashboard/cases/${payload.caseInfo.id}`}
+                  aria-label="العودة إلى الحالة"
+                  title="العودة إلى الحالة"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                >
+                  <ArrowRight className="h-5 w-5" aria-hidden="true" />
+                </Link>
+                <div className="min-w-0">
+                <h1 className="text-2xl font-black leading-tight lg:text-3xl">
                   راجع عناصر التقرير قبل المعاينة
                 </h1>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-sky-100/90">
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {payload.title || payload.caseInfo.title}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {payload.service.name}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {selectedFields.length} من {fields.length} حقل
-                  </span>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-sky-100/90">
+                  <span>{payload.service.name}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{selectedFields.length} من {fields.length} حقل</span>
+                </div>
                 </div>
               </div>
 
@@ -491,7 +474,7 @@ export function ReportPrepareFlow({
                   type="button"
                   onClick={continueToStudio}
                   data-guidance="report-prepare-continue"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-sky-50"
                 >
                   معاينة التقرير
                   <CheckCircle2 className="h-4 w-4" />
@@ -506,23 +489,19 @@ export function ReportPrepareFlow({
           ) : null}
 
           <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
-            <div data-guidance="report-prepare-fields" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-              <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div data-guidance="report-prepare-fields" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 lg:flex-row lg:items-center lg:justify-between dark:border-slate-800">
                 <div>
-                  <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                  <h2 className="text-base font-black text-slate-950 dark:text-white">
                     عناصر التقرير
                   </h2>
-                  <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">
-                    اختر فقط ما تريد ظهوره في التقرير. التعديل هنا لا يغيّر أصل
-                    الحالة.
-                  </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
                     onClick={selectAllVisible}
-                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     تحديد الظاهر
                   </button>
@@ -530,7 +509,7 @@ export function ReportPrepareFlow({
                   <button
                     type="button"
                     onClick={unselectAllVisible}
-                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     إلغاء الظاهر
                   </button>
@@ -544,7 +523,7 @@ export function ReportPrepareFlow({
                 className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
               />
 
-              <div className="mt-4 max-h-[680px] space-y-3 overflow-y-auto pr-1">
+              <div className="mt-3 max-h-[680px] space-y-2.5 overflow-y-auto pr-1">
                 {visibleFields.length === 0 ? (
                   <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                     لا توجد حقول مطابقة للبحث.
@@ -555,13 +534,13 @@ export function ReportPrepareFlow({
                   <article
                     key={field.id}
                     className={[
-                      "rounded-2xl border p-4 transition",
+                      "rounded-xl border p-3 transition",
                       field.selected
                         ? "border-emerald-100 bg-emerald-50/30 dark:border-emerald-400/20 dark:bg-emerald-500/10"
                         : "border-slate-100 bg-slate-50/60 opacity-80 dark:border-slate-800 dark:bg-slate-900/70",
                     ].join(" ")}
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
                         <input
                           type="checkbox"
@@ -610,17 +589,17 @@ export function ReportPrepareFlow({
               </div>
             </div>
 
-            <aside className="space-y-4">
-              <section data-guidance="report-prepare-description" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <aside>
+              <section data-guidance="report-prepare-description" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                    <h2 className="text-base font-black text-slate-950 dark:text-white">
                       وصف التنفيذ
                     </h2>
                   </div>
                 </div>
 
-                <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
+                <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
                   <input
                     type="checkbox"
                     checked={showExecutionDescriptionInReport}
@@ -640,15 +619,15 @@ export function ReportPrepareFlow({
                   عرض في التقرير
                 </label>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => applyLanguageMode("MALE")}
                     className={[
-                      "rounded-2xl px-4 py-3 text-sm font-black transition",
+                      "rounded-xl px-3 py-2.5 text-sm font-black transition",
                       languageMode === "MALE"
                         ? "bg-emerald-700 text-white"
-                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
                     ].join(" ")}
                     aria-pressed={languageMode === "MALE"}
                   >
@@ -659,10 +638,10 @@ export function ReportPrepareFlow({
                     type="button"
                     onClick={() => applyLanguageMode("FEMALE")}
                     className={[
-                      "rounded-2xl px-4 py-3 text-sm font-black transition",
+                      "rounded-xl px-3 py-2.5 text-sm font-black transition",
                       languageMode === "FEMALE"
                         ? "bg-emerald-700 text-white"
-                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
                     ].join(" ")}
                     aria-pressed={languageMode === "FEMALE"}
                   >
@@ -674,7 +653,7 @@ export function ReportPrepareFlow({
                   type="button"
                   onClick={() => void generateSummary()}
                   disabled={generating || selectedFields.length === 0}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {generating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -693,7 +672,7 @@ export function ReportPrepareFlow({
                   }
                   rows={5}
                   placeholder="اكتب أو ولّد وصف التنفيذ..."
-                  className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
+                  className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold leading-7 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
                 />
 
                 <div

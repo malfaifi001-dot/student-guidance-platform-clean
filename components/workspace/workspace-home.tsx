@@ -27,8 +27,13 @@ import type {
 } from "@/lib/workspace/workspace-modules";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { AcademicCalendarDashboardCard } from "@/components/academic-calendar/academic-calendar-dashboard-card";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardReminders } from "@/components/dashboard/dashboard-reminders";
+import { DashboardServiceGrid } from "@/components/dashboard/dashboard-service-grid";
+import { DashboardStatCard } from "@/components/dashboard/dashboard-stat-card";
 import { MobileWorkspaceModuleCarousel } from "@/components/workspace/mobile-workspace-module-carousel";
 import { WorkspaceHeaderCta } from "@/components/workspace/workspace-header-cta";
+import type { WorkspaceHeaderCtaOption } from "@/components/workspace/workspace-header-cta";
 
 type WorkspaceStatIcon =
   | "progress"
@@ -81,6 +86,8 @@ type WorkspaceHomeProps = {
   schoolIdentityComplete?: boolean;
   userId?: string | null;
   showHeroBadges?: boolean;
+  compactDashboard?: boolean;
+  contextSlot?: ReactNode;
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
@@ -136,6 +143,8 @@ export function WorkspaceHome({
   schoolIdentityComplete = false,
   userId,
   showHeroBadges = true,
+  compactDashboard = false,
+  contextSlot,
 }: WorkspaceHomeProps) {
   const headerCtaOptions = [
     {
@@ -156,6 +165,26 @@ export function WorkspaceHome({
       (module) => module.status !== "soon" && module.href === option.href,
     ),
   );
+  if (compactDashboard) {
+    return (
+      <CompactWorkspaceHome
+        title={title}
+        userName={userName}
+        modules={modules}
+        stats={stats}
+        actions={actions}
+        notices={notices}
+        schoolIdentityComplete={schoolIdentityComplete}
+        userId={userId}
+        headerCtaOptions={headerCtaOptions}
+        eyebrow={eyebrow}
+        description={description}
+        welcomeText={welcomeText}
+        contextSlot={contextSlot}
+      />
+    );
+  }
+
   return (
     <main className="space-y-6" dir="rtl">
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
@@ -402,5 +431,104 @@ function MiniNotice({ title, helper }: { title: string; helper: string }) {
         {helper}
       </p>
     </div>
+  );
+}
+
+function CompactWorkspaceHome({
+  eyebrow,
+  title,
+  description,
+  userName,
+  modules,
+  stats,
+  actions,
+  notices,
+  schoolIdentityComplete,
+  userId,
+  headerCtaOptions,
+  welcomeText,
+  contextSlot,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  userName?: string | null;
+  modules: WorkspaceModule[];
+  stats: WorkspaceStat[];
+  actions: WorkspaceAction[];
+  notices: WorkspaceNotice[];
+  schoolIdentityComplete: boolean;
+  userId?: string | null;
+  headerCtaOptions: WorkspaceHeaderCtaOption[];
+  welcomeText: string;
+  contextSlot?: ReactNode;
+}) {
+  const visibleActions = actions.slice(0, schoolIdentityComplete ? 2 : 1).map((action) => {
+    const Icon = actionIconByName[action.icon];
+    return {
+      label: action.label,
+      href: action.href,
+      primary: action.primary,
+      icon: <Icon className="h-4 w-4" aria-hidden="true" />,
+    };
+  });
+
+  const showRotatingHeaderAction = !schoolIdentityComplete || actions.length < 2;
+
+  return (
+    <main className="space-y-4" dir="rtl">
+      <DashboardHero
+        roleLabel={eyebrow || title}
+        userName={getDisplayName(userName)}
+        welcomeText={welcomeText}
+        supportingLine={description || undefined}
+        actions={visibleActions}
+        trailingAction={showRotatingHeaderAction ? (
+          <WorkspaceHeaderCta
+            identityComplete={schoolIdentityComplete}
+            userId={userId}
+            options={headerCtaOptions}
+          />
+        ) : null}
+      />
+
+      {contextSlot || <AcademicCalendarDashboardCard compact />}
+
+      {stats.length > 0 ? (
+        <section className="flex flex-wrap gap-2" aria-label="إحصاءات لوحة العمل">
+          {stats.map((stat) => {
+            const Icon = statIconByName[stat.icon];
+            return <DashboardStatCard key={stat.label} stat={{ ...stat, icon: <Icon className="h-4 w-4" aria-hidden="true" /> }} />;
+          })}
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-5">
+        <div>
+          <p className="text-xs font-black text-sky-700 dark:text-sky-300">الخدمات</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">الخدمات الرئيسية</h2>
+        </div>
+
+        <div className="mt-4 md:hidden">
+          <MobileWorkspaceModuleCarousel modules={modules} />
+        </div>
+
+        <div className="mt-4 hidden md:block">
+          <DashboardServiceGrid
+            services={modules.map((module) => {
+              const Icon = iconByName[module.icon];
+              return {
+                title: module.title,
+                href: module.href,
+                status: module.status,
+                icon: <Icon className="h-5 w-5" aria-hidden="true" />,
+              };
+            })}
+          />
+        </div>
+      </section>
+
+      <DashboardReminders reminders={notices} />
+    </main>
   );
 }

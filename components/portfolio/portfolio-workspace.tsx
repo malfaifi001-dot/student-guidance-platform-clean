@@ -142,20 +142,20 @@ export function PortfolioWorkspace({ initialData }: { initialData: PortfolioWork
     });
   }
 
-  return <main dir="rtl" className="space-y-5">
-    <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-black">{data.portfolio.title}</h1>
-          <p className="mt-4 text-sm font-bold leading-8 text-sky-50">{data.portfolio.description || "أدر محتوى ملف الإنجاز وترتيبه ثم راجع النسخة الحية قبل الطباعة."}</p>
+  return <main dir="rtl" className="space-y-4">
+    <section className="rounded-2xl border border-sky-100 bg-white px-4 py-4 shadow-sm dark:border-sky-900/50 dark:bg-slate-950 sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-300">ملف الإنجاز</p>
+          <h1 className="mt-1 truncate text-2xl font-black text-slate-950 dark:text-white">{data.portfolio.title}</h1>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end" aria-label="إحصاءات ملف الإنجاز">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-black text-white shadow-sm backdrop-blur-sm">
-            <FileText className="h-4 w-4 text-sky-100" aria-hidden="true" />
+        <div className="flex flex-wrap gap-2" aria-label="إحصاءات ملف الإنجاز">
+          <span className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800">
+            <FileText className="h-4 w-4 text-sky-600 dark:text-sky-300" aria-hidden="true" />
             التقارير: {data.totals.reports}
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-black text-white shadow-sm backdrop-blur-sm">
-            <Award className="h-4 w-4 text-sky-100" aria-hidden="true" />
+          <span className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800">
+            <Award className="h-4 w-4 text-sky-600 dark:text-sky-300" aria-hidden="true" />
             الشواهد: {data.totals.evidences}
           </span>
         </div>
@@ -171,10 +171,10 @@ export function PortfolioWorkspace({ initialData }: { initialData: PortfolioWork
     {activeStepId === "preview" ? <div className="space-y-5"><div><h2 className="text-xl font-black text-slate-950">اختيار التصميم</h2><p className="mt-1 text-sm font-bold text-slate-500">اختر الشكل النهائي واضبط خيارات العرض قبل اعتماد النسخة.</p></div><PortfolioDesignPanel data={data} busy={busy} onSave={savePortfolio} /></div> : null}
     {activeStepId === "approve" ? <PortfolioApproveVersion busy={busy} approved={snapshotApproved} onApprove={requestSnapshotApproval} onOpenSavedCopies={() => goToStep("saved")} /> : null}
     {activeStepId === "saved" ? <PortfolioSavedCopies portfolioId={data.portfolio.id} snapshotBasePath={data.routes.snapshots} refreshKey={snapshotRefreshKey} /> : null}
-    <nav aria-label="التنقل بين خطوات ملف الإنجاز" className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <button type="button" disabled={activeStepIndex === 0} onClick={() => goToStep(steps[activeStepIndex - 1]?.id || activeStepId)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><ArrowRight className="h-4 w-4" />السابق</button>
-      <p className="hidden text-xs font-black text-slate-400 sm:block">الخطوة {activeStepIndex + 1} من {steps.length}</p>
-      <button type="button" disabled={activeStepIndex === steps.length - 1} onClick={() => goToStep(steps[activeStepIndex + 1]?.id || activeStepId)} className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-40">التالي<ArrowLeft className="h-4 w-4" /></button>
+    <nav aria-label="التنقل بين خطوات ملف الإنجاز" className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <button type="button" disabled={activeStepIndex === 0} onClick={() => goToStep(steps[activeStepIndex - 1]?.id || activeStepId)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"><ArrowRight className="h-4 w-4" />السابق</button>
+      <p className="text-xs font-black text-slate-400">الخطوة {activeStepIndex + 1} من {steps.length}</p>
+      <button type="button" disabled={activeStepIndex === steps.length - 1} onClick={() => goToStep(steps[activeStepIndex + 1]?.id || activeStepId)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-black text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-40">التالي<ArrowLeft className="h-4 w-4" /></button>
     </nav>
     <PortfolioFeedbackPopCard feedback={feedback} loading={busy} onClose={() => !busy && setFeedback(null)} />
   </main>;
@@ -205,25 +205,25 @@ function Overview({ data }: { data: PortfolioWorkspaceData }) {
   const hasNamedGroups = groupedSections.some((group) => group.title);
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-black text-slate-950">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <h2 className="text-lg font-black text-slate-950 dark:text-white">
         {data.showWeights ? "عناصر الأداء" : "أقسام الخدمات"}
       </h2>
       {data.performanceSections.length ? (
         hasNamedGroups ? (
-          <div className="mt-5 space-y-6">
+          <div className="mt-4 space-y-4">
             {groupedSections.map((group) => (
               <section
                 key={group.key}
-                className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-5"
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/50"
               >
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
-                  <h3 className="text-lg font-black text-slate-950">{group.title}</h3>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+                  <h3 className="text-sm font-black text-slate-950 dark:text-white">{group.title}</h3>
+                  <span className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-black text-slate-500 ring-1 ring-slate-200 dark:bg-slate-950 dark:ring-slate-700">
                     {group.sections.length} خدمة
                   </span>
                 </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
                   {group.sections.map((section) => (
                     <ServiceSectionCard
                       key={section.key}
@@ -236,7 +236,7 @@ function Overview({ data }: { data: PortfolioWorkspaceData }) {
             ))}
           </div>
         ) : (
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
             {data.performanceSections.map((section) => (
               <ServiceSectionCard
                 key={section.key}
@@ -247,7 +247,7 @@ function Overview({ data }: { data: PortfolioWorkspaceData }) {
           </div>
         )
       ) : (
-        <p className="mt-4 text-sm font-bold text-slate-500">
+        <p className="mt-3 text-sm font-bold text-slate-500">
           لا توجد أقسام خدمات مضافة لهذا الدور حاليًا.
         </p>
       )}
@@ -263,16 +263,15 @@ function ServiceSectionCard({
   showWeights: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+    <div className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${section.reports.length + section.linkedOutputs.length > 0 ? "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950" : "border-slate-100 bg-slate-50/60 opacity-65 dark:border-slate-800 dark:bg-slate-900/50"}`}>
       <div className="flex justify-between gap-3">
         <div>
-          <h4 className="text-sm font-black text-slate-900">{section.title}</h4>
-          <p className="mt-1 text-xs font-bold text-slate-400">
-            {showWeights ? `الوزن ${section.weight}% · ` : ""}
-            {section.isEnabled ? "ظاهر" : "مخفي"}
+          <h4 className="text-sm font-black text-slate-900 dark:text-white">{section.title}</h4>
+          <p className="mt-1 text-[11px] font-bold text-slate-400">
+            {showWeights ? `الوزن ${section.weight}%` : "قسم الخدمة"}
           </p>
         </div>
-        <span className="h-fit rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+        <span className={`h-fit rounded-lg px-2.5 py-1 text-xs font-black ${section.reports.length + section.linkedOutputs.length > 0 ? "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-300" : "bg-slate-100 text-slate-400 dark:bg-slate-800"}`}>
           {section.reports.length + section.linkedOutputs.length}
         </span>
       </div>

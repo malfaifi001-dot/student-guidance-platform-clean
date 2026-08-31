@@ -22,6 +22,7 @@ type ActivityLeaderWorkspacePageProps = {
     evidenceItems: number;
     activityReports: number;
   };
+  notices?: Array<{ title: string; helper: string }>;
   schoolIdentityComplete: boolean;
 };
 
@@ -32,24 +33,22 @@ function formatCount(value: number) {
 export function ActivityLeaderWorkspacePage({
   user,
   stats,
+  notices = [],
   schoolIdentityComplete,
 }: ActivityLeaderWorkspacePageProps) {
-  const schoolName =
-    user?.schoolAccount?.profile?.schoolName ||
-    user?.schoolAccount?.name ||
-    "مدرستك";
-
   return (
     <WorkspaceHome
       eyebrow="ريادة النشاط"
       title="خدمات رائد النشاط"
-      description={`ابدأ من خطة النشاط وفريق النشاط في ${schoolName}، ثم نظّم البرامج والشواهد من المسارات المخصصة لرائد النشاط.`}
+      description="تابع خدماتك وأنجز مهامك اليومية من مكان واحد."
       userName={user?.officialName || user?.name}
       userId={user?.id}
       schoolIdentityComplete={schoolIdentityComplete}
       modules={activityLeaderWorkspaceModules}
       showModuleDescription={false}
       showHeroBadges={false}
+      compactDashboard
+      notices={notices}
       stats={[
         {
           label: "الطلاب",
@@ -85,20 +84,6 @@ export function ActivityLeaderWorkspacePage({
           label: "برامج النشاط",
           href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
           icon: "programs",
-        },
-      ]}
-      notices={[
-        {
-          title: "برامج النشاط",
-          helper: "اختر مجال النشاط ثم عبئ بطاقة التنفيذ.",
-        },
-        {
-          title: "تكليفات المعلمين",
-          helper: "يمكن متابعة التكليفات من صفحة متابعة أنشطة المعلمين.",
-        },
-        {
-          title: "الشواهد",
-          helper: "ارفع الشواهد قبل إصدار التقرير النهائي.",
         },
       ]}
     />

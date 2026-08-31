@@ -147,26 +147,16 @@ export function WorkflowStepCard({
       className={
         embedded
           ? "py-1"
-          : "rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+          : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
       }
     >
-      {!embedded ? (
-      <div className="mb-6 border-b border-slate-100 pb-5">
-        <p className="text-sm font-bold text-sky-700">الخطوة {step.order}</p>
-
-        <h2 className="mt-2 text-2xl font-black text-slate-900">
-          {step.title}
-        </h2>
-
-        {visibleStepDescription ? (
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            {visibleStepDescription}
-          </p>
-        ) : null}
-      </div>
+      {embedded && visibleStepDescription ? (
+        <p className="mb-3 text-xs font-bold leading-6 text-slate-500">
+          {visibleStepDescription}
+        </p>
       ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {normalFields.map((field) => (
           <div
             key={field.id}
@@ -256,7 +246,7 @@ export function WorkflowStepCard({
         ) : null}
 
         {normalFields.length === 0 && !shouldRenderCommitteeChain && !shouldRenderBroadcastSchedule ? (
-          <div className="rounded-2xl bg-slate-50 p-6 text-sm font-semibold text-slate-400">
+          <div className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
             لا توجد حقول ظاهرة في هذه الخطوة حاليًا.
           </div>
         ) : null}

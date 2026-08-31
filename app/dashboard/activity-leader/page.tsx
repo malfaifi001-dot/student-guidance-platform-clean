@@ -126,6 +126,10 @@ export default async function ActivityLeaderDashboardPage() {
   return (
     <ActivityLeaderWorkspacePage
       user={current.user}
+      notices={reminders.map((reminder) => ({
+        title: reminder.title,
+        helper: reminder.scheduledAt.toLocaleDateString("ar-SA"),
+      }))}
       stats={{
         students,
         upcomingReminders: reminders.length,

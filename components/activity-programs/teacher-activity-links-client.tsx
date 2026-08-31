@@ -21,6 +21,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { SignatureImage } from "@/components/signatures/signature-image";
 import { openExternalUrl } from "@/lib/native/external-url-handler";
 import { buildWhatsAppShareLink } from "@/lib/whatsapp/whatsapp-links";
@@ -596,12 +597,17 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
                   <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">{link.submissionCounts.approved} معتمد · {link.submissionCounts.submitted} بانتظار الاعتماد · {link.submissionCounts.returned} مرجع</p>
                   <p className="mt-1 flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400"><CalendarDays className="h-3.5 w-3.5" />ينتهي: {formatDate(link.tokenExpiresAt)}</p>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                  <LinkActionButton title="نسخ الرابط" onClick={() => copyText(link.publicUrl)}><Copy className="h-4 w-4" /></LinkActionButton>
-                  <LinkActionButton title="مشاركة عبر واتساب" onClick={() => openWhatsApp(`السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`)}><MessageCircle className="h-4 w-4 text-emerald-600" /></LinkActionButton>
-                  {link.status === "ACTIVE" ? <LinkActionButton title="إغلاق الرابط" onClick={() => linkAction(link.id, "CLOSE")} className="bg-amber-50 text-amber-800 ring-amber-100 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></LinkActionButton> : <LinkActionButton title="إعادة فتح الرابط" onClick={() => linkAction(link.id, "REACTIVATE")} className="bg-emerald-50 text-emerald-800 ring-emerald-100 hover:bg-emerald-100"><RefreshCw className="h-4 w-4" /></LinkActionButton>}
-                  <LinkActionButton title="حذف الرابط" onClick={() => deleteLink(link.id)} className="bg-red-50 text-red-700 ring-red-100 hover:bg-red-100"><Trash2 className="h-4 w-4" /></LinkActionButton>
-                </div>
+                 <ExpandableActionMenu
+                   menuId={`activity-link:${link.id}`}
+                   overlayStrip
+                   className="self-start"
+                   stripClassName="rounded-xl border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900/95"
+                 >
+                   <LinkActionButton title="نسخ الرابط" onClick={() => copyText(link.publicUrl)}><Copy className="h-4 w-4" /></LinkActionButton>
+                   <LinkActionButton title="مشاركة عبر واتساب" onClick={() => openWhatsApp(`السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`)}><MessageCircle className="h-4 w-4 text-emerald-600" /></LinkActionButton>
+                   {link.status === "ACTIVE" ? <LinkActionButton title="إغلاق الرابط" onClick={() => linkAction(link.id, "CLOSE")} className="bg-amber-50 text-amber-800 ring-amber-100 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></LinkActionButton> : <LinkActionButton title="إعادة فتح الرابط" onClick={() => linkAction(link.id, "REACTIVATE")} className="bg-emerald-50 text-emerald-800 ring-emerald-100 hover:bg-emerald-100"><RefreshCw className="h-4 w-4" /></LinkActionButton>}
+                   <LinkActionButton title="حذف الرابط" onClick={() => deleteLink(link.id)} className="bg-red-50 text-red-700 ring-red-100 hover:bg-red-100"><Trash2 className="h-4 w-4" /></LinkActionButton>
+                 </ExpandableActionMenu>
               </div>
               <div className="mt-3 break-all rounded-lg bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300" dir="ltr">{link.publicUrl}</div>
             </article>)}
@@ -627,14 +633,19 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
                     <p className="mt-0.5 text-xs font-black text-sky-700 dark:text-sky-300">المعلم: {submission.teacherName}</p>
                     {submission.returnedReason ? <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-black leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">سبب الإرجاع: {submission.returnedReason}</p> : null}
                   </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                    {hasSubmission ? <ActionButton title="عرض النشاط" onClick={() => openModal(submission, "view")}><Eye className="h-4 w-4" /></ActionButton> : null}
-                    {canEdit && hasSubmission ? <ActionButton title="تعديل النشاط" onClick={() => openModal(submission, "edit")}><PencilLine className="h-4 w-4" /></ActionButton> : null}
-                    {canEdit ? <ActionButton title="إرجاع للمعلم" onClick={() => openModal(submission, "return")} className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></ActionButton> : null}
-                    {canReview ? <ActionButton title="اعتماد النشاط" onClick={() => reviewSubmission(submission.id, "APPROVE")} className="border-transparent bg-emerald-700 text-white hover:bg-emerald-800"><CheckCircle2 className="h-4 w-4" /></ActionButton> : null}
-                    {!submission.caseEntryId && submission.status !== "APPROVED" ? <ActionButton title="إلغاء النشاط" onClick={() => reviewSubmission(submission.id, "CANCEL")} className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"><Trash2 className="h-4 w-4" /></ActionButton> : null}
-                    {submission.caseEntryId ? <Link href={`/dashboard/cases/${submission.caseEntryId}`} aria-label="فتح الحالة" className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-700 text-white transition hover:bg-sky-800" title="فتح الحالة"><FileText className="h-4 w-4" /></Link> : null}
-                  </div>
+                   <ExpandableActionMenu
+                     menuId={`activity-submission:${submission.id}`}
+                     overlayStrip
+                     className="self-start"
+                     stripClassName="rounded-xl border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900/95"
+                   >
+                     {hasSubmission ? <ActionButton title="عرض النشاط" onClick={() => openModal(submission, "view")}><Eye className="h-4 w-4" /></ActionButton> : null}
+                     {canEdit && hasSubmission ? <ActionButton title="تعديل النشاط" onClick={() => openModal(submission, "edit")}><PencilLine className="h-4 w-4" /></ActionButton> : null}
+                     {canEdit ? <ActionButton title="إرجاع للمعلم" onClick={() => openModal(submission, "return")} className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></ActionButton> : null}
+                     {canReview ? <ActionButton title="اعتماد النشاط" onClick={() => reviewSubmission(submission.id, "APPROVE")} className="border-transparent bg-emerald-700 text-white hover:bg-emerald-800"><CheckCircle2 className="h-4 w-4" /></ActionButton> : null}
+                     {!submission.caseEntryId && submission.status !== "APPROVED" ? <ActionButton title="إلغاء النشاط" onClick={() => reviewSubmission(submission.id, "CANCEL")} className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"><Trash2 className="h-4 w-4" /></ActionButton> : null}
+                     {submission.caseEntryId ? <Link href={`/dashboard/cases/${submission.caseEntryId}`} aria-label="فتح الحالة" className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-700 text-white transition hover:bg-sky-800" title="فتح الحالة"><FileText className="h-4 w-4" /></Link> : null}
+                   </ExpandableActionMenu>
                 </div>
               </article>;
             })}

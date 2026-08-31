@@ -268,11 +268,11 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-4 dark:from-sky-950/40 dark:via-slate-900 dark:to-emerald-950/30 md:p-5">
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات الطلاب</h1>
-            <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
+            <h1 className="mt-1 text-xl font-black md:text-2xl">مركز استيراد بيانات الطلاب</h1>
+            <p className="mt-1 max-w-4xl text-xs font-bold leading-6 text-slate-600 dark:text-slate-400">
               أنشئ جلسة استيراد لكل سنة وفصل دراسي، ثم راجع الطلاب والتحديثات قبل اعتمادها في سجل مدرسة {schoolName}.
             </p>
           </div>

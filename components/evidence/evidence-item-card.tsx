@@ -56,7 +56,7 @@ export function EvidenceItemCard({
   return (
     <div
       className={[
-        "overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm",
+        "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
         isHidden ? "ring-1 ring-amber-100" : "",
       ].join(" ")}
     >
@@ -96,7 +96,7 @@ export function EvidenceItemCard({
       <div className={compact ? "p-3" : "p-4"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-slate-900">{item.fileName}</p>
+            <p className="truncate text-sm font-black text-slate-900 dark:text-white">{item.fileName}</p>
 
             {caption ? (
               <p className="mt-1 line-clamp-2 text-xs font-bold leading-5 text-slate-500">
@@ -121,7 +121,7 @@ export function EvidenceItemCard({
             href={item.fileUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-700 hover:bg-slate-50"
+            className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             معاينة
           </a>

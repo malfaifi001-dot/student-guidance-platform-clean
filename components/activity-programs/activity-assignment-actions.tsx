@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Copy, ExternalLink, MessageCircle, Trash2 } from "lucide-react";
 
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 export type ActivityAssignmentActionItem = {
@@ -19,6 +21,8 @@ type Props = {
   showShareActions?: boolean;
   onDeleted?: (assignmentId: string) => void;
   onFeedback?: (message: string) => void;
+  compactMenu?: boolean;
+  extraActions?: ReactNode;
 };
 
 const iconButtonClass =
@@ -30,11 +34,16 @@ export function ActivityAssignmentActions({
   showShareActions = true,
   onDeleted,
   onFeedback,
+  compactMenu = false,
+  extraActions,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const canDelete = !assignment.caseEntryId && assignment.status !== "APPROVED";
+  const actionControlClass = compactMenu
+    ? "inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition focus-visible:outline-none focus-visible:ring-4"
+    : iconButtonClass;
 
   async function copyLink() {
     try {
@@ -72,63 +81,83 @@ export function ActivityAssignmentActions({
     }
   }
 
-  return (
+  const actions = (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {showOpenLink ? (
+      {extraActions}
+
+      {showOpenLink ? (
+        <a
+          href={assignment.publicUrl}
+          target="_blank"
+          rel="noreferrer"
+          title="فتح الرابط"
+          aria-label="فتح الرابط"
+          className={`${actionControlClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800`}
+        >
+          <ExternalLink className="h-4 w-4" />
+          {compactMenu ? <span>فتح الرابط</span> : null}
+        </a>
+      ) : null}
+
+      {showShareActions ? (
+        <>
           <a
-            href={assignment.publicUrl}
+            href={assignment.whatsappUrl}
             target="_blank"
             rel="noreferrer"
-            title="فتح الرابط"
-            aria-label="فتح الرابط"
-            className={`${iconButtonClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-sky-100`}
+            title="إرسال عبر واتساب"
+            aria-label="إرسال عبر واتساب"
+            className={`${actionControlClass} bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-100`}
           >
-            <ExternalLink className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4" />
+            {compactMenu ? <span>واتساب</span> : null}
           </a>
-        ) : null}
 
-        {showShareActions ? (
-          <>
-            <a
-              href={assignment.whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              title="إرسال عبر واتساب"
-              aria-label="إرسال عبر واتساب"
-              className={`${iconButtonClass} bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-100`}
-            >
-              <MessageCircle className="h-4 w-4" />
-            </a>
+          <button
+            type="button"
+            onClick={() => void copyLink()}
+            title={copied ? "تم نسخ الرابط" : "نسخ الرابط"}
+            aria-label={copied ? "تم نسخ الرابط" : "نسخ الرابط"}
+            className={`${actionControlClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800`}
+          >
+            <Copy className="h-4 w-4" />
+            {compactMenu ? <span>{copied ? "تم النسخ" : "نسخ الرابط"}</span> : null}
+          </button>
+        </>
+      ) : null}
 
-            <button
-              type="button"
-              onClick={() => void copyLink()}
-              title={copied ? "تم نسخ الرابط" : "نسخ الرابط"}
-              aria-label={copied ? "تم نسخ الرابط" : "نسخ الرابط"}
-              className={`${iconButtonClass} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-sky-100`}
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </>
-        ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          if (canDelete) {
+            setConfirmDelete(true);
+          } else {
+            onFeedback?.("لا يمكن حذف تكليف تم اعتماده وربطه بحالة رسمية.");
+          }
+        }}
+        title="حذف التكليف"
+        aria-label="حذف التكليف"
+        className={`${actionControlClass} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-100 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50`}
+      >
+        <Trash2 className="h-4 w-4" />
+        {compactMenu ? <span>حذف</span> : null}
+      </button>
+    </>
+  );
 
-        <button
-          type="button"
-          onClick={() => {
-            if (canDelete) {
-              setConfirmDelete(true);
-            } else {
-              onFeedback?.("لا يمكن حذف تكليف تم اعتماده وربطه بحالة رسمية.");
-            }
-          }}
-          title="حذف التكليف"
-          aria-label="حذف التكليف"
-          className={`${iconButtonClass} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-100`}
+  return (
+    <>
+      {compactMenu ? (
+        <ExpandableActionMenu
+          menuId={`activity-assignment-${assignment.id}`}
+          className="justify-end"
+          stripClassName="flex flex-wrap justify-end rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
         >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+          {actions}
+        </ExpandableActionMenu>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      )}
 
       <SmartActionModal
         open={confirmDelete}

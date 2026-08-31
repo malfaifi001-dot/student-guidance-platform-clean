@@ -338,10 +338,10 @@ export function SurveyCenterShell({
 
   return (
     <div className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-l from-sky-800 to-cyan-700 p-4 text-white shadow-sm">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
-            <h1 className="text-4xl font-black">
+            <h1 className="text-2xl font-black">
               الاستبيانات
             </h1>
           </div>
@@ -350,14 +350,14 @@ export function SurveyCenterShell({
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-4 py-2 text-xs font-black text-sky-800 transition hover:bg-sky-50"
             >
               + استبيان جديد
             </button>
 
             <a
               href={`${boardPath}/templates`}
-              className="inline-flex items-center justify-center rounded-2xl border border-white/25 bg-white/15 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-4 py-2 text-xs font-black text-white transition hover:bg-white/20"
             >
               فتح القوالب
             </a>
@@ -365,7 +365,7 @@ export function SurveyCenterShell({
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="flex flex-wrap gap-2">
         <Metric label="الاستبيانات" value={stats.total} />
         <Metric label="منشورة" value={stats.published} />
         <Metric label="مسودات" value={stats.drafts} />
@@ -384,7 +384,7 @@ export function SurveyCenterShell({
         </div>
       ) : null}
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black text-sky-700">السجلات</p>
@@ -396,20 +396,20 @@ export function SurveyCenterShell({
           <button
             type="button"
             onClick={openCreateModal}
-            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            className="hidden rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
           >
             + استبيان جديد
           </button>
         </div>
 
         {isLoading ? (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-black text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm font-black text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400">
             جاري تحميل الاستبيانات...
           </div>
         ) : null}
 
         {!isLoading && surveys.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-black text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm font-black text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400">
             لا توجد استبيانات بعد.
           </div>
         ) : null}
@@ -418,14 +418,14 @@ export function SurveyCenterShell({
           {surveys.map((survey) => (
             <article
               key={survey.id}
-              className="relative rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm"
+              className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-800/60"
             >
               <div className="absolute left-5 top-5 z-20 flex items-center gap-1.5">
                 {survey.status === "DRAFT" ? (
                   <button
                     type="button"
                     onClick={() => void updateSurveyStatus(survey.id, "publish")}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                    className="hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
                     title="نشر"
                     aria-label="نشر"
                   >
@@ -435,7 +435,7 @@ export function SurveyCenterShell({
 
                 <a
                   href={`${boardPath}/${survey.id}/analysis`}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-sky-700 transition hover:border-sky-200 hover:bg-sky-50 focus-visible:border-sky-300 focus-visible:bg-sky-50 focus-visible:outline-none"
+                  className="hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-sky-700 transition hover:border-sky-200 hover:bg-sky-50 focus-visible:border-sky-300 focus-visible:bg-sky-50 focus-visible:outline-none"
                   title="تحليل"
                   aria-label="تحليل"
                 >
@@ -444,7 +444,7 @@ export function SurveyCenterShell({
 
                 <a
                   href={`${boardPath}/${survey.id}/share`}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                  className="hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
                   title="مشاركة"
                   aria-label="مشاركة"
                 >
@@ -461,7 +461,31 @@ export function SurveyCenterShell({
                     <MoreVertical className="h-5 w-5" />
                   </button>
 
-                  <div className="pointer-events-none invisible absolute left-0 top-12 z-30 w-44 translate-y-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-right opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                  <div className="pointer-events-none invisible absolute left-0 top-12 z-30 w-44 translate-y-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-right opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900">
+                    {survey.status === "DRAFT" ? (
+                      <button
+                        type="button"
+                        onClick={() => void updateSurveyStatus(survey.id, "publish")}
+                        className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-emerald-700 transition hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                      >
+                        نشر
+                      </button>
+                    ) : null}
+
+                    <a
+                      href={`${boardPath}/${survey.id}/analysis`}
+                      className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      تحليل
+                    </a>
+
+                    <a
+                      href={`${boardPath}/${survey.id}/share`}
+                      className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      مشاركة
+                    </a>
+
                     <a
                       href={`${boardPath}/${survey.id}/responses`}
                       className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
@@ -543,7 +567,7 @@ export function SurveyCenterShell({
                     ) : null}
                   </div>
 
-                  <h3 className="mt-4 text-xl font-black leading-8 text-slate-950">
+              <h3 className="mt-3 text-lg font-black leading-7 text-slate-950 dark:text-white">
                     {survey.title}
                   </h3>
 
@@ -553,7 +577,7 @@ export function SurveyCenterShell({
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-2 rounded-2xl bg-white p-3 text-sm font-black text-slate-600 md:grid-cols-2">
+              <div className="mt-3 grid gap-2 rounded-xl bg-white p-3 text-sm font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300 md:grid-cols-2">
                 <span>{survey._count?.questions || 0} سؤال</span>
                 <span>{survey._count?.responses || 0} رد</span>
               </div>
@@ -569,7 +593,7 @@ export function SurveyCenterShell({
           onMouseDown={closeCreateModal}
         >
           <section
-            className="w-full max-w-4xl rounded-[2.25rem] bg-white p-6 shadow-2xl"
+            className="w-full max-w-4xl rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between gap-3">
@@ -588,7 +612,7 @@ export function SurveyCenterShell({
                   <input
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                     placeholder="مثال: قياس رضا أولياء الأمور"
                     autoFocus
                   />
@@ -599,7 +623,7 @@ export function SurveyCenterShell({
                   <select
                     value={audienceType}
                     onChange={(event) => setAudienceType(event.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                   >
                     {Object.entries(surveyAudienceLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -615,7 +639,7 @@ export function SurveyCenterShell({
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                  className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                   placeholder="وصف مختصر"
                 />
               </label>
@@ -627,7 +651,7 @@ export function SurveyCenterShell({
                     type="datetime-local"
                     value={opensAt}
                     onChange={(event) => setOpensAt(event.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                   />
                 </label>
 
@@ -637,7 +661,7 @@ export function SurveyCenterShell({
                     type="datetime-local"
                     value={endsAt}
                     onChange={(event) => setEndsAt(event.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-400 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                   />
                 </label>
               </div>
@@ -684,9 +708,8 @@ function Metric({
   value: number;
 }) {
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-black text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+    <article className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-black text-slate-500 dark:text-slate-400">{label}: <strong className="text-lg text-slate-950 dark:text-white">{value}</strong></p>
     </article>
   );
 }

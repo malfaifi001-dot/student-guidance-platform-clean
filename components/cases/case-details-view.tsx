@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
@@ -1019,7 +1020,7 @@ export function CaseDetailsView({
     return (
       <div className="space-y-5" dir="rtl">
         <GuidanceScope context="case-details" capabilities={["case-edit", "case-report"]} />
-        <section data-guidance="case-summary" className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <section data-guidance="case-summary" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1048,14 +1049,11 @@ export function CaseDetailsView({
                   <ArrowRight className="h-4 w-4" />
                 </Link>
 
-                <h1 className="min-w-0 break-words text-3xl font-black leading-10 text-slate-950">
+                <h1 className="min-w-0 break-words text-2xl font-black leading-8 text-slate-950 dark:text-white">
                   {displayTitle || "محضر لجنة/اجتماع"}
                 </h1>
               </div>
 
-              <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-                هذه خلاصة المحضر. راجع الجدول، ثم أصدر التقارير عند الاكتمال.
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-2 xl:justify-end">
@@ -1278,7 +1276,7 @@ export function CaseDetailsView({
   return (
     <div className="space-y-5" dir="rtl">
       <GuidanceScope context="case-details" capabilities={["case-edit", "case-report"]} />
-      <section data-guidance="case-summary" className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <section data-guidance="case-summary" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -1307,29 +1305,31 @@ export function CaseDetailsView({
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
-              <h1 className="min-w-0 break-words text-3xl font-black leading-10 text-slate-950">
+              <h1 className="min-w-0 break-words text-2xl font-black leading-8 text-slate-950 dark:text-white">
                 {displayTitle}
               </h1>
             </div>
 
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-              راجع الحالة، ثم استكملها أو أصدر التقارير.
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2 xl:justify-end">
-            {reportDeleteAction}
-
-            <Link
-              href={`/dashboard/cases/${caseEntry.id}/edit`}
-              data-guidance="case-edit"
-              aria-label="تعديل الحالة"
-              title="تعديل الحالة"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+            <ExpandableActionMenu
+              menuId={`case-actions-${caseEntry.id}`}
+              stripClassName="flex flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
             >
-              <PencilLine className="h-4 w-4" />
-              تعديل الحالة
-            </Link>
+              {reportDeleteAction}
+
+              <Link
+                href={`/dashboard/cases/${caseEntry.id}/edit`}
+                data-guidance="case-edit"
+                aria-label="تعديل الحالة"
+                title="تعديل الحالة"
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <PencilLine className="h-4 w-4" />
+                تعديل الحالة
+              </Link>
+            </ExpandableActionMenu>
 
             <Link
               href={primaryReportHref}
@@ -1374,7 +1374,7 @@ export function CaseDetailsView({
         </section>
       ) : null}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="flex flex-wrap gap-2">
         <SummaryCard
           icon={<ClipboardList className="h-5 w-5" />}
           label="الخدمة"
@@ -1413,7 +1413,7 @@ export function CaseDetailsView({
         ) : null}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div>
           <p className="text-xs font-black text-sky-600">البيانات</p>
           <h2 className="mt-1 text-xl font-black text-slate-950">
@@ -1421,7 +1421,7 @@ export function CaseDetailsView({
           </h2>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
           {displayValues.map((value: WorkflowValueLike, index: number) => {
             const key = value.field?.key || value.fieldKey || "";
             const label = getWorkflowFieldLabel(value, index);
@@ -1440,7 +1440,7 @@ export function CaseDetailsView({
           })}
 
           {displayValues.length === 0 ? (
-            <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-400 md:col-span-2">
+            <div className="rounded-xl bg-slate-50 p-5 text-center text-slate-400 dark:bg-slate-800 md:col-span-2">
               لا توجد بيانات محفوظة.
             </div>
           ) : null}
@@ -1529,15 +1529,15 @@ function SummaryCard({
   helper?: string | null;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex min-w-[10rem] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-sky-700">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-sky-700 dark:bg-slate-800">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <p className="text-xs font-black text-slate-400">{label}</p>
-          <p className="mt-1 text-sm font-black leading-6 text-slate-950">
+          <p className="text-[11px] font-black text-slate-400">{label}</p>
+          <p className="mt-0.5 text-xs font-black leading-5 text-slate-950 dark:text-white">
             {value || "غير محدد"}
           </p>
           {helper ? (

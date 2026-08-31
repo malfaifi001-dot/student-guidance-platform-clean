@@ -23,7 +23,7 @@ export function EvidencePreviewGrid({
 }: EvidencePreviewGridProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-bold text-slate-400">
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm font-bold text-slate-400 dark:border-slate-700 dark:bg-slate-800">
         لا توجد شواهد مضافة حاليًا.
       </div>
     );

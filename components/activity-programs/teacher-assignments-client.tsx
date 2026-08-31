@@ -372,34 +372,31 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
   }, []);
 
   return (
-    <main className="space-y-6" dir="rtl">
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <main className="space-y-4" dir="rtl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+            <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-900/60">
               ريادة النشاط
             </span>
 
-            <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+            <h1 className="mt-2 text-xl font-black leading-7 text-slate-950 dark:text-white">
               متابعة أنشطة المعلمين
             </h1>
 
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-              كل نشاط يرسله المعلم يظهر هنا للمراجعة. لا يتحول إلى حالة في مركز الأنشطة إلا بعد الاعتماد.
-            </p>
           </div>
 
           <button
             type="button"
             onClick={refresh}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             <RefreshCw className={["h-4 w-4", loading ? "animate-spin" : ""].join(" ")} />
             تحديث
           </button>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-4">
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           <StatCard label="كل التكليفات" value={stats.total} />
           <StatCard label="بانتظار المعلم" value={stats.waitingTeacher} />
           <StatCard label="بانتظار الاعتماد" value={stats.waitingApproval} />
@@ -466,10 +463,6 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                     اسم المعلم: {assignment.teacherName}
                   </p>
 
-                  <p className="mt-1 text-xs font-bold text-slate-500" dir="ltr">
-                    {assignment.teacherPhone}
-                  </p>
-
                   <p className="mt-2 text-xs font-bold text-slate-500">
                     آخر تحديث: {formatDate(assignment.updatedAt)}
                   </p>
@@ -486,7 +479,7 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="hidden">
                   {hasSubmission ? (
                     <button
                       type="button"
@@ -546,16 +539,85 @@ export function TeacherAssignmentsClient({ initialAssignments }: Props) {
                     </Link>
                   ) : null}
 
+                  </div>
+
                   <ActivityAssignmentActions
                     assignment={assignment}
                     showOpenLink={!hasSubmission}
                     showShareActions={!assignment.caseEntryId && assignment.status !== "SUBMITTED"}
+                    compactMenu
+                    extraActions={
+                      <>
+                        {hasSubmission ? (
+                          <button
+                            type="button"
+                            onClick={() => openModal(assignment, "view")}
+                            title={"\u0639\u0631\u0636 \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            aria-label={"\u0639\u0631\u0636 \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                          >
+                            <Eye className="h-4 w-4" />
+                            {"\u0639\u0631\u0636"}
+                          </button>
+                        ) : null}
+
+                        {canReview ? (
+                          <button
+                            type="button"
+                            onClick={() => openModal(assignment, "return")}
+                            title={"\u0625\u0631\u062c\u0627\u0639 \u0644\u0644\u0645\u0639\u0644\u0645"}
+                            aria-label={"\u0625\u0631\u062c\u0627\u0639 \u0644\u0644\u0645\u0639\u0644\u0645"}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            {"\u0625\u0631\u062c\u0627\u0639"}
+                          </button>
+                        ) : null}
+
+                        {canEdit && hasSubmission ? (
+                          <button
+                            type="button"
+                            onClick={() => openModal(assignment, "edit")}
+                            title={"\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            aria-label={"\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                          >
+                            <PencilLine className="h-4 w-4" />
+                            {"\u062a\u0639\u062f\u064a\u0644"}
+                          </button>
+                        ) : null}
+
+                        {canReview ? (
+                          <button
+                            type="button"
+                            onClick={() => reviewAssignment(assignment.id, "APPROVE")}
+                            title={"\u0627\u0639\u062a\u0645\u0627\u062f \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            aria-label={"\u0627\u0639\u062a\u0645\u0627\u062f \u0627\u0644\u0646\u0634\u0627\u0637"}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            {"\u0627\u0639\u062a\u0645\u0627\u062f"}
+                          </button>
+                        ) : null}
+
+                        {assignment.caseEntryId ? (
+                          <Link
+                            href={`/dashboard/cases/${assignment.caseEntryId}`}
+                            title={"\u0641\u062a\u062d \u0627\u0644\u062d\u0627\u0644\u0629"}
+                            aria-label={"\u0641\u062a\u062d \u0627\u0644\u062d\u0627\u0644\u0629"}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-700 px-3 py-2 text-xs font-black text-white"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {"\u0627\u0644\u062d\u0627\u0644\u0629"}
+                          </Link>
+                        ) : null}
+                      </>
+                    }
                     onDeleted={(assignmentId) =>
                       setAssignments((current) => current.filter((item) => item.id !== assignmentId))
                     }
                     onFeedback={setFeedback}
                   />
-                  </div>
                 </div>
               </div>
             </article>
@@ -897,12 +959,11 @@ function FieldLabel({ field }: { field: RuntimeField }) {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
-      <p className="text-xs font-black text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-black text-slate-950">
+    <span className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+      {label}: <strong className="text-slate-950 dark:text-white">
         {new Intl.NumberFormat("ar-SA").format(value)}
-      </p>
-    </div>
+      </strong>
+    </span>
   );
 }
 

@@ -120,10 +120,10 @@ export function SurveyNewShell({ ownerRole, boardPath }: Props) {
 
   return (
     <div className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-l from-sky-800 to-cyan-700 p-4 text-white shadow-sm">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
-            <h1 className="text-4xl font-black">
+            <h1 className="text-2xl font-black">
               استبيان جديد
             </h1>
           </div>
@@ -145,7 +145,7 @@ export function SurveyNewShell({ ownerRole, boardPath }: Props) {
 
       <form
         onSubmit={handleCreateSurvey}
-        className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="space-y-2 text-sm font-black text-slate-700">

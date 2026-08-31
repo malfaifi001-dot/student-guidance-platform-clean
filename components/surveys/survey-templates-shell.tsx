@@ -81,16 +81,16 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-4 text-slate-950 dark:text-slate-100" dir="rtl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <Link href={boardPath} className="text-sm font-bold text-sky-700">
           العودة إلى مركز الاستبيانات
         </Link>
 
         <div className="mt-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-950">قوالب الاستبيانات الجاهزة</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+            <h1 className="text-xl font-bold text-slate-950 dark:text-white">قوالب الاستبيانات الجاهزة</h1>
+            <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-600 dark:text-slate-400">
               القالب لا يُنشر مباشرة. اختر تعديل لإنشاء نسخة مسودة وفتحها للتعديل، أو إنشاء مسودة لإضافتها إلى مركز الاستبيانات.
             </p>
           </div>
@@ -114,7 +114,7 @@ export function SurveyTemplatesShell({ ownerRole, boardPath }: SurveyTemplatesSh
         {surveyTemplates.map((template) => (
           <article
             key={template.key}
-            className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
           >
             <div>
               <div className="flex flex-wrap gap-2">

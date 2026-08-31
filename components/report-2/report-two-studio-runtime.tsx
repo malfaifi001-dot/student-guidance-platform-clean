@@ -75,12 +75,12 @@ function ReportTwoCollapsibleCard({
     <section
       data-report-two-panel-id={id}
       data-guidance={guidanceTarget}
-      className="rounded-[2rem] border border-emerald-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"
+    className="rounded-xl border border-emerald-100 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"
     >
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center justify-between gap-3 rounded-[1.4rem] bg-slate-50 px-4 py-3 text-right transition hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+        className="flex w-full items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-right transition hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-slate-800"
       >
         <span className="text-sm font-black text-slate-950 dark:text-white">
           {title}
@@ -99,7 +99,7 @@ function ReportTwoCollapsibleCard({
       </button>
 
       {open ? (
-        <div className="mt-3 rounded-[1.5rem] bg-white p-2 dark:bg-slate-950">
+        <div className="mt-2 rounded-lg bg-white p-1 dark:bg-slate-950">
           {children}
         </div>
       ) : null}
@@ -2791,9 +2791,6 @@ export function ReportTwoStudioRuntime({
   const [activeSavedRuntimeTemplateId, setActiveSavedRuntimeTemplateId] =
     useState("");
 
-  const [selectedQuickSavedTemplateId, setSelectedQuickSavedTemplateId] =
-    useState("");
-
   const [template, setTemplate] = useState<StudioTemplate>(() =>
     normalizeReportTwoLogicalTemplate(
       applyReportTwoPreparedExecutionSummary(
@@ -2868,8 +2865,8 @@ export function ReportTwoStudioRuntime({
   const [designTransitionTargetId, setDesignTransitionTargetId] =
     useState<ReportDesignId | null>(null);
   const reportTwoPdfExporting = printExportStatus === "loading";
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
-  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(true);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(true);
 
   const runtimeContext = useMemo(() => getRuntimeContext(preparedPayload), [preparedPayload]);
   const [headerValues, setHeaderValues] =
@@ -4020,7 +4017,6 @@ export function ReportTwoStudioRuntime({
     setHeaderAlignments(saved.headerAlignments || null);
     setLogoSettings(saved.logoSettings || null);
     setActiveSavedRuntimeTemplateId(saved.id);
-    setSelectedQuickSavedTemplateId(saved.id);
     setRuntimeTemplateName(saved.name);
 
     setActivePageId(
@@ -4043,7 +4039,6 @@ export function ReportTwoStudioRuntime({
 
         if (activeSavedRuntimeTemplateId === templateId) {
           setActiveSavedRuntimeTemplateId("");
-          setSelectedQuickSavedTemplateId("");
           setRuntimeTemplateName("");
         }
       },
@@ -4057,7 +4052,6 @@ export function ReportTwoStudioRuntime({
 
     setSelectedTemplateOptionId(nextTemplateOption?.id || "");
     setActiveSavedRuntimeTemplateId("");
-    setSelectedQuickSavedTemplateId("");
     setRuntimeTemplateName("");
     setTemplate(
       normalizeReportTwoLogicalTemplate(
@@ -4685,10 +4679,10 @@ export function ReportTwoStudioRuntime({
   }
 
   return (
-    <main className="min-h-screen min-w-0 bg-slate-50 px-2 py-3 transition-colors sm:px-3 sm:py-4 md:px-4 lg:px-5 lg:py-5 dark:bg-slate-950" dir="rtl">
+    <main className="min-h-screen min-w-0 bg-slate-50 px-2 py-2 transition-colors sm:px-3 sm:py-3 md:px-4 lg:px-5 dark:bg-slate-950" dir="rtl">
       <GuidanceScope context="report-studio" />
       {runtimeMode === "preview" ? (
-        <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-col items-stretch gap-3 rounded-[1.5rem] border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-4 dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+        <div className="report-two-sidebar-toolbar mx-auto mb-2 flex max-w-[1900px] flex-col items-stretch gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-4 dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
           <div className="flex min-w-0 w-full items-start gap-2 sm:flex-1">
             <button
               type="button"
@@ -4725,7 +4719,7 @@ export function ReportTwoStudioRuntime({
                   caseId,
                   serviceSlug: serviceSlugForSavedTemplates,
                 }}
-                className="rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
               >
                 {persistedReport.status === "APPROVED"
                   ? "حذف التقرير المعتمد"
@@ -4781,7 +4775,7 @@ export function ReportTwoStudioRuntime({
         </div>
       ) : null}
       {runtimeMode !== "preview" ? (
-      <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+        <div className="report-two-sidebar-toolbar mx-auto mb-2 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
           تحكم سريع بمساحة العمل
         </div>
@@ -5028,158 +5022,115 @@ export function ReportTwoStudioRuntime({
           ) : null}
 
           {runtimeMode !== "preview" ? (
-<section data-guidance="studio-autosave" className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-black text-slate-950 dark:text-white">
-                الحفظ التلقائي والتراجع
-              </h2>
-              <p className="mt-1 text-xs font-bold text-slate-500">
-                يتم حفظ تعديلاتك تلقائيًا حتى لا تضيع، ويمكنك الرجوع عن آخر تعديل.
-              </p>
-            </div>
+            <section data-guidance="studio-autosave" className="report-two-productivity-card mx-auto flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <div className="min-w-0">
+                <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                  إعداد التقرير
+                </h2>
+                <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
+                  {finalCheckConfirmedAt ? ` · جاهز منذ ${formatReportTwoSavedAt(finalCheckConfirmedAt)}` : ""}
+                </p>
+              </div>
 
-            <span className="rounded-full bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
-              آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
-            </span>
-          </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {!approvedSnapshot ? (
+                  <button
+                    type="button"
+                    disabled={reportTwoApprovalSubmitting}
+                    onClick={approveReportTwoSnapshot}
+                    data-guidance="teacher-report-finalize"
+                    className="min-h-10 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+                  </button>
+                ) : (
+                  <span className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    تم اعتماد التقرير
+                  </span>
+                )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={undoReportTwoLastChange}
-              className="rounded-2xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-slate-800"
-            >
-              رجوع عن آخر تعديل
-              {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void persistReportTwoDraft()}
-              data-guidance="studio-save-now"
-              disabled={reportTwoSaveSubmitting}
-              className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800"
-            >
-              {reportTwoSaveSubmitting ? "جاري الحفظ..." : "حفظ الآن"}
-            </button>
-
-            <button
-              type="button"
-              onClick={openReportTwoFinalWizard}
-              data-guidance="studio-finalize"
-              className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
-            >
-              فحص نهائي قبل الاعتماد
-            </button>
-            {!approvedSnapshot ? (
-              <button
-                type="button"
-                disabled={reportTwoApprovalSubmitting}
-                onClick={approveReportTwoSnapshot}
-                data-guidance="teacher-report-finalize"
-                className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
-              </button>
-            ) : (
-              <>
-                <a
-                  href={approvedSnapshot.previewUrl}
-                  className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
-                >
-                  معاينة التقرير
-                </a>
-
-                <button
-                  type="button"
-                  disabled={reportTwoPdfExporting}
-                  onClick={exportReportTwoPdf}
-                  className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
-                </button>
-              </>
-            )}
-
-            {approvedSnapshot ? (
-              <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
-                تم اعتماد التقرير
-              </span>
-            ) : null}
-
-            {persistedReport?.id ? (
-              <ReportDeleteAction
-                reportId={persistedReport.id}
-                reportTitle={getReportTwoSnapshotTitle()}
-                caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
-                reportStatus={persistedReport.status || "DRAFT"}
-                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
-                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
-                reportTwoDraftStorage={{
-                  caseId,
-                  serviceSlug: serviceSlugForSavedTemplates,
-                }}
-                className="rounded-2xl border border-rose-200 bg-white px-3 py-2 text-[11px] font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-              >
-                {persistedReport.status === "APPROVED"
-                  ? "حذف التقرير المعتمد"
-                  : "حذف مسودة التقرير"}
-              </ReportDeleteAction>
-            ) : null}
-
-            {finalCheckConfirmedAt ? (
-              <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
-                جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
-          <h2 className="text-sm font-black text-slate-950 dark:text-white">
-            تطبيق قالب محفوظ
-          </h2>
-
-          <p className="mt-1 text-xs font-bold text-slate-500">
-            اختر قالبًا محفوظًا لهذه الخدمة وطبقه مباشرة.
-          </p>
-
-          <div className="mt-3 flex gap-2">
-            <select
-              value={selectedQuickSavedTemplateId}
-              onChange={(event) =>
-                setSelectedQuickSavedTemplateId(event.target.value)
-              }
-              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
-            >
-              <option value="">
-                {!savedRuntimeTemplatesLoaded
-                  ? "جاري تحميل القوالب..."
-                  : savedRuntimeTemplates.length
-                    ? "اختر قالبًا محفوظًا"
-                    : "لا توجد قوالب محفوظة"}
-              </option>
-
-              {savedRuntimeTemplates.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              disabled={!selectedQuickSavedTemplateId}
-              onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
-              className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              تطبيق
-            </button>
-          </div>
-        </div>
-      </section>
+                <div ref={finalActionsRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setFinalActionsOpen((open) => !open)}
+                    aria-label="إجراءات التقرير الإضافية"
+                    aria-expanded={finalActionsOpen}
+                    aria-haspopup="menu"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <MoreVertical className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  {finalActionsOpen ? (
+                    <div role="menu" className="absolute left-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 text-right shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-950">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setFinalActionsOpen(false); undoReportTwoLastChange(); }}
+                        className="block w-full rounded-lg px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        disabled={!undoSnapshots.length}
+                      >
+                        رجوع عن آخر تعديل{undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setFinalActionsOpen(false); void persistReportTwoDraft(); }}
+                        data-guidance="studio-save-now"
+                        disabled={reportTwoSaveSubmitting}
+                        className="block w-full rounded-lg px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        {reportTwoSaveSubmitting ? "جاري الحفظ..." : "حفظ الآن"}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setFinalActionsOpen(false); openReportTwoFinalWizard(); }}
+                        data-guidance="studio-finalize"
+                        className="block w-full rounded-lg px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        فحص نهائي قبل الاعتماد
+                      </button>
+                      {approvedSnapshot ? (
+                        <>
+                          <a
+                            href={approvedSnapshot.previewUrl}
+                            role="menuitem"
+                            onClick={() => setFinalActionsOpen(false)}
+                            className="block w-full rounded-lg px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                          >
+                            معاينة التقرير
+                          </a>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            disabled={reportTwoPdfExporting}
+                            onClick={() => { setFinalActionsOpen(false); exportReportTwoPdf(); }}
+                            className="block w-full rounded-lg px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          >
+                            {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+                          </button>
+                        </>
+                      ) : null}
+                      {persistedReport?.id ? (
+                        <ReportDeleteAction
+                          reportId={persistedReport.id}
+                          reportTitle={getReportTwoSnapshotTitle()}
+                          caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
+                          reportStatus={persistedReport.status || "DRAFT"}
+                          deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
+                          redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
+                          reportTwoDraftStorage={{ caseId, serviceSlug: serviceSlugForSavedTemplates }}
+                          className="block w-full rounded-lg px-3 py-2.5 text-right text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 dark:hover:bg-rose-950/30"
+                        >
+                          {persistedReport.status === "APPROVED" ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+                        </ReportDeleteAction>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
           ) : null}
 <section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-approved={Boolean(approvedSnapshot)} data-report-id={approvedSnapshot?.id || persistedReport?.id || ""} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle

@@ -1,4 +1,5 @@
 import { WorkspaceHome } from "@/components/workspace/workspace-home";
+import { DashboardContextCard } from "@/components/dashboard/dashboard-context-card";
 import type { WorkspaceModule } from "@/lib/workspace/workspace-modules";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 
@@ -92,6 +93,19 @@ export function PrincipalDashboard({
       schoolIdentityComplete={schoolIdentityComplete}
       welcomeText={isFemale ? "أهلًا بكِ" : "أهلًا بك"}
       modules={principalModules}
+      compactDashboard
+      contextSlot={
+        <DashboardContextCard
+          title="ملخص المدرسة"
+          items={[
+            { label: "المدرسة", value: schoolName || "غير محددة" },
+            {
+              label: "هوية المدرسة",
+              value: schoolIdentityComplete ? "مكتملة" : "تحتاج استكمالًا",
+            },
+          ]}
+        />
+      }
     />
   );
 }

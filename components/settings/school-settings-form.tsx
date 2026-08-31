@@ -597,7 +597,7 @@ ${signatureUrl}`;
   }
   if (loading) {
     return (
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
         جاري تحميل إعدادات المدرسة...
       </div>
     );
@@ -605,7 +605,7 @@ ${signatureUrl}`;
 
   return (
     <div
-      className="space-y-6"
+      className="space-y-4 text-slate-950 dark:text-slate-100"
       data-guidance="teacher-school-settings"
       data-principal-signature-ready={Boolean(form.principalSignatureUrl)}
       data-school-identity-ready={readiness.readyForOfficialReports}
@@ -718,7 +718,7 @@ ${signatureUrl}`;
           onSave={saveCurrentUserSignature}
         />
       ) : null}
-<section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+<section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-blue-700">هوية الحساب</p>
@@ -756,7 +756,7 @@ ${signatureUrl}`;
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div>
           <p className="text-sm font-black text-blue-700">هوية المدرسة</p>
           <h2 className="mt-2 text-2xl font-black text-slate-950">
@@ -767,7 +767,7 @@ ${signatureUrl}`;
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
           <Input
             label="اسم المدرسة"
             value={form.schoolName}
@@ -843,7 +843,7 @@ ${signatureUrl}`;
         </div>
       </section>
 
-      <div className="sticky bottom-4 z-20 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
+      <div className="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-black text-slate-950">
@@ -947,7 +947,7 @@ function SchoolSignaturesCard({
   );
 
   return (
-    <section data-guidance="teacher-principal-signature" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <section data-guidance="teacher-principal-signature" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-black text-blue-700">تواقيع المدرسة</p>
@@ -1550,7 +1550,7 @@ function SchoolLogoUploadCard({
   onClear: () => void;
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
           <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white">
@@ -1644,11 +1644,11 @@ function IdentityReadinessCard({
           : "الهوية غير مكتملة";
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
         <div
           className={[
-            "flex flex-col items-center justify-center p-7 text-center",
+            "flex flex-col items-center justify-center p-4 text-center",
             tone === "emerald"
               ? "bg-emerald-50"
               : tone === "blue"
@@ -1660,7 +1660,7 @@ function IdentityReadinessCard({
         >
           <div
             className={[
-              "flex h-32 w-32 items-center justify-center rounded-full border-[10px] bg-white text-3xl font-black",
+              "flex h-20 w-20 items-center justify-center rounded-full border-[7px] bg-white text-xl font-black dark:bg-slate-900",
               tone === "emerald"
                 ? "border-emerald-200 text-emerald-700"
                 : tone === "blue"
@@ -1673,20 +1673,20 @@ function IdentityReadinessCard({
             {readiness.score}%
           </div>
 
-          <p className="mt-4 text-sm font-black text-slate-950">
+          <p className="mt-3 text-sm font-black text-slate-950 dark:text-white">
             جاهزية الهوية الرسمية
           </p>
 
-          <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
+          <p className="mt-1 text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">
             {readiness.readyForOfficialReports
               ? "جاهزة لاستخدام التقارير الرسمية."
               : "أكمل الحقول الأساسية قبل إصدار التقارير الرسمية."}
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-4">
           <p className="text-sm font-black text-blue-700">فحص ذكي</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">{title}</h2>
+          <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{title}</h2>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <ReadinessList
@@ -1704,7 +1704,7 @@ function IdentityReadinessCard({
             />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-600">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             كلما اكتملت الهوية، ظهرت التقارير الرسمية بشكل أقرب للوثائق المدرسية الجاهزة للطباعة والاعتماد.
           </div>
         </div>
@@ -1777,14 +1777,14 @@ function ReportIdentityPreviewCard({
         </div>
 </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
         <div className="grid gap-3 text-center text-sm font-black text-slate-800 md:grid-cols-3">
           <p>وزارة التعليم</p>
           <p>{form.educationDepartment || "إدارة التعليم"}</p>
 </div>
 
-        <div className="mt-5 rounded-2xl bg-white p-5 text-center">
-          <p className="text-2xl font-black text-slate-950">
+        <div className="mt-4 rounded-xl bg-white p-4 text-center dark:bg-slate-900">
+          <p className="text-xl font-black text-slate-950 dark:text-white">
             {form.schoolName || "اسم المدرسة"}
           </p>
 
@@ -1803,9 +1803,9 @@ function ReportIdentityPreviewCard({
 
 function PreviewLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
       <p className="text-xs font-bold text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-800">{value}</p>
+      <p className="mt-1 text-sm font-black text-slate-800 dark:text-slate-200">{value}</p>
     </div>
   );
 }
@@ -1854,7 +1854,7 @@ function Input({
         onChange={(event) => onChange(event.target.value)}
         inputMode={inputMode}
         maxLength={maxLength}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       />
     </label>
   );
@@ -1889,7 +1889,7 @@ function Select({
       <select
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       >
         <option value="">اختر {label}</option>
         {hasUnsupportedValue ? (

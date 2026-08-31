@@ -239,15 +239,15 @@ export function SurveyEditShell({ surveyId, boardPath }: SurveyEditShellProps) {
   const isEditable = survey.status === "DRAFT" || survey.status === "PUBLISHED";
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-4 text-slate-950 dark:text-slate-100" dir="rtl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <Link href={boardPath} className="text-sm font-bold text-sky-700">
           العودة إلى مركز الاستبيانات
         </Link>
 
-        <h1 className="mt-3 text-2xl font-bold text-slate-950">تعديل الاستبيان</h1>
+        <h1 className="mt-2 text-xl font-bold text-slate-950 dark:text-white">تعديل الاستبيان</h1>
 
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+        <p className="mt-1 max-w-3xl text-xs leading-6 text-slate-600 dark:text-slate-400">
           {survey.status === "PUBLISHED"
             ? "يمكن تعديل الأسئلة المنشورة مع الحفاظ على الردود السابقة وهويات الأسئلة."
             : "يمكن تعديل الاستبيان قبل إغلاقه، مع الحفاظ على هويات الأسئلة والردود السابقة."}

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import {
   CheckCircle2,
   Clock3,
@@ -309,10 +310,10 @@ export function CalendarCenterClient({
   const activeReminders = grouped[activeTab];
 
   return (
-    <div className="min-w-0 space-y-4 pb-2" dir="rtl">
+    <div className="min-w-0 space-y-4 pb-2 text-slate-950 dark:text-slate-100" dir="rtl">
       <GuidanceScope context="calendar" />
       <section className="grid min-w-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <aside data-guidance="calendar-create" className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <aside data-guidance="calendar-create" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
           <div className="space-y-3">
             <Field label="عنوان التنبيه">
               <input
@@ -329,7 +330,7 @@ export function CalendarCenterClient({
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                 />
               </Field>
 
@@ -338,7 +339,7 @@ export function CalendarCenterClient({
                   type="time"
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                 />
               </Field>
             </div>
@@ -349,7 +350,7 @@ export function CalendarCenterClient({
                 onChange={(event) =>
                   setPriority(event.target.value as ReminderPriority)
                 }
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               >
                 <option value="NORMAL">عادي</option>
                 <option value="IMPORTANT">مهم</option>
@@ -363,7 +364,7 @@ export function CalendarCenterClient({
                 onChange={(event) =>
                   setLinkType(event.target.value as ReminderLinkType)
                 }
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               >
                 <option value="GENERAL">تنبيه عام</option>
                 <option value="SERVICE">خدمة</option>
@@ -377,7 +378,7 @@ export function CalendarCenterClient({
                 <select
                   value={serviceId}
                   onChange={(event) => setServiceId(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                 >
                   <option value="">اختر خدمة...</option>
                   {services.map((service) => (
@@ -394,7 +395,7 @@ export function CalendarCenterClient({
                 <select
                   value={caseEntryId}
                   onChange={(event) => setCaseEntryId(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                 >
                   <option value="">اختر حالة...</option>
                   {cases.map((caseItem) => (
@@ -412,7 +413,7 @@ export function CalendarCenterClient({
                 <select
                   value={studentId}
                   onChange={(event) => setStudentId(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
                 >
                   <option value="">اختر طالب...</option>
                   {students.map((student) => (
@@ -443,7 +444,7 @@ export function CalendarCenterClient({
         </aside>
 
         <section className="min-w-0 space-y-4">
-          <div data-guidance="calendar-filters" className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+          <div data-guidance="calendar-filters" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="grid grid-cols-2 gap-2 pb-1 sm:flex sm:gap-2 sm:overflow-x-auto">
               {tabs.map((tab) => {
                 const active = activeTab === tab.id;
@@ -454,7 +455,7 @@ export function CalendarCenterClient({
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={[
-                      "min-w-0 rounded-2xl border px-3 py-3 text-right transition sm:min-w-[132px] sm:px-4",
+                      "min-w-0 rounded-xl border px-3 py-2 text-right transition sm:min-w-[132px] sm:px-3",
                       active
                         ? "border-sky-300 bg-sky-50"
                         : "border-slate-200 bg-slate-50 hover:bg-white",
@@ -464,13 +465,13 @@ export function CalendarCenterClient({
                       <strong
                         className={[
                           "text-sm font-black",
-                          active ? "text-sky-800" : "text-slate-800",
+                        active ? "text-sky-800 dark:text-sky-300" : "text-slate-800 dark:text-slate-200",
                         ].join(" ")}
                       >
                         {tab.label}
                       </strong>
 
-                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-slate-500">
+                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                         {statNumber(tab.count)}
                       </span>
                     </div>
@@ -487,7 +488,7 @@ export function CalendarCenterClient({
               return (
                 <article
                   key={reminder.id}
-                  className="min-w-0 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md"
+                  className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-800"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -523,7 +524,11 @@ export function CalendarCenterClient({
                       ) : null}
                     </div>
 
-                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
+                    <ExpandableActionMenu
+                      menuId={`calendar-reminder-${reminder.id}`}
+                      className="w-full justify-end sm:w-auto"
+                      stripClassName="flex w-full flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900 sm:w-auto"
+                    >
                       {href ? (
                         <a
                           href={href}
@@ -565,14 +570,14 @@ export function CalendarCenterClient({
                         <Trash2 className="h-4 w-4" />
                         حذف
                       </button>
-                    </div>
+                    </ExpandableActionMenu>
                   </div>
                 </article>
               );
             })}
 
             {activeReminders.length === 0 ? (
-              <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-center font-black text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center font-black text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
                 لا توجد تنبيهات
               </div>
             ) : null}

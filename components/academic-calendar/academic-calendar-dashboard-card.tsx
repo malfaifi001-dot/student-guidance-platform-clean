@@ -7,9 +7,30 @@ import {
   getCurrentAcademicCalendarStatus,
 } from "@/lib/academic-calendar/academic-calendar-service";
 
-export function AcademicCalendarDashboardCard() {
+export function AcademicCalendarDashboardCard({ compact = false }: { compact?: boolean }) {
   const status = getCurrentAcademicCalendarStatus();
   const event = status.event;
+
+  if (compact) {
+    return (
+      <section className="rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <div className="flex items-center gap-2 text-sky-800 dark:text-sky-200">
+            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="font-black">{SEMESTER_ONE_ACADEMIC_YEAR} · الفصل الدراسي الأول</span>
+          </div>
+          {status.currentWeek ? (
+            <span className="font-black text-slate-600 dark:text-slate-300">
+              {formatAcademicWeekLabel(status.currentWeek)}
+            </span>
+          ) : null}
+          <span className="min-w-0 font-bold text-slate-500 dark:text-slate-400">
+            {event ? `${event.title} · ${status.remainingLabel || formatGregorianCalendarRange(event)}` : status.timingLabel}
+          </span>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="min-w-0 overflow-hidden rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-5 text-white shadow-lg sm:p-6">

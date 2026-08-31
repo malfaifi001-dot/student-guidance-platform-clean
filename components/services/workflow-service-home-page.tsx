@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  CalendarDays,
   ClipboardList,
   FileText,
   ImageIcon,
@@ -14,6 +13,7 @@ import {
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 
 type WorkflowServiceHomePageProps = {
   serviceSlug: string;
@@ -144,7 +144,6 @@ function getNextActionText(caseItem: {
 export async function WorkflowServiceHomePage({
   serviceSlug,
   title,
-  description,
   newButtonLabel,
   caseSingularName,
   casePluralName,
@@ -273,35 +272,39 @@ export async function WorkflowServiceHomePage({
   const readyForReportCount = cases.filter(
     (item) => item.status === "SUBMITTED" && item._count.guidanceReports === 0,
   ).length;
+  const isActivityService = isActivityProgramServiceSlug(serviceSlug);
 
   return (
-    <main className="space-y-7" dir="rtl">
+    <main className="space-y-5 sm:space-y-6" dir="rtl">
       <GuidanceScope
         context="service-overview"
         capabilities={heroSecondaryAction ? ["send-to-teacher"] : []}
       />
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
-        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
-          <div>
-            <h1 className="text-4xl font-black">{title}</h1>
+      <section className={["relative overflow-hidden rounded-3xl p-5 text-white shadow-md sm:p-6", isActivityService ? "bg-gradient-to-l from-cyan-900 via-sky-800 to-sky-700" : "bg-gradient-to-l from-sky-900 via-sky-800 to-indigo-700"].join(" ")}>
+        <span className="pointer-events-none absolute inset-y-0 start-0 w-1 bg-white/35" aria-hidden="true" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 text-white ring-1 ring-white/20">
+                <ClipboardList className="h-4 w-4" />
+              </span>
+              <h1 className="text-2xl font-black leading-tight sm:text-3xl">{title}</h1>
+            </div>
 
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              {description}
-            </p>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
             <Link
               href={`${basePath}/new`}
               data-guidance="service-create"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-sky-900 transition hover:bg-sky-50"
             >
               <Plus className="h-4 w-4" />
               {newButtonLabel}
             </Link>
 
             {heroSecondaryAction ? (
-              <div data-guidance="service-secondary-action">
+              <div className="[&>button]:min-h-10 [&>button]:rounded-xl [&>button]:px-4 [&>button]:py-2.5" data-guidance="service-secondary-action">
                 {heroSecondaryAction}
               </div>
             ) : null}
@@ -309,46 +312,27 @@ export async function WorkflowServiceHomePage({
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SimpleMetricCard
-          icon={<ClipboardList className="h-5 w-5" />}
-          label={casePluralName}
-          value={formatCount(cases.length)}
-        />
-
-        <SimpleMetricCard
-          icon={<PencilLine className="h-5 w-5" />}
-          label="مسودات"
-          value={formatCount(draftsCount)}
-        />
-
-        <SimpleMetricCard
-          icon={<FileText className="h-5 w-5" />}
-          label="مرسلة"
-          value={formatCount(submittedCount)}
-        />
-
-        <SimpleMetricCard
-          icon={<CalendarDays className="h-5 w-5" />}
-          label="جاهزة للتقرير"
-          value={formatCount(readyForReportCount)}
-        />
+      <section className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <span>{casePluralName}: <b className="text-slate-950 dark:text-white">{formatCount(cases.length)}</b></span>
+        <span>{"مسودات"}: <b className="text-slate-950 dark:text-white">{formatCount(draftsCount)}</b></span>
+        <span>{"مرسلة"}: <b className="text-slate-950 dark:text-white">{formatCount(submittedCount)}</b></span>
+        <span>{"جاهزة للتقرير"}: <b className="text-slate-950 dark:text-white">{formatCount(readyForReportCount)}</b></span>
       </section>
 
       {!activeWorkflow ? (
-        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6">
-          <h2 className="text-xl font-black text-amber-950">
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <h2 className="text-lg font-black text-amber-950 dark:text-amber-100">
             لا يوجد نموذج منشور
           </h2>
 
-          <p className="mt-2 text-sm font-bold leading-7 text-amber-800">
+          <p className="mt-1 text-xs font-bold leading-6 text-amber-800 dark:text-amber-200">
             ارفع Workflow من لوحة الأدمن ثم انشره حتى تظهر نماذج الإنشاء.
           </p>
 
           {context.isAdmin ? (
             <Link
               href={`/dashboard/admin/workflows/${serviceSlug}`}
-              className="mt-5 inline-flex rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+              className="mt-3 inline-flex rounded-xl bg-amber-900 px-4 py-2.5 text-xs font-black text-white"
             >
               فتح رفع Workflow
             </Link>
@@ -356,31 +340,17 @@ export async function WorkflowServiceHomePage({
         </section>
       ) : null}
 
-      <section data-guidance="service-records" className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <section data-guidance="service-records" className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-sky-700">السجلات السابقة</p>
-
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
+            <h2 className="text-lg font-black text-slate-950 dark:text-white">
               آخر {casePluralName}
             </h2>
-
-            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              اختر السجل المطلوب. التفاصيل تظهر فقط عند الحاجة.
-            </p>
           </div>
-
-          <Link
-            href={`${basePath}/new`}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            {newButtonLabel}
-          </Link>
         </div>
 
         {cases.length ? (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="divide-y divide-slate-200 dark:divide-slate-800">
             {cases.map((caseItem) => {
               const latestReport = caseItem.guidanceReports[0] || null;
               const reportHref = latestReport
@@ -394,13 +364,13 @@ export async function WorkflowServiceHomePage({
               return (
                 <article
                   key={caseItem.id}
-                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                  className="flex flex-col gap-3 border-slate-200 py-3 first:pt-0 last:pb-0 transition hover:bg-slate-50/70 dark:border-slate-800 dark:hover:bg-slate-950/70 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={[
-                          "rounded-full px-3 py-1 text-xs font-black",
+                        <span
+                          className={[
+                          "rounded-full px-2.5 py-1 text-[11px] font-black",
                           getCaseStatusClass(caseItem.status),
                         ].join(" ")}
                       >
@@ -408,20 +378,20 @@ export async function WorkflowServiceHomePage({
                       </span>
 
                       {caseItem._count.evidences > 0 ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700 ring-1 ring-violet-100 dark:bg-violet-950/30 dark:text-violet-300 dark:ring-violet-900/50">
                           <ImageIcon className="h-3.5 w-3.5" />
                           {formatCount(caseItem._count.evidences)} شواهد
                         </span>
                       ) : null}
 
                       {caseItem._count.guidanceReports > 0 ? (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-900/50">
                           له تقرير
                         </span>
                       ) : null}
                     </div>
 
-                    <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                    <h3 className="mt-1 text-base font-black leading-6 text-slate-950 dark:text-white">
                       {getCaseTitle(caseItem, caseSingularName)}
                     </h3>
 
@@ -430,23 +400,16 @@ export async function WorkflowServiceHomePage({
                     </p>
                   </div>
 
-                  <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-slate-100">
-                    الإجراء التالي: {getNextActionText(caseItem)}
+                  <div className="text-xs font-black text-slate-500 dark:text-slate-400 sm:min-w-[190px]">
+                    الإجراء التالي: <span className="text-slate-700 dark:text-slate-200">{getNextActionText(caseItem)}</span>
                   </div>
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                    <Link
-                      href={`/dashboard/cases/${caseItem.id}`}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      عرض
-                    </Link>
-
-                    <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 items-center gap-2 sm:justify-end">
+                    <div className="flex flex-wrap gap-1.5">
                       {caseItem.status === "DRAFT" ? (
                         <Link
                           href={`/dashboard/cases/${caseItem.id}/edit`}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-slate-800"
+                          className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800"
                         >
                           <PencilLine className="h-4 w-4" />
                           استكمال
@@ -454,7 +417,7 @@ export async function WorkflowServiceHomePage({
                       ) : (
                         <Link
                           href={reportHref}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
+                          className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
                         >
                           <FileText className="h-4 w-4" />
                           {caseItem._count.guidanceReports > 0
@@ -463,60 +426,41 @@ export async function WorkflowServiceHomePage({
                         </Link>
                       )}
                     </div>
+                    <ExpandableActionMenu
+                      menuId={`service-case:${caseItem.id}`}
+                      overlayStrip
+                      className="self-center"
+                      stripClassName="rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      <Link
+                        href={`/dashboard/cases/${caseItem.id}`}
+                        className="block min-w-[110px] rounded-lg px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        عرض الحالة
+                      </Link>
+                    </ExpandableActionMenu>
                   </div>
                 </article>
               );
             })}
           </div>
         ) : (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
-              <Search className="h-7 w-7" />
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-7 text-center dark:border-slate-700 dark:bg-slate-950">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-100 dark:bg-slate-900 dark:ring-slate-800">
+              <Search className="h-5 w-5" />
             </div>
 
-            <h3 className="mt-4 text-xl font-black text-slate-800">
+            <h3 className="mt-3 text-lg font-black text-slate-800 dark:text-slate-100">
               {emptyTitle}
             </h3>
 
-            <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
+            <p className="mx-auto mt-1 max-w-xl text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">
               {emptyDescription}
             </p>
 
-            <Link
-              href={`${basePath}/new`}
-              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-            >
-              <Plus className="h-4 w-4" />
-              {newButtonLabel}
-            </Link>
           </div>
         )}
       </section>
     </main>
-  );
-}
-
-function SimpleMetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
-          {icon}
-        </div>
-
-        <div>
-          <p className="text-xs font-black text-slate-400">{label}</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
-        </div>
-      </div>
-    </article>
   );
 }

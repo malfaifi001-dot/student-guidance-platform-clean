@@ -29,11 +29,11 @@ export function StudentImportSessionsTable({
 }: StudentImportSessionsTableProps) {
   if (sessions.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-        <h3 className="text-lg font-semibold text-slate-900">
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">
           لا توجد عمليات استيراد حتى الآن
         </h3>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           عند رفع ملف طلاب من نظام نور ستظهر جلسات الاستيراد هنا.
         </p>
       </div>
@@ -41,9 +41,9 @@ export function StudentImportSessionsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <table className="w-full text-right text-sm">
-        <thead className="bg-slate-50 text-slate-600">
+        <thead className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           <tr>
             <th className="px-4 py-3 font-semibold">اسم الملف</th>
             <th className="px-4 py-3 font-semibold">الحالة</th>
@@ -57,8 +57,8 @@ export function StudentImportSessionsTable({
 
         <tbody className="divide-y divide-slate-100">
           {sessions.map((session) => (
-            <tr key={session.id} className="hover:bg-slate-50">
-              <td className="px-4 py-3 font-medium text-slate-900">
+            <tr key={session.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
                 {session.fileName}
               </td>
 

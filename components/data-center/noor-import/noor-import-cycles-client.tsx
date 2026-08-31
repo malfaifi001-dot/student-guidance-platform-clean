@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { readApiResponse } from "@/lib/http/read-api-response";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { StudentDataCardDeleteDialog } from "@/components/data-center/noor-import/student-data-card-delete-dialog";
@@ -238,29 +239,26 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
 
   return (
     <main
-      className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8"
+      className="min-h-screen bg-slate-50 px-4 py-4 text-right text-slate-950 dark:bg-slate-950 dark:text-slate-100 md:px-8"
       dir="rtl"
       data-school-name={schoolName}
     >
       <div className="mx-auto max-w-7xl space-y-5">
         <GuidanceScope context="student-data-import" />
 
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
-            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-4 dark:from-sky-950/40 dark:via-slate-900 dark:to-emerald-950/30 md:p-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز {labels.studentData}</h1>
-                <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-                  إدارة {labels.studentData} وتحديثاتها.
-                </p>
+                <h1 className="mt-1 text-xl font-black md:text-2xl">مركز {labels.studentData}</h1>
               </div>
 
               <button
                 type="button"
                 onClick={() => openUpload()}
                 data-guidance="student-import-start"
-                className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+                className="min-h-10 rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-sky-700"
               >
                 إضافة بيانات {labels.students}
               </button>
@@ -285,12 +283,12 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
 
         <section
           data-guidance="student-import-current-data"
-          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div>
                 <h2 className="text-lg font-black">بطاقات {labels.studentData}</h2>
-              <p className="mt-1 text-sm font-bold text-slate-500">
+              <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                 بطاقات البيانات حسب السنة والفصل.
               </p>
             </div>
@@ -298,7 +296,7 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
             <button
               type="button"
               onClick={() => openUpload()}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+              className="min-h-10 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition hover:bg-sky-100 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300"
             >
               إضافة بيانات {labels.students}
             </button>
@@ -309,48 +307,58 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
               cycles.map((cycle) => (
                 <article
                   key={cycle.id}
-                  className="rounded-[1.75rem] border border-slate-100 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-sky-50"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50 dark:border-slate-800 dark:bg-slate-800/60 dark:hover:border-sky-800 dark:hover:bg-slate-800"
                 >
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                     <div className="min-w-0">
-                      <h3 className="mt-3 text-xl font-black text-slate-950">
+                      <h3 className="mt-1 text-base font-black text-slate-950 dark:text-white">
                         {labels.studentData} {cycle.academicYear} - {cycle.term}
                       </h3>
 
-                      <p className="mt-2 text-xs font-bold text-slate-500">
+                      <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                         {cycle.totalSessions} ملفات · آخر رفع: {formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <ExpandableActionMenu
+                      menuId={`student-data-cycle-${cycle.id}`}
+                      className="justify-end"
+                      stripClassName="flex flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
+                    >
                       <Link
                         href="/dashboard/data-center/students"
-                        className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
+                        className="inline-flex min-h-10 items-center rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-sky-700"
                       >
                         عرض {labels.students}
                       </Link>
-                      <button type="button" onClick={() => openUpload(cycle)} className="rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-50">إعادة الرفع</button>
+                      <button
+                        type="button"
+                        onClick={() => openUpload(cycle)}
+                        className="min-h-10 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-black text-sky-700 transition hover:bg-sky-50 dark:border-sky-900 dark:bg-slate-900 dark:text-sky-300"
+                      >
+                        إعادة الرفع
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
                           setDeleteError(null);
                           setDeleteTarget(cycle);
                         }}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-300"
                       >
                         <Trash2 className="h-4 w-4" />
                         حذف
                       </button>
-                    </div>
+                    </ExpandableActionMenu>
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                  <div className="mt-3 grid gap-2 md:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                       <p className="text-xs font-black text-slate-400">{labels.students}</p>
                       <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                       <p className="text-xs font-black text-slate-400">الملفات</p>
                       <p className="mt-1 text-2xl font-black">{cycle.totalSessions}</p>
                     </div>
@@ -358,7 +366,7 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
                 </article>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center dark:border-slate-800 dark:bg-slate-800/60">
                 <h3 className="text-lg font-black text-slate-900">لا توجد بطاقات بعد</h3>
                 <p className="mt-2 text-sm font-bold text-slate-500">
                   أضف بيانات {labels.students} من خلال نافذة الرفع.
@@ -367,7 +375,7 @@ export function NoorImportCyclesClient({ schoolName, gender }: Props) {
                 <button
                   type="button"
                   onClick={() => openUpload()}
-                  className="mt-5 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
+                  className="mt-4 min-h-10 rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-sky-700"
                 >
                   إضافة بيانات {labels.students}
                 </button>

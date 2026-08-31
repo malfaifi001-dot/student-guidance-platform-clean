@@ -269,7 +269,7 @@ export function NoorImportCycleDetailClient({ cycleId, gender }: Props) {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <Link
             href="/dashboard/data-center/student-data-import"
             className="text-sm font-black text-sky-700 hover:text-sky-900"
@@ -280,7 +280,7 @@ export function NoorImportCycleDetailClient({ cycleId, gender }: Props) {
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <p className="text-sm font-black text-sky-700">{labels.uploadStudents}</p>
-              <h1 className="mt-2 text-2xl font-black md:text-4xl">
+              <h1 className="mt-1 text-xl font-black md:text-2xl">
                 {cycle ? `${labels.studentData} ${cycle.academicYear} - ${cycle.term}` : labels.studentData}
               </h1>
               <p className="mt-2 text-sm font-bold text-slate-500">

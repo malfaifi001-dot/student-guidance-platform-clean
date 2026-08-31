@@ -31,11 +31,20 @@ export function PortfolioWizardStepper({
   }, [activeStepId]);
 
   return (
-    <nav
-      aria-label="خطوات إعداد ملف الإنجاز"
-      className="overflow-x-auto rounded-[1.75rem] border border-slate-200 bg-white px-3 py-5 shadow-sm [scrollbar-width:thin] md:px-5"
-    >
-      <ol className="flex min-w-max items-start md:min-w-full">
+    <nav aria-label="خطوات إعداد ملف الإنجاز" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="md:hidden">
+        <label htmlFor="portfolio-step-select" className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400">الخطوة الحالية</label>
+        <select
+          id="portfolio-step-select"
+          value={activeStepId}
+          onChange={(event) => onStepChange(event.target.value)}
+          className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-teal-500/20"
+        >
+          {steps.map((step, index) => <option key={step.id} value={step.id}>{index + 1}. {step.label}</option>)}
+        </select>
+      </div>
+
+      <ol className="hidden items-center md:flex">
         {steps.map((step, index) => {
           const active = step.id === activeStepId;
           const completed = !active && (completedStepIds
@@ -43,7 +52,7 @@ export function PortfolioWizardStepper({
             : index < activeIndex);
 
           return (
-            <li key={step.id} className="flex min-w-32 flex-1 items-start last:flex-none md:last:flex-1">
+            <li key={step.id} className="flex min-w-0 flex-1 items-center last:flex-none">
               <button
                 ref={active ? activeButtonRef : undefined}
                 type="button"
@@ -51,31 +60,16 @@ export function PortfolioWizardStepper({
                 aria-current={active ? "step" : undefined}
                 aria-label={`الخطوة ${index + 1}: ${step.label}${completed ? "، مكتملة" : active ? "، الحالية" : ""}`}
                 onClick={() => onStepChange(step.id)}
-                className="group flex w-28 shrink-0 flex-col items-center gap-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-4 md:w-32"
+                className="group flex min-w-0 flex-1 flex-col items-center gap-1.5 px-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
               >
-                <span
-                  className={`grid h-11 w-11 place-items-center rounded-full border-2 text-sm font-black transition-all ${
-                    active
-                      ? "scale-110 border-teal-700 bg-teal-700 text-white shadow-lg shadow-teal-200 ring-4 ring-teal-50"
-                      : completed
-                        ? "border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-100"
-                        : "border-slate-200 bg-slate-50 text-slate-400 group-hover:border-teal-300 group-hover:text-teal-700"
-                  }`}
-                >
-                  {completed ? <Check className="h-5 w-5" strokeWidth={3} /> : index + 1}
+                <span className={`grid h-8 w-8 place-items-center rounded-full border text-xs font-black transition-colors ${active ? "border-teal-700 bg-teal-700 text-white" : completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-200 bg-slate-50 text-slate-400 group-hover:border-teal-300 group-hover:text-teal-700 dark:border-slate-700 dark:bg-slate-900"}`}>
+                  {completed ? <Check className="h-4 w-4" strokeWidth={3} /> : index + 1}
                 </span>
-                <span className={`max-w-28 text-xs font-black leading-5 ${active ? "text-teal-800" : completed ? "text-emerald-700" : "text-slate-400"}`}>
+                <span className={`max-w-28 truncate text-[11px] font-black ${active ? "text-teal-800 dark:text-teal-300" : completed ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
                   {step.label}
                 </span>
-                {active ? <span className="text-[10px] font-black text-teal-600">الخطوة الحالية</span> : null}
               </button>
-
-              {index < steps.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  className={`mt-5 h-0.5 min-w-5 flex-1 rounded-full transition-colors ${index < activeIndex ? "bg-emerald-500" : "bg-slate-200"}`}
-                />
-              ) : null}
+              {index < steps.length - 1 ? <span aria-hidden="true" className={`h-px min-w-3 flex-1 ${index < activeIndex ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"}`} /> : null}
             </li>
           );
         })}
