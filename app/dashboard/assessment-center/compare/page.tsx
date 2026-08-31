@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { AssessmentAnalysisComparison } from "@/components/assessment-center/assessment-analysis-comparison";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -18,9 +19,7 @@ export default async function AssessmentCenterComparePage({
   const analyses = await prisma.assessmentAnalysis.findMany({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true }),
     orderBy: {
       createdAt: "desc",
     },

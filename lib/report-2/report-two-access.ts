@@ -60,6 +60,7 @@ export async function getAuthorizedReportTwoCase(
   context: DashboardContext,
   caseId: string,
   capability: ReportTwoCapability,
+  options?: { historicalPersonalRead?: boolean },
 ) {
   if (!roleHasReportTwoCapability(context.user.role, capability)) return null;
 
@@ -71,6 +72,7 @@ export async function getAuthorizedReportTwoCase(
         role: context.user.role,
         schoolAccountId: context.schoolAccountId,
         email: context.user.email,
+        historicalPersonalRead: options?.historicalPersonalRead,
       }),
     },
     select: {
@@ -130,6 +132,7 @@ export async function getAuthorizedReportTwoById(
       context,
       active.caseEntryId,
       capability,
+      { historicalPersonalRead: true },
     );
     return caseEntry && caseEntry.schoolAccountId === active.schoolAccountId
       ? { kind: "ACTIVE" as const, report: active, caseEntry }
@@ -178,6 +181,7 @@ export async function getAuthorizedReportTwoById(
     context,
     snapshot.caseEntryId,
     capability,
+    { historicalPersonalRead: true },
   );
   return caseEntry &&
     (!snapshot.schoolAccountId ||

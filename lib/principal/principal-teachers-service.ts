@@ -762,8 +762,8 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       canPreview: true,
       canPrincipalSign: false,
       canLink: false,
-      previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=semester`,
-      printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=semester&print=1`,
+      previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=detailed`,
+      printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=detailed&print=1`,
     })] : []),
   ]).flat();
   const savedCurriculumWithDistribution = await Promise.all(savedCurriculumRows.map(async (row) => ({ ...row, distribution: await getDistribution(row.subjectId, row.semesterId) })));

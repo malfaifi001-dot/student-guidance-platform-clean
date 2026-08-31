@@ -27,7 +27,7 @@ function enrich(saved: Awaited<ReturnType<typeof listTeacherSavedCurriculum>>, l
 export async function GET() {
   const context = await authorize();
   if (context instanceof Response) return context;
-  const saved = await listTeacherSavedCurriculum(context.user.id, context.schoolAccountId);
+  const saved = await listTeacherSavedCurriculum(context.user.id, context.schoolAccountId, { historicalPersonalRead: true });
   const links = await listServiceOutputLinks({ ownerUserId: context.user.id, schoolAccountId: context.schoolAccountId, roleKey: "TEACHER", serviceSlug: SERVICE });
   return NextResponse.json({ items: enrich(saved, links) });
 }

@@ -56,7 +56,7 @@ export default async function PrincipalStaffCurriculumPage({
         <h1 className="text-xl font-black text-slate-950 dark:text-white">توزيع المنهج — {stage}</h1>
         <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">{staff.officialName || staff.name}</p>
       </header>
-      {mode === "weekly" ? <ActivityPlanPrintDocument weeks={weeks} {...identity} /> : <WeeklyActivityPlanPrintDocument weeks={semesterWeeks} {...identity} />}
+      {mode === "weekly" ? <WeeklyActivityPlanPrintDocument weeks={semesterWeeks} {...identity} /> : <ActivityPlanPrintDocument weeks={weeks} {...identity} />}
     </main>
   );
 }

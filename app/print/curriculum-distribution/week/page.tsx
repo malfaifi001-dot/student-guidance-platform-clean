@@ -44,7 +44,7 @@ export default async function WeeklyCurriculumSharePage({ searchParams }: { sear
   const params: SearchParams = await (searchParams || Promise.resolve({} as SearchParams));
   const all = first(params.all) === "1";
   const distributions = all
-    ? (await listTeacherSavedCurriculum(current.user.id, current.user.schoolAccountId)).flatMap((item) => item.distribution ? [{ distribution: item.distribution }] : [])
+    ? (await listTeacherSavedCurriculum(current.user.id, current.user.schoolAccountId, { historicalPersonalRead: true })).flatMap((item) => item.distribution ? [{ distribution: item.distribution }] : [])
     : (() => null)();
   let items = distributions;
   if (!all) {

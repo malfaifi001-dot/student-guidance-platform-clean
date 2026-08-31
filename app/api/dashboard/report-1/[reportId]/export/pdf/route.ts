@@ -51,6 +51,7 @@ export async function GET(request: Request, context: RouteContext) {
       isAdmin: authResult.isAdmin,
       userId: authResult.user.id,
       userRole: authResult.user.role,
+      historicalPersonalRead: true,
     });
 
     if (!reportAccess) {

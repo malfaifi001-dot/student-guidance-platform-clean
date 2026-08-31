@@ -17,7 +17,7 @@ export async function GET(_request: Request, context: { params: Promise<{ analys
   if (auth instanceof Response) return auth;
   const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
   if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ success: true, analysis });
 }

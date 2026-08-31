@@ -69,6 +69,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         ? {}
         : {
             schoolAccountId: auth.schoolAccountId,
+            createdById: auth.user.id,
           }),
     },
   });

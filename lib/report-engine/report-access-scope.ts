@@ -7,6 +7,7 @@ type ReportScopeUser = {
   role: string;
   schoolAccountId?: string | null;
   email?: string | null;
+  historicalPersonalRead?: boolean;
 };
 
 const ACTIVITY_LEADER_REPORT_SERVICE_SLUGS = [
@@ -35,7 +36,10 @@ export function buildCaseEntryReportWhereForUser(
     };
   }
 
-  return buildCaseEntryPermissionWhere(user);
+  return buildCaseEntryPermissionWhere({
+    ...user,
+    historicalPersonalRead: user.historicalPersonalRead,
+  });
 }
 
 export function buildGuidanceReportWhereForUser(
@@ -52,7 +56,7 @@ export function buildGuidanceReportWhereForUser(
         {
           caseEntry: {
             is: {
-              schoolAccountId,
+              ...(user.historicalPersonalRead ? {} : { schoolAccountId }),
               createdById: user.id,
             },
           },

@@ -6,6 +6,7 @@ type CaseScopeUser = {
   role: string;
   schoolAccountId?: string | null;
   email?: string | null;
+  historicalPersonalRead?: boolean;
 };
 
 export function buildCaseEntryWhereForUser(

@@ -1,5 +1,8 @@
 ﻿import { NextResponse, type NextRequest } from "next/server";
 
+import { verifySessionToken } from "@/lib/auth/session";
+import { isMaintenanceModeEnabled } from "@/lib/maintenance/maintenance";
+
 const SESSION_COOKIE_NAME = "student_guidance_session";
 
 function withRequestedPath(request: NextRequest) {
@@ -52,6 +55,15 @@ function isMobilePath(pathname: string) {
   return pathname === "/mobile" || pathname.startsWith("/mobile/");
 }
 
+function isStaticAsset(pathname: string) {
+  return /\.(?:css|js|mjs|map|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf|pdf|txt|xml|webmanifest)$/i.test(pathname);
+}
+
+function isAdminRequest(request: NextRequest) {
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  return verifySessionToken(token)?.role === "ADMIN";
+}
+
 function hasSessionCookie(request: NextRequest) {
   const value = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   return Boolean(value && value.includes(".") && value.length > 40);
@@ -84,6 +96,14 @@ function unauthorizedApiResponse() {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (isMaintenanceModeEnabled()) {
+    if (pathname === "/maintenance" || isPublicPath(pathname) || isStaticAsset(pathname) || pathname.startsWith("/api/") || isAdminRequest(request)) {
+      return NextResponse.next({ request: { headers: withRequestedPath(request) } });
+    }
+
+    return NextResponse.rewrite(new URL("/maintenance", request.url));
+  }
+
   if (isPublicPath(pathname) || isPublicApi(pathname)) {
     return NextResponse.next();
   }
@@ -105,10 +125,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/api/dashboard/:path*",
-    "/mobile",
-    "/mobile/:path*",
+    "/((?!_next/static|_next/image).*)",
   ],
 };
 

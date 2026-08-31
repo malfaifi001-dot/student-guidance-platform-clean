@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { AssessmentCenterDashboard } from "@/components/assessment-center/assessment-center-dashboard";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export default async function AssessmentCenterPage() {
   const context = await requireDashboardPageContext();
@@ -8,9 +9,7 @@ export default async function AssessmentCenterPage() {
   const analyses = await prisma.assessmentAnalysis.findMany({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true }),
     orderBy: {
       createdAt: "desc",
     },
@@ -20,9 +19,7 @@ export default async function AssessmentCenterPage() {
   const totalCount = await prisma.assessmentAnalysis.count({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true }),
   });
 
   return (

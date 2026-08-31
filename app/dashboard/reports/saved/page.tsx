@@ -25,7 +25,10 @@ export default async function SavedReportsRoutePage() {
   }
 
   const reports = await prisma.guidanceReport.findMany({
-    where: buildGuidanceReportWhereForUser(current.user),
+    where: buildGuidanceReportWhereForUser({
+      ...current.user,
+      historicalPersonalRead: true,
+    }),
     include: {
       caseEntry: {
         include: {
@@ -45,9 +48,19 @@ export default async function SavedReportsRoutePage() {
     take: 80,
   });
 
+  const safeReports = reports.map((report) => {
+    if (
+      current.user.schoolAccountId &&
+      report.caseEntry?.schoolAccountId !== current.user.schoolAccountId
+    ) {
+      return { ...report, caseEntry: report.caseEntry ? { ...report.caseEntry, student: null } : null };
+    }
+    return report;
+  });
+
   return (
     <SavedReportsListPage
-      reports={reports.map((report) => ({
+      reports={safeReports.map((report) => ({
         id: report.id,
         title: report.title,
         status: report.status,

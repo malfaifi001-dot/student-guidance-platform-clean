@@ -34,7 +34,7 @@ export async function PATCH(_request: Request, context: RouteContext) {
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      ...(isAdmin ? {} : { schoolAccountId: auth.schoolAccountId }),
+      ...(isAdmin ? {} : { schoolAccountId: auth.schoolAccountId, createdById: auth.user.id }),
     },
   });
 

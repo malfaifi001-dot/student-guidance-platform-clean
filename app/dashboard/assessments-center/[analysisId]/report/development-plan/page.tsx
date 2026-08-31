@@ -5,7 +5,7 @@ import { buildNafsDevelopmentPlanHtml } from "@/lib/assessments-center/nafs-repo
 
 export default async function NafsDevelopmentPlanPage({ params }: { params: Promise<{ analysisId: string }> }) {
   const context = await requireDashboardPageContext({ allowPrincipal: true });
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await params).analysisId, ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)), uploadMode: "NAFS" }, select: { summaryJson: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await params).analysisId, ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true })), uploadMode: "NAFS" }, select: { summaryJson: true } });
   if (!analysis?.summaryJson) return <main dir="rtl" className="p-8">التحليل غير موجود.</main>;
   return <div dangerouslySetInnerHTML={{ __html: buildNafsDevelopmentPlanHtml(analysis.summaryJson as never) }} />;
 }

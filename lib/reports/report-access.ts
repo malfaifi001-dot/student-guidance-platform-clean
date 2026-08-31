@@ -7,6 +7,7 @@ export type ReportAccessScope = {
   isAdmin?: boolean;
   userId?: string | null;
   userRole?: string | null;
+  historicalPersonalRead?: boolean;
 };
 
 function canSeeAllSchoolReports(scope: ReportAccessScope) {
@@ -44,11 +45,11 @@ export function buildReportAccessWhere(reportId: string, scope: ReportAccessScop
   }
 
   return {
-    id: reportId,
-    caseEntry: {
-      schoolAccountId,
-      createdById: scope.userId,
-    },
+      id: reportId,
+      caseEntry: {
+        ...(scope.historicalPersonalRead ? {} : { schoolAccountId }),
+        createdById: scope.userId,
+      },
   };
 }
 
@@ -76,10 +77,10 @@ export function buildReportListWhere(scope: ReportAccessScope) {
   }
 
   return {
-    caseEntry: {
-      schoolAccountId,
-      createdById: scope.userId,
-    },
+      caseEntry: {
+        ...(scope.historicalPersonalRead ? {} : { schoolAccountId }),
+        createdById: scope.userId,
+      },
   };
 }
 
@@ -108,9 +109,9 @@ export function buildCaseAccessWhere(caseEntryId: string, scope: ReportAccessSco
   }
 
   return {
-    id: caseEntryId,
-    schoolAccountId,
-    createdById: scope.userId,
+      id: caseEntryId,
+      schoolAccountId,
+      createdById: scope.userId,
   };
 }
 

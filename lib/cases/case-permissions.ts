@@ -6,6 +6,8 @@ export type CasePermissionUser = {
   role: string;
   schoolAccountId?: string | null;
   email?: string | null;
+  /** Read-only personal history may cross the user's current school context. */
+  historicalPersonalRead?: boolean;
 };
 
 export type CasePermissionSubject = {
@@ -84,6 +86,21 @@ export function buildCaseEntryPermissionWhere(
   }
 
   if (user.role === "TEACHER") {
+    if (user.historicalPersonalRead) {
+      return {
+        service: {
+          slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+        },
+        OR: [
+          { createdById: user.id || "__NO_USER__" },
+          {
+            schoolAccountId,
+            activityAssignment: { is: { teacherEmail: cleanEmail(user.email) } },
+          },
+        ],
+      };
+    }
+
     const ownershipScope: Prisma.CaseEntryWhereInput[] = [
       { createdById: user.id || "__NO_USER__" },
     ];
@@ -108,7 +125,7 @@ export function buildCaseEntryPermissionWhere(
 
   if (user.role === "STAFF") {
     return {
-      schoolAccountId,
+      ...(user.historicalPersonalRead ? {} : { schoolAccountId }),
       createdById: user.id || "__NO_USER__",
       service: {
         slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
@@ -118,7 +135,7 @@ export function buildCaseEntryPermissionWhere(
 
   if (user.role === "PRINCIPAL") {
     return {
-      schoolAccountId,
+      ...(user.historicalPersonalRead ? {} : { schoolAccountId }),
       createdById: user.id || "__NO_USER__",
       service: {
         slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },

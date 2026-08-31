@@ -281,7 +281,8 @@ function OutputFamilySection({ family, onActivityPlanPreview, onCertificatePrevi
 }
 
 function ActivityPlanPreviewDialog({ output, onClose }: { output: PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number]; onClose: () => void }) {
-  const params = new URLSearchParams({ preview: "1", stage: output.sourceId, mode: "detailed" });
+  const mode = output.sourceType === "CURRICULUM_DISTRIBUTION_WEEKLY" ? "weekly" : "detailed";
+  const params = new URLSearchParams({ preview: "1", stage: output.sourceId, mode });
   if (output.ownerUserId) params.set("userId", output.ownerUserId);
   const previewUrl = `/print/activity-plan?${params.toString()}`;
   const printUrl = `${previewUrl}&print=1`;

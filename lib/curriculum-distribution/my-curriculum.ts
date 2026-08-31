@@ -6,9 +6,9 @@ import { prisma } from "@/lib/prisma";
 export const CURRICULUM_SERVICE_SLUG = "curriculum-distribution";
 export const CURRICULUM_RESOURCE_TYPE = "CURRICULUM_DISTRIBUTION";
 
-export async function listTeacherSavedCurriculum(ownerUserId: string, schoolAccountId: string) {
+export async function listTeacherSavedCurriculum(ownerUserId: string, schoolAccountId: string, options?: { historicalPersonalRead?: boolean }) {
   const saved = await prisma.teacherSavedCurriculum.findMany({
-    where: { ownerUserId, schoolAccountId, serviceSlug: CURRICULUM_SERVICE_SLUG },
+    where: { ownerUserId, ...(options?.historicalPersonalRead ? {} : { schoolAccountId }), serviceSlug: CURRICULUM_SERVICE_SLUG },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
   const resolved = await Promise.all(saved.map(async (item) => ({

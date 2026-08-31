@@ -57,6 +57,7 @@ export async function GET(_request: Request, context: RouteContext) {
       userId: authResult.user.id,
       userRole: authResult.user.role,
       userEmail: authResult.user.email,
+      historicalPersonalRead: true,
     });
 
     return NextResponse.json({

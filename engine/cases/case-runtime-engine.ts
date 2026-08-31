@@ -21,6 +21,7 @@ type CaseAccessScope = {
   userId?: string | null;
   userRole?: string | null;
   userEmail?: string | null;
+  historicalPersonalRead?: boolean;
 };
 
 type SaveRuntimeCaseParams = {
@@ -106,6 +107,7 @@ function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
       role: scope.userRole || "COUNSELOR",
       schoolAccountId,
       email: scope.userEmail,
+      historicalPersonalRead: scope.historicalPersonalRead,
     }),
   };
 }
@@ -789,6 +791,16 @@ export async function getCaseById(
 
   if (!caseEntry) {
     throw new Error("لم يتم العثور على الحالة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  // Historical personal reads prove ownership through createdById, but must
+  // not expose live tenant-owned school/student records from the old school.
+  if (
+    scope.historicalPersonalRead &&
+    scope.schoolAccountId &&
+    caseEntry.schoolAccountId !== scope.schoolAccountId
+  ) {
+    Object.assign(caseEntry, { schoolAccount: null, student: null });
   }
 
   return caseEntry;

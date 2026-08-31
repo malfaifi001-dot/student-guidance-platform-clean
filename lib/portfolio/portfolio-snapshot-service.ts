@@ -111,13 +111,12 @@ export async function createPortfolioSnapshot(
 }
 
 export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: string) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true });
   assertPortfolioActor(user);
   const snapshots = await prisma.portfolioSnapshot.findMany({
     where: {
       portfolioId,
       ownerUserId: user.id,
-      schoolAccountId: user.schoolAccountId!,
       roleAtCreation: user.role,
     },
     orderBy: { createdAt: "desc" },
@@ -149,7 +148,6 @@ export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: str
     where: {
       id: snapshotId,
       ownerUserId: user.id,
-      schoolAccountId: user.schoolAccountId!,
       roleAtCreation: user.role,
     },
   });
@@ -157,7 +155,7 @@ export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: str
     throw new PortfolioServiceError(404, "نسخة ملف الإنجاز غير موجودة أو لا تملك صلاحية الوصول إليها.");
   }
 
-  await requireOwnedPortfolio(user, snapshot.portfolioId);
+  await requireOwnedPortfolio(user, snapshot.portfolioId, { historicalPersonalRead: true });
   const document = parsePortfolioSnapshotDocument(snapshot.snapshotJson);
   return {
     ...snapshot,

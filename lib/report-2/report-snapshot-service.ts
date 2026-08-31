@@ -443,6 +443,7 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
       role: context.user.role,
       schoolAccountId: context.schoolAccountId,
       email: context.user.email,
+      historicalPersonalRead: true,
     }),
     select: { id: true, title: true },
     take: 500,
@@ -502,7 +503,6 @@ export async function getLatestReportTwoSnapshotForCase(
       ? { caseEntryId: caseId }
       : {
           caseEntryId: caseId,
-          schoolAccountId: context.schoolAccountId || "__missing__",
         },
   });
   if (active) return serializeActiveReport(active);
@@ -514,7 +514,6 @@ export async function getLatestReportTwoSnapshotForCase(
         }
       : {
           caseEntryId: caseId,
-          schoolAccountId: context.schoolAccountId || "__missing__",
         },
     orderBy: {
       approvedAt: "desc",
@@ -546,7 +545,6 @@ export async function listLatestReportTwoSnapshotsForCases(
       ? { caseEntryId: { in: caseIds } }
       : {
           caseEntryId: { in: caseIds },
-          schoolAccountId: context.schoolAccountId || "__missing__",
         },
     orderBy: { updatedAt: "desc" },
   });
@@ -558,7 +556,6 @@ export async function listLatestReportTwoSnapshotsForCases(
         }
       : {
           caseEntryId: { in: caseIds },
-          schoolAccountId: context.schoolAccountId || "__missing__",
         },
     orderBy: {
       approvedAt: "desc",

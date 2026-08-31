@@ -26,6 +26,7 @@ export default async function CaseDetailsPage({ params }: PageProps) {
       userId: context.user.id,
       userRole: context.user.role,
       userEmail: context.user.email,
+      historicalPersonalRead: true,
     });
 
     const snapshot = await getLatestReportTwoSnapshotForCase(context, caseId);

@@ -15,7 +15,7 @@ export default async function AssessmentPrintPage({ params, searchParams }: { pa
   if (isPrint) {
     redirect(`/assessments-center-print/${encodeURIComponent(routeParams.analysisId)}?print=1`);
   }
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: routeParams.analysisId, ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { summaryJson: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: routeParams.analysisId, ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { summaryJson: true } });
   if (!analysis?.summaryJson) return <main className="p-10" dir="rtl">التحليل غير موجود.</main>;
   const [profile, currentUser] = context.schoolAccountId ? await Promise.all([
     prisma.schoolProfile.findUnique({ where: { schoolAccountId: context.schoolAccountId }, select: { schoolName: true, logoUrl: true, principalName: true, principalSignatureUrl: true, educationDepartment: true, educationOffice: true, academicYear: true, currentSemester: true } }),

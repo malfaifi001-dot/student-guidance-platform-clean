@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";
 import {
   formatWorkflowDisplayValue,
@@ -21,6 +22,9 @@ type FieldLookupItem = {
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireDashboardApiContext({ allowPrincipal: true });
+    if (auth instanceof Response) return auth;
+
     const { searchParams } = new URL(request.url);
     const caseId = searchParams.get("caseId")?.trim();
 
@@ -34,9 +38,16 @@ export async function GET(request: Request) {
       );
     }
 
-    const caseEntry = await prisma.caseEntry.findUnique({
+    const caseEntry = await prisma.caseEntry.findFirst({
       where: {
         id: caseId,
+        ...buildCaseEntryWhereForUser({
+          id: auth.user.id,
+          role: auth.user.role,
+          schoolAccountId: auth.schoolAccountId,
+          email: auth.user.email,
+          historicalPersonalRead: true,
+        }),
       },
       include: {
         service: true,
@@ -110,6 +121,14 @@ export async function GET(request: Request) {
         },
         { status: 404 }
       );
+    }
+
+    if (
+      auth.schoolAccountId &&
+      caseEntry.schoolAccountId !== auth.schoolAccountId &&
+      caseEntry.createdById === auth.user.id
+    ) {
+      Object.assign(caseEntry, { student: null });
     }
 
     const rawReportData = mapCaseEntryToReportData(caseEntry as any);

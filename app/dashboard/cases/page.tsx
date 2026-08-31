@@ -110,6 +110,7 @@ export default async function CasesPage() {
       role: viewerRole,
       schoolAccountId: viewerSchoolAccountId,
       email: context.user.email,
+      historicalPersonalRead: true,
     }),
     include: {
       service: {
@@ -203,6 +204,10 @@ export default async function CasesPage() {
   );
 
   const rows = cases.map((caseItem) => {
+    const historicalPersonalCase =
+      Boolean(viewerSchoolAccountId) &&
+      caseItem.schoolAccountId !== viewerSchoolAccountId &&
+      caseItem.createdById === viewerId;
     const capabilities = resolveCaseCapabilities(
       {
         id: viewerId || "__NO_USER__",
@@ -222,11 +227,12 @@ export default async function CasesPage() {
         }`
       : null;
 
+    const visibleStudent = historicalPersonalCase ? null : caseItem.student;
     const studentMeta = [
-      caseItem.student?.stage,
-      caseItem.student?.grade,
-      caseItem.student?.classroom
-        ? `فصل ${caseItem.student.classroom}`
+      visibleStudent?.stage,
+      visibleStudent?.grade,
+      visibleStudent?.classroom
+        ? `فصل ${visibleStudent.classroom}`
         : null,
     ]
       .filter(Boolean)
@@ -260,16 +266,16 @@ export default async function CasesPage() {
           }
         : null,
 
-      student: caseItem.student
+      student: visibleStudent
         ? {
-            id: caseItem.student.id,
-            fullName: caseItem.student.fullName,
-            nationalId: caseItem.student.nationalId,
-            stage: caseItem.student.stage,
-            grade: caseItem.student.grade,
-            classroom: caseItem.student.classroom,
-            guardianName: caseItem.student.guardian?.name || null,
-            guardianPhone: caseItem.student.guardian?.phone || null,
+            id: visibleStudent.id,
+            fullName: visibleStudent.fullName,
+            nationalId: visibleStudent.nationalId,
+            stage: visibleStudent.stage,
+            grade: visibleStudent.grade,
+            classroom: visibleStudent.classroom,
+            guardianName: visibleStudent.guardian?.name || null,
+            guardianPhone: visibleStudent.guardian?.phone || null,
             meta: studentMeta || "بيانات الطالب غير مكتملة",
           }
         : null,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import type {
   AssessmentAnalysisSummary,
@@ -581,7 +582,7 @@ export async function GET(request: Request, context: RouteContext) {
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      schoolAccountId: auth.schoolAccountId,
+      ...assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, { historicalPersonalRead: true }),
     },
   });
 

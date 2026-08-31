@@ -3,6 +3,7 @@ import { AssessmentAnalysisPrintController } from "@/components/assessment-cente
 import { AssessmentAnalysisPrintReport } from "@/components/assessment-center/assessment-analysis-print-report";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 type PageProps = {
   params: Promise<{
@@ -25,14 +26,12 @@ export default async function AssessmentAnalysisPrintPage({
   const context = await requireDashboardPageContext();
 
   const analysis = await prisma.assessmentAnalysis.findFirst({
-    where: {
-      id: analysisId,
-      ...(context.isAdmin
-        ? {}
-        : {
-            schoolAccountId: context.schoolAccountId,
-          }),
-    },
+    where: context.isAdmin
+      ? { id: analysisId }
+      : {
+          id: analysisId,
+          ...assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true }),
+        },
   });
 
   if (!analysis) {

@@ -107,6 +107,7 @@ export async function POST(request: Request) {
     const analysis = await prisma.assessmentAnalysis.create({
       data: {
         schoolAccountId: context.schoolAccountId,
+        createdById: context.user.id,
         title:
           title ||
           `تحليل اختبارات - ${new Date().toLocaleDateString("ar-SA")}`,

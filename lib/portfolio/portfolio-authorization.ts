@@ -35,14 +35,14 @@ export function assertPortfolioActor(user: PortfolioActor): asserts user is Port
   }
 }
 
-export async function requireOwnedPortfolio(user: PortfolioActor, portfolioId: string) {
+export async function requireOwnedPortfolio(user: PortfolioActor, portfolioId: string, options?: { historicalPersonalRead?: boolean }) {
   assertPortfolioActor(user);
 
   const portfolio = await prisma.achievementPortfolio.findFirst({
     where: {
       id: portfolioId,
       ownerUserId: user.id,
-      schoolAccountId: user.schoolAccountId,
+      ...(options?.historicalPersonalRead ? {} : { schoolAccountId: user.schoolAccountId }),
       roleKey: user.role,
     },
   });

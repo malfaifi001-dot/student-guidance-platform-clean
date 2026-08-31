@@ -56,6 +56,7 @@ export async function GET(_request: Request, context: RouteContext) {
         isAdmin: authResult.isAdmin,
         userId: authResult.user.id,
         userRole: authResult.user.role,
+        historicalPersonalRead: true,
       }),
       include: {
         evidenceItems: {
@@ -84,6 +85,13 @@ export async function GET(_request: Request, context: RouteContext) {
         },
         { status: 404 }
       );
+    }
+
+    if (
+      authResult.schoolAccountId &&
+      report.caseEntry?.schoolAccountId !== authResult.schoolAccountId
+    ) {
+      Object.assign(report.caseEntry, { student: null });
     }
 
     return NextResponse.json({
