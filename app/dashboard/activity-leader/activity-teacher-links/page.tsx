@@ -115,7 +115,10 @@ export default async function ActivityTeacherLinksPage() {
       },
     }),
     prisma.teacherActivitySubmission.findMany({
-      where: { schoolAccountId },
+      where: {
+        schoolAccountId,
+        status: { not: "CANCELED" },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         link: {

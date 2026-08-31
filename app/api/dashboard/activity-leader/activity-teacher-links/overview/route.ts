@@ -125,7 +125,10 @@ export async function GET(request: Request) {
       },
     }),
     prisma.teacherActivitySubmission.findMany({
-      where: { schoolAccountId },
+      where: {
+        schoolAccountId,
+        status: { not: "CANCELED" },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         link: {

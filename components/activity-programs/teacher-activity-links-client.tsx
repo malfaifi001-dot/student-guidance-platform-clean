@@ -22,6 +22,8 @@ import {
   X,
 } from "lucide-react";
 import { SignatureImage } from "@/components/signatures/signature-image";
+import { openExternalUrl } from "@/lib/native/external-url-handler";
+import { buildWhatsAppShareLink } from "@/lib/whatsapp/whatsapp-links";
 
 type FieldOption = {
   id: string;
@@ -370,7 +372,10 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
         publicUrl: result.link.publicUrl,
         shareMessage: result.link.shareMessage,
       });
-      resetCreateForm();
+      setTitle("");
+      setNote("");
+      setDueDate("");
+      setCopied(false);
       await refresh();
     } catch (createError) {
       setFeedback(
@@ -382,13 +387,65 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
   }
 
   async function copyText(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    const value = String(text || "").trim();
+
+    if (!value) {
       setFeedback("تعذر نسخ النص.");
+      return;
     }
+
+    let copiedSuccessfully = false;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        copiedSuccessfully = true;
+      }
+    } catch {
+      copiedSuccessfully = false;
+    }
+
+    if (!copiedSuccessfully) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-9999px";
+        textarea.style.left = "-9999px";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, value.length);
+        copiedSuccessfully = document.execCommand("copy");
+        textarea.remove();
+      } catch {
+        copiedSuccessfully = false;
+      }
+    }
+
+    if (!copiedSuccessfully) {
+      setFeedback("تعذر نسخ النص.");
+      return;
+    }
+
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  function openWhatsApp(message: string) {
+    const url = buildWhatsAppShareLink(message);
+
+    if (!url) {
+      setFeedback("تعذر تجهيز رسالة واتساب.");
+      return;
+    }
+
+    void openExternalUrl(url).catch(() => {
+      setFeedback("تعذر فتح واتساب.");
+    });
   }
 
   async function linkAction(linkId: string, action: "CLOSE" | "REACTIVATE") {
@@ -434,6 +491,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
 
       setFeedback(result.message || "تم حذف الرابط.");
       setLinks((current) => current.filter((item) => item.id !== linkId));
+      setSubmissions((current) => current.filter((item) => item.linkId !== linkId));
     } catch (actionError) {
       setFeedback(
         actionError instanceof Error ? actionError.message : "تعذر حذف الرابط.",
@@ -483,6 +541,9 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
       }
 
       setFeedback(result.message || "تم تنفيذ الإجراء بنجاح.");
+      if (action === "CANCEL") {
+        setSubmissions((current) => current.filter((item) => item.id !== submissionId));
+      }
       closeModal();
       await refresh();
     } finally {
@@ -611,11 +672,9 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
 
                   <LinkActionButton
                     title="مشاركة"
-                    onClick={() =>
-                      copyText(
-                        `انضموا عبر الرابط التالي لإرسال أنشطتكم (${link.title}): ${link.publicUrl}`,
-                      )
-                    }
+                    onClick={() => openWhatsApp(
+                      `السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`,
+                    )}
                   >
                     <Send className="h-4 w-4" />
                   </LinkActionButton>
@@ -798,10 +857,11 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
           dueDate={dueDate}
           setDueDate={setDueDate}
           creating={creating}
-          createdLink={createdLink}
-          copied={copied}
-          onCopy={copyText}
-          onClose={() => {
+           createdLink={createdLink}
+           copied={copied}
+           onCopy={copyText}
+           onShare={openWhatsApp}
+           onClose={() => {
             setCreateOpen(false);
             resetCreateForm();
           }}
@@ -846,6 +906,7 @@ function CreateLinkModal({
   createdLink,
   copied,
   onCopy,
+  onShare,
   onClose,
   onSubmit,
 }: {
@@ -859,6 +920,7 @@ function CreateLinkModal({
   createdLink: { id: string; publicUrl: string; shareMessage: string } | null;
   copied: boolean;
   onCopy: (text: string) => void;
+  onShare: (message: string) => void;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
@@ -933,11 +995,11 @@ function CreateLinkModal({
 
                   <button
                     type="button"
-                    onClick={() => onCopy(createdLink.shareMessage)}
+                    onClick={() => onShare(createdLink.shareMessage)}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                   >
                     <Send className="h-4 w-4" />
-                    نسخ رسالة المشاركة
+                    مشاركة عبر واتساب
                   </button>
                 </div>
               </div>

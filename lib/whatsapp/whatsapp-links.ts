@@ -17,3 +17,10 @@ export function buildWhatsAppLink(phone: string | null | undefined, message?: st
   const suffix = message ? `?text=${encodeURIComponent(message)}` : "";
   return `https://wa.me/${normalized}${suffix}`;
 }
+
+export function buildWhatsAppShareLink(message: string | null | undefined): string | null {
+  const text = String(message || "").trim();
+  if (!text) return null;
+
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
