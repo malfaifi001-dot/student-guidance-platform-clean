@@ -33,12 +33,16 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function submitStatusCounts(submissions: { status: string }[]) {
+function submitStatusCounts(
+  submissions: { status: string; caseEntryId: string | null }[],
+) {
   return {
     total: submissions.length,
     submitted: submissions.filter((item) => item.status === "SUBMITTED").length,
     returned: submissions.filter((item) => item.status === "RETURNED").length,
-    approved: submissions.filter((item) => item.status === "APPROVED").length,
+    approved: submissions.filter(
+      (item) => item.status === "APPROVED" && item.caseEntryId,
+    ).length,
     canceled: submissions.filter((item) => item.status === "CANCELED").length,
   };
 }
@@ -79,6 +83,7 @@ export async function GET(request: Request) {
         select: {
           id: true,
           status: true,
+          caseEntryId: true,
         },
       },
     },

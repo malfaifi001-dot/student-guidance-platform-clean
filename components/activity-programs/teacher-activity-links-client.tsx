@@ -12,12 +12,12 @@ import {
   ImageIcon,
   Link2,
   Loader2,
+  MessageCircle,
   PencilLine,
   Plus,
   RefreshCw,
   RotateCcw,
   Save,
-  Send,
   Trash2,
   X,
 } from "lucide-react";
@@ -553,21 +553,12 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
 
   return (
     <main className="space-y-6" dir="rtl">
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-5 text-white shadow-xl sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
-              خطة النشاط الطلابي
-            </span>
-
-            <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+            <h1 className="text-2xl font-black leading-9 sm:text-3xl">
               إرسال أنشطة للمعلمين
             </h1>
-
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-              أنشئ رابطًا عامًا واحدًا يشاركه أكثر من معلم، ويختار كل معلم مجال النشاط عند الإرسال.
-              لا يتحول النشاط إلى حالة في مركز الأنشطة إلا بعد اعتماده.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -578,7 +569,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
                 resetCreateForm();
                 setFeedback("");
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-900 shadow-sm transition hover:bg-cyan-50"
             >
               <Plus className="h-4 w-4" />
               رابط جديد
@@ -587,7 +578,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
             <button
               type="button"
               onClick={refresh}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/20"
             >
               <RefreshCw className={["h-4 w-4", loading ? "animate-spin" : ""].join(" ")} />
               تحديث
@@ -595,7 +586,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
           <StatCard label="الروابط" value={stats.links} />
           <StatCard label="روابط مفتوحة" value={stats.openLinks} />
           <StatCard label="بانتظار الاعتماد" value={stats.waiting} />
@@ -610,11 +601,8 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">الروابط المفتوحة</h2>
-          <p className="mt-1 text-xs font-bold text-slate-500">
-            رابط واحد يمكن مشاركته مع أكثر من معلم.
-          </p>
+        <section className="rounded-[2rem] border border-sky-200 bg-sky-50 p-5 shadow-sm dark:border-sky-800 dark:bg-sky-950/45">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">الروابط المفتوحة</h2>
 
           <div className="mt-4 space-y-3">
             {links.length === 0 ? (
@@ -627,7 +615,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
             ) : null}
 
             {links.map((link) => (
-              <article key={link.id} className="rounded-[1.5rem] border border-slate-200 p-4">
+              <article key={link.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-950">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -676,7 +664,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
                       `السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`,
                     )}
                   >
-                    <Send className="h-4 w-4" />
+                    <MessageCircle className="h-4 w-4 text-emerald-600" />
                   </LinkActionButton>
 
                   {link.status === "ACTIVE" ? (
@@ -710,11 +698,8 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">الأنشطة المرسلة</h2>
-          <p className="mt-1 text-xs font-bold text-slate-500">
-            كل نشاط أرسله معلم عبر الرابط يظهر هنا للمراجعة والاعتماد.
-          </p>
+        <section className="rounded-[2rem] border border-violet-200 bg-violet-50/75 p-5 shadow-sm dark:border-violet-800 dark:bg-violet-950/35">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">الأنشطة المرسلة</h2>
 
           <div className="mt-4 space-y-3">
             {submissions.length === 0 ? (
@@ -735,7 +720,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
               const displayTitle = getDisplayTitle(submission);
 
               return (
-                <article key={submission.id} className="rounded-[1.5rem] border border-slate-200 p-4">
+                <article key={submission.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-950">
                   <div className="flex flex-wrap items-center gap-2">
                     <SubmissionStatusBadge status={submission.status} />
 
@@ -764,10 +749,6 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
 
                   <p className="mt-1 text-xs font-black text-sky-700">
                     المعلم: {submission.teacherName} · {submission.linkTitle}
-                  </p>
-
-                  <p className="mt-1 text-xs font-bold text-slate-500" dir="ltr">
-                    {submission.teacherPhone}
                   </p>
 
                   <p className="mt-1 text-xs font-bold text-slate-500">
@@ -957,7 +938,7 @@ function CreateLinkModal({
           <div>
             <h2 className="text-2xl font-black text-slate-950">رابط نشاط مفتوح</h2>
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              أنشئ رابطًا واحدًا يشاركه أكثر من معلم، ويختار كل معلم مجال النشاط عند الإرسال.
+              أدخل بيانات الرابط ثم شاركه مع المعلمين.
             </p>
           </div>
 
@@ -998,7 +979,7 @@ function CreateLinkModal({
                     onClick={() => onShare(createdLink.shareMessage)}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                   >
-                    <Send className="h-4 w-4" />
+                    <MessageCircle className="h-4 w-4 text-emerald-600" />
                     مشاركة عبر واتساب
                   </button>
                 </div>

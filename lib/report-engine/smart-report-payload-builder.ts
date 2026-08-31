@@ -1007,7 +1007,33 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
         }))
     : [];
 
-  return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
+  const teacherActivitySubmissionEvidenceItems: SmartReportEvidenceItem[] =
+    Array.isArray(caseEntry.teacherActivitySubmission?.submittedEvidenceItems)
+      ? filterValidReportEvidenceItems(
+          caseEntry.teacherActivitySubmission.submittedEvidenceItems,
+        ).map((item: any, index: number) => ({
+          id: item.id || `teacher-activity-submission-evidence-${index + 1}`,
+          title: item.fileName || item.title || `شاهد ${index + 1}`,
+          caption: item.caption || item.note || undefined,
+          url:
+            item.fileUrl ||
+            item.url ||
+            item.imageUrl ||
+            item.publicUrl ||
+            item.storagePath ||
+            undefined,
+          type: isImageEvidence(item) ? "IMAGE" : "FILE",
+        }))
+      : [];
+
+  return [
+    ...normalItems,
+    ...caseEvidenceItems,
+    ...assignmentEvidenceItems,
+    ...(normalItems.length || caseEvidenceItems.length || assignmentEvidenceItems.length
+      ? []
+      : teacherActivitySubmissionEvidenceItems),
+  ];
 }
 
 function resolveSchoolProfileForReport(
@@ -1069,7 +1095,9 @@ function buildSignatures(
   });
   const serviceSlug = caseEntry.service?.slug || "";
   const isActivity = isActivityProgramReportService(serviceSlug);
-  const hasActivityAssignment = Boolean(caseEntry.activityAssignment);
+  const linkedActivityExecution =
+    caseEntry.activityAssignment || caseEntry.teacherActivitySubmission;
+  const hasActivityAssignment = Boolean(linkedActivityExecution);
   const transformTitle = (value: string) =>
     applyReportLanguageModeToText(value, languageMode);
 
@@ -1152,21 +1180,21 @@ function buildSignatures(
     });
   }
 
-  if (caseEntry.activityAssignment?.teacherName) {
+  if (linkedActivityExecution?.teacherName) {
     signatures.push({
       key: "teacher",
       label: transformTitle("توقيع المعلم المنفذ"),
       signerName:
-        caseEntry.activityAssignment.teacherSignedName ||
-        caseEntry.activityAssignment.teacherName,
+        linkedActivityExecution.teacherSignedName ||
+        linkedActivityExecution.teacherName,
       signerTitle: transformTitle("المعلم المنفذ"),
       imageUrl:
-        caseEntry.activityAssignment.teacherSignatureUrl ||
+        linkedActivityExecution.teacherSignatureUrl ||
         (current.user.role === "TEACHER"
           ? current.user.signatureUrl || null
           : null),
       signedAt:
-        caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() ||
+        linkedActivityExecution.teacherSignedAt?.toISOString?.() ||
         (current.user.role === "TEACHER"
           ? current.user.signatureSignedAt?.toISOString() || null
           : null),
@@ -1316,6 +1344,7 @@ export async function buildSmartReportPayloadForCase({
         },
       },
       activityAssignment: true,
+      teacherActivitySubmission: true,
     },
   });
 
@@ -1540,7 +1569,8 @@ export async function buildSmartReportPayloadForCase({
 
   const executorText =
     executorField?.value ||
-    caseEntry.activityAssignment?.teacherName ||
+    (caseEntry.activityAssignment || caseEntry.teacherActivitySubmission)
+      ?.teacherName ||
     current.user.officialName ||
     current.user.name ||
     "غير محدد";

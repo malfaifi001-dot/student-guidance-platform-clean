@@ -110,6 +110,7 @@ export default async function ActivityTeacherLinksPage() {
           select: {
             id: true,
             status: true,
+            caseEntryId: true,
           },
         },
       },
@@ -118,6 +119,10 @@ export default async function ActivityTeacherLinksPage() {
       where: {
         schoolAccountId,
         status: { not: "CANCELED" },
+        OR: [
+          { status: { not: "APPROVED" } },
+          { status: "APPROVED", caseEntryId: { not: null } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -167,7 +172,9 @@ export default async function ActivityTeacherLinksPage() {
           total: link.submissions.length,
           submitted: link.submissions.filter((item) => item.status === "SUBMITTED").length,
           returned: link.submissions.filter((item) => item.status === "RETURNED").length,
-          approved: link.submissions.filter((item) => item.status === "APPROVED").length,
+          approved: link.submissions.filter(
+            (item) => item.status === "APPROVED" && item.caseEntryId,
+          ).length,
           canceled: link.submissions.filter((item) => item.status === "CANCELED").length,
         },
         createdAt: link.createdAt,
