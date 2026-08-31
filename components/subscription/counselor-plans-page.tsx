@@ -28,6 +28,7 @@ type CounselorPlan = {
   priceMonthly: number;
   priceYearly: number;
   commercialType?: "TERM" | "YEAR" | null;
+  billingCycle: BillingCycle;
   durationDays: number;
   maxStudents: string;
   maxUsers: string;
@@ -142,6 +143,13 @@ const BAG_CONTENTS = [
 
 function getPlanPrice(plan: CounselorPlan, billingCycle: BillingCycle) {
   return billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+}
+
+function getPlanDisplayBillingCycle(
+  plan: CounselorPlan,
+  fallback: BillingCycle,
+) {
+  return plan.commercialType ? plan.billingCycle : fallback;
 }
 
 function getBillingLabel(billingCycle: BillingCycle) {
@@ -481,7 +489,7 @@ export function CounselorPlansPage() {
       plan_slug: plan.slug,
     });
     setSelectedPlan(plan);
-    setBillingCycle(plan.commercialType === "YEAR" ? "yearly" : "monthly");
+    setBillingCycle(plan.billingCycle);
     setMessage(null);
     setCheckoutError("");
     setCheckoutTransaction(null);
@@ -824,9 +832,7 @@ export function CounselorPlansPage() {
               .filter(
                 (cycle) =>
                   !selectedPlan?.commercialType ||
-                  (selectedPlan.commercialType === "YEAR"
-                    ? cycle === "yearly"
-                    : cycle === "monthly"),
+                  cycle === selectedPlan.billingCycle,
               )
               .map((cycle) => (
                 <button
@@ -856,7 +862,7 @@ export function CounselorPlansPage() {
             <BagProductCard
               key="comprehensive-teacher-bag"
               plan={bagPlan}
-              billingCycle={billingCycle}
+              billingCycle={getPlanDisplayBillingCycle(bagPlan, billingCycle)}
               onPurchase={() => selectPlan(bagPlan)}
             />
           ) : null
@@ -865,7 +871,11 @@ export function CounselorPlansPage() {
           const active = Boolean(
             data?.subscription?.usable && data.subscription.planId === plan.id,
           );
-          const price = getPlanPrice(plan, billingCycle);
+          const planDisplayBillingCycle = getPlanDisplayBillingCycle(
+            plan,
+            billingCycle,
+          );
+          const price = getPlanPrice(plan, planDisplayBillingCycle);
           const automaticPricing =
             plan.pricing &&
             (plan.pricing.pricingReason === "AUTOMATIC_PROMOTION" ||
@@ -909,7 +919,7 @@ export function CounselorPlansPage() {
                   {formatPrice(automaticPricing?.finalAmount ?? price)}
                 </strong>
                 <span className="pb-1 text-sm font-bold text-slate-500">
-                  ريال / {getBillingLabel(billingCycle)}
+                  ريال / {getBillingLabel(planDisplayBillingCycle)}
                 </span>
               </div>
               {automaticPricing?.promotionName ? (

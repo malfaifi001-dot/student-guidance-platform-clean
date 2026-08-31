@@ -132,6 +132,7 @@ export async function GET() {
         slug: plan.slug,
         priceMonthly: plan.priceMonthly,
         priceYearly: plan.priceYearly,
+        billingCycle: billingCycle === "YEARLY" ? "yearly" : "monthly",
         durationDays: Number(
           getPlanFeatureValue(plan.features, "durationDays", "30"),
         ),
