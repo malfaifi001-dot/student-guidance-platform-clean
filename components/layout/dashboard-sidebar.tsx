@@ -289,6 +289,11 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
     href: "/dashboard/activity-leader/activity-plan",
     icon: CalendarDays,
   },
+  {
+    label: "إرسال أنشطة للمعلمين",
+    href: "/dashboard/activity-leader/activity-teacher-links",
+    icon: Send,
+  },
   ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
     label: domain.title,
     href: `/dashboard/activity-leader/programs/${domain.slug}`,

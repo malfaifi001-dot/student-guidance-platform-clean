@@ -9,6 +9,7 @@ import {
 } from "@/lib/certificates/certificate-types";
 import { getCertificateTemplateByKey } from "@/lib/certificates/certificate-template-registry";
 import { DEFAULT_CERTIFICATE_TEMPLATE_KEY } from "@/lib/certificates/certificate-renderer";
+import { buildCertificateIntro, buildCertificateRecognition } from "@/lib/certificates/certificate-copy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -214,10 +215,13 @@ export async function POST(request: Request) {
   const reason = safeString(payload.reason);
   const issueDate = normalizeIssueDate(payload.issueDate);
   const title = buildCertificateTitle(certificateType);
-  const bodyText = safeString(payload.body) || buildCertificateBody({
-    recipientName,
+  const schoolProfile = await certificatePrisma.schoolProfile.findUnique({
+    where: { schoolAccountId: actor.schoolAccountId },
+    select: { schoolName: true },
+  });
+  const introText = safeString(payload.introText) || buildCertificateIntro(schoolProfile?.schoolName || "");
+  const bodyText = safeString(payload.bodyText || payload.body) || buildCertificateRecognition({
     recipientType,
-    certificateType,
     reason,
   });
 
@@ -271,6 +275,7 @@ export async function POST(request: Request) {
     htmlSnapshot: null,
     dataJson: JSON.stringify({
       templateKey,
+      introText,
       principalName:
         signatureProfile?.principalName ||
         "مدير المدرسة",

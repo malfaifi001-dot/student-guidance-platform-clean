@@ -25,6 +25,8 @@ type CertificateDraft = {
   certificateType: string;
   reason: string;
   body: string;
+  introText?: string;
+  bodyText?: string;
   issueDate: string;
   principalName?: string;
   issuerName?: string;

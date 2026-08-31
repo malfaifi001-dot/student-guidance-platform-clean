@@ -1,4 +1,4 @@
-import { getCertificateTypeLabel } from "./certificate-types";
+import { getCertificateTypeLabel, getRecipientPrefix } from "./certificate-types";
 
 export type CertificateDraft = {
   templateKey?: string;
@@ -10,10 +10,13 @@ export type CertificateDraft = {
   grade?: string;
   classroom?: string;
   reason?: string;
+  schoolName?: string;
   issueDate: string;
   issuerName?: string;
   principalName?: string;
   body?: string;
+  introText?: string;
+  bodyText?: string;
 };
 
 export function buildCertificateTitle(type: string) {
@@ -25,6 +28,7 @@ export function buildCertificateBody(input: {
   certificateType: string;
   recipientType: string;
   recipientName: string;
+  schoolName?: string;
   reason?: string;
 }) {
   const reason = normalizeCertificateReason(input.reason);
@@ -33,13 +37,31 @@ export function buildCertificateBody(input: {
   );
   const pronoun = feminine ? "لها" : "له";
 
-  if (reason) {
-    return `تقديرًا ${feminine ? "لجهودها وتميزها" : "لجهوده وتميزه"} ${reason}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
-  }
+  const school = String(input.schoolName || "المدرسة").trim() || "المدرسة";
+  const prefix = getRecipientPrefix(input.recipientType);
+  const recipient = `${prefix}${prefix ? " " : ""}${input.recipientName || "المستفيد"}`;
+  const reasonPart = reason ? ` ${reason}` : "";
 
   const efforts = feminine ? "لجهودها وتميزها" : "لجهوده وتميزه";
 
-  return `تقديرًا ${efforts}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
+  return `تتقدم إدارة مدرسة ${school} بخالص الشكر والتقدير إلى ${recipient}، تقديرًا ${efforts}${reasonPart}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
+}
+
+export function buildCertificateIntro(schoolName?: string) {
+  const school = String(schoolName || "المدرسة").trim() || "المدرسة";
+  return `تتقدم إدارة مدرسة ${school} بخالص الشكر والتقدير إلى`;
+}
+
+export function buildCertificateRecognition(input: {
+  recipientType: string;
+  reason?: string;
+}) {
+  const reason = normalizeCertificateReason(input.reason);
+  const feminine = ["student_female", "teacher_female", "guardian_female"].includes(input.recipientType);
+  const pronoun = feminine ? "لها" : "له";
+  const efforts = feminine ? "لجهودها وتميزها" : "لجهوده وتميزه";
+  const reasonPart = reason ? ` ${reason}` : "";
+  return `تقديرًا ${efforts}${reasonPart}، مع أطيب الأمنيات ${pronoun} بدوام التوفيق والنجاح.`;
 }
 
 function normalizeCertificateReason(value?: string) {
@@ -64,6 +86,7 @@ export function normalizeCertificateDraft(input: Partial<CertificateDraft>): Cer
     certificateType,
     recipientType,
     recipientName,
+    schoolName: String(input.schoolName || "").trim(),
     recipientIdentity: String(input.recipientIdentity || "").trim(),
     recipientStudentId: String(input.recipientStudentId || "").trim(),
     grade: String(input.grade || "").trim(),
@@ -76,11 +99,11 @@ export function normalizeCertificateDraft(input: Partial<CertificateDraft>): Cer
     principalName: String(input.principalName || "").trim(),
     body:
       String(input.body || "").trim() ||
-      buildCertificateBody({
-        certificateType,
+      buildCertificateRecognition({
         recipientType,
-        recipientName,
         reason,
       }),
+    introText: String(input.introText || "").trim() || buildCertificateIntro(String(input.schoolName || "").trim()),
+    bodyText: String(input.bodyText || input.body || "").trim() || buildCertificateRecognition({ recipientType, reason }),
   };
 }

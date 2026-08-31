@@ -159,6 +159,19 @@ enum ActivityAssignmentStatus {
   CANCELED
 }
 
+enum TeacherActivityLinkStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+enum TeacherActivitySubmissionStatus {
+  SUBMITTED
+  RETURNED
+  APPROVED
+  CANCELED
+}
+
 enum AccountabilityRequestStatus {
   DRAFT
   SENT
@@ -324,6 +337,8 @@ model SchoolAccount {
   assessmentAnalyses           AssessmentAnalysis[]
   calendarReminders            CalendarReminder[]
   activityAssignments          ActivityAssignment[]           @relation("ActivityAssignmentsBySchool")
+  teacherActivityLinks         TeacherActivityLink[]          @relation("TeacherActivityLinksBySchool")
+  teacherActivitySubmissions   TeacherActivitySubmission[]    @relation("TeacherActivitySubmissionsBySchool")
   internalAssignments          InternalAssignment[]           @relation("InternalAssignmentsBySchool")
   surveys                      Survey[]                       @relation("SurveysBySchool")
   surveyResponses              SurveyResponse[]               @relation("SurveyResponsesBySchool")
@@ -493,6 +508,8 @@ model User {
   pushDeliveries              PushDelivery[]
   calendarReminders           CalendarReminder[]
   createdActivityAssignments  ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  createdTeacherActivityLinks TeacherActivityLink[] @relation("TeacherActivityLinksCreatedBy")
+  createdTeacherActivitySubmissions TeacherActivitySubmission[] @relation("TeacherActivitySubmissionsCreatedBy")
   createdInternalAssignments  InternalAssignment[] @relation("InternalAssignmentsCreatedBy")
   receivedInternalAssignments InternalAssignment[] @relation("InternalAssignmentsAssignedTo")
   createdSurveys              Survey[]             @relation("SurveysCreatedBy")
@@ -1051,6 +1068,7 @@ model Service {
   access                         ServiceAccess[]
   calendarReminders              CalendarReminder[]
   activityAssignments            ActivityAssignment[] @relation("ActivityAssignmentsService")
+  teacherActivitySubmissions     TeacherActivitySubmission[] @relation("TeacherActivitySubmissionsService")
   accountabilityRequests         AccountabilityRequest[]
   originatingInternalAssignments InternalAssignment[] @relation("InternalAssignmentsOriginService")
   sourcedInternalAssignments     InternalAssignment[] @relation("InternalAssignmentsSourceService")
@@ -1083,6 +1101,7 @@ model Workflow {
   steps               WorkflowStep[]
   cases               CaseEntry[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+  teacherActivitySubmissions TeacherActivitySubmission[] @relation("TeacherActivitySubmissionsWorkflow")
   accountabilityRequests AccountabilityRequest[]
 
   createdAt DateTime @default(now())
@@ -1188,6 +1207,7 @@ model CaseEntry {
   evidences           Evidence[]
   calendarReminders   CalendarReminder[]
   activityAssignment  ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  teacherActivitySubmission TeacherActivitySubmission? @relation("TeacherActivitySubmissionCaseEntry")
   activityPlanEntries ActivityPlanEntry[]
 
   createdAt              DateTime         @default(now())
@@ -1362,6 +1382,88 @@ model ActivityAssignment {
   @@index([teacherPhone])
   @@index([status])
   @@index([dueDate])
+  @@index([createdAt])
+}
+
+model TeacherActivityLink {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("TeacherActivityLinksBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("TeacherActivityLinksCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  title String
+  note  String? @db.Text
+
+  status           TeacherActivityLinkStatus @default(ACTIVE)
+  token            String                    @unique
+  tokenExpiresAt   DateTime?
+  closedAt         DateTime?
+
+  submissions TeacherActivitySubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TeacherActivitySubmission {
+  id String @id @default(cuid())
+
+  linkId        String
+  link          TeacherActivityLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("TeacherActivitySubmissionsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("TeacherActivitySubmissionsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String
+  service   Service @relation("TeacherActivitySubmissionsService", fields: [serviceId], references: [id])
+
+  workflowId String
+  workflow   Workflow @relation("TeacherActivitySubmissionsWorkflow", fields: [workflowId], references: [id])
+
+  caseEntryId String?    @unique
+  caseEntry   CaseEntry? @relation("TeacherActivitySubmissionCaseEntry", fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  domainSlug  String
+  domainTitle String
+
+  teacherName  String
+  teacherPhone String
+  teacherEmail String?
+
+  teacherSignatureUrl String?
+  teacherSignedName   String?
+  teacherSignedAt     DateTime?
+
+  submittedValues        Json?
+  submittedEvidenceItems Json?
+  returnedReason         String? @db.Text
+
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  returnedAt  DateTime?
+
+  status TeacherActivitySubmissionStatus @default(SUBMITTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([linkId])
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([domainSlug])
+  @@index([status])
   @@index([createdAt])
 }
 

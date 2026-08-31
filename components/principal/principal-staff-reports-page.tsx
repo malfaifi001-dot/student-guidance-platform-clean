@@ -11,6 +11,7 @@ import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/eva
 import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
 import { MobileFeedbackPopCard } from "@/components/mobile-app/mobile-feedback-pop-card";
 import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
 
 type WorkspaceProps = {
   workspace: PrincipalStaffReportsWorkspace;
@@ -36,6 +37,8 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
     return workspace.outputFamilies.find((family) => family.outputs.length)?.key || workspace.outputFamilies[0]?.key || "REPORTS";
   });
   const [previewReport, setPreviewReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
+  const [activityPlanPreview, setActivityPlanPreview] = useState<PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number] | null>(null);
+  const [certificatePreview, setCertificatePreview] = useState<PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number] | null>(null);
   const [linkReport, setLinkReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
   const [signReport, setSignReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
   const [signedReportKeys, setSignedReportKeys] = useState<Set<string>>(() => new Set());
@@ -194,9 +197,11 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
             <h2 className="mt-3 text-lg font-black text-slate-900 dark:text-white">لا توجد تقارير صادرة</h2>
           </section>
         )}
-      </section> : <OutputFamilySection family={workspace.outputFamilies.find((item) => item.key === selectedFamily)} />}
+      </section> : <OutputFamilySection family={workspace.outputFamilies.find((item) => item.key === selectedFamily)} onActivityPlanPreview={setActivityPlanPreview} onCertificatePreview={setCertificatePreview} />}
 
       {previewReport ? <PreviewDialog report={previewReport} onClose={() => setPreviewReport(null)} /> : null}
+      {activityPlanPreview ? <ActivityPlanPreviewDialog output={activityPlanPreview} onClose={() => setActivityPlanPreview(null)} /> : null}
+      {certificatePreview ? <CertificatePreviewDialog output={certificatePreview} onClose={() => setCertificatePreview(null)} /> : null}
       {signReport ? <PrincipalSignatureDialog report={signReport} staffName={workspace.staff.name} userId={workspace.staff.id} onClose={() => setSignReport(null)} onSigned={() => {
         const signed = signReport;
         setSignedReportKeys((current) => new Set(current).add(`${signReport.source}:${signReport.id}`));
@@ -236,7 +241,7 @@ function familyButtonClass(active: boolean) {
   ].join(" ");
 }
 
-function OutputFamilySection({ family }: { family?: PrincipalStaffReportsWorkspace["outputFamilies"][number] }) {
+function OutputFamilySection({ family, onActivityPlanPreview, onCertificatePreview }: { family?: PrincipalStaffReportsWorkspace["outputFamilies"][number]; onActivityPlanPreview: (output: PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number]) => void; onCertificatePreview: (output: PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number]) => void }) {
   if (!family) return null;
 
   return (
@@ -249,7 +254,15 @@ function OutputFamilySection({ family }: { family?: PrincipalStaffReportsWorkspa
               <h2 className="mt-3 text-lg font-black text-slate-950 dark:text-white">{output.title}</h2>
               <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">{output.status}</p>
             </div>
-            {output.canPreview && output.previewHref ? (
+            {output.canPreview && output.previewHref ? family.key === "ACTIVITY_PLAN" ? (
+              <button type="button" onClick={() => onActivityPlanPreview(output)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-xs font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <FileText className="h-4 w-4" /> معاينة
+              </button>
+            ) : family.key === "CERTIFICATES" ? (
+              <button type="button" onClick={() => onCertificatePreview(output)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-xs font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <FileText className="h-4 w-4" /> معاينة
+              </button>
+            ) : (
               <Link href={output.previewHref} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-indigo-700 px-4 text-xs font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
                 <FileText className="h-4 w-4" /> معاينة
               </Link>
@@ -265,6 +278,48 @@ function OutputFamilySection({ family }: { family?: PrincipalStaffReportsWorkspa
       )}
     </section>
   );
+}
+
+function ActivityPlanPreviewDialog({ output, onClose }: { output: PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number]; onClose: () => void }) {
+  const params = new URLSearchParams({ preview: "1", stage: output.sourceId, mode: "detailed" });
+  if (output.ownerUserId) params.set("userId", output.ownerUserId);
+  const previewUrl = `/print/activity-plan?${params.toString()}`;
+  const printUrl = `${previewUrl}&print=1`;
+
+  return <CurriculumDistributionMobilePreview
+    open
+    previewUrl={previewUrl}
+    onDownload={async () => {
+      window.open(printUrl, "_blank", "noopener,noreferrer");
+      return true;
+    }}
+    onClose={onClose}
+    title="معاينة خطة النشاط الطلابي"
+    subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها."
+    documentSelector=".activity-plan-print-page"
+    allowDocumentScroll
+  />;
+}
+
+function CertificatePreviewDialog({ output, onClose }: { output: PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number]; onClose: () => void }) {
+  const previewUrl = `/dashboard/certificates/${encodeURIComponent(output.sourceId)}/preview-print`;
+  const printUrl = `${previewUrl}?print=1`;
+
+  return <CurriculumDistributionMobilePreview
+    open
+    previewUrl={previewUrl}
+    onDownload={async () => {
+      window.open(printUrl, "_blank", "noopener,noreferrer");
+      return true;
+    }}
+    onClose={onClose}
+    title="معاينة الشهادة"
+    subtitle="راجع الشهادة قبل طباعتها أو تحميلها."
+    documentSelector=".certificate-shell"
+    documentLabel="الشهادة"
+    documentOrientation="landscape"
+    hideDocumentScrollbars
+  />;
 }
 
 function DialogShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {

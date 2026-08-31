@@ -149,6 +149,15 @@ export function renderCertificateDocumentHtml(
   const issuerTitle = profile?.issuerTitle || clean(data.issuerTitle) || "الموجه الطلابي";
   const issuerName = profile?.issuerName || clean(data.issuerName) || "الموجه الطلابي";
   const issuerSignatureUrl = profile?.issuerSignatureUrl || clean(data.issuerSignatureUrl) || "";
+  const storedBody = clean(certificate.body);
+  const storedIntro = clean(data.introText);
+  const legacyFullPrefix = "تتقدم إدارة";
+  const legacyNameMarker = certificate.recipientName ? ` ${certificate.recipientName}،` : "";
+  const legacyFullBody = !storedIntro && storedBody.startsWith(legacyFullPrefix) && legacyNameMarker
+    ? { introText: storedBody.slice(0, storedBody.indexOf(legacyNameMarker)).trim(), bodyText: storedBody.slice(storedBody.indexOf(legacyNameMarker) + legacyNameMarker.length).trim() }
+    : null;
+  const introText = storedIntro || legacyFullBody?.introText || "تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى";
+  const bodyText = legacyFullBody?.bodyText || storedBody;
   const artworkUrl = resolveUrl(template.templatePath, options.baseUrl);
   const ministryLogoUrl = resolveUrl("/templates/certificates/moe-logo.svg", options.baseUrl);
   const visionLogoUrl = resolveUrl("/uploads/school-logos/VISION2030.png", options.baseUrl);
@@ -323,9 +332,9 @@ export function renderCertificateDocumentHtml(
     ${logoMarkup}
     <div class="certificate-overlay">
       <main class="content">
-        <p class="intro">تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى</p>
+        <p class="intro">${escapeHtml(introText)}</p>
         <div class="name">${escapeHtml(certificate.recipientName)}</div>
-        <p class="body">${escapeHtml(certificate.body || "")}</p>
+        <p class="body">${escapeHtml(bodyText)}</p>
       </main>
       <div class="signatures">
         ${renderSignatureBox({ title: issuerTitle, name: issuerName, signatureUrl: issuerSignatureUrl, baseUrl: options.baseUrl, titleSize: layout.signatureTitleSize, nameSize: layout.signatureNameSize })}

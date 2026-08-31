@@ -8,6 +8,7 @@ import { CurriculumDistributionPrintController } from "@/components/curriculum-d
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -63,13 +64,45 @@ body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
 
 export default async function ActivityPlanPrintPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const current = await requireServiceAccessForCurrentUser("student-activity-plan");
-  if (current.user.role !== "ACTIVITY_LEADER") redirect("/dashboard");
   if (!current.user.schoolAccountId) redirect("/dashboard/onboarding?required=true");
 
-  const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const profile = current.user.schoolAccount?.profile;
-  const activityLeaderName = profile?.activityLeaderName || current.user.officialName || current.user.name || "";
   const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
+
+  let ownerUserId: string | undefined;
+  let activityLeaderName = "";
+  let activityLeaderSignatureUrl: string | null = null;
+
+  if (current.user.role === "PRINCIPAL") {
+    const requestedUserId = typeof params.userId === "string" ? params.userId.trim() : "";
+    if (!requestedUserId) redirect("/dashboard");
+
+    const staff = await prisma.user.findFirst({
+      where: {
+        id: requestedUserId,
+        schoolAccountId: current.user.schoolAccountId,
+        role: "ACTIVITY_LEADER",
+      },
+      select: {
+        id: true,
+        officialName: true,
+        name: true,
+        signatureUrl: true,
+      },
+    });
+
+    if (!staff) redirect("/dashboard");
+
+    ownerUserId = staff.id;
+    activityLeaderName = staff.officialName || staff.name || "";
+    activityLeaderSignatureUrl = staff.signatureUrl || null;
+  } else {
+    if (current.user.role !== "ACTIVITY_LEADER") redirect("/dashboard");
+    activityLeaderName = profile?.activityLeaderName || current.user.officialName || current.user.name || "";
+    activityLeaderSignatureUrl = profile?.activityLeaderSignatureUrl || null;
+  }
+
+  const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const printEnabled = String(params.print || "") === "1";
   const weeklyMode = String(params.mode || "") === "weekly";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
@@ -80,14 +113,14 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
     ? Array.from(new Set(params.weeks.split(",").map((value) => Number(value.trim())).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20)))
     : [];
 
-  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks);
+  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks, ownerUserId);
   const weeklyPlans = weeklyMode
-    ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
+    ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage, ownerUserId)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
     : [];
   const principalSignature = await resolveEffectivePrincipalSignature({
     schoolAccountId: current.user.schoolAccountId,
     owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
   });
-  const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || null, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
+  const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
   return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />{weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

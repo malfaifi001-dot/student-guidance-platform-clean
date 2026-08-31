@@ -8,6 +8,7 @@ import {
   getRecipientPrefix,
 } from "@/lib/certificates/certificate-types";
 import { DEFAULT_CERTIFICATE_TEMPLATE_KEY } from "@/lib/certificates/certificate-renderer";
+import { buildCertificateIntro, buildCertificateRecognition } from "@/lib/certificates/certificate-copy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -133,6 +134,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
+  const schoolProfile = await certificatePrisma.schoolProfile.findUnique({
+    where: { schoolAccountId: actor.schoolAccountId },
+    select: { schoolName: true },
+  });
+
   let body: any = {};
 
   try {
@@ -210,7 +216,11 @@ export async function POST(request: Request) {
         const certificateId = randomUUID();
         const certificateNumber = generateLocalCertificateNumber(index);
         const title = buildCertificateTitle(row.certificateType);
-        const bodyText = buildCertificateBody(row);
+        const bodyText = buildCertificateRecognition({
+          recipientType: row.recipientType,
+          reason: row.reason,
+        });
+        const introText = buildCertificateIntro(schoolProfile?.schoolName || "");
         const issueDate = normalizeIssueDate(row.issueDate);
 
         await insertDynamic(tx, "IssuedCertificate", issuedColumns, {
@@ -238,6 +248,7 @@ export async function POST(request: Request) {
           htmlSnapshot: null,
           dataJson: JSON.stringify({
             templateKey: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
+            introText,
             source,
             batchId,
             batchNumber,

@@ -26,6 +26,7 @@ export type CertificateTemplatePreviewData = {
   certificateType: string;
   recipientName: string;
   body: string;
+  introText?: string;
   reason?: string;
   issueDate: string;
   certificateNumber?: string;
@@ -241,7 +242,7 @@ export function CertificateTemplatePreview({ data }: { data: CertificateTemplate
           }}
         >
           <p className="font-bold" style={{ color: layout.introColor, fontSize: layout.introSize, marginTop: layout.introMarginTop }}>
-            تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى
+            {data.introText || "تتقدم إدارة المدرسة بخالص الشكر والتقدير إلى"}
           </p>
           <p
             className="font-black leading-tight"

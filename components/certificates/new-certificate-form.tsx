@@ -14,7 +14,7 @@ import {
   CERTIFICATE_RECIPIENT_TYPES,
   CERTIFICATE_TYPES,
 } from "@/lib/certificates/certificate-types";
-import { buildCertificateBody } from "@/lib/certificates/certificate-copy";
+import { buildCertificateIntro, buildCertificateRecognition } from "@/lib/certificates/certificate-copy";
 import { CertificateTemplateSelector } from "@/components/certificates/certificate-template-preview";
 import { CertificateWizardActionRow } from "@/components/certificates/certificate-wizard-action-row";
 import { CertificateWizardNavigation } from "@/components/certificates/certificate-wizard-navigation";
@@ -39,9 +39,12 @@ type CertificateDraft = {
   certificateType: string;
   reason: string;
   body: string;
+  introText: string;
+  bodyText: string;
   issueDate: string;
   principalName?: string;
   issuerName?: string;
+  schoolName?: string;
 };
 
 export const CERTIFICATE_DRAFT_STORAGE_KEY = "teachix:certificates:new-draft:v1";
@@ -58,6 +61,8 @@ const DEFAULT_DRAFT: CertificateDraft = {
   certificateType: "thanks",
   reason: "",
   body: "",
+  introText: "",
+  bodyText: "",
   issueDate: getTodayInputDate(),
   principalName: "",
   issuerName: "",
@@ -67,15 +72,19 @@ function getTodayInputDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function buildAutoIntro(schoolName: string) {
+  return buildCertificateIntro(schoolName);
+}
+
 function buildAutoBody(draft: CertificateDraft) {
-  return buildCertificateBody(draft);
+  return buildCertificateRecognition(draft);
 }
 
 function isStudentRecipient(value: string) {
   return value === "student" || value === "student_female";
 }
 
-export function NewCertificateForm() {
+export function NewCertificateForm({ schoolName = "" }: { schoolName?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [draft, setDraft] = useState<CertificateDraft>(DEFAULT_DRAFT);
@@ -83,6 +92,7 @@ export function NewCertificateForm() {
   const [studentQuery, setStudentQuery] = useState("");
   const [studentResults, setStudentResults] = useState<StudentSearchResult[]>([]);
   const [studentLoading, setStudentLoading] = useState(false);
+  const [introTouched, setIntroTouched] = useState(false);
   const [bodyTouched, setBodyTouched] = useState(false);
   const [error, setError] = useState("");
   const [step, setStep] = useState<1 | 2>(searchParams.get("step") === "2" ? 2 : 1);
@@ -96,9 +106,15 @@ export function NewCertificateForm() {
         || window.sessionStorage.getItem(LEGACY_DRAFT_STORAGE_KEY);
 
       if (raw) {
-        const saved = JSON.parse(raw) as Partial<CertificateDraft> & { bodyTouched?: boolean; step?: number };
+        const saved = JSON.parse(raw) as Partial<CertificateDraft> & { introTouched?: boolean; bodyTouched?: boolean; step?: number };
         const { bodyTouched: savedBodyTouched, step: savedStep, ...savedDraft } = saved;
-        setDraft({ ...DEFAULT_DRAFT, ...savedDraft });
+        const hydratedDraft = { ...DEFAULT_DRAFT, ...savedDraft };
+        setDraft({
+          ...hydratedDraft,
+          introText: String(savedDraft.introText || "").trim(),
+          bodyText: String(savedDraft.bodyText || savedDraft.body || "").trim(),
+        });
+        setIntroTouched(savedDraft.introTouched === true);
         setBodyTouched(savedBodyTouched === true);
 
         if (searchParams.get("step") !== "2") {
@@ -118,7 +134,7 @@ export function NewCertificateForm() {
     try {
       window.localStorage.setItem(
         CERTIFICATE_DRAFT_STORAGE_KEY,
-        JSON.stringify({ ...draft, bodyTouched, step }),
+        JSON.stringify({ ...draft, body: draft.bodyText, introTouched, bodyTouched, step }),
       );
     } catch {
       // Storage can be unavailable in private browsing; the in-memory draft remains usable.
@@ -126,18 +142,28 @@ export function NewCertificateForm() {
   }, [bodyTouched, draft, draftHydrated, step]);
 
   useEffect(() => {
+    if (!draftHydrated || introTouched) return;
+
+    setDraft((current) => {
+      const nextIntro = buildAutoIntro(schoolName);
+      return current.introText === nextIntro ? current : { ...current, introText: nextIntro };
+    });
+  }, [draftHydrated, introTouched, schoolName]);
+
+  useEffect(() => {
     if (!draftHydrated || bodyTouched) return;
 
     setDraft((current) => {
       const nextBody = buildAutoBody(current);
 
-      if (current.body === nextBody) {
+      if (current.bodyText === nextBody && current.body === nextBody) {
         return current;
       }
 
       return {
         ...current,
         body: nextBody,
+        bodyText: nextBody,
       };
     });
   }, [
@@ -146,6 +172,7 @@ export function NewCertificateForm() {
     draft.recipientName,
     draft.certificateType,
     draft.reason,
+    draft.bodyText,
   ]);
 
   useEffect(() => {
@@ -211,7 +238,6 @@ export function NewCertificateForm() {
 
     setStudentQuery(student.fullName || "");
     setStudentResults([]);
-    setBodyTouched(false);
   }
 
   function validateRecipientStep() {
@@ -247,7 +273,8 @@ export function NewCertificateForm() {
 
     const finalDraft = {
       ...draft,
-      body: draft.body.trim() || autoBody,
+      body: draft.bodyText.trim() || autoBody,
+      bodyText: draft.bodyText.trim() || autoBody,
     };
 
     try {
@@ -313,7 +340,6 @@ export function NewCertificateForm() {
                     updateDraft("recipientType", event.target.value);
                     updateDraft("studentId", null);
                     setStudentResults([]);
-                    setBodyTouched(false);
                   }}
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 focus:bg-white"
                 >
@@ -331,7 +357,6 @@ export function NewCertificateForm() {
                   value={draft.recipientName}
                   onChange={(event) => {
                     updateDraft("recipientName", event.target.value);
-                    setBodyTouched(false);
                   }}
                   placeholder="اكتب الاسم كاملًا"
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:bg-white"
@@ -437,7 +462,6 @@ export function NewCertificateForm() {
                   value={draft.certificateType}
                   onChange={(event) => {
                     updateDraft("certificateType", event.target.value);
-                    setBodyTouched(false);
                   }}
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 focus:bg-white"
                 >
@@ -469,7 +493,6 @@ export function NewCertificateForm() {
                 value={draft.reason}
                 onChange={(event) => {
                   updateDraft("reason", event.target.value);
-                  setBodyTouched(false);
                 }}
                 placeholder="مثال: المشاركة الفاعلة في أنشطة المدرسة"
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:bg-white"
@@ -484,15 +507,37 @@ export function NewCertificateForm() {
               <h2 className="mt-1 text-2xl font-black text-slate-950">النص القابل للتحرير</h2>
             </div>
 
-            <textarea
-              value={draft.body || autoBody}
+            <label className="block space-y-2">
+              <span className="text-xs font-black text-slate-500">المقدمة</span>
+              <textarea
+                value={draft.introText || buildAutoIntro(schoolName)}
+                onChange={(event) => {
+                  updateDraft("introText", event.target.value);
+                  setIntroTouched(true);
+                }}
+                rows={2}
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
+              />
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-xs font-black text-slate-500">الاسم</span>
+              <input value={draft.recipientName} readOnly className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 text-sm font-black text-slate-800" />
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-xs font-black text-slate-500">نص التكريم</span>
+              <textarea
+              value={draft.bodyText || buildAutoBody(draft)}
               onChange={(event) => {
                 updateDraft("body", event.target.value);
+                updateDraft("bodyText", event.target.value);
                 setBodyTouched(true);
               }}
               rows={4}
               className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-800 outline-none transition focus:border-sky-200 focus:bg-white"
             />
+            </label>
           </div>
           </div>
           </section>

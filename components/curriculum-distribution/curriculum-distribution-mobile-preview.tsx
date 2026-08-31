@@ -38,6 +38,7 @@ export function CurriculumDistributionMobilePreview({
   subtitle = "راجع التقرير قبل تحميله على جهازك.",
   documentSelector = ".curriculum-print-paper",
   documentLabel = "توزيع المنهج",
+  documentNotFoundMessage = "تعذر العثور على مستند المعاينة.",
   allowDocumentScroll = false,
   hideDocumentScrollbars = false,
   documentOrientation = "landscape",
@@ -50,6 +51,7 @@ export function CurriculumDistributionMobilePreview({
   subtitle?: string;
   documentSelector?: string;
   documentLabel?: string;
+  documentNotFoundMessage?: string;
   allowDocumentScroll?: boolean;
   hideDocumentScrollbars?: boolean;
   documentOrientation?: "landscape" | "portrait";
@@ -327,7 +329,7 @@ export function CurriculumDistributionMobilePreview({
                 const reportDocument = event.currentTarget.contentDocument;
                 if (!reportDocument) {
                   frameReadyRef.current = true;
-                  setPreviewError(`تعذر العثور على مستند ${documentLabel} في المعاينة.`);
+                  setPreviewError(documentNotFoundMessage);
                   return;
                 }
 
@@ -364,7 +366,7 @@ export function CurriculumDistributionMobilePreview({
                   }
 
                   frameReadyRef.current = true;
-                  setPreviewError(`تعذر العثور على مستند ${documentLabel} في المعاينة.`);
+                  setPreviewError(documentNotFoundMessage);
                 };
 
                 waitForDocument();
