@@ -3,6 +3,7 @@ import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/asses
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
 import { AssessmentAnalyticalReport } from "@/components/assessments-center/report/assessment-analytical-report";
+import { SubjectPeriodicReport } from "@/components/assessments-center/report/subject-periodic-report";
 import { buildAssessmentAnalyticalReportData } from "@/lib/assessments-center/assessment-report-payload";
 import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 
@@ -74,5 +75,7 @@ export default async function AssessmentCleanPrintPage({
     currentUser?.gender,
   );
 
-  return <AssessmentAnalyticalReport data={data} />;
+  return data.analysisType === "SUBJECT_PERIODIC"
+    ? <SubjectPeriodicReport data={data} snapshot={analysis.summaryJson} />
+    : <AssessmentAnalyticalReport data={data} />;
 }

@@ -10,6 +10,15 @@ function text(value: unknown, fallback = ""): string { return typeof value === "
 function list(value: unknown): string[] { return Array.isArray(value) ? value.map((item) => { if (typeof item === "string") return item; if (item && typeof item === "object") return Object.values(item as Record<string, unknown>).flatMap((part) => Array.isArray(part) ? part : [part]).filter((part): part is string => typeof part === "string" && part.trim().length > 0).join(" — "); return ""; }).filter((item): item is string => Boolean(item)) : []; }
 function percent(value: number | null): number { return value === null ? 0 : Math.max(0, Math.min(100, value)); }
 
+export function buildAssessmentPerformanceLevels(values: number[], maximumScore: number) {
+  const percentages = maximumScore > 0 ? values.map((value) => value / maximumScore * 100) : [];
+  const levels = [["مرتفع", (value: number) => value >= 80], ["متوسط", (value: number) => value >= 60 && value < 80], ["منخفض", (value: number) => value >= 40 && value < 60], ["منخفض جدًا", (value: number) => value < 40]] as const;
+  return levels.map(([label, predicate]) => {
+    const count = percentages.filter(predicate).length;
+    return { label, count, percentage: percentages.length ? count / percentages.length * 100 : 0 };
+  });
+}
+
 function aiSections(ai: RecordValue, studentNames: string[]) {
   const redact = (value: string) => studentNames.reduce((result, name) => name.length > 1 ? result.split(name).join("الطالب") : result, value);
   const redactedList = (value: unknown) => list(value).map(redact);
@@ -36,9 +45,7 @@ export function buildAssessmentAnalyticalReportData(snapshotValue: unknown, iden
   const averageScore = latest?.averageScore ?? number(stats.postAverage) ?? number(stats.preAverage) ?? 0;
   const highestScore = latest?.maxScore ?? number(stats.highestPost) ?? number(stats.highestPre) ?? 0;
   const lowestScore = latest?.minScore ?? number(stats.lowestPost) ?? number(stats.lowestPre) ?? 0;
-  const latestPercentages = maximumScore > 0 ? latestValues.map((score) => score / maximumScore * 100) : [];
-  const levels = [["مرتفع", (value: number) => value >= 80], ["متوسط", (value: number) => value >= 60 && value < 80], ["منخفض", (value: number) => value >= 40 && value < 60], ["منخفض جدًا", (value: number) => value < 40]] as const;
-  const performanceLevels = levels.map(([label, predicate]) => { const count = latestPercentages.filter(predicate).length; return { label, count, percentage: latestPercentages.length ? count / latestPercentages.length * 100 : 0 }; });
+  const performanceLevels = buildAssessmentPerformanceLevels(latestValues, maximumScore);
   const dominantLevel = performanceLevels.reduce<{ label: string; count: number } | null>((best, item) => !best || item.count > best.count ? item : best, null);
   const series = presentation.series;
   const deterministicSummary = presentation.measurementMode === "CURRENT_STATE" && latest

@@ -6,7 +6,6 @@ import { writeDurableUpload } from "@/lib/storage/durable-upload-storage";
 import { processSignatureDataUrl } from "@/lib/signatures/signature-image-processor";
 import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
-import { normalizeWhatsAppPhone } from "@/lib/activity-programs/teacher-assignment-links";
 
 export const runtime = "nodejs";
 
@@ -84,9 +83,8 @@ export async function POST(request: Request, context: RouteContext) {
   const domainSlug = String(body?.domainSlug || "").trim();
   const draftId = String(body?.draftId || "").trim();
   const teacherName = String(body?.teacherName || "").trim();
-  const rawPhone = String(body?.teacherPhone || "").trim();
-  const teacherPhone = normalizeWhatsAppPhone(rawPhone);
-  const teacherEmail = String(body?.teacherEmail || "").trim() || null;
+  const teacherPhone = "";
+  const teacherEmail = null;
   const teacherSignatureDataUrl = String(body?.teacherSignatureDataUrl || "").trim();
 
   if (!/^[a-zA-Z0-9_-]{8,64}$/.test(draftId)) {
@@ -121,20 +119,12 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  if (!teacherPhone || teacherPhone.length < 11) {
-    return NextResponse.json(
-      { success: false, error: "رقم جوال المعلم غير صحيح." },
-      { status: 400 },
-    );
-  }
-
   if (!teacherSignatureDataUrl) {
     return NextResponse.json(
       { success: false, error: "توقيع المعلم مطلوب قبل إرسال النشاط." },
       { status: 400 },
     );
   }
-
   const values =
     body?.values && typeof body.values === "object"
       ? (body.values as Record<string, unknown>)

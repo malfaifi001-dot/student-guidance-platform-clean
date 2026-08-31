@@ -42,8 +42,6 @@ export function PublicTeacherActivityLinkForm({
   } | null>(null);
   const [domainLoading, setDomainLoading] = useState(false);
   const [teacherName, setTeacherName] = useState("");
-  const [teacherPhone, setTeacherPhone] = useState("");
-  const [teacherEmail, setTeacherEmail] = useState("");
   const [teacherSignatureDataUrl, setTeacherSignatureDataUrl] = useState("");
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [error, setError] = useState("");
@@ -127,8 +125,6 @@ export function PublicTeacherActivityLinkForm({
         domainSlug: selectedDomain,
         draftId: draftId.current,
         teacherName,
-        teacherPhone,
-        teacherEmail,
         values,
         evidenceItems,
         teacherSignatureDataUrl,
@@ -221,26 +217,6 @@ export function PublicTeacherActivityLinkForm({
                   value={teacherName}
                   onChange={(event) => setTeacherName(event.target.value)}
                   placeholder="مثال: محمد علي"
-                  className="input"
-                />
-              </div>
-              <div>
-                <FieldLabel>رقم جوال المعلم</FieldLabel>
-                <input
-                  value={teacherPhone}
-                  onChange={(event) => setTeacherPhone(event.target.value)}
-                  inputMode="tel"
-                  placeholder="05xxxxxxxx"
-                  className="input"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <FieldLabel>البريد الإلكتروني (اختياري)</FieldLabel>
-                <input
-                  value={teacherEmail}
-                  onChange={(event) => setTeacherEmail(event.target.value)}
-                  type="email"
-                  placeholder="teacher@example.com"
                   className="input"
                 />
               </div>

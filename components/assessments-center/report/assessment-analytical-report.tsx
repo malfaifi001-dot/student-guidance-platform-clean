@@ -53,7 +53,7 @@ function clamp(value: number, min = 0, max = 100) { return Math.min(max, Math.ma
 function formatNumber(value: number, digits = 1) { return Number.isFinite(value) ? value.toFixed(digits) : "—"; }
 function formatPercent(value?: number, digits = 1) { return value == null || !Number.isFinite(value) ? "—" : `${value.toFixed(digits)}%`; }
 
-function ReportBrand({ data }: { data: AssessmentAnalyticalReportData }) {
+export function ReportBrand({ data }: { data: AssessmentAnalyticalReportData }) {
   return <div className="report-brand">
     <div className="report-brand__vision"><img src="/uploads/school-logos/VISION2030.png" alt="رؤية السعودية 2030" /></div>
     <div className="report-brand__school" dir="rtl"><strong>{data.school.name || "مدرسة Teachix"}</strong>{data.school.educationAdministration ? <span>{data.school.educationAdministration}</span> : null}{data.school.educationOffice ? <span>{data.school.educationOffice}</span> : null}</div>
@@ -101,7 +101,7 @@ function DonutChart({ levels }: { levels: AssessmentPerformanceLevel[] }) {
 
 function DomainBars({ domains }: { domains: AssessmentDomainMetric[] }) { return <div className="domain-bars">{domains.map((domain) => <div className="domain-bar" key={domain.label}><div className="domain-bar__head"><span>{domain.label}</span><strong>{formatPercent(domain.percentage)}</strong></div><div className="domain-bar__track"><div className="domain-bar__value" style={{ width: `${clamp(domain.percentage)}%` }} /></div></div>)}</div>; }
 function InsightList({ items, tone = "blue" }: { items: string[]; tone?: "green" | "amber" | "blue" | "red" }) { if (!items.length) return <div className="empty-insight">لا توجد بيانات متاحة.</div>; return <ul className={`insight-list insight-list--${tone}`}>{items.map((item, index) => <li key={`${item}-${index}`}><span>{index + 1}</span><p>{item}</p></li>)}</ul>; }
-function SignatureBox({ label, name, imageUrl }: { label: string; name?: string; imageUrl?: string }) { return <div className="signature-box"><span>{label}</span><div className="signature-image-area">{imageUrl ? <img src={imageUrl} alt={`توقيع ${name || label}`} /> : <div className="signature-line" />}</div><strong>{name || ""}</strong></div>; }
+export function SignatureBox({ label, name, imageUrl }: { label: string; name?: string; imageUrl?: string }) { return <div className="signature-box"><span>{label}</span><div className="signature-image-area">{imageUrl ? <img src={imageUrl} alt={`توقيع ${name || label}`} /> : <div className="signature-line" />}</div><strong>{name || ""}</strong></div>; }
 function PageFooter({ page }: { page: number }) { return <div className="page-footer"><span>Teachix — مركز التحاليل والاختبارات</span><strong>{page}</strong></div>; }
 
 function buildCurrentStateSummary(data: AssessmentAnalyticalReportData) {
