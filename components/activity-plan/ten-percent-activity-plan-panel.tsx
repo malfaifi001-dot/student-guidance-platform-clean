@@ -92,7 +92,8 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
   };
 
   return (
-    <section className="rounded-2xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/10 md:p-4">
+    <section className="ten-percent-activity-plan-panel rounded-2xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/10 md:p-4">
+      <style>{`.ten-percent-activity-plan-panel{border-color:#BBF7D0!important;background:#F0FDF4!important}.dark .ten-percent-activity-plan-panel{background:#052e16!important;border-color:#166534!important}.ten-percent-activity-plan-panel>div:first-of-type h3{color:#166534!important}.dark .ten-percent-activity-plan-panel>div:first-of-type h3{color:#bbf7d0!important}.ten-percent-activity-plan-panel>div:first-of-type p{color:#166534!important}.dark .ten-percent-activity-plan-panel>div:first-of-type p{color:#bbf7d0!important}.ten-percent-activity-plan-panel>div:first-of-type>button{background:#22C55E!important;color:#fff!important}.ten-percent-activity-plan-panel>div:first-of-type>button:hover{background:#16A34A!important}.ten-percent-activity-plan-panel>div:nth-of-type(2){border-color:#BBF7D0!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>thead{background:#DCFCE7!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>thead th{border-color:#BBF7D0!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody tr:hover td{background:#F0FDF4!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody td{border-color:#DCFCE7!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody button{background:#DCFCE7!important;color:#166534!important}.ten-percent-activity-plan-panel>div:nth-of-type(2)>table>tbody button:hover{background:#BBF7D0!important}.ten-percent-activity-plan-panel>p{color:#166534!important}.dark .ten-percent-activity-plan-panel>p{color:#bbf7d0!important}`}</style>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-black text-amber-950 dark:text-amber-100">الخطة الفصلية (10%)</h3>
@@ -190,7 +191,7 @@ function TenPercentActivityPlanModal({ open, row, stage, domains, grades, onClos
 
   const toggleWeek = (week: number) => setDraft((current) => ({ ...current, executionWeeks: current.executionWeeks.includes(week) ? current.executionWeeks.filter((item) => item !== week) : [...current.executionWeeks, week].sort((left, right) => left - right) }));
   const toggleGrade = (grade: string) => setDraft((current) => ({ ...current, grades: current.grades.includes(grade) ? current.grades.filter((item) => item !== grade) : [...current.grades, grade] }));
-  const setTeacherNames = (value: string) => setDraft((current) => ({ ...current, teacherNames: value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) }));
+  const setTeacherNames = (value: string) => setDraft((current) => ({ ...current, teacherNames: value.split(/\r?\n/) }));
 
   const save = async () => {
     setSaving(true);

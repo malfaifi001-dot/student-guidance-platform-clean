@@ -2,6 +2,7 @@ import type React from "react";
 import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
 import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
+import { ActivityPlanPrintPage, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
 
 type Props = {
   weeks: WeeklyActivityPlan[];
@@ -71,15 +72,15 @@ export function WeeklyActivityPlanMatrix({ weeks }: { weeks: WeeklyActivityPlan[
 export function WeeklyActivityPlanPrintDocument({ weeks, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
   return <>
     <style>{`@page { size: A4 landscape; margin: 8mm; } .weekly-activity-plan-print-page { height: auto !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; page-break-after: auto !important; break-after: auto !important; } .weekly-plan-a4 { width: 100%; min-height: 194mm; display: flex; flex-direction: column; } .weekly-plan-band, .weekly-plan-band-frame { break-inside: avoid; page-break-inside: avoid; } @media print { html, body { margin: 0 !important; padding: 0 !important; } .weekly-plan-a4 { min-height: 194mm; } .weekly-plan-band-frame { box-shadow: none !important; } }`}</style>
-    <main className="activity-plan-print-root" dir="rtl">
-      <section className="activity-plan-print-page weekly-activity-plan-print-page" dir="rtl">
+    <style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
+      <ActivityPlanPrintPage className="weekly-activity-plan-print-page activity-plan-print-page--physical">
         <div className="weekly-plan-a4">
           <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>الخطة الفصلية للنشاط الطلابي</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>المرحلة</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
           <div style={{ flex: 1 }}><WeeklyActivityPlanMatrix weeks={weeks} /></div>
           <div style={{ marginTop: 5 }}><CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} /></div>
         </div>
-      </section>
+      </ActivityPlanPrintPage>
     </main>
   </>;
 }

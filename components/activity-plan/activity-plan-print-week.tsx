@@ -2,6 +2,7 @@ import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
+import { ActivityPlanPrintPage } from "@/components/activity-plan/activity-plan-print-shell";
 
 function formatDate(value: string) {
   return formatActivityPlanHijriDate(value);
@@ -38,7 +39,7 @@ export function ActivityPlanPrintWeek({
   const entryBySlot = new Map(week.entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry]));
 
   return (
-    <section className="activity-plan-print-page" dir="rtl">
+    <ActivityPlanPrintPage className="activity-plan-print-page--physical">
       <CurriculumDocumentHeader title="خطة النشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
 
       <section className="activity-plan-print-objective">
@@ -91,6 +92,6 @@ export function ActivityPlanPrintWeek({
       </table>
 
       <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />
-    </section>
+    </ActivityPlanPrintPage>
   );
 }

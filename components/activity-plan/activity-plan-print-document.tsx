@@ -1,5 +1,6 @@
 import type { ActivityPlanPrintWeek } from "@/lib/activity-plan/activity-plan-print-data";
 import { ActivityPlanPrintWeek as ActivityPlanPrintWeekView } from "./activity-plan-print-week";
+import { activityPlanPrintShellStyles } from "./activity-plan-print-shell";
 
 type ActivityPlanPrintDocumentProps = {
   weeks: ActivityPlanPrintWeek[];
@@ -16,8 +17,8 @@ type ActivityPlanPrintDocumentProps = {
 
 export function ActivityPlanPrintDocument({ weeks, stage, ...identity }: ActivityPlanPrintDocumentProps) {
   return (
-    <main className="activity-plan-print-root" dir="rtl">
+    <><style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
       {weeks.map((week) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} stage={stage} {...identity} />)}
-    </main>
+    </main></>
   );
 }

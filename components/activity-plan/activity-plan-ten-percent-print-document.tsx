@@ -2,6 +2,7 @@ import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanTenPercentRow, TenPercentDomainValue, TenPercentProgramValue } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { ActivityPlanPrintPage, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
 
 type Props = {
   rows: ActivityPlanTenPercentRow[];
@@ -279,9 +280,9 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
   `;
 
   return <>
-    <style>{printStyles}</style>
+    <style>{printStyles + activityPlanPrintShellStyles}</style>
     <main className="activity-plan-print-root" dir="rtl">
-      <section className="activity-plan-print-page activity-plan-ten-percent-print-page" dir="rtl">
+      <ActivityPlanPrintPage className="activity-plan-ten-percent-print-page activity-plan-print-page--flow" contentClassName="ten-percent-plan-page-content">
         <div className="ten-percent-plan-a4">
           <CurriculumDocumentHeader title="الخطة الفصلية (10%) للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
           <div className="ten-percent-plan-title"><h1>الخطة الفصلية (10%) للنشاط الطلابي</h1><span>{stage}</span></div>
@@ -294,7 +295,7 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
           </div>
           <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />
         </div>
-      </section>
+      </ActivityPlanPrintPage>
     </main>
   </>;
 }
