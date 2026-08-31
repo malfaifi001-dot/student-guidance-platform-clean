@@ -26,6 +26,12 @@ type CouponSummary = {
   discountValue: number;
   originalAmount: number;
   discountAmount: number;
+  baseAmount?: number;
+  promotionDiscountAmount?: number;
+  priceAfterPromotion?: number;
+  couponBaseAmount?: number;
+  couponDiscountAmount?: number;
+  totalDiscountAmount?: number;
 };
 
 export function PlanPaymentModal({
@@ -79,9 +85,13 @@ export function PlanPaymentModal({
   onActivateFreePlan?: () => void;
   onClose: () => void;
 }) {
-  const hasDiscount = Boolean(
-    coupon && coupon.discountAmount > 0 && coupon.originalAmount !== total,
-  );
+  const baseAmount = coupon?.baseAmount ?? coupon?.originalAmount ?? total;
+  const priceAfterPromotion =
+    coupon?.priceAfterPromotion ?? coupon?.originalAmount ?? baseAmount;
+  const couponDiscountAmount =
+    coupon?.couponDiscountAmount ?? coupon?.discountAmount ?? 0;
+  const hasDiscount = Boolean(coupon && baseAmount > total);
+  const hasPromotion = Boolean(coupon && priceAfterPromotion < baseAmount);
 
   function openTabbyWhatsApp() {
     const message = [
@@ -151,12 +161,18 @@ export function PlanPaymentModal({
               <div className="mt-3 rounded-2xl bg-white/15 p-3 text-xs font-bold text-sky-50">
                 <p className="font-black text-white">الكود المطبق: {coupon.couponCode}</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <span>السعر قبل الخصم</span>
-                  <span>{coupon.originalAmount.toLocaleString("ar-SA")} ريال</span>
+                  <span>السعر الأساسي</span>
+                  <span>{baseAmount.toLocaleString("ar-SA")} ريال</span>
                 </div>
+                {hasPromotion ? (
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span>السعر بعد العرض</span>
+                    <span>{priceAfterPromotion.toLocaleString("ar-SA")} ريال</span>
+                  </div>
+                ) : null}
                 <div className="mt-1 flex items-center justify-between gap-3">
-                  <span>الخصم</span>
-                  <span>-{coupon.discountAmount.toLocaleString("ar-SA")} ريال</span>
+                  <span>خصم الكوبون</span>
+                  <span>-{couponDiscountAmount.toLocaleString("ar-SA")} ريال</span>
                 </div>
               </div>
             ) : null}
@@ -167,7 +183,7 @@ export function PlanPaymentModal({
             {hasDiscount && coupon ? (
               <div className="mt-2 flex flex-wrap items-center gap-3" aria-live="polite">
                 <span className="relative text-lg font-black text-sky-100/80">
-                  {coupon.originalAmount.toLocaleString("ar-SA")} ريال
+                  {baseAmount.toLocaleString("ar-SA")} ريال
                   <span className="absolute inset-x-[-0.2rem] top-1/2 h-0.5 -rotate-6 animate-in fade-in slide-in-from-right-full bg-rose-300 duration-300 motion-reduce:animate-none" aria-hidden="true" />
                 </span>
                 <span className="animate-in fade-in slide-in-from-bottom-1 zoom-in-95 text-3xl font-black text-white duration-300 motion-reduce:animate-none">

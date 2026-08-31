@@ -28,16 +28,19 @@ export function buildCaseEntryReportWhereForUser(
   user: ReportScopeUser,
 ): Prisma.CaseEntryWhereInput {
   if (user.role === "ACTIVITY_LEADER") {
-    const schoolScope = {
-      schoolAccountId: user.schoolAccountId || "__NO_SCHOOL__",
+    const activityServiceScope = {
       service: {
         slug: { in: ACTIVITY_LEADER_REPORT_SERVICE_SLUGS },
       },
     };
+    const schoolScope = {
+      schoolAccountId: user.schoolAccountId || "__NO_SCHOOL__",
+      ...activityServiceScope,
+    };
 
     if (user.historicalPersonalRead) {
       return {
-        OR: [schoolScope, { ...schoolScope, createdById: user.id }],
+        OR: [schoolScope, { ...activityServiceScope, createdById: user.id }],
       };
     }
 

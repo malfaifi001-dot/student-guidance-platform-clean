@@ -13,11 +13,10 @@ import {
   resolvePlanSubscriptionPeriod,
 } from "@/lib/subscription/subscription-service";
 import {
-  getCouponQuote,
   redeemCoupon,
   redeemCouponWithClient,
 } from "@/lib/promotions/coupon-service";
-import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+import { getPlanPricing } from "@/lib/promotions/plan-pricing";
 import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 export class ElectronicPaymentError extends Error {
@@ -62,16 +61,6 @@ function normalizeBillingCycle(value: unknown): BillingCycle {
   return String(value || "MONTHLY").toUpperCase() === "YEARLY"
     ? "YEARLY"
     : "MONTHLY";
-}
-
-function getCheckoutAmount(
-  plan: {
-    priceMonthly: number;
-    priceYearly: number;
-  },
-  billingCycle: BillingCycle,
-) {
-  return billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
 }
 
 function buildInternalCheckoutUrl(transactionId: string) {
@@ -162,24 +151,14 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
 
   const salesExperience = await resolveSalesExperienceForUser(requesterUser.id);
 
-  const originalAmount = getCheckoutAmount(plan, billingCycle);
-  const couponQuote = input.couponCode
-    ? await getCouponQuote({
-        code: input.couponCode,
-        planId: plan.id,
-        billingCycle,
-        schoolAccountId: input.schoolAccountId,
-      })
-    : null;
-  const automaticPricing = input.couponCode
-    ? null
-    : await getAutomaticPlanPricing({
-        planId: plan.id,
-        plan,
-        billingCycle,
-      });
-  const amount =
-    couponQuote?.finalAmount ?? automaticPricing?.finalAmount ?? originalAmount;
+  const pricing = await getPlanPricing({
+    planId: plan.id,
+    plan,
+    billingCycle,
+    schoolAccountId: input.schoolAccountId,
+    couponCode: input.couponCode,
+  });
+  const amount = pricing.finalAmount;
 
   if (!amount || amount <= 0) {
     throw new ElectronicPaymentError("سعر الباقة غير مضبوط لهذه الدورة.", 409);
@@ -207,11 +186,16 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         requesterEmail: requesterUser.email,
         requesterJobTitle: requesterUser.jobTitle,
         providerSlug: provider.slug,
-        couponCode: couponQuote?.couponCode || null,
-        promotionId: automaticPricing?.promotionId || null,
-        originalAmount,
-        discountAmount:
-          couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
+        couponCode: pricing.couponCode,
+        promotionId: pricing.promotionId,
+        couponPromotionId: pricing.couponPromotionId,
+        originalAmount: pricing.baseAmount,
+        promotionDiscountAmount: pricing.promotionDiscountAmount,
+        priceAfterPromotion: pricing.priceAfterPromotion,
+        couponBaseAmount: pricing.couponBaseAmount,
+        couponDiscountAmount: pricing.couponDiscountAmount,
+        totalDiscountAmount: pricing.totalDiscountAmount,
+        discountAmount: pricing.totalDiscountAmount,
         finalAmount: amount,
         createdAt: new Date().toISOString(),
       }),
@@ -309,6 +293,10 @@ export async function applyPaidElectronicPaymentTransaction(
         planId: paidPlanId,
         billingCycle: normalizeBillingCycle(paidMetadata.billingCycle),
         schoolAccountId: paidSchoolAccountId,
+        couponBaseAmount:
+          typeof paidMetadata.couponBaseAmount === "number"
+            ? paidMetadata.couponBaseAmount
+            : undefined,
         subscriptionId: transaction.subscriptionId,
         paymentTransactionId: transaction.id,
       });
@@ -349,23 +337,25 @@ export async function applyPaidElectronicPaymentTransaction(
 
   const couponCodeForPayment =
     typeof metadata.couponCode === "string" ? metadata.couponCode : null;
-  if (couponCodeForPayment) {
-    const quote = await getCouponQuote({
-      code: couponCodeForPayment,
-      planId,
-      billingCycle,
-      schoolAccountId,
-    });
-    if (quote.finalAmount !== transaction.amount) {
-      throw new ElectronicPaymentError("تغيرت صلاحية أو قيمة الكوبون.", 409);
-    }
-  }
 
   const paidPlan = await prisma.plan.findUnique({
     where: { id: planId },
-    select: { features: true },
+    include: { features: true },
   });
   if (!paidPlan) throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
+  let pricing: Awaited<ReturnType<typeof getPlanPricing>> | null = null;
+  if (couponCodeForPayment) {
+    pricing = await getPlanPricing({
+      planId,
+      plan: paidPlan,
+      billingCycle,
+      schoolAccountId,
+      couponCode: couponCodeForPayment,
+    });
+    if (pricing.finalAmount !== transaction.amount) {
+      throw new ElectronicPaymentError("تغير السعر أو الخصومات بعد إنشاء الدفع.", 409);
+    }
+  }
   let period: ReturnType<typeof resolvePlanSubscriptionPeriod>;
   try {
     period = resolvePlanSubscriptionPeriod({
@@ -438,6 +428,7 @@ export async function applyPaidElectronicPaymentTransaction(
         planId,
         billingCycle,
         schoolAccountId,
+        couponBaseAmount: pricing?.couponBaseAmount || undefined,
         subscriptionId: subscription.id,
         paymentTransactionId: lockedTransaction.id,
       });

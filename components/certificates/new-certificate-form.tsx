@@ -102,45 +102,16 @@ export function NewCertificateForm({ schoolName = "" }: { schoolName?: string })
   const autoBody = useMemo(() => buildAutoBody(draft), [draft]);
 
   useEffect(() => {
+    // Disable certificate draft auto-save: always start from a fresh blank draft so a
+    // previously-selected student name never reappears on a new certificate.
     try {
-      const raw = window.localStorage.getItem(CERTIFICATE_DRAFT_STORAGE_KEY)
-        || window.sessionStorage.getItem(LEGACY_DRAFT_STORAGE_KEY);
-
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<CertificateDraft> & { introTouched?: boolean; bodyTouched?: boolean; step?: number };
-        const { bodyTouched: savedBodyTouched, step: savedStep, ...savedDraft } = saved;
-        const hydratedDraft = { ...DEFAULT_DRAFT, ...savedDraft };
-        setDraft({
-          ...hydratedDraft,
-          introText: String(savedDraft.introText || "").trim(),
-          bodyText: String(savedDraft.bodyText || savedDraft.body || "").trim(),
-        });
-        setIntroTouched(savedDraft.introTouched === true);
-        setBodyTouched(savedBodyTouched === true);
-
-        if (searchParams.get("step") !== "2") {
-          setStep(savedStep === 2 ? 2 : 1);
-        }
-      }
+      window.localStorage.removeItem(CERTIFICATE_DRAFT_STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
     } catch {
-      // Ignore malformed or unavailable browser storage and keep a fresh draft.
-    } finally {
-      setDraftHydrated(true);
+      // Storage may be unavailable; the in-memory blank draft remains usable.
     }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!draftHydrated) return;
-
-    try {
-      window.localStorage.setItem(
-        CERTIFICATE_DRAFT_STORAGE_KEY,
-        JSON.stringify({ ...draft, body: draft.bodyText, introTouched, bodyTouched, step }),
-      );
-    } catch {
-      // Storage can be unavailable in private browsing; the in-memory draft remains usable.
-    }
-  }, [bodyTouched, draft, draftHydrated, step]);
+    setDraftHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!draftHydrated || introTouched) return;

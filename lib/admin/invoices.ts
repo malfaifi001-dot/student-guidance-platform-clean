@@ -68,6 +68,11 @@ function getSenderName(metadataJson: unknown) {
   return typeof metadata?.senderName === "string" ? metadata.senderName : null;
 }
 
+function getNumberMetadata(metadataJson: unknown, key: string) {
+  const metadata = getMetadata(metadataJson);
+  return typeof metadata?.[key] === "number" ? metadata[key] : null;
+}
+
 function isBagPurchase(metadataJson: unknown) {
   const metadata = getMetadata(metadataJson);
   return metadata?.salesExperienceMode === "BAG";
@@ -344,6 +349,7 @@ export async function getOrCreateInvoiceForPaymentTransaction(
   }
 
   const settings = await getInvoiceSettings();
+  const pricingMetadata = getMetadata(transaction.metadataJson);
   const requesterUserId = getRequesterUserId(transaction.metadataJson);
 
   const requesterUser = requesterUserId
@@ -480,6 +486,38 @@ export async function getOrCreateInvoiceForPaymentTransaction(
               method: transaction.method,
               status: transaction.status,
               externalRef: transaction.externalRef,
+            },
+            pricing: {
+              baseAmount:
+                getNumberMetadata(transaction.metadataJson, "originalAmount") ??
+                transaction.amount,
+              promotionDiscountAmount:
+                getNumberMetadata(
+                  transaction.metadataJson,
+                  "promotionDiscountAmount",
+                ) ?? 0,
+              priceAfterPromotion:
+                getNumberMetadata(
+                  transaction.metadataJson,
+                  "priceAfterPromotion",
+                ) ?? transaction.amount,
+              couponCode:
+                typeof pricingMetadata?.couponCode === "string"
+                  ? pricingMetadata.couponCode
+                  : null,
+              couponDiscountAmount:
+                getNumberMetadata(
+                  transaction.metadataJson,
+                  "couponDiscountAmount",
+                ) ?? 0,
+              totalDiscountAmount:
+                getNumberMetadata(
+                  transaction.metadataJson,
+                  "totalDiscountAmount",
+                ) ??
+                getNumberMetadata(transaction.metadataJson, "discountAmount") ??
+                0,
+              finalAmount: transaction.amount,
             },
           }),
         },

@@ -69,7 +69,8 @@ export function CertificatePreviewPage() {
 
     async function load() {
       try {
-        const raw = window.localStorage.getItem(CERTIFICATE_DRAFT_STORAGE_KEY)
+        const storage = window.localStorage;
+        const raw = storage.getItem(CERTIFICATE_DRAFT_STORAGE_KEY)
           || window.sessionStorage.getItem(LEGACY_DRAFT_STORAGE_KEY);
         if (!raw) {
           if (!cancelled) setDraft(null);
@@ -77,6 +78,15 @@ export function CertificatePreviewPage() {
         }
 
         if (!cancelled) setDraft(JSON.parse(raw) as CertificateDraft);
+
+        // Consume the one-shot preview snapshot immediately so a previously-selected
+        // student name is never preserved for a future certificate.
+        try {
+          storage.removeItem(CERTIFICATE_DRAFT_STORAGE_KEY);
+          window.sessionStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
+        } catch {
+          // Ignore storage cleanup failures.
+        }
 
         const response = await fetch("/api/dashboard/certificates/signature-profile", {
           cache: "no-store",

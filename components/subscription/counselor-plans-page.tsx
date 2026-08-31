@@ -83,6 +83,12 @@ type CouponQuote = {
   originalAmount: number;
   discountAmount: number;
   finalAmount: number;
+  baseAmount?: number;
+  promotionDiscountAmount?: number;
+  priceAfterPromotion?: number;
+  couponBaseAmount?: number;
+  couponDiscountAmount?: number;
+  totalDiscountAmount?: number;
 };
 
 type EntryNotice = {

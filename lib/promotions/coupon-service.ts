@@ -45,6 +45,7 @@ async function quoteWithClient(
     planId: string;
     billingCycle: BillingCycle;
     schoolAccountId: string;
+    baseAmount?: number;
     now?: Date;
   },
 ): Promise<CouponQuote> {
@@ -144,8 +145,12 @@ async function quoteWithClient(
     );
   }
 
+  const couponBaseAmount = Math.max(
+    0,
+    Math.trunc(input.baseAmount ?? getPlanAmount(plan, input.billingCycle)),
+  );
   const amounts = calculateCouponDiscount({
-    originalAmount: getPlanAmount(plan, input.billingCycle),
+    originalAmount: couponBaseAmount,
     discountType: coupon.promotion.discountType,
     discountValue: coupon.promotion.discountValue,
   });
@@ -159,6 +164,7 @@ async function quoteWithClient(
     discountType: coupon.promotion.discountType,
     discountValue: coupon.promotion.discountValue,
     ...amounts,
+    couponBaseAmount,
   };
 }
 
@@ -167,6 +173,7 @@ export function getCouponQuote(input: {
   planId: string;
   billingCycle: BillingCycle;
   schoolAccountId: string;
+  baseAmount?: number;
   now?: Date;
 }) {
   return quoteWithClient(prisma, input);
@@ -177,6 +184,7 @@ type RedeemCouponInput = {
   planId: string;
   billingCycle: BillingCycle;
   schoolAccountId: string;
+  couponBaseAmount?: number;
   subscriptionId?: string | null;
   paymentTransactionId?: string | null;
 };
@@ -185,27 +193,30 @@ export async function redeemCouponWithClient(
   tx: Prisma.TransactionClient,
   input: RedeemCouponInput,
 ) {
-    if (input.paymentTransactionId) {
-      const existing = await tx.couponRedemption.findUnique({
-        where: { paymentTransactionId: input.paymentTransactionId },
-      });
-      if (existing) return { quote: null, redemption: existing };
-    }
-    const quote = await quoteWithClient(tx, input);
-    const redemption = await tx.couponRedemption.create({
-      data: {
-        couponId: quote.couponId,
-        promotionId: quote.promotionId,
-        schoolAccountId: input.schoolAccountId,
-        planId: input.planId,
-        subscriptionId: input.subscriptionId || null,
-        paymentTransactionId: input.paymentTransactionId || null,
-        originalAmount: quote.originalAmount,
-        discountAmount: quote.discountAmount,
-        finalAmount: quote.finalAmount,
-      },
+  if (input.paymentTransactionId) {
+    const existing = await tx.couponRedemption.findUnique({
+      where: { paymentTransactionId: input.paymentTransactionId },
     });
-    return { quote, redemption };
+    if (existing) return { quote: null, redemption: existing };
+  }
+  const quote = await quoteWithClient(tx, {
+    ...input,
+    baseAmount: input.couponBaseAmount,
+  });
+  const redemption = await tx.couponRedemption.create({
+    data: {
+      couponId: quote.couponId,
+      promotionId: quote.promotionId,
+      schoolAccountId: input.schoolAccountId,
+      planId: input.planId,
+      subscriptionId: input.subscriptionId || null,
+      paymentTransactionId: input.paymentTransactionId || null,
+      originalAmount: quote.originalAmount,
+      discountAmount: quote.discountAmount,
+      finalAmount: quote.finalAmount,
+    },
+  });
+  return { quote, redemption };
 }
 
 export async function redeemCoupon(input: RedeemCouponInput) {

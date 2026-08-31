@@ -11,7 +11,11 @@ import {
   assignPlanToSchool,
   getPlanFeatureValue,
 } from "@/lib/subscription/subscription-service";
-import { getCouponQuote, redeemCoupon } from "@/lib/promotions/coupon-service";
+import {
+  CouponValidationError,
+  redeemCoupon,
+} from "@/lib/promotions/coupon-service";
+import { getPlanPricing } from "@/lib/promotions/plan-pricing";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -160,23 +164,37 @@ export async function POST(
           : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) ||
             30;
 
-    step = "ASSIGN_PLAN_TO_SCHOOL";
+    step = "REVALIDATE_PRICING";
+    const billingCycle =
+      transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY";
+    let pricing: Awaited<ReturnType<typeof getPlanPricing>> | null = null;
+
     if (transferRequest.couponCode) {
-      step = "REVALIDATE_COUPON";
-      const quote = await getCouponQuote({
-        code: transferRequest.couponCode,
+      pricing = await getPlanPricing({
         planId: plan.id,
-        billingCycle:
-          transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        plan,
+        billingCycle,
         schoolAccountId: transferRequest.schoolAccountId,
+        couponCode: transferRequest.couponCode,
       });
-      if (quote.finalAmount !== transferRequest.amount) {
+
+      if (
+        pricing.finalAmount !== transferRequest.amount ||
+        (transferRequest.originalAmount !== null &&
+          pricing.baseAmount !== transferRequest.originalAmount) ||
+        (transferRequest.discountAmount !== null &&
+          pricing.totalDiscountAmount !== transferRequest.discountAmount)
+      ) {
         return NextResponse.json(
-          { error: "تغيرت صلاحية أو قيمة الكوبون. أعد إنشاء طلب الاشتراك." },
+          { error: "تغيرت صلاحية أو قيمة الخصم. أعد إنشاء طلب الاشتراك." },
           { status: 409 },
         );
       }
-    } else if (transferRequest.promotionId) {
+    } else if (
+      transferRequest.originalAmount !== null ||
+      transferRequest.discountAmount !== null ||
+      transferRequest.promotionId
+    ) {
       // The request amount is a historical snapshot. Do not re-resolve the
       // current promotion here: an admin may have changed or expired it after
       // the bank-transfer request was created.
@@ -226,9 +244,9 @@ export async function POST(
       await redeemCoupon({
         code: transferRequest.couponCode,
         planId: plan.id,
-        billingCycle:
-          transferRequest.billingCycle === "yearly" ? "YEARLY" : "MONTHLY",
+        billingCycle,
         schoolAccountId: transferRequest.schoolAccountId,
+        couponBaseAmount: pricing?.couponBaseAmount || undefined,
         subscriptionId: subscription.id,
       });
     }
@@ -313,6 +331,13 @@ export async function POST(
       requestId: resolvedRequestId,
       error,
     });
+
+    if (error instanceof CouponValidationError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, step, requestId: resolvedRequestId },
+        { status: error.status },
+      );
+    }
 
     return NextResponse.json(
       {

@@ -77,11 +77,14 @@ export function buildCaseEntryPermissionWhere(
   const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
 
   if (user.role === "ACTIVITY_LEADER") {
-    const activityScope: Prisma.CaseEntryWhereInput = {
-      schoolAccountId,
+    const activityServiceScope: Prisma.CaseEntryWhereInput = {
       service: {
         slug: { in: Array.from(ACTIVITY_PROGRAM_SERVICE_SLUGS) },
       },
+    };
+    const activityScope: Prisma.CaseEntryWhereInput = {
+      schoolAccountId,
+      ...activityServiceScope,
     };
 
     if (user.historicalPersonalRead) {
@@ -89,7 +92,7 @@ export function buildCaseEntryPermissionWhere(
         OR: [
           activityScope,
           {
-            ...activityScope,
+            ...activityServiceScope,
             createdById: user.id || "__NO_USER__",
           },
         ],

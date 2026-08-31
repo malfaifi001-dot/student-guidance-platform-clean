@@ -24,10 +24,12 @@ import {
 import { getSubscriptionPeriodLabel } from "@/lib/subscription/subscription-presentation";
 import {
   CouponValidationError,
-  getCouponQuote,
   redeemCoupon,
 } from "@/lib/promotions/coupon-service";
-import { getAutomaticPlanPricing } from "@/lib/promotions/plan-pricing";
+import {
+  getAutomaticPlanPricing,
+  getPlanPricing,
+} from "@/lib/promotions/plan-pricing";
 import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 
 export async function GET() {
@@ -279,39 +281,25 @@ export async function POST(request: Request) {
       ? 365
       : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
-  const originalAmount =
-    billingCycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly;
-  let amount = originalAmount;
-  let couponQuote: Awaited<ReturnType<typeof getCouponQuote>> | null = null;
-  const automaticPricing = couponCode
-    ? null
-    : await getAutomaticPlanPricing({
-        planId: plan.id,
-        plan,
-        billingCycle,
-      });
-
-  if (couponCode) {
-    try {
-      couponQuote = await getCouponQuote({
-        code: couponCode,
-        planId: plan.id,
-        billingCycle,
-        schoolAccountId: current.user.schoolAccountId,
-      });
-      amount = couponQuote.finalAmount;
-    } catch (error) {
-      if (error instanceof CouponValidationError) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: error.status },
-        );
-      }
-      throw error;
+  let pricing: Awaited<ReturnType<typeof getPlanPricing>>;
+  try {
+    pricing = await getPlanPricing({
+      planId: plan.id,
+      plan,
+      billingCycle,
+      schoolAccountId: current.user.schoolAccountId,
+      couponCode,
+    });
+  } catch (error) {
+    if (error instanceof CouponValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
-  } else {
-    amount = automaticPricing?.finalAmount ?? originalAmount;
+    throw error;
   }
+  const amount = pricing.finalAmount;
 
   if (amount <= 0) {
     const subscription = await assignPlanToUser({
@@ -324,12 +312,13 @@ export async function POST(request: Request) {
       reason: `تفعيل باقة مجانية: ${plan.name}`,
     });
 
-    if (couponQuote) {
+    if (pricing.couponCode) {
       await redeemCoupon({
-        code: couponQuote.couponCode,
+        code: pricing.couponCode,
         planId: plan.id,
         billingCycle,
         schoolAccountId: current.user.schoolAccountId,
+        couponBaseAmount: pricing.couponBaseAmount || undefined,
         subscriptionId: subscription.id,
       });
     }
@@ -363,11 +352,10 @@ export async function POST(request: Request) {
       durationDays,
       requesterUserId: current.user.id,
       billingCycle: billingCycle === "YEARLY" ? "yearly" : "monthly",
-      couponCode: couponQuote?.couponCode || null,
-      promotionId: automaticPricing?.promotionId || null,
-      originalAmount,
-      discountAmount:
-        couponQuote?.discountAmount ?? automaticPricing?.discountAmount ?? 0,
+      couponCode: pricing.couponCode,
+      promotionId: pricing.promotionId,
+      originalAmount: pricing.baseAmount,
+      discountAmount: pricing.totalDiscountAmount,
       adminNote: [
         `طلب باقة: ${plan.name}`,
         `نوع الاشتراك: ${getSubscriptionPeriodLabel(billingCycle)}`,

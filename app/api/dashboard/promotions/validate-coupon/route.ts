@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
 import {
   CouponValidationError,
-  getCouponQuote,
 } from "@/lib/promotions/coupon-service";
+import { getPlanPricing } from "@/lib/promotions/plan-pricing";
 
 export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
@@ -22,11 +23,20 @@ export async function POST(request: Request) {
       : "MONTHLY";
 
   try {
-    const quote = await getCouponQuote({
-      code: String(body?.couponCode || ""),
+    const plan = await prisma.plan.findUnique({
+      where: { id: planId },
+      include: { features: true },
+    });
+    if (!plan) {
+      throw new CouponValidationError("INVALID", "الباقة غير صالحة.");
+    }
+
+    const quote = await getPlanPricing({
       planId,
+      plan,
       billingCycle,
       schoolAccountId: current.user.schoolAccountId,
+      couponCode: String(body?.couponCode || ""),
     });
     return NextResponse.json({ quote });
   } catch (error) {
@@ -40,4 +50,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "تعذر التحقق من الكوبون." }, { status: 500 });
   }
 }
-

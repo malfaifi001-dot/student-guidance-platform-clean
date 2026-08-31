@@ -9,9 +9,9 @@ export type CouponQuote = {
   discountType: PromotionDiscountTypeValue;
   discountValue: number;
   originalAmount: number;
+  couponBaseAmount: number;
   discountAmount: number;
   finalAmount: number;
 };
 
 export type BillingCycle = "MONTHLY" | "YEARLY";
-
