@@ -305,6 +305,7 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
   const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
   const [returnReason, setReturnReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState<"links" | "submissions">("links");
 
   const stats = useMemo(() => {
     return {
@@ -552,281 +553,93 @@ export function TeacherActivityLinksClient({ initialLinks, initialSubmissions }:
   }
 
   return (
-    <main className="space-y-6" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-5 text-white shadow-xl sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-black leading-9 sm:text-3xl">
-              إرسال أنشطة للمعلمين
-            </h1>
-          </div>
-
+    <main className="space-y-4" dir="rtl">
+      <section className="rounded-2xl bg-gradient-to-l from-sky-800 via-cyan-700 to-sky-600 px-4 py-3 text-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-black leading-8">إرسال أنشطة للمعلمين</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setCreateOpen(true);
-                resetCreateForm();
-                setFeedback("");
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-900 shadow-sm transition hover:bg-cyan-50"
-            >
-              <Plus className="h-4 w-4" />
-              رابط جديد
-            </button>
-
-            <button
-              type="button"
-              onClick={refresh}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/20"
-            >
-              <RefreshCw className={["h-4 w-4", loading ? "animate-spin" : ""].join(" ")} />
-              تحديث
-            </button>
+            <button type="button" onClick={() => { setCreateOpen(true); resetCreateForm(); setFeedback(""); }} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-black text-sky-900 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><Plus className="h-4 w-4" />رابط جديد</button>
+            <button type="button" onClick={refresh} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/35 bg-white/10 px-3.5 py-2 text-sm font-black text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><RefreshCw className={["h-4 w-4", loading ? "animate-spin" : ""].join(" ")} />تحديث</button>
           </div>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          <StatCard label="الروابط" value={stats.links} />
-          <StatCard label="روابط مفتوحة" value={stats.openLinks} />
-          <StatCard label="بانتظار الاعتماد" value={stats.waiting} />
-          <StatCard label="أنشطة معتمدة" value={stats.approved} />
         </div>
       </section>
 
-      {feedback ? (
-        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-black text-sky-800">
-          {feedback}
-        </div>
-      ) : null}
+      {feedback ? <div className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-sm font-black text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200">{feedback}</div> : null}
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <section className="rounded-[2rem] border border-sky-200 bg-sky-50 p-5 shadow-sm dark:border-sky-800 dark:bg-sky-950/45">
-          <h2 className="text-lg font-black text-slate-950 dark:text-white">الروابط المفتوحة</h2>
-
-          <div className="mt-4 space-y-3">
-            {links.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="font-black text-slate-800">لا توجد روابط بعد</p>
-                <p className="mt-1 text-xs font-bold text-slate-500">
-                  أنشئ رابطًا جديدًا لمشاركته مع المعلمين.
-                </p>
-              </div>
-            ) : null}
-
-            {links.map((link) => (
-              <article key={link.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-950">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
-                        {LINK_STATUS_LABELS[link.status] || link.status}
-                      </span>
-                      {link.submissionCounts.total > 0 ? (
-                        <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
-                          {link.submissionCounts.total} إرسال
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <h3 className="mt-2 flex items-center gap-2 font-black text-slate-950">
-                      <Link2 className="h-4 w-4 text-sky-600" />
-                      {link.title}
-                    </h3>
-
-                    <p className="mt-1 text-xs font-bold text-slate-500">
-                      {link.submissionCounts.approved} معتمد
-                      {" · "}
-                      {link.submissionCounts.submitted} بانتظار الاعتماد
-                      {" · "}
-                      {link.submissionCounts.returned} مرجع
-                    </p>
-
-                    <p className="mt-1 flex items-center gap-1 text-xs font-bold text-slate-500">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      ينتهي: {formatDate(link.tokenExpiresAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 break-all rounded-2xl bg-slate-50 px-4 py-3 text-left text-xs font-bold text-slate-600" dir="ltr">
-                  {link.publicUrl}
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <LinkActionButton title="نسخ الرابط" onClick={() => copyText(link.publicUrl)}>
-                    <Copy className="h-4 w-4" />
-                  </LinkActionButton>
-
-                  <LinkActionButton
-                    title="مشاركة"
-                    onClick={() => openWhatsApp(
-                      `السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`,
-                    )}
-                  >
-                    <MessageCircle className="h-4 w-4 text-emerald-600" />
-                  </LinkActionButton>
-
-                  {link.status === "ACTIVE" ? (
-                    <LinkActionButton
-                      title="إغلاق الرابط"
-                      onClick={() => linkAction(link.id, "CLOSE")}
-                      className="bg-amber-50 text-amber-800 ring-amber-100 hover:bg-amber-100"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </LinkActionButton>
-                  ) : (
-                    <LinkActionButton
-                      title="إعادة فتح الرابط"
-                      onClick={() => linkAction(link.id, "REACTIVATE")}
-                      className="bg-emerald-50 text-emerald-800 ring-emerald-100 hover:bg-emerald-100"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </LinkActionButton>
-                  )}
-
-                  <LinkActionButton
-                    title="حذف الرابط"
-                    onClick={() => deleteLink(link.id)}
-                    className="bg-red-50 text-red-700 ring-red-100 hover:bg-red-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </LinkActionButton>
-                </div>
-              </article>
-            ))}
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-black text-slate-500 dark:text-slate-400">
+            <span className="text-sky-700 dark:text-sky-300">{stats.openLinks} رابط مفتوح</span>
+            <span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-amber-700 dark:text-amber-300">{stats.waiting} بانتظار الاعتماد</span>
+            <span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-emerald-700 dark:text-emerald-300">{stats.approved} معتمد</span>
+          </p>
+          <div className="flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="قسم أنشطة المعلمين">
+            <button type="button" role="tab" aria-selected={activeSection === "links"} onClick={() => setActiveSection("links")} className={`min-h-10 flex-1 rounded-lg px-3 py-2 text-sm font-black transition ${activeSection === "links" ? "bg-white text-sky-700 shadow-sm dark:bg-slate-800 dark:text-sky-300" : "text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-sky-300"}`}>الروابط المفتوحة</button>
+            <button type="button" role="tab" aria-selected={activeSection === "submissions"} onClick={() => setActiveSection("submissions")} className={`min-h-10 flex-1 rounded-lg px-3 py-2 text-sm font-black transition ${activeSection === "submissions" ? "bg-white text-sky-700 shadow-sm dark:bg-slate-800 dark:text-sky-300" : "text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-sky-300"}`}>الأنشطة المرسلة</button>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-[2rem] border border-violet-200 bg-violet-50/75 p-5 shadow-sm dark:border-violet-800 dark:bg-violet-950/35">
-          <h2 className="text-lg font-black text-slate-950 dark:text-white">الأنشطة المرسلة</h2>
-
-          <div className="mt-4 space-y-3">
-            {submissions.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="font-black text-slate-800">لا توجد أنشطة مرسلة بعد</p>
-                <p className="mt-1 text-xs font-bold text-slate-500">
-                  عندما يرسل المعلمون عبر الرابط سترى أنشطتهم هنا.
-                </p>
+        {activeSection === "links" ? <section aria-labelledby="activity-links-heading" className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+          <h2 id="activity-links-heading" className="sr-only">الروابط المفتوحة</h2>
+          <div className="space-y-2.5">
+            {links.length === 0 ? <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-7 text-center dark:border-slate-700 dark:bg-slate-950"><p className="font-black text-slate-800 dark:text-slate-100">لا توجد روابط بعد</p><p className="mt-1 text-xs font-bold text-slate-500">أنشئ رابطًا جديدًا لمشاركته مع المعلمين.</p></div> : null}
+            {links.map((link) => <article key={link.id} className="rounded-xl border border-slate-200 bg-white p-3 transition hover:border-sky-200 hover:shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:hover:border-sky-800">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-black text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">{LINK_STATUS_LABELS[link.status] || link.status}</span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{link.submissionCounts.total} إرسال</span>
+                  </div>
+                  <h3 className="mt-1.5 flex items-center gap-1.5 truncate font-black text-slate-950 dark:text-white"><Link2 className="h-4 w-4 shrink-0 text-sky-600" />{link.title}</h3>
+                  <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">{link.submissionCounts.approved} معتمد · {link.submissionCounts.submitted} بانتظار الاعتماد · {link.submissionCounts.returned} مرجع</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400"><CalendarDays className="h-3.5 w-3.5" />ينتهي: {formatDate(link.tokenExpiresAt)}</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                  <LinkActionButton title="نسخ الرابط" onClick={() => copyText(link.publicUrl)}><Copy className="h-4 w-4" /></LinkActionButton>
+                  <LinkActionButton title="مشاركة عبر واتساب" onClick={() => openWhatsApp(`السلام عليكم،\n\nيمكنكم إرسال أنشطتكم عبر الرابط التالي (${link.title}):\n${link.publicUrl}`)}><MessageCircle className="h-4 w-4 text-emerald-600" /></LinkActionButton>
+                  {link.status === "ACTIVE" ? <LinkActionButton title="إغلاق الرابط" onClick={() => linkAction(link.id, "CLOSE")} className="bg-amber-50 text-amber-800 ring-amber-100 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></LinkActionButton> : <LinkActionButton title="إعادة فتح الرابط" onClick={() => linkAction(link.id, "REACTIVATE")} className="bg-emerald-50 text-emerald-800 ring-emerald-100 hover:bg-emerald-100"><RefreshCw className="h-4 w-4" /></LinkActionButton>}
+                  <LinkActionButton title="حذف الرابط" onClick={() => deleteLink(link.id)} className="bg-red-50 text-red-700 ring-red-100 hover:bg-red-100"><Trash2 className="h-4 w-4" /></LinkActionButton>
+                </div>
               </div>
-            ) : null}
-
+              <div className="mt-3 break-all rounded-lg bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300" dir="ltr">{link.publicUrl}</div>
+            </article>)}
+          </div>
+        </section> : <section aria-labelledby="activity-submissions-heading" className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+          <h2 id="activity-submissions-heading" className="sr-only">الأنشطة المرسلة</h2>
+          <div className="space-y-2.5">
+            {submissions.length === 0 ? <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-7 text-center dark:border-slate-700 dark:bg-slate-950"><p className="font-black text-slate-800 dark:text-slate-100">لا توجد أنشطة مرسلة بعد</p><p className="mt-1 text-xs font-bold text-slate-500">عندما يرسل المعلمون عبر الرابط سترى أنشطتهم هنا.</p></div> : null}
             {submissions.map((submission) => {
               const canReview = submission.status === "SUBMITTED" && !submission.caseEntryId;
-              const canEdit =
-                (submission.status === "SUBMITTED" || submission.status === "RETURNED") &&
-                !submission.caseEntryId;
+              const canEdit = (submission.status === "SUBMITTED" || submission.status === "RETURNED") && !submission.caseEntryId;
               const hasSubmission = Object.keys(submission.submittedValues || {}).length > 0;
               const displayTitle = getDisplayTitle(submission);
-
-              return (
-                <article key={submission.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-950">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <SubmissionStatusBadge status={submission.status} />
-
-                    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-100">
-                      {submission.domainTitle}
-                    </span>
-
-                    {submission.teacherSignatureUrl ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        توقيع محفوظ
-                      </span>
-                    ) : null}
-
-                    {submission.submittedEvidenceItems.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        {new Intl.NumberFormat("ar-SA").format(submission.submittedEvidenceItems.length)} شواهد
-                      </span>
-                    ) : null}
+              return <article key={submission.id} className="rounded-xl border border-slate-200 bg-white p-3 transition hover:border-sky-200 hover:shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:hover:border-sky-800">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SubmissionStatusBadge status={submission.status} />
+                      <span className="text-xs font-black text-slate-500 dark:text-slate-400">{submission.domainTitle}</span>
+                      {submission.submittedEvidenceItems.length > 0 ? <span className="inline-flex items-center gap-1 text-xs font-bold text-violet-700 dark:text-violet-300"><ImageIcon className="h-3.5 w-3.5" />{new Intl.NumberFormat("ar-SA").format(submission.submittedEvidenceItems.length)} شواهد</span> : null}
+                    </div>
+                    <h3 className="mt-1.5 truncate text-base font-black leading-6 text-slate-950 dark:text-white">{displayTitle}</h3>
+                    <p className="mt-0.5 text-xs font-black text-sky-700 dark:text-sky-300">المعلم: {submission.teacherName}</p>
+                    {submission.returnedReason ? <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-black leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">سبب الإرجاع: {submission.returnedReason}</p> : null}
                   </div>
-
-                  <h3 className="mt-3 text-lg font-black leading-7 text-slate-950">
-                    {displayTitle}
-                  </h3>
-
-                  <p className="mt-1 text-xs font-black text-sky-700">
-                    المعلم: {submission.teacherName} · {submission.linkTitle}
-                  </p>
-
-                  <p className="mt-1 text-xs font-bold text-slate-500">
-                    آخر تحديث: {formatDate(submission.updatedAt)}
-                  </p>
-
-                  {submission.returnedReason ? (
-                    <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black leading-6 text-amber-800 ring-1 ring-amber-100">
-                      سبب الإرجاع: {submission.returnedReason}
-                    </p>
-                  ) : null}
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-                    {hasSubmission ? (
-                      <ActionButton
-                        title="عرض النشاط"
-                        onClick={() => openModal(submission, "view")}
-                        className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </ActionButton>
-                    ) : null}
-
-                    {canEdit && hasSubmission ? (
-                      <ActionButton
-                        title="تعديل النشاط"
-                        onClick={() => openModal(submission, "edit")}
-                        className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      >
-                        <PencilLine className="h-4 w-4" />
-                      </ActionButton>
-                    ) : null}
-
-                    {canEdit ? (
-                      <ActionButton
-                        title="إرجاع للمعلم"
-                        onClick={() => openModal(submission, "return")}
-                        className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </ActionButton>
-                    ) : null}
-
-                    {canReview ? (
-                      <ActionButton
-                        title="اعتماد النشاط"
-                        onClick={() => reviewSubmission(submission.id, "APPROVE")}
-                        className="border-transparent bg-emerald-700 text-white hover:bg-emerald-800"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </ActionButton>
-                    ) : null}
-
-                    {!submission.caseEntryId && submission.status !== "APPROVED" ? (
-                      <ActionButton
-                        title="إلغاء النشاط"
-                        onClick={() => reviewSubmission(submission.id, "CANCEL")}
-                        className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </ActionButton>
-                    ) : null}
-
-                    {submission.caseEntryId ? (
-                      <Link
-                        href={`/dashboard/cases/${submission.caseEntryId}`}
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-700 text-white transition hover:bg-sky-800"
-                        title="فتح الحالة"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Link>
-                    ) : null}
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    {hasSubmission ? <ActionButton title="عرض النشاط" onClick={() => openModal(submission, "view")}><Eye className="h-4 w-4" /></ActionButton> : null}
+                    {canEdit && hasSubmission ? <ActionButton title="تعديل النشاط" onClick={() => openModal(submission, "edit")}><PencilLine className="h-4 w-4" /></ActionButton> : null}
+                    {canEdit ? <ActionButton title="إرجاع للمعلم" onClick={() => openModal(submission, "return")} className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"><RotateCcw className="h-4 w-4" /></ActionButton> : null}
+                    {canReview ? <ActionButton title="اعتماد النشاط" onClick={() => reviewSubmission(submission.id, "APPROVE")} className="border-transparent bg-emerald-700 text-white hover:bg-emerald-800"><CheckCircle2 className="h-4 w-4" /></ActionButton> : null}
+                    {!submission.caseEntryId && submission.status !== "APPROVED" ? <ActionButton title="إلغاء النشاط" onClick={() => reviewSubmission(submission.id, "CANCEL")} className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"><Trash2 className="h-4 w-4" /></ActionButton> : null}
+                    {submission.caseEntryId ? <Link href={`/dashboard/cases/${submission.caseEntryId}`} aria-label="فتح الحالة" className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-700 text-white transition hover:bg-sky-800" title="فتح الحالة"><FileText className="h-4 w-4" /></Link> : null}
                   </div>
-                </article>
-              );
+                </div>
+              </article>;
             })}
           </div>
-        </section>
+        </section>}
       </section>
 
       {createOpen ? (
@@ -1355,17 +1168,6 @@ function FieldLabel({ field }: { field: RuntimeField }) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
-      <p className="text-xs font-black text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-black text-slate-950">
-        {new Intl.NumberFormat("ar-SA").format(value)}
-      </p>
-    </div>
-  );
-}
-
 function SubmissionStatusBadge({ status }: { status: string }) {
   const isGood = status === "APPROVED";
   const isReview = status === "SUBMITTED";
@@ -1414,8 +1216,9 @@ function LinkActionButton({
       type="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
       className={[
-        "inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-3 text-xs font-black transition",
+        "inline-flex h-11 w-11 items-center justify-center rounded-xl border p-0 text-xs font-black transition",
         className || "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
       ].join(" ")}
     >
@@ -1440,6 +1243,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
       className={[
         "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition",
         className || "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
