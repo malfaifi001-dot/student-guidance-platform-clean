@@ -66,6 +66,17 @@ export async function DELETE(_request: Request, context: RouteContext) {
       { success: false, error: "التقرير غير موجود." },
       { status: 404 },
     );
+  // Historical owner reads may cross a school transfer, but destructive
+  // report operations remain restricted to the current tenant context.
+  if (
+    !dashboardContext.isAdmin &&
+    authorized.caseEntry.schoolAccountId !== dashboardContext.schoolAccountId
+  ) {
+    return NextResponse.json(
+      { success: false, error: "التقرير غير موجود." },
+      { status: 404 },
+    );
+  }
   const active = authorized.kind === "ACTIVE" ? authorized.report : null;
   const historical = authorized.kind === "SNAPSHOT" ? authorized.report : null;
   const status = active?.status || "APPROVED";

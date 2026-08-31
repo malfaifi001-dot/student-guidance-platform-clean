@@ -46,7 +46,11 @@ export async function GET(request: Request, context: RouteContext) {
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)),
+      ...(auth.isAdmin
+        ? { schoolAccountId: auth.schoolAccountId }
+        : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, {
+            historicalPersonalRead: true,
+          })),
       uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] },
     },
     select: { id: true, title: true },

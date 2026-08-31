@@ -33,11 +33,10 @@ export async function GET(request: NextRequest) {
   const where: Record<string, unknown> = {};
 
   if (!context.isAdmin) {
-    where.schoolAccountId = context.schoolAccountId;
     where.createdById = context.user.id;
   }
 
-  if (ownerRole) {
+  if (ownerRole && context.isAdmin) {
     where.ownerRole = ownerRole;
   }
 

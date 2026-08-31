@@ -272,11 +272,6 @@ export async function GET() {
     where: {
       serviceId: service.id,
       createdById: context.user.id,
-      ...(context.schoolAccountId
-        ? {
-            schoolAccountId: context.schoolAccountId,
-          }
-        : {}),
     },
     orderBy: {
       updatedAt: "desc",

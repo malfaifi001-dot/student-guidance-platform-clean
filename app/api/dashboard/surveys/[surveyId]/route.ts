@@ -31,7 +31,9 @@ const surveyInclude = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { surveyId } = await context.params;
-  const { survey, error } = await requireSurveyAccess(surveyId, surveyInclude);
+  const { survey, error } = await requireSurveyAccess(surveyId, surveyInclude, {
+    historicalPersonalRead: true,
+  });
   if (error || !survey) {
     return error ?? NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 });
   }

@@ -59,7 +59,10 @@ export default async function ReportOnePreviewRoute({
   const report = await prisma.guidanceReport.findFirst({
     where: {
       id: reportId,
-      ...buildGuidanceReportWhereForUser(current.user),
+      ...buildGuidanceReportWhereForUser({
+        ...current.user,
+        historicalPersonalRead: true,
+      }),
     },
   });
 

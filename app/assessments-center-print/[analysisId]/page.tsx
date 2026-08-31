@@ -20,7 +20,11 @@ export default async function AssessmentCleanPrintPage({
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      ...(context.isAdmin ? {} : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id)),
+      ...(context.isAdmin
+        ? {}
+        : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, {
+            historicalPersonalRead: true,
+          })),
       uploadMode: {
         in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"],
       },

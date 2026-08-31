@@ -88,7 +88,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     if (
-      authResult.schoolAccountId &&
+      authResult.user.role !== "ADMIN" &&
       report.caseEntry?.schoolAccountId !== authResult.schoolAccountId
     ) {
       Object.assign(report.caseEntry, { student: null });

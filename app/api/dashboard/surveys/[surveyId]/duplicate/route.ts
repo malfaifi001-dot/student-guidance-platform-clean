@@ -63,7 +63,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const copiedSurvey = await prisma.survey.create({
     data: {
-      schoolAccountId: survey.schoolAccountId,
+      schoolAccountId: accessContext.schoolAccountId,
       serviceId: survey.serviceId,
       createdById: accessContext.user.id,
       ownerRole: survey.ownerRole,

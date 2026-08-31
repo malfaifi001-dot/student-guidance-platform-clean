@@ -1225,9 +1225,11 @@ function buildNarrative({
 export async function buildSmartReportPayloadForCase({
   caseId,
   current,
+  historicalPersonalRead = false,
 }: {
   caseId: string;
   current: CurrentUserLike;
+  historicalPersonalRead?: boolean;
 }): Promise<BuildSmartReportPayloadResult> {
   if (!caseId) {
     return {
@@ -1239,7 +1241,7 @@ export async function buildSmartReportPayloadForCase({
 
   const isAdmin = current.user.role === "ADMIN";
 
-  if (!isAdmin && !current.user.schoolAccountId) {
+  if (!isAdmin && !current.user.schoolAccountId && !historicalPersonalRead) {
     return {
       ok: false,
       status: 401,
@@ -1250,7 +1252,10 @@ export async function buildSmartReportPayloadForCase({
   const caseEntry = await prisma.caseEntry.findFirst({
     where: {
       id: caseId,
-      ...buildCaseEntryReportWhereForUser(current.user),
+      ...buildCaseEntryReportWhereForUser({
+        ...current.user,
+        historicalPersonalRead,
+      }),
     },
     include: {
       schoolAccount: {
@@ -1322,6 +1327,19 @@ export async function buildSmartReportPayloadForCase({
     };
   }
 
+  const historicalPersonalCase = Boolean(
+    historicalPersonalRead &&
+      !isAdmin &&
+      caseEntry.createdById === current.user.id &&
+      caseEntry.schoolAccountId !== current.user.schoolAccountId,
+  );
+
+  if (historicalPersonalCase) {
+    // Stored CaseValue data remains renderable, but live records from the old
+    // school must not be re-exposed through a personal historical view.
+    Object.assign(caseEntry, { schoolAccount: null, student: null });
+  }
+
   const languageMode = getReportLanguageModeFromUserGender(current.user.gender);
   const workflowFields = (caseEntry.workflow?.steps || []).flatMap(
     (step: any) => step.fields || [],
@@ -1339,7 +1357,7 @@ export async function buildSmartReportPayloadForCase({
         .filter(Boolean),
     ),
   );
-  if (studentTableRowIds.length) {
+  if (studentTableRowIds.length && !historicalPersonalCase) {
     const studentGenders = await prisma.student.findMany({
       where: {
         id: { in: studentTableRowIds },

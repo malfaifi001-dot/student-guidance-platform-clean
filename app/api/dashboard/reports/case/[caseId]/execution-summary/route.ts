@@ -83,6 +83,7 @@ export async function POST(request: Request, context: RouteContext) {
     const result = await buildSmartReportPayloadForCase({
       caseId,
       current,
+      historicalPersonalRead: true,
     });
 
     if (!result.ok) {

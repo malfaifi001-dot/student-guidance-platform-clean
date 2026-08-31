@@ -38,6 +38,7 @@ export async function requireSurveyAccess<
 >(
   surveyId: string,
   include?: TInclude,
+  options?: { historicalPersonalRead?: boolean },
 ): Promise<SurveyAccessResult<TInclude>> {
   const { context, error } = await requireSurveyServiceContext();
 
@@ -55,7 +56,9 @@ export async function requireSurveyAccess<
       ...(context.isAdmin
         ? {}
         : {
-            schoolAccountId: context.schoolAccountId,
+            ...(options?.historicalPersonalRead
+              ? {}
+              : { schoolAccountId: context.schoolAccountId }),
             createdById: context.user.id,
           }),
     },
@@ -75,7 +78,11 @@ export async function requireSurveyAccess<
     } as SurveyAccessResult<TInclude>;
   }
 
-  if (!context.isAdmin && survey.schoolAccountId !== context.schoolAccountId) {
+  if (
+    !context.isAdmin &&
+    (!options?.historicalPersonalRead &&
+      survey.schoolAccountId !== context.schoolAccountId)
+  ) {
     return {
       context: null,
       survey: null,

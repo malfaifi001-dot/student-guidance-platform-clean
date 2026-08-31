@@ -69,11 +69,9 @@ function getCaseTitle(caseItem: {
 export async function AiReportServiceHome({
   userName,
   userId,
-  schoolAccountId,
 }: {
   userName: string;
   userId: string;
-  schoolAccountId?: string | null;
 }) {
   await ensureDefaultPlatformServices();
 
@@ -91,7 +89,6 @@ export async function AiReportServiceHome({
         where: {
           serviceId: service.id,
           createdById: userId,
-          ...(schoolAccountId ? { schoolAccountId } : {}),
         },
         orderBy: {
           updatedAt: "desc",

@@ -41,7 +41,10 @@ export default async function SavedSmartReportPreviewRoute({
   const report = await prisma.guidanceReport.findFirst({
     where: {
       id: reportId,
-      ...buildGuidanceReportWhereForUser(current.user),
+      ...buildGuidanceReportWhereForUser({
+        ...current.user,
+        historicalPersonalRead: true,
+      }),
     },
     include: {
       caseEntry: {
@@ -57,6 +60,13 @@ export default async function SavedSmartReportPreviewRoute({
 
   if (!report) {
     notFound();
+  }
+
+  if (
+    current.user.role !== "ADMIN" &&
+    report.caseEntry?.schoolAccountId !== current.user.schoolAccountId
+  ) {
+    Object.assign(report.caseEntry, { student: null });
   }
 
   if (current.user.role !== "ADMIN") {

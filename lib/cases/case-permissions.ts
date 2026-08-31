@@ -77,11 +77,27 @@ export function buildCaseEntryPermissionWhere(
   const schoolAccountId = user.schoolAccountId || "__NO_SCHOOL__";
 
   if (user.role === "ACTIVITY_LEADER") {
-    return {
+    const activityScope: Prisma.CaseEntryWhereInput = {
       schoolAccountId,
       service: {
         slug: { in: Array.from(ACTIVITY_PROGRAM_SERVICE_SLUGS) },
       },
+    };
+
+    if (user.historicalPersonalRead) {
+      return {
+        OR: [
+          activityScope,
+          {
+            ...activityScope,
+            createdById: user.id || "__NO_USER__",
+          },
+        ],
+      };
+    }
+
+    return {
+      ...activityScope,
     };
   }
 
@@ -143,6 +159,18 @@ export function buildCaseEntryPermissionWhere(
     };
   }
 
+  if (user.historicalPersonalRead) {
+    return {
+      service: {
+        slug: { not: STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG },
+      },
+      OR: [
+        { schoolAccountId },
+        { createdById: user.id || "__NO_USER__" },
+      ],
+    };
+  }
+
   return {
     schoolAccountId,
     service: {
@@ -169,8 +197,13 @@ export function resolveCaseCapabilities(
     user.schoolAccountId &&
       caseEntry.schoolAccountId === user.schoolAccountId,
   );
+  const isOwner = Boolean(user.id && caseEntry.createdById === user.id);
+  const historicalOwnerRead = Boolean(
+    user.historicalPersonalRead &&
+      isOwner,
+  );
 
-  if (!sameSchool) {
+  if (!sameSchool && !historicalOwnerRead) {
     return {
       canViewCase: false,
       canEditCase: false,
@@ -193,7 +226,6 @@ export function resolveCaseCapabilities(
     };
   }
 
-  const isOwner = Boolean(user.id && caseEntry.createdById === user.id);
   const assignedTeacher = isAssignedTeacher(user, caseEntry);
   const assignmentLocked = LOCKED_TEACHER_ASSIGNMENT_STATUSES.has(
     String(caseEntry.activityAssignment?.status || ""),
@@ -217,6 +249,12 @@ export function resolveCaseCapabilities(
   } else if (user.role === "STAFF") {
     canView = isOwner;
     canManage = isOwner;
+  }
+
+  // A school transfer preserves personal read access, but it must not grant
+  // write access to a case whose live tenant context is no longer current.
+  if (historicalOwnerRead && !sameSchool) {
+    canManage = false;
   }
 
   return {

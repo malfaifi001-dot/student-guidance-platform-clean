@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ li
   const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
   const { linkId } = await params;
-  const existing = await prisma.serviceOutputLink.findFirst({ where: { id: linkId, ownerUserId: auth.user.id, schoolAccountId: auth.schoolAccountId } });
+  const existing = await prisma.serviceOutputLink.findFirst({ where: { id: linkId, ownerUserId: auth.user.id } });
   if (!existing) return NextResponse.json({ error: "الرابط غير موجود." }, { status: 404 });
   const access = await requireServiceAccessApi(existing.serviceSlug, { allowPrincipal: true });
   if (access) return access;
@@ -45,7 +45,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const auth = await requireSchoolDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
   const { linkId } = await params;
-  const existing = await prisma.serviceOutputLink.findFirst({ where: { id: linkId, ownerUserId: auth.user.id, schoolAccountId: auth.schoolAccountId } });
+  const existing = await prisma.serviceOutputLink.findFirst({ where: { id: linkId, ownerUserId: auth.user.id } });
   if (!existing) return NextResponse.json({ error: "الرابط غير موجود." }, { status: 404 });
   const access = await requireServiceAccessApi(existing.serviceSlug, { allowPrincipal: true });
   if (access) return access;

@@ -49,13 +49,21 @@ async function ensureTargetAccess(targetType: TargetType) {
 
 async function loadCaseReports({
   schoolAccountId,
+  userId,
+  isAdmin,
   query,
 }: {
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
   query: string;
 }) {
-  const where: string[] = ["c.schoolAccountId = ?"];
-  const params: unknown[] = [schoolAccountId];
+  const where: string[] = isAdmin
+    ? ["c.schoolAccountId = ?"]
+    : ["c.createdById = ?"];
+  const params: unknown[] = isAdmin
+    ? [schoolAccountId, schoolAccountId]
+    : [schoolAccountId, userId];
 
   if (query) {
     const like = `%${query}%`;
@@ -78,7 +86,7 @@ async function loadCaseReports({
       c.updatedAt
     FROM CaseEntry c
     LEFT JOIN Service s ON s.id = c.serviceId
-    LEFT JOIN Student st ON st.id = c.studentId
+    LEFT JOIN Student st ON st.id = c.studentId AND st.schoolAccountId = ?
     WHERE ${where.join(" AND ")}
     ORDER BY c.updatedAt DESC, c.createdAt DESC
     LIMIT 120
@@ -99,14 +107,18 @@ async function loadCaseReports({
 
 async function loadAssessmentAnalyses({
   schoolAccountId,
+  userId,
+  isAdmin,
   query,
 }: {
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
   query: string;
 }) {
-  const where: any = {
-    schoolAccountId,
-  };
+  const where: any = isAdmin
+    ? { schoolAccountId }
+    : { createdById: userId };
 
   if (query) {
     where.OR = [
@@ -148,14 +160,18 @@ async function loadAssessmentAnalyses({
 
 async function loadSurveyAnalyses({
   schoolAccountId,
+  userId,
+  isAdmin,
   query,
 }: {
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
   query: string;
 }) {
-  const where: any = {
-    schoolAccountId,
-  };
+  const where: any = isAdmin
+    ? { schoolAccountId }
+    : { createdById: userId };
 
   if (query) {
     where.OR = [
@@ -207,15 +223,21 @@ async function loadSurveyAnalyses({
 async function loadTargets({
   targetType,
   schoolAccountId,
+  userId,
+  isAdmin,
   query,
 }: {
   targetType: TargetType;
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
   query: string;
 }) {
   if (targetType === "ASSESSMENT_ANALYSIS") {
     return loadAssessmentAnalyses({
       schoolAccountId,
+      userId,
+      isAdmin,
       query,
     });
   }
@@ -223,6 +245,8 @@ async function loadTargets({
   if (targetType === "SURVEY_ANALYSIS") {
     return loadSurveyAnalyses({
       schoolAccountId,
+      userId,
+      isAdmin,
       query,
     });
   }
@@ -234,16 +258,20 @@ async function sourceExists({
   sourceType,
   sourceId,
   schoolAccountId,
+  userId,
+  isAdmin,
 }: {
   sourceType: SourceType;
   sourceId: string;
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
 }) {
   if (sourceType === "CASE_REPORT") {
     const item = await prisma.caseEntry.findFirst({
       where: {
         id: sourceId,
-        schoolAccountId,
+        ...(isAdmin ? { schoolAccountId } : { createdById: userId }),
       },
       select: {
         id: true,
@@ -260,10 +288,14 @@ async function validTargetIds({
   targetType,
   targetIds,
   schoolAccountId,
+  userId,
+  isAdmin,
 }: {
   targetType: TargetType;
   targetIds: string[];
   schoolAccountId: string;
+  userId: string;
+  isAdmin: boolean;
 }) {
   if (!targetIds.length) {
     return [];
@@ -275,7 +307,7 @@ async function validTargetIds({
         id: {
           in: targetIds,
         },
-        schoolAccountId,
+        ...(isAdmin ? { schoolAccountId } : { createdById: userId }),
       },
       select: {
         id: true,
@@ -292,7 +324,7 @@ async function validTargetIds({
         id: {
           in: targetIds,
         },
-        schoolAccountId,
+        ...(isAdmin ? { schoolAccountId } : { createdById: userId }),
       },
       select: {
         id: true,
@@ -332,12 +364,16 @@ export async function GET(request: Request) {
   try {
     const sources = await loadCaseReports({
       schoolAccountId: auth.schoolAccountId,
+      userId: auth.user.id,
+      isAdmin: auth.isAdmin,
       query: sourceQuery,
     });
 
     const targets = await loadTargets({
       targetType: targetTypeRaw,
       schoolAccountId: auth.schoolAccountId,
+      userId: auth.user.id,
+      isAdmin: auth.isAdmin,
       query: targetQuery,
     });
 
@@ -460,6 +496,8 @@ export async function POST(request: Request) {
     sourceType: sourceTypeRaw,
     sourceId,
     schoolAccountId: auth.schoolAccountId,
+    userId: auth.user.id,
+    isAdmin: auth.isAdmin,
   });
 
   if (!exists) {
@@ -479,6 +517,8 @@ export async function POST(request: Request) {
     targetType: targetTypeRaw,
     targetIds: uniqueTargetIds,
     schoolAccountId: auth.schoolAccountId,
+    userId: auth.user.id,
+    isAdmin: auth.isAdmin,
   });
 
   await prisma.$transaction(async (tx) => {

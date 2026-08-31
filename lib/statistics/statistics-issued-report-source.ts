@@ -54,8 +54,6 @@ function buildCaseScope(
   return {
     ...(!context.isAdmin
       ? {
-          schoolAccountId:
-            context.schoolAccountId || "__missing_school_account__",
           createdById: context.user.id,
         }
       : {}),
@@ -156,10 +154,6 @@ async function listReportSnapshotSources(
   context: DashboardContext,
   filters: StatisticsIssuedReportFilters,
 ): Promise<NormalizedIssuedReport[]> {
-  if (!context.isAdmin && !context.schoolAccountId) {
-    return [];
-  }
-
   const approvedAtFilter = buildDateFilter(filters);
 
   const snapshots = await prisma.reportSnapshot.findMany({
@@ -174,18 +168,6 @@ async function listReportSnapshotSources(
             serviceSlug: filters.serviceSlugs?.length
               ? { in: filters.serviceSlugs }
               : filters.serviceSlug,
-          }
-        : {}),
-      ...(!context.isAdmin
-        ? {
-            OR: [
-              {
-                schoolAccountId: context.schoolAccountId,
-              },
-              {
-                schoolAccountId: null,
-              },
-            ],
           }
         : {}),
     },
@@ -268,10 +250,6 @@ export async function listIssuedReportSources(
   context: DashboardContext,
   filters: StatisticsIssuedReportFilters = {},
 ): Promise<NormalizedIssuedReport[]> {
-  if (!context.isAdmin && !context.schoolAccountId) {
-    return [];
-  }
-
   const [guidanceReports, reportSnapshots] =
     await Promise.all([
       listGuidanceReportSources(context, filters),

@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { CertificatePrintButton } from "@/components/certificates/certificate-print-button";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
@@ -13,17 +13,17 @@ type PageProps = {
   searchParams?: Promise<{ print?: string | string[] }>;
 };
 
-async function getCertificate(certificateId: string, schoolAccountId: string) {
+async function getCertificate(certificateId: string, createdById: string) {
   const rows = await prisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE id = ? AND schoolAccountId = ?
+    WHERE id = ? AND createdById = ?
     LIMIT 1
     `,
     certificateId,
-    schoolAccountId,
+    createdById,
   );
 
   return rows[0] || null;
@@ -32,16 +32,12 @@ async function getCertificate(certificateId: string, schoolAccountId: string) {
 export default async function CertificateEmbeddedPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
 
-  if (!current.user.schoolAccountId) {
-    redirect("/dashboard");
-  }
-
   const { certificateId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const printParam = Array.isArray(resolvedSearchParams.print)
     ? resolvedSearchParams.print[0]
     : resolvedSearchParams.print;
-  const certificate = await getCertificate(certificateId, current.user.schoolAccountId);
+  const certificate = await getCertificate(certificateId, current.user.id);
 
   if (!certificate) notFound();
 

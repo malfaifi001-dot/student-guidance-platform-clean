@@ -40,7 +40,7 @@ function withEvidence(content: PortfolioReportContent | null, fallback: Paramete
 }
 
 export async function discoverEligiblePortfolioReports(user: PortfolioActor, portfolioId: string): Promise<EligibleReport[]> {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true });
   const serviceDefinitions = getPortfolioPerformanceElements(user.role);
   const serviceSlugs = serviceDefinitions.map((item) => item.serviceSlug);
   const principalLinks = user.role === "PRINCIPAL"
@@ -57,7 +57,7 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   const linkedGuidanceIds = principalLinks.filter((link) => link.sourceType === "GUIDANCE_REPORT").map((link) => link.sourceId);
   const linkedSnapshotIds = principalLinks.filter((link) => link.sourceType === "REPORT_SNAPSHOT").map((link) => link.sourceId);
   const cases = await prisma.caseEntry.findMany({
-    where: { schoolAccountId: user.schoolAccountId!, createdById: user.id, service: { slug: { in: serviceSlugs } } },
+    where: { createdById: user.id, service: { slug: { in: serviceSlugs } } },
     select: { id: true },
   });
   const caseIds = cases.map((item) => item.id);
@@ -69,16 +69,16 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   }
   const [guidance, active, snapshots, returnedAssignments, linkedGuidance, linkedSnapshots, linkedActive] = await Promise.all([
     prisma.guidanceReport.findMany({
-      where: { serviceSlug: { in: serviceSlugs }, caseEntry: { schoolAccountId: user.schoolAccountId!, createdById: user.id } },
+      where: { serviceSlug: { in: serviceSlugs }, caseEntry: { createdById: user.id } },
       include: { caseEntry: { include: { service: true } }, evidenceItems: { where: { visible: true }, orderBy: { sortOrder: "asc" } } },
       orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }], take: 200,
     }),
     prisma.reportTwoActive.findMany({
-      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: serviceSlugs }, status: "APPROVED" },
+      where: { caseEntryId: { in: caseIds }, serviceSlug: { in: serviceSlugs }, status: "APPROVED" },
       orderBy: { updatedAt: "desc" }, take: 200,
     }),
     prisma.reportSnapshot.findMany({
-      where: { caseEntryId: { in: caseIds }, schoolAccountId: user.schoolAccountId!, serviceSlug: { in: serviceSlugs } },
+      where: { caseEntryId: { in: caseIds }, serviceSlug: { in: serviceSlugs } },
       orderBy: { approvedAt: "desc" }, take: 200,
     }),
     user.role === "PRINCIPAL"
@@ -307,7 +307,7 @@ export async function movePortfolioEvidence(user: PortfolioActor, portfolioId: s
 }
 
 export async function loadCustomEvidence(user: PortfolioActor, portfolioId: string): Promise<PortfolioCustomEvidence[]> {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true });
   const items = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: "CUSTOM_EVIDENCE" }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
   return items.map((item) => { const meta = object(item.metadataJson); return { id: item.id, sectionId: item.sectionId, title: item.title, description: item.description || "", fileUrl: typeof meta.fileUrl === "string" ? meta.fileUrl : "", mimeType: typeof meta.mimeType === "string" ? meta.mimeType : "", sortOrder: item.sortOrder, isVisible: item.isVisible }; });
 }

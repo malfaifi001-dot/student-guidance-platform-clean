@@ -59,6 +59,8 @@ export async function POST(_request: Request, context: RouteContext) {
       where: buildReportAccessWhere(reportId, {
         schoolAccountId: authResult.schoolAccountId,
         isAdmin: authResult.isAdmin,
+        userId: authResult.user.id,
+        userRole: authResult.user.role,
       }),
       include: {
         evidenceItems: {

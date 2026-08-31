@@ -62,7 +62,7 @@ export async function resolvePortfolioServiceOutputs(input: {
   schoolAccountId: string;
   roleKey: "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER" | "PRINCIPAL";
 }) {
-  const links = await listServiceOutputLinks({ ownerUserId: input.ownerUserId, schoolAccountId: input.schoolAccountId, roleKey: input.roleKey });
+  const links = await listServiceOutputLinks({ ownerUserId: input.ownerUserId });
   const resolved = await Promise.all(links.map(async (link) => {
     const resolver = serviceOutputResolvers[link.serviceSlug];
     return resolver ? resolver({ schoolAccountId: input.schoolAccountId, ownerUserId: input.ownerUserId, link }) : null;

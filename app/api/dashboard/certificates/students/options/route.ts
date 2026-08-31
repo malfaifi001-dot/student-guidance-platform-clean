@@ -15,77 +15,119 @@ type StudentOption = {
 };
 
 export async function GET(request: Request) {
-  const actor = await getCertificateActor();
+  let actor;
+
+  try {
+    actor = await getCertificateActor();
+  } catch {
+    actor = null;
+  }
 
   if (!actor) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
-  const url = new URL(request.url);
-  const grade = url.searchParams.get("grade")?.trim() || "";
-  const classroom = url.searchParams.get("classroom")?.trim() || "";
-  const query = url.searchParams.get("query")?.trim() || "";
+  let grade = "";
+  let classroom = "";
+  let query = "";
 
-  const grades = await certificatePrisma.$queryRawUnsafe<{ grade: string | null }[]>(
-    `
-    SELECT DISTINCT grade
-    FROM Student
-    WHERE schoolAccountId = ?
-      AND isActive = 1
-      AND grade IS NOT NULL
-      AND grade <> ''
-    ORDER BY grade ASC
-    `,
-    actor.schoolAccountId,
-  );
+  try {
+    const url = new URL(request.url);
+    grade = url.searchParams.get("grade")?.trim() || "";
+    classroom = url.searchParams.get("classroom")?.trim() || "";
+    query = url.searchParams.get("query")?.trim() || "";
+  } catch {
+    grade = "";
+    classroom = "";
+    query = "";
+  }
 
-  const classrooms = await certificatePrisma.$queryRawUnsafe<{ classroom: string | null }[]>(
-    `
-    SELECT DISTINCT classroom
-    FROM Student
-    WHERE schoolAccountId = ?
-      AND isActive = 1
-      AND classroom IS NOT NULL
-      AND classroom <> ''
-      AND (? = '' OR grade = ?)
-    ORDER BY classroom ASC
-    `,
-    actor.schoolAccountId,
-    grade,
-    grade,
-  );
+  try {
+    const gradeRows = await certificatePrisma.student.findMany({
+      where: {
+        schoolAccountId: actor.schoolAccountId,
+        isActive: true,
+        grade: { not: null },
+      },
+      select: { grade: true },
+      distinct: ["grade"],
+      orderBy: { grade: "asc" },
+    });
 
-  const like = `%${query}%`;
+    const grades = Array.from(
+      new Set(
+        gradeRows
+          .map((row) => row.grade?.trim())
+          .filter((value): value is string => Boolean(value && value !== "")),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
 
-  const students = await certificatePrisma.$queryRawUnsafe<StudentOption[]>(
-    `
-    SELECT id, fullName, nationalId, grade, classroom, gender
-    FROM Student
-    WHERE schoolAccountId = ?
-      AND isActive = 1
-      AND (? = '' OR grade = ?)
-      AND (? = '' OR classroom = ?)
-      AND (
-        ? = ''
-        OR fullName LIKE ?
-        OR nationalId LIKE ?
-      )
-    ORDER BY fullName ASC
-    LIMIT 200
-    `,
-    actor.schoolAccountId,
-    grade,
-    grade,
-    classroom,
-    classroom,
-    query,
-    like,
-    like,
-  );
+    const classroomWhere = {
+      schoolAccountId: actor.schoolAccountId,
+      isActive: true,
+      classroom: { not: null } as const,
+      ...(grade ? { grade } : {}),
+    };
 
-  return NextResponse.json({
-    grades: grades.map((item) => item.grade).filter(Boolean),
-    classrooms: classrooms.map((item) => item.classroom).filter(Boolean),
-    students,
-  });
+    const classroomRows = await certificatePrisma.student.findMany({
+      where: classroomWhere,
+      select: { classroom: true },
+      distinct: ["classroom"],
+      orderBy: { classroom: "asc" },
+    });
+
+    const classrooms = Array.from(
+      new Set(
+        classroomRows
+          .map((row) => row.classroom?.trim())
+          .filter((value): value is string => Boolean(value && value !== "")),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+
+    const students = await certificatePrisma.student.findMany({
+      where: {
+        schoolAccountId: actor.schoolAccountId,
+        isActive: true,
+        ...(grade ? { grade } : {}),
+        ...(classroom ? { classroom } : {}),
+        ...(query
+          ? {
+              OR: [
+                { fullName: { contains: query } },
+                { nationalId: { contains: query } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        fullName: true,
+        nationalId: true,
+        grade: true,
+        classroom: true,
+        gender: true,
+      },
+      orderBy: { fullName: "asc" },
+      take: 200,
+    });
+
+    return NextResponse.json({
+      grades,
+      classrooms,
+      students: students.map((student) => ({
+        ...student,
+        gender: student.gender?.toString() || null,
+      })),
+    });
+  } catch (error) {
+    console.error(
+      "Certificate student options failed.",
+      error instanceof Error ? error.message : error,
+    );
+
+    return NextResponse.json(
+      { error: "تعذر تحميل خيارات الطلاب. حاول مرة أخرى." },
+      { status: 500 },
+    );
+  }
 }

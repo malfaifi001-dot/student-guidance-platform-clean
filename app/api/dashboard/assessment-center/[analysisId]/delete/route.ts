@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export const runtime = "nodejs";
 
@@ -29,9 +30,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       id: analysisId,
       ...(isAdmin
         ? {}
-        : {
-            schoolAccountId: auth.schoolAccountId,
-          }),
+        : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)),
     },
   });
 

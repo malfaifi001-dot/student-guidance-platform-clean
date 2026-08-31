@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         answers: true,
       },
     },
-  });
+  }, { historicalPersonalRead: true });
 
   if (error || !survey) {
     return error ?? NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 });

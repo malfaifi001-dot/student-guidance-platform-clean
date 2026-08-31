@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
 import {
   requireActiveSubscriptionApi,
@@ -135,9 +136,15 @@ export async function POST(request: Request, context: RouteContext) {
       if (serviceGuard) return serviceGuard;
     }
 
-    const caseEntry = await prisma.caseEntry.findUnique({
+    const caseEntry = await prisma.caseEntry.findFirst({
       where: {
         id: result.caseEntryId,
+        ...buildCaseEntryWhereForUser({
+          id: current.user.id,
+          role: current.user.role,
+          schoolAccountId: current.user.schoolAccountId,
+          email: current.user.email,
+        }),
       },
       select: {
         id: true,

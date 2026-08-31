@@ -37,7 +37,11 @@ export async function GET(_request: Request, context: RouteContext) {
     return authResult;
   }
 
-  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+  if (
+    !authResult.isAdmin &&
+    !authResult.schoolAccountId &&
+    !["PRINCIPAL", "STAFF", "TEACHER"].includes(authResult.user.role)
+  ) {
     return NextResponse.json(
       {
         success: false,
@@ -310,8 +314,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
     email: authResult.user.email,
   };
 
-  const caseEntry = await prisma.caseEntry.findUnique({
-    where: { id: caseId },
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      ...buildCaseEntryWhereForUser(permissionUser),
+    },
     select: {
       id: true,
       title: true,
@@ -350,8 +357,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const deletion = await prisma.$transaction(async (tx) => {
-      const current = await tx.caseEntry.findUnique({
-        where: { id: caseId },
+      const current = await tx.caseEntry.findFirst({
+        where: {
+          id: caseId,
+          ...buildCaseEntryWhereForUser(permissionUser),
+        },
         select: {
           id: true,
           schoolAccountId: true,

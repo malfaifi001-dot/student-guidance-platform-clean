@@ -64,7 +64,7 @@ function readLinkedIds(row: ReportOptionRow) {
 }
 
 export async function GET(request: Request) {
-  const actor = await getCertificateActor();
+  const actor = await getCertificateActor({ allowUnlinkedRead: true });
 
   if (!actor) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
@@ -76,8 +76,8 @@ export async function GET(request: Request) {
     const certificateQuery =
       url.searchParams.get("certificateQuery")?.trim() || "";
 
-    const reportWhere: string[] = ["c.schoolAccountId = ?"];
-    const reportParams: unknown[] = [actor.schoolAccountId];
+    const reportWhere: string[] = ["c.createdById = ?"];
+    const reportParams: unknown[] = [actor.id];
 
     if (reportQuery) {
       const reportLike = `%${reportQuery}%`;
@@ -88,8 +88,8 @@ export async function GET(request: Request) {
       reportParams.push(reportLike, reportLike, reportLike, reportLike);
     }
 
-    const certificateWhere: string[] = ["schoolAccountId = ?", "createdById = ?"];
-    const certificateParams: unknown[] = [actor.schoolAccountId, actor.id];
+    const certificateWhere: string[] = ["createdById = ?"];
+    const certificateParams: unknown[] = [actor.id];
 
     if (certificateQuery) {
       const certificateLike = `%${certificateQuery}%`;
@@ -126,13 +126,14 @@ export async function GET(request: Request) {
         ) AS linkedJsonValue
       FROM CaseEntry c
       LEFT JOIN Service s ON s.id = c.serviceId
-      LEFT JOIN Student st ON st.id = c.studentId
+      LEFT JOIN Student st ON st.id = c.studentId AND st.schoolAccountId = ?
       WHERE ${reportWhere.join(" AND ")}
       ORDER BY c.updatedAt DESC, c.createdAt DESC
       LIMIT 120
       `,
       LINK_FIELD_KEY,
       LINK_FIELD_KEY,
+      actor.schoolAccountId,
       ...reportParams,
     );
 
@@ -211,11 +212,11 @@ export async function POST(request: Request) {
     `
     SELECT id
     FROM CaseEntry
-    WHERE id = ? AND schoolAccountId = ?
+    WHERE id = ? AND createdById = ?
     LIMIT 1
     `,
     caseId,
-    actor.schoolAccountId,
+    actor.id,
   );
 
   if (!caseRows.length) {
@@ -235,9 +236,8 @@ export async function POST(request: Request) {
       `
       SELECT id
       FROM IssuedCertificate
-      WHERE schoolAccountId = ? AND createdById = ? AND id IN (${placeholders})
+      WHERE createdById = ? AND id IN (${placeholders})
       `,
-      actor.schoolAccountId,
       actor.id,
       ...uniqueIds,
     );

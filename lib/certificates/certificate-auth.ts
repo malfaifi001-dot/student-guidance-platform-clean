@@ -7,17 +7,23 @@ type CertificateActor = {
   name: string;
 };
 
-export async function getCertificateActor(): Promise<CertificateActor | null> {
+export async function getCertificateActor(
+  options: { allowUnlinkedRead?: boolean } = {},
+): Promise<CertificateActor | null> {
   const current = await getCurrentSessionUser();
   const user = current?.user;
 
-  if (!user?.id || !user.schoolAccountId || user.role === "ADMIN") {
+  if (
+    !user?.id ||
+    user.role === "ADMIN" ||
+    (!user.schoolAccountId && !options.allowUnlinkedRead)
+  ) {
     return null;
   }
 
   return {
     id: user.id,
-    schoolAccountId: user.schoolAccountId,
+    schoolAccountId: user.schoolAccountId || "",
     role: user.role,
     name: user.officialName || user.name || "المستخدم",
   };

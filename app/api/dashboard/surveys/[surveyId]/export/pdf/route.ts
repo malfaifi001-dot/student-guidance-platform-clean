@@ -285,7 +285,7 @@ async function requirePdfAccess(surveyId: string) {
     };
   }
 
-  if (current.user.role !== "ADMIN" && survey.schoolAccountId !== current.user.schoolAccountId) {
+  if (current.user.role !== "ADMIN" && survey.createdById !== current.user.id) {
     return {
       survey: null,
       error: NextResponse.json({ error: "لا تملك صلاحية الوصول لهذا الاستبيان." }, { status: 403 }),

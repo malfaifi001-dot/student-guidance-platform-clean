@@ -43,7 +43,6 @@ export async function requireOwnedPortfolio(user: PortfolioActor, portfolioId: s
       id: portfolioId,
       ownerUserId: user.id,
       ...(options?.historicalPersonalRead ? {} : { schoolAccountId: user.schoolAccountId }),
-      roleKey: user.role,
     },
   });
 

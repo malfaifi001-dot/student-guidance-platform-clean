@@ -124,7 +124,7 @@ export async function GET(request: Request) {
     }
 
     if (
-      auth.schoolAccountId &&
+      auth.user.role !== "ADMIN" &&
       caseEntry.schoolAccountId !== auth.schoolAccountId &&
       caseEntry.createdById === auth.user.id
     ) {

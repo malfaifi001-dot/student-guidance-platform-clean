@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   if (auth instanceof Response) return auth;
   const roleKey = auth.user.role === "ADMIN" ? parseLinkRole(requestedRole) : parseLinkRole(auth.user.role);
   if (!roleKey) return NextResponse.json({ error: "الدور غير مدعوم." }, { status: 403 });
-  const links = await listServiceOutputLinks({ ownerUserId: auth.user.id, schoolAccountId: auth.schoolAccountId, roleKey, serviceSlug, performanceItemKey: clean(url.searchParams.get("performanceItemKey")) || undefined });
+  const links = await listServiceOutputLinks({ ownerUserId: auth.user.id, schoolAccountId: auth.user.role === "ADMIN" ? auth.schoolAccountId : undefined, roleKey: auth.user.role === "ADMIN" ? roleKey : undefined, serviceSlug, performanceItemKey: clean(url.searchParams.get("performanceItemKey")) || undefined });
   const enrichedLinks = serviceSlug === "curriculum-distribution"
     ? await Promise.all(links.map(async (link) => {
       const reference = link.sourceReferenceJson && typeof link.sourceReferenceJson === "object" && !Array.isArray(link.sourceReferenceJson) ? link.sourceReferenceJson as Record<string, unknown> : {};

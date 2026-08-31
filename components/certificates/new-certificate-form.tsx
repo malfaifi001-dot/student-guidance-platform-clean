@@ -21,7 +21,7 @@ import { CertificateWizardNavigation } from "@/components/certificates/certifica
 
 type StudentSearchResult = {
   id: string;
-  fullName: string;
+  name: string;
   nationalId?: string | null;
   grade?: string | null;
   classroom?: string | null;
@@ -36,6 +36,7 @@ type CertificateDraft = {
   nationalId?: string;
   grade?: string;
   classroom?: string;
+  gender?: string;
   certificateType: string;
   reason: string;
   body: string;
@@ -230,13 +231,14 @@ export function NewCertificateForm({ schoolName = "" }: { schoolName?: string })
     setDraft((current) => ({
       ...current,
       studentId: student.id,
-      recipientName: student.fullName || current.recipientName,
+      recipientName: student.name || current.recipientName,
       nationalId: student.nationalId || "",
       grade: student.grade || "",
       classroom: student.classroom || "",
+      gender: student.gender || "",
     }));
 
-    setStudentQuery(student.fullName || "");
+    setStudentQuery(student.name || "");
     setStudentResults([]);
   }
 
@@ -397,7 +399,7 @@ export function NewCertificateForm({ schoolName = "" }: { schoolName?: string })
                         className="rounded-2xl border border-slate-200 bg-white p-3 text-right transition hover:border-sky-200 hover:bg-sky-50"
                       >
                         <p className="text-sm font-black text-slate-950">
-                          {student.fullName}
+                          {student.name}
                         </p>
                         <p className="mt-1 text-xs font-bold text-slate-500">
                           {student.grade || "الصف غير محدد"} · {student.classroom || "الفصل غير محدد"} · {student.nationalId || "بدون هوية"}

@@ -81,6 +81,7 @@ export default async function ReportTwoCaseStudioPage({
   const result = await buildSmartReportPayloadForCase({
     caseId,
     current,
+    historicalPersonalRead: true,
   });
 
   if (!result.ok) {

@@ -17,17 +17,17 @@ type PageProps = {
   }>;
 };
 
-async function getBatchCertificates(batchId: string, schoolAccountId: string) {
+async function getBatchCertificates(batchId: string, createdById: string) {
   const rows = await prisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ?
+    WHERE batchId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
-    schoolAccountId,
+    createdById,
   );
 
   return rows;
@@ -35,10 +35,6 @@ async function getBatchCertificates(batchId: string, schoolAccountId: string) {
 
 export default async function CertificatesBatchPrintPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
-
-  if (!current.user.schoolAccountId) {
-    redirect("/dashboard");
-  }
 
   const { batchId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -52,20 +48,19 @@ export default async function CertificatesBatchPrintPreviewPage({ params, search
     }`,
   );
 
-  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId!);
+  const certificates = await getBatchCertificates(batchId, current.user.id);
 
   if (!certificates.length) {
     notFound();
   }
 
   const batchSchoolAccountId = certificates[0].schoolAccountId;
-  const isAuthenticatedSchoolBatch = certificates.every(
-    (certificate) =>
-      certificate.schoolAccountId === current.user.schoolAccountId &&
-      certificate.schoolAccountId === batchSchoolAccountId,
-  );
+  const batch = await prisma.certificateBatch.findFirst({
+    where: { id: batchId, createdById: current.user.id },
+    select: { id: true },
+  });
 
-  if (!isAuthenticatedSchoolBatch) {
+  if (!batch || certificates.some((certificate) => certificate.schoolAccountId !== batchSchoolAccountId)) {
     notFound();
   }
 

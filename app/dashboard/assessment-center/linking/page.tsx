@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 type AssessmentRowLike = {
   studentId?: string | null;
@@ -36,9 +37,11 @@ export default async function AssessmentCenterLinkingPage() {
   const analyses = await prisma.assessmentAnalysis.findMany({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(
+          context.schoolAccountId,
+          context.user.id,
+          { historicalPersonalRead: true },
+        ),
     orderBy: {
       createdAt: "desc",
     },

@@ -17,6 +17,8 @@ async function archiveReport(
   scope: {
     schoolAccountId: string | null;
     isAdmin: boolean;
+    userId: string;
+    userRole: string;
   },
 ) {
   const existingReport = await prisma.guidanceReport.findFirst({
@@ -89,6 +91,8 @@ export async function POST(_request: Request, context: RouteContext) {
     const result = await archiveReport(reportId, {
       schoolAccountId: authResult.schoolAccountId,
       isAdmin: authResult.isAdmin,
+      userId: authResult.user.id,
+      userRole: authResult.user.role,
     });
 
     if (!result.ok) {

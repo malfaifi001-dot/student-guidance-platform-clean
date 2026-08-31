@@ -37,7 +37,7 @@ export async function saveTeacherCurriculum(input: { ownerUserId: string; school
   return { ok: true as const, record, distribution, duplicate: Boolean(existing) };
 }
 
-export async function removeTeacherCurriculum(input: { ownerUserId: string; schoolAccountId: string; id: string }) {
-  const result = await prisma.teacherSavedCurriculum.deleteMany({ where: { id: input.id, ownerUserId: input.ownerUserId, schoolAccountId: input.schoolAccountId } });
+export async function removeTeacherCurriculum(input: { ownerUserId: string; id: string }) {
+  const result = await prisma.teacherSavedCurriculum.deleteMany({ where: { id: input.id, ownerUserId: input.ownerUserId } });
   return result.count === 1;
 }

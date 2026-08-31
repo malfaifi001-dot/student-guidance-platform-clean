@@ -1,6 +1,4 @@
 
-import { redirect } from "next/navigation";
-
 import { CasesSearchTable } from "@/components/cases/cases-search-table";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import {
@@ -96,10 +94,6 @@ export default async function CasesPage() {
 
   const viewerRole = getViewerRole(context);
   const viewerSchoolAccountId = getViewerSchoolAccountId(context);
-
-  if (viewerRole !== "ADMIN" && !viewerSchoolAccountId) {
-    redirect("/dashboard/onboarding?required=true");
-  }
 
   const viewerId = getViewerId(context);
   const viewerName = getViewerName(context);
@@ -205,15 +199,16 @@ export default async function CasesPage() {
 
   const rows = cases.map((caseItem) => {
     const historicalPersonalCase =
-      Boolean(viewerSchoolAccountId) &&
-      caseItem.schoolAccountId !== viewerSchoolAccountId &&
-      caseItem.createdById === viewerId;
+      viewerRole !== "ADMIN" &&
+      caseItem.createdById === viewerId &&
+      caseItem.schoolAccountId !== viewerSchoolAccountId;
     const capabilities = resolveCaseCapabilities(
       {
         id: viewerId || "__NO_USER__",
         role: viewerRole,
         schoolAccountId: viewerSchoolAccountId,
         email: context.user.email,
+        historicalPersonalRead: true,
       },
       caseItem,
     );

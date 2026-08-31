@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 function getNumberFromSummary(summaryJson: unknown, key: string) {
   if (!summaryJson || typeof summaryJson !== "object") return 0;
@@ -88,9 +89,11 @@ export default async function AssessmentCenterSmartCounselorPage() {
   const analyses = await prisma.assessmentAnalysis.findMany({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(
+          context.schoolAccountId,
+          context.user.id,
+          { historicalPersonalRead: true },
+        ),
     orderBy: {
       createdAt: "desc",
     },

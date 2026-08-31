@@ -14,17 +14,16 @@ type RouteContext = {
   }>;
 };
 
-async function getBatchCertificates(batchId: string, schoolAccountId: string, createdById: string) {
+async function getBatchCertificates(batchId: string, createdById: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
+    WHERE batchId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
-    schoolAccountId,
     createdById,
   );
 
@@ -40,14 +39,25 @@ function safeFileName(value: string) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const actor = await getCertificateActor();
+  const actor = await getCertificateActor({ allowUnlinkedRead: true });
 
   if (!actor) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const { batchId } = await context.params;
-  const certificates = await getBatchCertificates(batchId, actor.schoolAccountId, actor.id);
+  const batch = await certificatePrisma.certificateBatch.findFirst({
+    where: { id: batchId, createdById: actor.id },
+    select: { id: true },
+  });
+  if (!batch) {
+    return NextResponse.json(
+      { error: "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø´Ù‡Ø§Ø¯Ø§Øª Ù‡Ø°Ù‡ Ø§Ù„Ø¯ÙØ¹Ø©." },
+      { status: 404 },
+    );
+  }
+
+  const certificates = await getBatchCertificates(batchId, actor.id);
 
   if (!certificates.length) {
     return NextResponse.json(
@@ -59,7 +69,6 @@ export async function POST(request: Request, context: RouteContext) {
   const batchSchoolAccountId = certificates[0].schoolAccountId;
   const isAuthenticatedSchoolBatch = certificates.every(
     (certificate) =>
-      certificate.schoolAccountId === actor.schoolAccountId &&
       certificate.schoolAccountId === batchSchoolAccountId,
   );
 

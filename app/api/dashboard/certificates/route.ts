@@ -114,7 +114,7 @@ async function insertDynamic(
 }
 
 export async function GET(request: Request) {
-  const actor = await getCertificateActor();
+  const actor = await getCertificateActor({ allowUnlinkedRead: true });
 
   if (!actor) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
@@ -125,8 +125,8 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type")?.trim() || "";
   const recipientType = url.searchParams.get("recipientType")?.trim() || "";
 
-  const where: string[] = ["c.schoolAccountId = ?", "c.createdById = ?"];
-  const params: unknown[] = [actor.schoolAccountId, actor.id];
+  const where: string[] = ["c.createdById = ?"];
+  const params: unknown[] = [actor.id];
 
   if (query) {
     const like = `%${query}%`;

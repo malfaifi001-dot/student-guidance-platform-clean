@@ -157,7 +157,7 @@ export async function WorkflowServiceHomePage({
 }: WorkflowServiceHomePageProps) {
   const context = await requireDashboardPageContext({ allowPrincipal });
 
-  if (!context.isAdmin && !context.schoolAccountId) {
+  if (!context.isAdmin && !context.schoolAccountId && !ownerScoped) {
     redirect("/dashboard/onboarding?required=true");
   }
 
@@ -221,8 +221,9 @@ export async function WorkflowServiceHomePage({
         }
       : {
           serviceId: service.id,
-          schoolAccountId: context.schoolAccountId as string,
-          ...(ownerScoped ? { createdById: context.user.id } : {}),
+          ...(ownerScoped
+            ? { createdById: context.user.id }
+            : { schoolAccountId: context.schoolAccountId as string }),
         },
     orderBy: {
       updatedAt: "desc",

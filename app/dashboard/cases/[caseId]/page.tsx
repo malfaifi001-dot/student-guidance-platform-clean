@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { CaseDetailsView } from "@/components/cases/case-details-view";
 import { getCaseById } from "@/engine/cases/case-runtime-engine";
@@ -14,10 +14,6 @@ type PageProps = {
 export default async function CaseDetailsPage({ params }: PageProps) {
   const { caseId } = await params;
   const context = await requireDashboardPageContext({ allowPrincipal: true });
-
-  if (!context.isAdmin && !context.schoolAccountId) {
-    redirect("/dashboard/onboarding?required=true");
-  }
 
   try {
     const caseEntry = await getCaseById(caseId, {

@@ -22,17 +22,16 @@ function safeFileName(value: string) {
     .slice(0, 120);
 }
 
-async function getCertificate(certificateId: string, schoolAccountId: string, createdById: string) {
+async function getCertificate(certificateId: string, createdById: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE id = ? AND schoolAccountId = ? AND createdById = ?
+    WHERE id = ? AND createdById = ?
     LIMIT 1
     `,
     certificateId,
-    schoolAccountId,
     createdById,
   );
 
@@ -40,14 +39,14 @@ async function getCertificate(certificateId: string, schoolAccountId: string, cr
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const actor = await getCertificateActor();
+  const actor = await getCertificateActor({ allowUnlinkedRead: true });
 
   if (!actor) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const { certificateId } = await context.params;
-  const certificate = await getCertificate(certificateId, actor.schoolAccountId, actor.id);
+  const certificate = await getCertificate(certificateId, actor.id);
 
   if (!certificate) {
     return NextResponse.json({ error: "الشهادة غير موجودة." }, { status: 404 });

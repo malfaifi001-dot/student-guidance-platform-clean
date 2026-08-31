@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { AssessmentAnalysesList } from "@/components/assessment-center/assessment-analyses-list";
+import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
 
 export default async function AssessmentAnalysesPage() {
   const context = await requireDashboardPageContext();
@@ -10,9 +11,11 @@ export default async function AssessmentAnalysesPage() {
   const analyses = await prisma.assessmentAnalysis.findMany({
     where: context.isAdmin
       ? {}
-      : {
-          schoolAccountId: context.schoolAccountId,
-        },
+      : assessmentAnalysisOwnershipWhere(
+          context.schoolAccountId,
+          context.user.id,
+          { historicalPersonalRead: true },
+        ),
     orderBy: {
       createdAt: "desc",
     },

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const printUrl = new URL("/print/curriculum-distribution/week", origin);
 
   if (all) {
-    const saved = await listTeacherSavedCurriculum(context.user.id, context.schoolAccountId);
+    const saved = await listTeacherSavedCurriculum(context.user.id, context.schoolAccountId, { historicalPersonalRead: true });
     if (!saved.length) return NextResponse.json({ error: "NO_SAVED_CURRICULUM" }, { status: 404 });
     printUrl.searchParams.set("all", "1");
   } else {

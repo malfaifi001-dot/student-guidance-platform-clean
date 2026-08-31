@@ -32,7 +32,10 @@ export default async function ReportStudioPage({ params }: PageProps) {
   const report = await prisma.guidanceReport.findFirst({
     where: {
       id: reportId,
-      ...buildGuidanceReportWhereForUser(current.user),
+      ...buildGuidanceReportWhereForUser({
+        ...current.user,
+        historicalPersonalRead: true,
+      }),
     },
     include: {
       evidenceItems: { orderBy: { sortOrder: "asc" } },
@@ -47,6 +50,13 @@ export default async function ReportStudioPage({ params }: PageProps) {
   });
 
   if (!report) notFound();
+
+  if (
+    current.user.role !== "ADMIN" &&
+    report.caseEntry?.schoolAccountId !== current.user.schoolAccountId
+  ) {
+    Object.assign(report.caseEntry, { student: null });
+  }
 
   if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({

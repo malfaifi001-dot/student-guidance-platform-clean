@@ -117,7 +117,6 @@ export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: 
     where: {
       portfolioId,
       ownerUserId: user.id,
-      roleAtCreation: user.role,
     },
     orderBy: { createdAt: "desc" },
     select: {
@@ -148,7 +147,6 @@ export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: str
     where: {
       id: snapshotId,
       ownerUserId: user.id,
-      roleAtCreation: user.role,
     },
   });
   if (!snapshot) {

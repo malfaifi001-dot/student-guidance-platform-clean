@@ -116,10 +116,6 @@ export async function getStatisticsReportView(
 
         ...(!context.isAdmin
           ? {
-              schoolAccountId:
-                context.schoolAccountId ||
-                "__missing_school__",
-
               createdById:
                 context.user.id,
             }

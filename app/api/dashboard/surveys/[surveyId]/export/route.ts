@@ -126,17 +126,8 @@ async function requireExportAccess(surveyId: string) {
 
   if (
     current.user.role !== "ADMIN" &&
-    (survey.schoolAccountId !== current.user.schoolAccountId ||
-      survey.createdById !== current.user.id)
+    survey.createdById !== current.user.id
   ) {
-    return {
-      current: null,
-      survey: null,
-      error: NextResponse.json({ error: "لا تملك صلاحية الوصول لهذا الاستبيان." }, { status: 403 }),
-    };
-  }
-
-  if (current.user.role !== "ADMIN" && survey.schoolAccountId !== current.user.schoolAccountId) {
     return {
       current: null,
       survey: null,

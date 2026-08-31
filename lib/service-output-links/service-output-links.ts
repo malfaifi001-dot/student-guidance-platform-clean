@@ -37,7 +37,7 @@ export function assertPortfolioSection(roleKey: PerformanceRole, sectionKey: str
 export async function listServiceOutputLinks(input: {
   ownerUserId: string;
   schoolAccountId?: string | null;
-  roleKey: PerformanceRole;
+  roleKey?: PerformanceRole;
   serviceSlug?: string;
   performanceItemKey?: string;
 }) {
@@ -45,7 +45,7 @@ export async function listServiceOutputLinks(input: {
     where: {
       ownerUserId: input.ownerUserId,
       ...(input.schoolAccountId ? { schoolAccountId: input.schoolAccountId } : {}),
-      roleKey: input.roleKey,
+      ...(input.roleKey ? { roleKey: input.roleKey } : {}),
       ...(input.serviceSlug ? { serviceSlug: input.serviceSlug } : {}),
       ...(input.performanceItemKey ? { performanceItemKey: input.performanceItemKey } : {}),
     },

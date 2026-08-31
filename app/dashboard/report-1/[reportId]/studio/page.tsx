@@ -49,7 +49,10 @@ export default async function ReportOneSavedStudioPage({ params }: PageProps) {
   const report = await prisma.guidanceReport.findFirst({
     where: {
       id: reportId,
-      ...buildGuidanceReportWhereForUser(current.user),
+      ...buildGuidanceReportWhereForUser({
+        ...current.user,
+        historicalPersonalRead: true,
+      }),
     },
   });
 

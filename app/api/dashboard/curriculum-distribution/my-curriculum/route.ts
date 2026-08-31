@@ -28,7 +28,7 @@ export async function GET() {
   const context = await authorize();
   if (context instanceof Response) return context;
   const saved = await listTeacherSavedCurriculum(context.user.id, context.schoolAccountId, { historicalPersonalRead: true });
-  const links = await listServiceOutputLinks({ ownerUserId: context.user.id, schoolAccountId: context.schoolAccountId, roleKey: "TEACHER", serviceSlug: SERVICE });
+  const links = await listServiceOutputLinks({ ownerUserId: context.user.id, serviceSlug: SERVICE });
   return NextResponse.json({ items: enrich(saved, links) });
 }
 
@@ -52,6 +52,6 @@ export async function DELETE(request: Request) {
   try { body = await request.json(); } catch { /* query fallback */ }
   const id = String(body.id || new URL(request.url).searchParams.get("id") || "").trim();
   if (!id) return NextResponse.json({ error: "المادة المطلوبة غير محددة." }, { status: 400 });
-  const removed = await removeTeacherCurriculum({ ownerUserId: context.user.id, schoolAccountId: context.schoolAccountId, id });
+  const removed = await removeTeacherCurriculum({ ownerUserId: context.user.id, id });
   return removed ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "المادة غير موجودة." }, { status: 404 });
 }

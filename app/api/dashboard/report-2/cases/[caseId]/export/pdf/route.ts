@@ -180,6 +180,7 @@ export async function POST(request: Request, context: RouteContext) {
   const access = await buildSmartReportPayloadForCase({
     caseId,
     current,
+    historicalPersonalRead: true,
   });
 
   if (!access.ok) {
@@ -198,9 +199,6 @@ export async function POST(request: Request, context: RouteContext) {
     where: {
       caseEntryId: caseId,
       status: "APPROVED",
-      ...(current.user.role === "ADMIN"
-        ? {}
-        : { schoolAccountId: current.user.schoolAccountId || "__missing__" }),
     },
     select: { id: true },
   });

@@ -8,6 +8,7 @@ import {
   Link2,
   Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import {
   CERTIFICATE_RECIPIENT_TYPES,
@@ -18,6 +19,7 @@ import { PrintExportPopCard } from "@/components/print-export/print-export-pop-c
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
 import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
 
 type CertificateArchiveItem = {
   id: string;
@@ -179,6 +181,8 @@ export function CertificatesArchivePage() {
   const printExport = usePrintExportAction();
   const [error, setError] = useState("");
   const [previewItem, setPreviewItem] = useState<CertificateArchiveItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<CertificateArchiveItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const params = useMemo(() => {
     const search = new URLSearchParams();
@@ -290,6 +294,32 @@ export function CertificatesArchivePage() {
       setError(err instanceof Error ? err.message : "تعذر تحميل الدفعة.");
     } finally {
       setExportingBatchId("");
+    }
+  }
+
+  async function deleteCertificate(item: CertificateArchiveItem) {
+    if (deleting) return;
+
+    setDeleting(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/certificates/${encodeURIComponent(item.id)}`,
+        { method: "DELETE" },
+      );
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "تعذر حذف الشهادة.");
+      }
+
+      setDeleteItem(null);
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذر حذف الشهادة.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -489,6 +519,16 @@ export function CertificatesArchivePage() {
                       >
                         <Download className="h-4 w-4" aria-hidden="true" />
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeleteItem(item)}
+                        aria-label="حذف الشهادة"
+                        title="حذف الشهادة"
+                        className="grid h-10 w-10 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-700 shadow-sm transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
                     </ExpandableActionMenu>
                   </div>
 
@@ -576,6 +616,19 @@ export function CertificatesArchivePage() {
         documentLabel="الشهادة"
         documentOrientation="landscape"
         hideDocumentScrollbars
+      />
+
+      <SmartActionModal
+        open={Boolean(deleteItem)}
+        title="حذف الشهادة"
+        description="هل أنت متأكد من حذف هذه الشهادة؟ لا يمكن التراجع عن هذا الإجراء."
+        variant="danger"
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        loading={deleting}
+        portal
+        onClose={() => !deleting && setDeleteItem(null)}
+        onConfirm={() => deleteItem && void deleteCertificate(deleteItem)}
       />
     </main>
   );

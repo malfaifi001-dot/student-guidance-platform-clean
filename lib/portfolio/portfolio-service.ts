@@ -88,19 +88,29 @@ export async function ensureDefaultPortfolio(
 ) {
   assertPortfolioActor(user);
   const academicYear = defaultAcademicYear();
-  const existing = await prisma.achievementPortfolio.findUnique({
+  const existing = user.schoolAccountId
+    ? await prisma.achievementPortfolio.findUnique({
+        where: {
+          schoolAccountId_ownerUserId_academicYear_term: {
+            schoolAccountId: user.schoolAccountId,
+            ownerUserId: user.id,
+            academicYear,
+            term: defaultTerm,
+          },
+        },
+      })
+    : null;
+  const historicalExisting = existing || await prisma.achievementPortfolio.findFirst({
     where: {
-      schoolAccountId_ownerUserId_academicYear_term: {
-        schoolAccountId: user.schoolAccountId!,
-        ownerUserId: user.id,
-        academicYear,
-        term: defaultTerm,
-      },
+      ownerUserId: user.id,
+      academicYear,
+      term: defaultTerm,
     },
+    orderBy: { updatedAt: "desc" },
   });
-  if (existing) {
-    await ensurePortfolioRoleSections(existing.id, user.role);
-    return existing;
+  if (historicalExisting) {
+    await ensurePortfolioRoleSections(historicalExisting.id, user.role);
+    return historicalExisting;
   }
 
   return prisma.achievementPortfolio.create({
@@ -160,7 +170,9 @@ export async function loadPortfolioForUser(
   user: PortfolioActor & { name?: string | null; officialName?: string | null },
   portfolioId?: string | null,
 ) {
-  const portfolio = portfolioId ? await requireOwnedPortfolio(user, portfolioId) : await ensureDefaultPortfolio(user);
+  const portfolio = portfolioId
+    ? await requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true })
+    : await ensureDefaultPortfolio(user);
   await ensurePortfolioRoleSections(portfolio.id, user.role);
   return portfolio;
 }
@@ -172,7 +184,7 @@ export async function listPortfolioSectionTargets(
   const portfolio = roleKey === user.role
     ? await loadPortfolioForUser(user)
     : await prisma.achievementPortfolio.findFirst({
-      where: { ownerUserId: user.id, schoolAccountId: user.schoolAccountId || undefined, roleKey },
+      where: { ownerUserId: user.id, roleKey },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });

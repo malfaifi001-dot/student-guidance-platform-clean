@@ -82,7 +82,7 @@ function assertSchoolScope(scope: CaseAccessScope) {
     return;
   }
 
-  if (!scope.schoolAccountId) {
+  if (!scope.schoolAccountId && !scope.historicalPersonalRead) {
     throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
   }
 }
@@ -96,7 +96,7 @@ function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
 
   const schoolAccountId = scope.schoolAccountId;
 
-  if (!schoolAccountId) {
+  if (!schoolAccountId && !scope.historicalPersonalRead) {
     throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
   }
 
@@ -584,6 +584,10 @@ export async function updateRuntimeCase({
   caseId,
   schoolAccountId,
   isAdmin = false,
+  userId,
+  userRole,
+  userEmail,
+  historicalPersonalRead,
   title,
   studentId,
   values,
@@ -593,6 +597,10 @@ export async function updateRuntimeCase({
   const scope = {
     schoolAccountId,
     isAdmin,
+    userId,
+    userRole,
+    userEmail,
+    historicalPersonalRead,
   };
 
   const existingCase = await prisma.caseEntry.findFirst({
@@ -797,7 +805,6 @@ export async function getCaseById(
   // not expose live tenant-owned school/student records from the old school.
   if (
     scope.historicalPersonalRead &&
-    scope.schoolAccountId &&
     caseEntry.schoolAccountId !== scope.schoolAccountId
   ) {
     Object.assign(caseEntry, { schoolAccount: null, student: null });

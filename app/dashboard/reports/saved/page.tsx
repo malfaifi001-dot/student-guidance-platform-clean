@@ -50,7 +50,7 @@ export default async function SavedReportsRoutePage() {
 
   const safeReports = reports.map((report) => {
     if (
-      current.user.schoolAccountId &&
+      current.user.role !== "ADMIN" &&
       report.caseEntry?.schoolAccountId !== current.user.schoolAccountId
     ) {
       return { ...report, caseEntry: report.caseEntry ? { ...report.caseEntry, student: null } : null };

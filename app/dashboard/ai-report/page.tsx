@@ -18,7 +18,6 @@ export default async function AiReportPage() {
     <AiReportServiceHome
       userName={current.user.officialName || current.user.name || ""}
       userId={current.user.id}
-      schoolAccountId={current.user.schoolAccountId}
     />
   );
 }

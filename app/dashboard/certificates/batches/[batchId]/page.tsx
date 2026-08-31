@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   ArrowRight,
   CalendarDays,
@@ -133,7 +133,7 @@ function getStatusLabel(status: string | null | undefined) {
   return status || "مصدرة";
 }
 
-async function getBatch(batchId: string, schoolAccountId: string, createdById: string) {
+async function getBatch(batchId: string, createdById: string) {
   const columns = await getColumns("CertificateBatch");
 
   const select = [
@@ -151,18 +151,17 @@ async function getBatch(batchId: string, schoolAccountId: string, createdById: s
     `
     SELECT ${select}
     FROM CertificateBatch
-    WHERE id = ? AND schoolAccountId = ? AND createdById = ?
+    WHERE id = ? AND createdById = ?
     LIMIT 1
     `,
     batchId,
-    schoolAccountId,
     createdById,
   );
 
   return rows[0] || null;
 }
 
-async function getCertificates(batchId: string, schoolAccountId: string, createdById: string) {
+async function getCertificates(batchId: string, createdById: string) {
   const columns = await getColumns("IssuedCertificate");
 
   const select = [
@@ -186,11 +185,10 @@ async function getCertificates(batchId: string, schoolAccountId: string, created
     `
     SELECT ${select}
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
+    WHERE batchId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
-    schoolAccountId,
     createdById,
   );
 
@@ -200,14 +198,10 @@ async function getCertificates(batchId: string, schoolAccountId: string, created
 export default async function CertificateBatchDetailsPage({ params }: PageProps) {
   const current = await requireDashboardUser();
 
-  if (!current.user.schoolAccountId) {
-    redirect("/dashboard");
-  }
-
   const { batchId } = await params;
   const [batch, certificates] = await Promise.all([
-    getBatch(batchId, current.user.schoolAccountId, current.user.id),
-    getCertificates(batchId, current.user.schoolAccountId, current.user.id),
+    getBatch(batchId, current.user.id),
+    getCertificates(batchId, current.user.id),
   ]);
 
   if (!batch || !certificates.length) {

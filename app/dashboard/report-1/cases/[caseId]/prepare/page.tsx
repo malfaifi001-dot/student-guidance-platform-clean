@@ -193,6 +193,7 @@ export default async function ReportOneCasePreparePage({
   const result = await buildSmartReportPayloadForCase({
     caseId,
     current,
+    historicalPersonalRead: true,
   });
 
   if (!result.ok) {

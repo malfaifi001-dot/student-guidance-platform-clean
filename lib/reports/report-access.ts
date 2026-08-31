@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type ReportAccessScope = {
@@ -18,7 +19,10 @@ function canSeeAllSchoolReports(scope: ReportAccessScope) {
   );
 }
 
-export function buildReportAccessWhere(reportId: string, scope: ReportAccessScope) {
+export function buildReportAccessWhere(
+  reportId: string,
+  scope: ReportAccessScope,
+): Prisma.GuidanceReportWhereInput {
   if (scope.isAdmin || scope.userRole === "ADMIN") {
     return {
       id: reportId,
@@ -27,15 +31,36 @@ export function buildReportAccessWhere(reportId: string, scope: ReportAccessScop
 
   const schoolAccountId = scope.schoolAccountId;
 
-  if (!schoolAccountId) {
+  if (
+    !schoolAccountId &&
+    (!scope.historicalPersonalRead || canSeeAllSchoolReports(scope))
+  ) {
     throw new Error("لا يمكن الوصول للتقرير بدون ربط المستخدم بمدرسة.");
   }
 
   if (canSeeAllSchoolReports(scope)) {
+    if (scope.historicalPersonalRead && scope.userId) {
+      return {
+        id: reportId,
+        OR: [
+          {
+            caseEntry: {
+              ...(schoolAccountId ? { schoolAccountId } : {}),
+            },
+          },
+          {
+            caseEntry: {
+              createdById: scope.userId,
+            },
+          },
+        ],
+      };
+    }
+
     return {
       id: reportId,
       caseEntry: {
-        schoolAccountId,
+        ...(schoolAccountId ? { schoolAccountId } : {}),
       },
     };
   }
@@ -47,27 +72,49 @@ export function buildReportAccessWhere(reportId: string, scope: ReportAccessScop
   return {
       id: reportId,
       caseEntry: {
-        ...(scope.historicalPersonalRead ? {} : { schoolAccountId }),
+        ...(scope.historicalPersonalRead || !schoolAccountId ? {} : { schoolAccountId }),
         createdById: scope.userId,
       },
   };
 }
 
-export function buildReportListWhere(scope: ReportAccessScope) {
+export function buildReportListWhere(
+  scope: ReportAccessScope,
+): Prisma.GuidanceReportWhereInput {
   if (scope.isAdmin || scope.userRole === "ADMIN") {
     return {};
   }
 
   const schoolAccountId = scope.schoolAccountId;
 
-  if (!schoolAccountId) {
+  if (
+    !schoolAccountId &&
+    (!scope.historicalPersonalRead || canSeeAllSchoolReports(scope))
+  ) {
     throw new Error("لا يمكن جلب التقارير بدون ربط المستخدم بمدرسة.");
   }
 
   if (canSeeAllSchoolReports(scope)) {
+    if (scope.historicalPersonalRead && scope.userId) {
+      return {
+        OR: [
+          {
+            caseEntry: {
+              ...(schoolAccountId ? { schoolAccountId } : {}),
+            },
+          },
+          {
+            caseEntry: {
+              createdById: scope.userId,
+            },
+          },
+        ],
+      };
+    }
+
     return {
       caseEntry: {
-        schoolAccountId,
+        ...(schoolAccountId ? { schoolAccountId } : {}),
       },
     };
   }
@@ -78,13 +125,16 @@ export function buildReportListWhere(scope: ReportAccessScope) {
 
   return {
       caseEntry: {
-        ...(scope.historicalPersonalRead ? {} : { schoolAccountId }),
+        ...(scope.historicalPersonalRead || !schoolAccountId ? {} : { schoolAccountId }),
         createdById: scope.userId,
       },
   };
 }
 
-export function buildCaseAccessWhere(caseEntryId: string, scope: ReportAccessScope) {
+export function buildCaseAccessWhere(
+  caseEntryId: string,
+  scope: ReportAccessScope,
+): Prisma.CaseEntryWhereInput {
   if (scope.isAdmin || scope.userRole === "ADMIN") {
     return {
       id: caseEntryId,

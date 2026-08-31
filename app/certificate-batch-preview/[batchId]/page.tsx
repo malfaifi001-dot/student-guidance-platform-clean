@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { certificatePrisma } from "@/lib/certificates/certificate-db";
 import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
@@ -15,17 +15,16 @@ type PageProps = {
   searchParams?: Promise<{ print?: string | string[] }>;
 };
 
-async function getBatchCertificates(batchId: string, schoolAccountId: string, createdById: string) {
+async function getBatchCertificates(batchId: string, createdById: string) {
   return certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
     SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
-    WHERE batchId = ? AND schoolAccountId = ? AND createdById = ?
+    WHERE batchId = ? AND createdById = ?
     ORDER BY recipientName ASC, createdAt ASC
     `,
     batchId,
-    schoolAccountId,
     createdById,
   );
 }
@@ -33,14 +32,18 @@ async function getBatchCertificates(batchId: string, schoolAccountId: string, cr
 export default async function CertificateBatchPreviewPage({ params, searchParams }: PageProps) {
   const current = await requireDashboardUser();
 
-  if (!current.user.schoolAccountId) redirect("/dashboard");
-
   const { batchId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const printParam = Array.isArray(resolvedSearchParams.print)
     ? resolvedSearchParams.print[0]
     : resolvedSearchParams.print;
-  const certificates = await getBatchCertificates(batchId, current.user.schoolAccountId, current.user.id);
+  const batch = await certificatePrisma.certificateBatch.findFirst({
+    where: { id: batchId, createdById: current.user.id },
+    select: { id: true },
+  });
+  if (!batch) notFound();
+
+  const certificates = await getBatchCertificates(batchId, current.user.id);
 
   if (!certificates.length) notFound();
 
