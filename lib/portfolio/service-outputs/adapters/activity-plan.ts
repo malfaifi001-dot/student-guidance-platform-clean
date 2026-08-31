@@ -7,6 +7,7 @@ import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-prin
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { getOrCreateActivityPlanShareToken } from "@/lib/activity-plan/activity-plan-share-service";
 import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { getActivityPlanTenPercentRows, isMeaningfulTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-service";
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
@@ -48,6 +49,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
   const rows = populatedWeeks.flatMap((week) => week.entries);
   const profile = await prisma.schoolProfile.findUnique({ where: { schoolAccountId }, select: { academicYear: true, currentSemester: true } });
   const weeklyPlans = (await Promise.all(REAL_ACTIVITY_PLAN_STAGES.map(async (stage) => ({ stage, weeks: await getWeeklyActivityPlans(schoolAccountId, stage) })))).filter(({ weeks }) => weeks.some((week) => week.items.some((item) => item.programs.length > 0) || (typeof week.periodCount === "number" && Number.isFinite(week.periodCount))));
+  const tenPercentPlans = (await Promise.all(REAL_ACTIVITY_PLAN_STAGES.map(async (stage) => ({ stage, rows: await getActivityPlanTenPercentRows(schoolAccountId, stage, ownerUserId) })))).filter(({ rows }) => rows.some(isMeaningfulTenPercentRow));
   const share = await getOrCreateActivityPlanShareToken({ schoolAccountId, createdById: ownerUserId });
   const shareUrl = share.url;
   const shareQrDataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 2, errorCorrectionLevel: "M" });
@@ -74,6 +76,7 @@ export async function resolveActivityPlanPortfolioOutput(schoolAccountId: string
       shareUrl,
       shareQrDataUrl,
       weeklyPlans,
+      tenPercentPlans,
     },
   };
 }

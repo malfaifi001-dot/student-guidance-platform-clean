@@ -1,5 +1,6 @@
 import type { CurriculumCalendarItem } from "@/lib/curriculum-distribution/calendar";
 import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
+import type { ActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 
 export type PortfolioCurriculumWeek = Pick<CurriculumCalendarItem, "id" | "kind" | "sequence" | "title" | "hijriRange" | "gregorianRange"> & {
   units: Array<{ name: string; lessons: string[] }>;
@@ -66,6 +67,7 @@ export type PortfolioActivityPlanContent = {
   shareUrl: string;
   shareQrDataUrl: string;
   weeklyPlans?: Array<{ stage: string; weeks: WeeklyActivityPlan[] }>;
+  tenPercentPlans?: Array<{ stage: string; rows: ActivityPlanTenPercentRow[] }>;
 };
 
 export type PortfolioActivityTeamContent = {
@@ -78,6 +80,7 @@ export type PortfolioServiceOutputChunk =
   | { kind: "curriculum-distribution"; weeks: PortfolioCurriculumWeek[] }
   | { kind: "activity-plan"; rows: PortfolioActivityPlanRow[]; summary?: Omit<PortfolioActivityPlanContent, "kind" | "rows">; shareUrl?: string; shareQrDataUrl?: string }
   | { kind: "weekly-activity-plan"; stage: string; weeks: WeeklyActivityPlan[] }
+  | { kind: "ten-percent-activity-plan"; stage: string; rows: ActivityPlanTenPercentRow[] }
   | { kind: "activity-team"; rows: PortfolioActivityTeamContent["rows"] };
 
 export function normalizePortfolioServiceOutput(output: PortfolioServiceOutput): PortfolioServiceOutputChunk[] {
@@ -98,6 +101,9 @@ export function normalizePortfolioServiceOutput(output: PortfolioServiceOutput):
     }];
     for (const weeklyPlan of plan.weeklyPlans || []) {
       chunks.push({ kind: "weekly-activity-plan", stage: weeklyPlan.stage, weeks: weeklyPlan.weeks });
+    }
+    for (const tenPercentPlan of plan.tenPercentPlans || []) {
+      chunks.push({ kind: "ten-percent-activity-plan", stage: tenPercentPlan.stage, rows: tenPercentPlan.rows });
     }
     return chunks;
   }

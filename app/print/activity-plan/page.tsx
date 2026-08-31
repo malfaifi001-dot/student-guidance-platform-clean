@@ -3,7 +3,9 @@ import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscript
 import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
 import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
 import { WeeklyActivityPlanPrintDocument } from "@/components/activity-plan/weekly-activity-plan-print-document";
+import { ActivityPlanTenPercentPrintDocument } from "@/components/activity-plan/activity-plan-ten-percent-print-document";
 import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { getActivityPlanTenPercentRows } from "@/lib/activity-plan/ten-percent-activity-plan-service";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
@@ -105,6 +107,7 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const printEnabled = String(params.print || "") === "1";
   const weeklyMode = String(params.mode || "") === "weekly";
+  const tenPercentMode = String(params.mode || "") === "ten-percent";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
   const stage = requestedStage && REAL_ACTIVITY_PLAN_STAGES.includes(requestedStage)
     ? requestedStage
@@ -113,14 +116,17 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
     ? Array.from(new Set(params.weeks.split(",").map((value) => Number(value.trim())).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20)))
     : [];
 
-  const stageWeeks = await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks, ownerUserId);
+  const stageWeeks = tenPercentMode ? [] : await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks, ownerUserId);
   const weeklyPlans = weeklyMode
     ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage, ownerUserId)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
+    : [];
+  const tenPercentRows = tenPercentMode
+    ? await getActivityPlanTenPercentRows(current.user.schoolAccountId, stage, ownerUserId || current.user.id)
     : [];
   const principalSignature = await resolveEffectivePrincipalSignature({
     schoolAccountId: current.user.schoolAccountId,
     owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
   });
   const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
-  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />{weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />{tenPercentMode ? <ActivityPlanTenPercentPrintDocument rows={tenPercentRows} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

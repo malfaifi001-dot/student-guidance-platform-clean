@@ -1,5 +1,7 @@
 import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
+import type { ActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import type { PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
 import { activityPlanTableRows, activityTeamTableRows, PortfolioStructuredTable } from "@/components/portfolio/print/shared/portfolio-structured-table";
 import { WeeklyActivityPlanMatrix } from "@/components/activity-plan/weekly-activity-plan-print-document";
@@ -48,6 +50,28 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
         <style>{`.portfolio-structured-table-wrap{width:100%;overflow:hidden}.${prefix}-activity-output-body{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.${prefix}-activity-output-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.2px;line-height:1.4}.${prefix}-activity-output-table th,.${prefix}-activity-output-table td{padding:1.7mm 2mm;overflow-wrap:anywhere;text-align:right;vertical-align:middle}.${prefix}-activity-output-table thead th{font-weight:800}.${prefix}-activity-output-table tbody tr{break-inside:avoid;page-break-inside:avoid}.${prefix}-activity-team-output-body{break-inside:avoid;page-break-inside:avoid}.portfolio-structured-table-signature{display:block;max-width:22mm;max-height:8mm;margin:auto;object-fit:contain}`}</style>
         <style>{`.${prefix}-activity-team-output-body .${prefix}-activity-output-table th{color:#604a35;background:#f2e9df;border:1px solid #d8c7b4}.${prefix}-activity-team-output-body .${prefix}-activity-output-table td{border:1px solid #e4d9cd;background:#fff}`}</style>
         <PortfolioStructuredTable className={`${prefix}-activity-output-table`} columns={[{ key: "number", label: "م", width: "9%" }, { key: "field", label: "مجال النشاط", width: "43%" }, { key: "supervisor", label: "اسم المشرف", width: "28%" }, { key: "signature", label: "التوقيع", width: "20%" }]} rows={activityTeamTableRows(chunk.rows)} />
+      </div>
+    );
+  }
+
+  if (chunk.kind === "ten-percent-activity-plan") {
+    const tableRows = chunk.rows.map((row: ActivityPlanTenPercentRow) => ({
+      id: row.id,
+      cells: {
+        domain: row.domains.map((domain) => domain.title).join("، "),
+        program: row.programs.map((program) => program.name).join("، "),
+        periods: row.periodCount || "—",
+        weeks: formatTenPercentWeeks(row.executionWeeks),
+        subject: row.subject || "—",
+        grades: row.grades.join("\n"),
+        teachers: row.teacherNames.join("\n"),
+      },
+    }));
+    return (
+      <div className={`${prefix}-activity-output-body ${prefix}-ten-percent-output-body`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="table">
+        <style>{`.${prefix}-ten-percent-output-body{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.${prefix}-ten-percent-output-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:8.3px;line-height:1.35}.${prefix}-ten-percent-output-table th,.${prefix}-ten-percent-output-table td{padding:1.8mm 1.5mm;border:1px solid #d8c7b4;overflow-wrap:anywhere;text-align:right;vertical-align:middle;white-space:pre-line}.${prefix}-ten-percent-output-table th{color:#604a35;background:#f2e9df;font-weight:900}.${prefix}-ten-percent-output-table td{background:#fff;color:#263238;font-weight:700}.${prefix}-ten-percent-output-heading{margin:0 0 2mm;padding:2mm 3mm;color:#684b08;background:#fff8e7;border-inline-start:1.5mm solid #c48a18;font-size:12px;font-weight:900;break-after:avoid}`}</style>
+        <h3 className={`${prefix}-ten-percent-output-heading`}>{chunk.stage} · الخطة الفصلية (10%)</h3>
+        <PortfolioStructuredTable className={`${prefix}-ten-percent-output-table`} columns={[{ key: "domain", label: "المجال", width: "18%" }, { key: "program", label: "البرنامج", width: "23%" }, { key: "periods", label: "عدد الحصص", width: "10%" }, { key: "weeks", label: "أسبوع التنفيذ", width: "12%" }, { key: "subject", label: "مادة 10%", width: "12%" }, { key: "grades", label: "الصف", width: "13%" }, { key: "teachers", label: "المعلم", width: "12%" }]} rows={tableRows} />
       </div>
     );
   }

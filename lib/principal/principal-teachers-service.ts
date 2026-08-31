@@ -18,6 +18,7 @@ import {
 import { getWorkspaceModulesForRole } from "@/lib/workspace/workspace-modules";
 import { isServiceAllowedForUser } from "@/lib/subscription/subscription-service";
 import { getDistribution } from "@/lib/curriculum-distribution/queries";
+import { getActivityPlanTenPercentRows, isMeaningfulTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-service";
 
 const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
   "TEACHER",
@@ -665,7 +666,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     report.linkedTargetIds = linksByReport.get(`${sourceType}:${report.id}`) || [];
   }
 
-  const [certificateRows, activityPlanRows, weeklyPlanRows, surveyRows, portfolioRows, savedCurriculumRows] = await Promise.all([
+  const [certificateRows, activityPlanRows, weeklyPlanRows, tenPercentPlanRows, surveyRows, portfolioRows, savedCurriculumRows] = await Promise.all([
     prisma.issuedCertificate.findMany({
       where: { schoolAccountId: context.schoolAccountId, createdById: staff.id, status: "ISSUED" },
       orderBy: { issueDate: "desc" },
@@ -683,6 +684,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       distinct: ["stage"],
       select: { stage: true, updatedAt: true },
     }),
+    getActivityPlanTenPercentRows(context.schoolAccountId, undefined, staff.id),
     prisma.survey.findMany({
       where: {
         schoolAccountId: context.schoolAccountId,
@@ -723,18 +725,25 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     previewHref: `/certificate-preview/${encodeURIComponent(certificate.id)}`,
     printHref: `/certificate-preview/${encodeURIComponent(certificate.id)}?print=1`,
   }));
-  const stageRows = new Map<string, { updatedAt: Date; weekly: boolean; semester: boolean }>();
+  const stageRows = new Map<string, { updatedAt: Date; weekly: boolean; semester: boolean; tenPercent: boolean }>();
   for (const row of activityPlanRows) {
     const stage = row.stage.trim();
     if (!stage || stage === "غير محددة") continue;
     const current = stageRows.get(stage);
-    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: true, semester: current?.semester || false });
+    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: true, semester: current?.semester || false, tenPercent: current?.tenPercent || false });
   }
   for (const row of weeklyPlanRows) {
     const stage = row.stage.trim();
     if (!stage || stage === "غير محددة") continue;
     const current = stageRows.get(stage);
-    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: current?.weekly || false, semester: true });
+    stageRows.set(stage, { updatedAt: current && current.updatedAt > row.updatedAt ? current.updatedAt : row.updatedAt, weekly: current?.weekly || false, semester: true, tenPercent: current?.tenPercent || false });
+  }
+  for (const row of tenPercentPlanRows.filter(isMeaningfulTenPercentRow)) {
+    const stage = row.stage.trim();
+    if (!stage || stage === "غير محددة") continue;
+    const current = stageRows.get(stage);
+    const updatedAt = row.updatedAt ? new Date(row.updatedAt) : new Date();
+    stageRows.set(stage, { updatedAt: current && current.updatedAt > updatedAt ? current.updatedAt : updatedAt, weekly: current?.weekly || false, semester: current?.semester || false, tenPercent: true });
   }
   const curriculumOutputs = Array.from(stageRows, ([stage, state]) => [
     ...(state.weekly ? [outputBase({
@@ -764,6 +773,20 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       canLink: false,
       previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=detailed`,
       printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=detailed&print=1`,
+    })] : []),
+    ...(state.tenPercent ? [outputBase({
+      id: `curriculum:ten-percent:${stage}`,
+      sourceType: "CURRICULUM_DISTRIBUTION_TEN_PERCENT",
+      sourceId: stage,
+      serviceSlug: "student-activity-plan",
+      title: `الخطة الفصلية (10%) — ${stage}`,
+      issuedAt: state.updatedAt.toISOString(),
+      status: "SAVED",
+      canPreview: true,
+      canPrincipalSign: false,
+      canLink: false,
+      previewHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=ten-percent`,
+      printHref: `/dashboard/principal/teachers/${encodeURIComponent(staff.id)}/curriculum/${encodeURIComponent(stage)}?mode=ten-percent&print=1`,
     })] : []),
   ]).flat();
   const savedCurriculumWithDistribution = await Promise.all(savedCurriculumRows.map(async (row) => ({ ...row, distribution: await getDistribution(row.subjectId, row.semesterId) })));

@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   printUrl.searchParams.set("print", "1");
   if (typeof body.stage === "string" && body.stage.trim()) printUrl.searchParams.set("stage", body.stage.trim());
   if (body.mode === "weekly") printUrl.searchParams.set("mode", "weekly");
+  if (body.mode === "ten-percent") printUrl.searchParams.set("mode", "ten-percent");
   if (Array.isArray(body.weeks)) {
     const weeks = body.weeks.map((week) => Number(week)).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20);
     if (weeks.length) printUrl.searchParams.set("weeks", Array.from(new Set(weeks)).join(","));

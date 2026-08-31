@@ -55,20 +55,23 @@ export async function GET(request: Request) {
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
   const requestedStage = cleanText(new URL(request.url).searchParams.get("stage"));
-  const [students, stageEntries] = await Promise.all([
+  const [students, stageEntries, tenPercentStageEntries] = await Promise.all([
     prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true, grade: true } }),
     prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
+    prisma.activityPlanTenPercentEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
   ]);
   const stageValues = auth.current.user.role === "ACTIVITY_LEADER"
     ? getActivityPlanStagesForActivityLeader(auth.current.user.teachingStages, [
       ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
       ...students.map((student) => student.stage),
       ...stageEntries.map((entry) => entry.stage),
+      ...tenPercentStageEntries.map((entry) => entry.stage),
     ])
     : getActivityPlanStageOptions([
       ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
       ...students.map((student) => student.stage),
       ...stageEntries.map((entry) => entry.stage),
+      ...tenPercentStageEntries.map((entry) => entry.stage),
     ]);
   const stages = REAL_ACTIVITY_PLAN_STAGES.filter((stage) => stageValues.includes(stage));
   const normalizedRequestedStage = normalizeActivityPlanStage(requestedStage);

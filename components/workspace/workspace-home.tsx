@@ -36,7 +36,8 @@ type WorkspaceStatIcon =
   | "reports"
   | "alerts"
   | "cases"
-  | "evidence";
+  | "evidence"
+  | "assignments";
 
 type WorkspaceActionIcon =
   | "plus"
@@ -105,6 +106,7 @@ const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {
   alerts: Bell,
   cases: FolderKanban,
   evidence: UploadCloud,
+  assignments: ClipboardCheck,
 };
 
 const actionIconByName: Record<WorkspaceActionIcon, typeof Plus> = {

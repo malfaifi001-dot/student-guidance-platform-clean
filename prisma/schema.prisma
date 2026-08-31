@@ -358,6 +358,7 @@ model SchoolAccount {
   reportSignatureRequests      ReportSignatureRequest[]
   activityPlanEntries          ActivityPlanEntry[]
   weeklyActivityPlanEntries    WeeklyActivityPlanEntry[]
+  activityPlanTenPercentEntries ActivityPlanTenPercentEntry[]
   activityPlanShareTokens      ActivityPlanShareToken[]
   savedCurriculumSubjects      TeacherSavedCurriculum[]
   principalSignatureReuseAuthorizations PrincipalSignatureReuseAuthorization[]
@@ -518,6 +519,7 @@ model User {
   accountabilityRequestsResponded AccountabilityRequest[] @relation("AccountabilityRequestsRespondent")
   activityPlanEntries         ActivityPlanEntry[]
   weeklyActivityPlanEntries   WeeklyActivityPlanEntry[]
+  activityPlanTenPercentEntries ActivityPlanTenPercentEntry[]
 
   createdAt                     DateTime                       @default(now())
   updatedAt                     DateTime                       @updatedAt
@@ -1513,6 +1515,30 @@ model WeeklyActivityPlanEntry {
   updatedAt DateTime @updatedAt
 
   @@unique([schoolAccountId, stage, weekNumber])
+  @@index([schoolAccountId, stage])
+  @@index([createdById])
+}
+
+model ActivityPlanTenPercentEntry {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdBy       User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  stage          String  @db.VarChar(191)
+  domains        Json
+  programs       Json
+  periodCount    String? @db.VarChar(191)
+  executionWeeks Json
+  subject        String? @db.VarChar(191)
+  grades         Json
+  teacherNames   Json
+  sortOrder      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([schoolAccountId, stage])
   @@index([createdById])
 }
