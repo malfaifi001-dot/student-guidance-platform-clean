@@ -10,7 +10,7 @@ export type DashboardStat = {
 
 export function DashboardStatCard({ stat }: { stat: DashboardStat }) {
   const content = (
-    <article className="flex min-w-[9.5rem] flex-1 items-center gap-2 rounded-xl border border-[#D7E6EF] bg-[#F8FBFD] px-3 py-2 shadow-sm transition hover:border-sky-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+    <article className="flex min-h-16 w-full min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#D7E6EF] bg-[#F8FBFD] px-2.5 py-2 shadow-sm transition hover:border-sky-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:px-3">
       {stat.icon ? (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF4FA] text-[#0F7FA8] dark:bg-sky-950/50 dark:text-sky-300">
           {stat.icon}

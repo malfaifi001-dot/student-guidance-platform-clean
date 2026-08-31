@@ -495,7 +495,7 @@ function CompactWorkspaceHome({
       {contextSlot || <AcademicCalendarDashboardCard compact />}
 
       {stats.length > 0 ? (
-        <section className="flex flex-wrap gap-2" aria-label="إحصاءات لوحة العمل">
+        <section className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 min-[480px]:flex min-[480px]:flex-wrap" aria-label="إحصاءات لوحة العمل">
           {stats.map((stat) => {
             const Icon = statIconByName[stat.icon];
             return <DashboardStatCard key={stat.label} stat={{ ...stat, icon: <Icon className="h-4 w-4" aria-hidden="true" /> }} />;

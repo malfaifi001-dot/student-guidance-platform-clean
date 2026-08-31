@@ -5,6 +5,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   CalendarDays,
+  ChevronLeft,
   ClipboardList,
   ClipboardCheck,
   FileCheck2,
@@ -61,7 +62,7 @@ export function MobileWorkspaceModuleCarousel({
           return (
             <div
               key={`mobile-workspace-page-${pageIndex}`}
-              className="grid min-w-full shrink-0 snap-start grid-cols-2 gap-2.5 px-1"
+              className="grid min-w-full shrink-0 snap-start grid-cols-1 gap-3 px-1 min-[480px]:grid-cols-2 min-[480px]:gap-2.5"
             >
               {columns.map((column, columnIndex) => (
                 <div
@@ -71,11 +72,14 @@ export function MobileWorkspaceModuleCarousel({
                   {column.map((module) => {
                     const Icon = iconByName[module.icon];
                     const card = (
-                      <article className="flex min-h-[4.4rem] items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-right shadow-sm transition active:scale-[0.99] dark:border-slate-700 dark:bg-slate-800">
-                        <h3 className="min-w-0 text-sm font-black leading-5 text-slate-800 dark:text-slate-100">
+                      <article className="flex min-h-[4.4rem] items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-right shadow-sm transition active:scale-[0.99] dark:border-slate-700 dark:bg-slate-800">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                        <h3 className="min-w-0 flex-1 truncate text-sm font-black leading-5 text-slate-800 dark:text-slate-100">
                           {module.title}
                         </h3>
-                        <Icon className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" aria-hidden="true" />
+                        <ChevronLeft className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                       </article>
                     );
 

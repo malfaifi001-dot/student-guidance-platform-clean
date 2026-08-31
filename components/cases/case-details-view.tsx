@@ -218,14 +218,6 @@ function formatDate(value: Date | string | null | undefined) {
   }
 }
 
-function getCaseStatusLabel(status: string) {
-  if (status === "DRAFT") return "مسودة";
-  if (status === "SUBMITTED") return "مرسلة";
-  if (status === "ARCHIVED") return "مؤرشفة";
-
-  return status || "غير محدد";
-}
-
 function getReportStatusLabel(status?: string | null) {
   if (status === "DRAFT") return "مسودة";
   if (status === "GENERATED") return "مولد";
@@ -1028,10 +1020,6 @@ export function CaseDetailsView({
                   محضر اجتماع
                 </span>
 
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-                  {getCaseStatusLabel(caseEntry.status)}
-                </span>
-
                 {latestReport ? (
                   <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
                     تقرير: {getReportStatusLabel(latestReport.status)}
@@ -1056,20 +1044,7 @@ export function CaseDetailsView({
 
             </div>
 
-            <div className="flex flex-wrap gap-2 xl:justify-end">
-              {reportDeleteAction}
-
-              <Link
-                href={`/dashboard/cases/${caseEntry.id}/edit`}
-                data-guidance="case-edit"
-                aria-label="تعديل الحالة"
-                title="تعديل الحالة"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-              >
-                <PencilLine className="h-4 w-4" />
-                تعديل الحالة
-              </Link>
-
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Link
                 href={primaryReportHref}
                 data-guidance="case-report"
@@ -1087,6 +1062,24 @@ export function CaseDetailsView({
                 <FileText className="h-4 w-4" />
                 {primaryReportLabel}
               </Link>
+
+              <ExpandableActionMenu
+                menuId={`case-actions-${caseEntry.id}`}
+                stripClassName="flex flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
+              >
+                {reportDeleteAction}
+
+                <Link
+                  href={`/dashboard/cases/${caseEntry.id}/edit`}
+                  data-guidance="case-edit"
+                  aria-label="تعديل الحالة"
+                  title="تعديل الحالة"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <PencilLine className="h-4 w-4" />
+                  تعديل الحالة
+                </Link>
+              </ExpandableActionMenu>
             </div>
           </div>
         </section>
@@ -1280,14 +1273,6 @@ export function CaseDetailsView({
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
-                ملف الحالة
-              </span>
-
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-                {getCaseStatusLabel(caseEntry.status)}
-              </span>
-
               {latestReport ? (
                 <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
                   تقرير: {getReportStatusLabel(latestReport.status)}
@@ -1312,25 +1297,7 @@ export function CaseDetailsView({
 
           </div>
 
-          <div className="flex flex-wrap gap-2 xl:justify-end">
-            <ExpandableActionMenu
-              menuId={`case-actions-${caseEntry.id}`}
-              stripClassName="flex flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
-            >
-              {reportDeleteAction}
-
-              <Link
-                href={`/dashboard/cases/${caseEntry.id}/edit`}
-                data-guidance="case-edit"
-                aria-label="تعديل الحالة"
-                title="تعديل الحالة"
-                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                <PencilLine className="h-4 w-4" />
-                تعديل الحالة
-              </Link>
-            </ExpandableActionMenu>
-
+          <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             <Link
               href={primaryReportHref}
               data-guidance="case-report"
@@ -1347,7 +1314,26 @@ export function CaseDetailsView({
             >
               <FileText className="h-4 w-4" />
               {primaryReportLabel}
-            </Link>
+              </Link>
+
+              <ExpandableActionMenu
+                menuId={`case-actions-${caseEntry.id}`}
+                stripClassName="flex flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
+              >
+                {reportDeleteAction}
+
+                <Link
+                  href={`/dashboard/cases/${caseEntry.id}/edit`}
+                  data-guidance="case-edit"
+                  aria-label="تعديل الحالة"
+                  title="تعديل الحالة"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <PencilLine className="h-4 w-4" />
+                  تعديل الحالة
+                </Link>
+              </ExpandableActionMenu>
+
           </div>
         </div>
       </section>

@@ -231,15 +231,22 @@ export function DashboardHeader({ user, subscription, salesMode = "SERVICE" }: D
               className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-0 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-2 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
             >
               <div className="h-8 w-8 overflow-hidden rounded-full bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
-                {avatar ? (
-                  <img
-                    src={avatar}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <UserRound className="h-5 w-5" />
-                )}
+                <img
+                  src="/brand/teachix-icon.svg"
+                  alt="Teachix"
+                  className="h-full w-full object-contain p-1 md:hidden"
+                />
+                <span className="hidden h-full w-full md:block">
+                  {avatar ? (
+                    <img
+                      src={avatar}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <UserRound className="h-5 w-5" />
+                  )}
+                </span>
               </div>
 
               <div className="hidden max-w-[140px] text-right sm:block">

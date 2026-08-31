@@ -115,43 +115,6 @@ export function CounselorWorkspacePage({
         }
       />
 
-      <style>{`
-        .counselor-workspace-page p:empty {
-          display: none;
-        }
-
-        .counselor-workspace-page
-          > main
-          > section
-          > section
-          > section:nth-of-type(3)
-          > div:first-child
-          > h2
-          + p {
-          display: none;
-        }
-
-        .counselor-workspace-page
-          > main
-          > section
-          > section
-          > section:nth-of-type(3)
-          article
-          h3 {
-          margin-top: 0.75rem;
-        }
-
-        .counselor-workspace-page
-          > main
-          > section
-          > section
-          > section:nth-of-type(3)
-          article
-          h3
-          + p {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }

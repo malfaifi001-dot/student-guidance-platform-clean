@@ -46,15 +46,15 @@ export async function NewTeacherPerformanceWorkflow({
 
   if (!runtime) {
     return (
-      <main className="space-y-6" dir="rtl">
-        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+      <main className="space-y-4" dir="rtl">
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/70 dark:bg-amber-950/30 sm:p-5">
           <p className="text-sm font-black text-amber-700">{service.title}</p>
 
-          <h1 className="mt-2 text-2xl font-black text-amber-900">
+          <h1 className="mt-2 text-xl font-black text-amber-900 dark:text-amber-100">
             لا يوجد Workflow منشور
           </h1>
 
-          <p className="mt-3 text-sm leading-7 text-amber-700">
+          <p className="mt-2 text-sm leading-6 text-amber-700 dark:text-amber-200">
             قم برفع Workflow لهذه الخدمة من لوحة الأدمن أولًا، ثم انشره حتى يظهر للمعلم.
           </p>
         </section>
@@ -63,7 +63,7 @@ export async function NewTeacherPerformanceWorkflow({
   }
 
   return (
-    <main dir="rtl" className="space-y-6">
+    <main dir="rtl" className="space-y-4">
       <DynamicFormRenderer
         workflow={runtime.workflow}
         serviceId={runtime.service.id}
