@@ -1,8 +1,8 @@
 export const ACCOUNTABILITY_SERVICE = {
   slug: "accountability-statements",
-  title: "المساءلات والإفادات",
-  description: "إدارة المساءلات والإفادات المدرسية عبر Workflow قابل للتخصيص.",
-  href: "/dashboard/accountability-statements",
+  title: "متابعة المعلمين",
+  description: "إنشاء ومتابعة الإفادات والمساءلات الإدارية للمعلمين والموظفين.",
+  href: "/dashboard/principal/accountability",
   kind: "workflow",
 } as const;
 

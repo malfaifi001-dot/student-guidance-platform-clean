@@ -8,7 +8,7 @@ import { saveReportTwoActive } from "@/lib/report-2/report-snapshot-service";
 type RouteContext = { params: Promise<{ caseId: string }> };
 
 export async function PUT(request: Request, context: RouteContext) {
-  const auth = await requireDashboardApiContext();
+  const auth = await requireDashboardApiContext({ allowPrincipal: true });
   if (auth instanceof Response) return auth;
   const { caseId } = await context.params;
   const caseEntry = await getAuthorizedReportTwoCase(auth, caseId, "REPORT_EDIT");
@@ -17,6 +17,7 @@ export async function PUT(request: Request, context: RouteContext) {
   }
   const guard = await requireServiceAccessApi(
     getActivityProgramsBillingServiceSlug(caseEntry.service.slug),
+    { allowPrincipal: true },
   );
   if (guard) return guard;
 

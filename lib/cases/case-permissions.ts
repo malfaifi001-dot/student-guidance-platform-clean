@@ -190,7 +190,7 @@ export function resolveCaseCapabilities(
     canManage = true;
   } else if (user.role === "PRINCIPAL") {
     canView = isOwner;
-    canManage = false;
+    canManage = isOwner && !assignmentLocked;
   } else if (user.role === "ACTIVITY_LEADER") {
     canView = isActivityProgramCase(caseEntry);
     canManage = canView;

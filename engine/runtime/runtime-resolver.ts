@@ -134,3 +134,44 @@ export async function getRuntimeWorkflowByServiceSlug(
     }),
   };
 }
+
+export async function getRuntimeWorkflowById(workflowId: string) {
+  const workflow = await prisma.workflow.findUnique({
+    where: { id: workflowId },
+    include: { service: true, steps: { include: { fields: { include: { options: true } } } } },
+  });
+  if (!workflow) return null;
+  return sortRuntimeWorkflow({
+    id: workflow.id,
+    name: workflow.name,
+    serviceSlug: workflow.service.slug,
+    workflowType: workflow.workflowType,
+    studentPickerMode: workflow.studentPickerMode,
+    evidenceMode: workflow.evidenceMode,
+    steps: workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        allowOther: field.allowOther,
+        isRepeater: field.isRepeater,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        defaultValue: field.defaultValue,
+        defaultJson: field.defaultJson,
+        autoSelectWhenLinked: field.autoSelectWhenLinked,
+        behaviorConfig: field.behaviorConfig,
+        options: field.options.map((option) => ({ id: option.id, label: option.label, value: option.value, order: option.order, linkedToValue: option.linkedToValue })),
+      })),
+    })),
+  });
+}

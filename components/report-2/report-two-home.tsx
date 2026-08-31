@@ -1,6 +1,7 @@
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
 import { ReportTwoArchiveClient } from "@/components/report-2/report-two-archive-client";
+import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
 
 export async function ReportTwoHome() {
   const context = await requireDashboardPageContext({ allowPrincipal: true });
@@ -12,7 +13,10 @@ export async function ReportTwoHome() {
         <h1 className="text-4xl font-black">التقارير</h1>
       </section>
 
-      <ReportTwoArchiveClient snapshots={snapshots} readOnly={context.user.role === "PRINCIPAL"} />
+      <ReportTwoArchiveClient
+        snapshots={snapshots}
+        readOnly={!roleHasReportTwoCapability(context.user.role, "REPORT_DELETE")}
+      />
     </main>
   );
 }

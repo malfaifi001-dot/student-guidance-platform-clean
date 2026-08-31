@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { PrincipalWorkflowEntryForm } from "@/components/principal/principal-workflow-entry-form";
-import { SimplePerformanceEntryBuilder } from "@/components/principal/simple-performance-entry-builder";
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
 import { getPrincipalPerformanceItem } from "@/lib/principal/performance-items";
 import { requirePrincipalPerformancePageAccess } from "@/lib/principal/performance-service";
@@ -16,20 +15,27 @@ export default async function NewPrincipalPerformanceEntryPage({ params }: PageP
   if (!item) notFound();
 
   const access = await requirePrincipalPerformancePageAccess(item);
-  const published = await getRuntimeWorkflowByServiceSlug(item.serviceSlug);
+  const runtime = await getRuntimeWorkflowByServiceSlug(item.serviceSlug);
 
-  if (!published) {
-    return <SimplePerformanceEntryBuilder itemSlug={item.slug} itemTitle={item.title} cancelHref={item.href} />;
+  if (!runtime) {
+    return (
+      <main className="space-y-6" dir="rtl">
+        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+          <p className="text-sm font-black text-amber-700">{item.title}</p>
+          <h1 className="mt-2 text-2xl font-black text-amber-900">لا يوجد Workflow منشور</h1>
+          <p className="mt-3 text-sm leading-7 text-amber-700">ارفع Workflow لهذه الخدمة وانشره أولًا.</p>
+        </section>
+      </main>
+    );
   }
 
   return (
     <main dir="rtl" className="space-y-6">
-      <PrincipalWorkflowEntryForm
-        itemSlug={item.slug}
-        itemTitle={item.title}
-        itemHref={item.href}
+      <DynamicFormRenderer
+        workflow={runtime.workflow}
         serviceId={access.service.id}
-        workflow={published.workflow}
+        requiresStudent={false}
+        title={item.title}
       />
     </main>
   );

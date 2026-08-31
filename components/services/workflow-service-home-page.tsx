@@ -26,6 +26,8 @@ type WorkflowServiceHomePageProps = {
   emptyTitle?: string;
   emptyDescription?: string;
   heroSecondaryAction?: ReactNode;
+  allowPrincipal?: boolean;
+  ownerScoped?: boolean;
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -150,8 +152,10 @@ export async function WorkflowServiceHomePage({
   emptyTitle = "لا توجد حالات بعد",
   emptyDescription = "ابدأ بإنشاء أول حالة. بعد الحفظ ستظهر هنا كبطاقات سهلة.",
   heroSecondaryAction,
+  allowPrincipal = false,
+  ownerScoped = false,
 }: WorkflowServiceHomePageProps) {
-  const context = await requireDashboardPageContext();
+  const context = await requireDashboardPageContext({ allowPrincipal });
 
   if (!context.isAdmin && !context.schoolAccountId) {
     redirect("/dashboard/onboarding?required=true");
@@ -218,6 +222,7 @@ export async function WorkflowServiceHomePage({
       : {
           serviceId: service.id,
           schoolAccountId: context.schoolAccountId as string,
+          ...(ownerScoped ? { createdById: context.user.id } : {}),
         },
     orderBy: {
       updatedAt: "desc",

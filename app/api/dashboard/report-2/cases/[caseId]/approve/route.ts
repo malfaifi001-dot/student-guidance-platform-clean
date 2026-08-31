@@ -22,7 +22,7 @@ async function readBody(request: Request) {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const dashboardContext = await requireDashboardApiContext();
+    const dashboardContext = await requireDashboardApiContext({ allowPrincipal: true });
 
     if (dashboardContext instanceof NextResponse) {
       return dashboardContext;
@@ -39,6 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
     const serviceGuard = await requireServiceAccessApi(
       getActivityProgramsBillingServiceSlug(caseEntry.service.slug),
+      { allowPrincipal: true },
     );
     if (serviceGuard) return serviceGuard;
     const body = await readBody(request);

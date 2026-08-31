@@ -14,7 +14,7 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const dashboardContext = await requireDashboardApiContext();
+    const dashboardContext = await requireDashboardApiContext({ allowPrincipal: true });
 
   if (dashboardContext instanceof NextResponse) {
     return dashboardContext;
@@ -31,6 +31,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
   const serviceGuard = await requireServiceAccessApi(
     getActivityProgramsBillingServiceSlug(authorized.caseEntry.service.slug),
+    { allowPrincipal: true },
   );
   if (serviceGuard) return serviceGuard;
   const snapshot = await getReportTwoSnapshotById(dashboardContext, snapshotId);
@@ -52,7 +53,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const dashboardContext = await requireDashboardApiContext();
+  const dashboardContext = await requireDashboardApiContext({ allowPrincipal: true });
   if (dashboardContext instanceof NextResponse) return dashboardContext;
   const { snapshotId } = await context.params;
   const authorized = await getAuthorizedReportTwoById(

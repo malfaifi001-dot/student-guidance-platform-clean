@@ -27,3 +27,7 @@ export function isValidAccountabilityToken(value: unknown) {
   const token = typeof value === "string" ? value.trim() : "";
   return token.length >= 32 && token.length <= 255 && /^[A-Za-z0-9_-]+$/.test(token);
 }
+
+export function getAccountabilityStorageOwnerId(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}

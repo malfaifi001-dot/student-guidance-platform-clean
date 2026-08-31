@@ -213,6 +213,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const serviceGuard = await requireServiceAccessApi(
     getActivityProgramsBillingServiceSlug(access.serviceSlug),
+    { allowPrincipal: true },
   );
   if (serviceGuard) return serviceGuard;
 

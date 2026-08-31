@@ -98,7 +98,7 @@ export default async function CasesPage() {
   const viewerSchoolAccountId = getViewerSchoolAccountId(context);
 
   if (viewerRole !== "ADMIN" && !viewerSchoolAccountId) {
-    redirect(viewerRole === "PRINCIPAL" ? "/dashboard/principal" : "/dashboard/onboarding?required=true");
+    redirect("/dashboard/onboarding?required=true");
   }
 
   const viewerId = getViewerId(context);

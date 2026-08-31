@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import { logReportCreatedEvent } from "@/lib/admin/activity-events";
 import {
   mapCaseEntryToReportData,
@@ -186,10 +187,13 @@ ${evidencesLines}
 
 export async function POST(request: Request) {
   // subscription-api-guard:POST:requireActiveSubscriptionApi()
-  const subscriptionGuard = await requireActiveSubscriptionApi();
+  const subscriptionGuard = await requireActiveSubscriptionApi({ allowPrincipal: true });
   if (subscriptionGuard) return subscriptionGuard;
 
   try {
+    const authResult = await requireDashboardApiContext({ allowPrincipal: true });
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = (await request.json()) as CreateReportBody;
 
     const caseEntryId = body.caseEntryId || body.caseId;
@@ -205,9 +209,15 @@ export async function POST(request: Request) {
 
     const templateId = body.templateId || "official-long";
 
-    const caseEntry = await prisma.caseEntry.findUnique({
+    const caseEntry = await prisma.caseEntry.findFirst({
       where: {
         id: caseEntryId,
+        ...buildCaseEntryWhereForUser({
+          id: authResult.user.id,
+          role: authResult.user.role,
+          schoolAccountId: authResult.schoolAccountId,
+          email: authResult.user.email,
+        }),
       },
       include: {
         service: true,
@@ -246,7 +256,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
+    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug, {
+      allowPrincipal: true,
+    });
     if (serviceGuard) return serviceGuard;
 
     const serverReportData = mapCaseEntryToReportData(caseEntry);

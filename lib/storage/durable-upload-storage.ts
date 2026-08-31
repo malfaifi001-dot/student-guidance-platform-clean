@@ -4,7 +4,7 @@ import path from "node:path";
 import { buildStoragePublicUrl, assertSafeStorageSegment } from "./storage-paths";
 import { readStorageFile, storageFileExists, writeStorageFile } from "./storage-provider";
 
-export const DURABLE_UPLOAD_CATEGORIES = ["user-signatures", "school-logos", "portfolio", "activity-assignments", "expense-receipts"] as const;
+export const DURABLE_UPLOAD_CATEGORIES = ["user-signatures", "school-logos", "portfolio", "activity-assignments", "expense-receipts", "accountability-responses"] as const;
 export type DurableUploadCategory = (typeof DURABLE_UPLOAD_CATEGORIES)[number];
 
 export function isSafeStorageId(value: string) {

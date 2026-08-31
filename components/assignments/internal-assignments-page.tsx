@@ -8,6 +8,7 @@ import {
 import { getDashboardContext } from "@/lib/auth/dashboard-context";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { requireActiveSubscriptionForCurrentUser } from "@/lib/subscription/subscription-guard";
+import { AccountabilityInboxSection } from "@/components/accountability/accountability-inbox-section";
 
 export async function InternalAssignmentsPage({
   role,
@@ -28,9 +29,10 @@ export async function InternalAssignmentsPage({
   });
 
   return (
-    <InternalAssignmentsClient
-      eyebrow={eyebrow}
-      assignments={assignments.map((assignment) => ({
+    <>
+      <InternalAssignmentsClient
+        eyebrow={eyebrow}
+        assignments={assignments.map((assignment) => ({
         id: assignment.id,
         title: assignment.title,
         note: assignment.note,
@@ -46,7 +48,9 @@ export async function InternalAssignmentsPage({
           assignment.reportSnapshot?.reportTitle ||
           assignment.reportTitleSnapshot ||
           null,
-      }))}
-    />
+        }))}
+      />
+      <AccountabilityInboxSection context={{ user: { id: context.user.id }, schoolAccountId: context.schoolAccountId }} />
+    </>
   );
 }

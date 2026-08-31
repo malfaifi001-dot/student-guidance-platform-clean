@@ -32,12 +32,21 @@ const LIMITED_REPORT_CAPABILITIES = new Set<ReportTwoCapability>([
   "CASE_EDIT_AND_SYNC_REPORT",
 ]);
 
+const PRINCIPAL_REPORT_CAPABILITIES = new Set<ReportTwoCapability>([
+  "REPORT_VIEW",
+  "REPORT_EDIT",
+  "REPORT_APPROVE",
+  "REPORT_EXPORT",
+  "REPORT_DELETE",
+  "CASE_EDIT_AND_SYNC_REPORT",
+]);
+
 export function roleHasReportTwoCapability(
   role: string,
   capability: ReportTwoCapability,
 ) {
   if (role === "ADMIN") return true;
-  if (role === "PRINCIPAL") return capability === "REPORT_VIEW";
+  if (role === "PRINCIPAL") return PRINCIPAL_REPORT_CAPABILITIES.has(capability);
   if (["COUNSELOR", "ACTIVITY_LEADER", "SCHOOL_OWNER"].includes(role)) {
     return SCHOOL_REPORT_CAPABILITIES.has(capability);
   }

@@ -9,6 +9,7 @@ import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE } from "@/lib/activity-competitions/activity-competitions-service";
 import { PRINCIPAL_PERFORMANCE_ITEMS } from "@/lib/principal/performance-items";
 import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/evaluation-accreditation-services";
+import { ACCOUNTABILITY_SERVICE } from "@/lib/accountability/accountability-types";
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { TeachixLogo } from "@/components/brand/teachix-logo";
@@ -552,6 +553,11 @@ const principalEvaluationAccreditationLinks: SidebarLinkItem[] =
   }));
 
 const principalAdditionalLinks: SidebarLinkItem[] = [
+  {
+    label: ACCOUNTABILITY_SERVICE.title,
+    href: ACCOUNTABILITY_SERVICE.href,
+    icon: ClipboardList,
+  },
   {
     label: "تحليل نتائج الطلاب",
     href: "/dashboard/assessments-center",

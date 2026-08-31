@@ -43,7 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (current.user.role !== "ADMIN") {
-      const subscriptionGuard = await requireActiveSubscriptionApi();
+      const subscriptionGuard = await requireActiveSubscriptionApi({ allowPrincipal: true });
 
       if (subscriptionGuard) {
         return subscriptionGuard;
@@ -74,7 +74,9 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (current.user.role !== "ADMIN") {
-      const serviceGuard = await requireServiceAccessApi(result.serviceSlug);
+      const serviceGuard = await requireServiceAccessApi(result.serviceSlug, {
+        allowPrincipal: true,
+      });
 
       if (serviceGuard) {
         return serviceGuard;
