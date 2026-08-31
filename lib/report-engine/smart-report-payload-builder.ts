@@ -1563,8 +1563,16 @@ export async function buildSmartReportPayloadForCase({
     importance: "PRIMARY",
   }));
 
-  const detailFields: SmartReportField[] = values.map((item) =>
+  const allDetailFields: SmartReportField[] = values.map((item) =>
     makeDetailField(item, languageMode),
+  );
+  const primarySourceKeys = new Set(
+    isCustomReport
+      ? allDetailFields.map((field) => field.key)
+      : dateFields.map((item) => item.key),
+  );
+  const detailFields = allDetailFields.filter(
+    (field) => !primarySourceKeys.has(field.key),
   );
 
   const missingItems: string[] = [];
@@ -1640,7 +1648,7 @@ export async function buildSmartReportPayloadForCase({
         }
       : null,
     primaryFields: isCustomReport
-      ? detailFields.map((field) => ({
+      ? allDetailFields.map((field) => ({
           ...field,
           importance: "PRIMARY" as const,
           group: "حقول التقرير الخاص",
@@ -1652,8 +1660,8 @@ export async function buildSmartReportPayloadForCase({
       ? {
           title: "ملخص التقرير",
           body:
-            detailFields.length > 0
-              ? detailFields
+            allDetailFields.length > 0
+              ? allDetailFields
                   .map((field) => `${field.label}: ${field.value || "غير محدد"}`)
                   .join("، ")
               : "تم إنشاء تقرير خاص من بيانات الحالة.",
