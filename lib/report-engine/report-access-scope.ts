@@ -1,6 +1,7 @@
 import { buildCaseEntryPermissionWhere } from "@/lib/cases/case-permissions";
 import type { Prisma } from "@prisma/client";
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
+import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 
 type ReportScopeUser = {
   id: string;
@@ -21,6 +22,7 @@ const ACTIVITY_LEADER_REPORT_SERVICE_SLUGS = [
   "activity-programs-non-class-periods",
   "activity-programs-school-broadcast",
   "custom-report",
+  SPECIAL_REPORT_SERVICE_SLUG,
   STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
 ];
 
