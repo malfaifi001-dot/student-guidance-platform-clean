@@ -310,9 +310,9 @@ export function AssessmentNewClient({ editAnalysisId, gender }: { editAnalysisId
 
   if (editLoading) return <main dir="rtl" className="mx-auto max-w-7xl p-6"><p className="rounded-3xl bg-white p-6 font-bold shadow-sm">جاري تحميل بيانات التحليل للتعديل...</p></main>;
   if (editError) return <main dir="rtl" className="mx-auto max-w-7xl p-6"><p className="rounded-3xl border border-rose-200 bg-rose-50 p-6 font-bold text-rose-800">{editError}</p></main>;
-  return <main dir="rtl" className="mx-auto max-w-7xl space-y-6 p-6">
-    <header className="rounded-3xl bg-white p-6 shadow-sm"><p className="font-bold text-blue-700">مركز التحاليل والاختبارات</p><h1 className="mt-2 text-3xl font-black">{editAnalysisId ? "تعديل التحليل" : "تحليل جديد"}</h1></header>
-    <section className="rounded-3xl border bg-white p-6 shadow-sm">
+  return <main dir="rtl" className="space-y-5 sm:space-y-6">
+    <header className="rounded-2xl bg-gradient-to-br from-teal-700 via-cyan-700 to-blue-700 px-4 py-4 text-white shadow-md"><p className="text-xs font-bold text-cyan-100">مركز التحاليل والاختبارات</p><h1 className="mt-1 text-2xl font-black">{editAnalysisId ? "تعديل التحليل" : "تحليل جديد"}</h1></header>
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <label className="block text-sm font-black">نوع التحليل<select value={type} onChange={(event) => changeType(event.target.value as AssessmentAnalysisType)} className="mt-2 h-12 w-full rounded-xl border px-3"><option value="NAFS">اختبار نافس</option><option value="MAHIROON">اختبار ماهرون</option><option value="SUBJECT_PERIODIC">تحليل فصلي لمادة</option></select></label>
       <div className="mt-4 grid gap-4 md:grid-cols-4">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="عنوان التحليل" className="h-11 rounded-xl border px-3" />

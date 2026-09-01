@@ -112,11 +112,11 @@ function StatCard({
   icon: LucideIcon;
 }) {
   return (
-    <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-black text-slate-500">{label}</p>
-          <p className="mt-3 text-3xl font-black text-slate-950 md:text-4xl">
+          <p className="mt-2 text-2xl font-black text-slate-950 dark:text-white md:text-3xl">
             {value}
           </p>
         </div>
@@ -272,18 +272,18 @@ export function AssessmentCenterDashboard({
   );
 
   return (
-    <main className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-6 text-white shadow-xl md:p-8">
+    <main className="space-y-4">
+      <section className="relative overflow-hidden rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-4 text-white shadow-md md:p-5">
         <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-24 right-10 h-72 w-72 rounded-full bg-teal-300/20 blur-3xl" />
 
         <div className="relative z-10 grid gap-6 xl:grid-cols-[1fr_320px] xl:items-end">
           <div>
-            <h1 className="text-4xl font-black leading-tight md:text-5xl">
+            <h1 className="text-2xl font-black leading-tight md:text-3xl">
               تحليل النتائج
             </h1>
 
-            <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-cyan-50/90">
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-cyan-50/90">
               ارفع ملف النتائج، راجع المؤشرات، ثم أنشئ خطة متابعة.
             </p>
           </div>
@@ -291,7 +291,7 @@ export function AssessmentCenterDashboard({
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <Link
               href="/dashboard/assessment-center/new"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
             >
               رفع تحليل جديد
               <ArrowUpLeft className="h-4 w-4" />
@@ -299,7 +299,7 @@ export function AssessmentCenterDashboard({
 
             <Link
               href="/dashboard/assessment-center/analyses"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/15 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/20"
             >
               التحليلات السابقة
               <FileText className="h-4 w-4" />
@@ -308,7 +308,7 @@ export function AssessmentCenterDashboard({
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-50 text-cyan-700">
             <BrainCircuit className="h-5 w-5" />
@@ -316,7 +316,7 @@ export function AssessmentCenterDashboard({
 
           <div>
             <p className="text-sm font-black text-cyan-600">الخطوات</p>
-            <h2 className="text-2xl font-black text-slate-950">
+            <h2 className="text-xl font-black text-slate-950 dark:text-white">
               مسار العمل
             </h2>
           </div>
@@ -330,7 +330,7 @@ export function AssessmentCenterDashboard({
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 min-[480px]:gap-3 xl:grid-cols-4">
         <StatCard
           label="التحليلات"
           value={String(totalCount)}
@@ -353,11 +353,11 @@ export function AssessmentCenterDashboard({
         />
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-black text-cyan-600">ابدأ من هنا</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
+            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">
               الإجراء التالي
             </h2>
           </div>
@@ -398,10 +398,10 @@ export function AssessmentCenterDashboard({
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black text-slate-950">
+            <h2 className="text-xl font-black text-slate-950 dark:text-white">
               آخر التحليلات
             </h2>
           </div>
@@ -427,8 +427,8 @@ export function AssessmentCenterDashboard({
 
         <div className="mt-5 space-y-3">
           {analyses.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-cyan-200 bg-cyan-50/60 p-8 text-center">
-              <h3 className="text-xl font-black text-slate-950">
+            <div className="rounded-xl border border-dashed border-cyan-200 bg-cyan-50/60 p-5 text-center dark:border-cyan-900 dark:bg-cyan-950/30">
+              <h3 className="text-lg font-black text-slate-950 dark:text-white">
                 لا توجد تحليلات
               </h3>
 
@@ -447,7 +447,7 @@ export function AssessmentCenterDashboard({
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/60 p-5 shadow-sm">
+      <section className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30">
         <p className="text-sm font-black text-emerald-700">
           المركز جاهز لرفع وتحليل النتائج.
         </p>

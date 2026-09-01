@@ -325,10 +325,10 @@ export function CertificatesArchivePage() {
 
   return (
     <main className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-xl sm:rounded-[2.5rem] sm:p-8">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-4 text-white shadow-md sm:p-5">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <h1 className="text-2xl font-black sm:text-4xl">الشهادات</h1>
+            <h1 className="text-2xl font-black sm:text-3xl">الشهادات</h1>
 
           </div>
 
@@ -351,7 +351,7 @@ export function CertificatesArchivePage() {
         </div>
       </section>
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black text-sky-700">السجلات</p>
@@ -370,13 +370,13 @@ export function CertificatesArchivePage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="بحث سريع..."
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white pr-10 pl-3 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pr-10 pl-3 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
           <select
             value={type}
             onChange={(event) => setType(event.target.value)}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             <option value="">كل أنواع الشهادات</option>
             {CERTIFICATE_TYPES.map((item) => (
@@ -386,7 +386,7 @@ export function CertificatesArchivePage() {
           <select
             value={recipientType}
             onChange={(event) => setRecipientType(event.target.value)}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 outline-none transition focus:border-sky-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             <option value="">كل المستفيدين</option>
             {CERTIFICATE_RECIPIENT_TYPES.map((item) => (
@@ -402,7 +402,7 @@ export function CertificatesArchivePage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center dark:border-slate-700 dark:bg-slate-800">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
               <Search className="h-7 w-7" />
             </div>
@@ -418,14 +418,14 @@ export function CertificatesArchivePage() {
                 return (
                   <article
                     key={entry.batchId}
-                    className="rounded-[2rem] border border-sky-100 bg-sky-50/60 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                    className="rounded-xl border border-sky-100 bg-sky-50/60 p-4 transition hover:border-sky-200 hover:bg-white hover:shadow-md dark:border-sky-900 dark:bg-sky-950/20 dark:hover:bg-slate-900"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-sky-700 px-3 py-1 text-xs font-black text-white">
                         دفعة شهادات
                       </span>
 
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100 dark:bg-slate-800 dark:ring-sky-900">
                         {formatCount(entry.count)} شهادة
                       </span>
 
@@ -451,7 +451,7 @@ export function CertificatesArchivePage() {
                       تاريخ الإصدار: {formatDate(entry.issueDate)}
                     </p>
 
-                    <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black leading-6 text-slate-500 ring-1 ring-slate-100">
+                    <div className="mt-4 rounded-xl bg-white px-3 py-2.5 text-xs font-black leading-6 text-slate-500 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
                       المستفيدون: {entry.namesPreview.join("، ")}
                       {entry.count > entry.namesPreview.length ? "..." : ""}
                     </div>
@@ -486,16 +486,16 @@ export function CertificatesArchivePage() {
               return (
                 <article
                   key={item.id}
-                  className="relative rounded-[2rem] border border-slate-200 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-white hover:shadow-md"
+                  className="relative rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-white hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-900"
                 >
-                  <div className="absolute left-5 top-5 z-10">
+                  <div className="absolute end-3 top-3 z-10">
                     <ExpandableActionMenu menuId={`certificate:${item.id}`} overlayStrip>
                       <button
                         type="button"
                         onClick={() => setPreviewItem(item)}
                         aria-label="عرض الشهادة"
                         title="عرض الشهادة"
-                        className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                        className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-none transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       >
                         <Eye className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -532,8 +532,8 @@ export function CertificatesArchivePage() {
                     </ExpandableActionMenu>
                   </div>
 
-                  <div className="min-w-0 pt-14">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 pe-12">
                       <span
                         className={[
                           "rounded-full px-3 py-1 text-xs font-black",
@@ -561,7 +561,7 @@ export function CertificatesArchivePage() {
                     </p>
                   </div>
 
-                  <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                  <div className="mt-4 rounded-xl bg-white px-3 py-2.5 text-xs font-black text-slate-500 ring-1 ring-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
                     سبب التكريم: {item.reason || "غير محدد"}
                   </div>
 
@@ -570,7 +570,7 @@ export function CertificatesArchivePage() {
             })}
           </div>
         ) : (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center dark:border-slate-700 dark:bg-slate-800">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 ring-1 ring-slate-100">
               <Search className="h-7 w-7" />
             </div>

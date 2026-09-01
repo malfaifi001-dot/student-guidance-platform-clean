@@ -6,9 +6,15 @@ import {
 
 type PlatformKey = keyof typeof TEACHIX_SOCIAL_LINKS;
 
-function IconFrame({ children }: { children: React.ReactNode }) {
+function IconFrame({
+  children,
+  compact = false,
+}: {
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
   return (
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm ring-1 ring-slate-100 transition-colors duration-300 group-hover:bg-white dark:bg-[#0D1B2E] dark:ring-white/10">
+    <span className={`${compact ? "h-9 w-9 rounded-xl" : "h-11 w-11 rounded-2xl"} flex shrink-0 items-center justify-center bg-white text-sky-600 shadow-sm ring-1 ring-slate-100 transition-colors duration-300 group-hover:bg-white dark:bg-[#0D1B2E] dark:ring-white/10`}>
       {children}
     </span>
   );
@@ -112,26 +118,34 @@ const PLATFORM_ORDER: PlatformKey[] = [
   "youtube",
 ];
 
-export function SocialSection() {
+export function SocialSection({ compact = false }: { compact?: boolean }) {
   return (
-    <section className="border-t border-slate-100 bg-[#f8fafc] px-5 py-16 dark:border-white/10 dark:bg-[#07111F] sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28">
+    <section
+      className={
+        compact
+          ? "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:p-5"
+          : "border-t border-slate-100 bg-[#f8fafc] px-5 py-16 dark:border-white/10 dark:bg-[#07111F] sm:px-8 sm:py-20 md:py-24 lg:px-10 lg:py-28"
+      }
+    >
       <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-black text-sky-600">
-            تواصل معنا
+        <div className={compact ? "text-right" : "mx-auto max-w-3xl text-center"}>
+          <p className="text-sm font-black text-sky-600 dark:text-sky-300">
+            {compact ? "تابع Teachix" : "تواصل معنا"}
           </p>
 
-          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl">
-            تابع Teachix في كل مكان
+          <h2 className={compact ? "mt-1 text-lg font-black text-slate-950 dark:text-white" : "mt-4 text-3xl font-black tracking-[-0.03em] text-slate-950 dark:text-white min-[430px]:text-4xl sm:text-[2.6rem] md:text-5xl lg:text-[3.25rem] xl:text-6xl"}>
+            {compact ? "تابعنا على منصات التواصل" : "تابع Teachix في كل مكان"}
           </h2>
 
-          <p className="mt-6 text-base leading-8 text-slate-500 dark:text-slate-400 sm:text-lg sm:leading-9">
-            كن قريبًا من جديد Teachix، وتابع آخر التحديثات والمزايا والمحتوى
-            التعليمي عبر منصاتنا الرسمية.
-          </p>
+          {!compact ? (
+            <p className="mt-6 text-base leading-8 text-slate-500 dark:text-slate-400 sm:text-lg sm:leading-9">
+              كن قريبًا من جديد Teachix، وتابع آخر التحديثات والمزايا والمحتوى
+              التعليمي عبر منصاتنا الرسمية.
+            </p>
+          ) : null}
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-5xl grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:gap-6">
+        <div className={compact ? "mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6" : "mx-auto mt-12 grid max-w-5xl grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:gap-6"}>
           {PLATFORM_ORDER.map((key) => {
             const platform = TEACHIX_SOCIAL_LINKS[key];
             const Icon = PLATFORM_ICONS[key];
@@ -142,9 +156,9 @@ export function SocialSection() {
                 href={platform.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_20px_50px_-32px_rgba(2,132,199,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:border-white/10 dark:bg-[#0D1B2E] dark:hover:border-sky-400/30 sm:p-5"
+                className={compact ? "group flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition duration-300 hover:border-sky-200 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:border-white/10 dark:bg-slate-800 dark:hover:border-sky-400/30" : "group flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_20px_50px_-32px_rgba(2,132,199,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:border-white/10 dark:bg-[#0D1B2E] dark:hover:border-sky-400/30 sm:p-5"}
               >
-                <IconFrame>
+                <IconFrame compact={compact}>
                   <Icon />
                 </IconFrame>
 

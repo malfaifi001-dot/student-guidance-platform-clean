@@ -1300,12 +1300,12 @@ export function DynamicFormRenderer({
 
   if (!currentStep) {
     return (
-      <main className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
-        <h1 className="text-2xl font-black text-amber-900">
+      <main className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/70 dark:bg-amber-950/30 sm:p-5">
+        <h1 className="text-xl font-black text-amber-900 dark:text-amber-100">
           لا توجد خطوات في هذا النموذج
         </h1>
 
-        <p className="mt-2 text-sm leading-7 text-amber-800">
+        <p className="mt-2 text-sm leading-6 text-amber-800 dark:text-amber-200">
           لم يتم العثور على خطوات Workflow لهذه الخدمة. راجع ملف Excel أو إعدادات
           النشر من لوحة الأدمن.
         </p>
@@ -1350,12 +1350,12 @@ export function DynamicFormRenderer({
           <p className="text-xs font-black text-sky-700">
             الخطوة {currentStepIndex + 1} من {steps.length}
           </p>
-          <h2 className="mt-1.5 text-lg font-black text-slate-900">
+          <h2 className="mt-1.5 text-lg font-black text-slate-900 dark:text-white">
             {currentStep.title}
           </h2>
         </section>
       ) : (
-      <section data-guidance="workflow-step" className="rounded-2xl bg-gradient-to-l from-slate-950 via-sky-900 to-cyan-700 px-5 py-4 text-white shadow-md sm:px-6">
+      <section data-guidance="workflow-step" className="rounded-xl bg-gradient-to-l from-slate-950 via-sky-900 to-cyan-700 px-4 py-3 text-white shadow-md sm:px-5 sm:py-4">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <h1 className="text-2xl font-black leading-tight sm:text-3xl">{title || workflow.name}</h1>
           <p className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-sky-50 ring-1 ring-white/10">
@@ -1407,9 +1407,9 @@ export function DynamicFormRenderer({
       ) : null}
 
       {showEvidenceCard ? (
-        <section data-guidance="workflow-evidence" className={embedded ? "border-t border-slate-100 pt-4" : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"}>
+        <section data-guidance="workflow-evidence" className={embedded ? "border-t border-slate-100 pt-4 dark:border-slate-800" : "rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4"}>
           <div className={embedded ? "mb-4" : "mb-6"}>
-            <h2 className={embedded ? "text-base font-black text-slate-900" : "text-xl font-black text-slate-900"}>
+            <h2 className={embedded ? "text-base font-black text-slate-900 dark:text-white" : "text-lg font-black text-slate-900 dark:text-white"}>
               الشواهد والمرفقات
             </h2>
           </div>
@@ -1440,7 +1440,7 @@ export function DynamicFormRenderer({
         "flex flex-wrap items-center justify-between gap-3",
         embedded
           ? "border-t border-slate-100 pt-5"
-          : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm",
+          : "rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4",
       ].join(" ")}>
         {!embedded || !isFirstStep || !isLastStep ? (
         <div className="flex gap-3">
@@ -1448,7 +1448,7 @@ export function DynamicFormRenderer({
             type="button"
             onClick={goPrevious}
             disabled={isFirstStep || loading}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             السابق
           </button>
@@ -1472,7 +1472,7 @@ export function DynamicFormRenderer({
               type="button"
               onClick={() => handleSave("draft")}
               disabled={loading}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {previewMode ? "معاينة فقط" : "حفظ مسودة"}
             </button>
@@ -1715,7 +1715,7 @@ function SmartStudentPickerCard({
     <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="lg:flex lg:h-full lg:flex-col lg:justify-center">
-          <h2 className="text-right text-2xl font-black text-slate-900">
+          <h2 className="text-right text-xl font-black text-slate-900 dark:text-white">
             {OPTIONAL_STUDENT_PICKER_LABEL}
           </h2>
 
@@ -1724,11 +1724,11 @@ function SmartStudentPickerCard({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="اكتب اسم الطالب/الطالبة أو رقم الهوية..."
-              className="h-14 w-full rounded-2xl border border-sky-200 bg-white px-5 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="h-12 w-full rounded-xl border border-sky-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-sky-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-sky-950"
             />
 
             {query.trim().length >= 2 ? (
-              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
                 {loading ? (
                   <div className="p-4 text-sm font-bold text-slate-500">
                     جاري البحث...
@@ -1748,7 +1748,7 @@ function SmartStudentPickerCard({
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                          <strong className="text-sm text-slate-900">
+                          <strong className="text-sm text-slate-900 dark:text-slate-100">
                             {student.fullName}
                           </strong>
 
@@ -1787,7 +1787,7 @@ function SmartStudentPickerCard({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-sky-100 bg-white p-5">
+        <div className="rounded-2xl border border-sky-100 bg-white p-4 dark:border-sky-900 dark:bg-slate-900">
           {selectedStudents.length ? (
             <SelectedStudentsCard
               students={selectedStudents}
@@ -1827,13 +1827,13 @@ function StudentContextSummary({
   const student = primaryStudent;
 
   return (
-    <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div>
         <p className="text-xs font-black text-slate-500">
           الطالب/الطالبة المرتبط بالحالة
         </p>
 
-        <h3 className="mt-1 text-lg font-black text-slate-900">
+        <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
           {students.length === 1
             ? primaryStudent.fullName
             : `تم اختيار ${students.length} طلاب/طالبات`}
@@ -1861,7 +1861,7 @@ function StudentContextSummary({
       <button
         type="button"
         onClick={onEdit}
-        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+        className="min-h-10 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
       >
         تعديل الاختيار
       </button>
@@ -1884,7 +1884,7 @@ function StudentSelectedCard({
             تم اختيار الطالب/الطالبة
           </p>
 
-          <h3 className="mt-1 text-lg font-black text-slate-900">
+          <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
             {student.fullName}
           </h3>
         </div>
@@ -1941,7 +1941,7 @@ function SelectedStudentsCard({
             تم اختيار {students.length} طالب/طالبة
           </p>
 
-          <h3 className="mt-1 text-lg font-black text-slate-900">
+          <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
             {students.length === 1
               ? primaryStudent?.fullName
               : getSelectedStudentsPreview(students)}
@@ -1968,7 +1968,7 @@ function SelectedStudentsCard({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-sm font-black text-slate-900">
+                  <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">
                     {student.fullName}
                   </h4>
 

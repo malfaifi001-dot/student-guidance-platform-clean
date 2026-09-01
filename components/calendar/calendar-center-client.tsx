@@ -311,6 +311,16 @@ export function CalendarCenterClient({
 
   return (
     <div className="min-w-0 space-y-4 pb-2 text-slate-950 dark:text-slate-100" dir="rtl">
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 px-4 py-4 text-white shadow-md sm:px-5">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-black leading-tight">التقويم والتنبيهات</h1>
+          <p className="mt-1 text-xs font-bold text-sky-50/90">نظّم تنبيهاتك ومواعيدك المهمة.</p>
+        </div>
+        <button type="button" onClick={() => document.querySelector<HTMLElement>('[data-guidance="calendar-create"]')?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-50">
+          <Plus className="h-4 w-4" />
+          تنبيه جديد
+        </button>
+      </header>
       <GuidanceScope context="calendar" />
       <section className="grid min-w-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside data-guidance="calendar-create" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
@@ -488,9 +498,9 @@ export function CalendarCenterClient({
               return (
                 <article
                   key={reminder.id}
-                  className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-800"
+                  className="relative min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-800"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 pt-11">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
@@ -524,11 +534,12 @@ export function CalendarCenterClient({
                       ) : null}
                     </div>
 
-                    <ExpandableActionMenu
-                      menuId={`calendar-reminder-${reminder.id}`}
-                      className="w-full justify-end sm:w-auto"
-                      stripClassName="flex w-full flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900 sm:w-auto"
-                    >
+                    <div className="absolute left-3 top-3 z-20">
+                      <ExpandableActionMenu
+                        menuId={`calendar-reminder-${reminder.id}`}
+                        className="shrink-0 justify-end sm:w-auto"
+                        stripClassName="flex w-full flex-wrap justify-end gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900 sm:w-auto"
+                      >
                       {href ? (
                         <a
                           href={href}
@@ -570,7 +581,8 @@ export function CalendarCenterClient({
                         <Trash2 className="h-4 w-4" />
                         حذف
                       </button>
-                    </ExpandableActionMenu>
+                      </ExpandableActionMenu>
+                    </div>
                   </div>
                 </article>
               );

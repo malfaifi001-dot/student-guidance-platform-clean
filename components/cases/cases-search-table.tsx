@@ -77,16 +77,16 @@ type CasesSearchTableProps = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
-  SUBMITTED: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
-  ARCHIVED: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  DRAFT: "bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-900",
+  SUBMITTED: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-900",
+  ARCHIVED: "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700",
 };
 
 const CASES_FILTER_INPUT_CLASS =
-  "h-11 w-full rounded-[1.35rem] border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50";
+  "h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:bg-slate-800 dark:focus:ring-sky-950";
 
 const CASES_FILTER_SELECT_CLASS =
-  "h-11 min-w-[138px] rounded-[1.35rem] border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-500 outline-none transition hover:border-sky-200 hover:bg-slate-50 hover:text-slate-700 focus:border-sky-300 focus:ring-4 focus:ring-sky-50";
+  "h-11 min-w-[138px] rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-500 outline-none transition hover:border-sky-200 hover:bg-slate-50 hover:text-slate-700 focus:border-sky-300 focus:ring-4 focus:ring-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:focus:ring-sky-950";
 
 function normalizeText(value: string) {
   return value
@@ -113,7 +113,7 @@ function getDisplayStatus(caseItem: CaseRow) {
   ) {
     return {
       label: "جاهزة للتقرير",
-      className: "bg-sky-50 text-sky-700 ring-1 ring-sky-100",
+      className: "bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-900",
     };
   }
 
@@ -128,7 +128,7 @@ function getDisplayStatus(caseItem: CaseRow) {
     label: caseItem.statusLabel || "غير محدد",
     className:
       STATUS_STYLES[caseItem.status] ||
-      "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+      "bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700",
   };
 }
 
@@ -252,7 +252,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm">
+      <section className="rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/95">
         <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <div className="flex min-w-0 items-center gap-2 xl:contents">
             <div className="relative min-w-0 flex-1">
@@ -272,7 +272,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
               className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-[1.35rem] border text-slate-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 md:hidden ${
                 selectedService !== "all" || selectedStatus !== "all" || selectedReportState !== "all"
                   ? "border-sky-300 bg-sky-50 text-sky-700"
-                  : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50"
+                  : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}
             >
               <Filter className="h-4 w-4" />
@@ -368,14 +368,14 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
         ))}
 
         {filteredCases.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm 2xl:col-span-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900 2xl:col-span-2">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 dark:bg-slate-800">
               <Search className="h-6 w-6" />
             </div>
-            <h2 className="mt-4 text-lg font-black text-slate-800">
+            <h2 className="mt-3 text-base font-black text-slate-800 dark:text-white">
               لا توجد حالات مطابقة
             </h2>
-            <p className="mt-2 text-sm font-bold text-slate-500">
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
               جرّب تعديل البحث أو الفلاتر الحالية.
             </p>
           </div>
@@ -405,12 +405,12 @@ function CaseFollowUpCard({
         : null;
 
   const cardClassName = [
-    "flex h-full min-w-0 max-w-full flex-col rounded-[1.75rem] border p-4 shadow-sm transition hover:shadow-md",
+    "flex h-full min-w-0 max-w-full flex-col rounded-xl border p-3 shadow-sm transition hover:shadow-md sm:p-4",
     reportStatus === "APPROVED"
       ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:shadow-emerald-100/60"
       : persistedReportId
         ? "border-sky-200 bg-sky-50/40 hover:border-sky-300 hover:shadow-sky-100/60"
-        : "border-slate-200 bg-white hover:border-sky-200",
+        : "border-slate-200 bg-white hover:border-sky-200 dark:border-slate-700 dark:bg-slate-900",
   ].join(" ");
 
   return (
@@ -426,7 +426,7 @@ function CaseFollowUpCard({
             {displayStatus.label}
           </span>
 
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
             {caseItem.service.name}
           </span>
 
@@ -435,8 +435,8 @@ function CaseFollowUpCard({
               className={[
                 "rounded-full px-3 py-1 text-xs font-black ring-1",
                 reportStatus === "APPROVED"
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                  : "bg-sky-50 text-sky-700 ring-sky-100",
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-900"
+                  : "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-900",
               ].join(" ")}
             >
               {reportStatusLabel}
@@ -450,22 +450,22 @@ function CaseFollowUpCard({
         />
       </div>
 
-      <h2 className="mt-3 text-lg font-black leading-8 text-slate-950">
+      <h2 className="mt-3 text-base font-black leading-7 text-slate-950 dark:text-white">
         {caseItem.title}
       </h2>
 
       {caseItem.student ? (
-      <div className="mt-3 rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
+      <div className="mt-3 rounded-xl border border-slate-100 bg-white/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/70">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100 dark:bg-slate-900 dark:ring-slate-700">
             <UserRound className="h-4 w-4" />
           </div>
 
           <div className="min-w-0">
-            <p className="text-[11px] font-black text-slate-400">
+            <p className="text-[11px] font-black text-slate-400 dark:text-slate-500">
               الطالب/الطالبة
             </p>
-            <p className="mt-1 truncate text-sm font-black text-slate-900">
+            <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-slate-100">
               {caseItem.student.fullName}
             </p>
           </div>
@@ -473,7 +473,7 @@ function CaseFollowUpCard({
       </div>
       ) : null}
 
-      <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-600">
+      <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">
         الإجراء التالي: {getNextActionText(caseItem)}
       </div>
     </article>

@@ -2,7 +2,17 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, MoreVertical, Send, Share2 } from "lucide-react";
+import {
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  FilePenLine,
+  MessageCircle,
+  MoreVertical,
+  Send,
+  Share2,
+  type LucideIcon,
+} from "lucide-react";
 import {
   surveyAudienceLabels,
   type SurveyBoardRole,
@@ -365,11 +375,11 @@ export function SurveyCenterShell({
         </div>
       </section>
 
-      <section className="flex flex-wrap gap-2">
-        <Metric label="الاستبيانات" value={stats.total} />
-        <Metric label="منشورة" value={stats.published} />
-        <Metric label="مسودات" value={stats.drafts} />
-        <Metric label="الردود" value={stats.responses} />
+      <section className="grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-4">
+        <Metric label="الاستبيانات" value={stats.total} icon={ClipboardList} />
+        <Metric label="منشورة" value={stats.published} icon={CheckCircle2} />
+        <Metric label="مسودات" value={stats.drafts} icon={FilePenLine} />
+        <Metric label="الردود" value={stats.responses} icon={MessageCircle} />
       </section>
 
       {feedback ? (
@@ -703,13 +713,21 @@ export function SurveyCenterShell({
 function Metric({
   label,
   value,
+  icon: Icon,
 }: {
   label: string;
   value: number;
+  icon: LucideIcon;
 }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-xs font-black text-slate-500 dark:text-slate-400">{label}: <strong className="text-lg text-slate-950 dark:text-white">{value}</strong></p>
+    <article className="flex min-h-[76px] min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-black text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="mt-0.5 text-xl font-black leading-none text-slate-950 dark:text-white">{value}</p>
+      </div>
     </article>
   );
 }

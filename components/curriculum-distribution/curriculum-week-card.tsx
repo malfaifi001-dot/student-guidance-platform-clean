@@ -24,28 +24,28 @@ export function CurriculumWeekCard({ item }: { item: CurriculumCalendarItem }) {
   const isCalendarWeek = item.kind === "CALENDAR_WEEK";
 
   return (
-    <article className="break-inside-avoid rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md md:p-5">
-      <header className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+    <article className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-700 md:p-4">
+      <header className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 dark:border-slate-800">
         <div>
-          <h3 className="text-base font-black text-slate-950">{isBreak ? item.title : `الأسبوع ${item.sequence}`}</h3>
+          <h3 className="text-base font-black text-slate-950 dark:text-slate-100">{isBreak ? item.title : `الأسبوع ${item.sequence}`}</h3>
           {!isBreak ? <span className="mt-1 block text-[11px] font-bold text-slate-400">{isCalendarWeek ? item.title : `${item.lessons.length} ${item.lessons.length === 1 ? "درس" : "دروس"}`}</span> : null}
         </div>
         {isBreak ? <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700 ring-1 ring-amber-100">إجازة</span> : null}
       </header>
 
       <div className="mt-3 space-y-0.5 text-[10px] font-bold text-slate-400" dir="rtl">
-        <p><span>هجري: </span><b dir="ltr" className="font-black text-slate-500">{item.hijriRange}</b></p>
-        <p><span>ميلادي: </span><b dir="ltr" className="font-black text-slate-500">{item.gregorianRange}</b></p>
+        <p><span>هجري: </span><b dir="ltr" className="font-black text-slate-500 dark:text-slate-400">{item.hijriRange}</b></p>
+        <p><span>ميلادي: </span><b dir="ltr" className="font-black text-slate-500 dark:text-slate-400">{item.gregorianRange}</b></p>
       </div>
 
       {isBreak || isCalendarWeek ? (
-        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-600">{item.title}</p>
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.title}</p>
       ) : item.lessons.length ? (
         <div className="mt-4 space-y-4">
           {[...grouped.entries()].map(([unit, lessons]) => (
             <section key={unit}>
-              <h4 className="border-s-2 border-sky-500 pe-3 text-sm font-black text-sky-800">{unit}</h4>
-              <ul className="mt-2 space-y-1.5 pe-4 text-sm font-bold leading-6 text-slate-700">
+              <h4 className="border-s-2 border-sky-500 pe-3 text-sm font-black text-sky-800 dark:text-sky-300">{unit}</h4>
+              <ul className="mt-2 space-y-1.5 pe-4 text-sm font-bold leading-6 text-slate-700 dark:text-slate-300">
                 {lessons.map((lesson, index) => (
                   <li key={`${unit}-${lesson}-${index}`} className="relative pe-4">
                     <span className="absolute end-0 top-3 h-1.5 w-1.5 rounded-full bg-sky-500" aria-hidden="true" />
@@ -57,7 +57,7 @@ export function CurriculumWeekCard({ item }: { item: CurriculumCalendarItem }) {
           ))}
 
           {standalone.length ? (
-            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
               {standalone.map((value, index) => (
                 <span key={`${value}-${index}`} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-800 ring-1 ring-amber-100">{value}</span>
               ))}
@@ -65,7 +65,7 @@ export function CurriculumWeekCard({ item }: { item: CurriculumCalendarItem }) {
           ) : null}
         </div>
       ) : (
-        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-500">لا يوجد توزيع لهذا الأسبوع</p>
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">لا يوجد توزيع لهذا الأسبوع</p>
       )}
     </article>
   );

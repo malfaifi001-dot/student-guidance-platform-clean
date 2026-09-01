@@ -7,14 +7,14 @@ export default async function CurriculumDistributionPage() {
   if (current.user.role !== "TEACHER" && current.user.role !== "ADMIN") redirect("/dashboard");
 
   return (
-    <main dir="rtl" className="space-y-7">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-6 text-white shadow-xl md:p-8">
-        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+    <main dir="rtl" className="space-y-4">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 px-4 py-4 text-white shadow-md md:px-5 md:py-5">
+        <div className="grid gap-2 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
-            <h1 className="text-3xl font-black leading-tight md:text-4xl">
+            <h1 className="text-2xl font-black leading-tight md:text-3xl">
               توزيع المنهج
             </h1>
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50 md:text-base">
+            <p className="mt-1 max-w-3xl text-xs font-bold leading-6 text-sky-50 md:text-sm">
               استعرض توزيع الوحدات والدروس حسب المرحلة والصف والفصل والمادة.
             </p>
           </div>
