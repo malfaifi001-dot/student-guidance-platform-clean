@@ -1,70 +1,8 @@
-import { notFound, redirect } from "next/navigation";
-import { CheckoutPlanPage } from "@/components/payments/checkout-plan-page";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { prisma } from "@/lib/prisma";
-import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
-import { getPlanCommercialType } from "@/lib/subscription/subscription-service";
-import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+import { redirect } from "next/navigation";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 
-type PageProps = {
-  params: Promise<{
-    planId: string;
-  }>;
-};
-
-export default async function CheckoutPlanRoutePage({ params }: PageProps) {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user) {
-    redirect("/login");
-  }
-
-  const { planId } = await params;
-  const salesExperience = await resolveSalesExperienceForUser(current.user.id);
-
-  const [plan, providers] = await Promise.all([
-    prisma.plan.findUnique({
-      where: {
-        id: planId,
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        priceMonthly: true,
-        priceYearly: true,
-        isActive: true,
-        isPublic: true,
-        isArchived: true,
-        visibleRoles: true,
-        features: true,
-      },
-    }),
-    prisma.paymentProvider.findMany({
-      where: {
-        isActive: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
-    }),
-  ]);
-
-  if (!plan || !isPlanSelfServiceVisible(plan, current.user.role)) {
-    notFound();
-  }
-
-  return (
-    <CheckoutPlanPage
-      plan={{ ...plan, commercialType: getPlanCommercialType(plan.features) }}
-      providers={providers}
-      userHasSchoolAccount={Boolean(current.user.schoolAccountId)}
-      isBagMode={salesExperience.isBagMode}
-    />
-  );
+export default async function CheckoutPlanRoutePage() {
+  const current = await requireDashboardUser();
+  redirect(getDashboardHomePath(current.user.role));
 }

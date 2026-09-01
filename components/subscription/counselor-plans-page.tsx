@@ -233,7 +233,7 @@ function BagProductCard({
             حقيبة تعليمية متكاملة للمعلم
           </p>
           <p className="mt-4 max-w-2xl text-sm font-bold leading-8 text-slate-200">
-            منتج تعليمي مادي يتم شحنه إلى العميل، وبعد إتمام الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم.
+            منتج تعليمي مادي مستقل، ويتم الشحن والتسليم خارج المنصة. شراء الحقيبة لا يفتح أي خدمة أو ميزة داخل Teachix.
           </p>
           <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
             <h3 className="font-black text-white">محتويات الحقيبة الشاملة</h3>
@@ -254,11 +254,8 @@ function BagProductCard({
             <strong className="text-4xl font-black">{formatPrice(amount)}</strong>
             <span className="pb-1 text-sm font-bold text-slate-500">ريال</span>
           </div>
-          <p className="mt-2 text-xs font-bold text-slate-500">
-            مدة الخدمات المصاحبة: {getBillingLabel(billingCycle)}
-          </p>
           <p className="mt-5 rounded-2xl bg-violet-50 p-3 text-xs font-bold leading-6 text-violet-800">
-            بعد إتمام الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم.
+            منتج تعليمي مادي مستقل، ويتم الشحن والتسليم خارج المنصة. شراء الحقيبة لا يفتح أي خدمة أو ميزة داخل Teachix.
           </p>
           <button
             type="button"
@@ -438,13 +435,17 @@ export function CounselorPlansPage() {
           setPaymentReturnFeedback({
             type: "error",
             title: "لم تكتمل عملية الدفع",
-            description: "لم يتم تفعيل الباقة. يمكنك المحاولة مرة أخرى من صفحة الباقات.",
+            description: isBagMode
+              ? "لم تكتمل عملية شراء الحقيبة. يمكنك المحاولة مرة أخرى."
+              : "لم يتم تفعيل الباقة. يمكنك المحاولة مرة أخرى من صفحة الباقات.",
           });
         } else if (payment === "pending") {
           setPaymentReturnFeedback({
             type: "info",
             title: "عملية الدفع قيد المعالجة",
-            description: "ستظهر حالة الباقة بعد تأكيد العملية من مزود الدفع.",
+            description: isBagMode
+              ? "ستظهر حالة شراء الحقيبة بعد تأكيد العملية من مزود الدفع."
+              : "ستظهر حالة الباقة بعد تأكيد العملية من مزود الدفع.",
           });
         } else if (payment && payment !== "success") {
           setPaymentReturnFeedback({
@@ -736,7 +737,7 @@ export function CounselorPlansPage() {
         <div className="text-center">
           <Loader2 className="mx-auto h-7 w-7 animate-spin text-emerald-600" />
           <p className="mt-3 text-sm font-black text-slate-500">
-            جارٍ تحميل الباقات...
+            {isBagMode ? "جارٍ تحميل الحقائب..." : "جارٍ تحميل الباقات..."}
           </p>
         </div>
       </main>
@@ -808,7 +809,7 @@ export function CounselorPlansPage() {
             {isBagMode ? "الحقيبة الشاملة" : "اختر الباقة المناسبة"}
           </h1>
           <p className="mt-2 text-sm font-bold text-slate-500">
-            {isBagMode ? "حقيبة تعليمية متكاملة للمعلم. منتج تعليمي مادي يتم شحنه إلى العميل، وبعد الدفع يتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم." : "اختر خطتك ثم راجع السعر وانتقل مباشرة إلى الدفع الآمن."}
+            {isBagMode ? "منتج تعليمي مادي مستقل، ويتم الشحن والتسليم خارج المنصة. شراء الحقيبة لا يفتح أي خدمة أو ميزة داخل Teachix." : "اختر خطتك ثم راجع السعر وانتقل مباشرة إلى الدفع الآمن."}
           </p>
         </div>
 
@@ -824,7 +825,7 @@ export function CounselorPlansPage() {
             </div>
           ) : null}
 
-          <div
+          {!isBagMode ? <div
             className="flex w-fit rounded-2xl border border-slate-200 bg-slate-50 p-1"
             aria-label="دورة الفوترة"
           >
@@ -849,7 +850,7 @@ export function CounselorPlansPage() {
                   {getBillingLabel(cycle)}
                 </button>
               ))}
-          </div>
+          </div> : null}
         </div>
       </header>
 
@@ -901,7 +902,7 @@ export function CounselorPlansPage() {
                 </h2>
                 {active ? (
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
-                    {isBagMode ? "خدمات Teachix مفعلة" : "الباقة المفعلة"}
+                    {isBagMode ? "المنتج المختار" : "الباقة المفعلة"}
                   </span>
                 ) : selected ? (
                   <CheckCircle2 className="h-5 w-5 text-sky-600" />
@@ -1022,8 +1023,7 @@ export function CounselorPlansPage() {
                 {isBagMode ? "الحقيبة الشاملة" : selectedPlan.name}
               </h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
-                {getBillingLabel(billingCycle)} · {formatPrice(selectedPrice)}{" "}
-                ريال
+            {isBagMode ? `${formatPrice(selectedPrice)} ريال` : `${getBillingLabel(billingCycle)} · ${formatPrice(selectedPrice)} ريال`}
               </p>
             </div>
           </div>

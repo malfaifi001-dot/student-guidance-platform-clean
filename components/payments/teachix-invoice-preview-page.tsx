@@ -62,8 +62,8 @@ export function TeachixInvoicePreviewPage({ transactionId }: { transactionId: st
     <main dir="rtl" className="min-h-screen bg-slate-100 px-4 py-8 print:bg-white print:p-0">
       <div className="mx-auto max-w-5xl print:max-w-none">
         <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
-          <Link href="/dashboard/plans" className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm">
-            <ArrowRight className="h-4 w-4" /> العودة إلى الباقات
+          <Link href="/dashboard/account" className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm">
+            <ArrowRight className="h-4 w-4" /> العودة إلى الحساب
           </Link>
           <button type="button" onClick={printInvoice} disabled={!data} className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-5 py-2 text-sm font-black text-white disabled:opacity-50">
             <Printer className="h-4 w-4" /> طباعة / حفظ PDF

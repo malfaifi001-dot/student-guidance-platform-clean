@@ -97,7 +97,6 @@ export function PlanPaymentModal({
     const message = [
       "مرحبًا، أرغب في الدفع عبر Tabby.",
       `${isBagMode ? "الحقيبة" : "الباقة"}: ${planName}`,
-      `المدة: ${billingLabel}`,
       `المبلغ: ${total.toLocaleString("ar-SA")} ريال`,
       "أرجو إرسال رابط الدفع عبر Tabby.",
     ].join("\n");
@@ -126,7 +125,7 @@ export function PlanPaymentModal({
         <aside className="order-1 flex flex-col justify-center border-t border-sky-100 bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-600 p-6 text-white sm:p-7 lg:order-1 lg:border-l lg:border-t-0">
           <p className="text-xs font-black text-sky-100">{isBagMode ? "ملخص الحقيبة" : "ملخص الاشتراك"}</p>
           <h2 className="mt-3 text-2xl font-black">{planName}</h2>
-          <p className="mt-2 text-sm font-bold text-sky-100">{billingLabel}</p>
+          {!isBagMode ? <p className="mt-2 text-sm font-bold text-sky-100">{billingLabel}</p> : null}
 
           <div className="mt-6 flex items-center gap-2 border-y border-white/20 py-4 text-sm font-bold text-sky-50">
             <Check className="h-4 w-4 shrink-0 text-cyan-200" />

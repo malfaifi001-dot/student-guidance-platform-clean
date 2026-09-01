@@ -49,13 +49,6 @@ const principalModules: WorkspaceModule[] = [
     status: "available",
   },
   {
-    title: "الباقات",
-    description: "الاطلاع على الباقات المتاحة للحساب.",
-    href: "/dashboard/plans",
-    icon: "subscription",
-    status: "available",
-  },
-  {
     title: "حسابي",
     description: "مراجعة بيانات الحساب والجلسات.",
     href: "/dashboard/account",

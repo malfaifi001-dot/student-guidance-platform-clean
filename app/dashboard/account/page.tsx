@@ -30,17 +30,6 @@ type AccountUser = {
   updatedAt: string;
 };
 
-type SubscriptionInfo = {
-  subscription?: {
-    status: string;
-    startsAt?: string | null;
-    endsAt?: string | null;
-    planName?: string | null;
-  };
-  remainingDays?: number | null;
-  usable?: boolean;
-};
-
 function roleLabel(role: string, gender?: string | null) {
   if (role === "ADMIN") return "مدير النظام";
   if (role === "COUNSELOR") return "موجه طلابي";
@@ -56,15 +45,6 @@ function genderLabel(gender: string | null) {
   if (gender === "MALE") return "ذكر";
   if (gender === "FEMALE") return "أنثى";
   return "غير محدد";
-}
-
-function subscriptionStatusLabel(status?: string) {
-  if (status === "TRIAL") return "تجريبي";
-  if (status === "ACTIVE") return "نشط";
-  if (status === "PAST_DUE") return "متعثر";
-  if (status === "CANCELED") return "ملغي";
-  if (status === "EXPIRED") return "منتهي";
-  return status || "غير محدد";
 }
 
 function formatDate(value?: string | null) {
@@ -107,7 +87,6 @@ function uniqueList(value: unknown): string[] {
 
 export default function DashboardAccountPage() {
   const [user, setUser] = useState<AccountUser | null>(null);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -139,13 +118,9 @@ export default function DashboardAccountPage() {
     setMessage(null);
 
     try {
-      const [accountResponse, subscriptionResponse] = await Promise.all([
-        fetch("/api/dashboard/account", { cache: "no-store" }),
-        fetch("/api/dashboard/subscription", { cache: "no-store" }),
-      ]);
+      const accountResponse = await fetch("/api/dashboard/account", { cache: "no-store" });
 
       const accountResult = await readJson(accountResponse);
-      const subscriptionResult = await readJson(subscriptionResponse);
 
       if (!accountResponse.ok) {
         throw new Error(accountResult.error || "تعذر تحميل بيانات الحساب.");
@@ -165,9 +140,6 @@ export default function DashboardAccountPage() {
         teachingSubjects: uniqueList(nextUser.teachingSubjects),
       });
 
-      if (subscriptionResponse.ok) {
-        setSubscription(subscriptionResult);
-      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر تحميل صفحة الحساب.");
     } finally {
@@ -446,22 +418,6 @@ export default function DashboardAccountPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-950">الاشتراك</h2>
-
-            <div className="mt-5 space-y-3 text-sm font-bold">
-              <SummaryRow label="الخطة" value={subscription?.subscription?.planName || "—"} />
-              <SummaryRow label="الحالة" value={subscriptionStatusLabel(subscription?.subscription?.status)} />
-              <SummaryRow label="الأيام المتبقية" value={String(subscription?.remainingDays ?? "—")} />
-            </div>
-
-            <Link
-              href="/dashboard/subscription"
-              className="mt-5 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
-            >
-              إدارة الاشتراك
-            </Link>
-          </div>
         </div>
       </section>
 

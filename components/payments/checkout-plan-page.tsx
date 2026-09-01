@@ -92,7 +92,7 @@ export function CheckoutPlanPage({
           {isBagMode ? "الحقيبة الشاملة" : plan.name}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-400">
-          {isBagMode ? "منتج تعليمي مادي يتم شحنه إلى العميل. بعد إتمام الدفع سيتم التواصل عبر واتساب لاستكمال بيانات الشحن والتسليم." : "اختر دورة الفوترة ومزود الدفع، ثم ابدأ عملية الدفع الإلكتروني."}
+          {isBagMode ? "منتج تعليمي مادي مستقل، ويتم الشحن والتسليم خارج المنصة. شراء الحقيبة لا يفتح أي خدمة أو ميزة داخل Teachix." : "اختر دورة الفوترة ومزود الدفع، ثم ابدأ عملية الدفع الإلكتروني."}
         </p>
       </section>
 
@@ -114,7 +114,7 @@ export function CheckoutPlanPage({
             خيارات الدفع
           </h2>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {!isBagMode ? <div className="mt-5 grid gap-3 md:grid-cols-2">
             {plan.commercialType !== "YEAR" ? <button
               type="button"
               onClick={() => setBillingCycle("MONTHLY")}
@@ -148,7 +148,7 @@ export function CheckoutPlanPage({
                 {formatAmount(plan.priceYearly)}
               </p>
             </button> : null}
-          </div>
+          </div> : null}
 
           <label className="mt-5 block">
             <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
@@ -178,17 +178,22 @@ export function CheckoutPlanPage({
           </h2>
 
           <div className="mt-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
+            {!isBagMode ? <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
               <span className="text-slate-500 dark:text-slate-400">{isBagMode ? "المنتج" : "الباقة"}</span>
               <strong className="text-slate-950 dark:text-white">{isBagMode ? "الحقيبة الشاملة" : plan.name}</strong>
-            </div>
+            </div> : null}
 
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
-              <span className="text-slate-500 dark:text-slate-400">{isBagMode ? "مدة الخدمات المصاحبة" : "الفوترة"}</span>
-              <strong className="text-slate-950 dark:text-white">
-                {getSubscriptionPeriodLabel(billingCycle)}
-              </strong>
-            </div>
+            {isBagMode ? (
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">المنتج</span>
+                <strong className="text-slate-950 dark:text-white">الحقيبة الشاملة</strong>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-sm dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">الفوترة</span>
+                <strong className="text-slate-950 dark:text-white">{getSubscriptionPeriodLabel(billingCycle)}</strong>
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500 dark:text-slate-400">الإجمالي</span>

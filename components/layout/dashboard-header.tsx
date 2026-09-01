@@ -26,7 +26,6 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
-  WalletCards,
 } from "lucide-react";
 
 type DashboardHeaderProps = {
@@ -292,13 +291,6 @@ export function DashboardHeader({ user, subscription, salesMode = "SERVICE" }: D
                     label={isAdmin ? "حساب الأدمن" : "حسابي والجلسات"}
                   />
 
-                  {!isAdmin ? (
-                    <HeaderMenuLink
-                      href={isPrincipal ? "/dashboard/plans" : "/dashboard/subscription"}
-                      icon={<WalletCards className="h-4 w-4" />}
-                      label="الباقات"
-                    />
-                  ) : null}
                 </div>
 
                 <div className="border-t border-slate-100 pt-2 dark:border-slate-800">
