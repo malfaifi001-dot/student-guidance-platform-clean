@@ -64,6 +64,68 @@ body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
 @media print { html, body { background: #fff !important; } body { padding: 0 !important; } .activity-plan-print-page { margin: 0; box-shadow: none; } .activity-plan-print-page .curriculum-print-signature-row { width: 170mm; gap: 18mm; padding-bottom: 4.5mm; } }
 `;
 
+
+/*
+ * Keep physical Activity Plan pages identical between preview
+ * and PDF/print output.
+ *
+ * This intentionally targets only --physical pages.
+ * Weekly/10% flow layouts keep their existing behavior.
+ */
+const activityPlanPhysicalPrintFixStyles = `
+@media print {
+  .activity-plan-print-page.activity-plan-print-page--physical {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 297mm !important;
+    min-width: 297mm !important;
+    max-width: 297mm !important;
+
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+
+    break-after: page !important;
+    page-break-after: always !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical
+    > .activity-plan-print-page-content {
+    display: flex !important;
+    flex-direction: column !important;
+
+    min-height: 0 !important;
+    height: auto !important;
+
+    flex: 1 1 auto !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical
+    > .activity-plan-print-footer-slot {
+    flex: 0 0 auto !important;
+    margin-top: auto !important;
+
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+}
+`;
 export default async function ActivityPlanPrintPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const current = await requireServiceAccessForCurrentUser("student-activity-plan");
   if (!current.user.schoolAccountId) redirect("/dashboard/onboarding?required=true");
@@ -128,5 +190,6 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
     owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
   });
   const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
-  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />{tenPercentMode ? <ActivityPlanTenPercentPrintDocument rows={tenPercentRows} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />
+<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanTenPercentPrintDocument rows={tenPercentRows} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

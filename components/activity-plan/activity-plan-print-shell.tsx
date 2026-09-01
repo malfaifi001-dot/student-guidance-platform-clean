@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
 
+import {
+  ActivityPlanDocumentPage,
+} from "@/components/document-engine/designs/activity-plan/activity-plan-document-page";
+
 export const activityPlanPrintShellStyles = `
 @page { size: A4 landscape; margin: 0; }
 * { box-sizing: border-box; }
@@ -126,11 +130,27 @@ type ActivityPlanPrintPageProps = {
   contentClassName?: string;
 };
 
-export function ActivityPlanPrintPage({ children, footer, className = "", contentClassName = "" }: ActivityPlanPrintPageProps) {
+export function ActivityPlanPrintPage({
+  children,
+  footer,
+  className = "",
+  contentClassName = "",
+}: ActivityPlanPrintPageProps) {
+  const flow =
+    className
+      .split(/\s+/)
+      .includes(
+        "activity-plan-print-page--flow",
+      );
+
   return (
-    <section className={`activity-plan-print-page ${className}`.trim()} dir="rtl">
-      <div className={`activity-plan-print-page-content ${contentClassName}`.trim()}>{children}</div>
-      {footer ? <div className="activity-plan-print-footer-slot">{footer}</div> : null}
-    </section>
+    <ActivityPlanDocumentPage
+      className={className}
+      contentClassName={contentClassName}
+      footer={footer}
+      flow={flow}
+    >
+      {children}
+    </ActivityPlanDocumentPage>
   );
 }
