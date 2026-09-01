@@ -20,6 +20,7 @@ import type {
   RuntimeOption,
   RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
+import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
 import { filterConditionalWorkflowOptions } from "@/engine/runtime/workflow-conditional-logic";
 import { HijriDatePicker } from "@/components/workflow/hijri-date-picker";
@@ -557,7 +558,9 @@ export function DynamicFieldRenderer({
 }: DynamicFieldRendererProps) {
   const filteredOptions = getFilteredOptions(field, values);
   const shouldShowAi =
-    (field.type === "TEXT" || field.type === "TEXTAREA" || field.type === "RICH_TEXT") && !field.isRepeater;
+    workflow.serviceSlug !== SPECIAL_REPORT_SERVICE_SLUG &&
+    (field.type === "TEXT" || field.type === "TEXTAREA" || field.type === "RICH_TEXT") &&
+    !field.isRepeater;
 
   if (field.isRepeater) {
     return (
