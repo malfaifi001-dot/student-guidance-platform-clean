@@ -2,12 +2,17 @@ import {
   getDocumentPageStyle,
 } from "../document-design-tokens";
 
+import { DocumentFooterZone } from "./document-footer-zone";
+import { DocumentSignatureZone } from "./document-signature-zone";
+
 import type {
   DocumentPageProps,
 } from "../document-layout-types";
 
 export function DocumentPage({
   children,
+  signature,
+  footer,
   className = "",
   style,
   size = "A4",
@@ -58,6 +63,16 @@ export function DocumentPage({
       }
     >
       {children}
+      {signature ? (
+        <DocumentSignatureZone placement="bottom">
+          {signature}
+        </DocumentSignatureZone>
+      ) : null}
+      {footer ? (
+        <DocumentFooterZone>
+          {footer}
+        </DocumentFooterZone>
+      ) : null}
     </section>
   );
 }

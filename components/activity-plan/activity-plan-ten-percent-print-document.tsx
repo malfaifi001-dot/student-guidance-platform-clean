@@ -60,59 +60,16 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
       margin: 0;
     }
 
-    .activity-plan-ten-percent-print-page {
-      width: 297mm !important;
-      min-width: 297mm !important;
-      max-width: 297mm !important;
-
-      height: auto !important;
-      min-height: 210mm !important;
-      max-height: none !important;
-
-      margin: 0 auto !important;
-      padding: 6mm 7mm 8mm !important;
-
-      overflow: visible !important;
-
-      background: #F8FAFC;
-
-      display: flex !important;
-      flex-direction: column !important;
-
-      page-break-after: auto !important;
-      break-after: auto !important;
-
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
     .ten-percent-plan-a4 {
       width: 100%;
-      min-height: 196mm;
+      min-height: 0;
+      flex: 1 1 auto;
 
       display: flex;
       flex-direction: column;
 
       break-inside: auto;
       page-break-inside: auto;
-    }
-
-    .activity-plan-ten-percent-print-page .curriculum-print-footer {
-      position: static !important;
-      inset: auto !important;
-      flex: 0 0 auto;
-      margin-top: 5mm !important;
-      padding-top: 5mm;
-      break-before: avoid-page;
-      page-break-before: avoid;
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    .activity-plan-ten-percent-print-page .curriculum-print-signature-row {
-      break-inside: avoid;
-      page-break-inside: avoid;
-      padding-bottom: 4.5mm;
     }
 
     .ten-percent-plan-title {
@@ -147,9 +104,9 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
     }
 
     .ten-percent-plan-table-wrap {
-      flex: 1 0 auto;
+      flex: 1 1 auto;
       min-height: 0;
-      overflow: visible;
+      overflow: hidden;
     }
 
     .ten-percent-plan-table {
@@ -183,6 +140,34 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
 
     .ten-percent-plan-table thead tr:first-child th {
       background: #EEF4F7;
+    }
+
+    .ten-percent-plan-table .ten-percent-document-header-cell,
+    .ten-percent-plan-table .ten-percent-plan-title-cell {
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-plan-title-cell {
+      padding-top: 1mm !important;
+      padding-bottom: 1mm !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-row {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-row > td {
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-zone {
+      min-height: 30mm;
+      padding-top: 5mm;
     }
 
     .ten-percent-plan-table tbody td {
@@ -245,43 +230,14 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
         background: #fff !important;
       }
 
-      .activity-plan-ten-percent-print-page {
-        display: flex !important;
-        flex-direction: column !important;
-
-        width: 297mm !important;
-        min-width: 297mm !important;
-        max-width: 297mm !important;
-
-        height: auto !important;
-        min-height: 210mm !important;
-        max-height: none !important;
-
-        margin: 0 !important;
-        padding: 6mm 7mm 8mm !important;
-
-        overflow: visible !important;
-
-        page-break-after: auto !important;
-        break-after: auto !important;
-
-        box-shadow: none !important;
-
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
       .ten-percent-plan-a4 {
-        min-height: 196mm !important;
-
-        display: flex !important;
-        flex-direction: column !important;
+        min-height: 0 !important;
       }
 
       .ten-percent-plan-table-wrap {
-        flex: 1 0 auto !important;
+        flex: 1 1 auto !important;
         min-height: 0 !important;
-        overflow: visible !important;
+        overflow: hidden !important;
       }
 
       .activity-plan-ten-percent-print-footer-guard {
@@ -289,22 +245,14 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
         page-break-inside: avoid !important;
       }
 
-      .activity-plan-ten-percent-print-page .curriculum-print-footer {
-        position: static !important;
-        inset: auto !important;
-        flex: 0 0 auto !important;
-        margin-top: 5mm !important;
-        padding-top: 5mm !important;
-        break-before: avoid-page;
-        page-break-before: avoid;
-        break-inside: avoid;
-        page-break-inside: avoid;
-      }
-
       .ten-percent-plan-table {
         font-size: 8pt;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+
+      .ten-percent-plan-table .ten-percent-signature-zone {
+        min-height: 30mm;
       }
     }
   `;
@@ -312,18 +260,22 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
   return <>
     <style>{printStyles + activityPlanPrintShellStyles}</style>
     <main className="activity-plan-print-root" dir="rtl">
-      <ActivityPlanPrintPage className="activity-plan-ten-percent-print-page activity-plan-print-page--flow" contentClassName="ten-percent-plan-page-content">
+      <ActivityPlanPrintPage className="activity-plan-ten-percent-print-page activity-plan-print-page--physical" contentClassName="ten-percent-plan-page-content" footer={<CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}>
         <div className="ten-percent-plan-a4">
-          <CurriculumDocumentHeader title="الخطة الفصلية (10%) للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
-          <div className="ten-percent-plan-title"><h1>الخطة الفصلية (10%) للنشاط الطلابي</h1><span>{stage}</span></div>
           <div className="ten-percent-plan-table-wrap">
             <table className="ten-percent-plan-table">
               <colgroup><col style={{ width: "24%" }} /><col style={{ width: "25%" }} /><col style={{ width: "10%" }} /><col style={{ width: "11%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /></colgroup>
-              <thead><tr><th colSpan={3}>مجالات وبرامج النشاط المنفذة</th><th rowSpan={2}>أسبوع التنفيذ</th><th rowSpan={2}>مادة 10%</th><th rowSpan={2}>الصف</th><th rowSpan={2}>المعلم</th></tr><tr><th>المجال</th><th>البرنامج</th><th>عدد الحصص</th></tr></thead>
-              <tbody>{rows.length ? rows.map((row) => <tr key={row.id}><td><div className="ten-percent-domain-list">{domainNames(row.domains)}</div></td><td><div className="ten-percent-program-list">{programNames(row.programs)}</div></td><td>{row.periodCount || "—"}</td><td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td><td>{row.subject || "—"}</td><td><div className="ten-percent-multiline">{row.grades.join("\n") || "—"}</div></td><td><div className="ten-percent-multiline">{row.teacherNames.join("\n") || "—"}</div></td></tr>) : <tr><td colSpan={7} className="ten-percent-empty">لا توجد بيانات محفوظة لهذه المرحلة.</td></tr>}</tbody>
+              <thead>
+                <tr><th colSpan={7} className="ten-percent-document-header-cell"><CurriculumDocumentHeader title="الخطة الفصلية (10%) للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} /></th></tr>
+                <tr><th colSpan={7} className="ten-percent-plan-title-cell"><div className="ten-percent-plan-title"><h1>الخطة الفصلية (10%) للنشاط الطلابي</h1><span>{stage}</span></div></th></tr>
+                <tr><th colSpan={3}>مجالات وبرامج النشاط المنفذة</th><th rowSpan={2}>أسبوع التنفيذ</th><th rowSpan={2}>مادة 10%</th><th rowSpan={2}>الصف</th><th rowSpan={2}>المعلم</th></tr>
+                <tr><th>المجال</th><th>البرنامج</th><th>عدد الحصص</th></tr>
+              </thead>
+              <tbody>
+                {rows.length ? rows.map((row) => <tr key={row.id}><td><div className="ten-percent-domain-list">{domainNames(row.domains)}</div></td><td><div className="ten-percent-program-list">{programNames(row.programs)}</div></td><td>{row.periodCount || "—"}</td><td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td><td>{row.subject || "—"}</td><td><div className="ten-percent-multiline">{row.grades.join("\n") || "—"}</div></td><td><div className="ten-percent-multiline">{row.teacherNames.join("\n") || "—"}</div></td></tr>) : <tr><td colSpan={7} className="ten-percent-empty">لا توجد بيانات محفوظة لهذه المرحلة.</td></tr>}
+              </tbody>
             </table>
           </div>
-          <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />
         </div>
       </ActivityPlanPrintPage>
     </main>

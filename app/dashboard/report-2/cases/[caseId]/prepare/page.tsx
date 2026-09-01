@@ -61,7 +61,10 @@ export default async function ReportTwoPreparePage({
 
   const selectedVariantId = resolveReportVariantId(
     requestedVariant ||
-      (result.serviceSlug === "custom-report" ? "smart-general-a4" : undefined),
+      (result.serviceSlug === "custom-report" ||
+      result.serviceSlug === "special-report"
+        ? "smart-general-a4"
+        : undefined),
   );
 
   if (current.user.role !== "ADMIN" && result.serviceSlug !== "custom-report") {

@@ -232,6 +232,19 @@ export const workflowUploadServices: AppService[] =
     (role) => workflowServicesByRole[role],
   );
 
+// A neutral, school-scoped service. Access is still enforced by the existing
+// subscription/service guards; this entry only makes it available to the
+// shared report-template service selector.
+export const SPECIAL_REPORT_SERVICE_OPTION: AppService = {
+  slug: "special-report",
+  title: "\u062a\u0642\u0631\u064a\u0631 \u0645\u062e\u0635\u0635",
+  description: "\u062a\u0642\u0631\u064a\u0631 \u0645\u0631\u0646 \u0645\u0628\u0646\u064a \u0639\u0644\u0649 \u062d\u0642\u0648\u0644 \u064a\u062d\u062f\u062f\u0647\u0627 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645.",
+  href: "/dashboard/special-report/new",
+  kind: "workflow",
+};
+
+workflowUploadServices.push(SPECIAL_REPORT_SERVICE_OPTION);
+
 export const standaloneServices: AppService[] = [
   STUDENT_ACTIVITY_PLAN_SERVICE,
   {

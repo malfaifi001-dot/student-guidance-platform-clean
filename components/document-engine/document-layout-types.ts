@@ -20,6 +20,10 @@ export type DocumentSignatureAlignment =
   | "end"
   | "stretch";
 
+export type DocumentSignaturePlacement =
+  | "flow"
+  | "bottom";
+
 export type DocumentZoneProps = {
   children?: ReactNode;
   className?: string;
@@ -28,6 +32,10 @@ export type DocumentZoneProps = {
 
 export type DocumentPageProps = {
   children: ReactNode;
+
+  /** Optional structural zones rendered after the page content. */
+  signature?: ReactNode;
+  footer?: ReactNode;
 
   className?: string;
   style?: CSSProperties;
@@ -53,4 +61,5 @@ export type DocumentPageProps = {
 export type DocumentSignatureZoneProps =
   DocumentZoneProps & {
     align?: DocumentSignatureAlignment;
+    placement?: DocumentSignaturePlacement;
   };

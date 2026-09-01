@@ -31,6 +31,7 @@ type WorkflowStepCardProps = {
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  onDeleteField?: (field: RuntimeField) => Promise<void> | void;
   embedded?: boolean;
   workflow: RuntimeWorkflow;
   editingMode?: boolean;
@@ -112,6 +113,7 @@ export function WorkflowStepCard({
   onChange,
   canEditFieldLabel,
   onUpdateFieldLabel,
+  onDeleteField,
   embedded = false,
   workflow,
   editingMode = false,
@@ -205,6 +207,7 @@ export function WorkflowStepCard({
               onChange={(key, value) => onChange(key, value)}
               canEditFieldLabel={canEditFieldLabel?.(field) ?? false}
               onUpdateFieldLabel={onUpdateFieldLabel}
+              onDeleteField={onDeleteField}
             />
           </div>
         ))}

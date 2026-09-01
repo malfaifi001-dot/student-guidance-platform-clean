@@ -1,6 +1,9 @@
 import type {
+  SpecialReportCustomFieldConfig,
+  SpecialReportCustomFieldOption,
   SpecialReportFieldDefinition,
   SpecialReportFieldOption,
+  SpecialReportFieldType,
 } from "@/lib/special-report/types";
 
 export const SPECIAL_REPORT_REPEATABLE_FIELD_KEYS = [
@@ -227,6 +230,89 @@ export const SPECIAL_REPORT_FIXED_FIELD_KEYS = [
   "special_report_execution_date",
 ] as const;
 
+export const SPECIAL_REPORT_CUSTOM_KEY_PREFIX = "special_report_custom_";
+
+const SPECIAL_REPORT_CUSTOM_KEY_PATTERN = /^special_report_custom_[a-z0-9]+$/;
+const SPECIAL_REPORT_CUSTOM_FIELD_TYPES: SpecialReportFieldType[] = [
+  "TEXT",
+  "TEXTAREA",
+  "DATE",
+  "SELECT",
+  "MULTI_SELECT",
+];
+
+export function isValidSpecialReportCustomFieldKey(key: string) {
+  return SPECIAL_REPORT_CUSTOM_KEY_PATTERN.test(key);
+}
+
+export function validateSpecialReportCustomFields(
+  customFields: SpecialReportCustomFieldConfig[] = [],
+) {
+  const catalogKeys = new Set(SPECIAL_REPORT_FIELD_BANK.map((field) => field.key));
+  const keys = new Set<string>();
+
+  for (const field of customFields) {
+    const key = String(field.key || "").trim();
+    const label = String(field.label || "").trim();
+
+    if (!key || !isValidSpecialReportCustomFieldKey(key)) {
+      throw new Error("مفتاح الحقل المخصص غير صالح.");
+    }
+    if (catalogKeys.has(key) || keys.has(key)) {
+      throw new Error("يوجد تكرار في مفاتيح الحقول المخصصة.");
+    }
+    if (!label) {
+      throw new Error("يجب إدخال عنوان للحقل المخصص.");
+    }
+    if (!SPECIAL_REPORT_CUSTOM_FIELD_TYPES.includes(field.type)) {
+      throw new Error("نوع الحقل المخصص غير مدعوم.");
+    }
+    if (field.isRepeater && (field.type === "DATE" || field.type === "MULTI_SELECT")) {
+      throw new Error("لا يمكن تفعيل التكرار لهذا النوع من الحقول.");
+    }
+
+    const needsOptions = field.type === "SELECT" || field.type === "MULTI_SELECT";
+    const options = Array.isArray(field.options) ? field.options : [];
+    if (needsOptions) {
+      if (!options.length) throw new Error("أضف خيارًا واحدًا على الأقل.");
+      const optionValues = new Set<string>();
+      for (const option of options) {
+        const optionLabel = String(option.label || "").trim();
+        const optionValue = String(option.value || "").trim();
+        if (!optionLabel || !optionValue) throw new Error("لا يمكن ترك خيارات الحقل فارغة.");
+        if (optionValues.has(optionValue)) throw new Error("توجد قيم خيارات مكررة.");
+        optionValues.add(optionValue);
+      }
+    }
+    keys.add(key);
+  }
+
+  return customFields;
+}
+
+export function resolveSpecialReportRuntimeFields(
+  fieldKeys: string[],
+  customFields: SpecialReportCustomFieldConfig[] = [],
+): Array<SpecialReportFieldDefinition | SpecialReportCustomFieldConfig> {
+  validateSpecialReportCustomFields(customFields);
+  const customByKey = new Map(customFields.map((field) => [field.key, field]));
+  const catalogByKey = new Map(SPECIAL_REPORT_FIELD_BANK.map((field) => [field.key, field]));
+  const seen = new Set<string>();
+
+  const orderedKeys = fieldKeys;
+
+  return orderedKeys
+    .map((key) => {
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return catalogByKey.get(key) || customByKey.get(key) || null;
+    })
+    .filter(
+      (field): field is SpecialReportFieldDefinition | SpecialReportCustomFieldConfig =>
+        field !== null,
+    );
+}
+
 export function isValidPerformanceElement(
   value: string
 ): value is SpecialReportPerformanceElement {
@@ -256,10 +342,11 @@ export function getSpecialReportField(
 }
 
 export function normalizeSpecialReportFieldKeys(
-  inputKeys: string[]
+  inputKeys: string[],
+  customKeys: string[] = [],
 ): string[] {
   const validKeys = new Set(
-    SPECIAL_REPORT_FIELD_BANK.map((field) => field.key)
+    [...SPECIAL_REPORT_FIELD_BANK.map((field) => field.key), ...customKeys]
   );
 
   const flexibleKeys = inputKeys.filter((key, index) => {
@@ -278,10 +365,7 @@ export function normalizeSpecialReportFieldKeys(
     return inputKeys.indexOf(key) === index;
   });
 
-  return [
-    ...SPECIAL_REPORT_FIXED_FIELD_KEYS,
-    ...flexibleKeys,
-  ];
+  return flexibleKeys;
 }
 
 export function resolveSpecialReportFields(

@@ -28,6 +28,8 @@ type WorkflowServiceHomePageProps = {
   heroSecondaryAction?: ReactNode;
   allowPrincipal?: boolean;
   ownerScoped?: boolean;
+  reportPrepareBasePath?: string;
+  hideWorkflowStatus?: boolean;
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -153,6 +155,8 @@ export async function WorkflowServiceHomePage({
   heroSecondaryAction,
   allowPrincipal = false,
   ownerScoped = false,
+  reportPrepareBasePath,
+  hideWorkflowStatus = false,
 }: WorkflowServiceHomePageProps) {
   const context = await requireDashboardPageContext({ allowPrincipal });
 
@@ -319,7 +323,7 @@ export async function WorkflowServiceHomePage({
         <span>{"جاهزة للتقرير"}: <b className="text-slate-950 dark:text-white">{formatCount(readyForReportCount)}</b></span>
       </section>
 
-      {!activeWorkflow ? (
+      {!activeWorkflow && !hideWorkflowStatus ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
           <h2 className="text-lg font-black text-amber-950 dark:text-amber-100">
             لا يوجد نموذج منشور
@@ -359,7 +363,9 @@ export async function WorkflowServiceHomePage({
                       ? `?template=${encodeURIComponent(latestReport.templateId)}`
                       : ""
                   }`
-                : `/dashboard/report/new?caseId=${caseItem.id}`;
+                : reportPrepareBasePath
+                  ? `${reportPrepareBasePath}/${encodeURIComponent(caseItem.id)}/prepare`
+                  : `/dashboard/report/new?caseId=${caseItem.id}`;
 
               return (
                 <article

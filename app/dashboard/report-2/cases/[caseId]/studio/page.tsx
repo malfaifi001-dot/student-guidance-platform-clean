@@ -4,6 +4,7 @@ import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { resolveReportVariantId } from "@/lib/report-engine/report-variant-registry";
 import { reconcilePrincipalSignaturePayload } from "@/lib/report-signatures/report-two-signature";
 import { getReportSignatureStatus } from "@/lib/report-signatures/report-signature-service";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
@@ -74,7 +75,7 @@ export default async function ReportTwoCaseStudioPage({
   const { caseId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
-  const selectedVariantId = firstParam(resolvedSearchParams.variant) || "";
+  const requestedVariantId = firstParam(resolvedSearchParams.variant);
   const initialMode =
     firstParam(resolvedSearchParams.mode) === "preview" ? "preview" : "edit";
 
@@ -87,6 +88,14 @@ export default async function ReportTwoCaseStudioPage({
   if (!result.ok) {
     notFound();
   }
+
+  const selectedVariantId = resolveReportVariantId(
+    requestedVariantId ||
+      (result.serviceSlug === "custom-report" ||
+      result.serviceSlug === "special-report"
+        ? "smart-general-a4"
+        : undefined),
+  );
   tracePrincipalSignature({
     stage: "REPORT2_PAGE_BUILDER_RESULT",
     location: "ReportTwoCaseStudioPage",
@@ -161,6 +170,13 @@ export default async function ReportTwoCaseStudioPage({
         visible: isVisibleTemplate(templateJson),
       };
     })
+    .filter(
+      (template) =>
+        !(
+          template.serviceSlug === "special-report" &&
+          template.templateJson?.kind === "SPECIAL_REPORT_TEMPLATE"
+        ),
+    )
     .filter((template) => template.visible)
     .map(({ visible: _visible, ...template }) => template);
 

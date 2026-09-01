@@ -13,6 +13,33 @@ export type SpecialReportFieldOption = {
   order: number;
 };
 
+export type SpecialReportCustomFieldType = Exclude<
+  SpecialReportFieldType,
+  never
+>;
+
+export type SpecialReportCustomFieldOption = SpecialReportFieldOption & {
+  id: string;
+};
+
+export type SpecialReportCustomFieldConfig = {
+  id: string;
+  key: string;
+  label: string;
+  fixed?: false;
+  type: SpecialReportCustomFieldType;
+  isRequired: boolean;
+  isRepeater: boolean;
+  allowOther: boolean;
+  options: SpecialReportCustomFieldOption[];
+  placeholder?: string;
+  helpText?: string;
+};
+
+export type SpecialReportRuntimeFieldConfig =
+  | { kind: "catalog"; key: string }
+  | ({ kind: "custom" } & SpecialReportCustomFieldConfig);
+
 export type SpecialReportFieldDefinition = {
   key: string;
   label: string;
@@ -32,6 +59,7 @@ export type SpecialReportFieldDefinition = {
 export type SpecialReportBuilderState = {
   performanceElement: string;
   fieldKeys: string[];
+  customFields?: SpecialReportCustomFieldConfig[];
 };
 
 export type SpecialReportRuntimeField = {

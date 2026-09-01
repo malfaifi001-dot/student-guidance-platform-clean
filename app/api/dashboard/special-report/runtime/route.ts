@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 
-import {
-  isValidPerformanceElement,
-  normalizeSpecialReportFieldKeys,
-} from "@/lib/special-report/catalog";
+import { normalizeSpecialReportFieldKeys } from "@/lib/special-report/catalog";
 
 import { createSpecialReportRuntime } from "@/lib/special-report/runtime-builder";
+import type { SpecialReportCustomFieldConfig } from "@/lib/special-report/types";
 
 type CreateRuntimeBody = {
   performanceElement?: unknown;
   fieldKeys?: unknown;
   fieldLabelOverrides?: unknown;
+  customFields?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -37,27 +36,9 @@ export async function POST(request: Request) {
     const body =
       (await request.json()) as CreateRuntimeBody;
 
-    const performanceElement = String(
-      body.performanceElement ?? ""
-    ).trim();
-
     const fieldKeys = Array.isArray(body.fieldKeys)
       ? body.fieldKeys.map((value) => String(value))
       : [];
-
-    if (!isValidPerformanceElement(performanceElement)) {
-      return NextResponse.json(
-        {
-          error: "اختر عنصر أداء صالحًا.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const normalizedFieldKeys =
-      normalizeSpecialReportFieldKeys(fieldKeys);
 
     const fieldLabelOverrides =
       body.fieldLabelOverrides &&
@@ -70,11 +51,21 @@ export async function POST(request: Request) {
           )
         : undefined;
 
+    const customFields = Array.isArray(body.customFields)
+      ? (body.customFields as SpecialReportCustomFieldConfig[])
+      : undefined;
+
+    const normalizedFieldKeys =
+      normalizeSpecialReportFieldKeys([
+        ...fieldKeys,
+        ...(customFields ?? []).map((field) => String(field.key ?? "")),
+      ], (customFields ?? []).map((field) => String(field.key ?? "")));
+
     const runtime =
       await createSpecialReportRuntime({
-        performanceElement,
         fieldKeys: normalizedFieldKeys,
         fieldLabelOverrides,
+        customFields,
         schoolAccountId: authResult.schoolAccountId,
         createdById: authResult.user.id,
       });
@@ -89,7 +80,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error
         ? error.message
-        : "تعذر إنشاء نموذج التقرير الخاص.";
+        : "تعذر إنشاء نموذج التقرير المخصص.";
 
     return NextResponse.json(
       {

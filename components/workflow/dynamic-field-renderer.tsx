@@ -35,6 +35,7 @@ type DynamicFieldRendererProps = {
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  onDeleteField?: (field: RuntimeField) => Promise<void> | void;
   workflow: RuntimeWorkflow;
 };
 
@@ -141,6 +142,7 @@ function FieldHeader({
   field,
   canEditFieldLabel = false,
   onUpdateFieldLabel,
+  onDeleteField,
 }: {
   field: RuntimeField;
   canEditFieldLabel?: boolean;
@@ -149,6 +151,7 @@ function FieldHeader({
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  onDeleteField?: (field: RuntimeField) => Promise<void> | void;
 }) {
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState(
@@ -240,15 +243,28 @@ function FieldHeader({
           </p>
 
           {canEditFieldLabel ? (
-            <button
-              type="button"
-              onClick={() => setEditingLabel(true)}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-              aria-label="تعديل عنوان الحقل"
-              title="تعديل عنوان الحقل"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setEditingLabel(true)}
+                className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
+                aria-label="تعديل عنوان الحقل"
+                title="تعديل عنوان الحقل"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              {onDeleteField ? (
+                <button
+                  type="button"
+                  onClick={() => void onDeleteField(field)}
+                  className="grid h-9 w-9 place-items-center rounded-xl border border-rose-200 bg-white text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
+                  aria-label="حذف الحقل"
+                  title="حذف الحقل"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       )}
@@ -266,6 +282,7 @@ function RepeaterFieldCard({
   onChange,
   canEditFieldLabel,
   onUpdateFieldLabel,
+  onDeleteField,
 }: {
   field: RuntimeField;
   value: unknown;
@@ -276,6 +293,7 @@ function RepeaterFieldCard({
     fieldKey: string,
     label: string
   ) => Promise<void> | void;
+  onDeleteField?: (field: RuntimeField) => Promise<void> | void;
 }) {
   const items = useMemo(() => normalizeRepeaterItems(value), [value]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -357,6 +375,7 @@ function RepeaterFieldCard({
         field={field}
         canEditFieldLabel={canEditFieldLabel}
         onUpdateFieldLabel={onUpdateFieldLabel}
+        onDeleteField={onDeleteField}
       />
 
       <div className="space-y-2">
@@ -533,6 +552,7 @@ export function DynamicFieldRenderer({
   onChange,
   canEditFieldLabel = false,
   onUpdateFieldLabel,
+  onDeleteField,
   workflow,
 }: DynamicFieldRendererProps) {
   const filteredOptions = getFilteredOptions(field, values);
@@ -547,6 +567,7 @@ export function DynamicFieldRenderer({
         onChange={onChange}
         canEditFieldLabel={canEditFieldLabel}
         onUpdateFieldLabel={onUpdateFieldLabel}
+        onDeleteField={onDeleteField}
       />
     );
   }
@@ -562,6 +583,7 @@ export function DynamicFieldRenderer({
           field={field}
           canEditFieldLabel={canEditFieldLabel}
           onUpdateFieldLabel={onUpdateFieldLabel}
+          onDeleteField={onDeleteField}
         />
 
         {field.type === "DATE" ? (
@@ -599,6 +621,7 @@ export function DynamicFieldRenderer({
           field={field}
           canEditFieldLabel={canEditFieldLabel}
           onUpdateFieldLabel={onUpdateFieldLabel}
+          onDeleteField={onDeleteField}
         />
 
         <textarea
@@ -628,6 +651,7 @@ export function DynamicFieldRenderer({
           field={field}
           canEditFieldLabel={canEditFieldLabel}
           onUpdateFieldLabel={onUpdateFieldLabel}
+          onDeleteField={onDeleteField}
         />
 
         <select
@@ -681,6 +705,7 @@ export function DynamicFieldRenderer({
           field={field}
           canEditFieldLabel={canEditFieldLabel}
           onUpdateFieldLabel={onUpdateFieldLabel}
+          onDeleteField={onDeleteField}
         />
 
         <div className="grid gap-2 md:grid-cols-2">
@@ -733,6 +758,7 @@ export function DynamicFieldRenderer({
           field={field}
           canEditFieldLabel={canEditFieldLabel}
           onUpdateFieldLabel={onUpdateFieldLabel}
+          onDeleteField={onDeleteField}
         />
 
         <input

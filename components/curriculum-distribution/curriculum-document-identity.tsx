@@ -17,6 +17,7 @@ type DocumentFooterProps = {
   primarySignatureAlt: string;
   principalName?: string | null;
   principalSignatureUrl?: string | null;
+  includeSignatures?: boolean;
 };
 
 export const curriculumDocumentIdentityStyles = `
@@ -74,10 +75,11 @@ export function CurriculumDocumentFooter({
   primarySignatureAlt,
   principalName,
   principalSignatureUrl,
+  includeSignatures = true,
 }: DocumentFooterProps) {
   return (
     <footer className="curriculum-print-footer">
-      <div className="curriculum-print-signature-row">
+      {includeSignatures ? <div className="curriculum-print-signature-row">
         <div className="curriculum-print-signature">
           <strong>{primaryRoleLabel}</strong>
           <span>{primaryName || ""}</span>
@@ -88,7 +90,7 @@ export function CurriculumDocumentFooter({
           <span>{principalName || ""}</span>
           {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
         </div>
-      </div>
+      </div> : null}
       <div className="curriculum-print-footer-line" aria-hidden="true" />
     </footer>
   );

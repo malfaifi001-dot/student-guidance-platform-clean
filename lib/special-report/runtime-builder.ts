@@ -1,18 +1,17 @@
 import { prisma } from "@/lib/prisma";
 
-import {
-  isValidPerformanceElement,
-  resolveSpecialReportFields,
-} from "@/lib/special-report/catalog";
+import { resolveSpecialReportRuntimeFields } from "@/lib/special-report/catalog";
 
 import {
   SPECIAL_REPORT_SERVICE_SLUG,
+  type SpecialReportCustomFieldConfig,
   type SpecialReportRuntimeResponse,
 } from "@/lib/special-report/types";
 
 type CreateSpecialReportRuntimeInput = {
-  performanceElement: string;
+  performanceElement?: string;
   fieldKeys: string[];
+  customFields?: SpecialReportCustomFieldConfig[];
   fieldLabelOverrides?: Record<string, string>;
   schoolAccountId?: string | null;
   createdById?: string | null;
@@ -28,16 +27,16 @@ export async function ensureSpecialReportService() {
     },
 
     update: {
-      name: "التقرير الخاص",
+      name: "تقرير مخصص",
       description:
-        "خدمة مرنة لبناء تقرير خاص حسب عنصر الأداء والحقول المختارة.",
+        "خدمة مرنة لبناء تقرير خاص حسب الحقول المختارة.",
     },
 
     create: {
       slug: SPECIAL_REPORT_SERVICE_SLUG,
-      name: "التقرير الخاص",
+      name: "تقرير مخصص",
       description:
-        "خدمة مرنة لبناء تقرير خاص حسب عنصر الأداء والحقول المختارة.",
+        "خدمة مرنة لبناء تقرير خاص حسب الحقول المختارة.",
     },
   });
 }
@@ -45,20 +44,20 @@ export async function ensureSpecialReportService() {
 export async function createSpecialReportRuntime(
   input: CreateSpecialReportRuntimeInput
 ): Promise<SpecialReportRuntimeResponse> {
-  const performanceElement = input.performanceElement.trim();
   const fieldLabelOverrides = Object.fromEntries(
     Object.entries(input.fieldLabelOverrides ?? {}).map(
       ([key, value]) => [key, String(value ?? "").trim()]
     )
   );
 
-  if (!isValidPerformanceElement(performanceElement)) {
-    throw new Error("عنصر الأداء غير صالح.");
-  }
-
-  const selectedFields = resolveSpecialReportFields(
-    input.fieldKeys
-  );
+  const selectedFields = resolveSpecialReportRuntimeFields(
+    input.fieldKeys,
+    input.customFields,
+  ).map((field) => ({
+    ...field,
+    fixed: "fixed" in field ? field.fixed : false,
+    options: field.options ?? [],
+  }));
 
   if (selectedFields.length < 2) {
     throw new Error("لم يتم اختيار حقول صالحة للتقرير.");
@@ -88,7 +87,7 @@ export async function createSpecialReportRuntime(
         data: {
           serviceId: service.id,
 
-          name: `تقرير خاص | ${performanceElement}`,
+          name: "تقرير مخصص",
 
           version: nextVersion,
           workflowType: "special-report-runtime",
@@ -108,7 +107,7 @@ export async function createSpecialReportRuntime(
           title: "بيانات التقرير",
 
           description:
-            "الحقول المختارة لبناء التقرير الخاص.",
+            "الحقول المختارة لبناء التقرير المخصص.",
 
           order: 1,
         },

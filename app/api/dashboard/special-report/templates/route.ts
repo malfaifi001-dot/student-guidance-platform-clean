@@ -4,19 +4,21 @@ import { prisma } from "@/lib/prisma";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 import {
-  isValidPerformanceElement,
   normalizeSpecialReportFieldKeys,
+  validateSpecialReportCustomFields,
 } from "@/lib/special-report/catalog";
 
 import {
   SPECIAL_REPORT_SERVICE_SLUG,
+  type SpecialReportCustomFieldConfig,
 } from "@/lib/special-report/types";
 
 type SpecialReportTemplateConfig = {
   kind: "SPECIAL_REPORT_TEMPLATE";
   version: 1;
-  performanceElement: string;
+  performanceElement?: string;
   fieldKeys: string[];
+  customFields?: SpecialReportCustomFieldConfig[];
 };
 
 function parseTemplateConfig(
@@ -32,7 +34,6 @@ function parseTemplateConfig(
     if (
       parsed.kind !== "SPECIAL_REPORT_TEMPLATE" ||
       parsed.version !== 1 ||
-      typeof parsed.performanceElement !== "string" ||
       !Array.isArray(parsed.fieldKeys)
     ) {
       return null;
@@ -41,8 +42,13 @@ function parseTemplateConfig(
     return {
       kind: "SPECIAL_REPORT_TEMPLATE",
       version: 1,
-      performanceElement: parsed.performanceElement,
+      ...(typeof parsed.performanceElement === "string"
+        ? { performanceElement: parsed.performanceElement }
+        : {}),
       fieldKeys: parsed.fieldKeys.map(String),
+      customFields: Array.isArray(parsed.customFields)
+        ? parsed.customFields as SpecialReportCustomFieldConfig[]
+        : undefined,
     };
   } catch {
     return null;
@@ -93,16 +99,16 @@ export async function POST(request: Request) {
       name?: unknown;
       performanceElement?: unknown;
       fieldKeys?: unknown;
+      customFields?: unknown;
     };
 
     const name = String(body.name ?? "").trim();
 
-    const performanceElement = String(
-      body.performanceElement ?? ""
-    ).trim();
-
     const fieldKeys = Array.isArray(body.fieldKeys)
       ? body.fieldKeys.map(String)
+      : [];
+    const customFields = Array.isArray(body.customFields)
+      ? (body.customFields as SpecialReportCustomFieldConfig[])
       : [];
 
     if (name.length < 3 || name.length > 100) {
@@ -117,7 +123,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidPerformanceElement(performanceElement)) {
+    if (false) {
       return NextResponse.json(
         {
           error: "عنصر الأداء غير صالح.",
@@ -133,11 +139,15 @@ export async function POST(request: Request) {
 
       version: 1,
 
-      performanceElement,
-
       fieldKeys:
-        normalizeSpecialReportFieldKeys(fieldKeys),
+        normalizeSpecialReportFieldKeys(
+          [...fieldKeys, ...customFields.map((field) => field.key)],
+          customFields.map((field) => field.key),
+        ),
+      customFields: customFields.length ? customFields : undefined,
     };
+
+    validateSpecialReportCustomFields(config.customFields);
 
     const template =
       await prisma.reportTemplate.create({

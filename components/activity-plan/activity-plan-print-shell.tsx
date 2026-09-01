@@ -15,12 +15,12 @@ export const activityPlanPrintShellStyles = `
   display: flex;
   flex-direction: column;
   width: 297mm;
-  height: auto !important;
+  height: 210mm !important;
   min-height: 210mm !important;
-  max-height: none !important;
+  max-height: 210mm !important;
   margin: 0 auto;
   padding: 6mm 7mm 5mm !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   background: #fff;
   break-inside: auto;
   page-break-inside: auto;
@@ -30,20 +30,17 @@ export const activityPlanPrintShellStyles = `
   print-color-adjust: exact;
 }
 .activity-plan-print-page--physical {
+  height: 210mm !important;
+  min-height: 210mm !important;
+  max-height: 210mm !important;
+  box-sizing: border-box;
+  overflow: hidden !important;
   break-after: page;
   page-break-after: always;
 }
 .activity-plan-print-page--physical:last-child {
   break-after: auto;
   page-break-after: auto;
-}
-.activity-plan-print-page--flow {
-  display: block;
-  break-after: auto;
-  page-break-after: auto;
-}
-.activity-plan-print-page--flow .activity-plan-print-page-content {
-  min-height: 199mm;
 }
 @media screen {
   .activity-plan-print-page + .activity-plan-print-page {
@@ -61,11 +58,11 @@ export const activityPlanPrintShellStyles = `
   min-height: 0;
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
 }
 .activity-plan-print-page-content > .weekly-plan-a4,
 .activity-plan-print-page-content > .ten-percent-plan-a4 {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
 }
 .activity-plan-print-page.activity-plan-ten-percent-print-page {
   background: #F8FAFC;
@@ -115,18 +112,17 @@ export const activityPlanPrintShellStyles = `
   html, body { margin: 0 !important; padding: 0 !important; }
   .activity-plan-print-page {
     display: flex !important;
-    height: auto !important;
+    height: 210mm !important;
     min-height: 210mm !important;
-    max-height: none !important;
+    max-height: 210mm !important;
     margin: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
-  .activity-plan-print-page--flow {
-    display: block !important;
+  .activity-plan-print-page--physical {
+    height: 210mm !important;
     min-height: 210mm !important;
-  }
-  .activity-plan-print-page--flow .activity-plan-print-page-content {
-    min-height: 199mm !important;
+    max-height: 210mm !important;
+    overflow: hidden !important;
   }
   .activity-plan-print-footer-slot .curriculum-print-footer {
     position: static !important;

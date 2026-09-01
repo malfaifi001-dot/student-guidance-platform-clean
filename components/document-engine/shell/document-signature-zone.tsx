@@ -21,6 +21,7 @@ export function DocumentSignatureZone({
   className = "",
   style,
   align = "stretch",
+  placement = "flow",
 }: DocumentSignatureZoneProps) {
   if (!children) {
     return null;
@@ -29,7 +30,8 @@ export function DocumentSignatureZone({
   return (
     <section
       className={[
-        "mt-auto flex shrink-0 flex-col",
+        "flex shrink-0 flex-col",
+        placement === "bottom" ? "mt-auto" : "",
         ALIGNMENT_CLASSES[align],
         className,
       ]

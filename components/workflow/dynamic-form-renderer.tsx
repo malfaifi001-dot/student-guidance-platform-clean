@@ -19,7 +19,6 @@ import {
   isBroadcastScheduleField,
   isBroadcastScheduleStep,
 } from "@/components/activity/broadcast-schedule-repeater";
-import { SPECIAL_REPORT_FIXED_FIELD_KEYS } from "@/lib/special-report/catalog";
 import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 
 import type {
@@ -57,7 +56,7 @@ type FeedbackState = {
   type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
-  confirmation?: "APPROVED_REPORT_SYNC";
+  confirmation?: "APPROVED_REPORT_SYNC" | "DELETE_FIELD";
 };
 
 type SmartStudent = {
@@ -117,10 +116,12 @@ type Props = {
     key: string;
     label: string;
   }) => void;
+  onDeleteField?: (field: RuntimeField) => Promise<void> | void;
   reportSyncStatus?: "DRAFT" | "APPROVED" | null;
   allowDraftSave?: boolean;
   submitLabel?: string;
   embedded?: boolean;
+  hideHeader?: boolean;
   beforeSubmit?: ReactNode;
   editingMode?: boolean;
   selectedFieldId?: string | null;
@@ -660,10 +661,12 @@ export function DynamicFormRenderer({
   onEvidenceItemsChange,
   onEvidenceUpload,
   onFieldLabelPersisted,
+  onDeleteField,
   reportSyncStatus = null,
   allowDraftSave = true,
   submitLabel,
   embedded = false,
+  hideHeader = false,
   beforeSubmit,
   editingMode = false,
   selectedFieldId,
@@ -757,6 +760,8 @@ export function DynamicFormRenderer({
     type: "info",
     title: "",
   });
+  const [pendingDeleteField, setPendingDeleteField] =
+    useState<RuntimeField | null>(null);
 
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
@@ -824,9 +829,39 @@ export function DynamicFormRenderer({
       return false;
     }
 
-    return !SPECIAL_REPORT_FIXED_FIELD_KEYS.includes(
-      field.key as (typeof SPECIAL_REPORT_FIXED_FIELD_KEYS)[number]
-    );
+    return true;
+  }
+
+  function requestDeleteField(field: RuntimeField) {
+    if (!onDeleteField) return;
+
+    setPendingDeleteField(field);
+    setFeedback({
+      open: true,
+      type: "warning",
+      title: "حذف الحقل",
+      message: "هل تريد حذف هذا الحقل من التقرير؟",
+      confirmation: "DELETE_FIELD",
+    });
+  }
+
+  async function confirmDeleteField() {
+    const field = pendingDeleteField;
+    setPendingDeleteField(null);
+    setFeedback((current) => ({ ...current, open: false }));
+
+    if (!field || !onDeleteField) return;
+
+    try {
+      await onDeleteField(field);
+      showFeedback("success", "تم حذف الحقل", "تم حذف الحقل من النموذج الحالي.");
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر حذف الحقل",
+        error instanceof Error ? error.message : "تعذر حذف الحقل.",
+      );
+    }
   }
 
   async function handleFieldLabelUpdate(
@@ -1324,10 +1359,15 @@ export function DynamicFormRenderer({
         primaryActionLabel={
           feedback.confirmation === "APPROVED_REPORT_SYNC"
             ? "حفظ وتحديث التقرير"
+            : feedback.confirmation === "DELETE_FIELD"
+              ? "حذف الحقل"
             : undefined
         }
         secondaryActionLabel={
-          feedback.confirmation === "APPROVED_REPORT_SYNC" ? "إلغاء" : undefined
+          feedback.confirmation === "APPROVED_REPORT_SYNC" ||
+          feedback.confirmation === "DELETE_FIELD"
+            ? "إلغاء"
+            : undefined
         }
         onPrimaryAction={
           feedback.confirmation === "APPROVED_REPORT_SYNC"
@@ -1336,16 +1376,19 @@ export function DynamicFormRenderer({
                 pendingApprovedSaveTypeRef.current = null;
                 if (type) void performSave(type);
               }
+            : feedback.confirmation === "DELETE_FIELD"
+              ? () => void confirmDeleteField()
             : undefined
         }
         onSecondaryAction={() => {
           pendingApprovedSaveTypeRef.current = null;
+          setPendingDeleteField(null);
           setFeedback((current) => ({ ...current, open: false }));
         }}
         onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
       />
 
-      {embedded ? (
+      {!hideHeader ? (embedded ? (
         <section data-guidance="workflow-step" className="border-b border-slate-100 pb-4">
           <p className="text-xs font-black text-sky-700">
             الخطوة {currentStepIndex + 1} من {steps.length}
@@ -1368,7 +1411,7 @@ export function DynamicFormRenderer({
           </p>
         ) : null}
       </section>
-      )}
+      )) : null}
 
       {showStudentPickerCard ? (
         <SmartStudentPickerCard
@@ -1396,7 +1439,8 @@ export function DynamicFormRenderer({
           serviceSlug={workflow.serviceSlug}
           onChange={updateValue}
           canEditFieldLabel={isFieldLabelEditable}
-          onUpdateFieldLabel={handleFieldLabelUpdate}
+        onUpdateFieldLabel={handleFieldLabelUpdate}
+        onDeleteField={onDeleteField ? requestDeleteField : undefined}
           embedded={embedded}
           editingMode={editingMode}
           selectedFieldId={selectedFieldId}

@@ -73,12 +73,11 @@ export function WeeklyActivityPlanPrintDocument({ weeks, stage, academicYear, sc
   return <>
     <style>{`@page { size: A4 landscape; margin: 8mm; } .weekly-activity-plan-print-page { height: auto !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; page-break-after: auto !important; break-after: auto !important; } .weekly-plan-a4 { width: 100%; min-height: 194mm; display: flex; flex-direction: column; } .weekly-plan-band, .weekly-plan-band-frame { break-inside: avoid; page-break-inside: avoid; } @media print { html, body { margin: 0 !important; padding: 0 !important; } .weekly-plan-a4 { min-height: 194mm; } .weekly-plan-band-frame { box-shadow: none !important; } }`}</style>
     <style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
-      <ActivityPlanPrintPage className="weekly-activity-plan-print-page activity-plan-print-page--physical">
+      <ActivityPlanPrintPage className="weekly-activity-plan-print-page activity-plan-print-page--physical" footer={<CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}>
         <div className="weekly-plan-a4">
           <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>الخطة الفصلية للنشاط الطلابي</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>المرحلة</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
           <div style={{ flex: 1 }}><WeeklyActivityPlanMatrix weeks={weeks} /></div>
-          <div style={{ marginTop: 5 }}><CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} /></div>
         </div>
       </ActivityPlanPrintPage>
     </main>

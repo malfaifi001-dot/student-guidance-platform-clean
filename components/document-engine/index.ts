@@ -57,6 +57,7 @@ export type {
   DocumentPageSize,
   DocumentPageOrientation,
   DocumentSignatureAlignment,
+  DocumentSignaturePlacement,
   DocumentSignatureZoneProps,
   DocumentZoneProps,
 } from "./document-layout-types";

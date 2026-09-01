@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   ArrowDown,
@@ -13,9 +14,11 @@ import {
   FileText,
   FolderOpen,
   Loader2,
+  Plus,
   Pencil,
   Save,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -24,7 +27,7 @@ import {
   type EvidenceItem,
 } from "@/components/workflow/dynamic-form-renderer";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
-import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeField, RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 
 import {
   SPECIAL_REPORT_FIELD_BANK,
@@ -33,11 +36,12 @@ import {
 } from "@/lib/special-report/catalog";
 
 import type {
+  SpecialReportCustomFieldConfig,
   SpecialReportRuntimeResponse,
+  SpecialReportFieldType,
 } from "@/lib/special-report/types";
 
 type BuilderPhase =
-  | "performance"
   | "fields"
   | "order"
   | "form";
@@ -45,9 +49,24 @@ type BuilderPhase =
 type TemplateConfig = {
   kind: "SPECIAL_REPORT_TEMPLATE";
   version: 1;
-  performanceElement: string;
+  performanceElement?: string;
   fieldKeys: string[];
+  customFields?: SpecialReportCustomFieldConfig[];
 };
+
+type CustomFieldDraft = Omit<SpecialReportCustomFieldConfig, "id" | "key">;
+
+function createBuilderId(prefix: string) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const CUSTOM_FIELD_TYPES: Array<{ value: SpecialReportFieldType; label: string }> = [
+  { value: "TEXT", label: "نص" },
+  { value: "TEXTAREA", label: "نص طويل" },
+  { value: "DATE", label: "تاريخ" },
+  { value: "SELECT", label: "اختيار واحد" },
+  { value: "MULTI_SELECT", label: "اختيارات متعددة" },
+];
 
 type SavedTemplate = {
   id: string;
@@ -69,8 +88,6 @@ type FeedbackState =
   | null;
 
 const DEFAULT_FIELD_KEYS = [
-  ...SPECIAL_REPORT_FIXED_FIELD_KEYS,
-
   "special_report_objectives",
 
   "special_report_execution_procedures",
@@ -104,10 +121,15 @@ function filterValuesForWorkflow(
   ) as RuntimeValues;
 }
 
-export function SpecialReportBuilder() {
+export function SpecialReportBuilder({
+  returnPath = "/dashboard/teacher/special-report",
+}: {
+  returnPath?: string;
+}) {
+  const router = useRouter();
   const [phase, setPhase] =
     useState<BuilderPhase>(
-      "performance"
+      "fields"
     );
 
   const [
@@ -121,6 +143,17 @@ export function SpecialReportBuilder() {
   ] = useState<string[]>(
     DEFAULT_FIELD_KEYS
   );
+
+  const [customFields, setCustomFields] = useState<SpecialReportCustomFieldConfig[]>([]);
+  const [showCustomFieldEditor, setShowCustomFieldEditor] = useState(false);
+  const [customFieldDraft, setCustomFieldDraft] = useState<CustomFieldDraft>({
+    label: "",
+    type: "TEXT",
+    isRequired: false,
+    isRepeater: false,
+    allowOther: false,
+    options: [],
+  });
 
   const [
     runtime,
@@ -181,64 +214,43 @@ export function SpecialReportBuilder() {
   }, []);
 
   useEffect(() => {
-    if (!performanceElement) {
-      return;
-    }
-
-    sessionStorage.setItem(
-      "special-report-performance-element",
-      performanceElement
-    );
-  }, [performanceElement]);
-
-  useEffect(() => {
     const selectedLabels =
       fieldKeys
         .map(
           (key) =>
-            SPECIAL_REPORT_FIELD_BANK.find(
-              (field) =>
-                field.key === key
-            )?.label
+            customFields.find((field) => field.key === key)?.label ||
+            SPECIAL_REPORT_FIELD_BANK.find((field) => field.key === key)?.label
         )
         .filter(Boolean);
 
     sessionStorage.setItem(
       "special-report-context",
       [
-        `عنصر الأداء: ${performanceElement || "غير محدد"}`,
-
         `حقول التقرير: ${selectedLabels.join("، ")}`,
       ].join("\n")
     );
   }, [
-    performanceElement,
     fieldKeys,
+    customFields,
   ]);
 
   const selectedFields =
     useMemo(() => {
       return fieldKeys
-        .map((key) =>
-          SPECIAL_REPORT_FIELD_BANK.find(
-            (field) =>
-              field.key === key
-          )
-        )
+        .map((key) => customFields.find((field) => field.key === key) || SPECIAL_REPORT_FIELD_BANK.find((field) => field.key === key))
         .filter(
           (
             field
           ): field is (typeof SPECIAL_REPORT_FIELD_BANK)[number] =>
             Boolean(field)
         );
-    }, [fieldKeys]);
+    }, [customFields, fieldKeys]);
 
   function isFixedField(
     key: string
   ) {
-    return SPECIAL_REPORT_FIXED_FIELD_KEYS.includes(
-      key as (typeof SPECIAL_REPORT_FIXED_FIELD_KEYS)[number]
-    );
+    void key;
+    return false;
   }
 
   async function loadTemplates() {
@@ -280,9 +292,10 @@ export function SpecialReportBuilder() {
     setRuntimeInitialValues({});
     setRuntimeEvidenceItems([]);
     setFieldLabelOverrides({});
+    setCustomFields(template.config.customFields ?? []);
 
     setPerformanceElement(
-      template.config.performanceElement
+      template.config.performanceElement ?? ""
     );
 
     setFieldKeys(
@@ -324,6 +337,67 @@ export function SpecialReportBuilder() {
     });
   }
 
+  function addCustomField() {
+    const label = customFieldDraft.label.trim();
+    const needsOptions = ["SELECT", "MULTI_SELECT"].includes(customFieldDraft.type);
+    if (!label) {
+      setFeedback({ type: "error", title: "أدخل عنوان الحقل المخصص" });
+      return;
+    }
+    if (needsOptions && !customFieldDraft.options.length) {
+      setFeedback({ type: "error", title: "أضف خيارًا واحدًا على الأقل" });
+      return;
+    }
+
+    const id = createBuilderId("field");
+    const field: SpecialReportCustomFieldConfig = {
+      ...customFieldDraft,
+      id,
+      key: `special_report_custom_${id}`,
+      label,
+      isRepeater: customFieldDraft.type === "TEXT" && customFieldDraft.isRepeater,
+      allowOther: needsOptions && customFieldDraft.allowOther,
+      options: customFieldDraft.options.map((option, index) => ({ ...option, order: index + 1 })),
+    };
+
+    setCustomFields((current) => [...current, field]);
+    setFieldKeys((current) => [...current, field.key]);
+    setCustomFieldDraft({ label: "", type: "TEXT", isRequired: false, isRepeater: false, allowOther: false, options: [] });
+    setShowCustomFieldEditor(false);
+  }
+
+  function addCustomOption() {
+    const id = createBuilderId("option");
+    setCustomFieldDraft((current) => ({
+      ...current,
+      options: [...current.options, { id, label: "", value: `option_${id}`, order: current.options.length + 1 }],
+    }));
+  }
+
+  function updateCustomOption(index: number, label: string) {
+    setCustomFieldDraft((current) => ({
+      ...current,
+      options: current.options.map((option, optionIndex) => optionIndex === index ? { ...option, label } : option),
+    }));
+  }
+
+  function removeCustomOption(index: number) {
+    setCustomFieldDraft((current) => ({
+      ...current,
+      options: current.options.filter((_, optionIndex) => optionIndex !== index).map((option, order) => ({ ...option, order: order + 1 })),
+    }));
+  }
+
+  function moveCustomOption(index: number, direction: -1 | 1) {
+    setCustomFieldDraft((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.options.length) return current;
+      const options = [...current.options];
+      [options[index], options[target]] = [options[target], options[index]];
+      return { ...current, options: options.map((option, order) => ({ ...option, order: order + 1 })) };
+    });
+  }
+
   function moveField(
     key: string,
     direction: -1 | 1
@@ -340,15 +414,11 @@ export function SpecialReportBuilder() {
         return current;
       }
 
-      const fixedCount =
-        SPECIAL_REPORT_FIXED_FIELD_KEYS.length;
-
       const targetIndex =
         currentIndex + direction;
 
       if (
-        targetIndex < fixedCount ||
-        targetIndex >= current.length
+        targetIndex < 0 || targetIndex >= current.length
       ) {
         return current;
       }
@@ -368,15 +438,6 @@ export function SpecialReportBuilder() {
   }
 
   async function createRuntime() {
-    if (!performanceElement) {
-      setFeedback({
-        type: "error",
-        title: "اختر عنصر الأداء",
-      });
-
-      return;
-    }
-
     setLoading(true);
     setFeedback(null);
 
@@ -392,8 +453,8 @@ export function SpecialReportBuilder() {
           },
 
           body: JSON.stringify({
-            performanceElement,
             fieldKeys,
+            customFields,
             fieldLabelOverrides,
           }),
         }
@@ -422,11 +483,6 @@ export function SpecialReportBuilder() {
         preservedValues
       );
 
-      sessionStorage.setItem(
-        "special-report-performance-element",
-        performanceElement
-      );
-
       setPhase("form");
 
       setFeedback({
@@ -452,6 +508,42 @@ export function SpecialReportBuilder() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function deleteRuntimeField(field: RuntimeField) {
+    const response = await fetch(
+      `/api/dashboard/special-report/runtime/fields/${encodeURIComponent(field.id)}`,
+      { method: "DELETE" },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "تعذر حذف الحقل.");
+    }
+
+    setRuntime((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        workflow: {
+          ...current.workflow,
+          steps: current.workflow.steps.map((step) => ({
+            ...step,
+            fields: step.fields
+              .filter((item) => item.id !== field.id)
+              .map((item, index) => ({ ...item, order: index + 1 })),
+          })),
+        },
+      };
+    });
+
+    setRuntimeInitialValues((current) => {
+      const next = { ...current };
+      delete next[field.key];
+      delete next[`${field.key}__other`];
+      return next;
+    });
   }
 
   async function saveTemplate() {
@@ -488,9 +580,8 @@ export function SpecialReportBuilder() {
           body: JSON.stringify({
             name,
 
-            performanceElement,
-
             fieldKeys,
+            customFields,
           }),
         }
       );
@@ -555,7 +646,7 @@ export function SpecialReportBuilder() {
               <Sparkles className="h-5 w-5" />
 
               <span className="text-xs font-black">
-                منشئ التقرير الخاص
+              منشئ التقرير المخصص
               </span>
             </div>
 
@@ -564,8 +655,7 @@ export function SpecialReportBuilder() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-7 text-slate-500">
-              اختر عنصر الأداء والحقول
-              والترتيب، ثم عبّئ التقرير
+              اختر الحقول ورتّبها، ثم عبّئ التقرير
               داخل المحرك الديناميكي المعتمد.
             </p>
           </div>
@@ -637,7 +727,8 @@ export function SpecialReportBuilder() {
           workflow={runtime.workflow}
           serviceId={runtime.serviceId}
           requiresStudent={false}
-          title="التقرير الخاص"
+          title="تقرير مخصص"
+          hideHeader
           initialValues={runtimeInitialValues}
           initialEvidenceItems={runtimeEvidenceItems}
           onValuesChange={setRuntimeInitialValues}
@@ -650,15 +741,25 @@ export function SpecialReportBuilder() {
               })
             )
           }
+          onDeleteField={deleteRuntimeField}
         />
       ) : null}
 
       {builderOpen ? (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[30px] border border-white/40 bg-white p-5 shadow-2xl md:p-7">
+          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[30px] border border-white/40 bg-white p-5 shadow-2xl md:p-7">
+            <button
+              type="button"
+              onClick={() => router.push(returnPath)}
+              className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-xl font-black text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+              aria-label="إغلاق"
+              title="إغلاق"
+            >
+              ×
+            </button>
             <div className="mb-6">
               <p className="text-xs font-black text-sky-700">
-                {phase === "performance"
+                {false
                   ? "المرحلة 1 من 3"
                   : phase === "fields"
                     ? "المرحلة 2 من 3"
@@ -666,7 +767,7 @@ export function SpecialReportBuilder() {
               </p>
 
               <h2 className="mt-1 text-xl font-black text-slate-950">
-                {phase === "performance"
+                {false
                   ? "اختيار عنصر الأداء"
                   : phase === "fields"
                     ? "اختيار حقول التقرير"
@@ -675,7 +776,7 @@ export function SpecialReportBuilder() {
             </div>
 
             {phase ===
-            "performance" ? (
+            ("performance" as BuilderPhase) ? (
               <div className="space-y-5">
                 {templates.length > 0 ? (
                   <section className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4">
@@ -763,6 +864,59 @@ export function SpecialReportBuilder() {
             {phase ===
             "fields" ? (
               <div className="space-y-5">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomFieldEditor(true)}
+                  className="inline-flex h-11 items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-800"
+                >
+                  <Plus className="h-4 w-4" />
+                  إضافة حقل مخصص
+                </button>
+
+                {showCustomFieldEditor ? (
+                  <section className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                    <input value={customFieldDraft.label} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, label: event.target.value }))} placeholder="عنوان الحقل" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold" />
+                    <select value={customFieldDraft.type} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, type: event.target.value as SpecialReportFieldType, isRepeater: event.target.value === "TEXT" ? current.isRepeater : false }))} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold">
+                      {CUSTOM_FIELD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                    </select>
+                    <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={customFieldDraft.isRequired} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, isRequired: event.target.checked }))} /> حقل مطلوب</label>
+                    {customFieldDraft.type === "TEXT" ? <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={customFieldDraft.isRepeater} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, isRepeater: event.target.checked }))} /> حقل متعدد العناصر</label> : null}
+                    {["SELECT", "MULTI_SELECT"].includes(customFieldDraft.type) ? (
+                      <>
+                        <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={customFieldDraft.allowOther} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, allowOther: event.target.checked }))} /> السماح بخيار آخر</label>
+                        <div className="space-y-2">
+                          {customFieldDraft.options.map((option, index) => (
+                            <div key={option.id} className="flex items-center gap-2">
+                              <input value={option.label} onChange={(event) => updateCustomOption(index, event.target.value)} placeholder={`الخيار ${index + 1}`} className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm" />
+                              <button type="button" onClick={() => moveCustomOption(index, -1)} className="grid h-9 w-9 place-items-center rounded-lg bg-white" aria-label="رفع الخيار"><ArrowUp className="h-4 w-4" /></button>
+                              <button type="button" onClick={() => moveCustomOption(index, 1)} className="grid h-9 w-9 place-items-center rounded-lg bg-white" aria-label="خفض الخيار"><ArrowDown className="h-4 w-4" /></button>
+                              <button type="button" onClick={() => removeCustomOption(index)} className="grid h-9 w-9 place-items-center rounded-lg text-rose-600" aria-label="حذف الخيار"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                          ))}
+                          <button type="button" onClick={addCustomOption} className="text-sm font-black text-sky-700">+ إضافة خيار</button>
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="flex gap-2">
+                      <button type="button" onClick={addCustomField} className="h-10 rounded-xl bg-sky-600 px-4 text-sm font-black text-white">إضافة</button>
+                      <button type="button" onClick={() => setShowCustomFieldEditor(false)} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black">إلغاء</button>
+                    </div>
+                  </section>
+                ) : null}
+
+                {customFields.length ? (
+                  <div className="space-y-2">
+                    {customFields.map((field) => (
+                      <div key={field.id} className="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 p-3">
+                        <span className="text-sm font-black text-sky-900">{field.label}</span>
+                        <button type="button" onClick={() => { setCustomFields((current) => current.filter((item) => item.id !== field.id)); setFieldKeys((current) => current.filter((key) => key !== field.key)); }} className="grid h-9 w-9 place-items-center rounded-xl text-rose-600 hover:bg-rose-100" aria-label="حذف الحقل المخصص">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
                 <div className="grid gap-3 md:grid-cols-2">
                   {SPECIAL_REPORT_FIELD_BANK.map(
                     (field) => {
@@ -775,9 +929,7 @@ export function SpecialReportBuilder() {
                         <button
                           key={field.key}
                           type="button"
-                          disabled={
-                            field.fixed
-                          }
+                          disabled={false}
                           onClick={() =>
                             toggleField(
                               field.key
@@ -790,7 +942,7 @@ export function SpecialReportBuilder() {
                               ? "border-emerald-400 bg-emerald-50 text-emerald-950"
                               : "border-slate-200 bg-white text-slate-700",
 
-                            field.fixed
+                            false
                               ? "cursor-default"
                               : "hover:border-emerald-300",
                           ].join(" ")}
@@ -800,7 +952,7 @@ export function SpecialReportBuilder() {
                               {field.label}
                             </p>
 
-                            {field.fixed ? (
+                            {false ? (
                               <p className="mt-1 text-[11px] font-bold text-emerald-700">
                                 ثابت دائمًا
                               </p>
@@ -820,9 +972,7 @@ export function SpecialReportBuilder() {
                   <button
                     type="button"
                     onClick={() =>
-                      setPhase(
-                        "performance"
-                      )
+                      setPhase("fields")
                     }
                     className="h-12 rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-700"
                   >
@@ -861,14 +1011,14 @@ export function SpecialReportBuilder() {
                             {field.label}
                           </p>
 
-                          {field.fixed ? (
+                          {false ? (
                             <p className="mt-1 text-[11px] font-bold text-emerald-600">
                               ثابت في البداية
                             </p>
                           ) : null}
                         </div>
 
-                        {!field.fixed ? (
+                        {true ? (
                           <div className="flex gap-1">
                             <button
                               type="button"

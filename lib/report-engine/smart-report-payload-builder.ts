@@ -1681,7 +1681,7 @@ export async function buildSmartReportPayloadForCase({
       ? allDetailFields.map((field) => ({
           ...field,
           importance: "PRIMARY" as const,
-          group: "حقول التقرير الخاص",
+          group: "حقول التقرير المخصص",
         }))
       : primaryFields,
     detailFields,

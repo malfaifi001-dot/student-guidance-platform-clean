@@ -315,6 +315,11 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
     icon: Award,
   },
   {
+    label: "تقرير مخصص",
+    href: "/dashboard/activity-leader/special-report",
+    icon: FileText,
+  },
+  {
     label: "ملف الإنجاز",
     href: "/dashboard/activity-leader/portfolio",
     icon: BriefcaseBusiness,
@@ -433,6 +438,11 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
     icon: teacherPerformanceIcons[service.slug] ?? ListChecks,
     shortLabel: service.shortTitle,
   })),
+  {
+    label: "تقرير مخصص",
+    href: "/dashboard/teacher/special-report",
+    icon: FileText,
+  },
   {
     label: "ملف الإنجاز",
     href: "/dashboard/teacher/portfolio",

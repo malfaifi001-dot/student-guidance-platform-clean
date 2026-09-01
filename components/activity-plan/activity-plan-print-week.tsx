@@ -39,7 +39,10 @@ export function ActivityPlanPrintWeek({
   const entryBySlot = new Map(week.entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry]));
 
   return (
-    <ActivityPlanPrintPage className="activity-plan-print-page--physical">
+    <ActivityPlanPrintPage
+      className="activity-plan-print-page--physical"
+      footer={<CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}
+    >
       <CurriculumDocumentHeader title="خطة النشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
 
       <section className="activity-plan-print-objective">
@@ -91,7 +94,6 @@ export function ActivityPlanPrintWeek({
         </tbody>
       </table>
 
-      <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />
     </ActivityPlanPrintPage>
   );
 }

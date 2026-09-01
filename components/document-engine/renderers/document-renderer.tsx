@@ -146,6 +146,7 @@ export function DocumentRenderer({
 
         <DocumentSignatureZone
           align="center"
+          placement="bottom"
           className="pt-[8mm]"
         >
           <DocumentSignatures

@@ -5,6 +5,7 @@ import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/eva
 import { STUDENT_ACTIVITY_PLAN_SERVICE } from "@/lib/activity-plan/activity-plan-service";
 import { SCHOOL_ACTIVITY_TEAM_SERVICE } from "@/lib/activity-team/activity-team-config";
 import { ACCOUNTABILITY_SERVICE } from "@/lib/accountability/accountability-types";
+import { SPECIAL_REPORT_SERVICE_OPTION } from "@/lib/constants/services";
 
 export const DEFAULT_PLATFORM_SERVICES = [
   {
@@ -32,6 +33,11 @@ export const DEFAULT_PLATFORM_SERVICES = [
     name: "مكتبة الموجه الطلابي",
     description:
       "مكتبة معرفية للموجه الطلابي تتيح استعراض الحقائب والأدلة والملفات وقراءتها أو تحميلها حسب الصلاحيات.",
+  },
+  {
+    slug: SPECIAL_REPORT_SERVICE_OPTION.slug,
+    name: SPECIAL_REPORT_SERVICE_OPTION.title,
+    description: SPECIAL_REPORT_SERVICE_OPTION.description,
   },
   {
     slug: "custom-report",
