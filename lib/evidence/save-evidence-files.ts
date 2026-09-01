@@ -12,6 +12,10 @@ export const MAX_EVIDENCE_TOTAL_SIZE = 20 * 1024 * 1024;
 
 const ALLOWED_EVIDENCE_TYPES = {
   "application/pdf": ["pdf"],
+  "application/msword": ["doc"],
+  "application/vnd.ms-excel": ["xls"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ["docx"],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ["xlsx"],
   "image/jpeg": ["jpg", "jpeg"],
   "image/png": ["png"],
   "image/webp": ["webp"],
@@ -63,7 +67,7 @@ export function validateEvidenceFile(file: File) {
   }
 
   if (!getSafeExtension(file)) {
-    return "صيغة الشاهد غير مدعومة. الصيغ المسموحة: PNG أو JPG أو WEBP أو PDF.";
+    return "صيغة الشاهد غير مدعومة. المسموح: PNG أو JPG أو WEBP أو PDF أو DOC أو DOCX أو XLS أو XLSX.";
   }
 
   return null;

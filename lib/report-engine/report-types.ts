@@ -33,6 +33,10 @@ export type ReportEvidence = {
   description?: string;
   imageUrl?: string;
   fileName?: string;
+  fileUrl?: string;
+  url?: string;
+  sourceType?: "IMAGE" | "FILE" | "LINK";
+  presentationMode?: "IMAGE" | "QR" | "CLICKABLE_LINK";
 };
 
 export type ReportSection = {

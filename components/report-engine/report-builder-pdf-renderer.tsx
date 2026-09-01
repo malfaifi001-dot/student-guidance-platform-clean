@@ -1,5 +1,8 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
+import { EvidenceQrCode } from "./design-renderers/shared/evidence-qr-code";
+import { Link2 } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
   ReportTemplateBlock,
@@ -48,6 +51,9 @@ type RuntimeEvidenceItem = {
   caption?: string | null;
   description?: string | null;
   note?: string | null;
+  type?: "IMAGE" | "FILE" | "LINK";
+  sourceType?: "IMAGE" | "FILE" | "LINK";
+  presentationMode?: "IMAGE" | "QR" | "CLICKABLE_LINK";
 };
 
 export function ReportBuilderPdfRenderer({
@@ -469,6 +475,8 @@ function OfficialEvidencePage({
               evidence.caption ||
               evidence.fileName ||
               `شاهد ${index + 1}`;
+            const presentation = getEvidencePresentationMode(evidence);
+            const evidenceUrl = String(evidence.fileUrl || evidence.imageUrl || "").trim();
 
             return (
               <article
@@ -476,12 +484,22 @@ function OfficialEvidencePage({
                 className="overflow-hidden rounded-xl border border-slate-300 bg-white"
               >
                 <div className={layout.imageBoxClassName}>
-                  {isImageEvidence(evidence) && imageUrl ? (
+                  {isImageEvidence(evidence) && imageUrl && presentation === "IMAGE" ? (
                     <img
                       src={imageUrl}
                       alt={title}
                       className="h-full w-full object-contain"
                     />
+                  ) : presentation === "QR" && evidenceUrl ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 bg-white p-3 text-center">
+                      <EvidenceQrCode url={evidenceUrl} title={title} />
+                      <span className="text-xs font-bold text-slate-500">امسح الرمز لفتح المرفق</span>
+                    </div>
+                  ) : presentation === "CLICKABLE_LINK" && evidenceUrl ? (
+                    <a href={evidenceUrl} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center font-bold text-sky-700 underline">
+                      <Link2 className="h-8 w-8" />
+                      {title}
+                    </a>
                   ) : (
                     <div className="px-4 text-center">
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-200 text-xl">

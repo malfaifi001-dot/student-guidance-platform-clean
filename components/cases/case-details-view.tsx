@@ -909,6 +909,8 @@ export function CaseDetailsView({
       fileUrl: item.fileUrl || "#",
       mimeType: item.mimeType || "application/octet-stream",
       size: item.size || 0,
+      type: item.type,
+      note: item.note,
     })) || [];
 
   const reportTwoSnapshotHref = reportTwoSnapshotId

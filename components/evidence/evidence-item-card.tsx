@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FileText, ImageIcon, Trash2 } from "lucide-react";
+import { FileText, ImageIcon, Trash2, Link2, QrCode } from "lucide-react";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
 
 export type EvidenceCardItem = {
   id: string;
@@ -12,6 +13,9 @@ export type EvidenceCardItem = {
   caption?: string | null;
   visible?: boolean;
   sortOrder?: number | null;
+  type?: string | null;
+  presentationMode?: string | null;
+  note?: string | null;
 };
 
 type EvidenceItemCardProps = {
@@ -45,7 +49,8 @@ export function EvidenceItemCard({
   footer,
   compact = false,
 }: EvidenceItemCardProps) {
-  const isImage = isImageEvidence(item);
+  const presentation = getEvidencePresentationMode(item);
+  const isImage = presentation === "IMAGE" && isImageEvidence(item);
   const isHidden = item.visible === false;
   const caption = String(item.caption || "").trim();
   const formattedSize =
@@ -75,6 +80,10 @@ export function EvidenceItemCard({
               isHidden ? "opacity-75" : "",
             ].join(" ")}
           />
+        ) : presentation === "CLICKABLE_LINK" ? (
+          <div className="flex h-full items-center justify-center"><Link2 className="h-14 w-14 text-sky-500" /></div>
+        ) : presentation === "QR" ? (
+          <div className="flex h-full items-center justify-center"><QrCode className="h-14 w-14 text-sky-500" /></div>
         ) : (
           <div className="flex h-full items-center justify-center">
             <FileText className="h-14 w-14 text-slate-400" />
@@ -111,6 +120,10 @@ export function EvidenceItemCard({
 
           {isImage ? (
             <ImageIcon className="h-5 w-5 text-slate-400" />
+          ) : presentation === "CLICKABLE_LINK" ? (
+            <Link2 className="h-5 w-5 text-slate-400" />
+          ) : presentation === "QR" ? (
+            <QrCode className="h-5 w-5 text-slate-400" />
           ) : (
             <FileText className="h-5 w-5 text-slate-400" />
           )}

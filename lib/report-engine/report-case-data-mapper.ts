@@ -1,5 +1,10 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import {
+  getEvidencePresentationMode,
+  getEvidenceSourceType,
+  getVisibleEvidenceNote,
+} from "@/lib/evidence/evidence-presentation";
 export type ReportMappedStudent = {
   id?: string;
   fullName: string;
@@ -32,6 +37,8 @@ export type ReportMappedEvidence = {
   size?: number | null;
   note?: string | null;
   imageUrl?: string;
+  sourceType?: "IMAGE" | "FILE" | "LINK";
+  presentationMode?: "IMAGE" | "QR" | "CLICKABLE_LINK";
 };
 
 export type ReportMappedCase = {
@@ -210,16 +217,21 @@ function normalizeReportEvidences(
         item.publicUrl ||
         item.storagePath ||
         "";
-      const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
+      const note = getVisibleEvidenceNote(item.note);
+      const sourceType = getEvidenceSourceType(item);
+      const presentationMode = getEvidencePresentationMode(item);
+      const evidenceTitle = item.title || note || item.fileName || "شاهد";
 
       return {
         id: item.id,
-        title: item.note || item.fileName || "شاهد",
+        title: item.title || note || item.fileName || "شاهد",
         fileName: item.fileName || "شاهد",
         fileUrl,
         mimeType: item.mimeType,
         size: item.size,
-        note: item.note,
+        note,
+        sourceType,
+        presentationMode,
         ...(evidenceTitle ? { title: evidenceTitle } : {}),
         imageUrl: isImageEvidence(item) ? fileUrl : undefined,
       };
@@ -236,7 +248,10 @@ function normalizeReportEvidences(
         item.publicUrl ||
         item.storagePath ||
         "";
-      const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
+      const note = getVisibleEvidenceNote(item.note);
+      const sourceType = getEvidenceSourceType(item);
+      const presentationMode = getEvidencePresentationMode(item);
+      const evidenceTitle = item.title || note || item.fileName || "شاهد";
 
       return {
         id: item.id,
@@ -245,7 +260,9 @@ function normalizeReportEvidences(
         fileUrl,
         mimeType: item.mimeType,
         size: item.size,
-        note: item.note,
+        note,
+        sourceType,
+        presentationMode,
         ...(evidenceTitle ? { title: evidenceTitle } : {}),
         imageUrl: isImageEvidence(item) ? fileUrl : undefined,
       };

@@ -2,6 +2,9 @@
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
+import { EvidenceQrCode } from "./design-renderers/shared/evidence-qr-code";
+import { Link2 } from "lucide-react";
 
 import type { ReactNode } from "react";
 import type {
@@ -43,6 +46,10 @@ type RuntimeEvidenceItem = {
   mimeType?: string | null;
   caption?: string | null;
   description?: string | null;
+  type?: "IMAGE" | "FILE" | "LINK";
+  sourceType?: "IMAGE" | "FILE" | "LINK";
+  presentationMode?: "IMAGE" | "QR" | "CLICKABLE_LINK";
+  note?: string | null;
 };
 
 export function ReportTemplateLivePreview({
@@ -620,6 +627,8 @@ function EvidencePreviewGrid({
         .slice(0, layout === "one-per-page" ? 1 : 4)
         .map((evidence, index) => {
           const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+          const presentation = getEvidencePresentationMode(evidence);
+          const evidenceUrl = String(evidence.fileUrl || evidence.imageUrl || "").trim();
 
           return (
             <article
@@ -627,7 +636,7 @@ function EvidencePreviewGrid({
               className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
             >
               <div className="flex h-40 items-center justify-center bg-slate-100">
-                {isImageEvidence(evidence) && imageUrl ? (
+                {isImageEvidence(evidence) && imageUrl && presentation === "IMAGE" ? (
                   <img
                     src={imageUrl}
                     alt={evidence.title || evidence.fileName || "شاهد"}
@@ -636,6 +645,15 @@ function EvidencePreviewGrid({
                       imageFit === "contain" ? "object-contain" : "object-cover",
                     ].join(" ")}
                   />
+                ) : presentation === "QR" && evidenceUrl ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 bg-white p-2 text-center">
+                    <EvidenceQrCode url={evidenceUrl} title={evidence.title || evidence.fileName || "شاهد"} />
+                  </div>
+                ) : presentation === "CLICKABLE_LINK" && evidenceUrl ? (
+                  <a href={evidenceUrl} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-black text-sky-700 underline">
+                    <Link2 className="h-7 w-7" />
+                    {evidence.title || evidence.fileName || "فتح الرابط"}
+                  </a>
                 ) : (
                   <span className="px-4 text-center text-xs font-black text-slate-500">
                     {evidence.fileName || "مرفق"}
@@ -740,6 +758,10 @@ function buildRuntimeReportDataForTextLibrary(
       description: evidence.description || undefined,
       fileUrl: evidence.fileUrl || evidence.imageUrl || undefined,
       url: evidence.imageUrl || evidence.fileUrl || undefined,
+      type: evidence.type,
+      sourceType: evidence.sourceType,
+      presentationMode: evidence.presentationMode,
+      note: evidence.note,
       mimeType: evidence.mimeType || undefined,
     })),
     student: {

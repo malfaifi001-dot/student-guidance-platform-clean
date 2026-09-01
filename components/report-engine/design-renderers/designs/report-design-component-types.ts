@@ -1,6 +1,7 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
 
 import type { ReportBlockPresentation } from "./report-block-presentation";
+import type { EvidencePresentationMode, EvidenceSourceType } from "@/lib/evidence/evidence-presentation";
 
 export type ReportDesignPalette = {
   subtleTextClass: string;
@@ -50,6 +51,12 @@ export type ReportEvidenceItem = {
   fileUrl?: string;
   publicUrl?: string;
   storagePath?: string;
+  type?: EvidenceSourceType;
+  sourceType?: EvidenceSourceType;
+  presentationMode?: EvidencePresentationMode;
+  mimeType?: string | null;
+  fileName?: string;
+  note?: string | null;
   [key: string]: unknown;
 };
 

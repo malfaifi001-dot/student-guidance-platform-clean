@@ -1,5 +1,6 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { getEvidencePresentationMode, getEvidenceSourceType, getVisibleEvidenceNote } from "@/lib/evidence/evidence-presentation";
 import type {
   EvidenceLayout,
   OfficialReportData,
@@ -28,6 +29,9 @@ type EvidenceLike = {
   storagePath?: string | null;
   attachmentId?: string | null;
   url?: string | null;
+  type?: string | null;
+  mimeType?: string | null;
+  note?: string | null;
 };
 
 type ServiceLike = {
@@ -263,16 +267,16 @@ function buildReportEvidences(evidences?: EvidenceLike[]): ReportEvidence[] {
 
   return safeEvidences.map((evidence, index) => ({
     id: evidence.id || `evidence-${index + 1}`,
-    title: evidence.title || `شاهد ${index + 1}`,
+    title: evidence.title || getVisibleEvidenceNote(evidence.note) || `شاهد ${index + 1}`,
     description: evidence.description || undefined,
     fileName: evidence.fileName || undefined,
-    imageUrl:
-      evidence.fileUrl ||
-      evidence.url ||
-      evidence.imageUrl ||
-      evidence.publicUrl ||
-      evidence.storagePath ||
-      undefined,
+    fileUrl: evidence.fileUrl || evidence.url || evidence.imageUrl || evidence.publicUrl || evidence.storagePath || undefined,
+    url: evidence.url || undefined,
+    sourceType: getEvidenceSourceType(evidence),
+    presentationMode: getEvidencePresentationMode(evidence),
+    imageUrl: getEvidencePresentationMode(evidence) === "IMAGE"
+      ? evidence.fileUrl || evidence.url || evidence.imageUrl || evidence.publicUrl || evidence.storagePath || undefined
+      : undefined,
   }));
 }
 

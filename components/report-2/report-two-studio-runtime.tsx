@@ -21,6 +21,7 @@ import {
 } from "@/components/report-signatures/report-signature-request-card";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { MoreVertical } from "lucide-react";
+import { getEvidencePresentationMode, getEvidenceSourceType, getVisibleEvidenceNote } from "@/lib/evidence/evidence-presentation";
 import {
   OFFICIAL_ACTIVITY_CARD_VARIANT_ID,
   ReportTwoOfficialActivitySignatureStyle,
@@ -1110,9 +1111,9 @@ function collectEvidences(payload: SmartReportPayload) {
       const imageUrl = isReportTwoImageEvidence(item)
         ? imageUrlCandidate || fileUrl || normalizedUrl
         : "";
-      const evidenceType: "IMAGE" | "FILE" = isReportTwoImageEvidence(item)
-        ? "IMAGE"
-        : "FILE";
+      const sourceType = getEvidenceSourceType(item);
+      const presentationMode = getEvidencePresentationMode(item);
+      const evidenceType = sourceType;
 
       const id =
         cleanText(item.id) ||
@@ -1133,10 +1134,12 @@ function collectEvidences(payload: SmartReportPayload) {
         attachmentId: cleanText(item.attachmentId || item.fileId || item.evidenceId) || undefined,
         storagePath: cleanText(item.storagePath) || undefined,
         type: evidenceType,
+        sourceType,
+        presentationMode,
         mimeType: cleanText(item.mimeType) || undefined,
         caption: cleanText(
           item.caption ||
-            item.note ||
+            getVisibleEvidenceNote(item.note) ||
             item.description ||
             item.title ||
             item.fileName ||

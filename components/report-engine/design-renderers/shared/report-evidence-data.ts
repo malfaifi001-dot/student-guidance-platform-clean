@@ -1,5 +1,6 @@
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import type { PreviewCaseData } from "./report-types";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
 
 const REPORT_DESIGN_IMAGE_EVIDENCE_EXTENSION_PATTERN =
   /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
@@ -31,7 +32,7 @@ function isReportDesignImageEvidence(
 export function getReportDesignEvidenceImageUrl(
   evidence: NonNullable<PreviewCaseData["evidences"]>[number] | undefined,
 ) {
-  if (!evidence || !isReportDesignImageEvidence(evidence)) return "";
+  if (!evidence || getEvidencePresentationMode(evidence) !== "IMAGE" || !isReportDesignImageEvidence(evidence)) return "";
 
   return String(
     evidence.imageUrl ||

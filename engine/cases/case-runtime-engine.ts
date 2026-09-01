@@ -6,6 +6,14 @@ import {
   type RuntimeCaseValues,
 } from "@/lib/cases/case-values";
 import { isAllowedSystemCaseValueKey } from "@/lib/cases/system-case-value-keys";
+import {
+  encodeEvidenceNote,
+  getEvidencePresentationMode,
+  getEvidenceSourceType,
+  isSafeEvidenceUrl,
+  type EvidencePresentationMode,
+  type EvidenceSourceType,
+} from "@/lib/evidence/evidence-presentation";
 
 type EvidenceItem = {
   id?: string;
@@ -13,6 +21,10 @@ type EvidenceItem = {
   fileUrl: string;
   mimeType: string;
   size: number;
+  type?: EvidenceSourceType;
+  sourceType?: EvidenceSourceType;
+  presentationMode?: EvidencePresentationMode;
+  note?: string;
 };
 
 type CaseAccessScope = {
@@ -49,30 +61,24 @@ function toCaseStatus(status?: "DRAFT" | "SUBMITTED") {
   return status === "SUBMITTED" ? CaseStatus.SUBMITTED : CaseStatus.DRAFT;
 }
 
-function getEvidenceType(mimeType: string, fileUrl?: string) {
-  if (mimeType.startsWith("image/")) {
-    return EvidenceType.IMAGE;
-  }
-
-  if (fileUrl?.startsWith("http") && !mimeType) {
-    return EvidenceType.LINK;
-  }
-
-  return EvidenceType.FILE;
-}
-
 function normalizeEvidenceItems(items: EvidenceItem[]) {
   return items
     .filter((item) => item.fileUrl && item.fileName)
     .map((item) => {
-      const mimeType = item.mimeType || "application/octet-stream";
+      const sourceType = getEvidenceSourceType(item);
+      const mimeType = item.mimeType || (sourceType === "LINK" ? null : "application/octet-stream");
+
+      if (sourceType === "LINK" && !isSafeEvidenceUrl(item.fileUrl)) {
+        throw new Error("رابط الشاهد غير صالح.");
+      }
 
       return {
-        type: getEvidenceType(mimeType, item.fileUrl),
+        type: sourceType === "IMAGE" ? EvidenceType.IMAGE : sourceType === "LINK" ? EvidenceType.LINK : EvidenceType.FILE,
         fileName: item.fileName,
         fileUrl: item.fileUrl,
         mimeType,
         size: item.size || 0,
+        note: encodeEvidenceNote(item.note, getEvidencePresentationMode(item)),
       };
     });
 }

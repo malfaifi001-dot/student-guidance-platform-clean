@@ -7,6 +7,9 @@ import type {
   ReportTemplateId,
 } from "@/lib/report-engine/report-types";
 import { getReportTemplate } from "@/lib/report-engine/report-templates";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
+import { EvidenceQrCode } from "./design-renderers/shared/evidence-qr-code";
+import { Link2 } from "lucide-react";
 
 type ReportDocumentRendererProps = {
   identity: ReportIdentity;
@@ -577,8 +580,18 @@ function EvidenceGrid({
       {evidences.map((evidence) => (
         <article key={evidence.id} className="evidence-card">
           <div className="evidence-frame">
-            {evidence.imageUrl ? (
+            {evidence.imageUrl && getEvidencePresentationMode(evidence) === "IMAGE" ? (
               <img src={evidence.imageUrl} alt={evidence.title || "شاهد"} />
+            ) : getEvidencePresentationMode(evidence) === "QR" && (evidence.fileUrl || evidence.url) ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 bg-white p-3 text-center">
+                <EvidenceQrCode url={String(evidence.fileUrl || evidence.url)} title={evidence.title} />
+                <span className="text-xs font-bold">امسح الرمز لفتح المرفق</span>
+              </div>
+            ) : getEvidencePresentationMode(evidence) === "CLICKABLE_LINK" && (evidence.fileUrl || evidence.url) ? (
+              <a href={String(evidence.fileUrl || evidence.url)} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center font-bold text-sky-700 underline">
+                <Link2 className="h-8 w-8" />
+                {evidence.title || "فتح الرابط"}
+              </a>
             ) : (
               <div className="evidence-placeholder">
                 {evidence.fileName || "مرفق"}

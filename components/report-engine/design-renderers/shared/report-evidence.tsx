@@ -4,6 +4,9 @@ import { createEvidencePlaceholders, getEvidenceFigureStyle, getEvidenceGridClas
 import { BlockTitle } from "./report-primitives";
 import { getBlockSetting } from "./report-text";
 import { getBlockShellClass } from "./report-block-presentation";
+import { getEvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
+import { EvidenceQrCode } from "./evidence-qr-code";
+import { Link2 } from "lucide-react";
 
 export function EvidenceBlock({
   block,
@@ -63,7 +66,9 @@ export function EvidenceBlock({
             gap: "var(--report-evidence-gap, 0.5rem)",
           }}
         >
-          {visibleEvidences.map((evidence, index) => (
+          {visibleEvidences.map((evidence, index) => {
+            const evidenceItem = evidence as ReportEvidenceItem;
+            return (
             <div
               key={evidence.id || String(index)}
               className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700"
@@ -74,12 +79,27 @@ export function EvidenceBlock({
                 fontSize: "calc(0.875rem * var(--report-content-font-scale, 1))",
               }}
             >
-              <span>{evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}</span>
+              {getEvidencePresentationMode(evidenceItem) === "CLICKABLE_LINK" && (evidenceItem.url || evidenceItem.fileUrl) ? (
+                <a href={String(evidenceItem.url || evidenceItem.fileUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sky-700 underline">
+                  <Link2 className="h-4 w-4" />
+                  {evidenceItem.caption || evidenceItem.title || "فتح الرابط"}
+                </a>
+              ) : getEvidencePresentationMode(evidenceItem) === "QR" && (evidenceItem.url || evidenceItem.fileUrl) ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-16 w-16 overflow-hidden rounded-lg bg-white p-1">
+                    <EvidenceQrCode url={String(evidenceItem.url || evidenceItem.fileUrl)} title={evidenceItem.title || evidenceItem.caption} />
+                  </span>
+                  <span>{evidenceItem.caption || evidenceItem.title || `مرفق ${startIndex + index + 1}`}</span>
+                </span>
+              ) : (
+                <span>{evidenceItem.caption || evidenceItem.title || `مرفق ${startIndex + index + 1}`}</span>
+              )}
               <span className={["rounded-full px-3 py-1 text-[11px] font-black", accent.badgeClass].join(" ")}>
                 {isPlaceholderMode ? "معاينة" : "شاهد"}
               </span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     );
@@ -101,8 +121,11 @@ export function EvidenceBlock({
           };
         })()}
       >
-        {visibleEvidences.map((evidence, index) => {
-          const imageUrl = getReportDesignEvidenceImageUrl(evidence);
+          {visibleEvidences.map((evidence, index) => {
+            const imageUrl = getReportDesignEvidenceImageUrl(evidence);
+            const presentation = getEvidencePresentationMode(evidence);
+            const evidenceItem = evidence as ReportEvidenceItem;
+            const evidenceUrl = String(evidenceItem.url || evidenceItem.fileUrl || evidenceItem.imageUrl || "").trim();
 
           return (
             <figure
@@ -117,6 +140,16 @@ export function EvidenceBlock({
                   style={getEvidenceImageStyle(block)}
                   className={`${getEvidenceImageClass(block)} bg-slate-50`}
                 />
+              ) : presentation === "QR" && evidenceUrl && !isPlaceholderMode ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-2 bg-white p-3 text-center">
+                  <EvidenceQrCode url={evidenceUrl} title={evidence.title || evidence.caption} />
+                  <span className="text-xs font-bold text-slate-500">امسح الرمز لفتح المرفق</span>
+                </div>
+              ) : presentation === "CLICKABLE_LINK" && evidenceUrl && !isPlaceholderMode ? (
+                <a href={evidenceUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-48 flex-col items-center justify-center gap-3 bg-slate-50 p-4 text-center text-sm font-black text-sky-700 underline">
+                  <Link2 className="h-8 w-8" />
+                  <span>{evidence.title || evidence.caption || "فتح الرابط"}</span>
+                </a>
               ) : (
                 <div
                   data-report-design-real-evidence={isPlaceholderMode ? undefined : "true"}

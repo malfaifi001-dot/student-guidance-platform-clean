@@ -42,6 +42,7 @@ import {
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
+import type { EvidencePresentationMode, EvidenceSourceType } from "@/lib/evidence/evidence-presentation";
 
 export type EvidenceItem = {
   id: string;
@@ -49,6 +50,9 @@ export type EvidenceItem = {
   fileUrl: string;
   mimeType: string;
   size: number;
+  sourceType?: EvidenceSourceType;
+  presentationMode?: EvidencePresentationMode;
+  note?: string;
 };
 
 type FeedbackState = {

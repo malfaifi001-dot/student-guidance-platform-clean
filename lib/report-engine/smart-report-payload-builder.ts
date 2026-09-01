@@ -1,5 +1,6 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { getEvidencePresentationMode, getEvidenceSourceType, getVisibleEvidenceNote } from "@/lib/evidence/evidence-presentation";
 import { extractSmartReportTables } from "@/lib/report-engine/report-structured-table-extractor";
 import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
 import {
@@ -952,8 +953,8 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   )
     .map((item: any) => ({
       id: item.id,
-      title: item.fileName || item.note || "شاهد",
-      caption: item.note || undefined,
+      title: item.title || item.fileName || getVisibleEvidenceNote(item.note) || "شاهد",
+      caption: getVisibleEvidenceNote(item.note) || undefined,
       url:
         item.fileUrl ||
         item.url ||
@@ -961,7 +962,11 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
         item.publicUrl ||
         item.storagePath ||
         undefined,
-      type: isImageEvidence(item) ? "IMAGE" : "FILE",
+      type: getEvidenceSourceType(item),
+      sourceType: getEvidenceSourceType(item),
+      presentationMode: getEvidencePresentationMode(item),
+      fileName: item.fileName || undefined,
+      mimeType: item.mimeType || null,
       ...(item.title ? { title: item.title } : {}),
       ...(item.caption ? { caption: item.caption } : {}),
     }));
@@ -971,7 +976,7 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   )
     .map((item: any) => ({
       id: item.id,
-      title: item.fileName || "شاهد",
+      title: item.title || item.fileName || getVisibleEvidenceNote(item.note) || "شاهد",
       url:
         item.fileUrl ||
         item.url ||
@@ -979,7 +984,11 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
         item.publicUrl ||
         item.storagePath ||
         undefined,
-      type: isImageEvidence(item) ? "IMAGE" : "FILE",
+      type: getEvidenceSourceType(item),
+      sourceType: getEvidenceSourceType(item),
+      presentationMode: getEvidencePresentationMode(item),
+      fileName: item.fileName || undefined,
+      mimeType: item.mimeType || null,
       ...(item.title ? { title: item.title } : {}),
       ...(item.caption || item.note
         ? { caption: item.caption || item.note }

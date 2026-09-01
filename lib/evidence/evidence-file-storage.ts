@@ -11,6 +11,10 @@ const EVIDENCE_MIME_TYPES = {
   png: "image/png",
   webp: "image/webp",
   pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 } as const;
 
 export type EvidenceFileExtension = keyof typeof EVIDENCE_MIME_TYPES;
@@ -28,7 +32,7 @@ export function isSafeEvidenceStoredFileName(fileName: string): boolean {
     return false;
   }
 
-  return /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:jpe?g|png|webp|pdf)$/i.test(fileName);
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:jpe?g|png|webp|pdf|doc|docx|xls|xlsx)$/i.test(fileName);
 }
 
 export async function resolveExistingEvidenceFile(fileName: string) {

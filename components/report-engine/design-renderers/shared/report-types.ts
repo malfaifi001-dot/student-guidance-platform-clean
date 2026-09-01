@@ -1,4 +1,5 @@
 import type { ReportDesignId } from "../report-design-types";
+import type { EvidencePresentationMode, EvidenceSourceType } from "@/lib/evidence/evidence-presentation";
 
 export type FinalReportValueItem = {
   fieldKey: string;
@@ -20,7 +21,9 @@ export type PreviewCaseData = {
     attachmentId?: string;
     fileId?: string;
     evidenceId?: string;
-    type?: "IMAGE" | "FILE";
+    type?: EvidenceSourceType;
+    sourceType?: EvidenceSourceType;
+    presentationMode?: EvidencePresentationMode;
     mimeType?: string | null;
     caption?: string;
   }>;

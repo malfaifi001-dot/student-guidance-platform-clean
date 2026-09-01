@@ -1,4 +1,5 @@
 import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import type { EvidencePresentationMode, EvidenceSourceType } from "@/lib/evidence/evidence-presentation";
 
 export type SmartReportType =
   | "GENERAL_CASE_REPORT"
@@ -43,7 +44,11 @@ export type SmartReportEvidenceItem = {
   title: string;
   url?: string;
   caption?: string;
-  type?: "IMAGE" | "FILE";
+  type?: EvidenceSourceType;
+  sourceType?: EvidenceSourceType;
+  presentationMode?: EvidencePresentationMode;
+  fileName?: string;
+  mimeType?: string | null;
 };
 
 export type SmartReportSignature = {

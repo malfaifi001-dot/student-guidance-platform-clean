@@ -320,6 +320,8 @@ export default async function EditCasePage({ params }: PageProps) {
     fileUrl: item.fileUrl || "#",
     mimeType: item.mimeType || "application/octet-stream",
     size: item.size || 0,
+    type: item.type,
+    note: item.note || undefined,
   }));
 
   const latestReportTwoSnapshot = await prisma.reportSnapshot.findFirst({
