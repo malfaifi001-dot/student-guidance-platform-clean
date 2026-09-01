@@ -87,11 +87,24 @@ function buildFieldMap(caseEntry: any) {
     | null
     | undefined;
 
+  // A case snapshot is historical evidence of the labels/options used when
+  // the case was created. Keep it authoritative and only fill missing fields
+  // from the current workflow for older cases without a complete snapshot.
   addWorkflowFields(
     workflowSnapshot?.steps || workflowSnapshot?.workflow?.steps,
   );
-  // The currently published workflow is authoritative when it is available.
-  addWorkflowFields(caseEntry.workflow?.steps);
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key || map.has(field.key)) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
 
   return map;
 }
@@ -192,7 +205,9 @@ function normalizeCaseValue(
           key: value.field.key || fieldKey,
           label,
           type: value.field.type || fieldFromWorkflow?.type,
-          options: value.field.options || fieldFromWorkflow?.options || [],
+          options: fieldFromWorkflow?.options?.length
+            ? fieldFromWorkflow.options
+            : value.field.options || [],
         }
       : fieldFromWorkflow
         ? { ...fieldFromWorkflow, label }

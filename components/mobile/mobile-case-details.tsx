@@ -98,9 +98,28 @@ function getReports(caseEntry: any) {
 function buildFieldMap(caseEntry: any) {
   const map = new Map<string, FieldLookupItem>();
 
-  caseEntry.workflow?.steps?.forEach((step: any) => {
+  const addFields = (steps: any[] | undefined) => steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
       if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: Array.isArray(field.options) ? field.options : [],
+      });
+    });
+  });
+
+  const snapshot = caseEntry.workflowSnapshot as
+    | { steps?: any[]; workflow?: { steps?: any[] } }
+    | null
+    | undefined;
+
+  addFields(snapshot?.steps || snapshot?.workflow?.steps);
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key || map.has(field.key)) return;
 
       map.set(field.key, {
         key: field.key,
@@ -134,7 +153,7 @@ function normalizeWorkflowValue(
     field: {
       key: fieldKey,
       label:
-        fieldFromWorkflow?.label ||
+      fieldFromWorkflow?.label ||
         value.field?.label ||
         value.field?.key ||
         value.fieldKey ||

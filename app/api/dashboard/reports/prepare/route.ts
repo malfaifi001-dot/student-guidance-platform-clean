@@ -159,9 +159,28 @@ export async function GET(request: Request) {
 function buildFieldMap(caseEntry: any) {
   const map = new Map<string, FieldLookupItem>();
 
-  caseEntry.workflow?.steps?.forEach((step: any) => {
+  const addFields = (steps: any[] | undefined) => steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
       if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  const snapshot = caseEntry.workflowSnapshot as
+    | { steps?: any[]; workflow?: { steps?: any[] } }
+    | null
+    | undefined;
+
+  addFields(snapshot?.steps || snapshot?.workflow?.steps);
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key || map.has(field.key)) return;
 
       map.set(field.key, {
         key: field.key,
@@ -192,7 +211,9 @@ function normalizeCaseValue(
           key: value.field.key || fieldKey,
           label: value.field.label || fieldFromWorkflow?.label || fieldKey,
           type: value.field.type || fieldFromWorkflow?.type,
-          options: value.field.options || fieldFromWorkflow?.options || [],
+          options: fieldFromWorkflow?.options?.length
+            ? fieldFromWorkflow.options
+            : value.field.options || [],
         }
       : fieldFromWorkflow
         ? fieldFromWorkflow
