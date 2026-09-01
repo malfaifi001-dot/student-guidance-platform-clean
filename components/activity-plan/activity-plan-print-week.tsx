@@ -2,7 +2,7 @@ import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
-import { ActivityPlanPrintPage } from "@/components/activity-plan/activity-plan-print-shell";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE } from "@/components/activity-plan/activity-plan-print-shell";
 
 function formatDate(value: string) {
   return formatActivityPlanHijriDate(value);
@@ -40,7 +40,7 @@ export function ActivityPlanPrintWeek({
 
   return (
     <ActivityPlanPrintPage className="activity-plan-print-page--physical">
-      <CurriculumDocumentHeader title="خطة النشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+      <CurriculumDocumentHeader title="خطة النشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
 
       <section className="activity-plan-print-objective">
         <strong>المرحلة</strong>

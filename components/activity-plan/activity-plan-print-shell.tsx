@@ -4,6 +4,8 @@ import {
   ActivityPlanDocumentPage,
 } from "@/components/document-engine/designs/activity-plan/activity-plan-document-page";
 
+export const ACTIVITY_PLAN_PRINT_SUBTITLE = "الفصل الدراسي الأول — 1448هـ";
+
 export const activityPlanPrintShellStyles = `
 @page { size: A4 landscape; margin: 0; }
 * { box-sizing: border-box; }
@@ -42,6 +44,16 @@ export const activityPlanPrintShellStyles = `
 }
 .activity-plan-print-page--flow .activity-plan-print-page-content {
   min-height: 199mm;
+}
+@media screen {
+  .activity-plan-print-page + .activity-plan-print-page {
+    margin-top: 8mm !important;
+  }
+}
+@media print {
+  .activity-plan-print-page + .activity-plan-print-page {
+    margin-top: 0 !important;
+  }
 }
 .activity-plan-print-page-content {
   width: 100%;

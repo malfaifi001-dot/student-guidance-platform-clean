@@ -2,7 +2,7 @@ import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanTenPercentRow, TenPercentDomainValue, TenPercentProgramValue } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
-import { ActivityPlanPrintPage, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
 
 type Props = {
   rows: ActivityPlanTenPercentRow[];
@@ -57,30 +57,42 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
   const printStyles = `
     @page {
       size: A4 landscape;
-      margin: 8mm;
+      margin: 0;
     }
 
     .activity-plan-ten-percent-print-page {
-      width: 100%;
+      width: 297mm !important;
+      min-width: 297mm !important;
+      max-width: 297mm !important;
+
       height: auto !important;
-      min-height: 194mm !important;
+      min-height: 210mm !important;
       max-height: none !important;
-      margin: 0 auto;
-      padding: 0 0 2mm !important;
+
+      margin: 0 auto !important;
+      padding: 6mm 7mm 8mm !important;
+
       overflow: visible !important;
+
+      background: #F8FAFC;
+
+      display: flex !important;
+      flex-direction: column !important;
+
       page-break-after: auto !important;
       break-after: auto !important;
-      background: #F8FAFC;
-      display: block !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
     .ten-percent-plan-a4 {
       width: 100%;
-      min-height: 194mm;
+      min-height: 196mm;
+
       display: flex;
       flex-direction: column;
+
       break-inside: auto;
       page-break-inside: auto;
     }
@@ -234,21 +246,34 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
       }
 
       .activity-plan-ten-percent-print-page {
-        display: block !important;
-        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+
+        width: 297mm !important;
+        min-width: 297mm !important;
+        max-width: 297mm !important;
+
         height: auto !important;
-        min-height: 194mm !important;
+        min-height: 210mm !important;
         max-height: none !important;
+
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 6mm 7mm 8mm !important;
+
         overflow: visible !important;
+
         page-break-after: auto !important;
         break-after: auto !important;
+
         box-shadow: none !important;
+
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       .ten-percent-plan-a4 {
-        min-height: 194mm !important;
+        min-height: 196mm !important;
+
         display: flex !important;
         flex-direction: column !important;
       }
@@ -257,6 +282,11 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
         flex: 1 0 auto !important;
         min-height: 0 !important;
         overflow: visible !important;
+      }
+
+      .activity-plan-ten-percent-print-footer-guard {
+        break-inside: avoid-page !important;
+        page-break-inside: avoid !important;
       }
 
       .activity-plan-ten-percent-print-page .curriculum-print-footer {
@@ -284,7 +314,7 @@ export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear,
     <main className="activity-plan-print-root" dir="rtl">
       <ActivityPlanPrintPage className="activity-plan-ten-percent-print-page activity-plan-print-page--flow" contentClassName="ten-percent-plan-page-content">
         <div className="ten-percent-plan-a4">
-          <CurriculumDocumentHeader title="الخطة الفصلية (10%) للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <CurriculumDocumentHeader title="الخطة الفصلية (10%) للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
           <div className="ten-percent-plan-title"><h1>الخطة الفصلية (10%) للنشاط الطلابي</h1><span>{stage}</span></div>
           <div className="ten-percent-plan-table-wrap">
             <table className="ten-percent-plan-table">

@@ -3,6 +3,7 @@ import { SignatureImage } from "@/components/signatures/signature-image";
 
 type DocumentHeaderProps = {
   title: string;
+  subtitle?: string;
   schoolName: string;
   educationDepartment?: string | null;
   logoUrl?: string | null;
@@ -40,7 +41,7 @@ export const curriculumDocumentIdentityStyles = `
 @media print { .curriculum-print-header { min-height: 22mm; padding-top: 2mm; padding-bottom: 2.5mm; } .curriculum-print-footer { padding-top: 1.5mm; } .curriculum-print-signature-row { width: 150mm; max-width: 100%; margin-inline: auto; grid-template-columns: 1fr 1fr; gap: 12mm; padding-bottom: 3.5mm; } }
 `;
 
-export function CurriculumDocumentHeader({ title, schoolName, educationDepartment, logoUrl, academicYear }: DocumentHeaderProps) {
+export function CurriculumDocumentHeader({ title, subtitle, schoolName, educationDepartment, logoUrl, academicYear }: DocumentHeaderProps) {
   const logoSrc = getDesignLogoSrc({ "report.logoUrl": logoUrl || "" });
 
   return (
@@ -59,7 +60,7 @@ export function CurriculumDocumentHeader({ title, schoolName, educationDepartmen
         </div>
         <div className="curriculum-print-title-block">
           <h1>{title}</h1>
-          {academicYear ? <span>العام الدراسي {academicYear}</span> : null}
+          {subtitle ? <span>{subtitle}</span> : academicYear ? <span>العام الدراسي {academicYear}</span> : null}
         </div>
       </header>
     </>

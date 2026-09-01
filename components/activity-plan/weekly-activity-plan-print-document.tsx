@@ -2,7 +2,7 @@ import type React from "react";
 import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
 import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
-import { ActivityPlanPrintPage, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
 
 type Props = {
   weeks: WeeklyActivityPlan[];
@@ -75,7 +75,7 @@ export function WeeklyActivityPlanPrintDocument({ weeks, stage, academicYear, sc
     <style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
       <ActivityPlanPrintPage className="weekly-activity-plan-print-page activity-plan-print-page--physical">
         <div className="weekly-plan-a4">
-          <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>الخطة الفصلية للنشاط الطلابي</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>المرحلة</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
           <div style={{ flex: 1 }}><WeeklyActivityPlanMatrix weeks={weeks} /></div>
           <div style={{ marginTop: 5 }}><CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} /></div>
