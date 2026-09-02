@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG } from "@/lib/activity-competitions/activity-competitions-service";
+import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 
 export type CasePermissionUser = {
   id: string;
@@ -40,6 +41,7 @@ const ACTIVITY_PROGRAM_SERVICE_SLUGS = new Set([
   "activity-programs-non-class-periods",
   "activity-programs-school-broadcast",
   STUDENT_ACTIVITY_COMPETITIONS_SERVICE_SLUG,
+  SPECIAL_REPORT_SERVICE_SLUG,
 ]);
 
 const LOCKED_TEACHER_ASSIGNMENT_STATUSES = new Set([
