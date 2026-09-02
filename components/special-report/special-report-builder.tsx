@@ -1052,16 +1052,6 @@ export function SpecialReportBuilder({
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
-                  <p className="text-xs font-black text-sky-700">
-                    عنصر الأداء
-                  </p>
-
-                  <p className="mt-1 text-sm font-black text-sky-950">
-                    {performanceElement}
-                  </p>
-                </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"

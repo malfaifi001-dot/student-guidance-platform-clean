@@ -59,7 +59,7 @@ export async function createSpecialReportRuntime(
     options: field.options ?? [],
   }));
 
-  if (selectedFields.length < 2) {
+  if (selectedFields.length < 1) {
     throw new Error("لم يتم اختيار حقول صالحة للتقرير.");
   }
 

@@ -354,14 +354,6 @@ export function normalizeSpecialReportFieldKeys(
       return false;
     }
 
-    if (
-      SPECIAL_REPORT_FIXED_FIELD_KEYS.includes(
-        key as (typeof SPECIAL_REPORT_FIXED_FIELD_KEYS)[number]
-      )
-    ) {
-      return false;
-    }
-
     return inputKeys.indexOf(key) === index;
   });
 

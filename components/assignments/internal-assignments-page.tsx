@@ -8,7 +8,7 @@ import {
 import { getDashboardContext } from "@/lib/auth/dashboard-context";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { requireActiveSubscriptionForCurrentUser } from "@/lib/subscription/subscription-guard";
-import { AccountabilityInboxSection } from "@/components/accountability/accountability-inbox-section";
+import { listAccountabilityInboxRequests } from "@/lib/accountability/accountability-inbox-service";
 
 export async function InternalAssignmentsPage({
   role,
@@ -25,6 +25,10 @@ export async function InternalAssignmentsPage({
 
   const assignments = await listInternalAssignmentsForAssignee({
     ...context,
+    schoolAccountId: context.schoolAccountId,
+  });
+  const accountabilityRequests = await listAccountabilityInboxRequests({
+    user: { id: context.user.id },
     schoolAccountId: context.schoolAccountId,
   });
 
@@ -49,8 +53,16 @@ export async function InternalAssignmentsPage({
           assignment.reportTitleSnapshot ||
           null,
         }))}
+        accountabilityRequests={accountabilityRequests.map((request) => ({
+          title: request.title,
+          status: request.status,
+          token: request.token,
+          sentAt: request.sentAt?.toISOString() || "",
+          respondedAt: request.respondedAt?.toISOString() || null,
+          returnedReason: request.returnedReason,
+          creatorName: request.createdBy.officialName || request.createdBy.name,
+        }))}
       />
-      <AccountabilityInboxSection context={{ user: { id: context.user.id }, schoolAccountId: context.schoolAccountId }} />
     </>
   );
 }
