@@ -1,4 +1,4 @@
-export type AssessmentAnalysisType = "NAFS" | "MAHIROON" | "SUBJECT_PERIODIC";
+export type AssessmentAnalysisType = "NAFS" | "MAHIROON" | "SUBJECT_PERIODIC" | "LEARNING_STYLE";
 export type AssessmentPeriod = { id: string; label: string; order: number; date?: string | null };
 export type PeriodScoreRow = { studentId: string | null; studentName: string; grade?: string | null; classroom?: string | null; scores: Record<string, number | null> };
 export type MultiPeriodInput = { type: AssessmentAnalysisType; title: string; subject: string; grade: string; classroom: string; maximumScore: number; inputMode?: "manual" | "excel"; periods: AssessmentPeriod[]; students: PeriodScoreRow[]; semester?: string; academicYear?: string };
@@ -10,4 +10,5 @@ export const ANALYSIS_TYPE_CONFIG: Record<AssessmentAnalysisType, { label: strin
   NAFS: { label: "اختبار نافس", defaultPeriods: [{ id: "PRE", label: "الاختبار القبلي" }, { id: "POST", label: "الاختبار البعدي" }], allowPeriodEdit: false },
   MAHIROON: { label: "اختبار ماهرون", defaultPeriods: [{ id: "P1", label: "الفترة الأولى" }, { id: "P2", label: "الفترة الثانية" }], allowPeriodEdit: true },
   SUBJECT_PERIODIC: { label: "تحليل فصلي لمادة", defaultPeriods: [{ id: "P1", label: "الفترة الأولى" }], allowPeriodEdit: true },
+  LEARNING_STYLE: { label: "تحليل أنماط التعلم", defaultPeriods: [{ id: "P1", label: "الاستبانة" }], allowPeriodEdit: false },
 };

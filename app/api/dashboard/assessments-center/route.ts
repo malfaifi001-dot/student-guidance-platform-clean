@@ -9,6 +9,7 @@ import type { NafsAnalysisInput } from "@/lib/assessments-center/nafs-types";
 import { calculateMultiPeriod } from "@/lib/assessments-center/multi-period-calculations";
 import type { MultiPeriodInput } from "@/lib/assessments-center/assessment-types";
 import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
+import { LEARNING_STYLE_TYPE, LEARNING_STYLE_BANKS, learningStageForGrade, createLearningStyleToken } from "@/lib/assessments-center/learning-style";
 
 export const runtime = "nodejs";
 
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, grade: { not: null } }, distinct: ["grade"], select: { grade: true }, orderBy: { grade: "asc" } }),
     prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, ...(grade ? { grade } : {}), classroom: { not: null } }, distinct: ["classroom"], select: { classroom: true }, orderBy: { classroom: "asc" } }),
     getCurrentSessionUser(),
-    prisma.assessmentAnalysis.findMany({ where: { ...(context.isAdmin ? { schoolAccountId: context.schoolAccountId } : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, orderBy: { updatedAt: "desc" }, take: 50, select: { id: true, title: true, uploadMode: true, totalStudents: true, averagePercentage: true, createdAt: true, updatedAt: true, summaryJson: true } }),
+    prisma.assessmentAnalysis.findMany({ where: { ...(context.isAdmin ? { schoolAccountId: context.schoolAccountId } : assessmentAnalysisOwnershipWhere(context.schoolAccountId, context.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC", "LEARNING_STYLE"] } }, orderBy: { updatedAt: "desc" }, take: 50, select: { id: true, title: true, uploadMode: true, totalStudents: true, averagePercentage: true, createdAt: true, updatedAt: true, summaryJson: true } }),
   ]);
   return NextResponse.json({ success: true, hasStudentData: studentCount > 0, students, grades: grades.map((item) => item.grade).filter(Boolean), classrooms: classrooms.map((item) => item.classroom).filter(Boolean), profile, teacherName: current?.user?.name || null, analyses });
 }
@@ -62,6 +63,34 @@ export async function POST(request: Request) {
   if (serviceGuard) return serviceGuard;
   try {
     const body = await request.json();
+    if (body?.learningStyle === true) {
+      const grade = String(body.grade || "").trim(); const classroom = String(body.classroom || "").trim(); const title = String(body.title || "تحليل أنماط التعلم").trim().slice(0, 180);
+      const requested = Array.isArray(body.students) ? body.students : [];
+      if (!grade || !classroom || !requested.length || requested.length > 2000) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const entries: Array<Record<string, unknown>> = requested.map((value: unknown) => value && typeof value === "object" ? value as Record<string, unknown> : {});
+      const linkedIds = entries.map((item: Record<string, unknown>) => String(item.studentId || item.id || "").trim()).filter(Boolean);
+      if (new Set(linkedIds).size !== linkedIds.length) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const linked = linkedIds.length ? await prisma.student.findMany({ where: { schoolAccountId: context.schoolAccountId, isActive: true, id: { in: linkedIds }, grade, classroom }, select: { id: true, fullName: true, grade: true, classroom: true } }) : [];
+      if (linked.length !== linkedIds.length) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const linkedById = new Map(linked.map((student) => [student.id, student]));
+      const manualKeys = new Set<string>(); const manualNames = new Set<string>(); const linkedNames = new Set(linked.map((student) => `${student.fullName.trim().toLocaleLowerCase()}|${(student.grade || grade).trim()}`));
+      const stage = (body.stage === "PRIMARY" || body.stage === "MIDDLE" || body.stage === "SECONDARY" ? body.stage : learningStageForGrade(grade)) as "PRIMARY" | "MIDDLE" | "SECONDARY";
+      const roster = entries.map((item: Record<string, unknown>) => {
+        const studentId = String(item.studentId || item.id || "").trim();
+        if (studentId) { const student = linkedById.get(studentId); if (!student) throw new Error("INVALID_LEARNING_STYLE_ROSTER"); return { studentKey: student.id, studentId: student.id, studentName: student.fullName, grade: student.grade || grade, classroom: student.classroom || classroom, source: "DATA_CENTER" as const }; }
+        const participantKey = String(item.participantKey || "").trim(); const studentName = String(item.studentName || item.fullName || "").trim(); const participantGrade = String(item.grade || grade).trim();
+        const compatible = participantGrade.startsWith("أخرى:") || learningStageForGrade(participantGrade) === stage;
+        if (!participantKey.startsWith("manual-") || !studentName || !participantGrade || manualKeys.has(participantKey) || !compatible) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+        const nameKey = `${studentName.toLocaleLowerCase()}|${participantGrade}`; if (manualNames.has(nameKey) || linkedNames.has(nameKey)) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+        manualKeys.add(participantKey); manualNames.add(nameKey);
+        return { studentKey: participantKey, studentId: null, studentName, grade: participantGrade, classroom, source: "MANUAL" as const };
+      });
+      const publicToken = createLearningStyleToken(); const questions = LEARNING_STYLE_BANKS[stage];
+      const students = roster.map((s: (typeof roster)[number]) => ({ ...s, completed: false, classificationStatus: "NOT_COMPLETED", learningStyle: null }));
+      const snapshot = { type: LEARNING_STYLE_TYPE, teacherGender: body.teacherGender, title, grade, classroom, stage, publicToken, showStudentNames: Boolean(body.showStudentNames), questions, classroomStudentCount: roster.length, analyzedStudentCount: 0, students, aggregation: { analyzedStudentCount: 0, counts: { VISUAL: 0, AUDITORY: 0, READ_WRITE: 0, KINESTHETIC: 0 }, percentages: { VISUAL: 0, AUDITORY: 0, READ_WRITE: 0, KINESTHETIC: 0 }, dominant: null, tied: false }, classroomInterpretation: "", recommendations: [], analysisStatus: "NOT_ANALYZED" };
+      const analysis = await prisma.assessmentAnalysis.create({ data: { schoolAccountId: context.schoolAccountId, createdById: context.user.id, title, status: "ACTIVE", uploadMode: LEARNING_STYLE_TYPE, totalStudents: roster.length, totalRows: roster.length, totalSubjects: 1, summaryJson: JSON.parse(JSON.stringify(snapshot)), rowsJson: JSON.parse(JSON.stringify(students)) } });
+      return NextResponse.json({ success: true, analysisId: analysis.id, publicUrl: `/assessments-center/learning-style/${publicToken}` });
+    }
     if (body?.type) {
       const input = body as MultiPeriodInput;
       if (!Number.isFinite(Number(input.maximumScore)) || Number(input.maximumScore) <= 0 || !Array.isArray(input.periods) || !Array.isArray(input.students) || input.students.some((student) => !student.studentName?.trim() || Object.values(student.scores || {}).some((score) => score !== null && (!Number.isFinite(Number(score)) || Number(score) < 0 || Number(score) > Number(input.maximumScore))))) throw new Error("INVALID_SCORE_DATA");

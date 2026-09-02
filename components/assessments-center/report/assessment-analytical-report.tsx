@@ -101,8 +101,8 @@ function DonutChart({ levels }: { levels: AssessmentPerformanceLevel[] }) {
 
 function DomainBars({ domains }: { domains: AssessmentDomainMetric[] }) { return <div className="domain-bars">{domains.map((domain) => <div className="domain-bar" key={domain.label}><div className="domain-bar__head"><span>{domain.label}</span><strong>{formatPercent(domain.percentage)}</strong></div><div className="domain-bar__track"><div className="domain-bar__value" style={{ width: `${clamp(domain.percentage)}%` }} /></div></div>)}</div>; }
 function InsightList({ items, tone = "blue" }: { items: string[]; tone?: "green" | "amber" | "blue" | "red" }) { if (!items.length) return <div className="empty-insight">لا توجد بيانات متاحة.</div>; return <ul className={`insight-list insight-list--${tone}`}>{items.map((item, index) => <li key={`${item}-${index}`}><span>{index + 1}</span><p>{item}</p></li>)}</ul>; }
-export function SignatureBox({ label, name, imageUrl }: { label: string; name?: string; imageUrl?: string }) { return <div className="signature-box"><span>{label}</span><div className="signature-image-area">{imageUrl ? <img src={imageUrl} alt={`توقيع ${name || label}`} /> : <div className="signature-line" />}</div><strong>{name || ""}</strong></div>; }
-function PageFooter({ page }: { page: number }) { return <div className="page-footer"><span>Teachix — مركز التحاليل والاختبارات</span><strong>{page}</strong></div>; }
+export function SignatureBox({ label, name, imageUrl, imageStyle }: { label: string; name?: string; imageUrl?: string; imageStyle?: React.CSSProperties }) { return <div className="signature-box"><span>{label}</span><div className="signature-image-area">{imageUrl ? <img src={imageUrl} alt={`توقيع ${name || label}`} style={{ maxWidth: 155, maxHeight: 55, objectFit: "contain", ...imageStyle }} /> : <div className="signature-line" />}</div><strong>{name || ""}</strong></div>; }
+export function PageFooter({ page }: { page: number }) { return <div className="page-footer"><span>Teachix — مركز التحاليل والاختبارات</span><strong>{page}</strong></div>; }
 
 function buildCurrentStateSummary(data: AssessmentAnalyticalReportData) {
   const { metrics, metadata, performanceLevels } = data;
@@ -174,7 +174,7 @@ type AssessmentFlowBlock = {
   node: React.ReactNode;
 };
 
-function AssessmentReportPage({
+export function AssessmentReportPage({
   children,
   className = "",
   measurePage = false,

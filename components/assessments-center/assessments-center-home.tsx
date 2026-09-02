@@ -31,6 +31,7 @@ const labels: Record<string, string> = {
   NAFS_PRE_POST: "اختبار نافس",
   MAHIROON: "اختبار ماهرون",
   SUBJECT_PERIODIC: "تحليل فصلي لمادة",
+  LEARNING_STYLE: "تحليل أنماط التعلم",
 };
 
 export function AssessmentsCenterHome({ gender }: { gender?: string | null }) {

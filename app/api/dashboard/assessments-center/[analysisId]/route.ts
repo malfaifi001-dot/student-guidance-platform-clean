@@ -9,6 +9,7 @@ import { calculateNafsAnalysis } from "@/lib/assessments-center/nafs-calculation
 import type { MultiPeriodInput } from "@/lib/assessments-center/assessment-types";
 import type { NafsAnalysisInput } from "@/lib/assessments-center/nafs-types";
 import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
+import { LEARNING_STYLE_TYPE, learningStageForGrade, LEARNING_STYLE_BANKS } from "@/lib/assessments-center/learning-style";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function GET(_request: Request, context: { params: Promise<{ analys
   if (auth instanceof Response) return auth;
   const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
-  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
+  const analysis = await prisma.assessmentAnalysis.findFirst({ where: { id: (await context.params).analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, { historicalPersonalRead: true })), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC", "LEARNING_STYLE"] } }, select: { id: true, title: true, uploadMode: true, summaryJson: true, createdAt: true, updatedAt: true } });
   if (!analysis) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ success: true, analysis });
 }
@@ -28,7 +29,46 @@ export async function PATCH(request: Request, context: { params: Promise<{ analy
   const guard = await requireServiceAccessApi("assessment-center", { allowPrincipal: true });
   if (guard) return guard;
   const { analysisId } = await context.params;
-  const body = await request.json().catch(() => null) as { ai?: unknown; input?: unknown } | null;
+  const body = await request.json().catch(() => null) as { ai?: unknown; input?: unknown; learningStyleRoster?: unknown } | null;
+  if (body && "learningStylePreference" in body) {
+    const current = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: auth.schoolAccountId, uploadMode: "LEARNING_STYLE" }, select: { summaryJson: true } });
+    if (!current) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
+    const snapshot = current.summaryJson && typeof current.summaryJson === "object" ? current.summaryJson as Record<string, unknown> : {};
+    const next = { ...snapshot, showStudentNames: Boolean((body as Record<string, unknown>).learningStylePreference) };
+    await prisma.assessmentAnalysis.update({ where: { id: analysisId }, data: { summaryJson: next as Prisma.InputJsonValue } });
+    return NextResponse.json({ success: true, snapshot: next });
+  }
+  if (body?.learningStyleRoster && typeof body.learningStyleRoster === "object") {
+    const payload = body.learningStyleRoster as Record<string, unknown>;
+    const current = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, schoolAccountId: auth.schoolAccountId, uploadMode: LEARNING_STYLE_TYPE }, select: { summaryJson: true } });
+    if (!current) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
+    try {
+      const title = String(payload.title || "").trim(); const grade = String(payload.grade || "").trim(); const classroom = String(payload.classroom || "").trim();
+      const requested = Array.isArray(payload.students) ? payload.students : [];
+      if (!title || !grade || !classroom || !requested.length || requested.length > 2000) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const entries = requested.map((value) => value && typeof value === "object" ? value as Record<string, unknown> : {});
+      const ids = entries.map((item) => String(item.studentId || "").trim()).filter(Boolean);
+      if (new Set(ids).size !== ids.length) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const linked = ids.length ? await prisma.student.findMany({ where: { schoolAccountId: auth.schoolAccountId, isActive: true, id: { in: ids }, grade, classroom }, select: { id: true, fullName: true, grade: true, classroom: true } }) : [];
+      if (linked.length !== ids.length) throw new Error("INVALID_LEARNING_STYLE_ROSTER");
+      const linkedById = new Map(linked.map((student) => [student.id, student]));
+      const old = current.summaryJson && typeof current.summaryJson === "object" ? current.summaryJson as Record<string, unknown> : {};
+      const oldByKey = new Map((Array.isArray(old.students) ? old.students : []).map((value) => { const item = value as Record<string, unknown>; return [String(item.studentKey || ""), item]; }));
+      const manualNames = new Set<string>();
+      const students = entries.map((item) => {
+        const studentId = String(item.studentId || "").trim();
+        let participant;
+        if (studentId) { const student = linkedById.get(studentId); if (!student) throw new Error("INVALID_LEARNING_STYLE_ROSTER"); participant = { studentKey: student.id, studentId: student.id, studentName: student.fullName, grade: student.grade || grade, classroom: student.classroom || classroom, source: "DATA_CENTER" }; }
+        else { const key = String(item.participantKey || "").trim(); const name = String(item.studentName || "").trim(); const rowGrade = String(item.grade || grade).trim(); const compatible = rowGrade.startsWith("أخرى:") || learningStageForGrade(rowGrade) === stage; const nameKey = `${name.toLocaleLowerCase()}|${rowGrade}`; if (!key.startsWith("manual-") || !name || !rowGrade || !compatible || manualNames.has(nameKey)) throw new Error("INVALID_LEARNING_STYLE_ROSTER"); manualNames.add(nameKey); participant = { studentKey: key, studentId: null, studentName: name, grade: rowGrade, classroom, source: "MANUAL" }; }
+        const previous = oldByKey.get(participant.studentKey);
+        return previous ? { ...previous, ...participant } : { ...participant, completed: false, classificationStatus: "NOT_COMPLETED", learningStyle: null };
+      });
+      const stage = payload.stage === "PRIMARY" || payload.stage === "MIDDLE" || payload.stage === "SECONDARY" ? payload.stage : learningStageForGrade(grade);
+      const snapshot = { ...old, type: LEARNING_STYLE_TYPE, title, grade, classroom, stage, questions: Array.isArray(old.questions) && old.questions.length === 10 ? old.questions : LEARNING_STYLE_BANKS[stage], showStudentNames: Boolean(payload.showStudentNames), classroomStudentCount: students.length, students };
+      await prisma.assessmentAnalysis.update({ where: { id: analysisId }, data: { title, totalStudents: students.length, totalRows: students.length, summaryJson: snapshot as Prisma.InputJsonValue, rowsJson: students as unknown as Prisma.InputJsonValue } });
+      return NextResponse.json({ success: true, analysisId, snapshot });
+    } catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "INVALID_LEARNING_STYLE_ROSTER" }, { status: 400 }); }
+  }
   if (body?.input !== undefined) {
     const existing = await prisma.assessmentAnalysis.findFirst({ where: { id: analysisId, ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)), uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] } }, select: { id: true, uploadMode: true, summaryJson: true } });
     if (!existing) return NextResponse.json({ success: false, error: "ANALYSIS_NOT_FOUND" }, { status: 404 });
@@ -82,7 +122,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ ana
     where: {
       id: analysisId,
       ...(auth.isAdmin ? { schoolAccountId: auth.schoolAccountId } : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id)),
-      uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC"] },
+      uploadMode: { in: ["NAFS", "NAFS_PRE_POST", "MAHIROON", "SUBJECT_PERIODIC", "LEARNING_STYLE"] },
     },
     select: { id: true },
   });
