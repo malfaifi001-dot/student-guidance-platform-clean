@@ -9,6 +9,7 @@ import {
 } from "@/lib/certificates/certificate-types";
 import { DEFAULT_CERTIFICATE_TEMPLATE_KEY } from "@/lib/certificates/certificate-renderer";
 import { buildCertificateIntro, buildCertificateRecognition } from "@/lib/certificates/certificate-copy";
+import { activeCertificateTemplateRegistry } from "@/lib/certificates/certificate-template-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,17 @@ type TableColumn = {
 
 function safeString(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function buildBulkIntro(schoolName: string, recipientType: string) {
+  const school = schoolName || "\u0627\u0644\u0645\u062f\u0631\u0633\u0629";
+  const recipient = recipientType === "student_female" ? "\u0627\u0644\u0637\u0627\u0644\u0628\u0629" : "\u0627\u0644\u0637\u0627\u0644\u0628";
+  return "\u062a\u062a\u0642\u062f\u0645 \u0625\u062f\u0627\u0631\u0629 \u0645\u062f\u0631\u0633\u0629 " + school + " \u0628\u062e\u0627\u0644\u0635 \u0627\u0644\u0634\u0643\u0631 \u0648\u0627\u0644\u062a\u0642\u062f\u064a\u0631 \u0625\u0644\u0649 " + recipient;
+}
+
+function buildBulkBody(reason: string, recipientType: string) {
+  const feminine = recipientType === "student_female";
+  return "\u062a\u0642\u062f\u064a\u0631\u064b\u0627 " + (feminine ? "\u0644\u062c\u0647\u0648\u062f\u0647\u0627 \u0648\u062a\u0645\u064a\u0632\u0647\u0627" : "\u0644\u062c\u0647\u0648\u062f\u0647 \u0648\u062a\u0645\u064a\u0632\u0647") + " \u0641\u064a " + reason + "\u060c \u0645\u0639 \u0623\u0637\u064a\u0628 \u0627\u0644\u0623\u0645\u0646\u064a\u0627\u062a " + (feminine ? "\u0644\u0647\u0627" : "\u0644\u0647") + " \u0628\u062f\u0648\u0627\u0645 \u0627\u0644\u062a\u0648\u0641\u064a\u0642 \u0648\u0627\u0644\u0646\u062c\u0627\u062d.";
 }
 
 function randomPart() {
@@ -147,7 +159,15 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const rows = cleanRows(Array.isArray(body.items) ? body.items : []);
+  const batchRecipientType = body.recipientType === "student_female" ? "student_female" : "student";
+  const requestedTemplateKey = safeString(body.templateKey);
+  const templateKey = activeCertificateTemplateRegistry.some((template) => template.key === requestedTemplateKey)
+    ? requestedTemplateKey
+    : DEFAULT_CERTIFICATE_TEMPLATE_KEY;
+  const rows = cleanRows(Array.isArray(body.items) ? body.items : []).map((row) => ({
+    ...row,
+    recipientType: batchRecipientType,
+  }));
 
   if (!rows.length) {
     return NextResponse.json(
@@ -185,7 +205,7 @@ export async function POST(request: Request) {
       await insertDynamic(tx, "CertificateBatch", batchColumns, {
         id: batchId,
         schoolAccountId: actor.schoolAccountId,
-        templateId: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
+        templateId: templateKey,
         batchNumber,
         title: batchTitle,
         name: batchTitle,
@@ -216,11 +236,8 @@ export async function POST(request: Request) {
         const certificateId = randomUUID();
         const certificateNumber = generateLocalCertificateNumber(index);
         const title = buildCertificateTitle(row.certificateType);
-        const bodyText = buildCertificateRecognition({
-          recipientType: row.recipientType,
-          reason: row.reason,
-        });
-        const introText = buildCertificateIntro(schoolProfile?.schoolName || "");
+        const bodyText = buildBulkBody(row.reason, batchRecipientType);
+        const introText = buildBulkIntro(schoolProfile?.schoolName || "", batchRecipientType);
         const issueDate = normalizeIssueDate(row.issueDate);
 
         await insertDynamic(tx, "IssuedCertificate", issuedColumns, {
@@ -247,7 +264,7 @@ export async function POST(request: Request) {
           pdfUrl: null,
           htmlSnapshot: null,
           dataJson: JSON.stringify({
-            templateKey: DEFAULT_CERTIFICATE_TEMPLATE_KEY,
+            templateKey,
             introText,
             source,
             batchId,
