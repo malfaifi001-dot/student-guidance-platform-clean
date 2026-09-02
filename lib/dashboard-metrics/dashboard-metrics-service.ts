@@ -18,9 +18,14 @@ export type SchoolDashboardMetrics = {
 export async function getSchoolDashboardMetrics(
   schoolAccountId: string,
   now = new Date(),
+  ownerUserId?: string,
 ): Promise<SchoolDashboardMetrics> {
   const nextSevenDays = new Date(now);
   nextSevenDays.setDate(nextSevenDays.getDate() + 7);
+
+  const caseScope = ownerUserId
+    ? { createdById: ownerUserId }
+    : { schoolAccountId };
 
   const [
     students,
@@ -37,9 +42,9 @@ export async function getSchoolDashboardMetrics(
       where: { schoolAccountId, isActive: true },
     }),
     prisma.caseEntry.count({
-      where: { schoolAccountId, status: { not: "ARCHIVED" } },
+      where: { ...caseScope, status: { not: "ARCHIVED" } },
     }),
-    countIssuedReportsForCaseScope({ schoolAccountId }),
+    countIssuedReportsForCaseScope(caseScope),
     prisma.evidence.count({
       where: { caseEntry: { schoolAccountId } },
     }),

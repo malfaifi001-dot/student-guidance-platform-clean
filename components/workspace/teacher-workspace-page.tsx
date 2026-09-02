@@ -76,7 +76,7 @@ export async function TeacherWorkspacePage({
         })
       : 0;
 
-    const metrics = await getSchoolDashboardMetrics(schoolAccountId, now);
+    const metrics = await getSchoolDashboardMetrics(schoolAccountId, now, user?.id);
 
     stats = [
       {

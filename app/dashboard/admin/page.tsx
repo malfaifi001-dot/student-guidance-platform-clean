@@ -14,8 +14,8 @@ export default async function AdminDashboardPage() {
         userName={current.user.officialName || current.user.name}
         supportingLine="تابع مؤشرات المنصة والتنبيهات التشغيلية من مساحة الإدارة."
       />
-      <AdminOperationalAlertsPanel />
       <AdminActivityMetricsPanel />
+      <AdminOperationalAlertsPanel />
     </div>
   );
 }

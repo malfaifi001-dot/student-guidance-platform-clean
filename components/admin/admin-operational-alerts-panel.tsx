@@ -95,7 +95,9 @@ export function AdminOperationalAlertsPanel() {
   const topAlerts = useMemo(() => data?.alerts.slice(0, 6) || [], [data]);
 
   return (
-    <section className="mb-6 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+    <details className="mb-6 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+      <summary className="cursor-pointer list-none text-lg font-black text-slate-950 dark:text-white">متابعة ذكية للحسابات والاشتراكات والنشاط</summary>
+      <div className="pt-5">
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
@@ -203,6 +205,7 @@ export function AdminOperationalAlertsPanel() {
           </div>
         </>
       )}
-    </section>
+      </div>
+    </details>
   );
 }

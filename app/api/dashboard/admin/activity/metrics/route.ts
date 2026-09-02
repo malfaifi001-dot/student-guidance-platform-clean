@@ -8,7 +8,9 @@ type ActivityMetricUser = {
   schoolAccountId?: string | null;
 };
 type ActivityMetricLog = {
+  category: string;
   action: string | null;
+  title: string | null;
   actorUserId: string | null;
   serviceSlug?: string | null;
   severity?: string | null;
@@ -18,6 +20,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { countIssuedReportsForCaseScope } from "@/lib/statistics/statistics-issued-report-source";
+import { auditActionLabel, normalizeAuditAction } from "@/lib/audit/audit-events";
 
 function toDayKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -57,6 +60,8 @@ export async function GET() {
     recentWorkflowEvidence,
     recentCaseEvidence,
     recentReportEvidence,
+    activeAccounts,
+    paymentStatusGroups,
   ] = await Promise.all([
     prisma.platformActivityLog.findMany({
       where: {
@@ -110,6 +115,11 @@ export async function GET() {
     }),
     prisma.reportEvidence.count({
       where: { createdAt: { gte: recentEvidenceFrom } },
+    }),
+    prisma.schoolAccount.count({ where: { isActive: true } }),
+    prisma.paymentTransaction.groupBy({
+      by: ["status"],
+      _count: { _all: true },
     }),
   ]);
 
@@ -221,10 +231,10 @@ export async function GET() {
   const services = serviceIds.length
     ? await prisma.service.findMany({
         where: { id: { in: serviceIds } },
-        select: { id: true, slug: true },
+        select: { id: true, slug: true, name: true },
       })
     : [];
-  const serviceMap = new Map(services.map((service) => [service.id, service.slug]));
+  const serviceMap = new Map(services.map((service) => [service.id, service]));
 
   const userMap = new Map<string, ActivityMetricUser>(users.map((user: ActivityMetricUser) => [user.id, user]));
 
@@ -262,6 +272,12 @@ export async function GET() {
       canceled: subscriptionGroups.find((group) => group.status === "CANCELED")?._count._all || 0,
     },
 
+    paymentStatuses: paymentStatusGroups.map((group) => ({
+      status: group.status,
+      count: group._count._all,
+    })),
+    activeAccounts,
+
     byCategory: Array.from(categoryCounts.entries())
       .map(([category, count]) => ({
         category,
@@ -277,7 +293,8 @@ export async function GET() {
       .sort((a: any, b: any) => b.count - a.count),
 
     byService: serviceGroups.map((group) => ({
-      serviceSlug: serviceMap.get(group.serviceId) || group.serviceId,
+      serviceSlug: serviceMap.get(group.serviceId)?.slug || group.serviceId,
+      serviceName: serviceMap.get(group.serviceId)?.name || null,
       count: group._count._all,
     })),
 
@@ -300,6 +317,22 @@ export async function GET() {
     daily: Array.from(dailyMap.values()).sort((a: any, b: any) =>
       a.date.localeCompare(b.date)
     ),
+
+    recentActivity: logs
+      .filter((log: ActivityMetricLog) =>
+        ["CASE", "REPORT", "EVIDENCE", "SUBSCRIPTION", "ACTIVATION", "PAYMENT"].includes(log.category || "")
+      )
+      .slice(-8)
+      .reverse()
+      .map((log: ActivityMetricLog, index: number) => ({
+        id: `${new Date(log.createdAt || new Date()).toISOString()}-${index}`,
+        title: log.action
+          ? auditActionLabel(normalizeAuditAction(log.action), log.title)
+          : log.title || "نشاط تشغيلي",
+        action: log.action || "",
+        category: log.category,
+        createdAt: new Date(log.createdAt || new Date()).toISOString(),
+      })),
   };
 
   return NextResponse.json(metrics);
