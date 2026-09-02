@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import { GuidanceLauncher } from "@/components/guidance/guidance-launcher";
 import { GuidanceVideosLauncher } from "@/components/guidance-videos/guidance-videos-launcher";
+import { WorkflowSearchTrigger } from "@/components/workflow-search/workflow-search-trigger";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/analytics-events";
 import {
   clearAnalyticsUserIdentity,
@@ -156,7 +157,9 @@ export function DashboardHeader({ user, subscription, salesMode = "SERVICE" }: D
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-2 py-2.5 backdrop-blur-xl sm:px-3 md:px-4 dark:border-slate-800 dark:bg-[#070b18]/88">
       <div className="mx-auto flex min-w-0 max-w-[1680px] items-center justify-between gap-2 md:gap-4">
-        <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
+        {isTeacher ? <div className="hidden lg:block">
+          <WorkflowSearchTrigger />
+        </div> : <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
           <div className="relative">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
@@ -166,7 +169,7 @@ export function DashboardHeader({ user, subscription, salesMode = "SERVICE" }: D
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-500/50 dark:focus:ring-sky-500/10"
             />
           </div>
-        </div>
+        </div>}
 
         <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 lg:flex-none">
           <button

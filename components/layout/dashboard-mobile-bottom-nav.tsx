@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, FileCheck2, FolderKanban, Home } from "lucide-react";
+import { BriefcaseBusiness, FileCheck2, FolderKanban, Home, Search } from "lucide-react";
+import { WorkflowSearchTrigger } from "@/components/workflow-search/workflow-search-trigger";
 
 import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import { MOBILE_LAYER_Z_INDEX } from "@/components/mobile-app/mobile-layer-contract";
@@ -16,6 +17,7 @@ type MobileNavItem = {
   href: string;
   icon: typeof Home;
   isHome?: boolean;
+  search?: boolean;
 };
 
 const roleNavigation: Record<string, MobileNavItem[]> = {
@@ -34,6 +36,7 @@ const roleNavigation: Record<string, MobileNavItem[]> = {
   TEACHER: [
     { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home, isHome: true },
     { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+    { label: "\u0627\u0644\u0628\u062d\u062b", href: "#workflow-search", icon: Search, search: true },
     { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileCheck2 },
     { label: "ملف الإنجاز", href: "/dashboard/teacher/portfolio", icon: BriefcaseBusiness },
   ],
@@ -55,11 +58,14 @@ export function DashboardMobileBottomNav({ role }: DashboardMobileBottomNavProps
     <nav
       aria-label="التنقل الرئيسي للهاتف"
       data-mobile-bottom-nav="true"
-      className={`fixed left-1/2 bottom-0 ${MOBILE_LAYER_Z_INDEX.navigation} h-16 w-[calc(100%-44px)] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-[32px] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.08)] dark:bg-[#102138] dark:shadow-[0_8px_28px_rgba(2,6,23,0.32)] md:hidden`}
+      className={`fixed left-1/2 bottom-0 ${MOBILE_LAYER_Z_INDEX.navigation} h-16 w-[calc(100%-44px)] max-w-[420px] -translate-x-1/2 rounded-[32px] bg-white shadow-[0_8px_28px_rgba(15,23,42,0.08)] dark:bg-[#102138] dark:shadow-[0_8px_28px_rgba(2,6,23,0.32)] md:hidden ${role === "TEACHER" ? "overflow-visible" : "overflow-hidden"}`}
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="grid h-16 w-full grid-cols-4">
+      <div className={`grid h-16 w-full ${role === "TEACHER" ? "grid-cols-5" : "grid-cols-4"}`}>
         {items.map((item) => {
+          if (item.search) {
+            return <div key={item.href} className="flex h-16 min-w-0 flex-col items-center justify-start text-center"><WorkflowSearchTrigger mobile /></div>;
+          }
           const active = isActivePath(pathname, item);
           const Icon = item.icon;
 
