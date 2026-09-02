@@ -8,6 +8,10 @@ import {
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
 import { getActivityProgramsBillingServiceSlugs } from "@/lib/activity-programs/activity-program-catalog";
+import {
+  countIssuedReportCountsForCaseIds,
+  countIssuedReportsForCaseIds,
+} from "@/lib/statistics/statistics-issued-report-source";
 
 export const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 export const DEFAULT_FREE_PLAN_FEATURE_KEY = "system:autoDefaultFreePlan";
@@ -335,7 +339,7 @@ async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePla
     };
   }
 
-  const [sessionRows, reportCount] = await Promise.all([
+  const [sessionRows, reportCases] = await Promise.all([
     prisma.userSession.findMany({
       where: {
         user: {
@@ -350,14 +354,14 @@ async function getDefaultFreePlanMetrics(planId: string): Promise<DefaultFreePla
         lastSeenAt: true,
       },
     }),
-    prisma.reportSnapshot.count({
-      where: {
-        schoolAccountId: {
-          in: schoolAccountIds,
-        },
-      },
+    prisma.caseEntry.findMany({
+      where: { schoolAccountId: { in: schoolAccountIds } },
+      select: { id: true },
     }),
   ]);
+  const reportCount = await countIssuedReportsForCaseIds(
+    reportCases.map((caseEntry) => caseEntry.id),
+  );
 
   const activeDays = new Set(
     sessionRows.map((session) => {
@@ -453,16 +457,9 @@ async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
         },
       },
     }),
-    prisma.reportSnapshot.groupBy({
-      by: ["schoolAccountId"],
-      where: {
-        schoolAccountId: {
-          in: schoolAccountIds,
-        },
-      },
-      _count: {
-        _all: true,
-      },
+    prisma.caseEntry.findMany({
+      where: { schoolAccountId: { in: schoolAccountIds } },
+      select: { id: true, schoolAccountId: true },
     }),
   ]);
 
@@ -488,14 +485,17 @@ async function getDefaultFreePlanAccounts(): Promise<DefaultFreePlanAccount[]> {
     activeDaysBySchool.set(schoolAccountId, activeDays);
   }
 
+  const reportCountsByCaseId = await countIssuedReportCountsForCaseIds(
+    reportRows.map((row) => row.id),
+  );
   const reportCountBySchool = new Map<string, number>();
 
   for (const row of reportRows) {
-    if (!row.schoolAccountId) {
-      continue;
-    }
-
-    reportCountBySchool.set(row.schoolAccountId, row._count._all);
+    const count = reportCountsByCaseId.get(row.id) ?? 0;
+    reportCountBySchool.set(
+      row.schoolAccountId,
+      (reportCountBySchool.get(row.schoolAccountId) ?? 0) + count,
+    );
   }
 
   return uniqueSubscriptions.map((subscription) => {

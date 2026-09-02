@@ -11,6 +11,7 @@ import {
   Sparkles,
   UploadCloud,
   Users,
+  WalletCards,
 } from "lucide-react";
 
 import {
@@ -202,6 +203,12 @@ export function ActivityLeaderDashboard({
                   href="/dashboard/settings/school"
                   icon={<Sparkles className="h-5 w-5" />}
                   title="إعدادات المدرسة"
+                />
+
+                <QuietLink
+                  href="/dashboard/plans"
+                  icon={<WalletCards className="h-5 w-5" />}
+                  title="الباقات"
                 />
               </div>
             </details>

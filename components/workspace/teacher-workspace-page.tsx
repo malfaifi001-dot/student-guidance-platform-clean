@@ -5,6 +5,7 @@ import {
   teacherWorkspaceModules,
 } from "@/lib/workspace/workspace-modules";
 import { prisma } from "@/lib/prisma";
+import { getSchoolDashboardMetrics } from "@/lib/dashboard-metrics/dashboard-metrics-service";
 
 type TeacherWorkspacePageProps = {
   user?: {
@@ -75,45 +76,26 @@ export async function TeacherWorkspacePage({
         })
       : 0;
 
-    const [students, cases, reports] = await Promise.all([
-      prisma.student.count({
-        where: {
-          schoolAccountId,
-          isActive: true,
-        },
-      }),
-      prisma.caseEntry.count({
-        where: {
-          schoolAccountId,
-        },
-      }),
-      prisma.guidanceReport.count({
-        where: {
-          caseEntry: {
-            schoolAccountId,
-          },
-        },
-      }),
-    ]);
+    const metrics = await getSchoolDashboardMetrics(schoolAccountId, now);
 
     stats = [
       {
         label: "الطلاب",
-        value: formatCount(students),
+        value: formatCount(metrics.students),
         helper: "عدد الطلاب المسجلين.",
         icon: "students",
         href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
       },
       {
         label: "الحالات",
-        value: formatCount(cases),
+        value: formatCount(metrics.cases),
         helper: "إجمالي الحالات داخل الحساب.",
         icon: "cases",
         href: OFFICIAL_WORKSPACE_ROUTES.cases,
       },
       {
         label: "التقارير",
-        value: formatCount(reports),
+        value: formatCount(metrics.reports),
         helper: "التقارير المصدرة داخل الحساب.",
         icon: "reports",
         href: OFFICIAL_WORKSPACE_ROUTES.reports,

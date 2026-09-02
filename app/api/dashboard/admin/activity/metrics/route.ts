@@ -17,21 +17,10 @@ type ActivityMetricLog = {
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { countIssuedReportsForCaseScope } from "@/lib/statistics/statistics-issued-report-source";
 
 function toDayKey(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-function getDetailValue(details: unknown, key: string) {
-  if (!details || typeof details !== "object") return null;
-  const record = details as Record<string, unknown>;
-  const value = record[key];
-
-  if (typeof value === "string" || typeof value === "number") {
-    return String(value);
-  }
-
-  return null;
 }
 
 export async function GET() {
@@ -49,7 +38,26 @@ export async function GET() {
   const previousFrom = new Date(now);
   previousFrom.setDate(previousFrom.getDate() - 60);
 
-  const [logs, previousLogs] = await Promise.all([
+  const recentEvidenceFrom = new Date(now);
+  recentEvidenceFrom.setDate(recentEvidenceFrom.getDate() - 14);
+
+  const [
+    logs,
+    currentSubmittedCases,
+    previousSubmittedCases,
+    currentDraftCases,
+    currentReports,
+    previousReports,
+    currentWorkflowEvidence,
+    currentCaseEvidence,
+    currentReportEvidence,
+    previousWorkflowEvidence,
+    previousCaseEvidence,
+    previousReportEvidence,
+    recentWorkflowEvidence,
+    recentCaseEvidence,
+    recentReportEvidence,
+  ] = await Promise.all([
     prisma.platformActivityLog.findMany({
       where: {
         createdAt: {
@@ -61,27 +69,49 @@ export async function GET() {
       },
     }),
 
-    prisma.platformActivityLog.findMany({
+    prisma.caseEntry.count({
       where: {
-        createdAt: {
-          gte: previousFrom,
-          lt: from,
-        },
-      },
-      select: {
-        id: true,
-        category: true,
-        action: true,
-        actorUserId: true,
+        status: "SUBMITTED",
+        OR: [
+          { submittedAt: { gte: from } },
+          { submittedAt: null, createdAt: { gte: from } },
+        ],
       },
     }),
+    prisma.caseEntry.count({
+      where: {
+        status: "SUBMITTED",
+        OR: [
+          { submittedAt: { gte: previousFrom, lt: from } },
+          { submittedAt: null, createdAt: { gte: previousFrom, lt: from } },
+        ],
+      },
+    }),
+    prisma.caseEntry.count({
+      where: { status: "DRAFT", createdAt: { gte: from } },
+    }),
+    countIssuedReportsForCaseScope({}, { from, to: now }),
+    countIssuedReportsForCaseScope({}, { from: previousFrom, to: from }),
+    prisma.evidence.count({ where: { createdAt: { gte: from } } }),
+    prisma.caseEvidence.count({ where: { createdAt: { gte: from } } }),
+    prisma.reportEvidence.count({ where: { createdAt: { gte: from } } }),
+    prisma.evidence.count({
+      where: { createdAt: { gte: previousFrom, lt: from } },
+    }),
+    prisma.caseEvidence.count({
+      where: { createdAt: { gte: previousFrom, lt: from } },
+    }),
+    prisma.reportEvidence.count({
+      where: { createdAt: { gte: previousFrom, lt: from } },
+    }),
+    prisma.evidence.count({ where: { createdAt: { gte: recentEvidenceFrom } } }),
+    prisma.caseEvidence.count({
+      where: { createdAt: { gte: recentEvidenceFrom } },
+    }),
+    prisma.reportEvidence.count({
+      where: { createdAt: { gte: recentEvidenceFrom } },
+    }),
   ]);
-
-  const countAction = (action: string) =>
-    logs.filter((log: { action: string | null }) => log.action === action).length;
-
-  const previousCountAction = (action: string) =>
-    previousLogs.filter((log: { action: string | null }) => log.action === action).length;
 
   const activeUserIds = new Set(
     logs.map((log: ActivityMetricLog) => log.actorUserId).filter(Boolean)
@@ -90,7 +120,6 @@ export async function GET() {
   const actionCounts = new Map<string, number>();
   const categoryCounts = new Map<string, number>();
   const actorCounts = new Map<string, number>();
-  const serviceCounts = new Map<string, number>();
 
   const dailyMap = new Map<
     string,
@@ -117,14 +146,6 @@ export async function GET() {
         log.actorUserId,
         (actorCounts.get(log.actorUserId) || 0) + 1
       );
-    }
-
-    const serviceSlug =
-      getDetailValue(log.details, "serviceSlug") ||
-      getDetailValue(log.details, "serviceId");
-
-    if (serviceSlug) {
-      serviceCounts.set(serviceSlug, (serviceCounts.get(serviceSlug) || 0) + 1);
     }
 
     const dayKey = toDayKey(log.createdAt);
@@ -161,16 +182,14 @@ export async function GET() {
     }
   }
 
-  const topActorIds = Array.from(actorCounts.entries())
-    .sort((a: any, b: any) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([id]) => id);
+  const actorIds = Array.from(actorCounts.keys());
 
-  const users = topActorIds.length
-    ? await prisma.user.findMany({
+  const [users, serviceGroups, subscriptionGroups] = await Promise.all([
+    actorIds.length
+      ? prisma.user.findMany({
         where: {
           id: {
-            in: topActorIds,
+            in: actorIds,
           },
         },
         select: {
@@ -180,8 +199,32 @@ export async function GET() {
           email: true,
           role: true,
         },
+        })
+      : [],
+    prisma.caseEntry.groupBy({
+      by: ["serviceId"],
+      where: {
+        status: { not: "ARCHIVED" },
+        createdAt: { gte: from },
+      },
+      _count: { _all: true },
+      orderBy: { _count: { serviceId: "desc" } },
+      take: 8,
+    }),
+    prisma.subscription.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  const serviceIds = serviceGroups.map((group) => group.serviceId);
+  const services = serviceIds.length
+    ? await prisma.service.findMany({
+        where: { id: { in: serviceIds } },
+        select: { id: true, slug: true },
       })
     : [];
+  const serviceMap = new Map(services.map((service) => [service.id, service.slug]));
 
   const userMap = new Map<string, ActivityMetricUser>(users.map((user: ActivityMetricUser) => [user.id, user]));
 
@@ -191,28 +234,32 @@ export async function GET() {
     activeUsers: activeUserIds.size,
 
     cases: {
-      drafts: countAction("case-draft-saved"),
-      submitted: countAction("case-submitted"),
-      previousSubmitted: previousCountAction("case-submitted"),
+      drafts: currentDraftCases,
+      submitted: currentSubmittedCases,
+      previousSubmitted: previousSubmittedCases,
     },
 
     reports: {
-      created: countAction("report-created"),
-      exported: countAction("report-exported"),
-      previousCreated: previousCountAction("report-created"),
+      created: currentReports,
+      previousCreated: previousReports,
     },
 
     evidences: {
-      uploaded: countAction("evidence-uploaded"),
-      previousUploaded: previousCountAction("evidence-uploaded"),
+      uploaded:
+        currentWorkflowEvidence + currentCaseEvidence + currentReportEvidence,
+      recentUploaded:
+        recentWorkflowEvidence + recentCaseEvidence + recentReportEvidence,
+      previousUploaded:
+        previousWorkflowEvidence + previousCaseEvidence + previousReportEvidence,
     },
 
     subscriptions: {
-      planOrders: countAction("plan-order-created"),
-      activationCodes: countAction("redeem-activation-code"),
-      bankTransfers: countAction("bank-transfer-requested"),
-      approvedTransfers: countAction("bank-transfer-approved"),
-      rejectedTransfers: countAction("bank-transfer-rejected"),
+      total: subscriptionGroups.reduce((sum, group) => sum + group._count._all, 0),
+      active: subscriptionGroups.find((group) => group.status === "ACTIVE")?._count._all || 0,
+      trial: subscriptionGroups.find((group) => group.status === "TRIAL")?._count._all || 0,
+      pastDue: subscriptionGroups.find((group) => group.status === "PAST_DUE")?._count._all || 0,
+      expired: subscriptionGroups.find((group) => group.status === "EXPIRED")?._count._all || 0,
+      canceled: subscriptionGroups.find((group) => group.status === "CANCELED")?._count._all || 0,
     },
 
     byCategory: Array.from(categoryCounts.entries())
@@ -229,15 +276,14 @@ export async function GET() {
       }))
       .sort((a: any, b: any) => b.count - a.count),
 
-    byService: Array.from(serviceCounts.entries())
-      .map(([serviceSlug, count]) => ({
-        serviceSlug,
-        count,
-      }))
-      .sort((a: any, b: any) => b.count - a.count),
+    byService: serviceGroups.map((group) => ({
+      serviceSlug: serviceMap.get(group.serviceId) || group.serviceId,
+      count: group._count._all,
+    })),
 
     topUsers: Array.from(actorCounts.entries())
       .sort((a: any, b: any) => b[1] - a[1])
+      .filter(([userId]) => userMap.get(userId)?.role === "COUNSELOR")
       .slice(0, 8)
       .map(([userId, count]) => {
         const user = userMap.get(userId);

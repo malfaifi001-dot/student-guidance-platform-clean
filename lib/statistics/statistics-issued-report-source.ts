@@ -178,6 +178,7 @@ async function listReportSnapshotSources(
       reportTitle: true,
       approvedAt: true,
     },
+    orderBy: { approvedAt: "desc" },
   });
 
   if (snapshots.length === 0) {
@@ -218,13 +219,16 @@ async function listReportSnapshotSources(
   );
 
   const sources: NormalizedIssuedReport[] = [];
+  const seenCaseIds = new Set<string>();
 
   for (const snapshot of snapshots) {
     const caseEntry = caseById.get(snapshot.caseEntryId);
 
-    if (!caseEntry) {
+    if (!caseEntry || seenCaseIds.has(snapshot.caseEntryId)) {
       continue;
     }
+
+    seenCaseIds.add(snapshot.caseEntryId);
 
     sources.push({
       sourceType: "REPORT_SNAPSHOT",
@@ -250,16 +254,121 @@ export async function listIssuedReportSources(
   context: DashboardContext,
   filters: StatisticsIssuedReportFilters = {},
 ): Promise<NormalizedIssuedReport[]> {
-  const [guidanceReports, reportSnapshots] =
-    await Promise.all([
-      listGuidanceReportSources(context, filters),
-      listReportSnapshotSources(context, filters),
-    ]);
-
+  const [guidanceReports, reportSnapshots] = await Promise.all([
+    listGuidanceReportSources(context, filters),
+    listReportSnapshotSources(context, filters),
+  ]);
   return [...guidanceReports, ...reportSnapshots].sort(
     (first, second) =>
       second.issuedAt.getTime() -
       first.issuedAt.getTime(),
+  );
+}
+
+/**
+ * Counts the unified issued-report sources for an already authorized set of
+ * CaseEntry records. This is intentionally ID-only and keeps report payloads
+ * out of dashboard counters.
+ */
+export async function countIssuedReportCountsForCaseIds(
+  caseEntryIds: readonly string[],
+  filters: StatisticsIssuedReportFilters = {},
+): Promise<Map<string, number>> {
+  const ids = Array.from(new Set(caseEntryIds));
+  if (ids.length === 0) return new Map();
+
+  const guidanceDateWhere = buildGuidanceIssuedDateWhere(filters);
+  const guidanceStatusWhere: Prisma.GuidanceReportWhereInput = {
+    OR: [
+      { status: { in: ["GENERATED", "APPROVED"] } },
+      {
+        status: "ARCHIVED",
+        OR: [{ approvedAt: { not: null } }, { generatedAt: { not: null } }],
+      },
+    ],
+  };
+  const approvedAtFilter = buildDateFilter(filters);
+
+  const [guidanceReports, snapshots, activeReports] = await Promise.all([
+    prisma.guidanceReport.findMany({
+      where: {
+        caseEntryId: { in: ids },
+        AND: [guidanceStatusWhere, ...(guidanceDateWhere ? [guidanceDateWhere] : [])],
+      },
+      select: { id: true, caseEntryId: true },
+    }),
+    prisma.reportSnapshot.findMany({
+      where: {
+        caseEntryId: { in: ids },
+        ...(Object.keys(approvedAtFilter).length > 0 ? { approvedAt: approvedAtFilter } : {}),
+      },
+      orderBy: { approvedAt: "desc" },
+      select: { caseEntryId: true },
+    }),
+    prisma.reportTwoActive.findMany({
+      where: {
+        caseEntryId: { in: ids },
+        status: "APPROVED",
+        approvedAt: {
+          not: null,
+          ...(Object.keys(approvedAtFilter).length > 0 ? approvedAtFilter : {}),
+        },
+      },
+      select: { caseEntryId: true },
+    }),
+  ]);
+
+  const snapshotCaseIds = new Set(snapshots.map((snapshot) => snapshot.caseEntryId));
+  const activeFallbackCaseIds = new Set(
+    activeReports
+      .map((report) => report.caseEntryId)
+      .filter((caseEntryId) => !snapshotCaseIds.has(caseEntryId)),
+  );
+
+  const counts = new Map<string, number>();
+  for (const report of guidanceReports) {
+    counts.set(report.caseEntryId, (counts.get(report.caseEntryId) ?? 0) + 1);
+  }
+  for (const caseEntryId of snapshotCaseIds) {
+    counts.set(caseEntryId, (counts.get(caseEntryId) ?? 0) + 1);
+  }
+  for (const caseEntryId of activeFallbackCaseIds) {
+    counts.set(caseEntryId, (counts.get(caseEntryId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+export async function countIssuedReportsForCaseIds(
+  caseEntryIds: readonly string[],
+  filters: StatisticsIssuedReportFilters = {},
+): Promise<number> {
+  const counts = await countIssuedReportCountsForCaseIds(caseEntryIds, filters);
+  return Array.from(counts.values()).reduce((total, count) => total + count, 0);
+}
+
+export async function countIssuedReportsForCaseScope(
+  caseScope: Prisma.CaseEntryWhereInput,
+  filters: StatisticsIssuedReportFilters = {},
+): Promise<number> {
+  const cases = await prisma.caseEntry.findMany({
+    where: {
+      ...caseScope,
+      ...(filters.serviceSlug || filters.serviceSlugs?.length
+        ? {
+            service: {
+              slug: filters.serviceSlugs?.length
+                ? { in: filters.serviceSlugs }
+                : filters.serviceSlug,
+            },
+          }
+        : {}),
+    },
+    select: { id: true },
+  });
+
+  return countIssuedReportsForCaseIds(
+    cases.map((caseEntry) => caseEntry.id),
+    filters,
   );
 }
 

@@ -249,6 +249,13 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     status: "available",
   },
   {
+    title: "الباقات",
+    description: "إدارة الاشتراك والباقات المرتبطة بالحساب.",
+    href: "/dashboard/subscription",
+    icon: "subscription",
+    status: "available",
+  },
+  {
     title: "حسابي",
     description: "إدارة بيانات الحساب والجلسات.",
     href: "/dashboard/account",

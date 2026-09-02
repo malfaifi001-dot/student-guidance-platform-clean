@@ -3,6 +3,7 @@ import { CounselorWorkspacePage } from "@/components/workspace/counselor-workspa
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { prisma } from "@/lib/prisma";
+import { getSchoolDashboardMetrics } from "@/lib/dashboard-metrics/dashboard-metrics-service";
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
 
 function getAttentionWindow() {
@@ -48,75 +49,10 @@ export default async function DashboardPage() {
   );
   const { nextSevenDays } = getAttentionWindow();
 
-  const [
-    students,
-    cases,
-    reports,
-    evidences,
-    draftCases,
-    readyForReport,
-    reminders,
-  ] = await Promise.all([
+  const [metrics, reminders] = await Promise.all([
     schoolAccountId
-      ? prisma.student.count({
-          where: {
-            schoolAccountId,
-            isActive: true,
-          },
-        })
-      : 0,
-
-    schoolAccountId
-      ? prisma.caseEntry.count({
-          where: {
-            schoolAccountId,
-          },
-        })
-      : 0,
-
-    schoolAccountId
-      ? prisma.guidanceReport.count({
-          where: {
-            caseEntry: {
-              schoolAccountId,
-            },
-          },
-        })
-      : prisma.guidanceReport.count(),
-
-    schoolAccountId
-      ? prisma.reportEvidence.count({
-          where: {
-            report: {
-              caseEntry: {
-                schoolAccountId,
-              },
-            },
-          },
-        })
-      : prisma.reportEvidence.count(),
-
-    schoolAccountId
-      ? prisma.caseEntry.count({
-          where: {
-            schoolAccountId,
-            status: "DRAFT",
-          },
-        })
-      : 0,
-
-    schoolAccountId
-      ? prisma.caseEntry.count({
-          where: {
-            schoolAccountId,
-            status: "SUBMITTED",
-            guidanceReports: {
-              none: {},
-            },
-          },
-        })
-      : 0,
-
+      ? getSchoolDashboardMetrics(schoolAccountId)
+      : null,
     schoolAccountId
       ? prisma.calendarReminder.findMany({
           where: {
@@ -168,12 +104,12 @@ export default async function DashboardPage() {
     <CounselorWorkspacePage
       user={current.user}
       stats={{
-        students,
-        cases,
-        reports,
-        evidences,
-        draftCases,
-        readyForReport,
+        students: metrics?.students ?? 0,
+        cases: metrics?.cases ?? 0,
+        reports: metrics?.reports ?? 0,
+        evidences: metrics?.evidences ?? 0,
+        draftCases: metrics?.draftCases ?? 0,
+        readyForReport: metrics?.readyForReport ?? 0,
       }}
       remindersCount={reminders.length}
       schoolIdentityComplete={identityReadiness.score === 100}

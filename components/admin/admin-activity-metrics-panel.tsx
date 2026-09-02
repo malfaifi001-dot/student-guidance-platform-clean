@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -39,19 +39,20 @@ type ActivityMetrics = {
   };
   reports: {
     created: number;
-    exported: number;
     previousCreated: number;
   };
   evidences: {
     uploaded: number;
+    recentUploaded: number;
     previousUploaded: number;
   };
   subscriptions: {
-    planOrders: number;
-    activationCodes: number;
-    bankTransfers: number;
-    approvedTransfers: number;
-    rejectedTransfers: number;
+    total: number;
+    active: number;
+    trial: number;
+    pastDue: number;
+    expired: number;
+    canceled: number;
   };
   byCategory: Array<{
     category: string;
@@ -82,10 +83,14 @@ type PieSegment = {
 };
 
 function percentageChange(current: number, previous: number) {
-  if (previous <= 0 && current > 0) return 100;
-  if (previous <= 0 && current <= 0) return 0;
+  if (previous <= 0) return null;
 
   return Math.round(((current - previous) / previous) * 100);
+}
+
+function growthLabel(value: number | null) {
+  if (value === null) return "جديد";
+  return `${value >= 0 ? "+" : ""}${value}%`;
 }
 
 function serviceLabel(slug: string) {
@@ -149,10 +154,6 @@ export function AdminActivityMetricsPanel() {
     loadMetrics();
   }, []);
 
-  const latestDaily = useMemo(() => {
-    return (metrics?.daily || []).slice(-14);
-  }, [metrics?.daily]);
-
   if (loading) {
     return (
       <section className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
@@ -190,26 +191,7 @@ export function AdminActivityMetricsPanel() {
     metrics.evidences.previousUploaded
   );
 
-  const subscriptionTotal =
-    metrics.subscriptions.planOrders +
-    metrics.subscriptions.activationCodes +
-    metrics.subscriptions.bankTransfers +
-    metrics.subscriptions.approvedTransfers +
-    metrics.subscriptions.rejectedTransfers;
-
-  const totalDailyCases = latestDaily.reduce((sum, item) => sum + item.cases, 0);
-  const totalDailyReports = latestDaily.reduce(
-    (sum, item) => sum + item.reports,
-    0
-  );
-  const totalDailyEvidences = latestDaily.reduce(
-    (sum, item) => sum + item.evidences,
-    0
-  );
-  const totalDailySubscriptions = latestDaily.reduce(
-    (sum, item) => sum + item.subscriptions,
-    0
-  );
+  const subscriptionTotal = metrics.subscriptions.total;
 
   return (
     <section className="space-y-4" dir="rtl">
@@ -269,19 +251,19 @@ export function AdminActivityMetricsPanel() {
             title="حالات مرسلة"
             value={metrics.cases.submitted}
             icon={<ShieldCheck />}
-            hint={`${caseGrowth >= 0 ? "+" : ""}${caseGrowth}%`}
+            hint={growthLabel(caseGrowth)}
           />
           <HeroMetric
             title="تقارير منشأة"
             value={metrics.reports.created}
             icon={<FileText />}
-            hint={`${reportGrowth >= 0 ? "+" : ""}${reportGrowth}%`}
+            hint={growthLabel(reportGrowth)}
           />
           <HeroMetric
             title="شواهد مرفوعة"
             value={metrics.evidences.uploaded}
             icon={<UploadCloud />}
-            hint={`${evidenceGrowth >= 0 ? "+" : ""}${evidenceGrowth}%`}
+            hint={growthLabel(evidenceGrowth)}
           />
         </div>
       </div>
@@ -294,7 +276,7 @@ export function AdminActivityMetricsPanel() {
           total={metrics.cases.drafts + metrics.cases.submitted}
           mainValue={metrics.cases.submitted}
           mainLabel="حالات مرسلة"
-          footer={`${caseGrowth >= 0 ? "+" : ""}${caseGrowth}% عن الفترة السابقة`}
+          footer={`${growthLabel(caseGrowth)} عن الفترة السابقة`}
           segments={[
             {
               label: "مرسلة",
@@ -313,21 +295,19 @@ export function AdminActivityMetricsPanel() {
           title="التقارير"
           description="توزيع الإنشاء والتصدير"
           icon={<FileText />}
-          total={metrics.reports.created + metrics.reports.exported}
+          total={metrics.reports.created}
           mainValue={metrics.reports.created}
           mainLabel="تقارير منشأة"
-          footer={`${reportGrowth >= 0 ? "+" : ""}${reportGrowth}% عن الفترة السابقة`}
+          footer={`${growthLabel(reportGrowth)} عن الفترة السابقة`}
           segments={[
             {
               label: "منشأة",
               value: metrics.reports.created,
-              color: "#4f46e5",
-            },
-            {
+             color: "#4f46e5",
+           },
+            /*
               label: "مصدّرة",
-              value: metrics.reports.exported,
-              color: "#c7d2fe",
-            },
+            */
           ]}
         />
 
@@ -335,19 +315,19 @@ export function AdminActivityMetricsPanel() {
           title="الشواهد"
           description="رفع الملفات والشواهد"
           icon={<UploadCloud />}
-          total={Math.max(metrics.evidences.uploaded, totalDailyEvidences)}
+          total={metrics.evidences.uploaded}
           mainValue={metrics.evidences.uploaded}
           mainLabel="شواهد مرفوعة"
-          footer={`${evidenceGrowth >= 0 ? "+" : ""}${evidenceGrowth}% عن الفترة السابقة`}
+          footer={`${growthLabel(evidenceGrowth)} عن الفترة السابقة`}
           segments={[
             {
               label: "آخر 14 يوم",
-              value: totalDailyEvidences,
+              value: metrics.evidences.recentUploaded,
               color: "#059669",
             },
             {
               label: "بقية الفترة",
-              value: Math.max(metrics.evidences.uploaded - totalDailyEvidences, 0),
+              value: Math.max(metrics.evidences.uploaded - metrics.evidences.recentUploaded, 0),
               color: "#bbf7d0",
             },
           ]}
@@ -360,28 +340,26 @@ export function AdminActivityMetricsPanel() {
           total={subscriptionTotal}
           mainValue={subscriptionTotal}
           mainLabel="عملية اشتراك"
-          footer={`تحويلات: ${metrics.subscriptions.bankTransfers}`}
+          footer={`نشطة: ${metrics.subscriptions.active}`}
           segments={[
             {
-              label: "طلبات باقات",
-              value: metrics.subscriptions.planOrders,
+              label: "نشطة",
+              value: metrics.subscriptions.active,
               color: "#7c3aed",
             },
             {
-              label: "تحويلات",
-              value: metrics.subscriptions.bankTransfers,
+              label: "تجريبية",
+              value: metrics.subscriptions.trial,
               color: "#a78bfa",
             },
             {
-              label: "أكواد",
-              value: metrics.subscriptions.activationCodes,
+              label: "متأخرة",
+              value: metrics.subscriptions.pastDue,
               color: "#ddd6fe",
             },
             {
-              label: "قبول/رفض",
-              value:
-                metrics.subscriptions.approvedTransfers +
-                metrics.subscriptions.rejectedTransfers,
+              label: "منتهية/ملغاة",
+              value: metrics.subscriptions.expired + metrics.subscriptions.canceled,
               color: "#f59e0b",
             },
           ]}

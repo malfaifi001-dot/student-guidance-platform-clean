@@ -19,6 +19,7 @@ import { getWorkspaceModulesForRole } from "@/lib/workspace/workspace-modules";
 import { isServiceAllowedForUser } from "@/lib/subscription/subscription-service";
 import { getDistribution } from "@/lib/curriculum-distribution/queries";
 import { getActivityPlanTenPercentRows, isMeaningfulTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-service";
+import { countIssuedReportCountsForCaseIds } from "@/lib/statistics/statistics-issued-report-source";
 
 const PRINCIPAL_SCHOOL_MEMBER_ROLES = [
   "TEACHER",
@@ -77,66 +78,28 @@ async function querySchoolTeachers(schoolAccountId: string) {
         select: {
           id: true,
           createdById: true,
-          guidanceReports: {
-            where: { status: { in: ["APPROVED", "ARCHIVED"] }, approvedAt: { not: null } },
-            select: { id: true },
-          },
           _count: { select: { evidences: true } },
         },
       })
     : [];
-  const caseOwnerById = new Map(
-    caseEntries.map((caseEntry) => [caseEntry.id, caseEntry.createdById]),
+  const caseOwnerById = new Map(caseEntries.map((caseEntry) => [caseEntry.id, caseEntry.createdById]));
+  const reportCountsByCaseId = await countIssuedReportCountsForCaseIds(
+    caseEntries.map((caseEntry) => caseEntry.id),
   );
-  const reportTwoCaseIds = caseEntries.map((caseEntry) => caseEntry.id);
-  const [activeReports, reportSnapshots] = reportTwoCaseIds.length
-    ? await Promise.all([
-        prisma.reportTwoActive.findMany({
-          where: { schoolAccountId, status: "APPROVED", approvedAt: { not: null }, caseEntryId: { in: reportTwoCaseIds } },
-          select: { id: true, caseEntryId: true },
-        }),
-        prisma.reportSnapshot.findMany({
-          where: {
-            caseEntryId: { in: reportTwoCaseIds },
-            OR: [{ schoolAccountId }, { schoolAccountId: null }],
-          },
-          select: { id: true, caseEntryId: true },
-        }),
-      ])
-    : [[], []];
-  const reportIdsByUserId = new Map<string, Set<string>>();
   const caseEvidenceCountByUserId = new Map<string, number>();
 
   for (const caseEntry of caseEntries) {
     if (!caseEntry.createdById) continue;
-    const reportIds = reportIdsByUserId.get(caseEntry.createdById) ?? new Set();
-    for (const report of caseEntry.guidanceReports) {
-      reportIds.add(`guidance:${report.id}`);
-    }
-    reportIdsByUserId.set(caseEntry.createdById, reportIds);
     caseEvidenceCountByUserId.set(
       caseEntry.createdById,
       (caseEvidenceCountByUserId.get(caseEntry.createdById) ?? 0) +
         caseEntry._count.evidences,
     );
   }
-  const snapshotCaseIds = new Set(reportSnapshots.map((report) => report.caseEntryId));
-  for (const report of reportSnapshots) {
-    const ownerId = caseOwnerById.get(report.caseEntryId);
-    if (!ownerId) continue;
-    const reportIds = reportIdsByUserId.get(ownerId) ?? new Set();
-    reportIds.add(`report-two:${report.id}`);
-    reportIdsByUserId.set(ownerId, reportIds);
-  }
-  // An approved Report2 active row and its immutable snapshot are one
-  // lifecycle. The snapshot is the canonical principal-facing record.
-  for (const report of activeReports) {
-    if (snapshotCaseIds.has(report.caseEntryId)) continue;
-    const ownerId = caseOwnerById.get(report.caseEntryId);
-    if (!ownerId) continue;
-    const reportIds = reportIdsByUserId.get(ownerId) ?? new Set();
-    reportIds.add(`report-two:${report.id}`);
-    reportIdsByUserId.set(ownerId, reportIds);
+  const reportCountByOwner = new Map<string, number>();
+  for (const [caseEntryId, count] of reportCountsByCaseId) {
+    const ownerId = caseOwnerById.get(caseEntryId);
+    if (ownerId) reportCountByOwner.set(ownerId, (reportCountByOwner.get(ownerId) ?? 0) + count);
   }
 
   return teachers.map((teacher): PrincipalTeacherCardData => ({
@@ -147,7 +110,7 @@ async function querySchoolTeachers(schoolAccountId: string) {
     gender: teacher.gender,
     isActive: teacher.isActive,
     // All supported report records inherit ownership from CaseEntry.createdById.
-    reportsCount: reportIdsByUserId.get(teacher.id)?.size ?? 0,
+    reportsCount: reportCountByOwner.get(teacher.id) ?? 0,
     // Evidence belongs to a creator-owned case; CaseEvidence has direct uploader ownership.
     evidenceCount:
       (caseEvidenceCountByUserId.get(teacher.id) ?? 0) +

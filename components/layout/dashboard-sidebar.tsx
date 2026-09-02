@@ -230,6 +230,11 @@ const counselorToolsLinks: SidebarLinkItem[] = [
 
 const counselorAccountLinks: SidebarLinkItem[] = [
   {
+    label: "الباقات",
+    href: "/dashboard/plans",
+    icon: WalletCards,
+  },
+  {
     label: "حسابي",
     href: "/dashboard/account",
     icon: UserRound,
@@ -350,6 +355,11 @@ const activityLeaderServiceLinks: SidebarLinkItem[] = [
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  {
+    label: "الباقات",
+    href: "/dashboard/plans",
+    icon: WalletCards,
+  },
   {
     label: "حسابي",
     href: "/dashboard/account",
@@ -474,6 +484,11 @@ function getTeacherAdditionalLinks(gender?: string | null): SidebarLinkItem[] {
 
 const teacherAccountLinks: SidebarLinkItem[] = [
   {
+    label: "الباقات",
+    href: "/dashboard/subscription",
+    icon: WalletCards,
+  },
+  {
     label: "حسابي",
     href: "/dashboard/account",
     icon: UserRound,
@@ -581,6 +596,11 @@ const principalAdditionalLinks: SidebarLinkItem[] = [
 ];
 
 const principalAccountLinks: SidebarLinkItem[] = [
+  {
+    label: "الباقات",
+    href: "/dashboard/plans",
+    icon: WalletCards,
+  },
   {
     label: "حسابي",
     href: "/dashboard/account",
@@ -994,8 +1014,20 @@ export function DashboardSidebar({
 
         <SidebarProfile
           collapsed={effectiveCollapsed}
-          displayName={displayName}
-          roleLabel={roleLabel}
+          displayName={
+            isAdmin
+              ? displayName
+              : salesMode === "BAG"
+                ? displayName
+                : subscription?.planName || "لا توجد باقة مفعلة"
+          }
+          roleLabel={
+            isAdmin
+              ? roleLabel
+              : salesMode === "BAG"
+                ? roleLabel
+                : subscription?.statusText || "اختر باقة للمتابعة"
+          }
           avatar={avatar}
           avatarAlt={displayName}
         />
@@ -1221,7 +1253,7 @@ function ActivityLeaderSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب"
+        title={salesMode === "BAG" ? "الحساب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1319,7 +1351,7 @@ function CounselorSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب"
+        title={salesMode === "BAG" ? "الحساب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1402,7 +1434,7 @@ function TeacherSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب"
+        title={salesMode === "BAG" ? "الحساب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/subscription") ||
           pathname.startsWith("/dashboard/account") ||
@@ -1519,7 +1551,7 @@ function PrincipalSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="الحساب"
+        title={salesMode === "BAG" ? "الحساب" : "الحساب والباقات"}
         defaultOpen={
           pathname.startsWith("/dashboard/plans") ||
           pathname.startsWith("/dashboard/account") ||

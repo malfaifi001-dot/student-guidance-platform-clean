@@ -4,6 +4,7 @@ import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { prisma } from "@/lib/prisma";
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
+import { getSchoolDashboardMetrics } from "@/lib/dashboard-metrics/dashboard-metrics-service";
 
 function getAttentionWindow() {
   const now = new Date();
@@ -26,45 +27,16 @@ export default async function ActivityLeaderDashboardPage() {
   const schoolAccountId = current.user.schoolAccountId;
   const { nextSevenDays } = getAttentionWindow();
 
-  const [students, evidenceItems, activityReports, reminders] = await Promise.all([
-    schoolAccountId
-      ? prisma.student.count({
-          where: {
-            schoolAccountId,
-            isActive: true,
-          },
-        })
-      : 0,
-
-    schoolAccountId
-      ? prisma.reportEvidence.count({
-          where: {
-            report: {
-              caseEntry: {
-                schoolAccountId,
-              },
-            },
-          },
-        })
-      : 0,
-
-    schoolAccountId
-      ? prisma.guidanceReport.count({
-          where: {
-            caseEntry: {
-              schoolAccountId,
-            },
-          },
-        })
-      : 0,
-
+  const [metrics, reminders] = await Promise.all([
+    schoolAccountId ? getSchoolDashboardMetrics(schoolAccountId) : null,
     schoolAccountId
       ? prisma.calendarReminder.findMany({
           where: {
             schoolAccountId,
             status: "PENDING",
             scheduledAt: {
-              lte: nextSevenDays,
+            gte: new Date(),
+            lte: nextSevenDays,
             },
           },
           orderBy: {
@@ -131,10 +103,10 @@ export default async function ActivityLeaderDashboardPage() {
         helper: reminder.scheduledAt.toLocaleDateString("ar-SA"),
       }))}
       stats={{
-        students,
-        upcomingReminders: reminders.length,
-        evidenceItems,
-        activityReports,
+        students: metrics?.students ?? 0,
+        upcomingReminders: metrics?.upcomingReminders ?? reminders.length,
+        evidenceItems: metrics?.evidences ?? 0,
+        activityReports: metrics?.reports ?? 0,
       }}
       schoolIdentityComplete={identityReadiness.score === 100}
     />
