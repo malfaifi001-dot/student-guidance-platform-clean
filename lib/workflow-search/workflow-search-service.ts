@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { filterWorkflowSearchServiceSlugs } from "./workflow-search-access";
+import { resolveAllowedWorkflowSearchServiceSlugs } from "./workflow-search-access";
 import { normalizeWorkflowSearchText, rankWorkflowSearchText, sortWorkflowSearchResults } from "./workflow-search-ranking";
 import type { WorkflowSearchResult } from "./workflow-search-types";
 
@@ -16,17 +16,21 @@ export async function searchWorkflows(input: {
   const query = input.query.trim();
   if (normalizeWorkflowSearchText(query).length < 2) return [];
 
+  const allowedSlugs = await resolveAllowedWorkflowSearchServiceSlugs({
+    role: input.role,
+    userId: input.userId,
+    schoolAccountId: input.schoolAccountId,
+  });
+  if (allowedSlugs && allowedSlugs.size === 0) return [];
+
   const workflows = await prisma.workflow.findMany({
     where: {
       status: "ACTIVE",
       isActive: true,
-      service: { status: "ACTIVE" },
-      OR: [
-        { name: { contains: query } },
-        { service: { name: { contains: query } } },
-        { steps: { some: { title: { contains: query } } } },
-        { steps: { some: { fields: { some: { label: { contains: query } } } } } },
-      ],
+      service: {
+        status: "ACTIVE",
+        ...(allowedSlugs ? { slug: { in: [...allowedSlugs] } } : {}),
+      },
     },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
     take: 100,
@@ -45,17 +49,10 @@ export async function searchWorkflows(input: {
     },
   });
 
-  const allowedSlugs = await filterWorkflowSearchServiceSlugs({
-    role: input.role,
-    userId: input.userId,
-    schoolAccountId: input.schoolAccountId,
-    serviceSlugs: workflows.map((workflow) => workflow.service.slug),
-  });
-
   const results: WorkflowSearchResult[] = [];
   const seenServices = new Set<string>();
   for (const workflow of workflows) {
-    if (!allowedSlugs.has(workflow.service.slug)) continue;
+    if (allowedSlugs && !allowedSlugs.has(workflow.service.slug)) continue;
     const href = workflowHref(workflow.service.slug);
     const serviceScore = rankWorkflowSearchText(workflow.service.name, query);
     const workflowScore = rankWorkflowSearchText(workflow.name, query);

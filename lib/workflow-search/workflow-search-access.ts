@@ -13,18 +13,16 @@ export function getWorkflowSearchRoleServiceSlugs(role: string) {
   return ROLE_SERVICE_SLUGS[role] || null;
 }
 
-export async function filterWorkflowSearchServiceSlugs(input: {
+export async function resolveAllowedWorkflowSearchServiceSlugs(input: {
   role: string;
   userId: string;
   schoolAccountId: string;
-  serviceSlugs: string[];
-}) {
-  if (input.role === "ADMIN") return new Set(input.serviceSlugs);
+}) : Promise<Set<string> | null> {
+  if (input.role === "ADMIN") return null;
 
   const roleSlugs = getWorkflowSearchRoleServiceSlugs(input.role) || [];
-  const candidates = input.serviceSlugs.filter((slug) => roleSlugs.includes(slug));
   const access = await Promise.all(
-    [...new Set(candidates)].map(async (serviceSlug) => ({
+    roleSlugs.map(async (serviceSlug) => ({
       serviceSlug,
       allowed: await isServiceAllowedForUser({
         userId: input.userId,
