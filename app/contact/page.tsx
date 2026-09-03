@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { TeachixAppDownloadCard } from "@/components/apps/teachix-app-download-card";
 
 export const metadata: Metadata = {
   title: "تواصل معنا",
@@ -46,6 +47,9 @@ export default function ContactPage() {
         <section className="px-5 py-12 sm:px-8 sm:py-14 lg:px-10 lg:py-16">
           <div className="mx-auto max-w-7xl">
             <ContactForm />
+            <div className="mx-auto mt-8 max-w-3xl">
+              <TeachixAppDownloadCard />
+            </div>
           </div>
         </section>
       </main>

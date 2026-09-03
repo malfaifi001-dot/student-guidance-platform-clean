@@ -2,6 +2,7 @@ import { MessageCircle } from "lucide-react";
 
 import { SocialSection } from "@/components/marketing/social-section";
 import { buildTeachixSupportWhatsAppUrl } from "@/lib/marketing/contact-details";
+import { TeachixAppDownloadCard } from "@/components/apps/teachix-app-download-card";
 
 export function SupportHelpPage() {
   return (
@@ -42,6 +43,7 @@ export function SupportHelpPage() {
       </section>
 
       <SocialSection compact />
+      <TeachixAppDownloadCard />
     </main>
   );
 }

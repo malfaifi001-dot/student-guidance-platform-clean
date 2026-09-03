@@ -14,6 +14,7 @@ import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-b
 import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
 import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
 import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
+import { TeachixAppDownloadPrompt } from "@/components/apps/teachix-app-download-prompt";
 
 export const metadata: Metadata = {
   robots: {
@@ -85,6 +86,8 @@ export default async function DashboardLayout({
               subscription={subscriptionPresentation}
               salesMode={salesExperience.effectiveMode}
             />
+
+            <TeachixAppDownloadPrompt />
 
             {current.user.role !== "PRINCIPAL" ? (
               <>

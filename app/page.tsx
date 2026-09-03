@@ -21,6 +21,7 @@ import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { TeachixStructuredData } from "@/components/marketing/teachix-structured-data";
 import { RoleStorySection } from "@/components/marketing/role-story-section";
 import { SocialSection } from "@/components/marketing/social-section";
+import { HomeAppDownloadsSection } from "@/components/marketing/home-app-downloads-section";
 import { TEACHIX_TAGLINE } from "@/lib/constants/brand";
 
 const homeDescription =
@@ -183,17 +184,6 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <nav aria-label="روابط Teachix العامة" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                <Link href="/free/curriculum-distribution" className="font-black text-sky-700 transition hover:text-sky-600 dark:text-sky-300">
-                  حمّل توزيع منهجك مجانًا
-                </Link>
-                <Link href="/services" className="transition hover:text-sky-600">خدمات Teachix</Link>
-                <Link href="/features" className="transition hover:text-sky-600">مميزات Teachix</Link>
-                <Link href="/about" className="transition hover:text-sky-600">عن Teachix</Link>
-                <Link href="/contact" className="transition hover:text-sky-600">تواصل معنا</Link>
-              </nav>
-
-
             </div>
 
             <div className="relative mx-auto hidden w-full md:block md:max-w-[570px] lg:max-w-[540px] xl:max-w-[680px]">
@@ -354,6 +344,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <HomeAppDownloadsSection />
 
         {/* =====================================================
             USERS STORY

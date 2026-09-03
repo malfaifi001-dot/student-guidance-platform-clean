@@ -23,6 +23,7 @@ type MobilePopCardProps = {
   children?: ReactNode;
   onConfirm?: () => void;
   onClose: () => void;
+  placement?: "bottom" | "center";
 };
 
 function getTone(variant: MobilePopCardVariant) {
@@ -76,6 +77,7 @@ export function MobilePopCard({
   children,
   onConfirm,
   onClose,
+  placement = "bottom",
 }: MobilePopCardProps) {
   if (!open) return null;
 
@@ -85,10 +87,21 @@ export function MobilePopCard({
   return (
     <div
       dir="rtl"
-      className="fixed inset-0 z-[120] bg-slate-950/45 backdrop-blur-sm"
+      className={[
+        "fixed inset-0 z-[120] overflow-y-auto bg-slate-950/45 backdrop-blur-sm",
+        placement === "center"
+          ? "flex items-center justify-center px-4 py-6"
+          : "",
+      ].join(" ")}
       onClick={onClose}
     >
-      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[430px] p-3">
+      <div
+        className={
+          placement === "center"
+            ? "w-full max-w-[430px]"
+            : "absolute inset-x-0 bottom-0 mx-auto w-full max-w-[430px] p-3"
+        }
+      >
         <section
           className="overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-100/80"
           onClick={(event) => event.stopPropagation()}
