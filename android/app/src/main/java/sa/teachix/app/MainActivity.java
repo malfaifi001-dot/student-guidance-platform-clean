@@ -1,6 +1,7 @@
 package sa.teachix.app;
 
 import android.os.Bundle;
+import android.graphics.Color;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewParent;
@@ -26,6 +27,9 @@ public class MainActivity extends BridgeActivity {
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(Color.WHITE);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         WebView webView = getBridge().getWebView();
@@ -41,6 +45,11 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void configureWindowInsets(CoordinatorLayout root) {
+        // Android 15/16 enforces edge-to-edge for target SDK 36. Keep the
+        // native area behind the status bar white instead of relying on the
+        // deprecated statusBarColor API.
+        root.setBackgroundColor(Color.WHITE);
+
         final int originalPaddingLeft = root.getPaddingLeft();
         final int originalPaddingTop = root.getPaddingTop();
         final int originalPaddingRight = root.getPaddingRight();

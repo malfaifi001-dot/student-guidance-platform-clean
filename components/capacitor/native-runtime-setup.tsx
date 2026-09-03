@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import {
@@ -27,6 +28,7 @@ import {
   publishNativeStartupReady,
 } from "@/lib/native/native-onboarding";
 import { isDashboardHomePath } from "@/lib/auth/dashboard-redirects";
+import { setNativeStatusBarUnderlay } from "@/lib/native/native-download";
 
 export function NativeRuntimeSetup() {
   const [startupGateActive, setStartupGateActive] = useState(false);
@@ -423,9 +425,30 @@ export function NativeRuntimeSetup() {
 
     const applyStatusBar = () => {
       const isDark = document.documentElement.classList.contains("dark");
-      void StatusBar.setOverlaysWebView({ overlay: false });
-      void StatusBar.setBackgroundColor({ color: isDark ? "#07111F" : "#F8FAFC" });
-      void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+      if (Capacitor.getPlatform() === "android") {
+        const requestedColor = isDark ? "#07111F" : "#FFFFFF";
+        void setNativeStatusBarUnderlay(requestedColor)
+          .then(() => {
+            console.debug("TEACHIX_STATUSBAR_BRIDGE_DEBUG", {
+              isDark,
+              requestedColor,
+              result: "success",
+            });
+          })
+          .catch((error) => {
+            console.error("TEACHIX_STATUSBAR_BRIDGE_DEBUG", {
+              isDark,
+              requestedColor,
+              result: "error",
+              message: error instanceof Error ? error.message : String(error),
+            });
+          });
+        void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+      } else {
+        void StatusBar.setOverlaysWebView({ overlay: false });
+        void StatusBar.setBackgroundColor({ color: isDark ? "#07111F" : "#F8FAFC" });
+        void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+      }
     };
 
     applyStatusBar();

@@ -1,0 +1,1084 @@
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\AndroidManifest.xml ====================
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="teachix.sa" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+</manifest>
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\res\values\styles.xml ====================
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+ <item name="android:background">@null</item>
+ <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+ <item name="android:windowLightStatusBar">true</item>
+ <item name="android:statusBarColor">@android:color/white</item>
+ <item name="android:windowActionModeOverlay">true</item>
+</style>
+
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/teachix_splash_blue</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:background">@color/teachix_light_surface</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\res\values-night\styles.xml ====================
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/teachix_splash_blue</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:background">@color/teachix_dark_surface</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\res\values-v31\styles.xml ====================
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/teachix_splash_blue</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:windowSplashScreenBackground">@color/teachix_splash_blue</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\java\sa\teachix\app\MainActivity.java ====================
+
+package sa.teachix.app;
+
+import android.os.Bundle;
+import android.graphics.Color;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewParent;
+import android.webkit.CookieManager;
+import android.webkit.WebView;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    private void flushCookies() {
+        CookieManager.getInstance().flush();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(TeachixPdfPlugin.class);
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(Color.WHITE);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            cookieManager.setAcceptThirdPartyCookies(webView, false);
+
+            ViewParent parent = webView.getParent();
+            if (parent instanceof CoordinatorLayout) {
+                configureWindowInsets((CoordinatorLayout) parent);
+            }
+        }
+        flushCookies();
+    }
+
+    private void configureWindowInsets(CoordinatorLayout root) {
+        // Android 15/16 enforces edge-to-edge for target SDK 36. Keep the
+        // native area behind the status bar white instead of relying on the
+        // deprecated statusBarColor API.
+        root.setBackgroundColor(Color.WHITE);
+
+        final int originalPaddingLeft = root.getPaddingLeft();
+        final int originalPaddingTop = root.getPaddingTop();
+        final int originalPaddingRight = root.getPaddingRight();
+        final int originalPaddingBottom = root.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, windowInsets) -> {
+            Insets statusBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+            Insets displayCutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout());
+            int topInset = Math.max(statusBarInsets.top, displayCutoutInsets.top);
+            int paddingTopBefore = view.getPaddingTop();
+
+            // The existing dashboard/mobile CSS reserves the bottom gesture area
+            // through env(safe-area-inset-bottom). Apply only the native top
+            // inset here to avoid double spacing.
+            view.setPadding(
+                    originalPaddingLeft,
+                    originalPaddingTop + topInset,
+                    originalPaddingRight,
+                    originalPaddingBottom
+            );
+
+            Log.d(
+                    "TeachixInsets",
+                    "TEACHIX_INSETS_DEBUG listenerFired=true topInset=" + topInset
+                            + " rootPaddingTopBefore=" + paddingTopBefore
+                            + " rootPaddingTopAfter=" + view.getPaddingTop()
+                            + " target=" + view.getClass().getSimpleName()
+            );
+            return windowInsets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
+    }
+
+    @Override
+    public void onPause() {
+        flushCookies();
+        super.onPause();
+    }
+
+    @Override
+    public void onStop() {
+        flushCookies();
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        flushCookies();
+        super.onDestroy();
+    }
+}
+
+==================== D:\student-guidance-platform-clean\android\app\src\main\java\sa\teachix\app\TeachixPdfPlugin.java ====================
+
+package sa.teachix.app;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.print.PrintAttributes;
+import android.print.pdf.PrintedPdfDocument;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.webkit.CookieManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewParent;
+import android.widget.FrameLayout;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+@CapacitorPlugin(name = "TeachixPdf")
+public class TeachixPdfPlugin extends Plugin {
+    private static final String TEACHIX_HOST = "teachix.sa";
+
+    @PluginMethod
+    public void setStatusBarUnderlay(PluginCall call) {
+        String color = call.getString("color");
+        if (color == null || color.trim().isEmpty()) {
+            call.reject("Status bar underlay color is missing");
+            return;
+        }
+
+        final int parsedColor;
+        try {
+            parsedColor = Color.parseColor(color);
+        } catch (IllegalArgumentException error) {
+            call.reject("Status bar underlay color is invalid");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            // Keep the window color aligned where the platform still honors
+            // it; Android 15/16 uses the root underlay below instead.
+            getActivity().getWindow().setStatusBarColor(parsedColor);
+            WebView webView = getBridge().getWebView();
+            ViewParent parent = webView == null ? null : webView.getParent();
+            if (parent instanceof View) {
+                ((View) parent).setBackgroundColor(parsedColor);
+            }
+            call.resolve();
+        });
+    }
+
+    private static final class OutputTarget {
+        final Uri uri;
+        final File file;
+        final boolean pendingMediaStore;
+        final String fileName;
+
+        OutputTarget(Uri uri, File file, boolean pendingMediaStore, String fileName) {
+            this.uri = uri;
+            this.file = file;
+            this.pendingMediaStore = pendingMediaStore;
+            this.fileName = fileName;
+        }
+    }
+
+    @PluginMethod
+    public void savePdf(PluginCall call) {
+        String data = call.getString("data");
+        String fileName = call.getString("fileName", "report.pdf");
+        saveBytes(call, data, ensureExtension(fileName, ".pdf"), "application/pdf");
+    }
+
+    @PluginMethod
+    public void saveFile(PluginCall call) {
+        String data = call.getString("data");
+        String fileName = call.getString("fileName", "download.bin");
+        String mimeType = call.getString("mimeType", "application/octet-stream");
+        saveBytes(call, data, fileName, mimeType);
+    }
+
+    private void saveBytes(PluginCall call, String data, String requestedName, String mimeType) {
+
+        if (data == null || data.trim().isEmpty()) {
+            call.reject("File data is missing");
+            return;
+        }
+
+        OutputTarget target = null;
+        try {
+            target = createOutputTarget(requestedName, mimeType);
+            byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+            try (OutputStream output = openOutputStream(target)) {
+                if (output == null) throw new IllegalStateException("Unable to open file output");
+                output.write(bytes);
+            }
+            finishOutputTarget(target);
+            resolveSaved(call, target);
+        } catch (Exception error) {
+            if (target != null) deleteOutputTarget(target);
+            call.reject("Unable to save file", error);
+        }
+    }
+
+    @PluginMethod
+    public void renderHtmlToPdf(PluginCall call) {
+        String url = call.getString("url");
+        String fileName = call.getString("fileName", "report.pdf");
+
+        if (!isAllowedTeachixUrl(url)) {
+            call.reject("Only authenticated Teachix URLs are allowed");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> renderAuthenticatedPage(call, url, fileName));
+    }
+
+    private boolean isAllowedTeachixUrl(String value) {
+        if (value == null || value.trim().isEmpty()) return false;
+        Uri uri = Uri.parse(value);
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !TEACHIX_HOST.equalsIgnoreCase(uri.getHost())) {
+            return false;
+        }
+        return !path.equals("/api") && !path.startsWith("/api/") &&
+            !path.equals("/login") && !path.startsWith("/_next/");
+    }
+
+    private void renderAuthenticatedPage(PluginCall call, String url, String fileName) {
+        final OutputTarget target;
+        try {
+            target = createOutputTarget(ensureExtension(fileName, ".pdf"), "application/pdf");
+        } catch (Exception error) {
+            call.reject("Unable to prepare PDF output", error);
+            return;
+        }
+
+        WebView webView = new WebView(getActivity());
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setLoadsImagesAutomatically(true);
+        settings.setDefaultTextEncodingName("utf-8");
+        settings.setUseWideViewPort(false);
+        settings.setLoadWithOverviewMode(false);
+        webView.setBackgroundColor(Color.WHITE);
+        webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, false);
+        cookieManager.flush();
+
+        FrameLayout root = getActivity().findViewById(android.R.id.content);
+        float density = getContext().getResources().getDisplayMetrics().density;
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+            Math.round(794f * density),
+            Math.round(1123f * density)
+        );
+        layoutParams.gravity = Gravity.TOP | Gravity.START;
+        layoutParams.leftMargin = -2000;
+        layoutParams.topMargin = 0;
+        root.addView(webView, layoutParams);
+
+        Handler timeoutHandler = new Handler(Looper.getMainLooper());
+        AtomicBoolean completed = new AtomicBoolean(false);
+        Runnable timeout = () -> {
+            if (completed.compareAndSet(false, true)) {
+                cleanupWebView(webView, root);
+                deleteOutputTarget(target);
+                call.reject("Timed out while loading the authenticated print view");
+            }
+        };
+
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String finishedUrl) {
+                if (completed.get()) return;
+                view.postDelayed(() -> {
+                    if (completed.compareAndSet(false, true)) {
+                        writeWebViewPdf(call, view, root, target, timeoutHandler, timeout);
+                    }
+                }, 700);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                if (completed.compareAndSet(false, true)) {
+                    timeoutHandler.removeCallbacks(timeout);
+                    cleanupWebView(view, root);
+                    deleteOutputTarget(target);
+                    call.reject("Unable to load the authenticated print view");
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceResponse response) {
+                if (request.isForMainFrame() && response.getStatusCode() >= 400 && completed.compareAndSet(false, true)) {
+                    timeoutHandler.removeCallbacks(timeout);
+                    cleanupWebView(view, root);
+                    deleteOutputTarget(target);
+                    call.reject("Unable to load the authenticated print view");
+                }
+            }
+        });
+
+        webView.loadUrl(url);
+        timeoutHandler.postDelayed(timeout, 30_000);
+    }
+
+    private void writeWebViewPdf(PluginCall call, WebView webView, FrameLayout root, OutputTarget target, Handler timeoutHandler, Runnable timeout) {
+        PrintAttributes attributes = new PrintAttributes.Builder()
+            .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+            .setResolution(new PrintAttributes.Resolution("teachix_pdf", "Teachix PDF", 300, 300))
+            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+            .build();
+        PrintedPdfDocument document = new PrintedPdfDocument(getContext(), attributes);
+
+        try {
+            float density = getContext().getResources().getDisplayMetrics().density;
+            int pageWidth = document.getPageWidth();
+            int pageHeight = document.getPageHeight();
+            int viewWidth = Math.max(webView.getWidth(), Math.round(794f * density));
+            int contentHeight = Math.max(
+                pageHeight,
+                Math.round(Math.max(1, webView.getContentHeight()) * density)
+            );
+
+            webView.measure(
+                View.MeasureSpec.makeMeasureSpec(viewWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(contentHeight, View.MeasureSpec.EXACTLY)
+            );
+            webView.layout(0, 0, viewWidth, contentHeight);
+
+            float scale = pageWidth / (float) viewWidth;
+            int scaledHeight = Math.round(contentHeight * scale);
+            int pageCount = Math.max(1, (int) Math.ceil(scaledHeight / (double) pageHeight));
+
+            for (int index = 0; index < pageCount; index++) {
+                android.graphics.pdf.PdfDocument.Page page = document.startPage(index);
+                Canvas canvas = page.getCanvas();
+                canvas.save();
+                canvas.clipRect(0, 0, pageWidth, pageHeight);
+                canvas.scale(scale, scale);
+                canvas.translate(0, -(index * pageHeight) / scale);
+                webView.draw(canvas);
+                canvas.restore();
+                document.finishPage(page);
+            }
+
+            try (OutputStream output = openOutputStream(target)) {
+                document.writeTo(output);
+            }
+            finishOutputTarget(target);
+            resolveSaved(call, target);
+        } catch (Exception error) {
+            deleteOutputTarget(target);
+            call.reject("Unable to generate PDF", error);
+        } finally {
+            timeoutHandler.removeCallbacks(timeout);
+            document.close();
+            cleanupWebView(webView, root);
+        }
+    }
+
+    private OutputTarget createOutputTarget(String requestedName, String mimeType) throws Exception {
+        String fileName = sanitizeFileName(requestedName);
+        ContentResolver resolver = getContext().getContentResolver();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType == null || mimeType.trim().isEmpty()
+                ? "application/octet-stream"
+                : mimeType);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Teachix");
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+            Uri collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            Uri uri = resolver.insert(collection, values);
+            if (uri == null) throw new IllegalStateException("Unable to create Downloads entry");
+            return new OutputTarget(uri, null, true, fileName);
+        }
+
+        File directory = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "Teachix");
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IllegalStateException("Unable to create app download directory");
+        }
+        return new OutputTarget(Uri.fromFile(new File(directory, fileName)), new File(directory, fileName), false, fileName);
+    }
+
+    private OutputStream openOutputStream(OutputTarget target) throws Exception {
+        if (target.file != null) return new FileOutputStream(target.file, false);
+        return getContext().getContentResolver().openOutputStream(target.uri, "w");
+    }
+
+    private void finishOutputTarget(OutputTarget target) {
+        if (!target.pendingMediaStore) return;
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+        getContext().getContentResolver().update(target.uri, values, null, null);
+    }
+
+    private void deleteOutputTarget(OutputTarget target) {
+        if (target.file != null) {
+            //noinspection ResultOfMethodCallIgnored
+            target.file.delete();
+        } else if (target.uri != null) {
+            getContext().getContentResolver().delete(target.uri, null, null);
+        }
+    }
+
+    private void resolveSaved(PluginCall call, OutputTarget target) {
+        JSObject result = new JSObject();
+        result.put("fileName", target.fileName);
+        result.put("uri", target.uri == null ? "" : target.uri.toString());
+        call.resolve(result);
+    }
+
+    private void cleanupWebView(WebView webView, FrameLayout root) {
+        root.removeView(webView);
+        webView.stopLoading();
+        webView.destroy();
+    }
+
+    private String sanitizeFileName(String requestedName) {
+        String value = requestedName == null ? "download.bin" : requestedName.trim();
+        value = value.replaceAll("[\\\\/:*?\"<>|]+", "-");
+        if (value.isEmpty()) value = "download.bin";
+        return value.length() > 150 ? value.substring(0, 150) : value;
+    }
+
+    private String ensureExtension(String value, String extension) {
+        String safe = value == null ? "" : value.trim();
+        return safe.toLowerCase(Locale.ROOT).endsWith(extension)
+            ? safe
+            : safe + extension;
+    }
+}
+
+==================== D:\student-guidance-platform-clean\components\capacitor\native-runtime-setup.tsx ====================
+
+"use client";
+
+import { useEffect, useLayoutEffect, useState } from "react";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
+import { FirebaseMessaging } from "@capacitor-firebase/messaging";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import {
+  logNativeRuntimeDiagnostic,
+  safeDiagnosticMessage,
+} from "@/lib/native/native-runtime-diagnostics";
+import {
+  clearNativeLastRoute,
+  createNativeRouteTracker,
+  acquireNativeRuntime,
+  getNativeDiagnosticPath,
+  getNativeDeepLinkRejectionReason,
+  getNativeRouteKind,
+  getSafeNativeDeepLinkPath,
+  isNativeCapacitor,
+  navigateNativeDeepLink,
+  readNativeLastRoute,
+  releaseNativeRuntime,
+} from "@/lib/native/native-runtime";
+import {
+  closeNativeOnboardingReview,
+  isNativeOnboardingReviewOpen,
+  publishNativeStartupReady,
+} from "@/lib/native/native-onboarding";
+import { isDashboardHomePath } from "@/lib/auth/dashboard-redirects";
+import { setNativeStatusBarUnderlay } from "@/lib/native/native-download";
+
+export function NativeRuntimeSetup() {
+  const [startupGateActive, setStartupGateActive] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!isNativeCapacitor()) return;
+
+    setStartupGateActive(true);
+    logNativeRuntimeDiagnostic("startup-gate-activated", { coldStart: true });
+  }, []);
+
+  useEffect(() => {
+    if (!isNativeCapacitor()) return;
+    if (!acquireNativeRuntime()) {
+      setStartupGateActive(false);
+      return;
+    }
+
+    logNativeRuntimeDiagnostic("native-runtime-mounted", { coldStart: true });
+    logNativeRuntimeDiagnostic("cold-start-detected", { coldStart: true });
+    logNativeRuntimeDiagnostic("cold-start-resolution-start", { coldStart: true });
+
+    if (window.location.pathname === "/login") {
+      clearNativeLastRoute();
+    }
+
+    const routeTracker = createNativeRouteTracker();
+    let disposed = false;
+    let startupResolutionComplete = false;
+    let pendingStartupPath: string | null = null;
+    let lastHandledSafePath: string | null = null;
+    let coldStartNavigationCompleted = false;
+    let deepLinkHandled = false;
+    let removeBackListener: (() => Promise<void>) | null = null;
+    let removeUrlListener: (() => Promise<void>) | null = null;
+    let removeStateListener: (() => Promise<void>) | null = null;
+    let removePushActionListener: (() => Promise<void>) | null = null;
+
+    const releaseStartupGate = (reason: string) => {
+      setStartupGateActive(false);
+      logNativeRuntimeDiagnostic("startup-gate-released", {
+        reason,
+        coldStart: true,
+      });
+    };
+
+    const handleIncomingUrl = (url: string, options?: { coldStart?: boolean }) => {
+      const pathnameBefore = `${window.location.pathname}${window.location.search}`;
+      let safePath: string | null = null;
+
+      try {
+        safePath = getSafeNativeDeepLinkPath(url);
+      } catch (error) {
+        logNativeRuntimeDiagnostic("native-runtime-error", {
+          errorCode: "NATIVE_DEEP_LINK_PARSE_ERROR",
+          message: safeDiagnosticMessage(error),
+          context: options?.coldStart ? "cold-start" : "warm-app-url",
+          coldStart: Boolean(options?.coldStart),
+        });
+      }
+
+      logNativeRuntimeDiagnostic("deep-link-parsed", {
+        safePath: safePath ? getNativeDiagnosticPath(safePath) : null,
+        pathnameBefore: getNativeDiagnosticPath(pathnameBefore),
+        allowed: Boolean(safePath),
+        coldStart: Boolean(options?.coldStart),
+      });
+
+      if (!safePath) {
+        logNativeRuntimeDiagnostic("deep-link-rejected", {
+          allowed: false,
+          rejectionReason: getNativeDeepLinkRejectionReason(url),
+          coldStart: Boolean(options?.coldStart),
+        });
+        return false;
+      }
+
+      if (!options?.coldStart && !startupResolutionComplete) {
+        pendingStartupPath = safePath;
+        logNativeRuntimeDiagnostic("warm-app-url-received", {
+          safePath: getNativeDiagnosticPath(safePath),
+          coldStart: true,
+        });
+        logNativeRuntimeDiagnostic("cold-start-app-url-suppressed", {
+          safePath: getNativeDiagnosticPath(safePath),
+          coldStart: true,
+        });
+        return true;
+      }
+
+      if (lastHandledSafePath === safePath) {
+        logNativeRuntimeDiagnostic("duplicate-deep-link-skipped", {
+          safePath: getNativeDiagnosticPath(safePath),
+          coldStart: Boolean(options?.coldStart),
+        });
+        return true;
+      }
+
+      if (!options?.coldStart) {
+        logNativeRuntimeDiagnostic("warm-app-url-received", {
+          safePath: getNativeDiagnosticPath(safePath),
+          coldStart: false,
+        });
+      }
+
+      lastHandledSafePath = safePath;
+      pendingStartupPath = null;
+      deepLinkHandled = true;
+      logNativeRuntimeDiagnostic("deep-link-navigation-start", {
+        safePath: getNativeDiagnosticPath(safePath),
+        pathnameBefore: getNativeDiagnosticPath(pathnameBefore),
+        coldStart: Boolean(options?.coldStart),
+      });
+
+      try {
+        if (options?.coldStart) {
+          coldStartNavigationCompleted = true;
+          window.location.replace(safePath);
+          logNativeRuntimeDiagnostic("cold-start-launch-url-handled", {
+            safePath: getNativeDiagnosticPath(safePath),
+            coldStart: true,
+          });
+        } else {
+          navigateNativeDeepLink(safePath);
+        }
+
+        logNativeRuntimeDiagnostic("deep-link-navigation-complete-attempt", {
+          safePath: getNativeDiagnosticPath(safePath),
+          pathnameAfter: getNativeDiagnosticPath(window.location.pathname),
+          coldStart: Boolean(options?.coldStart),
+        });
+      } catch (error) {
+        logNativeRuntimeDiagnostic("native-runtime-error", {
+          errorCode: "NATIVE_DEEP_LINK_NAVIGATION_ERROR",
+          message: safeDiagnosticMessage(error),
+          context: options?.coldStart ? "cold-start" : "warm-app-url",
+          safePath: getNativeDiagnosticPath(safePath),
+          coldStart: Boolean(options?.coldStart),
+        });
+      }
+
+      return true;
+    };
+
+    const appUrlListenerPromise = App.addListener("appUrlOpen", ({ url }) => {
+      handleIncomingUrl(url);
+    });
+
+    const pushActionListenerPromise = FirebaseMessaging.addListener("notificationActionPerformed", ({ notification }) => {
+      const data = notification.data;
+      const route = typeof data === "object" && data !== null && "route" in data
+        ? (data as { route?: unknown }).route
+        : undefined;
+      const campaignId = typeof data === "object" && data !== null && "campaignId" in data
+        ? (data as { campaignId?: unknown }).campaignId
+        : undefined;
+      if (typeof campaignId === "string" && campaignId.length > 0 && typeof route === "string") {
+        void fetch("/api/dashboard/notifications/open", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaignId, route }),
+        }).catch(() => undefined);
+      }
+      const url =
+        typeof route === "string"
+          ? route.startsWith("/")
+            ? `https://teachix.sa${route}`
+            : route
+          : "";
+      const accepted = handleIncomingUrl(url);
+
+      logNativeRuntimeDiagnostic("push-notification-opened", {
+        hasRoute: typeof route === "string" && route.length > 0,
+        accepted,
+      });
+
+      if (!accepted) {
+        logNativeRuntimeDiagnostic("push-route-rejected", {
+          reason: "UNSAFE_OR_MISSING_ROUTE",
+        });
+        handleIncomingUrl("https://teachix.sa/dashboard");
+      }
+    });
+    pushActionListenerPromise.then((handle) => {
+      if (disposed) {
+        void handle.remove();
+      } else {
+        removePushActionListener = () => handle.remove();
+      }
+    }).catch(() => {
+      logNativeRuntimeDiagnostic("push-route-rejected", {
+        reason: "ACTION_LISTENER_FAILED",
+      });
+    });
+
+    void App.addListener("backButton", () => {
+      if (isNativeOnboardingReviewOpen()) {
+        closeNativeOnboardingReview();
+        return;
+      }
+
+      const meaningfulInternalHistory = routeTracker.canGoBack();
+      logNativeRuntimeDiagnostic("back-button-received", { meaningfulInternalHistory });
+
+      try {
+        if (meaningfulInternalHistory) {
+          logNativeRuntimeDiagnostic("back-navigation-history", {
+            meaningfulInternalHistory: true,
+          });
+          window.history.back();
+          return;
+        }
+
+        logNativeRuntimeDiagnostic("back-at-root", { meaningfulInternalHistory: false });
+        logNativeRuntimeDiagnostic("app-exit-requested", {
+          reason: "NO_INTERNAL_HISTORY",
+        });
+        void App.exitApp();
+      } catch (error) {
+        logNativeRuntimeDiagnostic("native-runtime-error", {
+          errorCode: "NATIVE_BACK_HANDLER_ERROR",
+          message: safeDiagnosticMessage(error),
+          context: "backButton",
+        });
+      }
+    }).then((handle) => {
+      if (disposed) {
+        void handle.remove();
+      } else {
+        removeBackListener = () => handle.remove();
+      }
+    }).catch((error) => {
+      logNativeRuntimeDiagnostic("native-runtime-error", {
+        errorCode: "NATIVE_APP_LISTENER_ERROR",
+        message: safeDiagnosticMessage(error),
+        context: "backButton",
+      });
+    });
+
+    void (async () => {
+      logNativeRuntimeDiagnostic("startup-launch-resolution-start", {
+        coldStart: true,
+      });
+
+      const urlHandle = await appUrlListenerPromise;
+
+      if (disposed) {
+        void urlHandle.remove();
+      } else {
+        removeUrlListener = () => urlHandle.remove();
+      }
+
+      await pushActionListenerPromise;
+
+      let launchUrl: Awaited<ReturnType<typeof App.getLaunchUrl>>;
+      try {
+        launchUrl = await App.getLaunchUrl();
+      } catch (error) {
+        logNativeRuntimeDiagnostic("native-runtime-error", {
+          errorCode: "NATIVE_LAUNCH_URL_ERROR",
+          message: safeDiagnosticMessage(error),
+          context: "getLaunchUrl",
+          coldStart: true,
+        });
+        launchUrl = undefined;
+      }
+
+      const launchSafePath = launchUrl?.url ? getSafeNativeDeepLinkPath(launchUrl.url) : null;
+      if (launchUrl?.url) {
+        logNativeRuntimeDiagnostic("launch-url-received", {
+          safePath: launchSafePath ? getNativeDiagnosticPath(launchSafePath) : null,
+          allowed: Boolean(launchSafePath),
+          coldStart: true,
+        });
+      } else {
+        logNativeRuntimeDiagnostic("launch-url-missing", { coldStart: true });
+      }
+
+      const coldPath = launchSafePath || pendingStartupPath;
+      if (coldPath && !coldStartNavigationCompleted) {
+        const currentRoute = `${window.location.pathname}${window.location.search}`;
+        const serverResolvedDashboardPath =
+          coldPath === "/dashboard" && isDashboardHomePath(window.location.pathname);
+
+        if (currentRoute === coldPath || serverResolvedDashboardPath) {
+          deepLinkHandled = true;
+          lastHandledSafePath = coldPath;
+          pendingStartupPath = null;
+          coldStartNavigationCompleted = true;
+          logNativeRuntimeDiagnostic("cold-start-already-at-target", {
+            safePath: getNativeDiagnosticPath(coldPath),
+            pathname: getNativeDiagnosticPath(window.location.pathname),
+            serverResolvedDashboardPath,
+            coldStart: true,
+          });
+          logNativeRuntimeDiagnostic("cold-start-launch-complete", {
+            safePath: getNativeDiagnosticPath(coldPath),
+            pathname: getNativeDiagnosticPath(window.location.pathname),
+            coldStart: true,
+          });
+          releaseStartupGate("ALREADY_AT_TARGET");
+        } else if (
+          getNativeRouteKind(coldPath) === "DASHBOARD_APP_ROUTE" &&
+          window.location.pathname === "/login"
+        ) {
+          deepLinkHandled = true;
+          lastHandledSafePath = coldPath;
+          pendingStartupPath = null;
+          coldStartNavigationCompleted = true;
+          releaseStartupGate("AUTH_REDIRECT_ALLOWED");
+        } else {
+          logNativeRuntimeDiagnostic("startup-gate-held-for-navigation", {
+            reason:
+              getNativeRouteKind(coldPath) === "PUBLIC_TOKEN_ROUTE"
+                ? "PUBLIC_DEEP_LINK"
+                : "DASHBOARD_DEEP_LINK",
+            safePath: getNativeDiagnosticPath(coldPath),
+            coldStart: true,
+          });
+          handleIncomingUrl(`https://teachix.sa${coldPath}`, { coldStart: true });
+        }
+      }
+
+      startupResolutionComplete = true;
+      logNativeRuntimeDiagnostic("startup-launch-resolution-complete", {
+        hasLaunchPath: Boolean(coldPath),
+        coldStart: true,
+      });
+      logNativeRuntimeDiagnostic("warm-listener-enabled", { coldStart: false });
+
+      if (deepLinkHandled) {
+        publishNativeStartupReady(true);
+        logNativeRuntimeDiagnostic("restore-skipped", {
+          reason: "DEEP_LINK_HAS_PRIORITY",
+          skipped: true,
+          coldStart: true,
+        });
+      } else if (window.location.pathname !== "/dashboard") {
+        releaseStartupGate("NOT_DASHBOARD_ROOT");
+        publishNativeStartupReady(false);
+        logNativeRuntimeDiagnostic("restore-skipped", {
+          reason: "NOT_DASHBOARD_ROOT",
+          skipped: true,
+          coldStart: true,
+        });
+      } else {
+        const lastRoute = readNativeLastRoute();
+        const currentRoute = `${window.location.pathname}${window.location.search}`;
+        if (lastRoute && lastRoute !== currentRoute) {
+          logNativeRuntimeDiagnostic("startup-gate-held-for-navigation", {
+            reason: "LAST_ROUTE_RESTORE",
+            safePath: lastRoute,
+            coldStart: true,
+          });
+          window.location.replace(lastRoute);
+          logNativeRuntimeDiagnostic("last-route-restored", { safePath: lastRoute });
+        } else {
+          releaseStartupGate("NO_LAUNCH_URL");
+          publishNativeStartupReady(false);
+          logNativeRuntimeDiagnostic("restore-skipped", {
+            reason: "NO_STORED_ROUTE",
+            skipped: true,
+            coldStart: true,
+          });
+        }
+      }
+    })().catch((error) => {
+      logNativeRuntimeDiagnostic("native-runtime-error", {
+        errorCode: "NATIVE_LAUNCH_URL_ERROR",
+        message: safeDiagnosticMessage(error),
+        context: "launch-url-and-restore",
+        coldStart: true,
+      });
+      releaseStartupGate("LAUNCH_RESOLUTION_ERROR");
+    });
+
+    void App.addListener("appStateChange", ({ isActive }) => {
+      logNativeRuntimeDiagnostic(isActive ? "app-resumed" : "app-paused", {
+        appState: isActive ? "active" : "background",
+      });
+    }).then((handle) => {
+      if (disposed) {
+        void handle.remove();
+      } else {
+        removeStateListener = () => handle.remove();
+      }
+    }).catch((error) => {
+      logNativeRuntimeDiagnostic("native-runtime-error", {
+        errorCode: "NATIVE_APP_LISTENER_ERROR",
+        message: safeDiagnosticMessage(error),
+        context: "appStateChange",
+      });
+    });
+
+    const applyStatusBar = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      if (Capacitor.getPlatform() === "android") {
+        void setNativeStatusBarUnderlay(isDark ? "#07111F" : "#FFFFFF");
+        void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+      } else {
+        void StatusBar.setOverlaysWebView({ overlay: false });
+        void StatusBar.setBackgroundColor({ color: isDark ? "#07111F" : "#F8FAFC" });
+        void StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+      }
+    };
+
+    applyStatusBar();
+    const observer = new MutationObserver(applyStatusBar);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    return () => {
+      disposed = true;
+      routeTracker.destroy();
+      observer.disconnect();
+      if (removeBackListener) void removeBackListener();
+      if (removeUrlListener) void removeUrlListener();
+      if (removeStateListener) void removeStateListener();
+      if (removePushActionListener) void removePushActionListener();
+      releaseNativeRuntime();
+    };
+  }, []);
+
+  return (
+    <div
+      aria-hidden={!startupGateActive}
+      data-native-startup-gate="true"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#1769FF] transition-opacity duration-150"
+      style={{
+        opacity: startupGateActive ? 1 : 0,
+        pointerEvents: startupGateActive ? "auto" : "none",
+        visibility: startupGateActive ? "visible" : "hidden",
+      }}
+    >
+      <div className="flex flex-col items-center" aria-label="Teachix">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 108 108"
+          className="h-28 w-28"
+          fill="none"
+        >
+          <path
+            d="M54 12a42 42 0 1 0 0 84 42 42 0 1 0 0-84Zm0 12a30 30 0 1 1 0 60 30 30 0 1 1 0-60Zm0 12a18 18 0 1 0 0 36 18 18 0 1 0 0-36Zm0 10a8 8 0 1 1 0 16 8 8 0 1 1 0-16Z"
+            fill="white"
+            fillRule="evenodd"
+          />
+        </svg>
+        <p
+          dir="auto"
+          className="mt-5 whitespace-nowrap text-center font-sans text-base font-semibold tracking-wide text-white"
+        >
+          Teachix | الأسهل والأشمل
+        </p>
+      </div>
+    </div>
+  );
+}

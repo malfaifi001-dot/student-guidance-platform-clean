@@ -13,12 +13,14 @@ import android.print.PrintAttributes;
 import android.print.pdf.PrintedPdfDocument;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 
 import com.getcapacitor.JSObject;
@@ -36,6 +38,45 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @CapacitorPlugin(name = "TeachixPdf")
 public class TeachixPdfPlugin extends Plugin {
     private static final String TEACHIX_HOST = "teachix.sa";
+
+    @PluginMethod
+    public void setStatusBarUnderlay(PluginCall call) {
+        String color = call.getString("color");
+        Log.d("TeachixStatusBar", "setStatusBarUnderlay called; color=" + color);
+        if (color == null || color.trim().isEmpty()) {
+            call.reject("Status bar underlay color is missing");
+            return;
+        }
+
+        final int parsedColor;
+        try {
+            parsedColor = Color.parseColor(color);
+        } catch (IllegalArgumentException error) {
+            call.reject("Status bar underlay color is invalid");
+            return;
+        }
+        Log.d("TeachixStatusBar", "parsedColor=" + parsedColor);
+
+        getActivity().runOnUiThread(() -> {
+            // Keep the window color aligned where the platform still honors
+            // it; Android 15/16 uses the root underlay below instead.
+            getActivity().getWindow().setStatusBarColor(parsedColor);
+            WebView webView = getBridge().getWebView();
+            ViewParent parent = webView == null ? null : webView.getParent();
+            Log.d(
+                    "TeachixStatusBar",
+                    "webViewExists=" + (webView != null)
+                            + "; parentClass=" + (parent == null ? "null" : parent.getClass().getName())
+            );
+            if (parent instanceof View) {
+                ((View) parent).setBackgroundColor(parsedColor);
+                Log.d("TeachixStatusBar", "parentBackgroundUpdateExecuted=true");
+            } else {
+                Log.d("TeachixStatusBar", "parentBackgroundUpdateExecuted=false");
+            }
+            call.resolve();
+        });
+    }
 
     private static final class OutputTarget {
         final Uri uri;
