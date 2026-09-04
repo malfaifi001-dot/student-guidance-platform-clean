@@ -1,8 +1,15 @@
 export type PortfolioPhysicalTracePayload = Record<string, unknown>;
 
+const isProductionBuild = process.env.NODE_ENV === "production";
+const isServerRuntime = typeof window === "undefined";
+
+// The server flag stays private. The browser flag must be public because
+// Next.js replaces NEXT_PUBLIC_* references in the client bundle at build time.
 const TRACE_ENABLED =
-  process.env.NODE_ENV !== "production" ||
-  process.env.PORTFOLIO_PHYSICAL_TRACE === "1";
+  !isProductionBuild ||
+  (isServerRuntime
+    ? process.env.PORTFOLIO_PHYSICAL_TRACE === "1"
+    : process.env.NEXT_PUBLIC_PORTFOLIO_PHYSICAL_TRACE === "1");
 
 let traceSequence = 0;
 
@@ -22,4 +29,3 @@ export function portfolioPhysicalTrace(
   traceGlobal.__PORTFOLIO_PHYSICAL_TRACE__.push(row);
   console.log(`[PORTFOLIO-PHYSICAL-TRACE #${traceSequence}] ${event}`, payload);
 }
-
