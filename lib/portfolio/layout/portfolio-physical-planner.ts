@@ -4,6 +4,7 @@ import type { PortfolioBlock } from "@/lib/portfolio/layout/portfolio-block-type
 import type { PortfolioLogicalDocument, PortfolioLogicalSection } from "@/lib/portfolio/layout/portfolio-logical-document";
 import type { PortfolioPhysicalDocument, PortfolioPhysicalPage, PortfolioPhysicalPageRole, PortfolioPhysicalPageType } from "@/lib/portfolio/layout/portfolio-physical-types";
 import { normalizePortfolioServiceOutput, type PortfolioActivityPlanRow, type PortfolioCurriculumWeek, type PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
+import { formatTenPercentWeeks, type ActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-registry";
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
 import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
@@ -27,16 +28,35 @@ function estimateActivityPlanRowHeightMm(row: PortfolioActivityPlanRow) {
   return 5.5 + Math.max(...values.map((value) => estimateTextLines(value)));
 }
 
-function estimateTenPercentRowHeightMm(row: { domains?: Array<{ title?: string }>; programs?: Array<{ name?: string }>; executionWeeks?: unknown; grades?: string[]; teacherNames?: string[]; subject?: string | null }) {
-  const values = [
-    row.domains?.map((item) => item.title).join("، "),
-    row.programs?.map((item) => item.name).join("، "),
-    row.grades?.join("\n"),
-    row.teacherNames?.join("\n"),
-    row.subject,
-    row.executionWeeks,
-  ];
-  return 5.5 + Math.max(...values.map((value) => estimateTextLines(value, 18)));
+const TEN_PERCENT_COLUMN_CHARS = {
+  domain: 13,
+  program: 17,
+  periods: 5,
+  weeks: 7,
+  subject: 7,
+  grades: 8,
+  teachers: 7,
+} as const;
+
+function estimateCellLines(value: unknown, charsPerLine: number) {
+  const lines = String(value ?? "").split(/\r?\n/);
+  return Math.max(1, lines.reduce((total, line) => total + Math.max(1, Math.ceil(line.trim().length / charsPerLine)), 0));
+}
+
+function estimateTenPercentRowHeightMm(row: ActivityPlanTenPercentRow) {
+  const lines = Math.max(
+    estimateCellLines(row.domains.map((item) => item.title).join("، "), TEN_PERCENT_COLUMN_CHARS.domain),
+    estimateCellLines(row.programs.map((item) => item.name).join("، "), TEN_PERCENT_COLUMN_CHARS.program),
+    estimateCellLines(row.periodCount || "—", TEN_PERCENT_COLUMN_CHARS.periods),
+    estimateCellLines(formatTenPercentWeeks(row.executionWeeks), TEN_PERCENT_COLUMN_CHARS.weeks),
+    estimateCellLines(row.subject || "—", TEN_PERCENT_COLUMN_CHARS.subject),
+    estimateCellLines(row.grades.join("\n"), TEN_PERCENT_COLUMN_CHARS.grades),
+    estimateCellLines(row.teacherNames.join("\n"), TEN_PERCENT_COLUMN_CHARS.teachers),
+  );
+
+  // 8.3px font × 1.35 line-height plus 1.8mm vertical padding and borders.
+  // The result is calibrated to the observed 6.8/9.8/12.7mm row heights.
+  return 3.9 + lines * 3;
 }
 
 function splitRowsByEstimatedHeight<T>(rows: T[], estimate: (row: T) => number, budgetMm: number) {
@@ -73,7 +93,8 @@ function splitServiceOutputChunkForPhysicalPages(
     }));
   }
   if (chunk.kind === "ten-percent-activity-plan") {
-    return splitRowsByEstimatedHeight(chunk.rows, estimateTenPercentRowHeightMm, safeHeightMm - 12).map((rows) => ({ ...chunk, rows }));
+    const budgetMm = safeHeightMm - 18;
+    return splitRowsByEstimatedHeight(chunk.rows, estimateTenPercentRowHeightMm, budgetMm).map((rows) => ({ ...chunk, rows }));
   }
   if (chunk.kind === "activity-team") {
     return splitRowsByEstimatedHeight(chunk.rows, (row) => 9 + estimateTextLines(`${row.label} ${row.supervisor}`, 28), safeHeightMm).map((rows) => ({ ...chunk, rows }));
@@ -204,6 +225,12 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
             : splitServiceOutputChunkForPhysicalPages(chunk, frame.contentHeightMm),
         );
         chunks.forEach((chunk, chunkIndex) => {
+          const estimatedHeightMm = chunk.kind === "ten-percent-activity-plan"
+            ? 7 + chunk.rows.reduce((total, row) => total + estimateTenPercentRowHeightMm(row), 0)
+            : undefined;
+          const budgetMm = chunk.kind === "ten-percent-activity-plan"
+            ? Math.max(120, frame.contentHeightMm - 18) - 18
+            : undefined;
           portfolioPhysicalTrace("CHUNK_CREATED", {
             outputId: block.payload.output.id,
             chunkKind: chunk.kind,
@@ -213,7 +240,12 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
             isContinuation: chunkIndex > 0,
             hasSummary: "summary" in chunk ? Boolean(chunk.summary) : false,
             hasQr: "shareQrDataUrl" in chunk ? Boolean(chunk.shareQrDataUrl) : false,
+            estimatedHeightMm,
+            budgetMm,
           });
+          if (chunk.kind === "ten-percent-activity-plan" && estimatedHeightMm !== undefined && budgetMm !== undefined && estimatedHeightMm > budgetMm + 7) {
+            portfolioPhysicalTrace("WARNING", { type: "SERVICE_OUTPUT_CHUNK_TOO_TALL", outputId: block.payload.output.id, chunkIndex, estimatedHeightMm, budgetMm });
+          }
         });
         const outputPages = chunks.map((chunk, index) => {
           const pageType = index === 0 ? "service-output" : "service-output-continuation";
