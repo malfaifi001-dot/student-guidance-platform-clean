@@ -56,14 +56,14 @@ export async function searchWorkflows(input: {
     const href = workflowHref(workflow.service.slug);
     const serviceScore = rankWorkflowSearchText(workflow.service.name, query);
     const workflowScore = rankWorkflowSearchText(workflow.name, query);
-    if (serviceScore && !seenServices.has(workflow.service.id)) { seenServices.add(workflow.service.id); results.push({ id: `service:${workflow.service.id}`, type: "SERVICE", title: workflow.service.name, subtitle: "خدمة", serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, href, score: serviceScore + 100 }); }
-    if (workflowScore) results.push({ id: `workflow:${workflow.id}`, type: "WORKFLOW", title: workflow.name, subtitle: workflow.service.name, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, href, score: workflowScore + 200 });
+    if (serviceScore && !seenServices.has(workflow.service.id)) { seenServices.add(workflow.service.id); results.push({ id: `service:${workflow.service.id}`, type: "SERVICE", title: workflow.service.name, subtitle: "خدمة", serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, href, score: serviceScore * 1000 + 100 }); }
+    if (workflowScore) results.push({ id: `workflow:${workflow.id}`, type: "WORKFLOW", title: workflow.name, subtitle: workflow.service.name, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, href, score: workflowScore * 1000 + 200 });
     for (const step of workflow.steps) {
       const stepScore = rankWorkflowSearchText(step.title, query);
-      if (stepScore) results.push({ id: `step:${step.id}`, type: "STEP", title: step.title, subtitle: `${workflow.name} · ${workflow.service.name}`, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, stepId: step.id, stepTitle: step.title, href, score: stepScore + 300 });
+      if (stepScore) results.push({ id: `step:${step.id}`, type: "STEP", title: step.title, subtitle: `${workflow.name} · ${workflow.service.name}`, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, stepId: step.id, stepTitle: step.title, href, score: stepScore * 1000 + 300 });
       for (const field of step.fields) {
         const fieldScore = rankWorkflowSearchText(field.label, query);
-        if (fieldScore) results.push({ id: `field:${field.id}`, type: "FIELD", title: field.label, subtitle: `${step.title} · ${workflow.service.name}`, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, stepId: step.id, stepTitle: step.title, fieldId: field.id, fieldKey: field.key, fieldLabel: field.label, href, score: fieldScore + 400 });
+        if (fieldScore) results.push({ id: `field:${field.id}`, type: "FIELD", title: field.label, subtitle: `${step.title} · ${workflow.service.name}`, serviceId: workflow.service.id, serviceSlug: workflow.service.slug, serviceTitle: workflow.service.name, workflowId: workflow.id, workflowTitle: workflow.name, stepId: step.id, stepTitle: step.title, fieldId: field.id, fieldKey: field.key, fieldLabel: field.label, href, score: fieldScore * 1000 + 400 });
       }
     }
   }

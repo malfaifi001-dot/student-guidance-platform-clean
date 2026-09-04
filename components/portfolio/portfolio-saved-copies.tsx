@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, ExternalLink, Loader2 } from "lucide-react";
+import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -8,6 +8,7 @@ import { PrintExportPopCard } from "@/components/print-export/print-export-pop-c
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
+import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
 
 export function PortfolioSavedCopies({
   portfolioId,
@@ -21,7 +22,34 @@ export function PortfolioSavedCopies({
   const [snapshots, setSnapshots] = useState<PortfolioSnapshotListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const print = usePrintExportAction();
+
+  function confirmDelete(snapshot: PortfolioSnapshotListItem) {
+    setFeedback({
+      type: "confirm",
+      title: "حذف النسخة",
+      description: "هل تريد حذف هذه النسخة من ملف الإنجاز؟ لا يمكن التراجع عن هذا الإجراء.",
+      confirmLabel: "حذف النسخة",
+      onConfirm: () => void deleteSnapshot(snapshot),
+    });
+  }
+
+  async function deleteSnapshot(snapshot: PortfolioSnapshotListItem) {
+    setDeletingId(snapshot.id);
+    try {
+      const response = await fetch(`/api/dashboard/portfolio/${encodeURIComponent(portfolioId)}/snapshots/${encodeURIComponent(snapshot.id)}`, { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر حذف النسخة.");
+      setSnapshots((items) => items.filter((item) => item.id !== snapshot.id));
+      setFeedback({ type: "success", title: "تم حذف النسخة بنجاح" });
+    } catch (reason) {
+      setFeedback({ type: "error", title: "تعذر حذف النسخة", description: reason instanceof Error ? reason.message : "حاول مرة أخرى." });
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -58,14 +86,14 @@ export function PortfolioSavedCopies({
       ) : error ? (
         <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-bold text-rose-700">{error}</div>
       ) : snapshots.length ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 flex snap-x snap-proximity gap-4 overflow-x-auto pb-2 touch-pan-x md:grid md:grid-cols-2 md:overflow-visible md:pb-0">
           {snapshots.map((snapshot) => {
             const summary = snapshot.summary;
             const theme = getPortfolioTheme(summary?.themeId || "");
             return (
               <article
                 key={snapshot.id}
-                className="group relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-sky-50/30 p-5 shadow-sm shadow-slate-200/70 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-md hover:shadow-sky-100/70 focus-within:-translate-y-0.5 focus-within:border-sky-300 focus-within:bg-white focus-within:shadow-md"
+                className="group relative min-w-[290px] snap-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-sky-50/30 p-5 shadow-sm shadow-slate-200/70 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-md hover:shadow-sky-100/70 focus-within:-translate-y-0.5 focus-within:border-sky-300 focus-within:bg-white focus-within:shadow-md md:min-w-0"
               >
                 <span aria-hidden="true" className="absolute inset-y-0 right-0 w-1 bg-sky-500/60 transition-colors group-hover:bg-sky-600 group-focus-within:bg-sky-600" />
                 <div className="relative flex items-start justify-between gap-3">
@@ -97,6 +125,14 @@ export function PortfolioSavedCopies({
                   >
                     <Download className="h-4 w-4" /> تحميل
                   </button>
+                  <button
+                    type="button"
+                    disabled={deletingId === snapshot.id || deletingId !== null}
+                    onClick={() => confirmDelete(snapshot)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" /> حذف النسخة
+                  </button>
                 </div>
               </article>
             );
@@ -108,6 +144,7 @@ export function PortfolioSavedCopies({
         </div>
       )}
       <PrintExportPopCard align="center" modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
+      <PortfolioFeedbackPopCard feedback={feedback} loading={deletingId !== null} onClose={() => deletingId === null && setFeedback(null)} />
     </section>
   );
 }

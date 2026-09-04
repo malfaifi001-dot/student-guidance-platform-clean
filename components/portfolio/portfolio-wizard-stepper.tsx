@@ -32,16 +32,34 @@ export function PortfolioWizardStepper({
 
   return (
     <nav aria-label="خطوات إعداد ملف الإنجاز" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="md:hidden">
-        <label htmlFor="portfolio-step-select" className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400">الخطوة الحالية</label>
-        <select
-          id="portfolio-step-select"
-          value={activeStepId}
-          onChange={(event) => onStepChange(event.target.value)}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-teal-500/20"
-        >
-          {steps.map((step, index) => <option key={step.id} value={step.id}>{index + 1}. {step.label}</option>)}
-        </select>
+      <div className="-mx-1 overflow-x-auto px-1 pb-1 md:hidden" style={{ scrollbarWidth: "thin" }}>
+        <ol className="flex min-w-max items-start gap-2">
+          {steps.map((step, index) => {
+            const active = step.id === activeStepId;
+            const completed = !active && (completedStepIds
+              ? completedStepIds.includes(step.id)
+              : index < activeIndex);
+
+            return (
+              <li key={step.id} className="w-[76px] shrink-0">
+                <button
+                  type="button"
+                  aria-current={active ? "step" : undefined}
+                  aria-label={`الخطوة ${index + 1}: ${step.label}${completed ? "، مكتملة" : active ? "، الحالية" : ""}`}
+                  onClick={() => onStepChange(step.id)}
+                  className="group flex w-full flex-col items-center gap-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                >
+                  <span className={`grid h-7 w-7 place-items-center rounded-full border text-[10px] font-black transition-colors ${active ? "border-teal-700 bg-teal-700 text-white" : completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-200 bg-slate-50 text-slate-400 group-hover:border-teal-300 group-hover:text-teal-700 dark:border-slate-700 dark:bg-slate-900"}`}>
+                    {completed ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : index + 1}
+                  </span>
+                  <span className={`max-w-full truncate text-[10px] font-black ${active ? "text-teal-800 dark:text-teal-300" : completed ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
+                    {step.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
       <ol className="hidden items-center md:flex">

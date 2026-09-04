@@ -163,3 +163,25 @@ export async function getPortfolioSnapshot(user: PortfolioActor, snapshotId: str
     },
   };
 }
+
+export async function deletePortfolioSnapshot(user: PortfolioActor, portfolioId: string, snapshotId: string) {
+  assertPortfolioActor(user);
+  const snapshot = await prisma.portfolioSnapshot.findFirst({
+    where: {
+      id: snapshotId,
+      portfolioId,
+      ownerUserId: user.id,
+    },
+    select: {
+      id: true,
+      portfolioId: true,
+    },
+  });
+
+  if (!snapshot) {
+    throw new PortfolioServiceError(404, "نسخة ملف الإنجاز غير موجودة أو لا تملك صلاحية حذفها.");
+  }
+
+  await requireOwnedPortfolio(user, snapshot.portfolioId, { historicalPersonalRead: true });
+  await prisma.portfolioSnapshot.delete({ where: { id: snapshot.id } });
+}
