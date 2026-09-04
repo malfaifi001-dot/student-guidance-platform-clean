@@ -1,0 +1,154 @@
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\deep-links\teachix-deep-link.ts
+LINE: 5
+MATCH: /portfolio-export-preview/
+============================================================
+export const TEACHIX_DEEP_LINK_ORIGIN = "https://teachix.sa";
+
+const TECHNICAL_ROUTE_PREFIXES = [
+  "/api",
+>>>   "/portfolio-export-preview/",
+  "/report-2-export-preview/",
+  "/pdf-preview/",
+  "/print/",
+];
+
+const PUBLIC_TOKEN_ROUTE_PREFIXES = [
+  "/survey/",
+  "/school-signature/",
+  "/teacher/activity-assignment/",
+  "/report-signature/",
+  "/activity-plan/",
+  "/activity-team-signature/",
+];
+
+export type TeachixDeepLinkRouteKind =
+  | "DASHBOARD_APP_ROUTE"
+  | "PUBLIC_TOKEN_ROUTE"
+  | "PUBLIC_PAGE"
+  | "TECHNICAL_DENIED_ROUTE"
+  | "INVALID_ROUTE";
+
+export type TeachixDeepLinkResolution = {
+  accepted: boolean;
+  normalizedRoute: string | null;
+  pathname: string | null;
+  search: string;
+  routeKind: TeachixDeepLinkRouteKind;
+  rejectionReason: string | null;
+};
+
+function routeKind(pathname: string): TeachixDeepLinkRouteKind {
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) return "INVALID_ROUTE";
+
+  if (TECHNICAL_ROUTE_PREFIXES.some((prefix) => {
+    if (prefix === "/api") return pathname === "/api" || pathname.startsWith("/api/");
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 84
+MATCH: /portfolio-export-preview/
+============================================================
+    waitForSelector: {
+      selector: waitForSelector,
+      timeout: waitForSelectorTimeoutMs,
+      visible: true,
+    },
+    pdfOptions: {
+      format: "a4",
+      landscape,
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+    },
+  };
+
+  if (debugLabel === "portfolio") {
+    let parsedUrl: URL | null = null;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      parsedUrl = null;
+    }
+
+    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+      stage: "browser-rendering-request",
+      urlPath: parsedUrl
+>>>         ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
+      parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+      waitForSelectorTimeoutMs,
+      cookiesSent: Boolean(cookies?.length),
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/pdf`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        cache: "no-store",
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      const errorBody = (await response.text()).slice(0, 500);
+      throw new Error(
+        `Cloudflare Browser Run PDF request failed (${response.status}): ${errorBody}`,
+      );
+    }
+
+    const pdfBytes = new Uint8Array(await response.arrayBuffer());
+    const signature = new TextDecoder("ascii").decode(pdfBytes.slice(0, 5));
+
+    if (!pdfBytes.length || signature !== PDF_SIGNATURE) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\portfolio\print\portfolio-print-document.tsx
+LINE: 534
+MATCH: data-portfolio-pdf-ready
+============================================================
+                  candidate={
+                    candidate
+                  }
+                  onMeasured={
+                    onMeasured
+                  }
+                />
+              ),
+            ),
+        )}
+
+        <div className="portfolio-smart-measuring-state">
+          جارٍ تنظيم صفحات الملف...
+        </div>
+      </div>
+    );
+  }
+
+
+  return (
+    <div
+      style={
+        typographyStyle
+      }
+      data-portfolio-smart-phase="frozen"
+>>>       data-portfolio-pdf-ready="true"
+    >
+      {renderPortfolioDesign(
+        data,
+        physicalDocument,
+        themeId,
+      )}
+    </div>
+  );
+}

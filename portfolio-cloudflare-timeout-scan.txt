@@ -1,0 +1,3730 @@
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 10
+============================================================
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+type DeepSeekChatOptions = {
+  messages: DeepSeekMessage[];
+  temperature?: number;
+  maxTokens?: number;
+>>>   timeoutMs?: number;
+  responseFormat?: "text" | "json_object";
+};
+
+function getDeepSeekConfig() {
+  const baseUrl =
+    process.env.DEEPSEEK_BASE_URL?.trim() ||
+    "https://api.deepseek.com";
+
+  return {
+    apiKey:
+      process.env.DEEPSEEK_API_KEY?.trim() ||
+      "",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 36
+============================================================
+      "deepseek-chat",
+  };
+}
+
+export async function callDeepSeekChat({
+  messages,
+  temperature = 0.2,
+  maxTokens = 180,
+>>>   timeoutMs = 90000,
+  responseFormat = "text",
+}: DeepSeekChatOptions): Promise<string> {
+  const config = getDeepSeekConfig();
+
+  if (!config.apiKey) {
+    throw new Error(
+      "DEEPSEEK_API_KEY is missing.",
+    );
+  }
+
+  const controller = new AbortController();
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 47
+============================================================
+  const config = getDeepSeekConfig();
+
+  if (!config.apiKey) {
+    throw new Error(
+      "DEEPSEEK_API_KEY is missing.",
+    );
+  }
+
+>>>   const controller = new AbortController();
+
+  const timeout = setTimeout(
+    () => controller.abort(),
+    timeoutMs,
+  );
+
+  try {
+    const requestBody: Record<string, unknown> = {
+      model: config.model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 49
+============================================================
+  if (!config.apiKey) {
+    throw new Error(
+      "DEEPSEEK_API_KEY is missing.",
+    );
+  }
+
+  const controller = new AbortController();
+
+>>>   const timeout = setTimeout(
+    () => controller.abort(),
+    timeoutMs,
+  );
+
+  try {
+    const requestBody: Record<string, unknown> = {
+      model: config.model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: false,
+    };
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 50
+============================================================
+    throw new Error(
+      "DEEPSEEK_API_KEY is missing.",
+    );
+  }
+
+  const controller = new AbortController();
+
+  const timeout = setTimeout(
+>>>     () => controller.abort(),
+    timeoutMs,
+  );
+
+  try {
+    const requestBody: Record<string, unknown> = {
+      model: config.model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: false,
+    };
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 51
+============================================================
+      "DEEPSEEK_API_KEY is missing.",
+    );
+  }
+
+  const controller = new AbortController();
+
+  const timeout = setTimeout(
+    () => controller.abort(),
+>>>     timeoutMs,
+  );
+
+  try {
+    const requestBody: Record<string, unknown> = {
+      model: config.model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: false,
+    };
+
+    if (responseFormat === "json_object") {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts
+LINE: 81
+============================================================
+        headers: {
+          Authorization:
+            `Bearer ${config.apiKey}`,
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        cache: "no-store",
+>>>         signal: controller.signal,
+      },
+    );
+
+    const data = await response
+      .json()
+      .catch(() => null);
+
+    if (!response.ok) {
+      const providerMessage =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\portfolio-text-suggestion.ts
+LINE: 47
+============================================================
+export async function generatePortfolioTextSuggestion(input: {
+  contentType: PortfolioTextContentType;
+  length: PortfolioTextLength;
+  tone: PortfolioTextTone;
+}) {
+  const result = await callDeepSeekChat({
+    temperature: 0.55,
+    maxTokens: input.length === "LONG" ? 900 : input.length === "MEDIUM" ? 600 : 360,
+>>>     timeoutMs: 60000,
+    messages: [
+      {
+        role: "system",
+        content: [
+          "أنت مساعد كتابة تربوية محترف متخصص في التوثيق المدرسي وملفات الإنجاز في البيئة التعليمية السعودية.",
+          "اكتب بالعربية الفصحى الحديثة بلغة تعليمية مصقولة ومناسبة للإدارة التعليمية السعودية.",
+          "اكتب نصًا جاهزًا للصق مباشرة في ملف الإنجاز، وأعد النص العربي النهائي فقط دون عنوان أو شرح أو Markdown.",
+          "لا تذكر الذكاء الاصطناعي، ولا تستخدم شعارات أو عبارات تسويقية أو مبالغة أو ادعاءات غير قابلة للتحقق.",
+          "لا تخترع أرقامًا أو إحصاءات أو جوائز أو تواريخ أو أسماء أو أنشطة محددة أو إنجازات لم تُذكر.",
+          "لا تستخدم placeholders أو أقواسًا فارغة، ولا تضف عنوانًا مثل المقدمة أو الخاتمة.",
+          "اجعل النص متزنًا وغير متكلف، ومناسبًا لملف إنجاز رسمي يركز على الطالب والتعلم والتوثيق والتحسين.",
+        ].join(" "),
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\ai\workflow-field-suggestion.ts
+LINE: 66
+============================================================
+    ? context.map((item) => `${item.label}: ${item.value}`).join("\n")
+    : "لا توجد قيم إضافية مدخلة.";
+  const currentText = sanitize(input.currentText ?? "", 4000);
+  const instruction = sanitize(input.config.instruction ?? "", 2000);
+
+  const result = await callDeepSeekChat({
+    temperature: 0.2,
+    maxTokens: Math.min(1800, Math.max(120, Math.ceil(input.config.maxLength / 2))),
+>>>     timeoutMs: 60000,
+    messages: [
+      {
+        role: "system",
+        content: [
+          "أنت مساعد للكتابة المهنية في منصة مدرسية سعودية.",
+          "استخدم فقط السياق المقدم، ولا تخترع حقائق عن الطلاب أو حوادث أو تواريخ أو تشخيصات أو نتائج.",
+          "اكتب بالعربية المهنية، وأعد محتوى الحقل المطلوب فقط دون مقدمات أو شرح.",
+          input.richText
+            ? "يمكن استخدام تنسيق بسيط عند الحاجة."
+            : "لا تستخدم Markdown أو عناوين تنسيقية.",
+          `لا تتجاوز ${input.config.maxLength} حرفًا.`,
+        ].join(" "),
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\deep-links\teachix-deep-link.ts
+LINE: 5
+============================================================
+export const TEACHIX_DEEP_LINK_ORIGIN = "https://teachix.sa";
+
+const TECHNICAL_ROUTE_PREFIXES = [
+  "/api",
+>>>   "/portfolio-export-preview/",
+  "/report-2-export-preview/",
+  "/pdf-preview/",
+  "/print/",
+];
+
+const PUBLIC_TOKEN_ROUTE_PREFIXES = [
+  "/survey/",
+  "/school-signature/",
+  "/teacher/activity-assignment/",
+  "/report-signature/",
+  "/activity-plan/",
+  "/activity-team-signature/",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 11
+============================================================
+const CLOUDFLARE_PDF_TIMEOUT_MS = 60_000;
+const PDF_SIGNATURE = "%PDF-";
+
+export async function generatePdfFromUrlWithCloudflare({
+  url,
+  request,
+  waitForSelector = ".pdf-report-page",
+  gotoWaitUntil = "networkidle2",
+>>>   waitForSelectorTimeoutMs = 45_000,
+  debugLabel,
+  landscape = false,
+}: {
+  url: string;
+  request?: Request;
+  waitForSelector?: string;
+  gotoWaitUntil?: "load" | "domcontentloaded" | "networkidle0" | "networkidle2";
+  waitForSelectorTimeoutMs?: number;
+  debugLabel?: "portfolio";
+  landscape?: boolean;
+}): Promise<Uint8Array> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 19
+============================================================
+  waitForSelectorTimeoutMs = 45_000,
+  debugLabel,
+  landscape = false,
+}: {
+  url: string;
+  request?: Request;
+  waitForSelector?: string;
+  gotoWaitUntil?: "load" | "domcontentloaded" | "networkidle0" | "networkidle2";
+>>>   waitForSelectorTimeoutMs?: number;
+  debugLabel?: "portfolio";
+  landscape?: boolean;
+}): Promise<Uint8Array> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
+
+  if (!accountId || !apiToken) {
+    throw new Error("Cloudflare Browser Run PDF credentials are not configured.");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 30
+============================================================
+}): Promise<Uint8Array> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
+
+  if (!accountId || !apiToken) {
+    throw new Error("Cloudflare Browser Run PDF credentials are not configured.");
+  }
+
+>>>   const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    CLOUDFLARE_PDF_TIMEOUT_MS,
+  );
+
+  const sessionCookie = request?.headers.get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("student_guidance_session="));
+  const cookies = sessionCookie
+    ? [{
+        name: "student_guidance_session",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 31
+============================================================
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
+
+  if (!accountId || !apiToken) {
+    throw new Error("Cloudflare Browser Run PDF credentials are not configured.");
+  }
+
+  const controller = new AbortController();
+>>>   const timeoutId = setTimeout(
+    () => controller.abort(),
+    CLOUDFLARE_PDF_TIMEOUT_MS,
+  );
+
+  const sessionCookie = request?.headers.get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("student_guidance_session="));
+  const cookies = sessionCookie
+    ? [{
+        name: "student_guidance_session",
+        value: sessionCookie.slice("student_guidance_session=".length),
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 32
+============================================================
+  const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
+
+  if (!accountId || !apiToken) {
+    throw new Error("Cloudflare Browser Run PDF credentials are not configured.");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+>>>     () => controller.abort(),
+    CLOUDFLARE_PDF_TIMEOUT_MS,
+  );
+
+  const sessionCookie = request?.headers.get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("student_guidance_session="));
+  const cookies = sessionCookie
+    ? [{
+        name: "student_guidance_session",
+        value: sessionCookie.slice("student_guidance_session=".length),
+        url,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 61
+============================================================
+    url,
+    ...(cookies ? { cookies } : {}),
+    gotoOptions: {
+      waitUntil: gotoWaitUntil,
+      timeout: 45_000,
+    },
+    waitForSelector: {
+      selector: waitForSelector,
+>>>       timeout: waitForSelectorTimeoutMs,
+      visible: true,
+    },
+    pdfOptions: {
+      format: "a4",
+      landscape,
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+    },
+  };
+
+  if (debugLabel === "portfolio") {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 81
+============================================================
+  if (debugLabel === "portfolio") {
+    let parsedUrl: URL | null = null;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      parsedUrl = null;
+    }
+
+>>>     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+      stage: "browser-rendering-request",
+      urlPath: parsedUrl
+        ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
+      parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+      waitForSelectorTimeoutMs,
+      cookiesSent: Boolean(cookies?.length),
+    });
+  }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 82
+============================================================
+    let parsedUrl: URL | null = null;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      parsedUrl = null;
+    }
+
+    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+>>>       stage: "browser-rendering-request",
+      urlPath: parsedUrl
+        ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
+      parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+      waitForSelectorTimeoutMs,
+      cookiesSent: Boolean(cookies?.length),
+    });
+  }
+
+  try {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 84
+============================================================
+      parsedUrl = new URL(url);
+    } catch {
+      parsedUrl = null;
+    }
+
+    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+      stage: "browser-rendering-request",
+      urlPath: parsedUrl
+>>>         ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
+      parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+      waitForSelectorTimeoutMs,
+      cookiesSent: Boolean(cookies?.length),
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/pdf`,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 89
+============================================================
+    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+      stage: "browser-rendering-request",
+      urlPath: parsedUrl
+        ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
+        : null,
+      parsedOrigin: parsedUrl?.origin || null,
+      gotoWaitUntil,
+      waitForSelector,
+>>>       waitForSelectorTimeoutMs,
+      cookiesSent: Boolean(cookies?.length),
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/pdf`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\pdf-export\cloudflare-browser-run-pdf.ts
+LINE: 105
+============================================================
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        cache: "no-store",
+>>>         signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      const errorBody = (await response.text()).slice(0, 500);
+      throw new Error(
+        `Cloudflare Browser Run PDF request failed (${response.status}): ${errorBody}`,
+      );
+    }
+
+    const pdfBytes = new Uint8Array(await response.arrayBuffer());
+    const signature = new TextDecoder("ascii").decode(pdfBytes.slice(0, 5));
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\statistics\statistics-ai-analyzer.ts
+LINE: 174
+============================================================
+    ],
+
+    analysisMode: "FALLBACK",
+  };
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+>>>   timeoutMs: number,
+) {
+  let timeout:
+    | ReturnType<typeof setTimeout>
+    | undefined;
+
+  try {
+    const timeoutPromise =
+      new Promise<never>(
+        (_resolve, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\statistics\statistics-ai-analyzer.ts
+LINE: 177
+============================================================
+  };
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+) {
+  let timeout:
+>>>     | ReturnType<typeof setTimeout>
+    | undefined;
+
+  try {
+    const timeoutPromise =
+      new Promise<never>(
+        (_resolve, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "DEEPSEEK_STATISTICS_TIMEOUT",
+                ),
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\statistics\statistics-ai-analyzer.ts
+LINE: 184
+============================================================
+  let timeout:
+    | ReturnType<typeof setTimeout>
+    | undefined;
+
+  try {
+    const timeoutPromise =
+      new Promise<never>(
+        (_resolve, reject) => {
+>>>           timeout = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "DEEPSEEK_STATISTICS_TIMEOUT",
+                ),
+              ),
+            timeoutMs,
+          );
+        },
+      );
+
+    return await Promise.race([
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\statistics\statistics-ai-analyzer.ts
+LINE: 191
+============================================================
+        (_resolve, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "DEEPSEEK_STATISTICS_TIMEOUT",
+                ),
+              ),
+>>>             timeoutMs,
+          );
+        },
+      );
+
+    return await Promise.race([
+      promise,
+      timeoutPromise,
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable\ai\timetable-ai-analysis-service.ts
+LINE: 187
+============================================================
+    },
+  ];
+
+  const rawResponse =
+    await callDeepSeekChat({
+      messages,
+      temperature: 0.05,
+      maxTokens: 5000,
+>>>       timeoutMs: 120000,
+      responseFormat: "json_object",
+    });
+
+  let parsed =
+    timetableAiAnalysisSchema.safeParse(
+      extractJsonObject(rawResponse),
+    );
+
+  if (!parsed.success) {
+    const correctedResponse =
+      await callDeepSeekChat({
+        messages: [
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable\ai\timetable-ai-analysis-service.ts
+LINE: 234
+============================================================
+                ),
+              ),
+            ].join("\n"),
+          },
+        ],
+
+        temperature: 0,
+        maxTokens: 5000,
+>>>         timeoutMs: 120000,
+        responseFormat: "json_object",
+      });
+
+    parsed =
+      timetableAiAnalysisSchema.safeParse(
+        extractJsonObject(
+          correctedResponse,
+        ),
+      );
+  }
+
+  if (!parsed.success) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-import\paddle-ocr-adapter.ts
+LINE: 45
+============================================================
+      "file",
+      new Blob([new Uint8Array(input.fileBuffer)], { type: input.mimeType }),
+      getUploadFilename(input.mimeType),
+    );
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      body: form,
+>>>       signal: AbortSignal.timeout(120_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OCR provider returned HTTP ${response.status}.`);
+    }
+
+    const payload = (await response.json()) as {
+      text?: unknown;
+      tables?: unknown;
+      confidence?: unknown;
+      pages?: unknown;
+      blocks?: unknown;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\solver\timefold-v1-client.ts
+LINE: 56
+============================================================
+          body:
+            JSON.stringify(
+              request,
+            ),
+
+          cache:
+            "no-store",
+
+>>>           signal:
+            AbortSignal.timeout(
+              75_000,
+            ),
+        },
+      );
+  }
+  catch (error) {
+    throw new TimefoldV1Error(
+      error instanceof Error
+        ? `TIMEFOLD_V1_UNAVAILABLE: ${error.message}`
+        : "TIMEFOLD_V1_UNAVAILABLE",
+    );
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-v2\solver\timefold-v1-client.ts
+LINE: 57
+============================================================
+            JSON.stringify(
+              request,
+            ),
+
+          cache:
+            "no-store",
+
+          signal:
+>>>             AbortSignal.timeout(
+              75_000,
+            ),
+        },
+      );
+  }
+  catch (error) {
+    throw new TimefoldV1Error(
+      error instanceof Error
+        ? `TIMEFOLD_V1_UNAVAILABLE: ${error.message}`
+        : "TIMEFOLD_V1_UNAVAILABLE",
+    );
+  }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\lib\timetable-v3\ai-import\ai-import-service.ts
+LINE: 346
+============================================================
+    ],
+
+    temperature:
+      0.25,
+
+    maxTokens:
+      PHASE_MAX_TOKENS,
+
+>>>     timeoutMs:
+      PHASE_TIMEOUT_MS,
+
+    responseFormat:
+      "json_object",
+  });
+}
+
+function formatSchemaErrors(
+  value: unknown,
+) {
+  try {
+    return JSON.stringify(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\activity-programs\activity-assignment-actions.tsx
+LINE: 53
+============================================================
+    ? "inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition focus-visible:outline-none focus-visible:ring-4"
+    : iconButtonClass;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(assignment.publicUrl);
+      setCopied(true);
+      onFeedback?.("تم نسخ الرابط.");
+>>>       window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      onFeedback?.("تعذر نسخ الرابط.");
+    }
+  }
+
+  async function deleteAssignment() {
+    if (deleting) return;
+
+    setDeleting(true);
+
+    try {
+      const response = await fetch(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\activity-programs\teacher-activity-links-client.tsx
+LINE: 437
+============================================================
+    }
+
+    if (!copiedSuccessfully) {
+      setFeedback("تعذر نسخ النص.");
+      return;
+    }
+
+    setCopied(true);
+>>>     window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  function openWhatsApp(message: string) {
+    const url = buildWhatsAppShareLink(message);
+
+    if (!url) {
+      setFeedback("تعذر تجهيز رسالة واتساب.");
+      return;
+    }
+
+    void openExternalUrl(url).catch(() => {
+      setFeedback("تعذر فتح واتساب.");
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\payments\admin-invoices-dashboard.tsx
+LINE: 239
+============================================================
+        error instanceof Error ? error.message : "حدث خطأ أثناء إلغاء الفاتورة."
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      void loadInvoices();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [filters]);
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\payments\admin-payment-invoice-page.tsx
+LINE: 499
+============================================================
+      if (!iframeDocument) {
+        throw new Error("تعذر تجهيز صفحة PDF.");
+      }
+
+      iframeDocument.open();
+      iframeDocument.write(buildCompactPdfInvoiceHtml(data));
+      iframeDocument.close();
+
+>>>       await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+      const invoiceElement = iframeDocument.getElementById("pdf-invoice");
+
+      if (!invoiceElement) {
+        throw new Error("تعذر العثور على قالب الفاتورة.");
+      }
+
+      const canvas = await html2canvas(invoiceElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\payments\admin-payment-reconciliation-page.tsx
+LINE: 230
+============================================================
+        error instanceof Error ? error.message : "حدث خطأ أثناء تنفيذ العملية."
+      );
+    } finally {
+      setIsWorking(false);
+    }
+  }
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      void loadTransactions();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [filters]);
+
+  const operationTitle =
+    operation?.type === "refund"
+      ? "استرداد عملية دفع"
+      : operation?.type === "cancel"
+        ? "إلغاء عملية دفع"
+        : "تسوية عملية دفع";
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\payments\admin-payments-dashboard.tsx
+LINE: 359
+============================================================
+  }
+
+  function resetFilters() {
+    setQuery("");
+    setStatus("ALL");
+    setMethod("ALL");
+    setFrom("");
+    setTo("");
+>>>     window.setTimeout(() => {
+      void loadPayments();
+    }, 0);
+  }
+
+  useEffect(() => {
+    void loadPayments();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\admin-user-whatsapp-center.tsx
+LINE: 69
+============================================================
+      const payload = await response.json() as { template?: WhatsAppMessageTemplateRecord | null };
+      if (response.ok) setActiveTemplate(payload.template?.isActive ? payload.template : null);
+    } catch {
+      setActiveTemplate(null);
+    }
+  }, []);
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadTemplate(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadTemplate]);
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(1);
+  }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\admin-user-whatsapp-center.tsx
+LINE: 74
+============================================================
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => { void loadTemplate(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadTemplate]);
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(1);
+  }
+
+  return (
+    <main className="space-y-6 pb-24" dir="rtl">
+      <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-6 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 645
+============================================================
+  });
+
+  async function copyVariable(key: string) {
+    const text = `{${key}}`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+>>>       window.setTimeout(() => setCopiedKey(""), 1200);
+    } catch {
+      setCopiedKey("");
+    }
+  }
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-slate-900">المتغيرات</h2>
+
+      <p className="mt-1 text-sm leading-7 text-slate-500">
+        اضغط نسخ ثم الصق المتغير داخل نص أي قسم.
+      </p>
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\admin\whatsapp-message-template-modal.tsx
+LINE: 55
+============================================================
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+>>>     const timer = window.setTimeout(() => {
+      setFeedback("");
+      setError("");
+      setLoadingTemplate(true);
+      void fetch("/api/dashboard/admin/user-whatsapp/template", { cache: "no-store" })
+        .then(async (response) => {
+          const payload = await response.json() as { template?: WhatsAppMessageTemplateRecord | null; error?: string };
+          if (!response.ok) throw new Error(payload.error || "تعذر تحميل الرسالة.");
+          if (cancelled || !payload.template) return;
+          setName(payload.template.name);
+          setContent(payload.template.content);
+          setCoupon(payload.template.coupon || "");
+          setStatus(payload.template.status);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\assessment-center\assessment-analysis-print-controller.tsx
+LINE: 13
+============================================================
+export function AssessmentAnalysisPrintController() {
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      await document.fonts.ready;
+      if (cancelled) return;
+
+>>>       await new Promise<void>((resolve) => setTimeout(resolve, 350));
+      if (cancelled) return;
+
+      window.print();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return null;
+}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx
+LINE: 83
+============================================================
+        const data = await readApiResponse(response);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "تعذر تحليل ملف النتائج.");
+        }
+
+        const summary = data.summary || {};
+
+>>>         window.setTimeout(() => {
+          router.push(`/dashboard/assessment-center/${data.analysisId}`);
+        }, 900);
+
+        return {
+          title: "تم تحليل النتائج",
+          description: `تمت قراءة ${summary.totalRows || 0} نتيجة لعدد ${summary.totalStudents || 0} طالب/طالبة.`,
+          variant: "success" as const,
+        };
+      },
+    });
+  }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\cases\case-delete-action.tsx
+LINE: 38
+============================================================
+      const response = await fetch(`/api/dashboard/cases/${encodeURIComponent(props.caseId)}`, { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success) throw new Error(payload.error || "تعذر حذف الحالة.");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(`report-2:draft:${props.serviceSlug || "general"}:${props.caseId}`);
+      }
+      setSuccess(payload.message || "تم حذف الحالة بنجاح.");
+>>>       await new Promise((resolve) => window.setTimeout(resolve, 500));
+      props.onDeleted?.(props.caseId);
+      setOpen(false);
+      router.refresh();
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "تعذر حذف الحالة.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\certificates\bulk-certificates-page.tsx
+LINE: 155
+============================================================
+        }
+      } finally {
+        if (!ignore) {
+          setStudentsLoading(false);
+        }
+      }
+    }
+
+>>>     const timer = window.setTimeout(loadStudents, 250);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timer);
+    };
+  }, [grade, classroom, query]);
+
+  function toggleStudent(id: string) {
+    setSelectedStudentIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((item) => item !== id);
+      }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\certificates\certificate-report-linking-page.tsx
+LINE: 154
+============================================================
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+>>>     const timer = window.setTimeout(loadOptions, 250);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timer);
+    };
+  }, [reportQuery, certificateQuery, requestedCertificateId]);
+
+  function selectReport(report: ReportOption) {
+    setSelectedReportId(report.id);
+    setSelectedCertificateIds(report.linkedCertificateIds || []);
+    setNotice("");
+    setError("");
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\certificates\new-certificate-form.tsx
+LINE: 183
+============================================================
+        }
+      } finally {
+        if (!ignore) {
+          setStudentLoading(false);
+        }
+      }
+    }
+
+>>>     const timer = window.setTimeout(searchStudents, 300);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timer);
+    };
+  }, [studentQuery, draft.recipientType]);
+
+  function updateDraft<K extends keyof CertificateDraft>(
+    key: K,
+    value: CertificateDraft[K],
+  ) {
+    setDraft((current) => ({
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-mobile-preview.tsx
+LINE: 115
+============================================================
+
+  useEffect(() => {
+    frameReadyRef.current = false;
+    setPreviewReady(false);
+    setPreviewError("");
+
+    if (!open || !previewUrl) return;
+
+>>>     const timeoutId = window.setTimeout(() => {
+      if (!frameReadyRef.current) {
+        setPreviewError("تعذر تحميل مستند المعاينة. حاول إغلاق النافذة وفتحها مرة أخرى.");
+      }
+    }, 15000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [open, previewUrl]);
+
+  if (!open) return null;
+
+  const scale = fitMode ? fitScale : zoomPercent / 100;
+  const displayedZoom = fitMode ? Math.round(fitScale * 100) : zoomPercent;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-mobile-preview.tsx
+LINE: 364
+============================================================
+                  if (hasReport) {
+                    frameReadyRef.current = true;
+                    setPreviewReady(true);
+                    return;
+                  }
+
+                  attempts += 1;
+                  if (attempts < 150) {
+>>>                     window.setTimeout(waitForDocument, 100);
+                    return;
+                  }
+
+                  frameReadyRef.current = true;
+                  setPreviewError(documentNotFoundMessage);
+                };
+
+                waitForDocument();
+              }}
+              onError={() => {
+                frameReadyRef.current = true;
+                setPreviewError("تعذر تحميل مستند المعاينة. حاول مرة أخرى.");
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\curriculum-distribution\curriculum-distribution-print-controller.tsx
+LINE: 22
+============================================================
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+      } catch {
+        // Printing remains available if font loading is unavailable.
+      }
+
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+
+>>>       if (!cancelled) window.setTimeout(() => {
+        if (!cancelled) window.print();
+      }, 350);
+    }
+
+    void printWhenReady();
+    return () => {
+      cancelled = true;
+      startedRef.current = false;
+    };
+  }, [enabled]);
+
+  return null;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\custom-report\custom-report-workspace.tsx
+LINE: 244
+============================================================
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "تعذر حفظ التقرير.");
+      }
+
+      setMessage(status === "SUBMITTED" ? "تم إرسال التقرير." : "تم حفظ المسودة.");
+
+>>>       window.setTimeout(() => {
+        router.push(data.redirectTo || `/dashboard/cases/${data.caseId}`);
+        router.refresh();
+      }, 500);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ غير متوقع.");
+    }
+  }
+
+  function updateSchemaTitle(value: string) {
+    setSchema((current) => (current ? { ...current, title: value } : current));
+  }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+LINE: 133
+============================================================
+      throw new Error(result.error || "تعذر جلب بطاقة بيانات الطلاب.");
+    }
+
+    setCycle(result.cycle);
+    setSessions(result.sessions ?? []);
+  }, [cycleId]);
+
+  useEffect(() => {
+>>>     const timeoutId = window.setTimeout(() => {
+      loadCycle().catch((error) => {
+        setMessage({
+          type: "error",
+          text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
+        });
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadCycle]);
+
+  async function confirmDelete() {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycles-client.tsx
+LINE: 146
+============================================================
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب بطاقات بيانات الطلاب.");
+    }
+
+    setCycles(result.cycles ?? []);
+  }, []);
+
+  useEffect(() => {
+>>>     const timeoutId = window.setTimeout(() => {
+      loadCycles().catch((error) => {
+        setMessage({
+          type: "error",
+          text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات الطلاب.",
+        });
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadCycles]);
+
+  async function confirmDeleteCycle() {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+LINE: 404
+============================================================
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+>>>     const timeoutId = window.setTimeout(() => {
+      loadRows(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id, q, status, planAction]);
+
+  return (
+    <>
+      <SmartActionFeedbackModal
+        state={actionState}
+        processing={actionProcessing}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\data-center\students\students-center-client.tsx
+LINE: 143
+============================================================
+        text: error instanceof Error ? error.message : "تعذر جلب سجل الطلاب.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+>>>     const timeoutId = window.setTimeout(() => {
+      loadStudents(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, grade, classroom, status]);
+
+  function startEdit(student: StudentItem) {
+    setEditing({
+      id: student.id,
+      fullName: student.fullName || "",
+      stage: student.stage || "",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\downloads\native-download-feedback-host.tsx
+LINE: 19
+============================================================
+
+export function NativeDownloadFeedbackHost() {
+  const [feedback, setFeedback] = useState<DownloadFeedback | null>(null);
+
+  useEffect(() => {
+    const onFeedback = (event: Event) => {
+      const detail = (event as CustomEvent<DownloadFeedback>).detail;
+      setFeedback(detail);
+>>>       window.setTimeout(() => setFeedback(null), 4500);
+    };
+
+    window.addEventListener("teachix:native-download-feedback", onFeedback);
+    return () => window.removeEventListener("teachix:native-download-feedback", onFeedback);
+  }, []);
+
+  if (!feedback) return null;
+
+  const success = feedback.type === "success";
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[210] flex justify-center px-4" dir="rtl">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\guidance-provider.tsx
+LINE: 34
+============================================================
+  const supportedRole = isGuidanceRole(role) ? role : null;
+  const steps = useMemo(() => scope && supportedRole ? resolveGuidanceSteps({ context: scope.context, role: supportedRole, capabilities: scope.capabilities || [] }) : [], [scope, supportedRole]);
+
+  useEffect(() => {
+    setOpen(false);
+    if (teacherJourneyActive || !scope || !supportedRole || scope.autoStart === false || !steps.length) return;
+    const progress = readGuidanceProgress(userId, scope.context);
+    if (progress.status === "completed" || progress.status === "skipped") return;
+>>>     const timer = window.setTimeout(() => {
+      setStepIndex(Math.min(progress.lastStepIndex || 0, Math.max(steps.length - 1, 0)));
+      setOpen(true);
+    }, scope.context === "report-studio" ? 450 : 180);
+    return () => window.clearTimeout(timer);
+  }, [scope, steps.length, supportedRole, teacherJourneyActive, userId]);
+
+  const replay = useCallback(() => {
+    if (role === "TEACHER") {
+      replayTeacherOnboarding();
+      return;
+    }
+    if (!scope || !steps.length) return;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\role-onboarding-controller.tsx
+LINE: 32
+============================================================
+      if (!current) return current;
+      const next = { ...current, ...values, updatedAt: new Date().toISOString() };
+      writeRoleOnboardingState(userId, next);
+      return next;
+    });
+  }, [userId]);
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      const stored = readRoleOnboardingState(userId, role);
+      if (stored.status === "unseen" && pathname === getRoleOnboardingStartPath(role)) {
+        const next = { ...stored, status: "in_progress" as const };
+        writeRoleOnboardingState(userId, next);
+        setState(next);
+      } else setState(stored);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname, role, userId]);
+
+  useEffect(() => {
+    const active = state?.status === "in_progress" && state.phase !== "COMPLETED";
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\role-onboarding-controller.tsx
+LINE: 51
+============================================================
+  useEffect(() => {
+    const active = state?.status === "in_progress" && state.phase !== "COMPLETED";
+    onActiveChange?.(active);
+    document.documentElement.toggleAttribute("data-teachix-role-onboarding", active);
+  }, [onActiveChange, state]);
+
+  useEffect(() => {
+    if (!state || state.status !== "in_progress") return;
+>>>     const timer = window.setTimeout(() => {
+      const caseId = getCaseIdFromJourneyPath(pathname);
+      if (state.phase === "CREATE_WORK" && pathname.endsWith("/new")) update({ phase: "WORKFLOW_FORM" });
+      else if ((state.phase === "WORKING" || state.phase === "PREPARE") && pathname.includes("/report-2/cases/") && pathname.endsWith("/prepare")) update({ phase: "PREPARE", caseId });
+      else if ((state.phase === "PREPARE_WAIT" || state.phase === "DESCRIPTION") && pathname.endsWith("/studio")) update({ phase: "STUDIO", caseId });
+      else if (state.phase === "RETURN_STUDIO" && pathname.endsWith("/studio")) update({ phase: "SAVE_REPORT", caseId });
+      else if (state.phase === "PORTFOLIO" && pathname === getRolePortfolioPath(role)) update({ phase: "COMPLETED", status: "completed" });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname, role, state, update]);
+
+  useEffect(() => {
+    const onCaseSaved = (raw: Event) => {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\teacher-onboarding-controller.tsx
+LINE: 61
+============================================================
+  const [state, setState] = useState<TeacherOnboardingState | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [selectedPerformanceSlug, setSelectedPerformanceSlug] = useState("");
+  const [waitingCardDismissed, setWaitingCardDismissed] = useState(false);
+  const [restartConfirm, setRestartConfirm] = useState(false);
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      const stored = readTeacherOnboardingState(userId);
+      if (stored.status === "unseen" && pathname === "/dashboard/teacher") {
+        const next = { ...stored, status: "in_progress" as const, updatedAt: new Date().toISOString() };
+        writeTeacherOnboardingState(userId, next);
+        setState(next);
+      } else {
+        setState(stored);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname, userId]);
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\teacher-onboarding-controller.tsx
+LINE: 102
+============================================================
+      setRestartConfirm(true);
+    };
+    window.addEventListener(REPLAY_EVENT, replay);
+    return () => window.removeEventListener(REPLAY_EVENT, replay);
+  }, [update, userId]);
+
+  useEffect(() => {
+    if (!state || state.status !== "in_progress") return;
+>>>     const timer = window.setTimeout(() => {
+      const caseId = getCaseIdFromJourneyPath(pathname);
+
+      if (state.phase === "SELECT_PERFORMANCE" && isTeacherPerformancePath(pathname)) {
+        update({ phase: "CREATE_WORK", selectedPerformancePath: pathname });
+      } else if (state.phase === "CREATE_WORK" && pathname.endsWith("/new")) {
+        update({ phase: "WORKFLOW_FORM" });
+      } else if ((state.phase === "SUBMIT_WORK" || state.phase === "WORKING") && pathname.includes("/report-2/cases/") && pathname.endsWith("/prepare")) {
+        update({ phase: "LUCKY20", caseId });
+      } else if ((state.phase === "CASE_REPORT" || state.phase === "CASE_EDIT") && pathname.endsWith("/prepare")) {
+        update({ phase: "LUCKY20", caseId });
+      } else if ((state.phase === "REPORT_DESCRIPTION" || state.phase === "STUDIO_WAIT") && pathname.endsWith("/studio")) {
+        update({ phase: "REPORT_PREVIEW", caseId });
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\teacher-onboarding-controller.tsx
+LINE: 126
+============================================================
+        clickTarget("teacher-portfolio-reports-tab");
+      }
+    }, state.phase === "REPORT_DESCRIPTION" ? 650 : 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname, state, update]);
+
+  useEffect(() => {
+    if (!state || state.status !== "in_progress" || state.phase !== "SAVE_REPORT" || !pathname.endsWith("/studio")) return;
+>>>     const timer = window.setTimeout(() => {
+      const canvas = target("studio-report-canvas");
+      if (canvas?.dataset.reportApproved === "true") {
+        update({ phase: "SAVED_REPORT", reportId: canvas.dataset.reportId || state.reportId });
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [pathname, state, update]);
+
+  useEffect(() => {
+    if (!state || state.status !== "in_progress" || pathname !== "/dashboard/settings/school") return;
+    if (state.phase !== "SCHOOL_IDENTITY" && state.phase !== "SCHOOL_WAIT" && state.phase !== "PRINCIPAL_NAME") return;
+    const timer = window.setTimeout(() => {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance\teacher-onboarding-controller.tsx
+LINE: 138
+============================================================
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [pathname, state, update]);
+
+  useEffect(() => {
+    if (!state || state.status !== "in_progress" || pathname !== "/dashboard/settings/school") return;
+    if (state.phase !== "SCHOOL_IDENTITY" && state.phase !== "SCHOOL_WAIT" && state.phase !== "PRINCIPAL_NAME") return;
+>>>     const timer = window.setTimeout(() => {
+      const settings = target("teacher-school-settings");
+      if (!settings) return;
+      const schoolReady = settings.dataset.schoolIdentityReady === "true";
+      const principalReady = settings.dataset.principalNameReady === "true";
+      if ((state.phase === "SCHOOL_IDENTITY" || state.phase === "SCHOOL_WAIT") && schoolReady) {
+        update({ phase: "RETURN_REPORT" });
+      } else if (state.phase === "PRINCIPAL_NAME" && principalReady) {
+        update({ phase: "RETURN_REPORT" });
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [pathname, state, update]);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\admin-guidance-videos-center.tsx
+LINE: 129
+============================================================
+            : "تعذر تحميل المحتوى الإرشادي.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+>>>     const timeoutId = window.setTimeout(() => void loadVideos(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [loadVideos]);
+
+  function startCreate() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormOpen(true);
+    setFeedback(null);
+  }
+
+  function startEdit(video: GuidanceVideoDto) {
+    setEditingId(video.id);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\guidance-videos\guidance-videos-launcher.tsx
+LINE: 90
+============================================================
+      );
+      setLoaded(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [role, tourKey]);
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      void loadVideos();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadVideos]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      if (
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LINE: 390
+============================================================
+  useEffect(() => {
+    const cleanQuery = query.trim();
+
+    if (cleanQuery.length < 2) {
+      setStudents([]);
+      return;
+    }
+
+>>>     const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(cleanQuery)}`,
+          { signal: controller.signal },
+        );
+
+        const data = await response.json();
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LINE: 398
+============================================================
+    const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(cleanQuery)}`,
+>>>           { signal: controller.signal },
+        );
+
+        const data = await response.json();
+
+        setStudents(normalizeStudentsResponse(data));
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LINE: 412
+============================================================
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+>>>     const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[1.6rem] bg-sky-50/80 p-4 shadow-sm ring-1 ring-sky-100">
+      <h2 className="text-right text-[1.45rem] font-black leading-tight text-slate-950">
+        {OPTIONAL_STUDENT_PICKER_LABEL}
+      </h2>
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LINE: 415
+============================================================
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+>>>       controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[1.6rem] bg-sky-50/80 p-4 shadow-sm ring-1 ring-sky-100">
+      <h2 className="text-right text-[1.45rem] font-black leading-tight text-slate-950">
+        {OPTIONAL_STUDENT_PICKER_LABEL}
+      </h2>
+
+      <div className="relative mt-3">
+        <input
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx
+LINE: 941
+============================================================
+      }
+
+      setFeedback({
+        type: "success",
+        title: type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة",
+        message: "سيتم فتح الحالة الآن.",
+      });
+
+>>>       window.setTimeout(() => {
+        const cleanBasePath = caseDetailsBasePath.replace(/\/$/, "");
+        router.push(`${cleanBasePath}/${caseIdFromResponse}`);
+        router.refresh();
+      }, 500);
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        title: "تعذر الحفظ",
+        message: error instanceof Error ? error.message : "حدث خطأ غير متوقع.",
+      });
+    } finally {
+      setLoading(false);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-report-a4-popup-preview.tsx
+LINE: 274
+============================================================
+    const doc = documentRef.current;
+    const resizeObserver = new ResizeObserver(updateScale);
+
+    if (shell) resizeObserver.observe(shell);
+    if (doc) resizeObserver.observe(doc);
+
+    window.addEventListener("resize", updateScale);
+
+>>>     const timer = window.setTimeout(updateScale, 500);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScale);
+      window.clearTimeout(timer);
+    };
+  }, [open, template, previewCaseData, updateScale]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\mobile\mobile-report-a4-viewer-page.tsx
+LINE: 441
+============================================================
+
+    window.addEventListener("resize", updateScale);
+
+    const fontsReady = (document as any).fonts?.ready;
+    if (fontsReady) {
+      fontsReady.then(updateScale).catch(() => undefined);
+    }
+
+>>>     const timer = window.setTimeout(updateScale, 700);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScale);
+      window.clearTimeout(timer);
+    };
+  }, [preparedPayload, template, previewCaseData, updateScale]);
+
+  async function downloadPdf() {
+    if (pdfLoading) return;
+
+    if (!template?.pages?.length || !previewCaseData || !exportContext) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\payments\moyasar-checkout-form.tsx
+LINE: 203
+============================================================
+    }
+
+    const existingScript = document.getElementById(
+      scriptId
+    ) as HTMLScriptElement | null;
+
+    if (existingScript) {
+      if (window.Moyasar) {
+>>>         setTimeout(initializeMoyasar, 0);
+      } else {
+        existingScript.addEventListener(
+          "load",
+          initializeMoyasar,
+          { once: true }
+        );
+      }
+
+      return () => {
+        cleanupDiagnostics();
+      };
+    }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\payments\teachix-invoice-preview-page.tsx
+LINE: 47
+============================================================
+    return () => {
+      cancelled = true;
+    };
+  }, [transactionId]);
+
+  useEffect(() => {
+    if (!data || typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("print") === "1") {
+>>>       const timer = window.setTimeout(() => window.print(), 150);
+      return () => window.clearTimeout(timer);
+    }
+  }, [data]);
+
+  function printInvoice() {
+    void runPrintExport({
+      printUrl: `/dashboard/payments/invoices/${encodeURIComponent(transactionId)}`,
+      fileName: `${data?.invoice.invoiceNumber || "teachix-invoice"}.pdf`,
+      blockedTitle: "معاينة الفاتورة",
+      blockedMessage: "تعذر فتح نافذة الطباعة تلقائيًا. افتح المعاينة من الزر أدناه.",
+    });
+  }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\principal\principal-staff-reports-page.tsx
+LINE: 49
+============================================================
+  const [certificatePreview, setCertificatePreview] = useState<PrincipalStaffReportsWorkspace["outputFamilies"][number]["outputs"][number] | null>(null);
+  const [linkReport, setLinkReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
+  const [signReport, setSignReport] = useState<PrincipalStaffReportsWorkspace["reports"][number] | null>(null);
+  const [signedReportKeys, setSignedReportKeys] = useState<Set<string>>(() => new Set());
+  const [linkSaved, setLinkSaved] = useState(false);
+
+  useEffect(() => {
+    if (!linkSaved) return;
+>>>     const timeoutId = window.setTimeout(() => setLinkSaved(false), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [linkSaved]);
+
+  useEffect(() => {
+    if (workspace.outputFamilies.some((family) => family.key === selectedFamily)) return;
+    setSelectedFamily(workspace.outputFamilies[0]?.key || "REPORTS");
+  }, [selectedFamily, workspace.outputFamilies]);
+
+  useEffect(() => {
+    if (workspace.reports.length || selectedFamily !== "REPORTS") return;
+    const populatedFamily = workspace.outputFamilies.find((family) => family.outputs.length);
+    if (populatedFamily) setSelectedFamily(populatedFamily.key);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\principal\simple-performance-entry-builder.tsx
+LINE: 60
+============================================================
+        },
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "تعذر حفظ السجل.");
+      }
+
+      setFeedback({ tone: "success", text: result.message || "تم الحفظ." });
+>>>       window.setTimeout(() => {
+        router.push(cancelHref);
+        router.refresh();
+      }, 500);
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        text: error instanceof Error ? error.message : "تعذر حفظ السجل.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\print-export\use-print-export-action.ts
+LINE: 113
+============================================================
+        publishProgress(next);
+      }
+    }, 220);
+  }, [publishProgress, stopProgress]);
+
+  const finishProgress = useCallback(async () => {
+    stopProgress();
+    while (progressRef.current < 100) {
+>>>       await new Promise((resolve) => setTimeout(resolve, 28));
+      progressRef.current += 1;
+      publishProgress(progressRef.current);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }, [publishProgress, stopProgress]);
+
+  const closeModal = useCallback(() => {
+    stopProgress();
+    setModal(null);
+    setStatus("idle");
+  }, [stopProgress]);
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\print-export\use-print-export-action.ts
+LINE: 117
+============================================================
+
+  const finishProgress = useCallback(async () => {
+    stopProgress();
+    while (progressRef.current < 100) {
+      await new Promise((resolve) => setTimeout(resolve, 28));
+      progressRef.current += 1;
+      publishProgress(progressRef.current);
+    }
+>>>     await new Promise((resolve) => setTimeout(resolve, 350));
+  }, [publishProgress, stopProgress]);
+
+  const closeModal = useCallback(() => {
+    stopProgress();
+    setModal(null);
+    setStatus("idle");
+  }, [stopProgress]);
+
+  useEffect(() => () => stopProgress(), [stopProgress]);
+
+  const openFallbackPrintUrl = useCallback(
+    async (
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\promotions\admin-promotions-page.tsx
+LINE: 101
+============================================================
+      cache: "no-store",
+    });
+    const result = await readResponse(response);
+    if (response.ok) setData(result);
+    else setMessage(result.error || "تعذر تحميل العروض.");
+  }
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function action(payload: Record<string, unknown>) {
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/dashboard/admin/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-1\editor\report-one-template-preview.tsx
+LINE: 739
+============================================================
+    pages: pagesWithEvidenceTabs,
+  };
+
+  const activePage =
+    runtimeTemplate.pages.find((page: any) => page.id === activePageId) ||
+    runtimeTemplate.pages[0];
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      const pageElement = hostRef.current?.querySelector(".pdf-report-page") as HTMLElement | null;
+
+      if (!pageElement || !onPageOverflow || !activePage?.id) return;
+
+      const overflowPixels = pageElement.scrollHeight - pageElement.clientHeight;
+
+      if (overflowPixels <= 12) return;
+
+      const pageBlocks = blocks.filter(
+        (block) => (block.pageId || pages[0]?.id) === activePage.id,
+      );
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 8
+============================================================
+"use client";
+
+import { useEffect, useRef } from "react";
+
+const ASSET_READY_TIMEOUT_MS = 5000;
+
+function sleep(ms: number) {
+>>>   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForWindowLoad() {
+  if (document.readyState === "complete") return;
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      window.addEventListener("load", () => resolve(), { once: true });
+    }),
+    sleep(ASSET_READY_TIMEOUT_MS),
+  ]);
+}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 34
+============================================================
+    if (fonts?.ready) {
+      await Promise.race([fonts.ready, sleep(ASSET_READY_TIMEOUT_MS)]);
+    }
+  } catch {
+    // تجاهل فشل جاهزية الخطوط
+  }
+}
+
+>>> async function waitForCommittedVisiblePages(timeoutMs = 5000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const renderer = document.querySelector<HTMLElement>(
+      ".report-two-print-document [data-physical-layout-renderer='true'][data-physical-layout-frozen='true']",
+    );
+    const physicalPages = renderer?.querySelectorAll<HTMLElement>(
+      "[data-physical-page-id]",
+    );
+    const a4Pages = renderer?.querySelectorAll<HTMLElement>(
+      ".pdf-report-page",
+    );
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 37
+============================================================
+  } catch {
+    // تجاهل فشل جاهزية الخطوط
+  }
+}
+
+async function waitForCommittedVisiblePages(timeoutMs = 5000) {
+  const startedAt = Date.now();
+
+>>>   while (Date.now() - startedAt < timeoutMs) {
+    const renderer = document.querySelector<HTMLElement>(
+      ".report-two-print-document [data-physical-layout-renderer='true'][data-physical-layout-frozen='true']",
+    );
+    const physicalPages = renderer?.querySelectorAll<HTMLElement>(
+      "[data-physical-page-id]",
+    );
+    const a4Pages = renderer?.querySelectorAll<HTMLElement>(
+      ".pdf-report-page",
+    );
+
+    if (
+      renderer &&
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 67
+============================================================
+    }
+
+    await sleep(50);
+  }
+
+  return false;
+}
+
+>>> async function waitForImages(timeoutMs = 10000) {
+  const images = Array.from(document.querySelectorAll<HTMLImageElement>("img"))
+    .filter((image) => !image.closest("[data-report-measurement-only='true']"));
+  const pending = images.filter((image) => !image.complete);
+
+  if (!pending.length) return;
+
+  await Promise.race([
+    Promise.all(
+      pending.map(
+        (image) =>
+          new Promise<void>((resolve) => {
+            const settle = () => resolve();
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 85
+============================================================
+        (image) =>
+          new Promise<void>((resolve) => {
+            const settle = () => resolve();
+            image.addEventListener("load", settle, { once: true });
+            image.addEventListener("error", settle, { once: true });
+          }),
+      ),
+    ),
+>>>     sleep(timeoutMs),
+  ]);
+}
+
+function areLinkedFramesReady() {
+  const frames = Array.from(
+    document.querySelectorAll<HTMLIFrameElement>(
+      [
+        "iframe[data-report-linked-assessment-frame='1']",
+        "iframe[data-report-linked-survey-frame='1']",
+        ".linked-assessment-official-frame",
+        ".linked-survey-official-frame",
+        ".report-linked-assessment-frame",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 116
+============================================================
+
+      return !doc || doc.readyState === "complete";
+    } catch {
+      return true;
+    }
+  });
+}
+
+>>> async function waitForLinkedFrames(timeoutMs = 9000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (areLinkedFramesReady()) return;
+
+    await sleep(150);
+  }
+}
+
+async function waitForFrameFonts() {
+  const frames = Array.from(
+    document.querySelectorAll<HTMLIFrameElement>(
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-snapshot-print-controller.tsx
+LINE: 119
+============================================================
+      return true;
+    }
+  });
+}
+
+async function waitForLinkedFrames(timeoutMs = 9000) {
+  const startedAt = Date.now();
+
+>>>   while (Date.now() - startedAt < timeoutMs) {
+    if (areLinkedFramesReady()) return;
+
+    await sleep(150);
+  }
+}
+
+async function waitForFrameFonts() {
+  const frames = Array.from(
+    document.querySelectorAll<HTMLIFrameElement>(
+      [
+        "iframe[data-report-linked-assessment-frame='1']",
+        "iframe[data-report-linked-survey-frame='1']",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 3118
+============================================================
+      setRightSidebarCollapsed(true);
+      setLeftSidebarCollapsed(true);
+    }
+
+    if (alert.action === "open-block") {
+      setLeftSidebarCollapsed(false);
+    }
+
+>>>     window.setTimeout(() => {
+      document
+        .querySelector(".report-two-a4-host")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  function fixReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+    if (alert.action === "hide-technical-fields") {
+      setTemplate((current) => ({
+        ...current,
+        pages: current.pages.map((page) => ({
+          ...page,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 4470
+============================================================
+
+    setDraftRestored(true);
+    // استعادة مسودة report-2
+  }, [draftRestored, reportTwoDraftStorageKey, runtimeMode]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+
+>>>     const timer = window.setTimeout(() => {
+      const snapshot = createReportTwoDraftSnapshot();
+      const serialized = JSON.stringify(snapshot);
+
+      if (lastDraftSerializedRef.current !== serialized) {
+        const previous = parseReportTwoDraftSnapshot(
+          lastDraftSerializedRef.current,
+        );
+
+        if (previous && !restoringDraftRef.current) {
+          setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+        }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\document-editor\report-document-editor.tsx
+LINE: 145
+============================================================
+  }
+
+  function handleAddPageAfter(renderedPageId: string) {
+    const sourcePageId = getSourcePageId(renderedPageId);
+    const nextDraft = addReportDocumentPageAfter(draft, sourcePageId);
+
+    commitDraft(nextDraft);
+
+>>>     window.setTimeout(() => {
+      const nextRenderedPages = paginateReportDocumentDraftForA4(nextDraft);
+      const currentIndex = nextRenderedPages.findIndex(
+        (page) => page.sourcePageId === sourcePageId,
+      );
+      const nextPage = nextRenderedPages[currentIndex + 1] || nextRenderedPages.at(-1);
+
+      if (nextPage) setActivePageId(nextPage.id);
+      setSelectedBlockId(null);
+    }, 0);
+  }
+
+  function handleRemovePage(renderedPageId: string) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\document-editor\report-document-editor.tsx
+LINE: 163
+============================================================
+  }
+
+  function handleRemovePage(renderedPageId: string) {
+    const sourcePageId = getSourcePageId(renderedPageId);
+    const nextDraft = removeReportDocumentPage(draft, sourcePageId);
+
+    commitDraft(nextDraft);
+
+>>>     window.setTimeout(() => {
+      const nextRenderedPages = paginateReportDocumentDraftForA4(nextDraft);
+      setActivePageId(nextRenderedPages[0]?.id || "");
+      setSelectedBlockId(null);
+    }, 0);
+  }
+
+  function handleMovePage(renderedPageId: string, direction: "previous" | "next") {
+    const sourcePageId = getSourcePageId(renderedPageId);
+
+    commitDraft(moveReportDocumentPage(draft, sourcePageId, direction));
+  }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\document-editor\report-document-editor.tsx
+LINE: 274
+============================================================
+    if (!reportApproved) {
+      window.alert("يجب حفظ واعتماد التقرير أولاً قبل التحميل.");
+      return;
+    }
+
+    const previousTitle = document.title;
+    document.title = getReportPdfFileName();
+
+>>>     window.setTimeout(() => {
+      window.print();
+
+      window.setTimeout(() => {
+        document.title = previousTitle;
+      }, 1000);
+    }, 100);
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <aside className="space-y-4 print:hidden">
+        <div className="rounded-[2rem] border border-emerald-100 bg-white p-4 shadow-sm">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\document-editor\report-document-editor.tsx
+LINE: 277
+============================================================
+    }
+
+    const previousTitle = document.title;
+    document.title = getReportPdfFileName();
+
+    window.setTimeout(() => {
+      window.print();
+
+>>>       window.setTimeout(() => {
+        document.title = previousTitle;
+      }, 1000);
+    }, 100);
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <aside className="space-y-4 print:hidden">
+        <div className="rounded-[2rem] border border-emerald-100 bg-white p-4 shadow-sm">
+          <div className="mb-4 border-b border-emerald-50 pb-4">
+            <h2 className="text-base font-black text-slate-950">لوحة التحكم والمعاينة</h2>
+            <p className="mt-1 text-xs font-bold leading-6 text-slate-400">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\physical-layout\physical-layout-runtime.tsx
+LINE: 392
+============================================================
+      );
+
+      /**
+       * ثم نسمح للـ Planner بطلب Candidate التالية.
+       *
+       * فصل المرحلتين يمنع Candidate جديدة من الكتابة
+       * فوق القديمة قبل أن React يزيل DOM السابق.
+       */
+>>>       window.setTimeout(
+        () => {
+          completed.resolve(
+            result,
+          );
+        },
+        0,
+      );
+    };
+
+    const inspect = () => {
+      if (disposed) {
+        return;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 350
+============================================================
+  }
+
+  async function copyVariable(key: string) {
+    const value = `{${key}}`;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedVariableKey(key);
+>>>       window.setTimeout(() => setCopiedVariableKey(""), 1200);
+    } catch {
+      setCopiedVariableKey("");
+    }
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            أدوات تجهيز القالب
+          </h2>
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+LINE: 246
+============================================================
+  useEffect(() => {
+    if (!selectedCaseId) {
+      setPreparedReportData(null);
+      setPrepareError("");
+      setCreateReportError("");
+      return;
+    }
+
+>>>     const controller = new AbortController();
+
+    async function prepareReportData() {
+      try {
+        setLoadingPrepare(true);
+        setPrepareError("");
+        setCreateReportError("");
+        setPreparedReportData(null);
+
+        const response = await fetch(
+          `/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+            selectedCaseId
+          )}`,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+LINE: 260
+============================================================
+        setCreateReportError("");
+        setPreparedReportData(null);
+
+        const response = await fetch(
+          `/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+            selectedCaseId
+          )}`,
+          {
+>>>             signal: controller.signal,
+          }
+        );
+
+        const data = (await response.json()) as PrepareApiResponse;
+
+        if (!response.ok || !data.ok) {
+          throw new Error(
+            "error" in data ? data.error : "تعذر تجهيز بيانات التقارير."
+          );
+        }
+
+        setPreparedReportData(data.reportData);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+LINE: 292
+============================================================
+      } finally {
+        setLoadingPrepare(false);
+      }
+    }
+
+    prepareReportData();
+
+    return () => {
+>>>       controller.abort();
+    };
+  }, [selectedCaseId]);
+
+  async function handleCreateReport() {
+    if (!selectedCaseId) {
+      setCreateReportError("اختر حالة أولًا لإنشاء التقارير.");
+      return;
+    }
+
+    if (!preparedReportData) {
+      setCreateReportError("بيانات التقارير غير جاهزة بعد.");
+      return;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\reports\report-delete-action.tsx
+LINE: 71
+============================================================
+
+      if (reportTwoDraftStorage && typeof window !== "undefined") {
+        window.localStorage.removeItem(
+          `report-2:draft:${reportTwoDraftStorage.serviceSlug || "general"}:${reportTwoDraftStorage.caseId}`,
+        );
+      }
+
+      setSuccess(payload.message || "تم حذف التقرير بنجاح.");
+>>>       await new Promise((resolve) => window.setTimeout(resolve, 650));
+      onDeleted?.(payload.deletedReport);
+
+      if (redirectAfterDelete) {
+        router.push(redirectAfterDelete);
+      }
+
+      router.refresh();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر حذف التقرير.",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\resource-links\dashboard-resource-linking-page.tsx
+LINE: 212
+============================================================
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+>>>     const timer = window.setTimeout(loadOptions, 250);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timer);
+    };
+  }, [sourceType, targetType, sourceQuery, targetQuery]);
+
+  function selectSource(source: SourceOption) {
+    setSelectedSourceId(source.id);
+    setSelectedTargetIds(source.linkedTargetIds || []);
+    setNotice("");
+    setError("");
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx
+LINE: 1263
+============================================================
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(messageText);
+      setCopied(true);
+>>>       window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+      dir="rtl"
+    >
+      <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-prepare-shell.tsx
+LINE: 121
+============================================================
+
+  const [analysis, setAnalysis] =
+    useState<
+      StatisticsAiAnalysis | null
+    >(null);
+
+  useEffect(() => {
+    const controller =
+>>>       new AbortController();
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          "/api/dashboard/statistics/prepare",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-prepare-shell.tsx
+LINE: 137
+============================================================
+          "/api/dashboard/statistics/prepare",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            cache: "no-store",
+>>>             signal: controller.signal,
+
+            body: JSON.stringify({
+              serviceSlugs,
+              preset,
+              ...(from ? { from } : {}),
+              ...(to ? { to } : {}),
+            }),
+          },
+        );
+
+        const payload =
+          (await response.json()) as
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-prepare-shell.tsx
+LINE: 204
+============================================================
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+>>>       controller.abort();
+    };
+  }, [
+    serviceSlugs,
+    preset,
+    from,
+    to,
+  ]);
+
+  const selectedValues =
+    useMemo<
+      StatisticsValueSelection[]
+    >(() => {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-previous-reports.tsx
+LINE: 59
+============================================================
+  const [error, setError] =
+    useState("");
+
+  const [reports, setReports] =
+    useState<ReportItem[]>([]);
+
+  useEffect(() => {
+    const controller =
+>>>       new AbortController();
+
+    async function loadReports() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          "/api/dashboard/statistics/reports",
+          {
+            cache: "no-store",
+            signal:
+              controller.signal,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-previous-reports.tsx
+LINE: 70
+============================================================
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          "/api/dashboard/statistics/reports",
+          {
+            cache: "no-store",
+>>>             signal:
+              controller.signal,
+          },
+        );
+
+        const payload =
+          (await response.json()) as
+            ReportsResponse;
+
+        if (
+          !response.ok ||
+          !payload.success
+        ) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-previous-reports.tsx
+LINE: 122
+============================================================
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadReports();
+
+    return () =>
+>>>       controller.abort();
+  }, []);
+
+  return (
+    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            التقارير الإحصائية السابقة
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            التقارير المحفوظة من بيانات
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-print-controller.tsx
+LINE: 14
+============================================================
+const FINAL_PAINT_WAIT_MS = 120;
+const STATISTICS_REPORT_DOCUMENT_TITLE = "التقرير الإحصائي";
+
+export function buildStatisticsPrintDocumentTitle() {
+  return STATISTICS_REPORT_DOCUMENT_TITLE;
+}
+
+function delay(ms: number) {
+>>>   return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function withTimeout(promise: Promise<unknown>, timeoutMs: number) {
+  await Promise.race([promise, delay(timeoutMs)]);
+}
+
+async function waitForFonts() {
+  try {
+    if (document.fonts?.ready) {
+      await withTimeout(document.fonts.ready, PRINT_RESOURCE_WAIT_MS);
+    }
+  } catch {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-print-controller.tsx
+LINE: 17
+============================================================
+export function buildStatisticsPrintDocumentTitle() {
+  return STATISTICS_REPORT_DOCUMENT_TITLE;
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+}
+
+>>> async function withTimeout(promise: Promise<unknown>, timeoutMs: number) {
+  await Promise.race([promise, delay(timeoutMs)]);
+}
+
+async function waitForFonts() {
+  try {
+    if (document.fonts?.ready) {
+      await withTimeout(document.fonts.ready, PRINT_RESOURCE_WAIT_MS);
+    }
+  } catch {
+    // Font readiness must not prevent the browser print fallback.
+  }
+}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\statistics\statistics-print-controller.tsx
+LINE: 18
+============================================================
+  return STATISTICS_REPORT_DOCUMENT_TITLE;
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function withTimeout(promise: Promise<unknown>, timeoutMs: number) {
+>>>   await Promise.race([promise, delay(timeoutMs)]);
+}
+
+async function waitForFonts() {
+  try {
+    if (document.fonts?.ready) {
+      await withTimeout(document.fonts.ready, PRINT_RESOURCE_WAIT_MS);
+    }
+  } catch {
+    // Font readiness must not prevent the browser print fallback.
+  }
+}
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\students\smart-student-picker.tsx
+LINE: 40
+============================================================
+}: SmartStudentPickerProps) {
+  const [query, setQuery] = useState(value || "");
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [opened, setOpened] = useState(false);
+
+  useEffect(() => {
+>>>     const controller = new AbortController();
+
+    async function searchStudents() {
+      if (query.trim().length < 1) {
+        setStudents([]);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/dashboard/students/search?query=${encodeURIComponent(query)}`,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\students\smart-student-picker.tsx
+LINE: 54
+============================================================
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/dashboard/students/search?query=${encodeURIComponent(query)}`,
+          {
+>>>             signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+        setStudents(data.students || []);
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timeout = setTimeout(searchStudents, 300);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\students\smart-student-picker.tsx
+LINE: 66
+============================================================
+        const data = await response.json();
+        setStudents(data.students || []);
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    }
+
+>>>     const timeout = setTimeout(searchStudents, 300);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [query]);
+
+  const emptyState = useMemo(() => {
+    if (loading) return "جاري البحث...";
+    if (query.length < 1) return "ابدأ بكتابة اسم الطالب";
+    if (students.length === 0) return "لا توجد نتائج";
+    return null;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\students\smart-student-picker.tsx
+LINE: 70
+============================================================
+        setLoading(false);
+      }
+    }
+
+    const timeout = setTimeout(searchStudents, 300);
+
+    return () => {
+      clearTimeout(timeout);
+>>>       controller.abort();
+    };
+  }, [query]);
+
+  const emptyState = useMemo(() => {
+    if (loading) return "جاري البحث...";
+    if (query.length < 1) return "ابدأ بكتابة اسم الطالب";
+    if (students.length === 0) return "لا توجد نتائج";
+    return null;
+  }, [loading, query, students]);
+
+  return (
+    <div className="space-y-4">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\support\floating-whatsapp-support.tsx
+LINE: 15
+============================================================
+
+const SUPPORT_PARKED_STORAGE_KEY = "teachix-support-whatsapp-parked";
+
+export function FloatingWhatsAppSupport() {
+  const [visible, setVisible] = useState(false);
+  const [parked, setParked] = useState(false);
+
+  useEffect(() => {
+>>>     const preferenceTimer = window.setTimeout(() => {
+      setParked(window.localStorage.getItem(SUPPORT_PARKED_STORAGE_KEY) === "true");
+    }, 0);
+    const timer = window.setTimeout(() => setVisible(true), 700);
+    return () => {
+      window.clearTimeout(preferenceTimer);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  function toggleParked(next: boolean) {
+    setParked(next);
+    window.localStorage.setItem(SUPPORT_PARKED_STORAGE_KEY, String(next));
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\support\floating-whatsapp-support.tsx
+LINE: 18
+============================================================
+export function FloatingWhatsAppSupport() {
+  const [visible, setVisible] = useState(false);
+  const [parked, setParked] = useState(false);
+
+  useEffect(() => {
+    const preferenceTimer = window.setTimeout(() => {
+      setParked(window.localStorage.getItem(SUPPORT_PARKED_STORAGE_KEY) === "true");
+    }, 0);
+>>>     const timer = window.setTimeout(() => setVisible(true), 700);
+    return () => {
+      window.clearTimeout(preferenceTimer);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  function toggleParked(next: boolean) {
+    setParked(next);
+    window.localStorage.setItem(SUPPORT_PARKED_STORAGE_KEY, String(next));
+  }
+
+  return (
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\public-survey-form.tsx
+LINE: 147
+============================================================
+      delete next[fieldId];
+      return next;
+    });
+  }
+
+  function scrollToField(fieldId: string) {
+    setFeedbackModal(null);
+
+>>>     window.setTimeout(() => {
+      const field = fieldRefs.current[fieldId];
+      if (!field) return;
+
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusTarget = field.matches("input, textarea, button")
+        ? field
+        : field.querySelector<HTMLElement>(
+            "input, textarea, button, [tabindex]:not([tabindex='-1'])",
+          );
+      window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 350);
+    }, 0);
+  }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\public-survey-form.tsx
+LINE: 157
+============================================================
+      if (!field) return;
+
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusTarget = field.matches("input, textarea, button")
+        ? field
+        : field.querySelector<HTMLElement>(
+            "input, textarea, button, [tabindex]:not([tabindex='-1'])",
+          );
+>>>       window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 350);
+    }, 0);
+  }
+
+  function setAnswer(questionId: string, value: string | string[]) {
+    clearFieldError(questionId);
+    setAnswers((current) => ({
+      ...current,
+      [questionId]: value,
+    }));
+  }
+
+  function toggleMultiAnswer(questionId: string, value: string) {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-center-shell.tsx
+LINE: 143
+============================================================
+
+  async function loadSurveys() {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+
+    setIsLoading(true);
+    setError(null);
+
+>>>     const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const params = new URLSearchParams({
+        ownerRole,
+        boardPath,
+      });
+
+      const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-center-shell.tsx
+LINE: 144
+============================================================
+  async function loadSurveys() {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+
+    setIsLoading(true);
+    setError(null);
+
+    const controller = new AbortController();
+>>>     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const params = new URLSearchParams({
+        ownerRole,
+        boardPath,
+      });
+
+      const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-center-shell.tsx
+LINE: 154
+============================================================
+    try {
+      const params = new URLSearchParams({
+        ownerRole,
+        boardPath,
+      });
+
+      const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
+        cache: "no-store",
+>>>         signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (!response.ok) {
+        setError(data?.error || "تعذر تحميل الاستبيانات.");
+        setSurveys([]);
+        return;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-responses-shell.tsx
+LINE: 118
+============================================================
+      setError(data?.error || "تعذر تحميل الردود.");
+      return;
+    }
+
+    setPayload(data);
+  }
+
+  useEffect(() => {
+>>>     const timer = window.setTimeout(() => {
+      loadResponses();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [surveyId, query, respondentType]);
+
+  return (
+    <div className="space-y-4 text-slate-950 dark:text-slate-100" dir="rtl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <Link href={boardPath} className="text-sm font-bold text-sky-700">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-share-shell.tsx
+LINE: 91
+============================================================
+  }
+
+  async function copyLink() {
+    if (!publicLink) return;
+
+    await navigator.clipboard.writeText(publicLink);
+    setCopied(true);
+
+>>>     window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    loadSurvey();
+  }, [surveyId]);
+
+  useEffect(() => {
+    if (!publicLink) return;
+
+    QRCode.toDataURL(publicLink, {
+      margin: 1,
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\surveys\survey-templates-shell.tsx
+LINE: 78
+============================================================
+    }
+
+    if (mode === "edit") {
+      router.push(`${boardPath}/${data.survey.id}/edit`);
+      return;
+    }
+
+    setFeedback("تم إنشاء المسودة من القالب. سيتم نقلك إلى مركز الاستبيانات.");
+>>>     window.setTimeout(() => {
+      router.push(boardPath);
+    }, 700);
+  }
+
+  return (
+    <div className="space-y-4 text-slate-950 dark:text-slate-100" dir="rtl">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <Link href={boardPath} className="text-sm font-bold text-sky-700">
+          العودة إلى مركز الاستبيانات
+        </Link>
+
+        <div className="mt-4">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-ai-analysis-panel.tsx
+LINE: 170
+============================================================
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const autoAnalysisStartedRef =
+    useRef<string | null>(null);
+  const activeRequestRef =
+>>>     useRef<AbortController | null>(null);
+  const requestSequenceRef = useRef(0);
+  const mountedRef = useRef(false);
+
+  const storageKey =
+    getGenerationFailureStorageKey(
+      projectId,
+    );
+
+  const runAnalysis = useCallback(
+    async (options: {
+      selectedMode: AnalysisMode;
+      errors: string[];
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-ai-analysis-panel.tsx
+LINE: 187
+============================================================
+  const runAnalysis = useCallback(
+    async (options: {
+      selectedMode: AnalysisMode;
+      errors: string[];
+      selectedQuestion?: string;
+      automaticFailure?: StoredGenerationFailure;
+    }) => {
+      activeRequestRef.current?.abort();
+>>>       const controller = new AbortController();
+      activeRequestRef.current = controller;
+      const requestSequence = ++requestSequenceRef.current;
+      let timedOut = false;
+      const timeout = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 130_000);
+
+      setBusy(true);
+      setError("");
+
+      try {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-ai-analysis-panel.tsx
+LINE: 191
+============================================================
+      selectedQuestion?: string;
+      automaticFailure?: StoredGenerationFailure;
+    }) => {
+      activeRequestRef.current?.abort();
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+      const requestSequence = ++requestSequenceRef.current;
+      let timedOut = false;
+>>>       const timeout = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 130_000);
+
+      setBusy(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          `/api/dashboard/principal/timetable/projects/${projectId}/ai-analysis`,
+          {
+            method: "POST",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-ai-analysis-panel.tsx
+LINE: 193
+============================================================
+    }) => {
+      activeRequestRef.current?.abort();
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+      const requestSequence = ++requestSequenceRef.current;
+      let timedOut = false;
+      const timeout = window.setTimeout(() => {
+        timedOut = true;
+>>>         controller.abort();
+      }, 130_000);
+
+      setBusy(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          `/api/dashboard/principal/timetable/projects/${projectId}/ai-analysis`,
+          {
+            method: "POST",
+
+            headers: {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-ai-analysis-panel.tsx
+LINE: 221
+============================================================
+              question:
+                options.selectedQuestion?.trim() ||
+                undefined,
+
+              generationErrors:
+                options.errors,
+            }),
+            cache: "no-store",
+>>>             signal: controller.signal,
+          },
+        );
+
+        const result =
+          await response
+            .json()
+            .catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              "تعذر تشغيل التحليل الذكي.",
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable\timetable-print-view.tsx
+LINE: 52
+============================================================
+  selectedId: string;
+  shouldPrint: boolean;
+}) {
+  useEffect(() => {
+    if (!shouldPrint) {
+      return;
+    }
+
+>>>     const timer = window.setTimeout(() => {
+      window.print();
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [shouldPrint]);
+
+  const selectedSession = project.sessions.find(
+    (session) =>
+      mode === "class"
+        ? session.classId === selectedId
+        : session.teacherId === selectedId,
+  );
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable-v2\readiness-workspace.tsx
+LINE: 329
+============================================================
+        ),
+    );
+
+    setShowAll((current) => ({
+      ...current,
+      [code]: true,
+    }));
+
+>>>     window.setTimeout(
+      () => {
+        document
+          .getElementById(
+            `readiness-group-${code}`,
+          )
+          ?.scrollIntoView({
+            behavior:
+              "smooth",
+            block:
+              "start",
+          });
+      },
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable-v2\readiness-workspace.tsx
+LINE: 356
+============================================================
+      if (refreshing) {
+        return;
+      }
+
+      setRefreshing(true);
+
+      router.refresh();
+
+>>>       window.setTimeout(
+        () =>
+          setRefreshing(false),
+        1200,
+      );
+    };
+
+  const tone =
+    scoreTone(score);
+
+  return (
+    <div
+      dir="rtl"
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\assignments-workspace.tsx
+LINE: 882
+============================================================
+          workspace={workspace}
+          search={gridSearch}
+          teacherId={gridTeacherId}
+          feasibilityReport={feasibilityReport}
+          onSelectTeacher={(teacherId) => {
+            setSelectedTeacherId(teacherId);
+            resetDraft();
+            setViewMode("teacher");
+>>>             window.setTimeout(() => {
+              teacherWorkspaceRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }, 0);
+          }}
+        />
+      ) : (
+      <div
+        ref={teacherWorkspaceRef}
+        className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
+      >
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\print-controller.tsx
+LINE: 8
+============================================================
+"use client";
+
+import { useEffect } from "react";
+
+export function TimetableV3PrintController({ enabled }: { enabled: boolean }) {
+  useEffect(() => {
+    if (!enabled) return;
+>>>     const timer = window.setTimeout(() => window.print(), 350);
+    return () => window.clearTimeout(timer);
+  }, [enabled]);
+  return null;
+}
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\timetable-v3\timefold-workspace.tsx
+LINE: 313
+============================================================
+
+  async function finishProgress() {
+    await new Promise<void>((resolve) => {
+      const timer = window.setInterval(() => {
+        setProgress((current) => {
+          const next = Math.min(100, current + Math.max(1, Math.ceil((100 - current) / 5)));
+          if (next === 100) {
+            window.clearInterval(timer);
+>>>             window.setTimeout(resolve, 250);
+          }
+          return next;
+        });
+      }, 100);
+    });
+  }
+
+  async function generate() {
+    if (
+      running
+    ) {
+      return;
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LINE: 1283
+============================================================
+            status: "submitted",
+          },
+        );
+      }
+
+      showFeedback("success", feedbackTitle, feedbackMessage);
+
+      if (redirectTo) {
+>>>         setTimeout(() => {
+          router.push(redirectTo);
+          router.refresh();
+        }, 700);
+      }
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر الحفظ",
+        error instanceof Error ? error.message : "حدث خطأ غير متوقع."
+      );
+    } finally {
+      setLoading(false);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LINE: 1726
+============================================================
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 2) {
+      setStudents([]);
+      return;
+    }
+
+>>>     const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LINE: 1735
+============================================================
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+          {
+>>>             signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+        const normalizedStudents = normalizeStudentsResponse(data);
+
+        setStudents(normalizedStudents);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LINE: 1754
+============================================================
+        }
+
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+>>>     const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="lg:flex lg:h-full lg:flex-col lg:justify-center">
+          <h2 className="text-right text-xl font-black text-slate-900 dark:text-white">
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+LINE: 1757
+============================================================
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+>>>       controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="lg:flex lg:h-full lg:flex-col lg:justify-center">
+          <h2 className="text-right text-xl font-black text-slate-900 dark:text-white">
+            {OPTIONAL_STUDENT_PICKER_LABEL}
+          </h2>
+
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow-search\workflow-search-panel.tsx
+LINE: 58
+============================================================
+    setError(false);
+
+    if (trimmed.length < 2) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+>>>     const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/dashboard/workflow-search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal, cache: "no-store" },
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error("search");
+        setResults(data.results || []);
+      } catch (reason) {
+        if ((reason as { name?: string })?.name !== "AbortError") {
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow-search\workflow-search-panel.tsx
+LINE: 59
+============================================================
+
+    if (trimmed.length < 2) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+>>>     const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/dashboard/workflow-search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal, cache: "no-store" },
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error("search");
+        setResults(data.results || []);
+      } catch (reason) {
+        if ((reason as { name?: string })?.name !== "AbortError") {
+          setResults([]);
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow-search\workflow-search-panel.tsx
+LINE: 64
+============================================================
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/dashboard/workflow-search?q=${encodeURIComponent(trimmed)}`,
+>>>           { signal: controller.signal, cache: "no-store" },
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error("search");
+        setResults(data.results || []);
+      } catch (reason) {
+        if ((reason as { name?: string })?.name !== "AbortError") {
+          setResults([]);
+          setError(true);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+
+============================================================
+FILE: D:\student-guidance-platform-clean\components\workflow-search\workflow-search-panel.tsx
+LINE: 81
+============================================================
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+>>>       controller.abort();
+    };
+  }, [query]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const sheetClassName = mobile

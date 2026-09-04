@@ -20,6 +20,7 @@ export async function generatePdfFromUrlWithCloudflare({
   debugLabel?: "portfolio";
   landscape?: boolean;
 }): Promise<Uint8Array> {
+  const startedAt = Date.now();
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const apiToken = process.env.CLOUDFLARE_BROWSER_RUN_API_TOKEN?.trim();
 
@@ -71,23 +72,13 @@ export async function generatePdfFromUrlWithCloudflare({
   };
 
   if (debugLabel === "portfolio") {
-    let parsedUrl: URL | null = null;
-    try {
-      parsedUrl = new URL(url);
-    } catch {
-      parsedUrl = null;
-    }
-
     console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-      stage: "browser-rendering-request",
-      urlPath: parsedUrl
-        ? `${parsedUrl.pathname.replace(/\/portfolio-export-preview\/[^/?#]+/, "/portfolio-export-preview/[token]")}${parsedUrl.search}`
-        : null,
-      parsedOrigin: parsedUrl?.origin || null,
+      stage: "fetch-start",
+      elapsedMs: 0,
+      cloudflareTimeoutMs: CLOUDFLARE_PDF_TIMEOUT_MS,
       gotoWaitUntil,
       waitForSelector,
       waitForSelectorTimeoutMs,
-      cookiesSent: Boolean(cookies?.length),
     });
   }
 
@@ -106,6 +97,15 @@ export async function generatePdfFromUrlWithCloudflare({
       },
     );
 
+    if (debugLabel === "portfolio") {
+      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+        stage: "fetch-response",
+        elapsedMs: Date.now() - startedAt,
+        status: response.status,
+        ok: response.ok,
+      });
+    }
+
     if (!response.ok) {
       const errorBody = (await response.text()).slice(0, 500);
       throw new Error(
@@ -114,6 +114,15 @@ export async function generatePdfFromUrlWithCloudflare({
     }
 
     const pdfBytes = new Uint8Array(await response.arrayBuffer());
+
+    if (debugLabel === "portfolio") {
+      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+        stage: "pdf-bytes-ready",
+        elapsedMs: Date.now() - startedAt,
+        bytesLength: pdfBytes.length,
+      });
+    }
+
     const signature = new TextDecoder("ascii").decode(pdfBytes.slice(0, 5));
 
     if (!pdfBytes.length || signature !== PDF_SIGNATURE) {
@@ -121,7 +130,26 @@ export async function generatePdfFromUrlWithCloudflare({
     }
 
     return pdfBytes;
+  } catch (error) {
+    if (debugLabel === "portfolio") {
+      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+        stage: "fetch-error",
+        elapsedMs: Date.now() - startedAt,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        abortedByLocalController: controller.signal.aborted,
+      });
+    }
+
+    throw error;
   } finally {
+    if (debugLabel === "portfolio") {
+      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
+        stage: "fetch-finished",
+        elapsedMs: Date.now() - startedAt,
+      });
+    }
+
     clearTimeout(timeoutId);
   }
 }
