@@ -21,6 +21,7 @@ import type {
   PortfolioReportPageModel,
 } from "@/components/portfolio/print/portfolio-print-types";
 import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
+import { getPortfolioSourceEvidenceItems } from "@/lib/portfolio/engine/portfolio-smart-evidence";
 
 
 export type PortfolioPageMeasurementMap =
@@ -438,24 +439,7 @@ export function applyPortfolioPageDecisions(
         : undefined;
 
     const allEvidence =
-      sourcePages.flatMap(
-        (sourcePage) => {
-          const model =
-            getReportPageModel(
-              sourcePage.payload,
-            );
-
-          return (
-            model?.sections.flatMap(
-              (section) =>
-                section.kind ===
-                "evidence"
-                  ? section.items
-                  : [],
-            ) ?? []
-          );
-        },
-      );
+      getPortfolioSourceEvidenceItems(sourcePages);
 
     const primaryEvidenceCount =
       Math.min(

@@ -10,6 +10,7 @@ import type {
 import {
   getPortfolioFieldBandPlan,
 } from "@/lib/portfolio/layout/portfolio-field-layout";
+import { getPortfolioSourceEvidenceItems } from "@/lib/portfolio/engine/portfolio-smart-evidence";
 
 export type PortfolioSmartDensity =
   | "normal"
@@ -415,24 +416,7 @@ export function applyPortfolioSmartCandidate(
     }
 
     const allEvidence =
-      candidateSourcePages.flatMap(
-        (sourcePage) => {
-          const model =
-            getPortfolioReportPageModel(
-              sourcePage.payload,
-            );
-
-          return (
-            model?.sections.flatMap(
-              (section) =>
-                section.kind ===
-                "evidence"
-                  ? section.items
-                  : [],
-            ) ?? []
-          );
-        },
-      );
+      getPortfolioSourceEvidenceItems(candidateSourcePages);
 
     const count =
       Math.min(
