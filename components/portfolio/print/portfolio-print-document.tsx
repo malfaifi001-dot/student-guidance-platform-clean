@@ -42,6 +42,7 @@ import {
 import {
   buildPortfolioLogicalDocument,
 } from "@/lib/portfolio/layout/portfolio-logical-document";
+import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 import {
   planPortfolioPhysicalDocument,
@@ -433,6 +434,48 @@ export function PortfolioPrintDocument({
         measurements,
       ],
     );
+
+  useEffect(() => {
+    if (frozenDecisions === null) return;
+    const frame = window.requestAnimationFrame(() => {
+      const pages = Array.from(document.querySelectorAll<HTMLElement>("[data-portfolio-page-type], .portfolio-page, .atlas-page, .hzn-page, .moe24-page"));
+      pages.forEach((page) => {
+        const content = page.querySelector<HTMLElement>("[data-portfolio-safe-content]");
+        const footer = page.querySelector<HTMLElement>("[data-portfolio-footer-boundary]");
+        const header = page.querySelector<HTMLElement>("[data-portfolio-header-boundary]");
+        const pageRect = page.getBoundingClientRect();
+        const contentRect = content?.getBoundingClientRect();
+        const footerRect = footer?.getBoundingClientRect();
+        const headerRect = header?.getBoundingClientRect();
+        if (!content || !contentRect || !footerRect) return;
+        const pageId = page.dataset.portfolioPageId || page.querySelector<HTMLElement>("[data-portfolio-page-id]")?.dataset.portfolioPageId || page.dataset.pageLabel || "unknown";
+        const meaningfulElements = Array.from(content.querySelectorAll<HTMLElement>("*:not(style):not(script):not([aria-hidden=\"true\"]):not([data-portfolio-measurement-candidate])"))
+          .filter((element) => {
+            const style = window.getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+            return style.display !== "none" && style.visibility !== "hidden" && style.position !== "absolute" && style.position !== "fixed" && rect.width > 0 && rect.height > 0 && !element.closest("[data-portfolio-measurement-candidate]");
+          });
+        const lastMeasuredElement = meaningfulElements.reduce<HTMLElement | null>((last, element) => {
+          if (!last || element.getBoundingClientRect().bottom > last.getBoundingClientRect().bottom) return element;
+          return last;
+        }, null);
+        const actualContentBottomPx = lastMeasuredElement?.getBoundingClientRect().bottom ?? contentRect.top;
+        const footerTopPx = footerRect.top;
+        const overlapPx = actualContentBottomPx - footerTopPx;
+        const payload = { pageId, pageType: page.dataset.portfolioPageType || (page.className.match(/portfolio-report-page|portfolio-service-output-page/)?.[0] ?? "unknown"), safeContentTopPx: contentRect.top, safeContentBottomPx: contentRect.bottom, actualContentBottomPx, footerTopPx, overlapPx, measuredElementCount: meaningfulElements.length, lastMeasuredElementTag: lastMeasuredElement?.tagName ?? null, lastMeasuredElementClass: lastMeasuredElement?.className ?? null, pageHeightPx: pageRect.height, headerBottomPx: headerRect?.bottom ?? null };
+        portfolioPhysicalTrace("FOOTER_GEOMETRY", payload);
+        if (overlapPx > 1) portfolioPhysicalTrace("WARNING", { type: "CONTENT_CROSSES_FOOTER", pageId, overlapPx });
+        const safeContent = content;
+        const isEmpty = !safeContent.textContent?.trim() && !safeContent.querySelector("img, table, svg, [data-portfolio-smart-role]");
+        if (isEmpty) portfolioPhysicalTrace("WARNING", { type: "EMPTY_PHYSICAL_PAGE", pageId, pageType: payload.pageType });
+        if (page.dataset.portfolioPageType === "service-output") {
+          portfolioPhysicalTrace("SERVICE_OUTPUT_RENDERED", { ...payload, outputId: page.dataset.portfolioOutputId || null, chunkIndex: page.dataset.portfolioChunkIndex || null, rowCount: safeContent.querySelectorAll("tbody tr").length });
+          if (overlapPx > 1) portfolioPhysicalTrace("WARNING", { type: "SERVICE_OUTPUT_OVERFLOW", pageId, overlapPx, outputId: page.dataset.portfolioOutputId || null });
+        }
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [physicalDocument, frozenDecisions]);
 
 
   const typographyStyle =

@@ -54,17 +54,26 @@ function MoePage({
   sectionLabel,
   className = "",
   style,
+  pageId,
+  outputId,
+  chunkIndex,
 }: {
   children: ReactNode;
   sectionLabel: string;
   className?: string;
   style?: CSSProperties;
+  pageId?: string;
+  outputId?: string;
+  chunkIndex?: number;
 }) {
   return (
     <section
       className={`moe24-page ${className}`}
       style={style}
       data-page-label={sectionLabel}
+      data-portfolio-page-id={pageId}
+      data-portfolio-output-id={outputId}
+      data-portfolio-chunk-index={chunkIndex}
       data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}
     >
       <BrandRule />
@@ -129,7 +138,7 @@ function MoeActivityOutputPages({ output, sectionTitle, physicalDocument }: { ou
   const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <MoePage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="moe24-activity-output-page portfolio-service-output-page">
+    <MoePage key={`${output.id}-${index}`} pageId={physicalDocument.serviceOutputPages[output.id]?.[index]?.id} outputId={output.id} chunkIndex={index} sectionLabel={sectionTitle} className="moe24-activity-output-page portfolio-service-output-page">
       <style>{`.moe24-activity-output-body{display:grid;gap:4mm}.moe24-activity-output-page .portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.moe24-activity-output-week{break-inside:avoid}.moe24-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#15445a;background:#e7f7ef;border-top:1.2mm solid #07a869;font-size:10px}.moe24-activity-output-week header span{font-size:8px;color:#63737b}.moe24-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.moe24-activity-output-table th,.moe24-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d9e0e2;text-align:right;vertical-align:middle}.moe24-activity-output-table thead th{color:#fff;background:#15445a;font-weight:900}.moe24-activity-output-table tbody th{color:#15445a;background:#f5f7f6}.moe24-activity-output-table td{background:#fff}.moe24-activity-output-table small{display:block;margin-top:.5mm;color:#63737b;font-size:7px}`}</style>
       <SectionHeading eyebrow="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="moe-official-2024" />
@@ -816,6 +825,7 @@ export function MoeOfficial2024PortfolioPrint({
         .moe24-page-body {
           position: relative;
           height: 100%;
+          box-sizing: border-box;
           padding: 31mm 18mm 25mm;
           overflow: hidden;
         }

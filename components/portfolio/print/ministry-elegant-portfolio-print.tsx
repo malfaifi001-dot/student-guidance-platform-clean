@@ -82,14 +82,20 @@ function PageShell({
   pageLabel,
   className = "",
   style,
+  pageId,
+  outputId,
+  chunkIndex,
 }: {
   children: ReactNode;
   pageLabel: string;
   className?: string;
   style?: CSSProperties;
+  pageId?: string;
+  outputId?: string;
+  chunkIndex?: number;
 }) {
   return (
-    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel} data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}>
+    <section className={`portfolio-page ${className}`} style={style} data-page-label={pageLabel} data-portfolio-page-id={pageId} data-portfolio-output-id={outputId} data-portfolio-chunk-index={chunkIndex} data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}>
       <div className="portfolio-page-header" data-portfolio-header-boundary>
         <span>ملف الإنجاز</span>
         <span>{pageLabel}</span>
@@ -146,7 +152,7 @@ function MinistryActivityOutputPages({ output, sectionTitle, physicalDocument }:
   const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <PageShell key={`${output.id}-${index}`} pageLabel={sectionTitle} className="portfolio-activity-output-page portfolio-service-output-page">
+    <PageShell key={`${output.id}-${index}`} pageId={physicalDocument.serviceOutputPages[output.id]?.[index]?.id} outputId={output.id} chunkIndex={index} pageLabel={sectionTitle} className="portfolio-activity-output-page portfolio-service-output-page">
       <style>{`.portfolio-ministry-elegant-activity-output-body{display:grid;gap:4mm}.portfolio-activity-output-title{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-ministry-elegant-activity-output-week{break-inside:avoid}.portfolio-ministry-elegant-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#fff;background:linear-gradient(90deg,#315c49,#62886b);font-size:10px}.portfolio-ministry-elegant-activity-output-week header span{font-size:8px;opacity:.9}.portfolio-ministry-elegant-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-ministry-elegant-activity-output-table th,.portfolio-ministry-elegant-activity-output-table td{padding:1.8mm 2mm;border:1px solid #d5e2d8;text-align:right;vertical-align:middle}.portfolio-ministry-elegant-activity-output-table thead th{color:#fff;background:#527861;font-weight:900}.portfolio-ministry-elegant-activity-output-table tbody th{color:#315c49;background:#f1f7f1}.portfolio-ministry-elegant-activity-output-table td{background:#fff}.portfolio-ministry-elegant-activity-output-table small{display:block;margin-top:.5mm;color:#6a7b73;font-size:7px}`}</style>
       <span className="portfolio-section-kicker">مخرج مرتبط</span>
       <h2 className="portfolio-section-title portfolio-activity-output-title">{output.displayTitle}</h2>
@@ -1074,6 +1080,7 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
         .portfolio-report-body {
           position: relative;
           height: 100%;
+          box-sizing: border-box;
           padding: 23mm 14mm 22mm;
           overflow: hidden;
         }

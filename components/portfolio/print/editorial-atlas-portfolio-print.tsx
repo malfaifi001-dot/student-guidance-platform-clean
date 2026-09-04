@@ -36,18 +36,27 @@ function AtlasPage({
   className = "",
   style,
   indexLabel = "•",
+  pageId,
+  outputId,
+  chunkIndex,
 }: {
   children: ReactNode;
   sectionLabel: string;
   className?: string;
   style?: CSSProperties;
   indexLabel?: string;
+  pageId?: string;
+  outputId?: string;
+  chunkIndex?: number;
 }) {
   return (
     <section
       className={`atlas-page ${className}`}
       style={style}
       data-page-label={sectionLabel}
+      data-portfolio-page-id={pageId}
+      data-portfolio-output-id={outputId}
+      data-portfolio-chunk-index={chunkIndex}
       data-portfolio-page-type={className.includes("portfolio-service-output-page") ? "service-output" : undefined}
     >
       <aside className="atlas-rail" aria-hidden="true">
@@ -111,7 +120,7 @@ function AtlasActivityOutputPages({ output, sectionTitle, physicalDocument }: { 
   const chunks = getServiceOutputPhysicalChunks(physicalDocument, output.id);
   const pageChunks = chunks;
   return pageChunks.filter((chunk) => chunk.kind !== "curriculum-distribution").map((chunk, index) => (
-    <AtlasPage key={`${output.id}-${index}`} sectionLabel={sectionTitle} className="atlas-activity-output-page portfolio-service-output-page" indexLabel={String(index + 1).padStart(2, "0")}>
+    <AtlasPage key={`${output.id}-${index}`} pageId={physicalDocument.serviceOutputPages[output.id]?.[index]?.id} outputId={output.id} chunkIndex={index} sectionLabel={sectionTitle} className="atlas-activity-output-page portfolio-service-output-page" indexLabel={String(index + 1).padStart(2, "0")}>
       <style>{`.portfolio-editorial-atlas-activity-output-body{display:grid;gap:4mm}.atlas-activity-output-page .atlas-heading h2{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif;font-size:32px!important;font-weight:900;line-height:1.25}.portfolio-editorial-atlas-activity-output-week{break-inside:avoid}.portfolio-editorial-atlas-activity-output-week header{display:flex;justify-content:space-between;gap:4mm;padding:2mm 3mm;color:#10243a;background:#edf8f6;border-inline-start:1.5mm solid #e07a5f;font-size:10px}.portfolio-editorial-atlas-activity-output-week header span{font-size:8px;color:#6b7785}.portfolio-editorial-atlas-activity-output-table{width:100%;border-collapse:collapse;font-size:8px}.portfolio-editorial-atlas-activity-output-table th,.portfolio-editorial-atlas-activity-output-table td{padding:1.8mm 2mm;border-bottom:1px solid #dce2e6;text-align:right;vertical-align:middle}.portfolio-editorial-atlas-activity-output-table thead th{color:#fff;background:#2f7ebb;font-weight:900}.portfolio-editorial-atlas-activity-output-table tbody th{color:#0f9d94;background:#eef5f8}.portfolio-editorial-atlas-activity-output-table td{background:#fff}.portfolio-editorial-atlas-activity-output-table small{display:block;margin-top:.5mm;color:#6b7785;font-size:7px}`}</style>
       <Heading kicker="مخرج مرتبط" title={output.displayTitle} />
       <ActivityLeaderServiceOutputContent chunk={chunk} design="editorial-atlas" />
@@ -423,6 +432,7 @@ export function EditorialAtlasPortfolioPrint({
 
         .atlas-body {
           height: 100%;
+          box-sizing: border-box;
           padding: 31mm 18mm 24mm 20mm;
           overflow: hidden;
         }

@@ -20,6 +20,7 @@ import type {
 import type {
   PortfolioReportPageModel,
 } from "@/components/portfolio/print/portfolio-print-types";
+import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 
 export type PortfolioPageMeasurementMap =
@@ -83,6 +84,10 @@ export function selectPortfolioCandidateForPage(
             )
           ];
 
+        if (!measurement) {
+          portfolioPhysicalTrace("CANDIDATE_MEASUREMENT_STATE", { pageId, candidateId: candidate.id, hasMeasurement: false });
+        }
+
         return measurement
           ? {
               candidate,
@@ -103,6 +108,22 @@ export function selectPortfolioCandidateForPage(
           Boolean(item),
       );
 
+  measured.forEach(({ candidate, measurement }) => {
+    portfolioPhysicalTrace("CANDIDATE_MEASUREMENT_STATE", {
+      pageId,
+      candidateId: candidate.id,
+      hasMeasurement: true,
+      fits: measurement.fits,
+      overflowPx: measurement.overflowPx,
+      mainContentBottomPx: measurement.mainContentBottomPx,
+      footerBoundaryPx: measurement.footerBoundaryPx,
+      fieldHeightPx: measurement.fieldHeightPx,
+      narrativeHeightPx: measurement.narrativeHeightPx,
+      evidenceHeightPx: measurement.evidenceHeightPx,
+      tableHeightPx: measurement.tableHeightPx,
+    });
+  });
+
   if (
     measured.length <
     candidates.length
@@ -117,7 +138,9 @@ export function selectPortfolioCandidateForPage(
     );
 
   if (!fitting.length) {
-    return [...measured]
+    const selected = [...measured].sort((first, second) => first.measurement.overflowPx - second.measurement.overflowPx)[0];
+    portfolioPhysicalTrace("WARNING", { type: "NO_FITTING_CANDIDATE", pageId, selectedCandidateId: selected?.candidate.id, overflowPx: selected?.measurement.overflowPx });
+    const selectedCandidate = [...measured]
       .sort(
         (
           first,
@@ -140,11 +163,12 @@ export function selectPortfolioCandidateForPage(
             first.candidate.readabilityScore
           );
         },
-      )[0]
-      ?.candidate ?? null;
+      )[0]?.candidate ?? null;
+    if (selectedCandidate) portfolioPhysicalTrace("CANDIDATE_SELECTED", { pageId, candidateId: selectedCandidate.id, fits: false, overflowPx: measurements[getPortfolioPageMeasurementKey(pageId, selectedCandidate.id)]?.overflowPx });
+    return selectedCandidate;
   }
 
-  return fitting.reduce(
+  const selectedCandidate = fitting.reduce(
     (
       best,
       current,
@@ -168,6 +192,9 @@ export function selectPortfolioCandidateForPage(
     },
     fitting[0],
   ).candidate;
+  const selectedMeasurement = measurements[getPortfolioPageMeasurementKey(pageId, selectedCandidate.id)];
+  portfolioPhysicalTrace("CANDIDATE_SELECTED", { pageId, candidateId: selectedCandidate.id, columnCount: selectedCandidate.columnCount, evidenceCount: selectedCandidate.evidenceCount, evidenceLayout: selectedCandidate.evidenceLayout, fits: selectedMeasurement?.fits, overflowPx: selectedMeasurement?.overflowPx });
+  return selectedCandidate;
 }
 
 
@@ -436,6 +463,12 @@ export function applyPortfolioPageDecisions(
         allEvidence.length,
       ) as 0 | 1 | 2;
 
+    portfolioPhysicalTrace("EVIDENCE_SOURCE", {
+      reportId,
+      sourceEvidenceIds: allEvidence.map((item) => item.id),
+      sourceEvidenceCount: allEvidence.length,
+    });
+
     const regularSections =
       primaryModel.sections.filter(
         (section) =>
@@ -525,6 +558,14 @@ export function applyPortfolioPageDecisions(
       PortfolioPhysicalPage[] = [
       frozenPrimary,
     ];
+    portfolioPhysicalTrace("PAGE_DECISION", { reportId, pageId: primary.id, candidateId: candidate.id, primaryEvidenceCount });
+    portfolioPhysicalTrace("EVIDENCE_PRIMARY_ASSIGNMENT", {
+      reportId,
+      pageId: primary.id,
+      candidateId: candidate.id,
+      primaryEvidenceCount,
+      assignedEvidenceIds: allEvidence.slice(0, primaryEvidenceCount).map((item) => item.id),
+    });
 
     const template =
       sourcePages[1] ??
@@ -646,7 +687,25 @@ export function applyPortfolioPageDecisions(
               }
             : template.payload,
       });
+      portfolioPhysicalTrace("EVIDENCE_CONTINUATION", {
+        reportId,
+        pageId: `${primary.id}-evidence-${continuationNumber}`,
+        continuationIndex: continuationNumber,
+        assignedEvidenceIds: items.map((item) => item.id),
+        remainingEvidenceCount: Math.max(0, allEvidence.length - index - items.length),
+      });
     }
+
+    const renderedEvidenceIds = rebuilt.flatMap((page) => {
+      const model = getReportPageModel(page.payload);
+      return model?.sections.flatMap((section) => section.kind === "evidence" ? section.items.map((item) => item.id) : []) ?? [];
+    });
+    const sourceIds = allEvidence.map((item) => item.id);
+    const duplicateEvidenceIds = renderedEvidenceIds.filter((id, index, ids) => ids.indexOf(id) !== index).filter((id, index, ids) => ids.indexOf(id) === index);
+    const missingEvidenceIds = sourceIds.filter((id) => !renderedEvidenceIds.includes(id));
+    portfolioPhysicalTrace("EVIDENCE_FINAL_STATE", { reportId, sourceEvidenceIds: sourceIds, renderedEvidenceIds, duplicateEvidenceIds, missingEvidenceIds });
+    if (duplicateEvidenceIds.length) portfolioPhysicalTrace("WARNING", { type: "DUPLICATE_EVIDENCE_ID", reportId, duplicateEvidenceIds });
+    if (missingEvidenceIds.length) portfolioPhysicalTrace("WARNING", { type: "MISSING_EVIDENCE_ID", reportId, missingEvidenceIds });
 
     rebuiltReportPages[
       reportId

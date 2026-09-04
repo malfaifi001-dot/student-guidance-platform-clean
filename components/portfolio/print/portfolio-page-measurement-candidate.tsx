@@ -28,6 +28,7 @@ import type {
 import {
   measurePortfolioPhysicalPage,
 } from "@/lib/portfolio/engine/portfolio-smart-measure";
+import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 import {
   MinistryElegantPortfolioPrint,
@@ -207,6 +208,8 @@ export function PortfolioPageMeasurementCandidate({
           return;
         }
 
+        portfolioPhysicalTrace("MEASURE_REQUEST", { pageId, candidateId: candidate.id });
+
         const fingerprint =
           [
             page.textContent
@@ -238,13 +241,11 @@ export function PortfolioPageMeasurementCandidate({
         if (
           stablePasses >= 2
         ) {
-          onMeasured(
-            measurePortfolioPhysicalPage(
-              page,
-              pageId,
-              candidate,
-            ),
-          );
+          const result = measurePortfolioPhysicalPage(page, pageId, candidate);
+          portfolioPhysicalTrace("MEASURE_RESULT", { ...result });
+          if (!result.stable) portfolioPhysicalTrace("WARNING", { type: "MEASUREMENT_UNSTABLE", pageId, candidateId: candidate.id });
+          if (!Number.isFinite(result.overflowPx)) portfolioPhysicalTrace("WARNING", { type: "INVALID_MEASUREMENT", pageId, candidateId: candidate.id, overflowPx: result.overflowPx });
+          onMeasured(result);
 
           return;
         }

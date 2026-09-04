@@ -9,6 +9,7 @@ import { MinistryElegantPortfolioPrint } from "@/components/portfolio/print/mini
 import { EditorialAtlasPortfolioPrint } from "@/components/portfolio/print/editorial-atlas-portfolio-print";
 import { GeometricHorizonPortfolioPrint } from "@/components/portfolio/print/geometric-horizon-portfolio-print";
 import { MoeOfficial2024PortfolioPrint } from "@/components/portfolio/print/moe-official-2024-portfolio-print";
+import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 type Props = { data: PortfolioPrintData; physicalDocument: PortfolioPhysicalDocument; themeId: PortfolioThemeId; candidate: PortfolioSmartCandidate; onMeasured: (result: PortfolioSmartMeasurementResult) => void };
 
@@ -69,9 +70,16 @@ export function PortfolioHiddenMeasurementCandidate({ data, physicalDocument, th
       const fingerprint = `${root.textContent?.length || 0}:${root.scrollHeight}:${root.getBoundingClientRect().height}`;
       stablePasses = fingerprint === previous ? stablePasses + 1 : 0;
       previous = fingerprint;
-      if (stablePasses >= 2) onMeasured(measureCandidate(root, candidate));
+      if (stablePasses >= 2) {
+        const result = measureCandidate(root, candidate);
+        portfolioPhysicalTrace("MEASURE_RESULT", { ...result, pageId: "hidden" });
+        if (!result.stable) portfolioPhysicalTrace("WARNING", { type: "MEASUREMENT_UNSTABLE", candidateId: candidate.id });
+        if (!Number.isFinite(result.overflowPx)) portfolioPhysicalTrace("WARNING", { type: "INVALID_MEASUREMENT", candidateId: candidate.id, overflowPx: result.overflowPx });
+        onMeasured(result);
+      }
       else requestAnimationFrame(measure);
     };
+    portfolioPhysicalTrace("MEASURE_REQUEST", { pageId: "hidden", candidateId: candidate.id });
     const start = async () => {
       if (document.fonts?.ready) await document.fonts.ready;
       await Promise.all(Array.from(root.querySelectorAll<HTMLImageElement>("img")).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener("load", () => resolve(), { once: true }); image.addEventListener("error", () => resolve(), { once: true }); })));

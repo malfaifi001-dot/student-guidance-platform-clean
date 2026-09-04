@@ -3,12 +3,87 @@ import { splitPortfolioItems } from "@/lib/portfolio/engine/portfolio-smart-cont
 import type { PortfolioBlock } from "@/lib/portfolio/layout/portfolio-block-types";
 import type { PortfolioLogicalDocument, PortfolioLogicalSection } from "@/lib/portfolio/layout/portfolio-logical-document";
 import type { PortfolioPhysicalDocument, PortfolioPhysicalPage, PortfolioPhysicalPageRole, PortfolioPhysicalPageType } from "@/lib/portfolio/layout/portfolio-physical-types";
-import { normalizePortfolioServiceOutput, type PortfolioCurriculumWeek, type PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
+import { normalizePortfolioServiceOutput, type PortfolioActivityPlanRow, type PortfolioCurriculumWeek, type PortfolioServiceOutputChunk } from "@/lib/portfolio/service-outputs/service-output-types";
 import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-registry";
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
+import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 const CURRICULUM_FIRST_PAGE_BUDGET = 30;
 const CURRICULUM_CONTINUATION_PAGE_BUDGET = 38;
+
+/**
+ * Service output pages do not participate in the report candidate measurement
+ * pass. Keep their chunks conservative so variable-height table rows cannot
+ * reach the fixed footer area. The renderer remains responsible for the
+ * visual shell; this function only decides which source rows belong together.
+ */
+function estimateTextLines(value: unknown, charsPerLine = 24) {
+  const text = String(value ?? "").trim();
+  return Math.max(1, Math.ceil(text.length / charsPerLine));
+}
+
+function estimateActivityPlanRowHeightMm(row: PortfolioActivityPlanRow) {
+  const values = [row.activityArea, row.activity, row.grade, row.supervisor, row.day, row.date, row.period];
+  return 5.5 + Math.max(...values.map((value) => estimateTextLines(value)));
+}
+
+function estimateTenPercentRowHeightMm(row: { domains?: Array<{ title?: string }>; programs?: Array<{ name?: string }>; executionWeeks?: unknown; grades?: string[]; teacherNames?: string[]; subject?: string | null }) {
+  const values = [
+    row.domains?.map((item) => item.title).join("، "),
+    row.programs?.map((item) => item.name).join("، "),
+    row.grades?.join("\n"),
+    row.teacherNames?.join("\n"),
+    row.subject,
+    row.executionWeeks,
+  ];
+  return 5.5 + Math.max(...values.map((value) => estimateTextLines(value, 18)));
+}
+
+function splitRowsByEstimatedHeight<T>(rows: T[], estimate: (row: T) => number, budgetMm: number) {
+  const pages: T[][] = [];
+  let page: T[] = [];
+  let height = 0;
+  for (const row of rows) {
+    const rowHeight = estimate(row);
+    if (page.length && height + rowHeight > budgetMm) {
+      pages.push(page);
+      page = [];
+      height = 0;
+    }
+    page.push(row);
+    height += rowHeight;
+  }
+  if (page.length) pages.push(page);
+  return pages;
+}
+
+function splitServiceOutputChunkForPhysicalPages(
+  chunk: PortfolioServiceOutputChunk,
+  contentHeightMm: number,
+): PortfolioServiceOutputChunk[] {
+  const safeHeightMm = Math.max(120, contentHeightMm - 18);
+  if (chunk.kind === "activity-plan") {
+    const rowPages = splitRowsByEstimatedHeight(chunk.rows, estimateActivityPlanRowHeightMm, safeHeightMm - 28);
+    return rowPages.map((rows, index) => ({
+      ...chunk,
+      rows,
+      summary: index === 0 ? chunk.summary : undefined,
+      shareUrl: index === rowPages.length - 1 ? chunk.shareUrl : undefined,
+      shareQrDataUrl: index === rowPages.length - 1 ? chunk.shareQrDataUrl : undefined,
+    }));
+  }
+  if (chunk.kind === "ten-percent-activity-plan") {
+    return splitRowsByEstimatedHeight(chunk.rows, estimateTenPercentRowHeightMm, safeHeightMm - 12).map((rows) => ({ ...chunk, rows }));
+  }
+  if (chunk.kind === "activity-team") {
+    return splitRowsByEstimatedHeight(chunk.rows, (row) => 9 + estimateTextLines(`${row.label} ${row.supervisor}`, 28), safeHeightMm).map((rows) => ({ ...chunk, rows }));
+  }
+  if (chunk.kind === "weekly-activity-plan") {
+    const weeks = splitPortfolioItems(chunk.weeks, 7);
+    return weeks.map((items) => ({ ...chunk, weeks: items }));
+  }
+  return [chunk];
+}
 
 function curriculumWeekWeight(week: PortfolioCurriculumWeek) {
   const textLines = (value: string) => Math.max(1, Math.ceil(value.trim().length / 28));
@@ -100,16 +175,46 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
   const serviceOutputPages: Record<string, PortfolioPhysicalPage[]> = {};
   const reportPages: Record<string, PortfolioPhysicalPage[]> = {};
   const evidencePages: Record<string, PortfolioPhysicalPage[]> = {};
+  const frame = getPortfolioFrame(themeId);
+
+  portfolioPhysicalTrace("PLAN_START", {
+    themeId,
+    frame,
+    logicalSectionCount: document.sections.length,
+    logicalBlockCount: document.sections.reduce((total, section) => total + section.blocks.length, 0),
+  });
 
   for (const section of document.sections.filter((item) => item.isEnabled)) {
     for (const block of section.blocks) {
       if (block.type === "service-output") {
         const normalizedChunks = normalizePortfolioServiceOutput(block.payload.output);
+        portfolioPhysicalTrace("SERVICE_OUTPUT_START", {
+          outputId: block.payload.output.id,
+          chunkKind: normalizedChunks.map((chunk) => chunk.kind),
+          sourceItemCount: normalizedChunks.reduce((total, chunk) => total + ("rows" in chunk ? chunk.rows.length : "weeks" in chunk ? chunk.weeks.length : 0), 0),
+          contentHeightMm: frame.contentHeightMm,
+          headerHeightMm: frame.headerHeightMm,
+          footerHeightMm: frame.footerHeightMm,
+          topSafetyGapMm: frame.topSafetyGapMm,
+          bottomSafetyGapMm: frame.bottomSafetyGapMm,
+        });
         const chunks: PortfolioServiceOutputChunk[] = normalizedChunks.flatMap<PortfolioServiceOutputChunk>((chunk) =>
           chunk.kind === "curriculum-distribution"
             ? splitCurriculumWeeksForPhysicalPages(chunk.weeks).map((weeks) => ({ ...chunk, weeks }))
-            : [chunk],
+            : splitServiceOutputChunkForPhysicalPages(chunk, frame.contentHeightMm),
         );
+        chunks.forEach((chunk, chunkIndex) => {
+          portfolioPhysicalTrace("CHUNK_CREATED", {
+            outputId: block.payload.output.id,
+            chunkKind: chunk.kind,
+            chunkIndex,
+            rowCount: "rows" in chunk ? chunk.rows.length : undefined,
+            weekCount: "weeks" in chunk ? chunk.weeks.length : undefined,
+            isContinuation: chunkIndex > 0,
+            hasSummary: "summary" in chunk ? Boolean(chunk.summary) : false,
+            hasQr: "shareQrDataUrl" in chunk ? Boolean(chunk.shareQrDataUrl) : false,
+          });
+        });
         const outputPages = chunks.map((chunk, index) => {
           const pageType = index === 0 ? "service-output" : "service-output-continuation";
           const page = makePage(section, block, pageType, `${block.id}-page-${index + 1}`, { ...block.payload, chunk }, index, chunks.length);
@@ -121,6 +226,14 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
       }
       if (block.type === "report" && block.payload.content) {
         const models = composePortfolioSmartPages(block.payload.content);
+        portfolioPhysicalTrace("REPORT_START", {
+          reportId: block.payload.reportId,
+          sourcePageCount: models.length,
+          sourceEvidenceIds: block.payload.content.evidenceItems.map((item) => item.id),
+          sourceEvidenceCount: block.payload.content.evidenceItems.length,
+          hasDetails: block.payload.content.normalizedFields.length > 0,
+          hasNarrative: Boolean(block.payload.content.narrative?.body?.trim()),
+        });
         const planned = models.map((model, index) => makePage(section, block, "report", `${block.id}-page-${index + 1}`, { ...block.payload, page: model }, index, models.length));
         reportPages[block.payload.reportId] = planned;
         evidencePages[block.payload.reportId] = planned.filter((page) => {
@@ -143,6 +256,26 @@ export function planPortfolioPhysicalDocument(document: PortfolioLogicalDocument
       pages.push(makePage(section, block, pageTypeForSection(section, block), `${block.id}-page`, block.payload, 0, 1));
     }
   }
+  pages.forEach((page) => {
+    portfolioPhysicalTrace("FINAL_PAGE", {
+      pageId: page.id,
+      pageType: page.pageType,
+      role: page.role,
+      sectionKey: page.sectionKey,
+      reportId: page.reportId,
+      outputId: page.outputId,
+      continuationIndex: page.continuationIndex,
+      candidateId: page.candidateId,
+      primaryEvidenceCount: page.primaryEvidenceCount,
+      overflowEvidenceCount: page.overflowEvidenceCount,
+    });
+  });
+  portfolioPhysicalTrace("PLAN_COMPLETE", {
+    physicalPageCount: pages.length,
+    reportPageCount: Object.values(reportPages).reduce((total, items) => total + items.length, 0),
+    serviceOutputPageCount: Object.values(serviceOutputPages).reduce((total, items) => total + items.length, 0),
+    evidencePageCount: Object.values(evidencePages).reduce((total, items) => total + items.length, 0),
+  });
   return { pages, frame: getPortfolioFrame(themeId), serviceOutputPages, reportPages, evidencePages };
 }
 
