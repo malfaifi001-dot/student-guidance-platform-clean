@@ -9,8 +9,10 @@ import {
   validateEvidenceFiles,
 } from "@/lib/evidence/save-evidence-files";
 import {
+  EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE,
   MAX_EVIDENCE_FILES,
   MAX_EVIDENCE_FILES_MESSAGE,
+  MAX_EVIDENCE_TOTAL_SIZE,
 } from "@/lib/evidence/evidence-limits";
 import { prisma } from "@/lib/prisma";
 
@@ -79,6 +81,19 @@ export async function POST(request: Request) {
     const validationError = validateEvidenceFiles(files);
 
     if (validationError) {
+      const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+      if (totalSize > MAX_EVIDENCE_TOTAL_SIZE) {
+        return NextResponse.json(
+          {
+            ok: false,
+            success: false,
+            code: "EVIDENCE_UPLOAD_TOO_LARGE",
+            message: EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE,
+          },
+          { status: 413 },
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,
@@ -196,6 +211,23 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("EVIDENCE_UPLOAD_ERROR", error);
+
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (
+      /request body exceeded|failed to parse body as formdata|body size|too large/i.test(
+        errorMessage,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          success: false,
+          code: "EVIDENCE_UPLOAD_TOO_LARGE",
+          message: EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE,
+        },
+        { status: 413 },
+      );
+    }
 
     return NextResponse.json(
       {

@@ -5,7 +5,12 @@ import { UploadCloud } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { OperationProgressPopCard } from "@/components/feedback/operation-progress-pop-card";
-import { MAX_EVIDENCE_FILES, MAX_EVIDENCE_FILES_MESSAGE } from "@/lib/evidence/evidence-limits";
+import {
+  EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE,
+  MAX_EVIDENCE_FILES,
+  MAX_EVIDENCE_FILES_MESSAGE,
+  MAX_EVIDENCE_TOTAL_SIZE,
+} from "@/lib/evidence/evidence-limits";
 import type { EvidencePresentationMode } from "@/lib/evidence/evidence-presentation";
 
 type EvidenceItem = {
@@ -45,12 +50,21 @@ export function EvidenceUploadCard({
     setNativeCameraAvailable(Capacitor.isNativePlatform());
   }, []);
 
-  async function uploadFiles(files: FileList) {
-    if (uploadActiveRef.current) return;
+  async function uploadFiles(files: FileList): Promise<boolean> {
+    if (uploadActiveRef.current) return false;
 
     if (remainingCapacity === 0 || files.length > remainingCapacity) {
       onUploadError?.(MAX_EVIDENCE_FILES_MESSAGE);
-      return;
+      return false;
+    }
+
+    if (
+      !onFilesSelected &&
+      Array.from(files).reduce((total, file) => total + file.size, 0) >
+        MAX_EVIDENCE_TOTAL_SIZE
+    ) {
+      onUploadError?.(EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE);
+      return false;
     }
 
     uploadActiveRef.current = true;
@@ -64,13 +78,13 @@ export function EvidenceUploadCard({
         setIsUploading(false);
       }
 
-      return;
+      return true;
     }
 
     if (!onUploaded) {
       uploadActiveRef.current = false;
       setIsUploading(false);
-      return;
+      return false;
     }
 
     try {
@@ -85,17 +99,27 @@ export function EvidenceUploadCard({
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
+
+      if (
+        response.status === 413 ||
+        data?.code === "EVIDENCE_UPLOAD_TOO_LARGE"
+      ) {
+        onUploadError?.(EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE);
+        return true;
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || "فشل رفع الشواهد.");
+        throw new Error(data?.error || "فشل رفع الشواهد.");
       }
 
       onUploaded(data.items || []);
+      return true;
     } catch (error) {
       onUploadError?.(
         error instanceof Error ? error.message : "تعذر رفع الشواهد.",
       );
+      return true;
     } finally {
       uploadActiveRef.current = false;
       setIsUploading(false);
@@ -193,9 +217,11 @@ export function EvidenceUploadCard({
           className="hidden"
           onChange={(event) => {
             if (event.target.files) {
-              void uploadFiles(event.target.files);
+              const input = event.currentTarget;
+              void uploadFiles(event.target.files).then((shouldReset) => {
+                if (shouldReset) input.value = "";
+              });
             }
-            event.target.value = "";
           }}
         />
       </label> : <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">

@@ -5,10 +5,11 @@ import { writeEvidenceFile } from "@/lib/evidence/evidence-file-storage";
 import {
   MAX_EVIDENCE_FILES,
   MAX_EVIDENCE_FILES_MESSAGE,
+  MAX_EVIDENCE_TOTAL_SIZE,
+  EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE,
 } from "@/lib/evidence/evidence-limits";
 
 export const MAX_EVIDENCE_FILE_SIZE = 5 * 1024 * 1024;
-export const MAX_EVIDENCE_TOTAL_SIZE = 20 * 1024 * 1024;
 
 const ALLOWED_EVIDENCE_TYPES = {
   "application/pdf": ["pdf"],
@@ -85,7 +86,7 @@ export function validateEvidenceFiles(files: File[]) {
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
   if (totalSize > MAX_EVIDENCE_TOTAL_SIZE) {
-    return "إجمالي حجم الشواهد في الطلب الواحد يجب ألا يتجاوز 20MB.";
+    return EVIDENCE_UPLOAD_TOO_LARGE_MESSAGE;
   }
 
   for (const file of files) {
