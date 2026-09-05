@@ -4,9 +4,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
+import dynamic from "next/dynamic";
 
 import {
   MinistryElegantPortfolioPrint,
@@ -24,9 +26,6 @@ import {
   MoeOfficial2024PortfolioPrint,
 } from "@/components/portfolio/print/moe-official-2024-portfolio-print";
 
-import {
-  PortfolioPageMeasurementCandidate,
-} from "@/components/portfolio/print/portfolio-page-measurement-candidate";
 
 import type {
   PortfolioPrintData,
@@ -75,6 +74,11 @@ import {
   type PortfolioFrozenDecisionMap,
   type PortfolioPageMeasurementMap,
 } from "@/lib/portfolio/engine/portfolio-smart-page-planner";
+
+const PortfolioPageMeasurementCandidate = dynamic(
+  () => import("@/components/portfolio/print/portfolio-page-measurement-candidate").then((module) => module.PortfolioPageMeasurementCandidate),
+  { ssr: false },
+);
 
 
 function buildPhysicalDocument(
@@ -322,7 +326,9 @@ export function PortfolioPrintDocument({
   ] =
     useState<
       PortfolioPageMeasurementMap
-    >({});
+  >({});
+  const pendingMeasurements = useRef<PortfolioPageMeasurementMap>({});
+  const measurementFlushFrame = useRef<number | null>(null);
 
 
   /**
@@ -350,25 +356,35 @@ export function PortfolioPrintDocument({
             result.candidateId,
           );
 
-        setMeasurements(
-          (current) => {
-            if (
-              current[key]
-            ) {
-              return current;
+        if (pendingMeasurements.current[key]) return;
+        pendingMeasurements.current[key] = result;
+
+        if (measurementFlushFrame.current !== null) return;
+        measurementFlushFrame.current = window.requestAnimationFrame(() => {
+          measurementFlushFrame.current = null;
+          const pending = pendingMeasurements.current;
+          pendingMeasurements.current = {};
+          setMeasurements((current) => {
+            let next = current;
+            for (const [pendingKey, pendingResult] of Object.entries(pending)) {
+              if (current[pendingKey]) continue;
+              if (next === current) next = { ...current };
+              next[pendingKey] = pendingResult;
             }
-
-            return {
-              ...current,
-
-              [key]:
-                result,
-            };
-          },
-        );
+            return next;
+          });
+        });
       },
       [],
     );
+
+  useEffect(() => () => {
+    if (measurementFlushFrame.current !== null) {
+      window.cancelAnimationFrame(measurementFlushFrame.current);
+      measurementFlushFrame.current = null;
+    }
+    pendingMeasurements.current = {};
+  }, [basePhysicalDocument]);
 
 
   const frozenDecisions =

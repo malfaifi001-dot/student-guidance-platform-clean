@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
 } from "react";
 
 import type {
@@ -145,12 +146,10 @@ export function PortfolioPageMeasurementCandidate({
   candidate,
   onMeasured,
 }: Props) {
-  const candidateDocument =
-    applyPortfolioSmartCandidate(
-      physicalDocument,
-      candidate,
-      false,
-    );
+  const candidateDocument = useMemo(
+    () => applyPortfolioSmartCandidate(physicalDocument, candidate, false),
+    [candidate, physicalDocument],
+  );
 
   useEffect(() => {
     let disposed =
