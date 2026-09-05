@@ -2,7 +2,7 @@
 
 import { ExternalLink, Loader2, Palette, Save } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import type { PrintExportModal } from "@/lib/print-export/print-export-types";
 import { PortfolioThemePreviewCard } from "@/components/portfolio/portfolio-theme-preview-card";
@@ -18,6 +18,30 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
   const [selectedThemeId, setSelectedThemeId] = useState<PortfolioThemeId>(resolvedTheme.id);
   const [preferences, setPreferences] = useState(data.portfolio.preferences);
   const [previewOpening, setPreviewOpening] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
+
+  useEffect(() => {
+    if (!previewOpening) return;
+
+    const startedAt = performance.now();
+    const timer = window.setInterval(() => {
+      const elapsedMs = performance.now() - startedAt;
+      const waitingProgress = Math.min(
+        90,
+        Math.round(90 * (1 - Math.exp(-elapsedMs / 4500))),
+      );
+
+      setPreviewProgress((current) => Math.max(current, waitingProgress));
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [previewOpening]);
+
+  function beginPreviewNavigation() {
+    setPreviewProgress(0);
+    setPreviewOpening(true);
+  }
+
   const payload = (themeId = selectedThemeId, nextPreferences = preferences) => ({
     operation: "settings",
     title: data.portfolio.title,
@@ -48,7 +72,7 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
         status: "loading",
         title: "جاري تحضير المعاينة",
         message: "",
-        progress: 28,
+        progress: previewProgress,
       }
     : null;
 
@@ -57,7 +81,7 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
     <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-700"><Palette className="h-6 w-6" /></span><div><p className="text-xs font-black text-slate-400">ملف الإنجاز</p><h2 className="text-xl font-black text-slate-950">التصميم الحالي</h2><p className="mt-1 text-sm font-bold text-slate-500">التصميم الرسمي المعتمد لعرض الملف وطباعته.</p></div></div>
-        <Link href={`${data.routes.preview}?portfolioId=${encodeURIComponent(data.portfolio.id)}`} onClick={() => setPreviewOpening(true)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
+        <Link href={`${data.routes.preview}?portfolioId=${encodeURIComponent(data.portfolio.id)}`} onClick={beginPreviewNavigation} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white"><ExternalLink className="h-4 w-4" />معاينة التصميم</Link>
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{PORTFOLIO_THEMES.map((theme) => <PortfolioThemePreviewCard key={theme.id} theme={theme} selected={theme.id === selectedThemeId} disabled={busy} onSelect={() => void selectTheme(theme.id)} />)}</div>
     </div>
