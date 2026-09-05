@@ -947,7 +947,45 @@ function isImageEvidence(item: any) {
   ].some((value) => hasSmartReportImageEvidenceExtension(value));
 }
 
-function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
+function normalizeEvidenceLocator(value: unknown): string | null {
+  const locator = cleanText(value).replaceAll("\\", "/");
+
+  if (!locator) {
+    return null;
+  }
+
+  const normalized = locator.split(/[?#]/, 1)[0].trim();
+  return normalized || null;
+}
+
+function getEvidenceIdentity(item: SmartReportEvidenceItem): string | null {
+  const locator = normalizeEvidenceLocator(item.url);
+
+  return locator || normalizeEvidenceLocator(item.id);
+}
+
+function dedupeEvidenceItems(
+  items: SmartReportEvidenceItem[],
+): SmartReportEvidenceItem[] {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const identity = getEvidenceIdentity(item);
+
+    if (!identity) {
+      return true;
+    }
+
+    if (seen.has(identity)) {
+      return false;
+    }
+
+    seen.add(identity);
+    return true;
+  });
+}
+
+export function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   const normalItems: SmartReportEvidenceItem[] = filterValidReportEvidenceItems(
     caseEntry.evidences || [],
   )
@@ -1035,14 +1073,14 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
         }))
       : [];
 
-  return [
+  return dedupeEvidenceItems([
     ...normalItems,
     ...caseEvidenceItems,
     ...assignmentEvidenceItems,
     ...(normalItems.length || caseEvidenceItems.length || assignmentEvidenceItems.length
       ? []
       : teacherActivitySubmissionEvidenceItems),
-  ];
+  ]);
 }
 
 function resolveSchoolProfileForReport(
