@@ -1,4 +1,5 @@
 import "server-only";
+import { performance } from "node:perf_hooks";
 
 import { getDistribution } from "@/lib/curriculum-distribution/queries";
 import { isServiceAllowedForSchool } from "@/lib/subscription/subscription-service";
@@ -9,6 +10,7 @@ import { resolveActivityTeamPortfolioOutput } from "@/lib/portfolio/service-outp
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 
 type LinkRecord = Awaited<ReturnType<typeof listServiceOutputLinks>>[number];
+type PortfolioPerfTrace = { traceId: string };
 
 type ResolverContext = {
   schoolAccountId: string;
@@ -17,6 +19,11 @@ type ResolverContext = {
 };
 
 type ServiceOutputResolver = (context: ResolverContext) => Promise<PortfolioServiceOutput | null>;
+
+function portfolioPerfLog(trace: PortfolioPerfTrace | undefined, stage: string, durationMs: number, details: Record<string, unknown> = {}) {
+  if (process.env.PORTFOLIO_PERF_TRACE !== "1" || !trace) return;
+  console.info("[PORTFOLIO_PERF]", JSON.stringify({ traceId: trace.traceId, stage, durationMs: Number(durationMs.toFixed(2)), ...details }));
+}
 
 function sourceReference(link: LinkRecord) {
   return link.sourceReferenceJson && typeof link.sourceReferenceJson === "object" && !Array.isArray(link.sourceReferenceJson)
@@ -61,11 +68,20 @@ export async function resolvePortfolioServiceOutputs(input: {
   ownerUserId: string;
   schoolAccountId: string;
   roleKey: "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER" | "PRINCIPAL";
+  perfTrace?: PortfolioPerfTrace;
 }) {
+  const linksStartedAt = performance.now();
   const links = await listServiceOutputLinks({ ownerUserId: input.ownerUserId });
+  portfolioPerfLog(input.perfTrace, "resolvePortfolioServiceOutputs.listServiceOutputLinks", performance.now() - linksStartedAt, { linkCount: links.length });
+  const resolverStartedAt = performance.now();
   const resolved = await Promise.all(links.map(async (link) => {
     const resolver = serviceOutputResolvers[link.serviceSlug];
-    return resolver ? resolver({ schoolAccountId: input.schoolAccountId, ownerUserId: input.ownerUserId, link }) : null;
+    if (!resolver) return null;
+    const startedAt = performance.now();
+    const output = await resolver({ schoolAccountId: input.schoolAccountId, ownerUserId: input.ownerUserId, link });
+    portfolioPerfLog(input.perfTrace, "resolvePortfolioServiceOutputs.resolver", performance.now() - startedAt, { serviceSlug: link.serviceSlug, output: Boolean(output) });
+    return output;
   }));
+  portfolioPerfLog(input.perfTrace, "resolvePortfolioServiceOutputs.resolverPromise.all", performance.now() - resolverStartedAt, { linkCount: links.length });
   return resolved.filter((output): output is PortfolioServiceOutput => Boolean(output));
 }

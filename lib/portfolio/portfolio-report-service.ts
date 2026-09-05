@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import { createHash } from "crypto";
 import type { Prisma } from "@prisma/client";
 
@@ -8,7 +9,13 @@ import { normalizePortfolioReportPayload, type PortfolioReportContent } from "@/
 import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioManagedEvidence, PortfolioManagedReport, PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
 
 type JsonMap = Record<string, unknown>;
+type PortfolioPerfTrace = { traceId: string };
 type EligibleReport = Omit<PortfolioManagedReport, "itemId" | "isVisible" | "sortOrder" | "isPersisted" | "isAvailable" | "evidence"> & { content: PortfolioReportContent };
+
+function portfolioPerfLog(trace: PortfolioPerfTrace | undefined, stage: string, durationMs: number, details: Record<string, unknown> = {}) {
+  if (process.env.PORTFOLIO_PERF_TRACE !== "1" || !trace) return;
+  console.info("[PORTFOLIO_PERF]", JSON.stringify({ traceId: trace.traceId, stage, durationMs: Number(durationMs.toFixed(2)), ...details }));
+}
 
 function object(value: unknown): JsonMap {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonMap : {};
@@ -39,8 +46,10 @@ function withEvidence(content: PortfolioReportContent | null, fallback: Paramete
   return { ...(content || emptyContent(fallback)), evidenceItems: fallback.evidence };
 }
 
-export async function discoverEligiblePortfolioReports(user: PortfolioActor, portfolioId: string): Promise<EligibleReport[]> {
+export async function discoverEligiblePortfolioReports(user: PortfolioActor, portfolioId: string, trace?: PortfolioPerfTrace): Promise<EligibleReport[]> {
+  const ownershipStartedAt = performance.now();
   await requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true });
+  portfolioPerfLog(trace, "discoverEligiblePortfolioReports.requireOwnedPortfolio", performance.now() - ownershipStartedAt, { portfolioId });
   const serviceDefinitions = getPortfolioPerformanceElements(user.role);
   const serviceSlugs = serviceDefinitions.map((item) => item.serviceSlug);
   const principalLinks = user.role === "PRINCIPAL"
@@ -56,17 +65,22 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
     : [];
   const linkedGuidanceIds = principalLinks.filter((link) => link.sourceType === "GUIDANCE_REPORT").map((link) => link.sourceId);
   const linkedSnapshotIds = principalLinks.filter((link) => link.sourceType === "REPORT_SNAPSHOT").map((link) => link.sourceId);
+  const caseStartedAt = performance.now();
   const cases = await prisma.caseEntry.findMany({
     where: { createdById: user.id, service: { slug: { in: serviceSlugs } } },
     select: { id: true },
   });
+  portfolioPerfLog(trace, "discoverEligiblePortfolioReports.caseQuery", performance.now() - caseStartedAt, { rowCount: cases.length });
   const caseIds = cases.map((item) => item.id);
+  const sectionsStartedAt = performance.now();
   const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId, kind: "PERFORMANCE_ELEMENT" } });
+  portfolioPerfLog(trace, "discoverEligiblePortfolioReports.sectionsQuery", performance.now() - sectionsStartedAt, { rowCount: sections.length });
   const sectionBySlug = new Map<string, { id: string; key: string }>();
   for (const section of sections) {
     const definition = serviceDefinitions.find((item) => item.key === section.sectionKey);
     if (definition) sectionBySlug.set(definition.serviceSlug, { id: section.id, key: section.sectionKey });
   }
+  const reportQueriesStartedAt = performance.now();
   const [guidance, active, snapshots, returnedAssignments, linkedGuidance, linkedSnapshots, linkedActive] = await Promise.all([
     prisma.guidanceReport.findMany({
       where: { serviceSlug: { in: serviceSlugs }, caseEntry: { createdById: user.id } },
@@ -117,6 +131,8 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
       where: { id: { in: linkedSnapshotIds }, schoolAccountId: user.schoolAccountId!, status: "APPROVED" },
     }) : Promise.resolve([]),
   ]);
+  portfolioPerfLog(trace, "discoverEligiblePortfolioReports.mainPromise.all", performance.now() - reportQueriesStartedAt, { guidance: guidance.length, active: active.length, snapshots: snapshots.length, returnedAssignments: returnedAssignments.length });
+  const normalizationStartedAt = performance.now();
   const results: EligibleReport[] = [];
   for (const report of guidance) {
     const section = sectionBySlug.get(report.serviceSlug); if (!section) continue;
@@ -186,6 +202,7 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
       results.push({ sourceId: assignment.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: assignment.reportTitleSnapshot || content.title || report.reportTitle, serviceName: content.serviceName || serviceName, caseTitle, status: assignment.status, generatedAt: issuedAt, createdAt: assignment.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
     }
   }
+  portfolioPerfLog(trace, "discoverEligiblePortfolioReports.synchronousNormalization", performance.now() - normalizationStartedAt, { resultCount: results.length });
   return results;
 }
 
@@ -205,9 +222,14 @@ export function applyEvidencePreferences(content: PortfolioReportContent, metada
   return { ...content, evidenceItems: manageEvidence(content, metadata).filter((item) => item.isVisible && item.url).map((item) => ({ id: item.id, title: item.title, description: item.description, url: item.url, type: item.type })) };
 }
 
-export async function loadManagedPortfolioReports(user: PortfolioActor, portfolioId: string) {
-  const discovered = await discoverEligiblePortfolioReports(user, portfolioId);
+export async function loadManagedPortfolioReports(user: PortfolioActor, portfolioId: string, trace?: PortfolioPerfTrace) {
+  const discoverStartedAt = performance.now();
+  const discovered = await discoverEligiblePortfolioReports(user, portfolioId, trace);
+  portfolioPerfLog(trace, "loadManagedPortfolioReports.discoverEligiblePortfolioReports", performance.now() - discoverStartedAt, { rowCount: discovered.length });
+  const storedStartedAt = performance.now();
   const stored = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
+  portfolioPerfLog(trace, "loadManagedPortfolioReports.storedAchievementPortfolioItemQuery", performance.now() - storedStartedAt, { rowCount: stored.length });
+  const mapStartedAt = performance.now();
   const storedByKey = new Map(stored.filter((item) => item.sourceId).map((item) => [`${item.sourceType}:${item.sourceId}`, item]));
   const currentKeys = new Set(discovered.map((item) => `${item.sourceType}:${item.sourceId}`));
   const reports: Array<PortfolioManagedReport & { content: PortfolioReportContent }> = discovered.map((report, index) => {
@@ -222,6 +244,7 @@ export async function loadManagedPortfolioReports(user: PortfolioActor, portfoli
     reports.push({ itemId: item.id, sourceId: item.sourceId, sourceType: item.sourceType as PortfolioReportSourceType, sectionId: item.sectionId || "", sectionKey: typeof meta.sectionKey === "string" ? meta.sectionKey : "", title: item.title, serviceName: typeof meta.serviceName === "string" ? meta.serviceName : "", caseTitle: null, status: "UNAVAILABLE", generatedAt: null, createdAt: item.createdAt.toISOString(), previewUrl: "", isVisible: item.isVisible, sortOrder: item.sortOrder, isPersisted: true, isAvailable: false, evidence: [], content: emptyContent({ title: item.title, serviceName: "", issuedAt: null, evidence: [] }) });
   }
   reports.sort((a, b) => a.sortOrder - b.sortOrder);
+  portfolioPerfLog(trace, "loadManagedPortfolioReports.inMemoryNormalizationMapSort", performance.now() - mapStartedAt, { rowCount: reports.length });
   return reports;
 }
 

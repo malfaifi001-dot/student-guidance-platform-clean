@@ -1,4 +1,6 @@
 import { ArrowRight } from "lucide-react";
+import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -13,6 +15,16 @@ import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service
 
 type PortfolioSearchParams = Promise<{ portfolioId?: string | string[] }>;
 const SHARED_PORTFOLIO_ROLES = new Set(["COUNSELOR", "SCHOOL_OWNER", "STAFF"]);
+const PORTFOLIO_PERF_TRACE_ENABLED = process.env.PORTFOLIO_PERF_TRACE === "1";
+
+type PortfolioPerfTrace = {
+  traceId: string;
+};
+
+function portfolioPerfLog(trace: PortfolioPerfTrace | undefined, stage: string, durationMs: number, details: Record<string, unknown> = {}) {
+  if (!trace || !PORTFOLIO_PERF_TRACE_ENABLED) return;
+  console.info("[PORTFOLIO_PERF]", JSON.stringify({ traceId: trace.traceId, stage, durationMs: Number(durationMs.toFixed(2)), ...details }));
+}
 
 function enforceSharedRouteRole(role: string | null | undefined, sharedRoute?: boolean) {
   if (sharedRoute && !SHARED_PORTFOLIO_ROLES.has(role || "")) {
@@ -20,15 +32,21 @@ function enforceSharedRouteRole(role: string | null | undefined, sharedRoute?: b
   }
 }
 
-async function portfolioPageContext(searchParams: PortfolioSearchParams, sharedRoute?: boolean) {
+async function portfolioPageContext(searchParams: PortfolioSearchParams, sharedRoute?: boolean, trace?: PortfolioPerfTrace) {
+  const contextStartedAt = performance.now();
+  const authStartedAt = performance.now();
   const current = await requireDashboardUser();
+  portfolioPerfLog(trace, "PortfolioPreviewRoute.requireDashboardUser", performance.now() - authStartedAt, { userIdSuffix: current.user.id.slice(-6) });
   if (current.user.role === "ADMIN") redirect("/dashboard/admin");
   enforceSharedRouteRole(current.user.role, sharedRoute);
 
   const query = await searchParams;
   const portfolioId = Array.isArray(query.portfolioId) ? query.portfolioId[0] : query.portfolioId;
-  const workspace = await getPortfolioWorkspace(current.user, portfolioId);
+  const workspaceStartedAt = performance.now();
+  const workspace = await getPortfolioWorkspace(current.user, portfolioId, trace);
+  portfolioPerfLog(trace, "PortfolioPreviewRoute.getPortfolioWorkspace.total", performance.now() - workspaceStartedAt, { portfolioId: workspace.ok ? workspace.portfolio.id : portfolioId || null });
   if (!workspace.ok) redirect("/dashboard/onboarding?required=true");
+  portfolioPerfLog(trace, "PortfolioPreviewRoute.portfolioPageContext.total", performance.now() - contextStartedAt, { portfolioId: workspace.portfolio.id });
   return { current, workspace };
 }
 
@@ -38,8 +56,10 @@ export async function PortfolioDashboardRoute({ searchParams, sharedRoute }: { s
 }
 
 export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {
-  const { workspace } = await portfolioPageContext(searchParams, sharedRoute);
-  return (
+  const trace = PORTFOLIO_PERF_TRACE_ENABLED ? { traceId: randomUUID().slice(0, 12) } : undefined;
+  const { workspace } = await portfolioPageContext(searchParams, sharedRoute, trace);
+  const workspaceReadyAt = performance.now();
+  const tree = (
     <main dir="rtl" className="w-full min-w-0 max-w-full overflow-hidden">
       <div className="mx-auto w-full min-w-0 max-w-[900px]">
         <PortfolioPreviewFit>
@@ -48,6 +68,8 @@ export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { sea
       </div>
     </main>
   );
+  portfolioPerfLog(trace, "PortfolioPreviewRoute.workspaceReadyToReactTree", performance.now() - workspaceReadyAt, { portfolioId: workspace.portfolio.id });
+  return tree;
 }
 
 export async function PortfolioPrintRoute({ searchParams, sharedRoute }: { searchParams: PortfolioSearchParams; sharedRoute?: boolean }) {

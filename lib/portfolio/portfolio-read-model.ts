@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import { prisma } from "@/lib/prisma";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import { getPortfolioDefaultSectionOrderForRole, shouldShowPortfolioWeights } from "@/lib/portfolio/portfolio-performance-elements";
@@ -16,6 +17,15 @@ type PortfolioCurrentUser = {
   schoolAccountId?: string | null;
 };
 
+export type PortfolioPerfTrace = {
+  traceId: string;
+};
+
+function portfolioPerfLog(trace: PortfolioPerfTrace | undefined, stage: string, durationMs: number, details: Record<string, unknown> = {}) {
+  if (process.env.PORTFOLIO_PERF_TRACE !== "1" || !trace) return;
+  console.info("[PORTFOLIO_PERF]", JSON.stringify({ traceId: trace.traceId, stage, durationMs: Number(durationMs.toFixed(2)), ...details }));
+}
+
 function ownerName(user: PortfolioCurrentUser) {
   const fallback = user.role === "TEACHER" ? "المعلم" : user.role === "COUNSELOR" ? "الموجه الطلابي" : user.role === "ACTIVITY_LEADER" ? "رائد النشاط" : user.role === "PRINCIPAL" ? "مدير المدرسة" : "مستخدم المنصة";
   return user.officialName || user.name || fallback;
@@ -30,33 +40,45 @@ function metadata(value: unknown): Record<string, unknown> {
 export async function getPortfolioWorkspace(
   user: PortfolioCurrentUser,
   portfolioId?: string | null,
+  trace?: PortfolioPerfTrace,
 ) {
   if (!user.schoolAccountId) return { ok: false as const, reason: "NO_SCHOOL" };
 
+  const loadPortfolioStartedAt = performance.now();
   const portfolio = await loadPortfolioForUser(user, portfolioId);
+  portfolioPerfLog(trace, "getPortfolioWorkspace.loadPortfolioForUser", performance.now() - loadPortfolioStartedAt, { portfolioId: portfolio.id });
+  const parallelStartedAt = performance.now();
+  const schoolStartedAt = performance.now();
+  const sectionsStartedAt = performance.now();
+  const qualificationItemsStartedAt = performance.now();
+  const managedReportsStartedAt = performance.now();
+  const customEvidenceStartedAt = performance.now();
+  const linkedOutputsStartedAt = performance.now();
   const [school, sections, qualificationItems, managedReports, customEvidence, linkedOutputs] = await Promise.all([
     prisma.schoolAccount.findUnique({
       where: { id: user.schoolAccountId },
       include: { profile: true },
-    }),
+    }).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.school.query", performance.now() - schoolStartedAt, { rowCount: result ? 1 : 0 }); return result; }),
     prisma.achievementPortfolioSection.findMany({
       where: { portfolioId: portfolio.id },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    }),
+    }).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.sections.query", performance.now() - sectionsStartedAt, { rowCount: result.length }); return result; }),
     prisma.achievementPortfolioItem.findMany({
       where: {
         portfolioId: portfolio.id,
         sourceType: { in: ["QUALIFICATION", "COURSE", "CERTIFICATE"] },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    }),
-    loadManagedPortfolioReports(user, portfolio.id),
-    loadCustomEvidence(user, portfolio.id),
+    }).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.qualificationItems.query", performance.now() - qualificationItemsStartedAt, { rowCount: result.length }); return result; }),
+    loadManagedPortfolioReports(user, portfolio.id, trace).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.loadManagedPortfolioReports", performance.now() - managedReportsStartedAt, { rowCount: result.length }); return result; }),
+    loadCustomEvidence(user, portfolio.id).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.loadCustomEvidence", performance.now() - customEvidenceStartedAt, { rowCount: result.length }); return result; }),
     ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER", "PRINCIPAL"].includes(String(user.role))
-      ? resolvePortfolioServiceOutputs({ ownerUserId: user.id, schoolAccountId: user.schoolAccountId, roleKey: user.role as "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER" | "PRINCIPAL" })
-      : Promise.resolve([]),
+      ? resolvePortfolioServiceOutputs({ ownerUserId: user.id, schoolAccountId: user.schoolAccountId, roleKey: user.role as "TEACHER" | "COUNSELOR" | "ACTIVITY_LEADER" | "PRINCIPAL", perfTrace: trace }).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.resolvePortfolioServiceOutputs", performance.now() - linkedOutputsStartedAt, { rowCount: result.length }); return result; })
+      : Promise.resolve([]).then((result) => { portfolioPerfLog(trace, "getPortfolioWorkspace.resolvePortfolioServiceOutputs", performance.now() - linkedOutputsStartedAt, { rowCount: 0 }); return result; }),
   ]);
+  portfolioPerfLog(trace, "getPortfolioWorkspace.Promise.all.total", performance.now() - parallelStartedAt, { sections: sections.length, qualificationItems: qualificationItems.length, managedReports: managedReports.length, customEvidence: customEvidence.length, linkedOutputs: linkedOutputs.length });
 
+  const transformationStartedAt = performance.now();
   const sectionDefinitions = getPortfolioDefaultSectionOrderForRole(user.role);
   const definitionByKey = new Map(sectionDefinitions.map((definition) => [definition.key, definition]));
   const storedByKey = new Map(sections.map((section) => [section.sectionKey, section]));
@@ -148,7 +170,7 @@ export async function getPortfolioWorkspace(
   const profileSection = sections.find((section) => section.sectionKey === "profile");
   const introductionSection = sections.find((section) => section.sectionKey === "introduction");
 
-  return {
+  const workspace = {
     ok: true as const,
     portfolio: {
       id: portfolio.id,
@@ -198,6 +220,8 @@ export async function getPortfolioWorkspace(
     performanceSections,
     totals: { reports: totalReports, evidences: totalEvidences, sections: unifiedSections.length },
   };
+  portfolioPerfLog(trace, "getPortfolioWorkspace.synchronousTransformation", performance.now() - transformationStartedAt, { reports: totalReports, evidences: totalEvidences, sections: unifiedSections.length });
+  return workspace;
 }
 
 export type PortfolioWorkspaceData = Extract<
