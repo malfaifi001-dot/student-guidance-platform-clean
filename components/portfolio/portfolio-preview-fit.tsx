@@ -75,7 +75,32 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
     resizeObserver.observe(viewport);
     resizeObserver.observe(stage);
 
-    const mutationObserver = new MutationObserver(updatePreviewScale);
+    const isInsideMeasurementCandidate = (node: Node | null) => {
+      const element =
+        node instanceof Element ? node : node?.parentElement;
+      return Boolean(
+        element?.closest(
+          "[data-portfolio-measurement-candidate], [data-portfolio-page-measurement]",
+        ),
+      );
+    };
+
+    const mutationObserver = new MutationObserver((mutations) => {
+      const affectsVisiblePreview = mutations.some((mutation) => {
+        if (mutation.type === "attributes" || mutation.type === "characterData") {
+          return !isInsideMeasurementCandidate(mutation.target);
+        }
+
+        if (isInsideMeasurementCandidate(mutation.target)) return false;
+
+        return [
+          ...Array.from(mutation.addedNodes),
+          ...Array.from(mutation.removedNodes),
+        ].some((node) => !isInsideMeasurementCandidate(node));
+      });
+
+      if (affectsVisiblePreview) updatePreviewScale();
+    });
     mutationObserver.observe(stage, {
       childList: true,
       subtree: true,

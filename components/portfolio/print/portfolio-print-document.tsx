@@ -80,6 +80,14 @@ const PortfolioPageMeasurementCandidate = dynamic(
   { ssr: false },
 );
 
+const SMART_MEASUREMENT_BATCH_SIZE = 4;
+
+type PortfolioMeasurementRun = {
+  measurements: PortfolioPageMeasurementMap;
+  pageIndex: number;
+  batchIndex: number;
+};
+
 
 function buildPhysicalDocument(
   data: PortfolioPrintData,
@@ -320,15 +328,13 @@ export function PortfolioPrintDocument({
     );
 
 
-  const [
-    measurements,
-    setMeasurements,
-  ] =
-    useState<
-      PortfolioPageMeasurementMap
-  >({});
   const pendingMeasurements = useRef<PortfolioPageMeasurementMap>({});
   const measurementFlushFrame = useRef<number | null>(null);
+  const [measurementRun, setMeasurementRun] = useState<PortfolioMeasurementRun>({
+    measurements: {},
+    pageIndex: 0,
+    batchIndex: 0,
+  });
 
 
   /**
@@ -336,7 +342,15 @@ export function PortfolioPrintDocument({
    */
   useEffect(
     () => {
-      setMeasurements({});
+      const resetFrame = window.requestAnimationFrame(() => {
+        setMeasurementRun({
+          measurements: {},
+          pageIndex: 0,
+          batchIndex: 0,
+        });
+      });
+
+      return () => window.cancelAnimationFrame(resetFrame);
     },
     [
       basePhysicalDocument,
@@ -364,18 +378,50 @@ export function PortfolioPrintDocument({
           measurementFlushFrame.current = null;
           const pending = pendingMeasurements.current;
           pendingMeasurements.current = {};
-          setMeasurements((current) => {
-            let next = current;
-            for (const [pendingKey, pendingResult] of Object.entries(pending)) {
-              if (current[pendingKey]) continue;
-              if (next === current) next = { ...current };
-              next[pendingKey] = pendingResult;
+          setMeasurementRun((current) => {
+            const nextMeasurements = { ...current.measurements };
+            Object.assign(nextMeasurements, pending);
+
+            const page = measurablePages[current.pageIndex];
+            if (!page) {
+              return {
+                ...current,
+                measurements: nextMeasurements,
+              };
             }
-            return next;
+
+            const batchStart = current.batchIndex * SMART_MEASUREMENT_BATCH_SIZE;
+            const batch = PORTFOLIO_SMART_CANDIDATES.slice(
+              batchStart,
+              batchStart + SMART_MEASUREMENT_BATCH_SIZE,
+            );
+            const batchComplete = batch.every((candidate) =>
+              Boolean(
+                nextMeasurements[
+                  getPortfolioPageMeasurementKey(page.id, candidate.id)
+                ],
+              ),
+            );
+
+            if (!batchComplete) {
+              return {
+                ...current,
+                measurements: nextMeasurements,
+              };
+            }
+
+            const nextBatchStart = batchStart + batch.length;
+            const pageComplete = nextBatchStart >= PORTFOLIO_SMART_CANDIDATES.length;
+
+            return {
+              measurements: nextMeasurements,
+              pageIndex: pageComplete ? current.pageIndex + 1 : current.pageIndex,
+              batchIndex: pageComplete ? 0 : current.batchIndex + 1,
+            };
           });
         });
       },
-      [],
+      [measurablePages],
     );
 
   useEffect(() => () => {
@@ -403,7 +449,7 @@ export function PortfolioPrintDocument({
             selectPortfolioCandidateForPage(
               page.id,
               PORTFOLIO_SMART_CANDIDATES,
-              measurements,
+              measurementRun.measurements,
             );
 
           if (!candidate) {
@@ -423,7 +469,7 @@ export function PortfolioPrintDocument({
       },
       [
         measurablePages,
-        measurements,
+        measurementRun.measurements,
       ],
     );
 
@@ -441,13 +487,13 @@ export function PortfolioPrintDocument({
         return applyPortfolioPageDecisions(
           basePhysicalDocument,
           frozenDecisions,
-          measurements,
+          measurementRun.measurements,
         );
       },
       [
         basePhysicalDocument,
         frozenDecisions,
-        measurements,
+        measurementRun.measurements,
       ],
     );
 
@@ -547,34 +593,26 @@ export function PortfolioPrintDocument({
         }
         data-portfolio-smart-phase="measuring"
       >
-        {measurablePages.flatMap(
-          (page) =>
-            PORTFOLIO_SMART_CANDIDATES.map(
-              (candidate) => (
-                <PortfolioPageMeasurementCandidate
-                  key={
-                    `${page.id}::${candidate.id}`
-                  }
-                  data={data}
-                  physicalDocument={
-                    basePhysicalDocument
-                  }
-                  themeId={
-                    themeId
-                  }
-                  pageId={
-                    page.id
-                  }
-                  candidate={
-                    candidate
-                  }
-                  onMeasured={
-                    onMeasured
-                  }
-                />
-              ),
-            ),
-        )}
+        {(() => {
+          const page = measurablePages[measurementRun.pageIndex];
+          if (!page) return null;
+
+          const batchStart = measurementRun.batchIndex * SMART_MEASUREMENT_BATCH_SIZE;
+          return PORTFOLIO_SMART_CANDIDATES.slice(
+            batchStart,
+            batchStart + SMART_MEASUREMENT_BATCH_SIZE,
+          ).map((candidate) => (
+            <PortfolioPageMeasurementCandidate
+              key={`${page.id}::${candidate.id}`}
+              data={data}
+              physicalDocument={basePhysicalDocument}
+              themeId={themeId}
+              pageId={page.id}
+              candidate={candidate}
+              onMeasured={onMeasured}
+            />
+          ));
+        })()}
 
         <div className="portfolio-smart-measuring-state">
           جارٍ تنظيم صفحات الملف...
