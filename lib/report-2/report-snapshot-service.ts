@@ -20,6 +20,7 @@ import {
 } from "@/lib/report-signatures/principal-signature-html";
 import { reconcilePrincipalSignaturePayload } from "@/lib/report-signatures/report-two-signature";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { getSpecialReportLinkedContexts } from "@/lib/special-report/report-linking";
 
 type JsonValue = unknown;
 
@@ -464,16 +465,22 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
     take: 100,
   });
 
+  const linkedContexts = context.schoolAccountId
+    ? await getSpecialReportLinkedContexts(allowedCaseIds, context.user.role, context.schoolAccountId)
+    : new Map();
+
   const activeIds = new Set(activeReports.map((item) => item.id));
   return [
     ...activeReports.map((report) => ({
       ...serializeActiveReport(report),
+      linkedContext: report.serviceSlug === "special-report" ? linkedContexts.get(report.caseEntryId) || null : null,
       caseTitle: caseTitleById.get(report.caseEntryId) || "الحالة",
     })),
     ...snapshots
       .filter((item) => !activeIds.has(item.id))
       .map((snapshot) => ({
         ...serializeSnapshot(snapshot),
+        linkedContext: snapshot.serviceSlug === "special-report" ? linkedContexts.get(snapshot.caseEntryId) || null : null,
         caseTitle: caseTitleById.get(snapshot.caseEntryId) || "الحالة",
       })),
   ];

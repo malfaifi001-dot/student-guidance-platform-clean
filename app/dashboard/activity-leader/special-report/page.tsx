@@ -19,6 +19,7 @@ export default async function ActivityLeaderSpecialReportPage() {
       emptyDescription="ابدأ بإنشاء تقرير جديد من خلال اختيار الحقول المناسبة."
       reportPrepareBasePath="/dashboard/report-2/cases"
       hideWorkflowStatus
+      specialReportLinking
     />
   );
 }

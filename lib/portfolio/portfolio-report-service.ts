@@ -7,6 +7,7 @@ import { requireOwnedPortfolio, PortfolioServiceError, type PortfolioActor } fro
 import { getPortfolioPerformanceElements } from "@/lib/portfolio/portfolio-performance-elements";
 import { normalizePortfolioReportPayload, type PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioManagedEvidence, PortfolioManagedReport, PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
+import { ACTIVITY_LEADER_SERVICE_SLUGS, ACTIVITY_SERVICE_TARGET_TYPE, LEGACY_ACTIVITY_PROGRAM_TARGET_TYPE } from "@/lib/special-report/report-linking";
 
 type JsonMap = Record<string, unknown>;
 type PortfolioPerfTrace = { traceId: string };
@@ -72,6 +73,26 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   });
   portfolioPerfLog(trace, "discoverEligiblePortfolioReports.caseQuery", performance.now() - caseStartedAt, { rowCount: cases.length });
   const caseIds = cases.map((item) => item.id);
+  const specialLinkTargetType = user.role === "TEACHER" ? "TEACHER_SERVICE" : user.role === "ACTIVITY_LEADER" ? { in: [ACTIVITY_SERVICE_TARGET_TYPE, LEGACY_ACTIVITY_PROGRAM_TARGET_TYPE] } : "";
+  const specialLinks = specialLinkTargetType && user.schoolAccountId
+    ? await prisma.dashboardResourceLink.findMany({
+        where: { schoolAccountId: user.schoolAccountId, sourceType: "SPECIAL_REPORT_CASE", targetType: specialLinkTargetType },
+        select: { sourceId: true, targetId: true, targetType: true },
+      })
+    : [];
+  const specialCaseIds = specialLinks.map((link) => link.sourceId);
+  const specialCases = specialCaseIds.length && user.schoolAccountId
+    ? await prisma.caseEntry.findMany({
+        where: { id: { in: specialCaseIds }, schoolAccountId: user.schoolAccountId, createdById: user.id, service: { slug: "special-report" } },
+        select: { id: true, title: true },
+      })
+    : [];
+  const specialActive = specialCaseIds.length && user.schoolAccountId
+    ? await prisma.reportTwoActive.findMany({ where: { caseEntryId: { in: specialCaseIds }, schoolAccountId: user.schoolAccountId, status: "APPROVED" }, orderBy: { approvedAt: "desc" } })
+    : [];
+  const specialSnapshots = specialCaseIds.length && user.schoolAccountId
+    ? await prisma.reportSnapshot.findMany({ where: { caseEntryId: { in: specialCaseIds }, OR: [{ schoolAccountId: user.schoolAccountId }, { schoolAccountId: null }] }, orderBy: { approvedAt: "desc" } })
+    : [];
   const sectionsStartedAt = performance.now();
   const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId, kind: "PERFORMANCE_ELEMENT" } });
   portfolioPerfLog(trace, "discoverEligiblePortfolioReports.sectionsQuery", performance.now() - sectionsStartedAt, { rowCount: sections.length });
@@ -134,6 +155,41 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   portfolioPerfLog(trace, "discoverEligiblePortfolioReports.mainPromise.all", performance.now() - reportQueriesStartedAt, { guidance: guidance.length, active: active.length, snapshots: snapshots.length, returnedAssignments: returnedAssignments.length });
   const normalizationStartedAt = performance.now();
   const results: EligibleReport[] = [];
+  const specialServiceTargets = user.role === "TEACHER" && user.schoolAccountId && specialLinks.length
+    ? await prisma.service.findMany({ where: { id: { in: specialLinks.map((link) => link.targetId) }, slug: { in: serviceSlugs } }, select: { id: true, slug: true, name: true } })
+    : [];
+  const specialActivityTargets = user.role === "ACTIVITY_LEADER" && user.schoolAccountId && specialLinks.length
+    ? await prisma.caseEntry.findMany({ where: { id: { in: specialLinks.filter((link) => link.targetType === LEGACY_ACTIVITY_PROGRAM_TARGET_TYPE).map((link) => link.targetId) }, schoolAccountId: user.schoolAccountId, createdById: user.id }, select: { id: true, service: { select: { slug: true, name: true } } } })
+    : [];
+  const specialActivityServices = user.role === "ACTIVITY_LEADER" && user.schoolAccountId && specialLinks.length
+    ? await prisma.service.findMany({ where: { id: { in: specialLinks.filter((link) => link.targetType === ACTIVITY_SERVICE_TARGET_TYPE).map((link) => link.targetId) }, slug: { in: [...ACTIVITY_LEADER_SERVICE_SLUGS] } }, select: { id: true, slug: true, name: true } })
+    : [];
+  const specialReportByCase = new Map<string, { sourceType: "REPORT_SNAPSHOT"; sourceId: string; title: string; serviceName: string; payload: unknown; approvedAt: Date; createdAt: Date; previewUrl: string }>();
+  for (const report of specialActive) {
+    specialReportByCase.set(report.caseEntryId, { sourceType: "REPORT_SNAPSHOT", sourceId: report.id, title: report.reportTitle, serviceName: report.serviceName || "تقرير مخصص", payload: report.sourcePayload, approvedAt: report.approvedAt || report.savedAt, createdAt: report.createdAt, previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview` });
+  }
+  for (const report of specialSnapshots) {
+    if (!specialReportByCase.has(report.caseEntryId)) specialReportByCase.set(report.caseEntryId, { sourceType: "REPORT_SNAPSHOT", sourceId: report.id, title: report.reportTitle, serviceName: report.serviceName || "تقرير مخصص", payload: report.snapshotPayload, approvedAt: report.approvedAt, createdAt: report.createdAt, previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview` });
+  }
+  const targetSlugById = new Map<string, { slug: string; name: string }>([
+    ...specialServiceTargets.map((item) => [item.id, { slug: item.slug, name: item.name }] as const),
+    ...specialActivityServices.map((item) => [item.id, { slug: item.slug, name: item.name }] as const),
+    ...specialActivityTargets.map((item) => [item.id, { slug: item.service.slug, name: item.service.name }] as const),
+  ]);
+  const specialCaseById = new Map(specialCases.map((item) => [item.id, item]));
+  const addedSpecialSources = new Set<string>();
+  for (const link of specialLinks) {
+    const report = specialReportByCase.get(link.sourceId);
+    const sourceCase = specialCaseById.get(link.sourceId);
+    const target = targetSlugById.get(link.targetId);
+    if (!report || !sourceCase || !target) continue;
+    const section = sectionBySlug.get(target.slug);
+    const sourceKey = `${report.sourceType}:${report.sourceId}`;
+    if (!section || addedSpecialSources.has(sourceKey)) continue;
+    addedSpecialSources.add(sourceKey);
+    const content = normalizePortfolioReportPayload(report.payload) || emptyContent({ title: report.title, serviceName: report.serviceName, issuedAt: report.approvedAt.toISOString(), evidence: [] });
+    results.push({ sourceId: report.sourceId, sourceType: report.sourceType, sectionId: section.id, sectionKey: section.key, title: content.title || report.title, serviceName: content.serviceName || report.serviceName, caseTitle: sourceCase.title, status: "APPROVED", generatedAt: report.approvedAt.toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: report.previewUrl, content });
+  }
   for (const report of guidance) {
     const section = sectionBySlug.get(report.serviceSlug); if (!section) continue;
     const evidence = report.evidenceItems.map((item) => ({ id: item.id, title: item.caption || item.fileName, url: item.fileUrl || null, type: item.mimeType?.startsWith("image/") ? "IMAGE" : item.mimeType || "FILE" }));

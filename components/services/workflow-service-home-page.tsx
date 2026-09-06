@@ -14,6 +14,8 @@ import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
 import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
+import { SpecialReportLinkPopCard } from "@/components/special-report/special-report-link-pop-card";
+import { getApprovedSpecialReportCase, getSpecialReportLink } from "@/lib/special-report/report-linking";
 
 type WorkflowServiceHomePageProps = {
   serviceSlug: string;
@@ -30,6 +32,7 @@ type WorkflowServiceHomePageProps = {
   ownerScoped?: boolean;
   reportPrepareBasePath?: string;
   hideWorkflowStatus?: boolean;
+  specialReportLinking?: boolean;
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -127,12 +130,12 @@ function getNextActionText(caseItem: {
   _count: {
     guidanceReports: number;
   };
-}) {
+}, reportIssued = false) {
   if (caseItem.status === "DRAFT") {
     return "استكمال المسودة";
   }
 
-  if (caseItem._count.guidanceReports > 0) {
+  if (reportIssued || caseItem._count.guidanceReports > 0) {
     return "فتح التقارير";
   }
 
@@ -157,6 +160,7 @@ export async function WorkflowServiceHomePage({
   ownerScoped = false,
   reportPrepareBasePath,
   hideWorkflowStatus = false,
+  specialReportLinking = false,
 }: WorkflowServiceHomePageProps) {
   const context = await requireDashboardPageContext({ allowPrincipal });
 
@@ -217,8 +221,18 @@ export async function WorkflowServiceHomePage({
 
   const activeWorkflow = service.workflows[0] || null;
 
-  const cases = await prisma.caseEntry.findMany({
-    where: context.isAdmin
+  const relatedSpecialCaseIds = !specialReportLinking && context.schoolAccountId && (context.user.role === "TEACHER" || context.user.role === "ACTIVITY_LEADER")
+    ? await (async () => {
+        if (context.user.role === "TEACHER") {
+          const links = await prisma.dashboardResourceLink.findMany({ where: { schoolAccountId: context.schoolAccountId as string, sourceType: "SPECIAL_REPORT_CASE", targetType: "TEACHER_SERVICE", targetId: service.id }, select: { sourceId: true } });
+          return links.map((link) => link.sourceId);
+        }
+        const activityTargets = await prisma.caseEntry.findMany({ where: { schoolAccountId: context.schoolAccountId as string, serviceId: service.id }, select: { id: true } });
+        const links = await prisma.dashboardResourceLink.findMany({ where: { schoolAccountId: context.schoolAccountId as string, sourceType: "SPECIAL_REPORT_CASE", targetType: { in: ["ACTIVITY_SERVICE", "ACTIVITY_PROGRAM"] }, OR: [{ targetType: "ACTIVITY_SERVICE", targetId: service.id }, { targetType: "ACTIVITY_PROGRAM", targetId: { in: activityTargets.map((item) => item.id) } }] }, select: { sourceId: true } });
+        return links.map((link) => link.sourceId);
+      })()
+    : [];
+  const caseScope = context.isAdmin
       ? {
           serviceId: service.id,
         }
@@ -227,7 +241,9 @@ export async function WorkflowServiceHomePage({
           ...(ownerScoped
             ? { createdById: context.user.id }
             : { schoolAccountId: context.schoolAccountId as string }),
-        },
+        };
+  const cases = await prisma.caseEntry.findMany({
+    where: relatedSpecialCaseIds.length ? { OR: [caseScope, { id: { in: relatedSpecialCaseIds }, schoolAccountId: context.schoolAccountId as string, createdById: context.user.id }] } : caseScope,
     orderBy: {
       updatedAt: "desc",
     },
@@ -270,6 +286,18 @@ export async function WorkflowServiceHomePage({
       },
     },
   });
+
+  const specialReportLinks = new Map<string, Awaited<ReturnType<typeof getSpecialReportLink>>>();
+  const specialReportApprovals = new Map<string, Awaited<ReturnType<typeof getApprovedSpecialReportCase>>>();
+  if ((specialReportLinking || relatedSpecialCaseIds.length > 0) && (context.user.role === "TEACHER" || context.user.role === "ACTIVITY_LEADER") && context.schoolAccountId) {
+    await Promise.all(cases.map(async (item) => {
+      const approved = await getApprovedSpecialReportCase(item.id, context.user.id, context.schoolAccountId as string);
+      if (approved) {
+        specialReportApprovals.set(item.id, approved);
+        specialReportLinks.set(item.id, await getSpecialReportLink(item.id, context.user.role as "TEACHER" | "ACTIVITY_LEADER", context.schoolAccountId as string));
+      }
+    }));
+  }
 
   const draftsCount = cases.filter((item) => item.status === "DRAFT").length;
   const submittedCount = cases.filter((item) => item.status === "SUBMITTED").length;
@@ -357,7 +385,12 @@ export async function WorkflowServiceHomePage({
           <div className="divide-y divide-slate-200 dark:divide-slate-800">
             {cases.map((caseItem) => {
               const latestReport = caseItem.guidanceReports[0] || null;
-              const reportHref = latestReport
+              const approvedSpecialReport = specialReportApprovals.get(caseItem.id);
+              const reportHref = approvedSpecialReport?.approvedReportId
+                ? approvedSpecialReport.approvedReportType === "GUIDANCE_REPORT"
+                  ? `/dashboard/report/${encodeURIComponent(approvedSpecialReport.approvedReportId)}/preview`
+                  : `/dashboard/report-2/snapshots/${encodeURIComponent(approvedSpecialReport.approvedReportId)}/preview`
+                : latestReport
                 ? `/dashboard/report/${latestReport.id}/preview${
                     latestReport.templateId
                       ? `?template=${encodeURIComponent(latestReport.templateId)}`
@@ -406,12 +439,25 @@ export async function WorkflowServiceHomePage({
                     </p>
                   </div>
 
-                  <div className="text-xs font-black text-slate-500 dark:text-slate-400 sm:min-w-[190px]">
+                  <div className={approvedSpecialReport ? "hidden" : "text-xs font-black text-slate-500 dark:text-slate-400 sm:min-w-[190px]"}>
                     الإجراء التالي: <span className="text-slate-700 dark:text-slate-200">{getNextActionText(caseItem)}</span>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2 sm:justify-end">
                     <div className="flex flex-wrap gap-1.5">
+                      {specialReportLinking && specialReportLinks.has(caseItem.id) ? (
+                        <SpecialReportLinkPopCard
+                          caseId={caseItem.id}
+                          role={context.user.role as "TEACHER" | "ACTIVITY_LEADER"}
+                          initialLink={specialReportLinks.get(caseItem.id) || null}
+                        />
+                      ) : null}
+
+                      {!specialReportLinking && specialReportLinks.get(caseItem.id) ? (
+                        <span className="max-w-[190px] truncate rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-black text-indigo-700" title={specialReportLinks.get(caseItem.id)?.target.title}>
+                          {specialReportLinks.get(caseItem.id)?.target.title}
+                        </span>
+                      ) : null}
                       {caseItem.status === "DRAFT" ? (
                         <Link
                           href={`/dashboard/cases/${caseItem.id}/edit`}
@@ -426,7 +472,7 @@ export async function WorkflowServiceHomePage({
                           className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
                         >
                           <FileText className="h-4 w-4" />
-                          {caseItem._count.guidanceReports > 0
+                          {approvedSpecialReport || caseItem._count.guidanceReports > 0
                             ? "فتح التقارير"
                             : "إصدار تقرير"}
                         </Link>

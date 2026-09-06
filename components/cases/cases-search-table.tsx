@@ -26,6 +26,11 @@ type CaseRow = {
     name: string;
     slug: string;
   };
+  specialReportLink?: {
+    targetId: string;
+    targetType: string;
+    title: string;
+  } | null;
   workflow?: {
     id: string;
     name: string;
@@ -429,6 +434,12 @@ function CaseFollowUpCard({
           <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
             {caseItem.service.name}
           </span>
+
+          {caseItem.specialReportLink ? (
+            <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-200 dark:ring-violet-900">
+              مخصص · {caseItem.specialReportLink.title}
+            </span>
+          ) : null}
 
           {reportStatusLabel ? (
             <span

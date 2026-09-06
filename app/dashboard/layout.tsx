@@ -15,6 +15,7 @@ import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/
 import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
 import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
 import { TeachixAppDownloadPrompt } from "@/components/apps/teachix-app-download-prompt";
+import { PortfolioPreviewLoadingBoundary } from "@/components/portfolio/portfolio-preview-loading-boundary";
 
 export const metadata: Metadata = {
   robots: {
@@ -99,9 +100,9 @@ export default async function DashboardLayout({
               </>
             ) : null}
 
-            <div className={`mx-auto w-full min-w-0 max-w-[1680px] px-2.5 ${MOBILE_BOTTOM_CLEARANCE_CLASS} pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5`}>
+            <PortfolioPreviewLoadingBoundary><div className={`mx-auto w-full min-w-0 max-w-[1680px] px-2.5 ${MOBILE_BOTTOM_CLEARANCE_CLASS} pt-3 sm:px-3 sm:pt-4 md:px-4 md:py-4 xl:px-5`}>
               {children}
-            </div>
+            </div></PortfolioPreviewLoadingBoundary>
 
             <FloatingWhatsAppSupport />
           </main>

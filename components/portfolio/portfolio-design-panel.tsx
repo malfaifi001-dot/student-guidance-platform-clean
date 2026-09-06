@@ -2,9 +2,7 @@
 
 import { ExternalLink, Loader2, Palette, Save } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
-import type { PrintExportModal } from "@/lib/print-export/print-export-types";
+import { useState } from "react";
 import { PortfolioThemePreviewCard } from "@/components/portfolio/portfolio-theme-preview-card";
 import type { PortfolioWorkspaceData } from "@/lib/portfolio/portfolio-read-model";
 import { getPortfolioTheme, PORTFOLIO_THEMES, type PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
@@ -17,29 +15,8 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
   const resolvedTheme = getPortfolioTheme(data.portfolio.themeId);
   const [selectedThemeId, setSelectedThemeId] = useState<PortfolioThemeId>(resolvedTheme.id);
   const [preferences, setPreferences] = useState(data.portfolio.preferences);
-  const [previewOpening, setPreviewOpening] = useState(false);
-  const [previewProgress, setPreviewProgress] = useState(0);
-
-  useEffect(() => {
-    if (!previewOpening) return;
-
-    const startedAt = performance.now();
-    const timer = window.setInterval(() => {
-      const elapsedMs = performance.now() - startedAt;
-      const waitingProgress = Math.min(
-        90,
-        Math.round(90 * (1 - Math.exp(-elapsedMs / 4500))),
-      );
-
-      setPreviewProgress((current) => Math.max(current, waitingProgress));
-    }, 100);
-
-    return () => window.clearInterval(timer);
-  }, [previewOpening]);
-
   function beginPreviewNavigation() {
-    setPreviewProgress(0);
-    setPreviewOpening(true);
+    window.dispatchEvent(new Event("portfolio-preview-start"));
   }
 
   const payload = (themeId = selectedThemeId, nextPreferences = preferences) => ({
@@ -67,15 +44,6 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
     ["showSchoolName", "إظهار اسم المدرسة"],
     ["showPrincipalName", "إظهار اسم مدير المدرسة"],
   ] as const;
-  const previewModal: PrintExportModal | null = previewOpening
-    ? {
-        status: "loading",
-        title: "جاري تحضير المعاينة",
-        message: "",
-        progress: previewProgress,
-      }
-    : null;
-
   return <>
     <section className="space-y-6">
     <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -92,11 +60,5 @@ export function PortfolioDesignPanel({ data, busy, onSave }: {
       <button disabled={busy} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ خيارات العرض</button>
     </form>
     </section>
-    <PrintExportPopCard
-      align="center"
-      modal={previewModal}
-      onClose={() => setPreviewOpening(false)}
-      onOpenFallback={() => undefined}
-    />
   </>;
 }

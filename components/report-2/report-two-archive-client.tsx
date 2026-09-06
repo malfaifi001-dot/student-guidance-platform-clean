@@ -28,6 +28,7 @@ type SnapshotItem = {
   updatedAt: string;
   status?: "DRAFT" | "APPROVED";
   active?: boolean;
+  linkedContext?: { title: string } | null;
 };
 
 type ReportTwoArchiveClientProps = {
@@ -355,6 +356,11 @@ export function ReportTwoArchiveClient({
                     snapshot.serviceSlug ||
                     "خدمة غير محددة"}
                 </span>
+                {snapshot.serviceSlug === "special-report" ? (
+                  <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-200 dark:ring-violet-900">
+                    مخصص{snapshot.linkedContext ? ` · ${snapshot.linkedContext.title}` : ""}
+                  </span>
+                ) : null}
               </div>
 
               <dl className="mt-3 grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">

@@ -9,6 +9,7 @@ import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-re
 import { prisma } from "@/lib/prisma";
 import { listLatestReportTwoSnapshotsForCases } from "@/lib/report-2/report-snapshot-service";
 import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
+import { getSpecialReportLinkedContexts } from "@/lib/special-report/report-linking";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "غير محدد";
@@ -196,6 +197,11 @@ export default async function CasesPage() {
     context.user.role,
     "REPORT_DELETE",
   );
+  const specialReportLinks = await getSpecialReportLinkedContexts(
+    cases.map((item) => item.id),
+    context.user.role,
+    viewerSchoolAccountId || "",
+  );
 
   const rows = cases.map((caseItem) => {
     const historicalPersonalCase =
@@ -252,6 +258,7 @@ export default async function CasesPage() {
         name: caseItem.service.name,
         slug: caseItem.service.slug,
       },
+      specialReportLink: specialReportLinks.get(caseItem.id) || null,
 
       workflow: caseItem.workflow
         ? {

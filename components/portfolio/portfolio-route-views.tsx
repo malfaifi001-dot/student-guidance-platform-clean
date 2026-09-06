@@ -8,7 +8,6 @@ import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
 import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
 import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
 import { PortfolioPrintDocument } from "@/components/portfolio/print/portfolio-print-document";
-import { PortfolioPreviewLoadingBoundary } from "@/components/portfolio/portfolio-preview-loading-boundary";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
@@ -61,13 +60,13 @@ export async function PortfolioPreviewRoute({ searchParams, sharedRoute }: { sea
   const { workspace } = await portfolioPageContext(searchParams, sharedRoute, trace);
   const workspaceReadyAt = performance.now();
   const tree = (
-    <PortfolioPreviewLoadingBoundary><main dir="rtl" className="w-full min-w-0 max-w-full overflow-hidden">
+    <main dir="rtl" className="w-full min-w-0 max-w-full overflow-hidden">
       <div className="mx-auto w-full min-w-0 max-w-[900px]">
         <PortfolioPreviewFit>
           <PortfolioPrintDocument data={{ ...workspace, customEvidence: workspace.customEvidence.filter((item) => item.isVisible && Boolean(item.fileUrl)) }} />
         </PortfolioPreviewFit>
       </div>
-    </main></PortfolioPreviewLoadingBoundary>
+    </main>
   );
   portfolioPerfLog(trace, "PortfolioPreviewRoute.workspaceReadyToReactTree", performance.now() - workspaceReadyAt, { portfolioId: workspace.portfolio.id });
   return tree;
