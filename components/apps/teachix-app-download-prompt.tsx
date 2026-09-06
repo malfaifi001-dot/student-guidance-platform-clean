@@ -5,7 +5,11 @@ import { TeachixAppDownloadPopCard } from "@/components/apps/teachix-app-downloa
 
 const APP_DOWNLOAD_POP_DISMISSED_KEY = "teachix-app-download-pop-dismissed";
 
-export function TeachixAppDownloadPrompt() {
+export function TeachixAppDownloadPrompt({
+  onOpenChange,
+}: {
+  onOpenChange?: (open: boolean) => void;
+} = {}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -13,6 +17,7 @@ export function TeachixAppDownloadPrompt() {
       if (
         window.localStorage.getItem(APP_DOWNLOAD_POP_DISMISSED_KEY) === "1"
       ) {
+        onOpenChange?.(false);
         return;
       }
     } catch {
@@ -20,7 +25,8 @@ export function TeachixAppDownloadPrompt() {
     }
 
     setOpen(true);
-  }, []);
+    onOpenChange?.(true);
+  }, [onOpenChange]);
 
   function close() {
     try {
@@ -29,6 +35,7 @@ export function TeachixAppDownloadPrompt() {
       // The prompt still closes for this visit when persistent storage is unavailable.
     }
     setOpen(false);
+    onOpenChange?.(false);
   }
 
   return <TeachixAppDownloadPopCard open={open} onClose={close} />;

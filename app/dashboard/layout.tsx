@@ -14,7 +14,7 @@ import { DashboardMobileBottomNav } from "@/components/layout/dashboard-mobile-b
 import { MOBILE_BOTTOM_CLEARANCE_CLASS, MOBILE_LAYER_STYLE } from "@/components/mobile-app/mobile-layer-contract";
 import { FloatingWhatsAppSupport } from "@/components/support/floating-whatsapp-support";
 import { resolveSalesExperienceForUser } from "@/lib/sales/sales-experience";
-import { TeachixAppDownloadPrompt } from "@/components/apps/teachix-app-download-prompt";
+import { DashboardPostLoginPopCards } from "@/components/social/dashboard-post-login-pop-cards";
 import { PortfolioPreviewLoadingBoundary } from "@/components/portfolio/portfolio-preview-loading-boundary";
 
 export const metadata: Metadata = {
@@ -88,7 +88,7 @@ export default async function DashboardLayout({
               salesMode={salesExperience.effectiveMode}
             />
 
-            <TeachixAppDownloadPrompt />
+            <DashboardPostLoginPopCards />
 
             {current.user.role !== "PRINCIPAL" ? (
               <>
