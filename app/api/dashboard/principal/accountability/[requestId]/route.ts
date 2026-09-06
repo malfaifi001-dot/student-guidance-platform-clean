@@ -54,7 +54,7 @@ export async function PATCH(request: Request, context: Context) {
       typeKey: String(body?.typeKey || ""),
       title: String(body?.title || ""),
       managerValues: body?.managerValues && typeof body.managerValues === "object" ? body.managerValues : {},
-      officialTextTemplate: String(body?.officialTextSnapshot || ""),
+      officialText: String(body?.officialText || body?.officialTextSnapshot || ""),
     });
     return NextResponse.json({ success: true, request: item });
   } catch (error) {

@@ -592,6 +592,8 @@ export function PortfolioPrintDocument({
           typographyStyle
         }
         data-portfolio-smart-phase="measuring"
+        aria-hidden="true"
+        className="portfolio-smart-measuring-dom"
       >
         {(() => {
           const page = measurablePages[measurementRun.pageIndex];
@@ -614,9 +616,6 @@ export function PortfolioPrintDocument({
           ));
         })()}
 
-        <div className="portfolio-smart-measuring-state">
-          جارٍ تنظيم صفحات الملف...
-        </div>
       </div>
     );
   }

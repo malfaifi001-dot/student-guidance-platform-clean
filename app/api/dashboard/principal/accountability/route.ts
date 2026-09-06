@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         body?.managerValues && typeof body.managerValues === "object"
           ? body.managerValues
           : {},
-      officialTextTemplate: String(body?.officialTextSnapshot || ""),
+      officialText: String(body?.officialText || body?.officialTextSnapshot || ""),
     });
 
     return NextResponse.json({ success: true, request: created }, { status: 201 });

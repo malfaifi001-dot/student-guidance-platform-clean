@@ -19,7 +19,6 @@ import {
   generateAccountabilityToken,
   getAccountabilityTokenExpiry,
 } from "@/lib/accountability/accountability-token";
-import { buildAccountabilityTextSnapshot } from "@/lib/accountability/accountability-text";
 
 type PrincipalContext = {
   user: { id: string; role: string; schoolAccountId: string | null };
@@ -108,7 +107,7 @@ export async function createAccountabilityDraft(input: {
   typeKey: string;
   title: string;
   managerValues: AccountabilityValues;
-  officialTextTemplate: string;
+  officialText: string;
   deliveryMethod?: AccountabilityDeliveryMethod;
 }) {
   assertPrincipal(input.context);
@@ -131,7 +130,7 @@ export async function createAccountabilityDraft(input: {
       typeKey: cleanRequired(input.typeKey, "TYPE"),
       title: cleanRequired(input.title, "TITLE"),
       managerValues: jsonValue(input.managerValues),
-      officialTextSnapshot: buildAccountabilityTextSnapshot(input.officialTextTemplate, input.managerValues),
+      officialTextSnapshot: cleanRequired(input.officialText, "OFFICIAL_TEXT"),
       deliveryMethod: input.deliveryMethod ?? "SYSTEM",
       token: generateAccountabilityToken(),
       status: "DRAFT",
@@ -147,7 +146,7 @@ export async function updateAccountabilityDraft(input: {
   typeKey: string;
   title: string;
   managerValues: AccountabilityValues;
-  officialTextTemplate: string;
+  officialText: string;
 }) {
   const request = await getAccountabilityRequestForPrincipal(
     input.context,
@@ -171,10 +170,7 @@ export async function updateAccountabilityDraft(input: {
       typeKey: cleanRequired(input.typeKey, "TYPE"),
       title: cleanRequired(input.title, "TITLE"),
       managerValues: jsonValue(input.managerValues),
-      officialTextSnapshot: buildAccountabilityTextSnapshot(
-        input.officialTextTemplate,
-        input.managerValues,
-      ),
+      officialTextSnapshot: cleanRequired(input.officialText, "OFFICIAL_TEXT"),
     },
   });
 }
@@ -188,14 +184,14 @@ export async function listAccountabilityDrafts(context: PrincipalContext) {
 }
 
 export async function getAccountabilityRequestForPrincipal(context: PrincipalContext, id: string) {
-  return prisma.accountabilityRequest.findFirst({ where: principalRequestWhere(context, id) });
+  return prisma.accountabilityRequest.findFirst({ where: principalRequestWhere(context, id), include: { schoolAccount: { include: { profile: true } } } });
 }
 
 export async function sendAccountabilityRequest(input: {
   context: PrincipalContext;
   requestId: string;
   deliveryMethod?: AccountabilityDeliveryMethod;
-  officialTextTemplate?: string;
+  officialText?: string;
   managerValues?: AccountabilityValues;
   tokenExpiresAt?: Date | null;
 }) {
@@ -208,9 +204,9 @@ export async function sendAccountabilityRequest(input: {
     where: { id: request.id, status: "DRAFT" },
     data: {
       managerValues: jsonValue(managerValues),
-      officialTextSnapshot: input.officialTextTemplate === undefined
+      officialTextSnapshot: input.officialText === undefined
         ? request.officialTextSnapshot
-        : buildAccountabilityTextSnapshot(input.officialTextTemplate, managerValues),
+        : cleanRequired(input.officialText, "OFFICIAL_TEXT"),
       tokenExpiresAt: input.tokenExpiresAt ?? getAccountabilityTokenExpiry(),
       deliveryMethod: input.deliveryMethod ?? request.deliveryMethod,
       ...statusTimestamp("SENT"),
@@ -269,7 +265,7 @@ function validateStepValues(step: NonNullable<Awaited<ReturnType<typeof getRunti
 
 export async function getAccountabilityRespondentView(token: string) {
   if (!isValidAccountabilityToken(token)) return null;
-  const request = await prisma.accountabilityRequest.findUnique({ where: { token } });
+  const request = await prisma.accountabilityRequest.findUnique({ where: { token }, include: { schoolAccount: { include: { profile: true } } } });
   if (!request) return null;
   const expired = isAccountabilityTokenExpired(request.tokenExpiresAt);
   if (expired) return { request, workflow: null, respondentStep: null, dependencyValues: {}, expired: true };
