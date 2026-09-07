@@ -17,6 +17,7 @@ import { SearchableRtlSelect } from "@/components/ui/searchable-rtl-select";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { SignatureImage } from "@/components/signatures/signature-image";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signatures/signature-pad";
+import { SchoolSignaturePadModal as SchoolSignatureUploadModal } from "@/components/settings/school-signature-pad-modal";
 import {
   SAUDI_CITIES,
   SAUDI_CITY_OTHER_OPTION,
@@ -405,7 +406,7 @@ export function SchoolSettingsForm() {
     }
   }
 
-  async function saveCurrentUserSignature(dataUrl: string) {
+  async function saveCurrentUserSignature(dataUrl: string, uploadFile?: File) {
     setFeedback(null);
 
     try {
@@ -415,14 +416,16 @@ export function SchoolSettingsForm() {
 
       setSignatureSavingKind(form.currentUserSignatureKind);
 
+      const uploadBody = uploadFile ? new FormData() : null;
+      if (uploadFile && uploadBody) {
+        uploadBody.set("kind", form.currentUserSignatureKind);
+        uploadBody.set("file", uploadFile);
+      }
       const response = await fetch("/api/dashboard/settings/school/signature", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          kind: form.currentUserSignatureKind,
-          dataUrl,
+        ...(uploadBody ? { body: uploadBody } : {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: form.currentUserSignatureKind, dataUrl }),
         }),
       });
 
@@ -707,7 +710,8 @@ ${signatureUrl}`;
 
 
       {schoolSignaturePadOpen ? (
-        <SchoolSignaturePadModal
+        <SchoolSignatureUploadModal
+          kind={form.currentUserSignatureKind as Exclude<CurrentUserSignatureKind, "">}
           title={getArabicSignatureTitle({
             role: form.currentUserRole,
             gender: form.currentUserGender,
@@ -716,6 +720,7 @@ ${signatureUrl}`;
           saving={Boolean(signatureSavingKind)}
           onClose={() => setSchoolSignaturePadOpen(null)}
           onSave={saveCurrentUserSignature}
+          onSaveUpload={(file) => saveCurrentUserSignature("", file)}
         />
       ) : null}
 <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -1351,7 +1356,7 @@ function PrincipalSignatureRequestModal({
     </div>
   );
 }
-function SchoolSignaturePadModal({
+export function SchoolSignaturePadModal({
   title,
   signerName,
   saving,
