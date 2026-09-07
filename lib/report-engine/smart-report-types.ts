@@ -32,6 +32,7 @@ export type SmartReportEvidenceLayout =
 
 export type SmartReportField = {
   key: string;
+  sourceOrder?: number;
   fieldType?: string;
   label: string;
   value: string | string[] | number | boolean | null;
@@ -184,6 +185,7 @@ export type SmartReportTableRow = {
 export type SmartReportTable = {
   id: string;
   sourceFieldKey: string;
+  sourceOrder?: number;
   title: string;
   columns: SmartReportTableColumn[];
   rows: SmartReportTableRow[];

@@ -10,11 +10,28 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function fieldItems(payload: SmartReportPayload) {
-  return [
+export function getReportTwoOrderedFields(payload: SmartReportPayload) {
+  const fields = [
     ...(Array.isArray(payload.primaryFields) ? payload.primaryFields : []),
     ...(Array.isArray(payload.detailFields) ? payload.detailFields : []),
-  ] as Array<Record<string, unknown>>;
+  ];
+
+  if (!fields.some((field) => Number.isFinite(field.sourceOrder))) {
+    return fields;
+  }
+
+  return fields
+    .map((field, index) => ({ field, index }))
+    .sort((left, right) =>
+      (left.field.sourceOrder ?? Number.MAX_SAFE_INTEGER) -
+        (right.field.sourceOrder ?? Number.MAX_SAFE_INTEGER) ||
+      left.index - right.index,
+    )
+    .map(({ field }) => field);
+}
+
+function fieldItems(payload: SmartReportPayload) {
+  return getReportTwoOrderedFields(payload) as Array<Record<string, unknown>>;
 }
 
 export function dedupeReportTwoDateRows<T extends Record<string, unknown>>(rows: T[]) {

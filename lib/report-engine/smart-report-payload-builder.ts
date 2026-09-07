@@ -84,6 +84,7 @@ type BuildSmartReportPayloadResult =
 
 type CaseValueItem = {
   key: string;
+  sourceOrder?: number;
   fieldType?: string;
   label: string;
   value: string;
@@ -755,6 +756,23 @@ function resolveReportOptionDisplayValue(
   return resolveReportOptionItemLabel(raw, optionLabels) || stringifyValue(raw);
 }
 
+function buildWorkflowSourceOrder(caseEntry: any) {
+  const orderByKey = new Map<string, number>();
+  let nextOrder = 0;
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      const key = cleanText(field?.key).toLowerCase();
+
+      if (key && !orderByKey.has(key)) {
+        orderByKey.set(key, nextOrder++);
+      }
+    });
+  });
+
+  return orderByKey;
+}
+
 function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
   const snapshotLabels = collectWorkflowSnapshotFieldLabels(
     caseEntry.workflowSnapshot,
@@ -763,8 +781,24 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
   const fieldMap = buildReportFieldMap(caseEntry);
   const allowSnapshotFallback = fieldMap.size === 0;
 
+  const workflowOrderByKey = buildWorkflowSourceOrder(caseEntry);
+
   return (caseEntry.values || [])
-    .map((item: any) => {
+    .map((item: any, index: number) => ({ item, index }))
+    .sort(
+      (
+        left: { item: any; index: number },
+        right: { item: any; index: number },
+      ) => {
+      const leftKey = cleanText(left.item.field?.key || left.item.fieldKey).toLowerCase();
+      const rightKey = cleanText(right.item.field?.key || right.item.fieldKey).toLowerCase();
+      const leftOrder = workflowOrderByKey.get(leftKey) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = workflowOrderByKey.get(rightKey) ?? Number.MAX_SAFE_INTEGER;
+
+        return leftOrder - rightOrder || left.index - right.index;
+      },
+    )
+    .map(({ item }: { item: any }) => {
       const key = item.field?.key || item.fieldKey || "";
 
       if (!key) {
@@ -792,6 +826,7 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
 
       return {
         key,
+        sourceOrder: workflowOrderByKey.get(key.toLowerCase()),
         fieldType: fieldMap.get(key)?.type || item.field?.type || undefined,
         label,
         value,
@@ -910,6 +945,7 @@ function makeDetailField(
 
   return {
     key: item.key,
+    sourceOrder: item.sourceOrder,
     fieldType: item.fieldType,
     label: applyReportLanguageModeToText(item.label, languageMode),
     value,
@@ -1420,11 +1456,15 @@ export async function buildSmartReportPayloadForCase({
   const workflowFields = (caseEntry.workflow?.steps || []).flatMap(
     (step: any) => step.fields || [],
   );
+  const workflowOrderByKey = buildWorkflowSourceOrder(caseEntry);
   let tables = extractSmartReportTables({
     values: caseEntry.values || [],
     fields: workflowFields,
     snapshotFields: collectWorkflowSnapshotFields(caseEntry.workflowSnapshot),
-  });
+  }).map((table) => ({
+    ...table,
+    sourceOrder: workflowOrderByKey.get(table.sourceFieldKey),
+  }));
   const studentTableRowIds = Array.from(
     new Set(
       tables
@@ -1634,6 +1674,7 @@ export async function buildSmartReportPayloadForCase({
   const dateFields = values.filter((item) => item.fieldType?.toUpperCase() === "DATE");
   const primaryFields: SmartReportField[] = dateFields.map((item, index) => ({
     key: index === 0 ? "execution_date" : `execution_date_${index + 1}`,
+    sourceOrder: item.sourceOrder,
     fieldType: "DATE",
     label: index === 0 ? "تاريخ التنفيذ" : `تاريخ التنفيذ ${index + 1}`,
     value: item.value,

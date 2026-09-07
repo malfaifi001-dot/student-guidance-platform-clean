@@ -41,7 +41,10 @@ import {
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
-import { dedupeReportTwoDateRows } from "@/lib/report-2/report-two-structured-data";
+import {
+  dedupeReportTwoDateRows,
+  getReportTwoOrderedFields,
+} from "@/lib/report-2/report-two-structured-data";
 import { filterReportNarrativeBlocks } from "@/lib/report-engine/report-narrative-policy";
 import {
   tracePrincipalCards,
@@ -945,7 +948,7 @@ function getPayloadAny(payload: SmartReportPayload) {
 function getRuntimeContext(payload: SmartReportPayload) {
   const data = getPayloadAny(payload);
   const student = data.student || data.caseInfo?.student || {};
-  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+  const fields = getReportTwoOrderedFields(payload);
 
   const context: Record<string, string> = {
     "case.id": cleanText(data.caseInfo?.id),
@@ -1172,7 +1175,7 @@ function getPreviewCase(payload: SmartReportPayload, template?: StudioTemplate) 
         ),
       ),
     );
-  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])].filter(
+  const fields = getReportTwoOrderedFields(payload).filter(
     (field) => !hasStudentDataTable || !isStudentIdentityField(field),
   );
 
@@ -1975,8 +1978,7 @@ function getDynamicFieldsForBlock(
     const source =
       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
-      sourceByKey.get(getReportTwoLookupKey(field.label)) ||
-      sourceFields[index];
+      sourceByKey.get(getReportTwoLookupKey(field.label));
 
     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
     const configuredValue = cleanText(field.value);
