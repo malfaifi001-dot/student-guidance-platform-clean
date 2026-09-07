@@ -1,6 +1,28 @@
-type DeepSeekMessage = {
-  role: "system" | "user" | "assistant";
-  content: string;
+export type DeepSeekMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_call_id?: string;
+  tool_calls?: DeepSeekToolCall[];
+};
+
+export type DeepSeekTool = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+};
+
+export type DeepSeekToolCall = {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+};
+
+export type DeepSeekCompletion = {
+  content: string | null;
+  toolCalls: DeepSeekToolCall[];
 };
 
 type DeepSeekChatOptions = {
@@ -9,6 +31,10 @@ type DeepSeekChatOptions = {
   maxTokens?: number;
   timeoutMs?: number;
   responseFormat?: "text" | "json_object";
+};
+
+export type DeepSeekToolChatOptions = Omit<DeepSeekChatOptions, "responseFormat"> & {
+  tools: DeepSeekTool[];
 };
 
 function getDeepSeekConfig() {
@@ -141,6 +167,43 @@ export async function callDeepSeekChat({
       throw new Error("DEEPSEEK_NETWORK_ERROR");
     }
 
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function callDeepSeekWithTools({
+  messages,
+  tools,
+  temperature = 0.2,
+  maxTokens = 900,
+  timeoutMs = 90000,
+}: DeepSeekToolChatOptions): Promise<DeepSeekCompletion> {
+  const config = getDeepSeekConfig();
+  if (!config.apiKey) throw new Error("DEEPSEEK_API_KEY is missing.");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(config.apiUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: config.model, messages, tools, tool_choice: "auto", temperature, max_tokens: maxTokens, stream: false }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(`DeepSeek request failed with status ${response.status}.`);
+    const message = data?.choices?.[0]?.message;
+    if (!message || typeof message !== "object") throw new Error("DeepSeek returned an empty response.");
+    return {
+      content: typeof message.content === "string" ? message.content.trim() : null,
+      toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls : [],
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw new Error("DEEPSEEK_TIMEOUT");
+    if (isNetworkError(error)) throw new Error("DEEPSEEK_NETWORK_ERROR");
     throw error;
   } finally {
     clearTimeout(timeout);

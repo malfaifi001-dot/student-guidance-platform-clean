@@ -6,6 +6,7 @@ import {
   Activity,
   ArrowUpRight,
   BarChart3,
+  BrainCircuit,
   CheckCircle2,
   FileText,
   Loader2,
@@ -142,7 +143,7 @@ export function AdminActivityMetricsPanel() {
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"><h2 className="text-lg font-black text-slate-950 dark:text-white">إيقاع النشاط اليومي</h2><div className="mt-4 space-y-3">{metrics.daily.slice(-7).map((item) => <div key={item.date} className="flex items-center gap-3"><span className="w-16 shrink-0 text-[11px] font-bold text-slate-400">{formatDate(item.date)}</span><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.max(5, Math.min(100, (item.total / Math.max(...metrics.daily.map((day) => day.total), 1)) * 100))}%` }} /></div><span className="w-8 text-left text-xs font-black text-slate-500 dark:text-slate-400">{item.total}</span></div>)}</div></section>
       </section>
 
-      <section><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-black text-slate-950 dark:text-white">روابط إدارية سريعة</h2><span className="text-xs font-bold text-slate-400">إدارة المنصة</span></div><div className="grid gap-3 md:grid-cols-3"><QuickLink href="/dashboard/admin/activity" title="سجل العمليات" description="مراجعة النشاط الكامل في المنصة" icon={<Activity className="h-5 w-5" />} /><QuickLink href="/dashboard/admin/users" title="المستخدمون" description="إدارة المستخدمين والصلاحيات" icon={<Users className="h-5 w-5" />} /><QuickLink href="/dashboard/admin/subscribers" title="المشتركون" description="الحسابات والباقات والتفعيل" icon={<WalletCards className="h-5 w-5" />} /></div></section>
+      <section><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-black text-slate-950 dark:text-white">روابط إدارية سريعة</h2><span className="text-xs font-bold text-slate-400">إدارة المنصة</span></div><div className="grid gap-3 md:grid-cols-4"><QuickLink href="/dashboard/admin/teachix-intelligence" title="Teachix Intelligence" description="اسأل عن استخدام المنصة والمؤشرات" icon={<BrainCircuit className="h-5 w-5" />} /><QuickLink href="/dashboard/admin/activity" title="سجل العمليات" description="مراجعة النشاط الكامل في المنصة" icon={<Activity className="h-5 w-5" />} /><QuickLink href="/dashboard/admin/users" title="المستخدمون" description="إدارة المستخدمين والصلاحيات" icon={<Users className="h-5 w-5" />} /><QuickLink href="/dashboard/admin/subscribers" title="المشتركون" description="الحسابات والباقات والتفعيل" icon={<WalletCards className="h-5 w-5" />} /></div></section>
     </section>
   );
 }
