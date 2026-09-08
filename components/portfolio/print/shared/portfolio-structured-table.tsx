@@ -1,4 +1,5 @@
 import type { PortfolioActivityPlanRow, PortfolioActivityTeamContent } from "@/lib/portfolio/service-outputs/service-output-types";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 type TableRow = {
   id: string;
@@ -27,7 +28,7 @@ export function PortfolioStructuredTable({
             <tr key={row.id}>
               {columns.map((column) => (
                 <td key={column.key}>
-                  {column.key === "signature" && row.signatureUrl ? <img src={row.signatureUrl} alt="توقيع المشرف" className="portfolio-structured-table-signature" /> : row.cells[column.key] || ""}
+                  {column.key === "signature" && row.signatureUrl ? <SignatureImage src={row.signatureUrl} alt="توقيع المشرف" className="portfolio-structured-table-signature" maxWidth="22mm" maxHeight="8mm" strokeBoost={1} /> : row.cells[column.key] || ""}
                 </td>
               ))}
             </tr>

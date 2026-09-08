@@ -683,7 +683,6 @@ function DesignBlock({
                     className="report-design-signature-image max-w-[42mm]"
                     style={{
                       maxHeight: "var(--report-signature-image-height, 10mm)",
-                      background: "#ffffff",
                     }}
                   />
                 ) : (

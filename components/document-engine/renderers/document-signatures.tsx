@@ -1,6 +1,7 @@
 import type {
   DocumentSignature,
 } from "@/lib/document-engine/document-types";
+import { SignatureImage } from "@/components/signatures/signature-image";
 
 type DocumentSignaturesProps = {
   signatures: DocumentSignature[];
@@ -45,15 +46,13 @@ export function DocumentSignatures({
           >
             <div className="flex h-[18mm] items-end justify-center">
               {signature.imageUrl ? (
-                <img
-                  src={
-                    signature.imageUrl
-                  }
-                  alt={
-                    signature.name ??
-                    signature.role
-                  }
-                  className="max-h-[17mm] max-w-[55mm] object-contain"
+                <SignatureImage
+                  src={signature.imageUrl}
+                  alt={signature.name ?? signature.role}
+                  maxWidth="55mm"
+                  maxHeight="17mm"
+                  className="max-w-[55mm]"
+                  strokeBoost={1}
                 />
               ) : (
                 <div className="w-[42mm] border-b border-dashed border-slate-300" />

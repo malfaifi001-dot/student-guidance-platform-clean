@@ -1,6 +1,6 @@
 import { useId, type CSSProperties } from "react";
 
-const DEFAULT_SIGNATURE_STROKE_BOOST = 2;
+const DEFAULT_SIGNATURE_STROKE_BOOST = 1;
 
 type SignatureImageProps = {
   src: string;

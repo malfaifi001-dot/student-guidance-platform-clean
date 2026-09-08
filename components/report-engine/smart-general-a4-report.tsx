@@ -282,19 +282,17 @@ export function SmartGeneralA4Report({ payload }: SmartGeneralA4ReportProps) {
             <div
               key={signature.key}
               className={[
-                "flex min-h-28 flex-col items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 text-center",
+                "flex min-h-24 flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white p-3 text-center",
                 payload.signatures.length === 1 ? "w-[58mm] max-w-full" : "",
               ].join(" ")}
             >
-              <p className="text-xs font-black text-slate-500">
-                {signature.label}
-              </p>
-
               {signature.imageUrl ? (
                 <SignatureImage
                   src={signature.imageUrl}
                   alt={signature.signerName || signature.label}
-                  className="h-10"
+                  className="max-h-14 max-w-[44mm]"
+                  maxHeight="14mm"
+                  strokeBoost={1}
                 />
               ) : (
                 <p className="text-slate-400">............................</p>
@@ -303,6 +301,14 @@ export function SmartGeneralA4Report({ payload }: SmartGeneralA4ReportProps) {
               <p className="text-sm font-black text-slate-950">
                 {signature.signerName || "غير محدد"}
               </p>
+              <p className="text-xs font-black text-slate-500">
+                {signature.label}
+              </p>
+              {signature.signerTitle ? (
+                <p className="text-[10px] font-bold text-slate-400">
+                  {signature.signerTitle}
+                </p>
+              ) : null}
             </div>
           ))}
         </section>
