@@ -608,7 +608,7 @@ ${signatureUrl}`;
 
   return (
     <div
-      className="space-y-4 text-slate-950 dark:text-slate-100"
+      className="space-y-3 text-slate-950 dark:text-slate-100"
       data-guidance="teacher-school-settings"
       data-principal-signature-ready={Boolean(form.principalSignatureUrl)}
       data-school-identity-ready={readiness.readyForOfficialReports}
@@ -637,8 +637,6 @@ ${signatureUrl}`;
       />
 
       <IdentityReadinessCard readiness={readiness} />
-
-      <ReportIdentityPreviewCard form={form} />
 
       <SchoolSignaturesCard
         form={form}
@@ -723,22 +721,16 @@ ${signatureUrl}`;
           onSaveUpload={(file) => saveCurrentUserSignature("", file)}
         />
       ) : null}
-<section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+<section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-black text-blue-700">هوية الحساب</p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950">
-              {identityCopy.accountHeading}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-slate-500">
-              {identityCopy.accountDescription}
-            </p>
+            <h2 className="text-base font-black text-slate-950 dark:text-white">بيانات المعلمة</h2>
           </div>
 
           <StatusBadge completed={Boolean(form.onboardingCompleted)} />
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-3 grid gap-2.5 md:grid-cols-2">
           <Input
             label={identityCopy.officialNameLabel}
             value={form.officialName}
@@ -761,18 +753,12 @@ ${signatureUrl}`;
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <p className="text-sm font-black text-blue-700">هوية المدرسة</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
-            بيانات المدرسة الرسمية
-          </h2>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            تستخدم هذه البيانات في ترويسة التقارير وملفات PDF والوثائق.
-          </p>
+          <h2 className="text-base font-black text-slate-950 dark:text-white">بيانات المدرسة</h2>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="mt-3 grid gap-2.5 md:grid-cols-2">
           <Input
             label="اسم المدرسة"
             value={form.schoolName}
@@ -848,23 +834,18 @@ ${signatureUrl}`;
         </div>
       </section>
 
-      <div className="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-black text-slate-950">
-              {hasChanges ? "يوجد تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
-            </p>
-            <p className="mt-1 text-xs font-bold text-slate-500">
-              بعد حفظ هذه البيانات تختفي رسالة إكمال بيانات المدرسة.
-            </p>
-          </div>
+      <div className="sticky bottom-2 z-20 border-t border-slate-200 bg-white/95 py-2 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+            {hasChanges ? "تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
+          </p>
 
           <button
             type="button"
             onClick={save}
             data-guidance="teacher-school-save"
             disabled={saving || !hasChanges}
-            className="rounded-2xl bg-slate-950 px-7 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "جاري الحفظ..." : "حفظ البيانات"}
           </button>
@@ -897,8 +878,8 @@ function SignatureStatusBadge({
       className={[
         "rounded-full px-3 py-1 text-xs font-black",
         signed
-          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-          : "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900"
+          : "bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900",
       ].join(" ")}
     >
       {signed ? "محفوظ" : "غير محفوظ"}
@@ -952,33 +933,25 @@ function SchoolSignaturesCard({
   );
 
   return (
-    <section data-guidance="teacher-principal-signature" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <section data-guidance="teacher-principal-signature" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-black text-blue-700">تواقيع المدرسة</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
-            اعتماد التواقيع المستخدمة في التقارير
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-            {identityCopy.signatureDescription}
-            {isSchoolManager
-              ? " يستخدم هذا التوقيع في التقارير بصفتك مدير/مديرة المدرسة."
-              : " أما توقيع مدير/مديرة المدرسة فيتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير."}
-          </p>
+          <p className="text-xs font-black text-blue-700 dark:text-blue-300">التوقيعات</p>
+          <h2 className="mt-0.5 text-base font-black text-slate-950 dark:text-white">توقيعات التقارير</h2>
         </div>
 
         <button
           type="button"
           onClick={onRefresh}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           تحديث الحالة
         </button>
       </div>
 
-      <div className={`mt-6 grid gap-4 ${isSchoolManager ? "max-w-xl" : "lg:grid-cols-2"}`}>
+      <div className={`mt-4 grid gap-3 ${isSchoolManager ? "max-w-xl" : "lg:grid-cols-2"}`}>
         {isSchoolManager ? (
-          <article className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50/60 p-5 sm:col-span-2">
+          <article className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/70 dark:bg-emerald-950/20 sm:col-span-2">
             <h3 className="text-lg font-black text-slate-950">سياسة استخدام توقيع مدير المدرسة</h3>
             <p className="mt-1 text-xs font-bold leading-6 text-slate-600">ربط المنسوب بالمدرسة يوفّر هوية المدرسة واسم المدير فقط، ولا يمنحه صلاحية استخدام التوقيع تلقائيًا.</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -1006,10 +979,10 @@ function SchoolSignaturesCard({
           </article>
         ) : null}
 
-        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+        <article className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-black text-slate-950">
+              <h3 className="text-base font-black text-slate-950 dark:text-white">
                 {signatureTitle}
               </h3>
               <p className="mt-1 text-xs font-bold text-slate-500">
@@ -1023,7 +996,7 @@ function SchoolSignaturesCard({
             <SignatureStatusBadge signed={Boolean(form.currentUserSignatureUrl)} />
           </div>
 
-          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+          <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             {form.currentUserSignatureUrl ? (
               <SignatureImage
                 src={form.currentUserSignatureUrl}
@@ -1050,7 +1023,7 @@ function SchoolSignaturesCard({
               Boolean(signatureSavingKind) ||
               !canSaveCurrentUserSignature
             }
-            className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {signatureSavingKind
               ? "جاري الحفظ..."
@@ -1073,10 +1046,10 @@ function SchoolSignaturesCard({
           ) : null}
         </article>
 
-        {!isSchoolManager ? <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+        {!isSchoolManager ? <article className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-black text-slate-950">
+              <h3 className="text-base font-black text-slate-950 dark:text-white">
                 توقيع {identityCopy.schoolPrincipalLabel}
               </h3>
               <p className="mt-1 text-xs font-bold text-slate-500">
@@ -1087,7 +1060,7 @@ function SchoolSignaturesCard({
             <SignatureStatusBadge signed={Boolean(form.principalSignatureUrl)} />
           </div>
 
-          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+          <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             {form.principalSignatureUrl ? (
               <SignatureImage
                 src={form.principalSignatureUrl}
@@ -1189,7 +1162,7 @@ function PrincipalPhoneModal({
             <h3 className="mt-1 text-2xl font-black text-slate-950">
               رقم واتساب {principalLabel}
             </h3>
-            <p className="mt-2 text-sm leading-7 text-slate-500">
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
               أدخل رقم واتساب {principalLabel} حتى يتم إنشاء رابط التوقيع وإرسال الرسالة الجاهزة.
             </p>
           </div>
@@ -1630,90 +1603,21 @@ function IdentityReadinessCard({
 }: {
   readiness: ReturnType<typeof calculateSchoolIdentityReadiness>;
 }) {
-  const tone =
-    readiness.level === "excellent"
-      ? "emerald"
-      : readiness.level === "good"
-        ? "blue"
-        : readiness.level === "needs-work"
-          ? "amber"
-          : "red";
-
-  const title =
-    readiness.level === "excellent"
-      ? "هوية رسمية ممتازة"
-      : readiness.level === "good"
-        ? "هوية جيدة وقريبة من الاكتمال"
-        : readiness.level === "needs-work"
-          ? "الهوية تحتاج بعض التحسين"
-          : "الهوية غير مكتملة";
+  const scoreTone = readiness.score >= 90
+    ? "text-emerald-700 dark:text-emerald-300"
+    : readiness.score >= 50
+      ? "text-amber-700 dark:text-amber-300"
+      : "text-rose-700 dark:text-rose-300";
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
-        <div
-          className={[
-            "flex flex-col items-center justify-center p-4 text-center",
-            tone === "emerald"
-              ? "bg-emerald-50"
-              : tone === "blue"
-                ? "bg-blue-50"
-                : tone === "amber"
-                  ? "bg-amber-50"
-                  : "bg-red-50",
-          ].join(" ")}
-        >
-          <div
-            className={[
-              "flex h-20 w-20 items-center justify-center rounded-full border-[7px] bg-white text-xl font-black dark:bg-slate-900",
-              tone === "emerald"
-                ? "border-emerald-200 text-emerald-700"
-                : tone === "blue"
-                  ? "border-blue-200 text-blue-700"
-                  : tone === "amber"
-                    ? "border-amber-200 text-amber-700"
-                    : "border-red-200 text-red-700",
-            ].join(" ")}
-          >
-            {readiness.score}%
-          </div>
-
-          <p className="mt-3 text-sm font-black text-slate-950 dark:text-white">
-            جاهزية الهوية الرسمية
-          </p>
-
-          <p className="mt-1 text-xs font-bold leading-6 text-slate-500 dark:text-slate-400">
-            {readiness.readyForOfficialReports
-              ? "جاهزة لاستخدام التقارير الرسمية."
-              : "أكمل الحقول الأساسية قبل إصدار التقارير الرسمية."}
-          </p>
-        </div>
-
-        <div className="p-4">
-          <p className="text-sm font-black text-blue-700">فحص ذكي</p>
-          <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{title}</h2>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <ReadinessList
-              title="حقول أساسية مطلوبة"
-              emptyText="كل الحقول الأساسية مكتملة."
-              items={readiness.missingRequired.map((item) => item.label)}
-              type="required"
-            />
-
-            <ReadinessList
-              title="تحسينات اختيارية"
-              emptyText="الهوية شبه مكتملة."
-              items={readiness.missingOptional.slice(0, 5).map((item) => item.label)}
-              type="optional"
-            />
-          </div>
-
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            كلما اكتملت الهوية، ظهرت التقارير الرسمية بشكل أقرب للوثائق المدرسية الجاهزة للطباعة والاعتماد.
-          </div>
-        </div>
+    <section className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div>
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400">حالة الإكمال</p>
+        <p className="mt-0.5 text-sm font-black text-slate-800 dark:text-slate-100">
+          {readiness.readyForOfficialReports ? "البيانات جاهزة للتقارير" : "تحتاج بعض البيانات إلى الإكمال"}
+        </p>
       </div>
+      <p className={`text-xl font-black ${scoreTone}`}>جاهزية البيانات {readiness.score}%</p>
     </section>
   );
 }
@@ -1769,33 +1673,33 @@ function ReportIdentityPreviewCard({
   });
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-black text-blue-700">معاينة فورية</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
+          <h2 className="mt-1 text-base font-black text-slate-950 dark:text-white">
             شكل الهوية في التقارير
           </h2>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
+          <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
             هذه معاينة تقريبية للترويسة والبيانات التي ستظهر في PDF.
           </p>
         </div>
 </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/70">
         <div className="grid gap-3 text-center text-sm font-black text-slate-800 md:grid-cols-3">
           <p>وزارة التعليم</p>
           <p>{form.educationDepartment || "إدارة التعليم"}</p>
 </div>
 
-        <div className="mt-4 rounded-xl bg-white p-4 text-center dark:bg-slate-900">
-          <p className="text-xl font-black text-slate-950 dark:text-white">
+        <div className="mt-3 rounded-lg bg-white p-3 text-center dark:bg-slate-900">
+          <p className="text-base font-black text-slate-950 dark:text-white">
             {form.schoolName || "اسم المدرسة"}
           </p>
 
         </div>
 
-        <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
+        <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
           <PreviewLine label={identityCopy.roleLabel} value={form.officialName || "الاسم الرسمي"} />
           <PreviewLine label="المسمى" value={form.jobTitle || "المسمى الوظيفي"} />
           <PreviewLine label={identityCopy.schoolPrincipalLabel} value={form.principalName || "غير محدد"} />
@@ -1819,10 +1723,10 @@ function StatusBadge({ completed }: { completed: boolean }) {
   return (
     <span
       className={[
-        "rounded-full px-4 py-2 text-xs font-black",
+        "rounded-full px-3 py-1 text-xs font-black",
         completed
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-amber-50 text-amber-700",
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+          : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
       ].join(" ")}
     >
       {completed ? "مكتملة" : "غير مكتملة"}
@@ -1849,7 +1753,7 @@ function Input({
 }) {
   return (
     <label className="block" data-guidance={guidanceTarget}>
-      <span className="text-sm font-black text-slate-700">
+      <span className="text-sm font-black text-slate-700 dark:text-slate-200">
         {label}
         {required ? <span className="text-red-500"> *</span> : null}
       </span>
@@ -1859,7 +1763,7 @@ function Input({
         onChange={(event) => onChange(event.target.value)}
         inputMode={inputMode}
         maxLength={maxLength}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       />
     </label>
   );
@@ -1886,7 +1790,7 @@ function Select({
 
   return (
     <label className="block min-w-0">
-      <span className="text-sm font-black text-slate-700">
+      <span className="text-sm font-black text-slate-700 dark:text-slate-200">
         {label}
         {required ? <span className="text-red-500"> *</span> : null}
       </span>
@@ -1894,7 +1798,7 @@ function Select({
       <select
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       >
         <option value="">اختر {label}</option>
         {hasUnsupportedValue ? (
