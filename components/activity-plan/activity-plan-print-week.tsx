@@ -84,9 +84,9 @@ export function ActivityPlanPrintWeek({
                 {periods.map((period) => {
                   const entry = entryBySlot.get(`${day.dayOfWeek}-${period}`);
                   const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
-                  const value = rowIndex === 0 ? entry?.displayTitle || "" : rowIndex === 1 ? entry?.gradeLabel || "" : entry?.teacherName || "";
+                  const value = rowIndex === 0 ? entry?.displayTitle || "" : rowIndex === 1 ? [entry?.stage, entry?.gradeLabel && `${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}`, entry?.subject && `${entry.subject} • ${entry.materialType || "أساسية"}`].filter(Boolean).join("\n") : entry?.teacherName || "";
                   const isProgramCell = rowIndex === 0 && Boolean(entry?.displayTitle);
-                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={isProgramCell && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</td>;
+                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={{ ...(isProgramCell && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : {}), ...(rowIndex === 1 ? { whiteSpace: "pre-line" } : {}) }}>{value}</td>;
                 })}
               </tr>
             ));

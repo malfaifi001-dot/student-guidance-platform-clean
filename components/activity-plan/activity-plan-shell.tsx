@@ -10,9 +10,8 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-plan-program-value";
 import { ACTIVITY_PLAN_PERIODS, getPeriodLabel } from "@/lib/activity-plan/activity-plan-calendar";
-import { REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import { ACTIVITY_PLAN_SECTIONS, getActivityPlanGradeOptions, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
-import { WeeklyActivityPlanPanel } from "@/components/activity-plan/weekly-activity-plan-panel";
 import { TenPercentActivityPlanPanel } from "@/components/activity-plan/ten-percent-activity-plan-panel";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 
@@ -24,6 +23,9 @@ type Entry = {
   periodNumber: number;
   date: string;
   gradeLabel: string;
+  section?: string;
+  subject?: string;
+  materialType?: "أساسية" | "10%";
   teacherName: string;
   domainServiceSlug?: string;
   domainKey?: string;
@@ -47,7 +49,7 @@ export function ActivityPlanShell() {
   const [gradesByStage, setGradesByStage] = useState<Record<string, string[]>>({});
   const [stages, setStages] = useState<string[]>([]);
   const [selectedStage, setSelectedStage] = useState("");
-  const [mode, setMode] = useState<"detailed" | "weekly" | "ten-percent">("detailed");
+  const [mode, setMode] = useState<"weekly" | "ten-percent">("weekly");
   const [teachers, setTeachers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,6 +60,9 @@ export function ActivityPlanShell() {
   const [previewStage, setPreviewStage] = useState("");
   const [previewWeekMode, setPreviewWeekMode] = useState<"all" | "selected" | "semester">("all");
   const [previewWeeks, setPreviewWeeks] = useState<number[]>([]);
+  const [previewScope, setPreviewScope] = useState<"all-sections" | "selected-sections">("all-sections");
+  const [previewGradeSections, setPreviewGradeSections] = useState<string[]>([]);
+  const [previewSelectedGradeSections, setPreviewSelectedGradeSections] = useState<string[]>([]);
   const [previewSetupError, setPreviewSetupError] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
@@ -105,8 +110,8 @@ export function ActivityPlanShell() {
     const result = await print.runPrintExport({
       exportUrl: "/api/dashboard/activity-plan/export/pdf",
       method: "POST",
-      body: { fileName: "student-activity-plan.pdf", stage: previewStage, mode, weeks: previewWeekMode === "selected" ? previewWeeks : undefined },
-      printUrl: buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, true),
+      body: { fileName: "student-activity-plan.pdf", stage: previewStage, mode, weeks: previewWeekMode === "selected" ? previewWeeks : undefined, gradeSections: mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : undefined },
+      printUrl: buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, true, mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : []),
       fileName: "student-activity-plan.pdf",
       blockedTitle: "معاينة خطة النشاط الطلابي",
       blockedMessage: "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح مستند الطباعة.",
@@ -114,10 +119,22 @@ export function ActivityPlanShell() {
     return result !== "error";
   }
 
-  function openPreviewSetup() {
+  async function openPreviewSetup() {
     setPreviewStage(selectedStage);
     setPreviewWeekMode(mode === "weekly" || mode === "ten-percent" ? "semester" : "all");
     setPreviewWeeks([]);
+    setPreviewScope("all-sections");
+    if (mode === "ten-percent" && selectedStage) {
+      const response = await fetch(`/api/dashboard/activity-plan/ten-percent?stage=${encodeURIComponent(selectedStage)}`, { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      const rows = Array.isArray(payload.rows) ? payload.rows as Array<{ grades?: unknown }> : [];
+      const combinations: string[] = Array.from(new Set(rows.flatMap((row) => Array.isArray(row.grades) ? row.grades.filter((value): value is string => typeof value === "string" && value.includes("::")) : [])));
+      setPreviewGradeSections(combinations);
+      setPreviewSelectedGradeSections(combinations);
+    } else {
+      setPreviewGradeSections([]);
+      setPreviewSelectedGradeSections([]);
+    }
     setPreviewSetupError("");
     setPreviewSetupOpen(true);
   }
@@ -129,6 +146,10 @@ export function ActivityPlanShell() {
     }
     if (previewWeekMode === "selected" && previewWeeks.length === 0) {
       setPreviewSetupError("اختر أسبوعًا واحدًا على الأقل.");
+      return;
+    }
+    if (mode === "ten-percent" && previewScope === "selected-sections" && previewSelectedGradeSections.length === 0) {
+      setPreviewSetupError("اختر صفًا وفصلًا واحدًا على الأقل.");
       return;
     }
     setPreviewSetupOpen(false);
@@ -151,7 +172,7 @@ export function ActivityPlanShell() {
         <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
       </section>
 
-      {mode === "detailed" ? <section className="rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
+      {mode === "weekly" ? <section className="rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
         <div className="flex max-w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="اختيار الأسبوع">
           {Array.from({ length: 20 }, (_, index) => index + 1).map((item) => (
             <button type="button" key={item} onClick={() => setWeek(item)} aria-pressed={item === week} className={item === week ? "h-8 min-w-8 rounded-lg bg-sky-700 px-2 text-xs font-black text-white shadow-sm" : "h-8 min-w-8 rounded-lg bg-white px-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200 transition hover:bg-sky-100 hover:text-sky-800 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-sky-950/50"}>{item}</button>
@@ -161,7 +182,7 @@ export function ActivityPlanShell() {
 
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-black text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-200">{error}</div> : null}
       {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} /> : <section className={`rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
-        {mode === "weekly" ? <WeeklyActivityPlanPanel stage={selectedStage} /> : <>
+        <>
           <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 [scrollbar-width:thin] dark:border-slate-700" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="min-w-[1220px]">
               <div className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))] bg-sky-50/70 dark:bg-sky-950/30" dir="rtl">
@@ -178,7 +199,7 @@ export function ActivityPlanShell() {
                     const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
                     const colorClass = domainProgram?.colorClass || "";
                     return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[136px] border-b border-l border-slate-200 bg-white p-2 text-right transition hover:bg-sky-50/50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-sky-950/30">
-                      {entry ? <div className={`h-full rounded-xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"}`}><p className="break-words whitespace-normal text-center text-[13px] font-black leading-5">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-300">{entry.gradeLabel}</p><p className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-400">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100 dark:text-sky-300">اضغط للتعديل</span></div> : <span className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-xs font-bold text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-sky-700 dark:group-hover:bg-sky-950/30 dark:group-hover:text-sky-300"><Plus className="h-4 w-4" /><span className="sr-only">إضافة إدخال</span><span aria-hidden="true">إضافة</span></span>}
+                      {entry ? <div className={`h-full rounded-xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"}`}><p className="break-words whitespace-normal text-center text-[13px] font-black leading-5">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-300">{entry.stage}{entry.gradeLabel ? ` — ${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}` : ""}</p>{entry.subject ? <p className="mt-1 text-xs font-black text-sky-700 dark:text-sky-300">{entry.subject} • {entry.materialType || "أساسية"}</p> : null}<p className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-400">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100 dark:text-sky-300">اضغط للتعديل</span></div> : <span className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-xs font-bold text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-sky-700 dark:group-hover:bg-sky-950/30 dark:group-hover:text-sky-300"><Plus className="h-4 w-4" /><span className="sr-only">إضافة إدخال</span><span aria-hidden="true">إضافة</span></span>}
                     </button>;
                   })}
                 </div>
@@ -186,34 +207,33 @@ export function ActivityPlanShell() {
             </div>
           </div>
           {loading ? <p className="py-3 text-center text-xs font-black text-slate-400">جارٍ تحميل خطة الأسبوع...</p> : null}
-        </>}
+        </>
       </section>}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
-      <ActivityPlanPreviewSetup open={previewSetupOpen} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} onClose={() => setPreviewSetupOpen(false)} onStageChange={(stage) => { setPreviewStage(stage); setPreviewSetupError(""); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
+      <ActivityPlanPreviewSetup open={previewSetupOpen} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} semesterMode={mode === "ten-percent"} scope={previewScope} gradeSections={previewGradeSections} selectedGradeSections={previewSelectedGradeSections} onScopeChange={(scope) => { setPreviewScope(scope); setPreviewSetupError(""); }} onSelectedGradeSectionsChange={(values) => { setPreviewSelectedGradeSections(values); setPreviewSetupError(""); }} onClose={() => setPreviewSetupOpen(false)} onStageChange={(stage) => { setPreviewStage(stage); setPreviewSetupError(""); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
       {mode !== "ten-percent" ? <ActivityPlanCopyModal open={copyOpen} sourceStage={selectedStage} mode={mode} stages={stages} onClose={() => setCopyOpen(false)} /> : null}
-      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, false)} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title={mode === "ten-percent" ? "معاينة الخطة الفصلية (10%)" : "معاينة خطة النشاط الطلابي"} subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
+      <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, false, mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : [])} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title={mode === "ten-percent" ? "معاينة الخطة الفصلية" : "معاينة خطة النشاط الطلابي"} subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
       <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={stages} selectedStage={selectedStage} gradesByStage={gradesByStage} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.stage === entry.stage && item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
   );
 }
 
-function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "detailed" | "weekly" | "ten-percent"; onModeChange: (mode: "detailed" | "weekly" | "ten-percent") => void; onCopy: () => void }) {
-  const selectedTabClass = mode === "detailed" ? "bg-white text-sky-700 shadow-sm" : mode === "weekly" ? "bg-white text-blue-700 shadow-sm" : "bg-white text-green-700 shadow-sm";
+function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "weekly" | "ten-percent"; onModeChange: (mode: "weekly" | "ten-percent") => void; onCopy: () => void }) {
+  const selectedTabClass = mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "bg-white text-green-700 shadow-sm";
   return <div className="flex flex-col gap-2 md:flex-row md:items-center">
     <label className="flex min-h-10 items-center gap-2 text-xs font-black text-slate-600 dark:text-slate-300">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 md:min-w-[155px]" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label>
     <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
       <div className="flex min-w-max gap-1">
-        <button type="button" role="tab" aria-selected={mode === "detailed"} onClick={() => onModeChange("detailed")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "detailed" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-sky-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الأسبوعية</button>
-        <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "weekly" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية</button>
-        <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "ten-percent" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-green-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية (10%)</button>
+        <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "ten-percent" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-green-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية</button>
+        <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "weekly" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-sky-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الأسبوعية</button>
       </div>
     </div>
     {mode !== "ten-percent" ? <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-950/50"><Copy className="h-4 w-4" />نسخ الخطة</button> : null}
   </div>;
 }
 
-function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { open: boolean; sourceStage: string; mode: "detailed" | "weekly"; stages: string[]; onClose: () => void }) {
+function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { open: boolean; sourceStage: string; mode: "weekly" | "ten-percent"; stages: string[]; onClose: () => void }) {
   const [targets, setTargets] = useState<string[]>([]);
   const [replaceExisting, setReplaceExisting] = useState(false);
   const [confirmRequired, setConfirmRequired] = useState(false);
@@ -269,6 +289,9 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
   const [programLoading, setProgramLoading] = useState(false);
   const [stage, setStage] = useState(entry?.stage || selectedStage);
   const [gradeLabel, setGradeLabel] = useState(entry?.gradeLabel || "");
+  const [section, setSection] = useState(entry?.section || "");
+  const [subject, setSubject] = useState(entry?.subject || "");
+  const [materialType, setMaterialType] = useState<"أساسية" | "10%">(entry?.materialType || "أساسية");
   const [teacherName, setTeacherName] = useState(entry?.teacherName || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -312,7 +335,7 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
   const save = async () => {
     setSaving(true); setError("");
     try {
-      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry?.id, weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, domainServiceSlug, programValue, programName: manualProgramName, stage, gradeLabel, teacherName }) });
+      const response = await fetch("/api/dashboard/activity-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry?.id, weekNumber: week, dayOfWeek: cell.dayOfWeek, periodNumber: cell.periodNumber, domainServiceSlug, programValue, programName: manualProgramName, stage, gradeLabel, section, subject, materialType, teacherName }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "تعذر حفظ الإدخال.");
       onSaved(payload.entry);
@@ -336,34 +359,40 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
       <label className="block text-sm font-black text-slate-700">البرنامج<select required value={programValue} disabled={!domainServiceSlug || programLoading} onChange={(event) => { const value = event.target.value; setProgramValue(value); if (value !== ACTIVITY_PLAN_OTHER_PROGRAM_VALUE) setManualProgramName(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">{programLoading ? "جارٍ تحميل البرامج..." : "اختر البرنامج"}</option>{programOptions.map((program) => <option key={program.value} value={program.value}>{program.label}</option>)}</select></label>
       {programValue === ACTIVITY_PLAN_OTHER_PROGRAM_VALUE ? <SuggestionInput label="اسم البرنامج" value={manualProgramName} onChange={setManualProgramName} suggestions={[]} placeholder="اكتب اسم البرنامج" /> : null}
       <label className="block text-sm font-black text-slate-700">المرحلة<select required value={stage} onChange={(event) => { const nextStage = event.target.value; setStage(nextStage); if (gradeLabel && !(gradesByStage[nextStage] || []).includes(gradeLabel)) setGradeLabel(""); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر المرحلة</option>{stages.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-      <SuggestionInput label="الصف" value={gradeLabel} onChange={setGradeLabel} suggestions={gradesByStage[stage] || grades} placeholder="مثال: الثالث متوسط" />
+      <label className="block text-sm font-black text-slate-700">الصف (اختياري)<select value={gradeLabel} onChange={(event) => setGradeLabel(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-right text-sm font-bold"><option value="">بدون صف</option>{(gradesByStage[stage] || getActivityPlanGradeOptions(stage)).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      <div className="grid grid-cols-2 gap-2"><label className="block text-sm font-black text-slate-700">الفصل (اختياري)<select value={section} onChange={(event) => setSection(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-right text-sm font-bold"><option value="">بدون فصل</option>{ACTIVITY_PLAN_SECTIONS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="block text-sm font-black text-slate-700">المادة<input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="اسم المادة" className="mt-2 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-right text-sm font-bold" /></label></div>
+      <fieldset><legend className="mb-2 text-sm font-black text-slate-700">نوع المادة</legend><div className="grid grid-cols-2 gap-2">{(["أساسية", "10%"] as const).map((item) => <button type="button" key={item} aria-pressed={materialType === item} onClick={() => setMaterialType(item)} className={`h-10 rounded-xl border text-sm font-black transition ${materialType === item ? "border-sky-700 bg-sky-700 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-sky-50"}`}>{item}</button>)}</div></fieldset>
       <SuggestionInput label="اسم المعلم" value={teacherName} onChange={setTeacherName} suggestions={teachers} placeholder="اكتب اسم المعلم" />
       {error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}
-      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programValue || (programValue === ACTIVITY_PLAN_OTHER_PROGRAM_VALUE && !manualProgramName.trim()) || !gradeLabel.trim() || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>
+      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void save()} disabled={saving || !programValue || (programValue === ACTIVITY_PLAN_OTHER_PROGRAM_VALUE && !manualProgramName.trim()) || !teacherName.trim()} className="h-12 rounded-2xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جارٍ الحفظ..." : "حفظ الخلية"}</button><button type="button" onClick={onClose} disabled={saving || deleting} className="h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-600">إلغاء</button></div>
       {entry ? <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving || deleting} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 text-sm font-black text-rose-700 ring-1 ring-rose-100"><Trash2 className="h-4 w-4" />حذف الإدخال</button> : null}
     </div>
     <SmartActionModal open={confirmDelete} title="تأكيد حذف الإدخال" description="سيتم إزالة النشاط من هذه الخلية فقط." variant="danger" confirmLabel="حذف الإدخال" loading={deleting} portal onClose={() => setConfirmDelete(false)} onConfirm={() => void remove()} />
   </SmartActionModal>;
 }
 
-function buildActivityPlanPreviewUrl(stage: string, mode: "detailed" | "weekly" | "ten-percent", weekMode: "all" | "selected" | "semester", weeks: number[], print: boolean) {
+function buildActivityPlanPreviewUrl(stage: string, mode: "weekly" | "ten-percent", weekMode: "all" | "selected" | "semester", weeks: number[], print: boolean, gradeSections: string[] = []) {
   const params = new URLSearchParams({ preview: "1", stage, mode });
   if (print) params.set("print", "1");
   if (weekMode === "selected" && weeks.length) params.set("weeks", weeks.join(","));
+  if (mode === "ten-percent" && gradeSections.length) params.set("gradeSections", gradeSections.join(","));
   return `/print/activity-plan?${params.toString()}`;
 }
 
-function ActivityPlanPreviewSetup({ open, stage, weekMode, weeks, error, onClose, onStageChange, onWeekModeChange, onWeeksChange, onConfirm }: { open: boolean; stage: string; weekMode: "all" | "selected" | "semester"; weeks: number[]; error: string; onClose: () => void; onStageChange: (stage: string) => void; onWeekModeChange: (mode: "all" | "selected") => void; onWeeksChange: (weeks: number[]) => void; onConfirm: () => void }) {
+function ActivityPlanPreviewSetup({ open, stage, weekMode, weeks, error, semesterMode, scope, gradeSections, selectedGradeSections, onScopeChange, onSelectedGradeSectionsChange, onClose, onStageChange, onWeekModeChange, onWeeksChange, onConfirm }: { open: boolean; stage: string; weekMode: "all" | "selected" | "semester"; weeks: number[]; error: string; semesterMode: boolean; scope: "all-sections" | "selected-sections"; gradeSections: string[]; selectedGradeSections: string[]; onScopeChange: (scope: "all-sections" | "selected-sections") => void; onSelectedGradeSectionsChange: (values: string[]) => void; onClose: () => void; onStageChange: (stage: string) => void; onWeekModeChange: (mode: "all" | "selected") => void; onWeeksChange: (weeks: number[]) => void; onConfirm: () => void }) {
   const toggleWeek = (week: number) => onWeeksChange(weeks.includes(week) ? weeks.filter((item) => item !== week) : [...weeks, week].sort((a, b) => a - b));
-  const semesterMode = weekMode === "semester";
+  const toggleGradeSection = (value: string) => onSelectedGradeSectionsChange(selectedGradeSections.includes(value) ? selectedGradeSections.filter((item) => item !== value) : [...selectedGradeSections, value]);
+  const groupedGradeSections = Array.from(new Set(gradeSections)).reduce<Record<string, string[]>>((groups, value) => { const [grade, section] = value.split("::"); groups[grade] = [...(groups[grade] || []), section]; return groups; }, {});
 
-  return <SmartActionModal open={open} title="إعداد معاينة خطة النشاط" description={semesterMode ? "اختر المرحلة قبل فتح المعاينة." : "اختر المرحلة ونطاق الأسابيع قبل فتح المعاينة."} portal onClose={onClose} showFooter={false}>
+  return <SmartActionModal open={open} title={semesterMode ? "نطاق المعاينة" : "إعداد معاينة خطة النشاط"} description={semesterMode ? "اختر الفصول التي تريد تضمينها في المعاينة." : "اختر المرحلة ونطاق الأسابيع قبل فتح المعاينة."} portal onClose={onClose} showFooter={false}>
     <div className="space-y-4">
       <label className="block text-sm font-black text-slate-700">المرحلة<select required value={stage} onChange={(event) => onStageChange(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-right text-sm font-bold outline-none focus:border-sky-500"><option value="">اختر المرحلة</option>{REAL_ACTIVITY_PLAN_STAGES.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      {semesterMode ? <fieldset className="space-y-2"><legend className="text-sm font-black text-slate-700">نطاق الفصول</legend><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold"><input type="radio" name="activity-plan-semester-scope" checked={scope === "all-sections"} onChange={() => onScopeChange("all-sections")} />معاينة جميع الفصول</label><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold"><input type="radio" name="activity-plan-semester-scope" checked={scope === "selected-sections"} onChange={() => onScopeChange("selected-sections")} />تحديد فصول</label></fieldset> : null}
+      {semesterMode && scope === "selected-sections" ? <div className="max-h-56 space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">{Object.entries(groupedGradeSections).map(([grade, sections]) => <div key={grade}><p className="mb-1 text-xs font-black text-slate-600">{grade}</p><div className="flex flex-wrap gap-1.5">{sections.map((section) => { const value = `${grade}::${section}`; return <button type="button" key={value} aria-pressed={selectedGradeSections.includes(value)} onClick={() => toggleGradeSection(value)} className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black ${selectedGradeSections.includes(value) ? "bg-sky-700 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{section}</button>; })}</div></div>)}</div> : null}
        {!semesterMode ? <fieldset className="space-y-2"><legend className="text-sm font-black text-slate-700">نطاق الأسابيع</legend><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700"><input type="radio" name="activity-plan-week-mode" checked={weekMode === "all"} onChange={() => onWeekModeChange("all")} />كل الأسابيع</label><label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700"><input type="radio" name="activity-plan-week-mode" checked={weekMode === "selected"} onChange={() => onWeekModeChange("selected")} />تحديد أسابيع</label></fieldset> : null}
        {!semesterMode && weekMode === "selected" ? <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="mb-2 flex items-center justify-between gap-2"><span className="text-xs font-black text-slate-500">اختر أسبوعًا أو أكثر</span><span className="flex gap-2"><button type="button" onClick={() => onWeeksChange(Array.from({ length: 20 }, (_, index) => index + 1))} className="text-[11px] font-black text-sky-700 hover:text-sky-900">تحديد الكل</button><button type="button" onClick={() => onWeeksChange([])} className="text-[11px] font-black text-slate-500 hover:text-slate-700">إلغاء التحديد</button></span></div><div className="max-h-56 space-y-1 overflow-y-auto overscroll-contain pl-1" role="group" aria-label="اختيار الأسابيع">{Array.from({ length: 20 }, (_, index) => index + 1).map((week) => <label key={week} className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-100 hover:bg-sky-50"><input type="checkbox" checked={weeks.includes(week)} onChange={() => toggleWeek(week)} />الأسبوع {week}</label>)}</div></div> : null}
       {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700" role="alert">{error}</p> : null}
-      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={onConfirm} disabled={!REAL_ACTIVITY_PLAN_STAGES.includes(stage) || (weekMode === "selected" && weeks.length === 0)} className="h-11 rounded-2xl bg-sky-700 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">فتح المعاينة</button><button type="button" onClick={onClose} className="h-11 rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-600 transition hover:bg-slate-50">إلغاء</button></div>
+      <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={onConfirm} disabled={!REAL_ACTIVITY_PLAN_STAGES.includes(stage) || (weekMode === "selected" && weeks.length === 0) || (semesterMode && scope === "selected-sections" && selectedGradeSections.length === 0)} className="h-11 rounded-2xl bg-sky-700 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">فتح المعاينة</button><button type="button" onClick={onClose} className="h-11 rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-600 transition hover:bg-slate-50">إلغاء</button></div>
     </div>
   </SmartActionModal>;
 }

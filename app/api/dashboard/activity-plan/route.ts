@@ -140,6 +140,9 @@ export async function GET(request: Request) {
         periodNumber: entry.periodNumber,
         date: entry.date.toISOString().slice(0, 10),
         gradeLabel: entry.gradeLabel,
+        section: storedProgram?.section || "",
+        subject: storedProgram?.subject || "",
+        materialType: storedProgram?.materialType || "أساسية",
         teacherName: entry.teacherName,
         stage: entry.stage,
         domainServiceSlug: storedProgram?.serviceSlug || domain?.serviceSlug || "",
@@ -173,6 +176,9 @@ export async function POST(request: Request) {
   const stage = normalizeActivityPlanStage(cleanText(body?.stage));
   const gradeLabel = cleanText(body?.gradeLabel);
   const teacherName = cleanText(body?.teacherName);
+  const section = cleanText(body?.section, 4);
+  const subject = cleanText(body?.subject);
+  const materialType = body?.materialType === "10%" ? "10%" : "أساسية";
   const domainServiceSlug = cleanText(body?.domainServiceSlug);
   const programValue = cleanText(body?.programValue || body?.programId);
   const manualProgramName = cleanText(body?.programName, 120);
@@ -198,7 +204,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "تاريخ الخلية غير متاح." }, { status: 400 });
   }
 
-  const entryData = { programKey: encodeActivityPlanProgramValue(domainServiceSlug, programName), stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  const entryData = { programKey: encodeActivityPlanProgramValue(domainServiceSlug, programName, { section, subject, materialType }), stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
   if (entryId) {
     const ownedEntry = await prisma.activityPlanEntry.findFirst({ where: { id: entryId, schoolAccountId }, select: { id: true } });
     if (!ownedEntry) return NextResponse.json({ success: false, error: "الإدخال غير موجود." }, { status: 404 });
@@ -220,6 +226,9 @@ export async function POST(request: Request) {
       periodNumber: entry.periodNumber,
       date,
       gradeLabel: entry.gradeLabel,
+      section,
+      subject,
+      materialType,
       teacherName: entry.teacherName,
       domainServiceSlug,
       domainKey: getActivityProgramDomainByServiceSlug(domainServiceSlug)?.slug || "",

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ACTIVITY_PROGRAM_DOMAINS, getActivityProgramDomainByServiceSlug, getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
 import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-plan-program-value";
 import { findActivityPlanWorkflowProgram, getActivityPlanWorkflowPrograms } from "@/lib/activity-plan/activity-plan-workflow-programs";
-import { normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import { ACTIVITY_PLAN_SECTIONS, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import {
   ActivityPlanTenPercentRow,
   getTenPercentGradeOptions,
@@ -25,6 +25,9 @@ type RawTenPercentInput = {
   subject?: unknown;
   grades?: unknown;
   teacherNames?: unknown;
+  materialType?: unknown;
+  grade?: unknown;
+  section?: unknown;
 };
 
 function cleanText(value: unknown, max = 191) {
@@ -92,9 +95,12 @@ export async function validateTenPercentRow(input: RawTenPercentInput) {
   if (!programs.length) throw new Error("اختر برنامجًا واحدًا على الأقل من البرامج المنشورة.");
   const executionWeeks = normalizeTenPercentWeeks(input.executionWeeks);
   if (!executionWeeks.length) throw new Error("اختر أسبوع تنفيذ واحدًا على الأقل من 1 إلى 18.");
-  const grades = normalizeTenPercentTextList(input.grades);
+  const requestedGrade = cleanText(input.grade);
+  const requestedSection = cleanText(input.section, 2);
+  const grades = requestedGrade ? [`${requestedGrade}${requestedSection ? `::${requestedSection}` : ""}`] : normalizeTenPercentTextList(input.grades);
   const allowedGrades = new Set(getTenPercentGradeOptions(stage));
-  if (grades.some((grade) => !allowedGrades.has(grade))) throw new Error("يوجد صف غير متوافق مع المرحلة المحددة.");
+  if (requestedSection && !ACTIVITY_PLAN_SECTIONS.includes(requestedSection as typeof ACTIVITY_PLAN_SECTIONS[number])) throw new Error("اختر فصلًا صحيحًا.");
+  if (grades.some((grade) => !allowedGrades.has(grade.split("::")[0]))) throw new Error("يوجد صف غير متوافق مع المرحلة المحددة.");
   const teacherNames = normalizeTenPercentTextList(input.teacherNames);
   return {
     stage,
@@ -102,7 +108,7 @@ export async function validateTenPercentRow(input: RawTenPercentInput) {
     programs,
     periodCount: cleanText(input.periodCount),
     executionWeeks,
-    subject: cleanText(input.subject),
+    subject: [cleanText(input.subject), input.materialType === "10%" ? "10%" : "أساسية"].join("||"),
     grades,
     teacherNames,
   };
@@ -126,6 +132,7 @@ function mapRow(row: {
   createdAt: Date;
   updatedAt: Date;
 }): ActivityPlanTenPercentRow {
+  const [subject, materialType] = String(row.subject || "").split("||");
   return {
     id: row.id,
     stage: row.stage,
@@ -133,7 +140,8 @@ function mapRow(row: {
     programs: normalizeStoredJson(row.programs, []) as TenPercentProgramValue[],
     periodCount: row.periodCount || "",
     executionWeeks: normalizeTenPercentWeeks(row.executionWeeks),
-    subject: row.subject || "",
+    subject: subject || "",
+    materialType: materialType === "10%" ? "10%" : "أساسية",
     grades: normalizeStoredJson(row.grades, []) as string[],
     teacherNames: normalizeStoredJson(row.teacherNames, []) as string[],
     sortOrder: row.sortOrder,

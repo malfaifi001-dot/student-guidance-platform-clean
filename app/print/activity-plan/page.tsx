@@ -3,7 +3,7 @@ import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscript
 import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
 import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
 import { WeeklyActivityPlanPrintDocument } from "@/components/activity-plan/weekly-activity-plan-print-document";
-import { ActivityPlanTenPercentPrintDocument } from "@/components/activity-plan/activity-plan-ten-percent-print-document";
+import { ActivityPlanSemesterPrintDocument } from "@/components/activity-plan/activity-plan-semester-print-document";
 import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
 import { getActivityPlanTenPercentRows } from "@/lib/activity-plan/ten-percent-activity-plan-service";
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
@@ -182,6 +182,9 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const weeklyPlans = weeklyMode
     ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage, ownerUserId)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
     : [];
+  const requestedGradeSections = typeof params.gradeSections === "string"
+    ? Array.from(new Set(params.gradeSections.split(",").map((value) => value.trim()).filter((value) => value.includes("::")))).slice(0, 200)
+    : [];
   const tenPercentRows = tenPercentMode
     ? await getActivityPlanTenPercentRows(current.user.schoolAccountId, stage, ownerUserId || current.user.id)
     : [];
@@ -191,5 +194,5 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   });
   const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
   return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />
-<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanTenPercentPrintDocument rows={tenPercentRows} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
+<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanSemesterPrintDocument rows={tenPercentRows} gradeSections={requestedGradeSections} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }

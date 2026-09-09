@@ -17,6 +17,9 @@ export type ActivityPlanPrintEntry = {
   programName: string;
   displayTitle: string;
   gradeLabel: string;
+  section: string;
+  subject: string;
+  materialType: "أساسية" | "10%";
   teacherName: string;
 };
 
@@ -76,7 +79,9 @@ export async function getActivityPlanPrintData(schoolAccountId: string, stage?: 
       dates: getActivityPlanDates(weekNumber),
       entries: entries
         .filter((entry) => entry.weekNumber === weekNumber)
-        .map((entry) => ({
+        .map((entry) => {
+          const stored = decodeActivityPlanProgramValue(entry.programKey || "");
+          return ({
           dayOfWeek: entry.dayOfWeek,
           periodNumber: entry.periodNumber,
           stage: entry.stage,
@@ -97,7 +102,11 @@ export async function getActivityPlanPrintData(schoolAccountId: string, stage?: 
           })(),
           gradeLabel: entry.gradeLabel,
           teacherName: entry.teacherName,
-        })),
+          section: stored?.section || "",
+          subject: stored?.subject || "",
+          materialType: stored?.materialType || "أساسية",
+          });
+        }),
     };
   });
 }

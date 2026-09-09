@@ -1,4 +1,4 @@
-import { SAUDI_SCHOOL_STAGES } from "@/lib/timetable/catalog/saudi-school-grades";
+import { SAUDI_SCHOOL_GRADES, SAUDI_SCHOOL_STAGES } from "@/lib/timetable/catalog/saudi-school-grades";
 
 const stageLabels: string[] = SAUDI_SCHOOL_STAGES.map((stage) => stage.label);
 
@@ -43,3 +43,11 @@ export function getActivityPlanStagesFromProfile(value: string | null | undefine
 }
 
 export const REAL_ACTIVITY_PLAN_STAGES = stageLabels;
+
+export const ACTIVITY_PLAN_SECTIONS = ["أ", "ب", "ج", "د", "هـ", "و", "ز"] as const;
+
+export function getActivityPlanGradeOptions(stage: string) {
+  const normalized = normalizeActivityPlanStage(stage);
+  const stageKey = SAUDI_SCHOOL_STAGES.find((item) => item.label === normalized)?.key;
+  return stageKey ? SAUDI_SCHOOL_GRADES.filter((grade) => grade.stageKey === stageKey).map((grade) => grade.label) : [];
+}

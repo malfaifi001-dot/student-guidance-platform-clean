@@ -27,10 +27,16 @@ export type ActivityPlanTenPercentRow = {
   subject: string;
   grades: string[];
   teacherNames: string[];
+  materialType?: "أساسية" | "10%";
   sortOrder: number;
   createdAt?: string;
   updatedAt?: string;
 };
+
+export function formatActivityPlanGradeSection(value: string) {
+  const [grade, section] = String(value || "").split("::");
+  return `${grade}${section ? ` ${section}` : ""}`.trim();
+}
 
 export type TenPercentWorkflowProgramOption = {
   value: string;
