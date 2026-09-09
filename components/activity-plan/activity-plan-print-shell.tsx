@@ -129,6 +129,40 @@ export const activityPlanPrintShellStyles = `
     inset: auto !important;
   }
 }
+
+/* Semester plans use measured row pagination; keep the normal case compact
+   enough to use the available A4 height without reducing the text size. */
+.activity-plan-semester-table th,
+.activity-plan-semester-table td {
+  padding: 1.45mm 1.1mm !important;
+}
+.activity-plan-semester-table th {
+  line-height: 1.25 !important;
+}
+.activity-plan-semester-table td {
+  line-height: 1.25 !important;
+}
+.activity-plan-semester-table tbody tr {
+  break-inside: avoid-page !important;
+  page-break-inside: avoid !important;
+}
+.activity-plan-semester-title {
+  margin-top: 2.5mm !important;
+  margin-bottom: 2.5mm !important;
+  padding: 1.8mm 2.5mm !important;
+}
+.activity-plan-semester-title h1 {
+  font-size: 14pt !important;
+}
+.activity-plan-semester-title span {
+  font-size: 9pt !important;
+}
+.activity-plan-semester-domain-list {
+  gap: .8mm !important;
+}
+.activity-plan-semester-domain {
+  padding: .7mm 1.1mm !important;
+}
 `;
 
 type ActivityPlanPrintPageProps = {
