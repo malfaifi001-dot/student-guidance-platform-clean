@@ -28,6 +28,7 @@ type RawTenPercentInput = {
   materialType?: unknown;
   grade?: unknown;
   section?: unknown;
+  previousDestination?: unknown;
 };
 
 function cleanText(value: unknown, max = 191) {
@@ -181,12 +182,18 @@ export async function saveActivityPlanTenPercentRow(input: {
   if (id) {
     const existing = await prisma.activityPlanTenPercentEntry.findFirst({
       where: { id, schoolAccountId: input.schoolAccountId, createdById: input.createdById },
-      select: { id: true },
+      select: { id: true, grades: true },
     });
     if (!existing) throw new Error("لا يمكن تعديل هذا الصف.");
+    const previousDestination = cleanText(input.data.previousDestination, 400);
+    const existingGrades = Array.isArray(existing.grades) ? existing.grades.filter((value): value is string => typeof value === "string") : [];
+    const preservedGrades = previousDestination
+      ? existingGrades.filter((value) => value !== previousDestination)
+      : existingGrades;
+    const mergedGrades = Array.from(new Set([...preservedGrades, ...normalized.grades]));
     const row = await prisma.activityPlanTenPercentEntry.update({
       where: { id: existing.id },
-      data: { stage: normalized.stage, ...jsonData, periodCount: normalized.periodCount || null, subject: normalized.subject || null },
+      data: { stage: normalized.stage, ...jsonData, grades: asJson(mergedGrades), periodCount: normalized.periodCount || null, subject: normalized.subject || null },
     });
     return mapRow(row);
   }

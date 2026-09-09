@@ -4,6 +4,7 @@ import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-gua
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import { getActivityPlanDates, isValidActivityPlanSlot } from "@/lib/activity-plan/activity-plan-calendar";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
 import {
   getActivityPlanStageOptions,
   getActivityPlanStagesFromProfile,
@@ -190,6 +191,10 @@ export async function POST(request: Request) {
   const schoolAccountId = auth.current.user.schoolAccountId as string;
   if (!REAL_ACTIVITY_PLAN_STAGES.includes(stage)) {
     return NextResponse.json({ success: false, error: "اختر المرحلة المطلوبة." }, { status: 400 });
+  }
+  const allowedStages = await getActivityPlanLeaderAllowedStages(auth.current);
+  if (!allowedStages.includes(stage)) {
+    return NextResponse.json({ success: false, error: "لا يمكن الحفظ في مرحلة غير مسموحة للمستخدم الحالي." }, { status: 403 });
   }
   const workflowPrograms = await getActivityPlanWorkflowPrograms(domainServiceSlug);
   const selectedProgram = workflowPrograms ? findActivityPlanWorkflowProgram(workflowPrograms.options, programValue) : null;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { REAL_ACTIVITY_PLAN_STAGES, normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
 import { deleteActivityPlanTenPercentRow, getActivityPlanTenPercentRows, getTenPercentDomainOptions, saveActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-service";
@@ -25,12 +26,13 @@ export async function GET(request: Request) {
   const auth = await authorize();
   if (auth.response) return auth.response;
   const stage = stageFromRequest(request);
-  if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage)) return NextResponse.json({ success: false, error: "اختر مرحلة صحيحة." }, { status: 400 });
+  const allowedStages = await getActivityPlanLeaderAllowedStages(auth.current);
+  if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage) || !allowedStages.includes(stage)) return NextResponse.json({ success: false, error: "اختر مرحلة صحيحة." }, { status: 400 });
   const [rows, domains] = await Promise.all([
     getActivityPlanTenPercentRows(auth.current.user.schoolAccountId as string, stage, auth.current.user.id),
     getTenPercentDomainOptions(),
   ]);
-  return NextResponse.json({ success: true, stage, rows, domains, grades: getTenPercentGradeOptions(stage), maxWeek: TEN_PERCENT_MAX_WEEK });
+  return NextResponse.json({ success: true, stage, stages: allowedStages, rows, domains, grades: getTenPercentGradeOptions(stage), maxWeek: TEN_PERCENT_MAX_WEEK });
 }
 
 export async function POST(request: Request) {
@@ -38,7 +40,8 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   const stage = normalizeActivityPlanStage(typeof body?.stage === "string" ? body.stage : "");
-  if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage)) return NextResponse.json({ success: false, error: "اختر مرحلة صحيحة." }, { status: 400 });
+  const allowedStages = await getActivityPlanLeaderAllowedStages(auth.current);
+  if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage) || !allowedStages.includes(stage)) return NextResponse.json({ success: false, error: "اختر مرحلة صحيحة." }, { status: 400 });
   try {
     const row = await saveActivityPlanTenPercentRow({
       id: body?.id,

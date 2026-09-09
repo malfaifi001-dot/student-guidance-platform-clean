@@ -9,6 +9,7 @@ import { getActivityPlanTenPercentRows } from "@/lib/activity-plan/ten-percent-a
 import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
 import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
 import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
 import { prisma } from "@/lib/prisma";
 
@@ -171,9 +172,11 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const weeklyMode = String(params.mode || "") === "weekly";
   const tenPercentMode = String(params.mode || "") === "ten-percent";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
-  const stage = requestedStage && REAL_ACTIVITY_PLAN_STAGES.includes(requestedStage)
+  const allowedStages = current.user.role === "ACTIVITY_LEADER" ? await getActivityPlanLeaderAllowedStages(current) : REAL_ACTIVITY_PLAN_STAGES;
+  const stage = requestedStage && allowedStages.includes(requestedStage)
     ? requestedStage
-    : getActivityPlanStagesFromProfile(profile?.stage)[0] || REAL_ACTIVITY_PLAN_STAGES[0];
+    : allowedStages[0] || getActivityPlanStagesFromProfile(profile?.stage)[0] || "";
+  if (!stage) redirect("/dashboard");
   const requestedWeeks = typeof params.weeks === "string"
     ? Array.from(new Set(params.weeks.split(",").map((value) => Number(value.trim())).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20)))
     : [];

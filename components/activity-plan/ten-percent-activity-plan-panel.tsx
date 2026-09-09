@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Edit3, Plus, Trash2 } from "lucide-react";
+import { Copy, Edit3, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
+import { SemesterActivityPlanCopyModal } from "@/components/activity-plan/semester-activity-plan-copy-modal";
 import { ACTIVITY_PLAN_OTHER_PROGRAM_VALUE } from "@/lib/activity-plan/activity-plan-program-value";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import {
@@ -11,6 +12,7 @@ import {
   TenPercentDomainValue,
   TenPercentProgramValue,
   formatTenPercentWeeks,
+  getTenPercentGradeOptions,
 } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { ACTIVITY_PLAN_SECTIONS } from "@/lib/activity-plan/activity-plan-stages";
 
@@ -39,6 +41,7 @@ const emptyDraft: Draft = {
 };
 
 const ACTIVITY_PLAN_SECTION_LABELS = ["أ", "ب", "ج", "د", "هـ", "و", "ز"] as const;
+const DEFAULT_ACTIVITY_PLAN_SECTIONS = ACTIVITY_PLAN_SECTIONS.slice(0, 2);
 
 function getSectionLabel(section: string) {
   const index = ACTIVITY_PLAN_SECTIONS.indexOf(section as (typeof ACTIVITY_PLAN_SECTIONS)[number]);
@@ -64,7 +67,11 @@ function domainStyle(domain: TenPercentDomainValue) {
   return getActivityPlanProgramByKey(domain.slug) || { colorClass: "border-slate-200 bg-slate-50 text-slate-900" };
 }
 
-export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
+function materialTypeLabel(value: ActivityPlanTenPercentRow["materialType"]) {
+  return value === "10%" ? "10%" : "أساسية";
+}
+
+export function TenPercentActivityPlanPanel({ stage, allowedStages }: { stage: string; allowedStages: string[] }) {
   const [rows, setRows] = useState<ActivityPlanTenPercentRow[]>([]);
   const [domains, setDomains] = useState<TenPercentDomainOption[]>([]);
   const [grades, setGrades] = useState<string[]>([]);
@@ -74,11 +81,12 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
   const [error, setError] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
-  const [availableSections, setAvailableSections] = useState<string[]>([...ACTIVITY_PLAN_SECTIONS]);
+  const [availableSections, setAvailableSections] = useState<string[]>([...DEFAULT_ACTIVITY_PLAN_SECTIONS]);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [sectionToAdd, setSectionToAdd] = useState("");
   const [sectionRemovalPending, setSectionRemovalPending] = useState<string | null>(null);
   const [checkingSection, setCheckingSection] = useState<string | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
 
   const load = async () => {
     if (!stage) return;
@@ -111,10 +119,10 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
       const stored = JSON.parse(window.localStorage.getItem(storageKey) || "null");
       const next = Array.isArray(stored)
         ? stored.filter((value): value is string => typeof value === "string" && ACTIVITY_PLAN_SECTIONS.includes(value as (typeof ACTIVITY_PLAN_SECTIONS)[number]))
-        : [...ACTIVITY_PLAN_SECTIONS];
-      setAvailableSections(next.length ? next : [...ACTIVITY_PLAN_SECTIONS]);
+        : [...DEFAULT_ACTIVITY_PLAN_SECTIONS];
+      setAvailableSections(next.length ? next : [...DEFAULT_ACTIVITY_PLAN_SECTIONS]);
     } catch {
-      setAvailableSections([...ACTIVITY_PLAN_SECTIONS]);
+      setAvailableSections([...DEFAULT_ACTIVITY_PLAN_SECTIONS]);
     }
   }, [stage, selectedGrade]);
 
@@ -194,10 +202,9 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
   };
 
   return (
-    <section className="ten-percent-activity-plan-panel rounded-2xl border border-[#B9D8E8] bg-[#F3F8FC] p-2 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 md:p-3">
-      <div className="mb-3 rounded-xl border border-sky-100 bg-white/80 p-2 dark:border-sky-900/60 dark:bg-slate-950/60">
-        <p className="mb-2 text-xs font-black text-slate-500">المرحلة: <span className="text-sky-800 dark:text-sky-200">{stage}</span></p>
-        <div className="flex flex-wrap gap-1.5" aria-label="اختيار الصف">{grades.map((grade) => <button type="button" key={grade} aria-pressed={selectedGrade === grade} onClick={() => setSelectedGrade(grade)} className={`min-h-9 rounded-lg px-3 text-xs font-black transition ${selectedGrade === grade ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{grade}</button>)}</div>
+    <section className="ten-percent-activity-plan-panel p-0 [&>div:first-child>p:first-child]:hidden">
+      <div className="mb-2">
+        <div className="flex max-w-full flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label="اختيار الصف">{grades.map((grade) => <button type="button" key={grade} aria-pressed={selectedGrade === grade} onClick={() => setSelectedGrade(grade)} className={`min-h-9 shrink-0 rounded-lg px-3 text-xs font-black transition ${selectedGrade === grade ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{grade}</button>)}</div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="اختيار الفصل">
           {availableSections.map((section) => <div key={section} className="relative flex items-center">
             <button type="button" aria-pressed={selectedSection === section} onClick={() => setSelectedSection(section)} className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black transition ${selectedSection === section ? "bg-sky-700 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{getSectionLabel(section)}</button>
@@ -205,24 +212,26 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
           </div>)}
           <button type="button" aria-label="إضافة فصل" title="إضافة فصل" onClick={() => { const firstMissing = ACTIVITY_PLAN_SECTIONS.find((section) => !availableSections.includes(section)) || ""; setSectionToAdd(firstMissing); setAddSectionOpen(true); }} disabled={!selectedGrade || availableSections.length >= ACTIVITY_PLAN_SECTIONS.length} className="grid h-8 min-w-8 place-items-center rounded-lg border border-dashed border-sky-300 bg-sky-50 px-2 text-sm font-black text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40">+</button>
         </div>
-        <p className="mt-2 text-sm font-black text-slate-800 dark:text-slate-100">{selectedGrade ? `${stage} — ${selectedGrade} ${selectedSection}` : `${stage} — بيانات سابقة غير مصنفة`}</p>
+        <p className="mt-2 break-words text-sm font-black text-slate-800 dark:text-slate-100">{selectedGrade ? `${stage} — ${selectedGrade} ${selectedSection}` : `${stage} — بيانات سابقة غير مصنفة`}</p>
       </div>
-      <div className="mb-3 flex justify-end">
-        <button type="button" onClick={openNew} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0F7FA8] px-3.5 text-sm font-black text-white shadow-sm transition hover:bg-[#0B6B8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E8FB8]">
-          <Plus className="h-4 w-4" /> إضافة صف
+      <div className="mb-2 flex justify-end gap-1.5">
+        <button type="button" onClick={() => setCopyOpen(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200">
+          <Copy className="h-4 w-4" /> نسخ الخطة
+        </button>
+        <button type="button" onClick={openNew} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#0F7FA8] px-3 text-xs font-black text-white transition hover:bg-[#0B6B8E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E8FB8]">
+          <Plus className="h-4 w-4" /> إضافة نشاط
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-[#B9D8E8] bg-white shadow-sm dark:border-sky-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
-        <table className="min-w-[1080px] w-full border-collapse text-right" dir="rtl">
-          <thead className="bg-[#DCECF6] text-xs font-black text-[#0F5F7A] dark:bg-sky-950/50 dark:text-sky-100">
+      <div className="overflow-x-auto rounded-md border border-[#D7E3EA] bg-white dark:border-sky-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
+        <table className="min-w-[560px] w-full border-collapse text-right [&_th]:p-1.5 [&_td]:p-1.5 sm:min-w-[1080px] sm:[&_th]:p-2 sm:[&_td]:p-2" dir="rtl">
+          <thead className="bg-[#EAF4FA] text-[11px] font-black text-[#0F5F7A] dark:bg-sky-950/50 dark:text-sky-100">
             <tr>
               <th className="border-b border-l border-[#B9D8E8] p-3">المجال</th>
-              <th className="border-b border-l border-[#B9D8E8] p-3">البرنامج</th>
-              <th className="border-b border-l border-[#B9D8E8] p-3">عدد الحصص</th>
-              <th className="border-b border-l border-[#B9D8E8] p-3">أسبوع التنفيذ</th>
-              <th className="border-b border-l border-[#B9D8E8] p-3">مادة 10%</th>
-              <th className="border-b border-l border-[#B9D8E8] p-3">الصف</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">البرنامج / النشاط</th>
+              <th className="hidden border-b border-l border-[#B9D8E8] p-3 sm:table-cell">عدد الحصص</th>
+              <th className="hidden border-b border-l border-[#B9D8E8] p-3 sm:table-cell">أسابيع التنفيذ</th>
+              <th className="border-b border-l border-[#B9D8E8] p-3">المادة والنوع</th>
               <th className="border-b border-l border-[#B9D8E8] p-3">المعلم</th>
               <th className="border-b border-[#B9D8E8] p-3">إجراء</th>
             </tr>
@@ -232,20 +241,19 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
               <tr key={row.id} className="align-top transition hover:bg-[#EAF4FA] dark:hover:bg-sky-950/20">
                 <td className="border-b border-l border-[#DCECF6] p-3"><div className="flex flex-wrap gap-1.5">{row.domains.map((domain) => <span key={domain.serviceSlug} className={`rounded-lg border px-2 py-1 text-[11px] font-black ${domainStyle(domain).colorClass}`}>{domain.title}</span>)}</div></td>
                 <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="space-y-1">{row.programs.map((program) => <div key={`${program.domainServiceSlug}-${program.value}`}><span className="text-[10px] text-slate-500 dark:text-slate-400">{program.domainTitle}</span><p>{program.name}</p></div>)}</div></td>
-                <td className="border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100">{row.periodCount || "—"}</td>
-                <td className="border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100" dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
-                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100">{row.subject || "—"}</td>
-                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.grades.map((grade) => grade.replace("::", " ")).join("\n") || "—"}</div></td>
+                <td className="hidden border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100 sm:table-cell">{row.periodCount || "—"}</td>
+                <td className="hidden border-b border-l border-[#DCECF6] p-3 text-center text-sm font-black text-slate-800 dark:text-slate-100 sm:table-cell" dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
+                <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100">{row.subject || "—"} <span className={row.materialType === "10%" ? "text-amber-700 dark:text-amber-300" : "text-sky-700 dark:text-sky-300"}>({materialTypeLabel(row.materialType)})</span></td>
                 <td className="border-b border-l border-[#DCECF6] p-3 text-sm font-bold text-slate-800 dark:text-slate-100"><div className="whitespace-pre-line">{row.teacherNames.join("\n") || "—"}</div></td>
-                <td className="border-b border-[#DCECF6] p-3 text-center"><button type="button" title="تعديل الصف" aria-label="تعديل الصف" onClick={() => openEdit(row)} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-[#EAF4FA] px-2.5 py-2 text-xs font-black text-[#0F5F7A] transition hover:bg-[#DCECF6] dark:bg-sky-950/60 dark:text-sky-100"><Edit3 className="h-4 w-4" /><span className="sr-only">تعديل</span></button></td>
+                <td className="border-b border-[#DCECF6] p-3 text-center"><button type="button" title="تعديل الصف" aria-label="تعديل الصف" onClick={() => openEdit(row)} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg bg-[#EAF4FA] px-2 py-1.5 text-xs font-black text-[#0F5F7A] transition hover:bg-[#DCECF6] sm:min-h-10 sm:min-w-10 sm:rounded-xl sm:px-2.5 sm:py-2 dark:bg-sky-950/60 dark:text-sky-100"><Edit3 className="h-4 w-4" /><span className="sr-only">تعديل</span></button></td>
               </tr>
             ))}
-            {!rows.length && !loading ? <tr><td colSpan={8} className="p-10 text-center text-sm font-bold text-slate-500 dark:text-slate-400">لا توجد صفوف محفوظة لهذه المرحلة بعد.</td></tr> : null}
+            {!scopedRows.length && !loading ? <tr><td colSpan={7} className="p-10 text-center text-sm font-bold text-slate-500 dark:text-slate-400">لا توجد صفوف محفوظة لهذا الصف والفصل بعد.</td></tr> : null}
           </tbody>
         </table>
       </div>
-      {legacyRows.length ? <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">توجد {legacyRows.length} بيانات سابقة غير مرتبطة بفصل محدد، وتم إبقاؤها ظاهرة هنا دون تعديل.</div> : null}
-      {loading ? <p className="py-4 text-center text-xs font-black text-[#0F5F7A] dark:text-sky-200">جار تحميل خطة 10%...</p> : null}
+      {legacyRows.length ? <p className="mt-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">توجد {legacyRows.length} بيانات سابقة غير مرتبطة بفصل محدد، وتم إبقاؤها ظاهرة هنا دون تعديل.</p> : null}
+      {loading ? <p className="py-2 text-center text-xs font-black text-[#0F5F7A] dark:text-sky-200">جار تحميل الخطة الفصلية...</p> : null}
       {error ? <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">{error}</p> : null}
       <SmartActionModal open={addSectionOpen} title="إضافة فصل" description="اختر فصلًا لإظهاره في هذه الخطة." portal onClose={() => setAddSectionOpen(false)} showFooter={false}>
         <div className="space-y-3" dir="rtl">
@@ -257,35 +265,55 @@ export function TenPercentActivityPlanPanel({ stage }: { stage: string }) {
         </div>
       </SmartActionModal>
       <SmartActionModal open={Boolean(sectionRemovalPending)} title="تأكيد حذف الفصل" description="هذا الفصل يحتوي على بيانات محفوظة. حذف الفصل سيؤثر على البيانات المرتبطة به." variant="danger" confirmLabel="حذف الفصل" cancelLabel="إلغاء" portal onClose={() => setSectionRemovalPending(null)} onConfirm={() => { if (sectionRemovalPending) removeSectionFromList(sectionRemovalPending); setSectionRemovalPending(null); }} />
+      <SemesterActivityPlanCopyModal open={copyOpen} allowedStages={allowedStages.length ? allowedStages : [stage]} currentStage={stage} currentGrade={selectedGrade} currentSection={selectedSection} onClose={() => setCopyOpen(false)} onCopied={() => void load()} />
       <TenPercentActivityPlanModal
         open={modalOpen}
         row={editing}
         stage={stage}
+        allowedStages={allowedStages}
         domains={domains}
         grades={grades}
         selectedGrade={selectedGrade}
         selectedSection={selectedSection}
         onClose={() => setModalOpen(false)}
-        onSaved={(row) => { setRows((current) => editing ? current.map((item) => item.id === row.id ? row : item) : [...current, row]); setModalOpen(false); setEditing(null); }}
+        onSaved={(row) => { if (row.stage !== stage) void load(); else setRows((current) => editing ? current.map((item) => item.id === row.id ? row : item) : [...current, row]); setModalOpen(false); setEditing(null); }}
         onDeleted={(id) => { setRows((current) => current.filter((row) => row.id !== id)); setModalOpen(false); setEditing(null); }}
       />
     </section>
   );
 }
 
-function TenPercentActivityPlanModal({ open, row, stage, domains, grades, selectedGrade, selectedSection, onClose, onSaved, onDeleted }: { open: boolean; row: ActivityPlanTenPercentRow | null; stage: string; domains: TenPercentDomainOption[]; grades: string[]; selectedGrade: string; selectedSection: string; onClose: () => void; onSaved: (row: ActivityPlanTenPercentRow) => void; onDeleted: (id: string) => void }) {
+function TenPercentActivityPlanModal({ open, row, stage, allowedStages, domains, grades, selectedGrade, selectedSection, onClose, onSaved, onDeleted }: { open: boolean; row: ActivityPlanTenPercentRow | null; stage: string; allowedStages: string[]; domains: TenPercentDomainOption[]; grades: string[]; selectedGrade: string; selectedSection: string; onClose: () => void; onSaved: (row: ActivityPlanTenPercentRow) => void; onDeleted: (id: string) => void }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
+  const [destinationStage, setDestinationStage] = useState(stage);
+  const [destinationGrade, setDestinationGrade] = useState(selectedGrade);
+  const [destinationSection, setDestinationSection] = useState(selectedSection);
+  const [originDestination, setOriginDestination] = useState("");
+  const destinationGrades = useMemo(() => getTenPercentGradeOptions(destinationStage), [destinationStage]);
 
   useEffect(() => {
     if (!open) return;
-      setDraft({ ...rowToDraft(row), grades: selectedGrade ? [`${selectedGrade}${selectedSection ? `::${selectedSection}` : ""}`] : rowToDraft(row).grades, section: selectedSection || rowToDraft(row).section });
+    const savedDestination = row?.grades.find((value) => value === `${selectedGrade}::${selectedSection}`) || row?.grades.find((value) => value.includes("::")) || row?.grades[0] || "";
+    const [savedGrade, savedSection] = savedDestination.split("::");
+    const nextStage = row?.stage || stage;
+    const nextGradeOptions = getTenPercentGradeOptions(nextStage);
+    setDestinationStage(nextStage);
+    setDestinationGrade(nextGradeOptions.includes(savedGrade) ? savedGrade : selectedGrade || nextGradeOptions[0] || "");
+    setDestinationSection(savedSection || selectedSection || ACTIVITY_PLAN_SECTIONS[0]);
+    setOriginDestination(savedDestination.includes("::") && savedGrade ? `${savedGrade}::${savedSection}` : "");
+    setDraft({ ...rowToDraft(row), grades: savedGrade ? [`${savedGrade}${savedSection ? `::${savedSection}` : ""}`] : (selectedGrade ? [`${selectedGrade}${selectedSection ? `::${selectedSection}` : ""}`] : rowToDraft(row).grades), section: savedSection || selectedSection || rowToDraft(row).section });
     setError("");
     setConfirmDelete(false);
   }, [open, row, selectedGrade, selectedSection]);
+
+  useEffect(() => {
+    if (destinationGrades.includes(destinationGrade)) return;
+    setDestinationGrade(destinationGrades[0] || "");
+  }, [destinationGrade, destinationGrades]);
 
   const selectedDomainSlugs = useMemo(() => new Set(draft.domains.map((domain) => domain.serviceSlug)), [draft.domains]);
   const selectedOtherDomains = useMemo(() => new Set(draft.programs.filter((program) => program.isOther).map((program) => program.domainServiceSlug)), [draft.programs]);
@@ -318,8 +346,8 @@ function TenPercentActivityPlanModal({ open, row, stage, domains, grades, select
     setSaving(true);
     setError("");
     try {
-      const scopedGrades = selectedGrade ? [`${selectedGrade}${selectedSection ? `::${selectedSection}` : ""}`] : [];
-      const response = await fetch("/api/dashboard/activity-plan/ten-percent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: row?.id, stage, ...draft, grade: selectedGrade, section: selectedSection, grades: scopedGrades }) });
+      const scopedGrades = destinationGrade ? [`${destinationGrade}${destinationSection ? `::${destinationSection}` : ""}`] : [];
+      const response = await fetch("/api/dashboard/activity-plan/ten-percent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: row?.id, ...draft, stage: destinationStage, grade: destinationGrade, section: destinationSection, previousDestination: originDestination, grades: scopedGrades }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "تعذر حفظ صف خطة 10%.");
       onSaved(payload.row);
@@ -348,6 +376,7 @@ function TenPercentActivityPlanModal({ open, row, stage, domains, grades, select
 
   return <SmartActionModal open={open} title={row ? "تعديل نشاط الخطة الفصلية" : "إضافة نشاط للخطة الفصلية"} description={stage} portal onClose={onClose} showFooter={false}>
     <div className="max-h-[75vh] space-y-4 overflow-y-auto pr-1" dir="rtl">
+      <fieldset><legend className="mb-2 text-sm font-black text-slate-700 dark:text-slate-200">وجهة النشاط</legend><div className="grid gap-2 sm:grid-cols-3"><select value={destinationStage} onChange={(event) => { const next = event.target.value; setDestinationStage(next); setDestinationGrade(getTenPercentGradeOptions(next)[0] || ""); }} className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold"><option value="">المرحلة</option>{allowedStages.map((item) => <option key={item} value={item}>{item}</option>)}</select><select value={destinationGrade} onChange={(event) => setDestinationGrade(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold"><option value="">الصف</option>{destinationGrades.map((item) => <option key={item} value={item}>{item}</option>)}</select><select value={destinationSection} onChange={(event) => setDestinationSection(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold"><option value="">الفصل</option>{ACTIVITY_PLAN_SECTIONS.map((item) => <option key={item} value={item}>{getSectionLabel(item)}</option>)}</select></div></fieldset>
       <fieldset><legend className="mb-2 text-sm font-black text-slate-700 dark:text-slate-200">المجال</legend><div className="grid gap-2 sm:grid-cols-2">{domains.map((domain) => <label key={domain.serviceSlug} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm font-bold transition ${selectedDomainSlugs.has(domain.serviceSlug) ? `${domainStyle(domain).colorClass} ring-2 ring-amber-300` : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"}`}><input type="checkbox" checked={selectedDomainSlugs.has(domain.serviceSlug)} onChange={() => toggleDomain(domain)} />{domain.title}</label>)}</div></fieldset>
       {draft.domains.map((domain) => { const domainOptions = domains.find((option) => option.serviceSlug === domain.serviceSlug); return <section key={domain.serviceSlug} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900"><h4 className="mb-2 text-sm font-black text-slate-800 dark:text-slate-100">برامج {domain.title}</h4><div className="grid gap-2 sm:grid-cols-2">{(domainOptions?.options || []).map((option) => { const checked = draft.programs.some((program) => program.domainServiceSlug === domain.serviceSlug && program.value === option.value); return <label key={option.value} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-white px-2 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-950 dark:text-slate-200 dark:ring-slate-700"><input type="checkbox" checked={checked} onChange={() => toggleProgram(domainOptions as TenPercentDomainOption, option)} />{option.label}</label>; })}</div></section>; })}
       <label className="block text-sm font-black text-slate-700">المادة<input value={draft.subject} onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))} placeholder="اكتب المادة المرتبطة بالخطة" className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold" /></label>
