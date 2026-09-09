@@ -93,7 +93,13 @@ export function RegisterPreferencesPopCard({
   const canConfirm = Boolean(selectedGender && selectedRole && !loading);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:items-center sm:p-4"
+      style={{
+        paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+      }}
+    >
       <button
         type="button"
         aria-label="إغلاق"
@@ -101,7 +107,13 @@ export function RegisterPreferencesPopCard({
         className="absolute inset-0 bg-slate-950/30 backdrop-blur-sm"
       />
 
-      <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-5 shadow-[0_34px_100px_-52px_rgba(15,23,42,0.38)] backdrop-blur sm:p-6">
+      <div
+        className="relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto overscroll-contain rounded-[1.75rem] border border-white/70 bg-white/95 p-5 pb-7 shadow-[0_34px_100px_-52px_rgba(15,23,42,0.38)] backdrop-blur sm:max-h-[calc(100dvh-2rem)] sm:p-6 sm:pb-8"
+        style={{
+          maxHeight: "calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom)))",
+          paddingBottom: "max(1.75rem, env(safe-area-inset-bottom))",
+        }}
+      >
         <div className="relative text-center">
           <div className="px-8">
             <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
@@ -153,8 +165,8 @@ export function RegisterPreferencesPopCard({
 
         <div
           className={[
-            "overflow-hidden transition-all duration-300 ease-out",
-            selectedGender ? "mt-4 max-h-[360px] opacity-100" : "max-h-0 opacity-0",
+            "transition-[max-height,opacity,margin] duration-300 ease-out",
+            selectedGender ? "mt-4 opacity-100" : "pointer-events-none max-h-0 overflow-hidden opacity-0",
           ].join(" ")}
         >
           <div className="rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,_#f8fcff_0%,_#eff8ff_100%)] px-4 py-4 shadow-[0_18px_60px_-48px_rgba(14,165,233,0.55)]">
