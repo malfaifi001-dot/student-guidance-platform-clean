@@ -202,9 +202,9 @@ export function TenPercentActivityPlanPanel({ stage, allowedStages }: { stage: s
   };
 
   return (
-    <section className="ten-percent-activity-plan-panel p-0 [&>div:first-child>p:first-child]:hidden">
+    <section className="ten-percent-activity-plan-panel min-w-0 max-w-full p-0 [&>div:first-child>p:first-child]:hidden">
       <div className="mb-2">
-        <div className="flex max-w-full flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label="اختيار الصف">{grades.map((grade) => <button type="button" key={grade} aria-pressed={selectedGrade === grade} onClick={() => setSelectedGrade(grade)} className={`min-h-9 shrink-0 rounded-lg px-3 text-xs font-black transition ${selectedGrade === grade ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{grade}</button>)}</div>
+        <div className="flex min-w-0 max-w-full flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label="اختيار الصف">{grades.map((grade) => <button type="button" key={grade} aria-pressed={selectedGrade === grade} onClick={() => setSelectedGrade(grade)} className={`min-h-9 shrink-0 rounded-lg px-3 text-xs font-black transition ${selectedGrade === grade ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{grade}</button>)}</div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="اختيار الفصل">
           {availableSections.map((section) => <div key={section} className="relative flex items-center">
             <button type="button" aria-pressed={selectedSection === section} onClick={() => setSelectedSection(section)} className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black transition ${selectedSection === section ? "bg-sky-700 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50"}`}>{getSectionLabel(section)}</button>
@@ -223,7 +223,7 @@ export function TenPercentActivityPlanPanel({ stage, allowedStages }: { stage: s
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-[#D7E3EA] bg-white dark:border-sky-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="min-w-0 max-w-full overflow-x-auto rounded-md border border-[#D7E3EA] bg-white dark:border-sky-900/60 dark:bg-slate-950" style={{ WebkitOverflowScrolling: "touch" }}>
         <table className="min-w-[560px] w-full border-collapse text-right [&_th]:p-1.5 [&_td]:p-1.5 sm:min-w-[1080px] sm:[&_th]:p-2 sm:[&_td]:p-2" dir="rtl">
           <thead className="bg-[#EAF4FA] text-[11px] font-black text-[#0F5F7A] dark:bg-sky-950/50 dark:text-sky-100">
             <tr>

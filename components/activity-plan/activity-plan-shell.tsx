@@ -168,7 +168,7 @@ export function ActivityPlanShell() {
   }
 
   return (
-    <main className="space-y-4" dir="rtl">
+    <main className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden overscroll-x-none" dir="rtl">
       <section className="activity-plan-header rounded-xl border border-sky-200 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-black tracking-tight">{mode === "ten-percent" ? "الخطة الفصلية" : "خطة النشاط الطلابي"}</h1>
@@ -179,13 +179,13 @@ export function ActivityPlanShell() {
         </div>
       </section>
 
-      <div className={mode === "ten-percent" ? "rounded-2xl border border-sky-100 bg-sky-50/35 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/15 sm:p-3" : "contents"}>
-      <section className={`activity-plan-controls-surface ${mode === "ten-percent" ? "border-b border-sky-100 bg-transparent p-0 pb-2 dark:border-sky-900/60" : "rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900"}`}>
+      <div className={mode === "ten-percent" ? "min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/35 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/15 sm:p-3" : "contents"}>
+      <section className={`activity-plan-controls-surface min-w-0 max-w-full ${mode === "ten-percent" ? "border-b border-sky-100 bg-transparent p-0 pb-2 dark:border-sky-900/60" : "rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900"}`}>
         <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
       </section>
 
-      {mode === "weekly" ? <section className="rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
-        <div className="flex max-w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="اختيار الأسبوع">
+      {mode === "weekly" ? <section className="min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
+        <div className="flex min-w-0 max-w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="اختيار الأسبوع">
           {Array.from({ length: 20 }, (_, index) => index + 1).map((item) => (
             <button type="button" key={item} onClick={() => setWeek(item)} aria-pressed={item === week} className={item === week ? "h-8 min-w-8 rounded-lg bg-sky-700 px-2 text-xs font-black text-white shadow-sm" : "h-8 min-w-8 rounded-lg bg-white px-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200 transition hover:bg-sky-100 hover:text-sky-800 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-sky-950/50"}>{item}</button>
           ))}
@@ -193,9 +193,9 @@ export function ActivityPlanShell() {
       </section> : null}
 
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-black text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-200">{error}</div> : null}
-      {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} allowedStages={stages} /> : <section className={`rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
+      {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} allowedStages={stages} /> : <section className={`min-w-0 max-w-full rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
         <>
-          <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 [scrollbar-width:thin] dark:border-slate-700" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 [scrollbar-width:thin] dark:border-slate-700" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="min-w-[1220px]">
               <div className="grid grid-cols-[140px_repeat(7,minmax(154px,1fr))] bg-sky-50/70 dark:bg-sky-950/30" dir="rtl">
                 <div className="border-b border-l border-sky-100 p-3 text-sm font-black text-slate-500 dark:border-sky-900/60 dark:text-slate-300">اليوم / الحصص</div>
@@ -234,9 +234,9 @@ export function ActivityPlanShell() {
 
 function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "weekly" | "ten-percent"; onModeChange: (mode: "weekly" | "ten-percent") => void; onCopy: () => void }) {
   const selectedTabClass = mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "bg-white text-green-700 shadow-sm";
-  return <div className="flex flex-col gap-2 md:flex-row md:items-center">
+  return <div className="flex min-w-0 max-w-full flex-col gap-2 md:flex-row md:items-center">
     {stages.length > 1 ? <label className="flex min-h-9 items-center gap-2 text-xs font-black text-slate-600 dark:text-slate-300">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-800 outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 md:min-w-[145px]" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label> : null}
-    <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
+    <div className="min-w-0 max-w-full flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
       <div className="flex min-w-max gap-1">
         <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "ten-percent" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-green-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية</button>
         <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "weekly" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-sky-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الأسبوعية</button>

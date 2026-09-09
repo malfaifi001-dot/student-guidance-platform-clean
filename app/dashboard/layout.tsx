@@ -81,7 +81,7 @@ export default async function DashboardLayout({
             salesMode={salesExperience.effectiveMode}
           />
 
-          <main className="h-[100dvh] w-full min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+          <main className="h-[100dvh] w-full min-w-0 flex-1 overflow-x-clip overflow-y-auto overscroll-x-none text-[15.5px] leading-relaxed">
             <DashboardHeader
               user={current.user}
               subscription={subscriptionPresentation}
