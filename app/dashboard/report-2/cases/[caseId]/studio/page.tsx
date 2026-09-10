@@ -253,7 +253,7 @@ export default async function ReportTwoCaseStudioPage({
       caseId,
       activeReportId: activeReport?.id || null,
       activeReportStatus: activeReport?.status || null,
-      policy: schoolProfile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      policy: schoolProfile?.principalSignatureReusePolicy || "ALL_STAFF",
       selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
       signLinkSigned: Boolean(signedSignatureRequest),
       dashboardSignaturePresent: Boolean(activeReport?.principalSignatureUrl),

@@ -361,7 +361,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     principalSignatureUrl: context.schoolAccount.profile?.principalSignatureUrl || null,
     principalSignatureSignedAt: context.schoolAccount.profile?.principalSignatureSignedAt || null,
   };
-  const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "MANUAL_ONLY";
+  const reusePolicy = context.schoolAccount.profile?.principalSignatureReusePolicy || "ALL_STAFF";
 
   const caseScope = {
     schoolAccountId: context.schoolAccountId,

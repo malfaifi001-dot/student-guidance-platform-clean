@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       principalSignatureToken: token,
       principalSignatureRequestedAt: requestedAt,
       principalSignatureSignedAt: null,
+      principalSignatureReusePolicy: "ALL_STAFF",
     },
   });
 

@@ -842,7 +842,7 @@ model SchoolProfile {
   principalSignatureToken       String?   @unique
   principalSignatureRequestedAt DateTime?
   principalSignatureSignedAt    DateTime?
-  principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(MANUAL_ONLY)
+  principalSignatureReusePolicy PrincipalSignatureReusePolicy @default(ALL_STAFF)
 
   activityLeaderName         String?
   activityLeaderSignatureUrl String?

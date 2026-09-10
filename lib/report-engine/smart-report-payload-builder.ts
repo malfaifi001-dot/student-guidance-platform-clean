@@ -1171,7 +1171,7 @@ function buildSignatures(
       viewerId: current.user.id,
       viewerRole: current.user.role,
       principalSignatureSignedAtExists: Boolean(profile?.principalSignatureSignedAt),
-      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      policy: profile?.principalSignatureReusePolicy || "ALL_STAFF",
       principalNamePresent: Boolean(profile?.principalName),
     },
     signature: profile?.principalSignatureUrl,
@@ -1571,7 +1571,7 @@ export async function buildSmartReportPayloadForCase({
       viewerId: current.user.id,
       viewerRole: current.user.role,
       ownerEqualsViewer: (caseEntry.createdById || current.user.id) === current.user.id,
-      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      policy: profile?.principalSignatureReusePolicy || "ALL_STAFF",
       selectedStaffAuthorized: Boolean(selectedStaffAuthorization),
     },
   });

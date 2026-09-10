@@ -148,6 +148,7 @@ export async function POST(request: Request, context: Context) {
         schoolName: school?.name || "اسم المدرسة",
         principalName,
         principalPhone,
+        principalSignatureReusePolicy: "ALL_STAFF",
       },
     });
     return tx.reportSignatureRequest.create({

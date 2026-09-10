@@ -86,7 +86,7 @@ export function resolvePrincipalSignatureForReport(input: {
     stage: "RESOLVER_INPUT",
     location: "resolvePrincipalSignatureForReport",
     details: {
-      policy: input.reusePolicy || "MANUAL_ONLY",
+      policy: input.reusePolicy || "ALL_STAFF",
       ownerRole,
       ownerSchoolMatches,
       isPrincipalOwner,
@@ -130,7 +130,7 @@ export function resolvePrincipalSignatureForReport(input: {
     ));
   }
 
-  const policy = input.reusePolicy || "MANUAL_ONLY";
+  const policy = input.reusePolicy || "ALL_STAFF";
   const canReuseSchoolSignature =
     Boolean(schoolUrl) &&
     (isPrincipalOwner || ownerSchoolMatches) &&

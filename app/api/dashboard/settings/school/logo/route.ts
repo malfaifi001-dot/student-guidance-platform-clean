@@ -122,6 +122,7 @@ export async function POST(request: Request) {
         schoolAccountId: authResult.schoolAccountId,
         schoolName: school.name || "اسم المدرسة",
         logoUrl: publicUrl,
+        principalSignatureReusePolicy: "ALL_STAFF",
       },
     });
 

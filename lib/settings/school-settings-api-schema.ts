@@ -68,7 +68,7 @@ export const schoolSettingsPatchSchema = z.object({
     "اكتب اسم المرحلة عند اختيار أخرى.",
   ),
   logoUrl: optionalTrimmedString(500),
-  principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("MANUAL_ONLY"),
+  principalSignatureReusePolicy: z.enum(["ALL_STAFF", "SELECTED_STAFF", "MANUAL_ONLY"]).default("ALL_STAFF"),
   principalSignatureReuseUserIds: z.array(z.string().trim().min(1).max(191)).max(500).default([]),
 });
 

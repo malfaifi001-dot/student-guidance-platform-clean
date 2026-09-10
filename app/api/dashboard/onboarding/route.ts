@@ -81,6 +81,7 @@ export async function POST(request: Request) {
           stage,
           academicYear,
           currentSemester,
+          principalSignatureReusePolicy: "ALL_STAFF",
         },
         create: {
           schoolAccountId: session.schoolAccountId,

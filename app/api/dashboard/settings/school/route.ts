@@ -136,7 +136,7 @@ export async function GET() {
       viewerId: current.user.id,
       viewerRole: current.user.role,
       schoolAccountId: current.user.schoolAccountId,
-      policy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      policy: profile?.principalSignatureReusePolicy || "ALL_STAFF",
       selectedStaffAuthorized: Boolean(currentStaffAuthorization),
       isPrincipal,
     },
@@ -196,7 +196,7 @@ export async function GET() {
         profile?.principalSignatureRequestedAt?.toISOString() || "",
       principalSignatureSignedAt:
         profile?.principalSignatureSignedAt?.toISOString() || "",
-      principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+      principalSignatureReusePolicy: profile?.principalSignatureReusePolicy || "ALL_STAFF",
       principalSignatureReuseUserIds: selectedSignatureStaff.map((item) => item.userId),
       principalSignatureReuseStaff: eligibleSignatureStaff.map((item) => ({
         id: item.id,
@@ -450,6 +450,7 @@ export async function PATCH(request: Request) {
                 district,
                 stage,
                 logoUrl,
+                principalSignatureReusePolicy: "ALL_STAFF",
               },
             },
           },
@@ -535,9 +536,9 @@ export async function PATCH(request: Request) {
           district,
           stage,
           logoUrl,
-          ...(authenticatedUser.role === "PRINCIPAL"
-            ? { principalSignatureReusePolicy }
-            : {}),
+          principalSignatureReusePolicy: authenticatedUser.role === "PRINCIPAL"
+            ? principalSignatureReusePolicy
+            : "ALL_STAFF",
         },
         create: {
           schoolAccountId: authenticatedUser.schoolAccountId,
@@ -658,7 +659,7 @@ export async function PATCH(request: Request) {
         district: savedProfile?.district || "",
         stage: savedProfile?.stage || "",
         logoUrl: savedProfile?.logoUrl || "",
-        principalSignatureReusePolicy: savedProfile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+        principalSignatureReusePolicy: savedProfile?.principalSignatureReusePolicy || "ALL_STAFF",
         linkedToExistingSchool: transactionResult.linkedToExistingSchool,
         schoolIdentityChangesIgnored: transactionResult.schoolIdentityChangesIgnored,
       },

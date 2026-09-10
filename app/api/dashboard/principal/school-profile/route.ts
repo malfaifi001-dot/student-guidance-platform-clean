@@ -65,7 +65,7 @@ export async function PATCH(request: Request) {
           data: {
             name: data.schoolName,
             slug: createPrincipalSchoolSlug(data.schoolName),
-            profile: { create: data },
+            profile: { create: { ...data, principalSignatureReusePolicy: "ALL_STAFF" } },
           },
           select: { id: true },
         });
@@ -94,7 +94,7 @@ export async function PATCH(request: Request) {
       await tx.schoolProfile.upsert({
         where: { schoolAccountId: currentUser.schoolAccountId },
         update: data,
-        create: { schoolAccountId: currentUser.schoolAccountId, ...data },
+        create: { schoolAccountId: currentUser.schoolAccountId, ...data, principalSignatureReusePolicy: "ALL_STAFF" },
       });
       return { schoolAccountId: currentUser.schoolAccountId, created: false };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

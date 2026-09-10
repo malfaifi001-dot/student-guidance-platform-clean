@@ -250,6 +250,7 @@ export async function signReportSignatureRequest(input: {
           principalName: request.principalName || null,
           principalSignatureUrl: signatureUrl,
           principalSignatureSignedAt: now,
+          principalSignatureReusePolicy: "ALL_STAFF",
         },
       });
     }

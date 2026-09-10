@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     await prisma.schoolProfile.upsert({
       where: { schoolAccountId: current.user.schoolAccountId },
       update: kind === "principal" ? { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: signedAt } : kind === "activityLeader" ? { activityLeaderSignatureUrl: signatureUrl, activityLeaderSignedAt: signedAt } : { counselorSignatureUrl: signatureUrl, counselorSignedAt: signedAt },
-      create: { schoolAccountId: current.user.schoolAccountId, schoolName: current.user.schoolAccount?.profile?.schoolName || current.user.schoolAccount?.name || "اسم المدرسة", ...(kind === "principal" ? { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: signedAt } : kind === "activityLeader" ? { activityLeaderSignatureUrl: signatureUrl, activityLeaderSignedAt: signedAt } : { counselorSignatureUrl: signatureUrl, counselorSignedAt: signedAt }) },
+      create: { schoolAccountId: current.user.schoolAccountId, schoolName: current.user.schoolAccount?.profile?.schoolName || current.user.schoolAccount?.name || "اسم المدرسة", principalSignatureReusePolicy: "ALL_STAFF", ...(kind === "principal" ? { principalSignatureUrl: signatureUrl, principalSignatureSignedAt: signedAt } : kind === "activityLeader" ? { activityLeaderSignatureUrl: signatureUrl, activityLeaderSignedAt: signedAt } : { counselorSignatureUrl: signatureUrl, counselorSignedAt: signedAt }) },
     });
   }
   return NextResponse.json({ success: true, signatureUrl, signedAt: signedAt.toISOString() });
