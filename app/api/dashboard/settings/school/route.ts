@@ -42,6 +42,35 @@ function safelyNormalizeStatisticalNumber(value: string | null | undefined) {
   }
 }
 
+type SubmittedSchoolIdentity = {
+  schoolName: string;
+  schoolStatisticalNumber: string;
+  principalName: string;
+  principalPhone: string;
+  activityLeaderName: string;
+  educationDepartment: string;
+  educationOffice: string;
+  city: string;
+  district: string;
+  stage: string;
+  logoUrl: string;
+};
+
+function sameSchoolIdentity(profile: Partial<Record<keyof SubmittedSchoolIdentity, string | null | undefined>> | null | undefined, submitted: SubmittedSchoolIdentity) {
+  if (!profile) return false;
+  return String(profile.schoolName || "").trim() === submitted.schoolName &&
+    safelyNormalizeStatisticalNumber(profile.schoolStatisticalNumber) === submitted.schoolStatisticalNumber &&
+    String(profile.principalName || "").trim() === submitted.principalName &&
+    String(profile.principalPhone || "").trim() === submitted.principalPhone &&
+    String(profile.activityLeaderName || "").trim() === submitted.activityLeaderName &&
+    String(profile.educationDepartment || "").trim() === submitted.educationDepartment &&
+    String(profile.educationOffice || "").trim() === submitted.educationOffice &&
+    String(profile.city || "").trim() === submitted.city &&
+    String(profile.district || "").trim() === submitted.district &&
+    String(profile.stage || "").trim() === submitted.stage &&
+    String(profile.logoUrl || "").trim() === submitted.logoUrl;
+}
+
 export async function GET() {
   const current = await getCurrentSessionUser();
 
@@ -274,7 +303,21 @@ export async function PATCH(request: Request) {
       principalSignatureReuseUserIds,
     } = payloadResult.data;
 
-    await prisma.$transaction(async (tx) => {
+    const submittedSchoolIdentity: SubmittedSchoolIdentity = {
+      schoolName,
+      schoolStatisticalNumber,
+      principalName,
+      principalPhone,
+      activityLeaderName,
+      educationDepartment,
+      educationOffice,
+      city,
+      district,
+      stage,
+      logoUrl,
+    };
+
+    const transactionResult = await prisma.$transaction(async (tx) => {
       const authenticatedUser = await tx.user.findUniqueOrThrow({
         where: { id: current.user.id },
         select: {
@@ -308,9 +351,14 @@ export async function PATCH(request: Request) {
               schoolStatisticalNumber: true,
               schoolName: true,
               principalName: true,
+              principalPhone: true,
+              activityLeaderName: true,
               educationDepartment: true,
+              educationOffice: true,
               city: true,
+              district: true,
               stage: true,
+              logoUrl: true,
               schoolAccount: {
                 select: {
                   users: {
@@ -352,6 +400,13 @@ export async function PATCH(request: Request) {
         currentSchoolIsPrincipalManaged &&
         schoolStatisticalNumber === currentStatisticalNumber;
 
+      if (
+        staysWithCurrentPrincipalSchool &&
+        !sameSchoolIdentity(authenticatedUser.schoolAccount?.profile, submittedSchoolIdentity)
+      ) {
+        throw new Error("SCHOOL_IDENTITY_MANAGED_BY_PRINCIPAL");
+      }
+
       await tx.user.update({
         where: { id: current.user.id },
         data: {
@@ -367,11 +422,14 @@ export async function PATCH(request: Request) {
       });
 
       if (staysWithCurrentPrincipalSchool) {
-        return;
+        return { linkedToExistingSchool: false, schoolIdentityChangesIgnored: false };
       }
 
       if (matchingSchool && isLinkableSchoolMember) {
-        return;
+        return {
+          linkedToExistingSchool: true,
+          schoolIdentityChangesIgnored: !sameSchoolIdentity(matchingSchool, submittedSchoolIdentity),
+        };
       }
 
       if (isLinkableSchoolMember && currentSchoolIsPrincipalManaged) {
@@ -402,7 +460,7 @@ export async function PATCH(request: Request) {
           where: { id: current.user.id },
           data: { schoolAccountId: separateSchool.id },
         });
-        return;
+        return { linkedToExistingSchool: false, schoolIdentityChangesIgnored: false };
       }
 
       if (authenticatedUser.role === "PRINCIPAL") {
@@ -542,13 +600,77 @@ export async function PATCH(request: Request) {
           data: { schoolAccountId: authenticatedUser.schoolAccountId },
         });
       }
+
+      return { linkedToExistingSchool: false, schoolIdentityChangesIgnored: false };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const savedUser = await prisma.user.findUniqueOrThrow({
+      where: { id: current.user.id },
+      select: {
+        officialName: true,
+        name: true,
+        jobTitle: true,
+        phone: true,
+        onboardingCompleted: true,
+        schoolAccount: {
+          select: {
+            name: true,
+            profile: {
+              select: {
+                schoolName: true,
+                schoolStatisticalNumber: true,
+                principalName: true,
+                principalPhone: true,
+                activityLeaderName: true,
+                educationDepartment: true,
+                educationOffice: true,
+                city: true,
+                district: true,
+                stage: true,
+                logoUrl: true,
+                principalSignatureReusePolicy: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const savedProfile = savedUser.schoolAccount?.profile;
 
     return NextResponse.json({
       success: true,
-      message: "تم حفظ بيانات المدرسة والحساب.",
+      message: transactionResult.linkedToExistingSchool
+        ? "تم ربط الحساب بالمدرسة الموجودة. لم يتم تعديل هوية المدرسة المشتركة."
+        : "تم حفظ بيانات المدرسة والحساب.",
+      data: {
+        officialName: savedUser.officialName || savedUser.name || "",
+        jobTitle: savedUser.jobTitle || "",
+        phone: savedUser.phone || "",
+        onboardingCompleted: savedUser.onboardingCompleted,
+        schoolName: savedProfile?.schoolName || savedUser.schoolAccount?.name || "",
+        schoolStatisticalNumber: savedProfile?.schoolStatisticalNumber || "",
+        principalName: savedProfile?.principalName || "",
+        principalPhone: savedProfile?.principalPhone || "",
+        activityLeaderName: savedProfile?.activityLeaderName || "",
+        educationDepartment: savedProfile?.educationDepartment || "",
+        educationOffice: savedProfile?.educationOffice || "",
+        city: savedProfile?.city || "",
+        district: savedProfile?.district || "",
+        stage: savedProfile?.stage || "",
+        logoUrl: savedProfile?.logoUrl || "",
+        principalSignatureReusePolicy: savedProfile?.principalSignatureReusePolicy || "MANUAL_ONLY",
+        linkedToExistingSchool: transactionResult.linkedToExistingSchool,
+        schoolIdentityChangesIgnored: transactionResult.schoolIdentityChangesIgnored,
+      },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "SCHOOL_IDENTITY_MANAGED_BY_PRINCIPAL") {
+      return NextResponse.json(
+        { success: false, error: "لا يمكن تعديل هوية مدرسة مرتبطة بمدير المدرسة. يمكن حفظ بياناتك الشخصية فقط أو التواصل مع مدير المدرسة." },
+        { status: 403 },
+      );
+    }
+
     console.error("SCHOOL_SETTINGS_SAVE_ERROR", error);
 
     return NextResponse.json(

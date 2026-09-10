@@ -348,21 +348,39 @@ export function SchoolSettingsForm() {
         throw new Error(data.error || "تعذر حفظ الإعدادات.");
       }
 
-      const nextForm = {
-        ...form,
-        currentUserName: form.officialName || form.currentUserName,
-        onboardingCompleted: true,
-      };
+      const confirmedResponse = await fetch("/api/dashboard/settings/school", {
+        cache: "no-store",
+      });
+      const confirmedData = await confirmedResponse.json().catch(() => null);
 
+      if (!confirmedResponse.ok || !confirmedData?.success) {
+        throw new Error(
+          confirmedData?.error ||
+            "تم إرسال الحفظ، لكن تعذر تأكيد بيانات المدرسة المحفوظة. حدّث الصفحة قبل المتابعة.",
+        );
+      }
+
+      const nextForm = normalizeSchoolSettingsData(confirmedData.data);
       setForm(nextForm);
       setInitialForm(nextForm);
 
+      const schoolIdentityChangesIgnored = Boolean(
+        data?.data?.schoolIdentityChangesIgnored,
+      );
+      const linkedToExistingSchool = Boolean(
+        data?.data?.linkedToExistingSchool,
+      );
+
       setFeedback({
         type: "success",
-        message: "تم حفظ بيانات المدرسة والحساب بنجاح.",
+        message: linkedToExistingSchool
+          ? schoolIdentityChangesIgnored
+            ? "تم ربط الحساب بالمدرسة الموجودة. تم عرض هويتها المحفوظة ولم يتم تعديل بياناتها المشتركة."
+            : "تم ربط الحساب بالمدرسة الموجودة وعرض هويتها المحفوظة."
+          : "تم حفظ بيانات المدرسة والحساب بنجاح.",
       });
       const showStandardSaveFeedback = window.dispatchEvent(new CustomEvent("teachix:school-settings-saved", { cancelable: true }));
-      if (showStandardSaveFeedback) setSaveConfirmationOpen(true);
+      if (showStandardSaveFeedback && !linkedToExistingSchool) setSaveConfirmationOpen(true);
     } catch (error) {
       setFeedback({
         type: "error",
