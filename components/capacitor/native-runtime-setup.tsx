@@ -30,18 +30,34 @@ import {
 import { isDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { setNativeStatusBarUnderlay } from "@/lib/native/native-download";
 
+function shouldInitializeNativeRuntime() {
+  if (!isNativeCapacitor()) return false;
+
+  // Print documents inherit the root layout and can be rendered in an iframe.
+  // They must never initialize the native launch/deep-link runtime, because a
+  // launch URL belongs to the host app and can navigate the iframe away from
+  // its requested print document.
+  if (window.location.pathname.startsWith("/print/")) return false;
+
+  try {
+    return window.self === window.top;
+  } catch {
+    return false;
+  }
+}
+
 export function NativeRuntimeSetup() {
   const [startupGateActive, setStartupGateActive] = useState(false);
 
   useLayoutEffect(() => {
-    if (!isNativeCapacitor()) return;
+    if (!shouldInitializeNativeRuntime()) return;
 
     setStartupGateActive(true);
     logNativeRuntimeDiagnostic("startup-gate-activated", { coldStart: true });
   }, []);
 
   useEffect(() => {
-    if (!isNativeCapacitor()) return;
+    if (!shouldInitializeNativeRuntime()) return;
     if (!acquireNativeRuntime()) {
       setStartupGateActive(false);
       return;

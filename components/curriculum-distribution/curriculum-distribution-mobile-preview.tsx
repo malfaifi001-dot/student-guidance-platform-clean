@@ -70,6 +70,7 @@ export function CurriculumDistributionMobilePreview({
   const [error, setError] = useState("");
   const [previewReady, setPreviewReady] = useState(false);
   const [previewError, setPreviewError] = useState("");
+  const [previewReloadVersion, setPreviewReloadVersion] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -119,7 +120,7 @@ export function CurriculumDistributionMobilePreview({
     }, 15000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [open, previewUrl]);
+  }, [open, previewReloadVersion, previewUrl]);
 
   if (!open) return null;
 
@@ -154,6 +155,10 @@ export function CurriculumDistributionMobilePreview({
   function fitPreview() {
     setFitMode(true);
     setPan({ x: 0, y: 0 });
+  }
+
+  function retryPreview() {
+    setPreviewReloadVersion((current) => current + 1);
   }
 
   function startPinch(event: TouchEvent<HTMLDivElement>) {
@@ -316,12 +321,13 @@ export function CurriculumDistributionMobilePreview({
               </div>
             ) : null}
             {previewError ? (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white px-5 text-center text-sm font-bold text-rose-700" role="alert">
-                {previewError}
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white px-5 text-center text-sm font-bold text-rose-700" role="alert">
+                <span>{previewError}</span>
+                <button type="button" onClick={retryPreview} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200">إعادة المحاولة</button>
               </div>
             ) : null}
             <iframe
-              key={previewUrl}
+              key={`${previewUrl}:${previewReloadVersion}`}
               title={`معاينة تقرير ${documentLabel}`}
               src={previewUrl}
               className="absolute inset-0 block border-0 bg-white"
@@ -329,6 +335,32 @@ export function CurriculumDistributionMobilePreview({
                 const reportDocument = event.currentTarget.contentDocument;
                 if (!reportDocument) {
                   frameReadyRef.current = true;
+                  setPreviewError(documentNotFoundMessage);
+                  return;
+                }
+
+                try {
+                  const requestedUrl = new URL(previewUrl, window.location.origin);
+                  const loadedUrl = new URL(reportDocument.location.href);
+                  if (
+                    loadedUrl.origin !== requestedUrl.origin ||
+                    loadedUrl.pathname !== requestedUrl.pathname ||
+                    loadedUrl.search !== requestedUrl.search
+                  ) {
+                    frameReadyRef.current = true;
+                    setPreviewReady(false);
+                    setPreviewError(documentNotFoundMessage);
+                    if (process.env.NODE_ENV !== "production") {
+                      console.warn("PREVIEW_DOCUMENT_URL_MISMATCH", {
+                        requested: requestedUrl.href,
+                        loaded: loadedUrl.href,
+                      });
+                    }
+                    return;
+                  }
+                } catch {
+                  frameReadyRef.current = true;
+                  setPreviewReady(false);
                   setPreviewError(documentNotFoundMessage);
                   return;
                 }
