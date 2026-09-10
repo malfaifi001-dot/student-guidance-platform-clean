@@ -16,6 +16,7 @@ import { GuidanceScope } from "@/components/guidance/guidance-scope";
 import { ExpandableActionMenu } from "@/components/actions/expandable-action-menu";
 import { SpecialReportLinkPopCard } from "@/components/special-report/special-report-link-pop-card";
 import { getApprovedSpecialReportCase, getSpecialReportLink } from "@/lib/special-report/report-linking";
+import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
 
 type WorkflowServiceHomePageProps = {
   serviceSlug: string;
@@ -101,13 +102,27 @@ function getCaseTitle(
   caseItem: {
     title?: string | null;
     createdAt?: Date | string | null;
+    workflowSnapshot?: unknown;
+    workflow?: { name?: string | null } | null;
+    service?: { name?: string | null } | null;
+    values?: Array<{
+      fieldKey?: string | null;
+      value?: unknown;
+      jsonValue?: unknown;
+      field?: {
+        key?: string | null;
+        label?: string | null;
+        options?: Array<{ label?: string | null; value?: string | null }> | null;
+      } | null;
+    }>;
   },
   caseSingularName: string,
 ) {
+  const resolvedTitle = resolveArabicCaseReportTitle(caseItem);
   const title = String(caseItem.title || "").trim();
 
-  if (title && !isGenericTitle(title)) {
-    return title;
+  if (title && !isGenericTitle(title) && resolvedTitle) {
+    return resolvedTitle;
   }
 
   return `${caseSingularName} - ${formatDate(caseItem.createdAt)}`;
@@ -255,6 +270,13 @@ export async function WorkflowServiceHomePage({
       createdAt: true,
       updatedAt: true,
       submittedAt: true,
+      workflowSnapshot: true,
+      workflow: {
+        select: { name: true },
+      },
+      service: {
+        select: { name: true },
+      },
       _count: {
         select: {
           values: true,
@@ -263,13 +285,20 @@ export async function WorkflowServiceHomePage({
         },
       },
       values: {
-        where: {
-          fieldKey: "assigned_teacher_name",
-        },
-        take: 1,
         select: {
           fieldKey: true,
           value: true,
+          jsonValue: true,
+          field: {
+            select: {
+              key: true,
+              label: true,
+              options: {
+                select: { label: true, value: true },
+                orderBy: { order: "asc" },
+              },
+            },
+          },
         },
       },
       guidanceReports: {

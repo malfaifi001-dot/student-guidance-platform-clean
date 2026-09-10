@@ -856,8 +856,14 @@ function findByIntent(values: CaseValueItem[], intents: string[]) {
 
 function findTitle(caseEntry: any, values: CaseValueItem[]) {
   const fromCase = String(caseEntry.title || "").trim();
+  const isTechnicalOptionValue = /^[a-z][a-z0-9_-]*$/i.test(fromCase);
 
-  if (fromCase && fromCase !== "بدون عنوان" && fromCase.length < 120) {
+  if (
+    fromCase &&
+    !isTechnicalOptionValue &&
+    fromCase !== "بدون عنوان" &&
+    fromCase.length < 120
+  ) {
     return fromCase;
   }
 

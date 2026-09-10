@@ -21,6 +21,22 @@ export type WorkflowValueLike = {
   field?: WorkflowFieldLike | null;
 };
 
+type WorkflowDefinitionLike = {
+  steps?: Array<{
+    fields?: WorkflowFieldLike[] | null;
+  }> | null;
+} | null | undefined;
+
+const WORKFLOW_TITLE_FIELD_KEYS = [
+  "program_name",
+  "activity_program",
+  "activity_name",
+  "program",
+  "title",
+  "اسم البرنامج",
+  "اسم النشاط",
+] as const;
+
 export function getWorkflowFieldKey(item: WorkflowValueLike) {
   return item.field?.key || item.fieldKey || item.id || "";
 }
@@ -51,6 +67,62 @@ export function formatWorkflowDisplayValue(
     item.field?.options || [],
     otherValue,
   );
+}
+
+/**
+ * Converts a raw workflow submission record into display values using the
+ * workflow's persisted DynamicFieldOption metadata. The source record is not
+ * changed; this is strictly a presentation adapter.
+ */
+export function buildWorkflowDisplayValues(
+  values: Record<string, unknown>,
+  workflow: WorkflowDefinitionLike,
+): WorkflowValueLike[] {
+  const fields = new Map<string, WorkflowFieldLike>();
+
+  for (const step of workflow?.steps || []) {
+    for (const field of step.fields || []) {
+      const key = String(field.key || "").trim();
+      if (key) fields.set(key, field);
+    }
+  }
+
+  return Object.entries(values).map(([fieldKey, rawValue]) => ({
+    fieldKey,
+    value: typeof rawValue === "string" ? rawValue : null,
+    jsonValue: typeof rawValue === "string" ? undefined : rawValue,
+    field: fields.get(fieldKey) || { key: fieldKey },
+  }));
+}
+
+/**
+ * Resolves the primary human-readable title from a raw workflow submission.
+ * Option labels remain the source of truth; raw option values stay stored.
+ */
+export function resolveWorkflowRecordTitle(
+  values: Record<string, unknown>,
+  workflow: WorkflowDefinitionLike,
+  fallback: string,
+) {
+  const displayValues = buildWorkflowDisplayValues(values, workflow);
+
+  for (const fieldKey of WORKFLOW_TITLE_FIELD_KEYS) {
+    const value = displayValues.find(
+      (item) => getWorkflowFieldKey(item) === fieldKey,
+    );
+    const display = value
+      ? formatWorkflowDisplayValue(value, displayValues).trim()
+      : "";
+
+    if (display) return display;
+  }
+
+  for (const value of displayValues) {
+    const display = formatWorkflowDisplayValue(value, displayValues).trim();
+    if (display) return display;
+  }
+
+  return fallback;
 }
 
 export function stringifyWorkflowRawValue(value: unknown): string {

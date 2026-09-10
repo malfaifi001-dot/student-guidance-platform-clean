@@ -176,13 +176,6 @@ export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
     status: "available",
   },
   {
-    title: "الشواهد والمرفقات",
-    description: "تنظيم شواهد الأنشطة والمرفقات.",
-    href: "/dashboard/activity-leader/evidence",
-    icon: "evidence",
-    status: "available",
-  },
-  {
     title: "ملف الإنجاز",
     description: "وحدة مستقبلية لتجميع أعمال رائد النشاط.",
     href: "/dashboard/activity-leader/portfolio",

@@ -70,7 +70,6 @@ export async function TeacherWorkspacePage({
     const assignmentCount = user?.id
       ? await prisma.internalAssignment.count({
           where: {
-            schoolAccountId,
             assigneeId: user.id,
           },
         })

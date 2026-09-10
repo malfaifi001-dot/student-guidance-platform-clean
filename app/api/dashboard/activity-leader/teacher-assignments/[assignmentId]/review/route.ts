@@ -7,6 +7,7 @@ import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { dispatchAutomaticPushEvent } from "@/lib/notifications/push-center-service";
+import { resolveWorkflowRecordTitle } from "@/lib/workflow-values/workflow-display-value";
 
 type RouteContext = {
   params: Promise<{
@@ -227,9 +228,35 @@ export async function POST(request: Request, context: RouteContext) {
   const submittedValues = asRecord(assignment.submittedValues);
   const submittedEvidenceItems = asEvidenceItems(assignment.submittedEvidenceItems);
 
+  const workflow = await prisma.workflow.findUnique({
+    where: { id: assignment.workflowId },
+    select: {
+      steps: {
+        select: {
+          fields: {
+            select: {
+              key: true,
+              label: true,
+              type: true,
+              options: {
+                select: { label: true, value: true },
+                orderBy: { order: "asc" },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
   const caseTitle = getCaseTitle(
     submittedValues,
     `${assignment.domainTitle} - ${assignment.teacherName}`,
+  );
+  const displayCaseTitle = resolveWorkflowRecordTitle(
+    submittedValues,
+    workflow,
+    caseTitle,
   );
 
   const result = await saveRuntimeCase({
@@ -237,7 +264,7 @@ export async function POST(request: Request, context: RouteContext) {
     createdById: assignment.createdById,
     workflowId: assignment.workflowId,
     serviceId: assignment.serviceId,
-    title: caseTitle,
+    title: displayCaseTitle,
     studentId: null,
     values: {
       ...submittedValues,

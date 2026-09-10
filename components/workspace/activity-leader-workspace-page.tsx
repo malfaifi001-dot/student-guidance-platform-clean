@@ -65,13 +65,6 @@ export function ActivityLeaderWorkspacePage({
           href: "/dashboard/calendar",
         },
         {
-          label: "الشواهد",
-          value: formatCount(stats.evidenceItems),
-          helper: "الشواهد والمرفقات المسجلة.",
-          icon: "evidence",
-          href: "/dashboard/activity-leader/evidence",
-        },
-        {
           label: "التقارير",
           value: formatCount(stats.activityReports),
           helper: "التقارير المسجلة داخل حساب المدرسة.",

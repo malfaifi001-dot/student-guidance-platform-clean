@@ -120,12 +120,7 @@ export default async function DashboardCalendarPage() {
   ]);
 
   return (
-    <main className="min-w-0 space-y-4 text-slate-950 dark:text-slate-100" dir="rtl">
-      <section className="rounded-2xl border border-sky-200 bg-gradient-to-l from-sky-50 to-white p-4 shadow-sm dark:border-sky-900/60 dark:from-sky-950/40 dark:to-slate-900">
-        <h1 className="text-xl font-black text-sky-950 dark:text-white sm:text-2xl">التقويم والتنبيهات</h1>
-      </section>
-
-      <CalendarCenterClient
+    <CalendarCenterClient
         reminders={reminders.map((item) => ({
           ...item,
           scheduledAt: item.scheduledAt.toISOString(),
@@ -134,6 +129,5 @@ export default async function DashboardCalendarPage() {
         cases={cases}
         students={students}
       />
-    </main>
   );
 }

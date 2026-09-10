@@ -8,6 +8,7 @@ import {
   type WorkflowFieldLike,
   type WorkflowValueLike,
 } from "@/lib/workflow-values/workflow-display-value";
+import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
 
 type DetailStat = {
   label: string;
@@ -64,7 +65,7 @@ function getStatusClasses(status: string) {
 
 function getCaseTitle(caseEntry: any) {
   return (
-    cleanText(caseEntry?.title) ||
+    cleanText(resolveArabicCaseReportTitle(caseEntry)) ||
     cleanText(caseEntry?.student?.fullName) ||
     cleanText(caseEntry?.service?.name) ||
     "تفاصيل الحالة"

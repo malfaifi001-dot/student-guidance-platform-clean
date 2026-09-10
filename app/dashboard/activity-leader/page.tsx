@@ -28,7 +28,9 @@ export default async function ActivityLeaderDashboardPage() {
   const { nextSevenDays } = getAttentionWindow();
 
   const [metrics, reminders] = await Promise.all([
-    schoolAccountId ? getSchoolDashboardMetrics(schoolAccountId) : null,
+    schoolAccountId
+      ? getSchoolDashboardMetrics(schoolAccountId, new Date(), current.user.id)
+      : null,
     schoolAccountId
       ? prisma.calendarReminder.findMany({
           where: {

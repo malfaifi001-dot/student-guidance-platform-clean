@@ -12,8 +12,10 @@ export type SchoolDashboardMetrics = {
 };
 
 /**
- * Shared school-scoped dashboard metrics. The counts intentionally use the
- * business records, not activity-log events, and exclude archived records.
+ * Shared dashboard metrics. Students and operational items remain scoped to
+ * the current school. When ownerUserId is supplied, case-derived metrics use
+ * the durable CaseEntry.createdById owner instead, so personal work survives
+ * a school-account transfer. Omit ownerUserId for school-wide callers.
  */
 export async function getSchoolDashboardMetrics(
   schoolAccountId: string,
@@ -55,11 +57,11 @@ export async function getSchoolDashboardMetrics(
       where: { report: { caseEntry: { schoolAccountId } } },
     }),
     prisma.caseEntry.count({
-      where: { schoolAccountId, status: "DRAFT" },
+      where: { ...caseScope, status: "DRAFT" },
     }),
     prisma.caseEntry.count({
       where: {
-        schoolAccountId,
+        ...caseScope,
         status: "SUBMITTED",
         guidanceReports: { none: {} },
       },

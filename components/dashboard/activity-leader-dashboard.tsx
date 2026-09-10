@@ -9,7 +9,6 @@ import {
   FolderKanban,
   Plus,
   Sparkles,
-  UploadCloud,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -171,12 +170,6 @@ export function ActivityLeaderDashboard({
                 helper="توثيق المشاركات والمبادرات."
               />
 
-              <ServiceCard
-                href="/dashboard/activity-leader/evidence"
-                icon={<UploadCloud className="h-6 w-6" />}
-                title="الشواهد والمرفقات"
-                helper="حفظ الشواهد وتنظيمها."
-              />
             </div>
           </section>
 

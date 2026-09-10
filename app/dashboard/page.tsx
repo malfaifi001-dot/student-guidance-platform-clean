@@ -51,7 +51,7 @@ export default async function DashboardPage() {
 
   const [metrics, reminders] = await Promise.all([
     schoolAccountId
-      ? getSchoolDashboardMetrics(schoolAccountId)
+      ? getSchoolDashboardMetrics(schoolAccountId, new Date(), current.user.id)
       : null,
     schoolAccountId
       ? prisma.calendarReminder.findMany({
