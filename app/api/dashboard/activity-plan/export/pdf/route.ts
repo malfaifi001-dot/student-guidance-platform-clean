@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (context instanceof Response) return context;
   if (!context.isAdmin && context.user.role !== "ACTIVITY_LEADER") return NextResponse.json({ success: false, error: "هذه الخدمة متاحة لرائد النشاط فقط." }, { status: 403 });
 
-  let body: { fileName?: unknown; stage?: unknown; mode?: unknown; weeks?: unknown; gradeSections?: unknown } = {};
+  let body: { fileName?: unknown; stage?: unknown; mode?: unknown; view?: unknown; weeks?: unknown; gradeSections?: unknown } = {};
   try { body = (await request.json()) as typeof body; } catch { /* optional body */ }
 
   const origin = getRequestOrigin(request);
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   if (typeof body.stage === "string" && body.stage.trim()) printUrl.searchParams.set("stage", body.stage.trim());
   if (body.mode === "weekly") printUrl.searchParams.set("mode", "weekly");
   if (body.mode === "ten-percent") printUrl.searchParams.set("mode", "ten-percent");
+  if (body.view === "activity-entries") printUrl.searchParams.set("view", "activity-entries");
   if (Array.isArray(body.weeks)) {
     const weeks = body.weeks.map((week) => Number(week)).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20);
     if (weeks.length) printUrl.searchParams.set("weeks", Array.from(new Set(weeks)).join(","));

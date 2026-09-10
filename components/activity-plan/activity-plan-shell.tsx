@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Eye, Link2, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -14,6 +14,7 @@ import { ACTIVITY_PLAN_SECTIONS, getActivityPlanGradeOptions, REAL_ACTIVITY_PLAN
 import { PerformanceItemLinkPopCard } from "@/components/performance-links/performance-item-link-pop-card";
 import { TenPercentActivityPlanPanel } from "@/components/activity-plan/ten-percent-activity-plan-panel";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
+import { WeeklyActivityPlanCellModal } from "@/components/activity-plan/weekly-activity-plan-cell-modal";
 
 type Program = { id: string; key?: string; title: string };
 type Entry = {
@@ -29,6 +30,7 @@ type Entry = {
   teacherName: string;
   domainServiceSlug?: string;
   domainKey?: string;
+  domainTitle?: string;
   displayTitle?: string;
   program: Program;
 };
@@ -36,19 +38,33 @@ type WorkflowProgramOption = { value: string; label: string; isOther: boolean };
 type DateItem = { dayOfWeek: number; label: string; date: string };
 type Cell = { dayOfWeek: number; periodNumber: number; date: string };
 type ServiceLink = { id: string; sourceKey: string; sourceReferenceJson: Record<string, unknown>; targetSectionKey?: string | null; performanceItemKey: string };
+const ACTIVITY_PLAN_STAGE_PREFERENCE_KEY = "activity-plan:selected-stages";
 
 function formatDate(value: string) {
   return formatActivityPlanHijriDate(value);
+}
+
+function readActivityPlanStagePreference() {
+  if (typeof window === "undefined") return null;
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(ACTIVITY_PLAN_STAGE_PREFERENCE_KEY) || "null");
+    return Array.isArray(value) ? value.filter((stage): stage is string => typeof stage === "string") : null;
+  } catch {
+    return null;
+  }
 }
 
 export function ActivityPlanShell() {
   const [week, setWeek] = useState(1);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [dates, setDates] = useState<DateItem[]>([]);
-  const [grades, setGrades] = useState<string[]>([]);
   const [gradesByStage, setGradesByStage] = useState<Record<string, string[]>>({});
   const [stages, setStages] = useState<string[]>([]);
   const [selectedStage, setSelectedStage] = useState("");
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+  const [stageDraft, setStageDraft] = useState<string[]>([]);
+  const [stagePickerOpen, setStagePickerOpen] = useState(false);
+  const [stagePreferenceReady, setStagePreferenceReady] = useState(false);
   const [mode, setMode] = useState<"weekly" | "ten-percent">("weekly");
   const [teachers, setTeachers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,22 +85,37 @@ export function ActivityPlanShell() {
   const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
 
-  const loadWeek = async (nextWeek: number, nextStage: string) => {
+  const loadWeek = async (nextWeek: number, nextStage: string, requestedStages = selectedStages) => {
     setLoading(true);
     setError("");
     try {
-      const query = new URLSearchParams({ week: String(nextWeek) });
-      if (nextStage) query.set("stage", nextStage);
-      const response = await fetch(`/api/dashboard/activity-plan?${query.toString()}`, { cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "تعذر تحميل الخطة.");
-      setEntries(payload.entries || []);
-      setDates(payload.dates || []);
-      setGrades(payload.suggestions?.grades || []);
-      setGradesByStage(payload.suggestions?.gradesByStage || {});
-      setTeachers(payload.suggestions?.teachers || []);
-      setStages(payload.stages || []);
-      setSelectedStage(payload.stage || nextStage);
+      const targetStages = Array.from(new Set(requestedStages.filter(Boolean)));
+      const responses = await Promise.all((targetStages.length ? targetStages : [nextStage]).map(async (stage) => {
+        const query = new URLSearchParams({ week: String(nextWeek) });
+        if (stage) query.set("stage", stage);
+        const response = await fetch(`/api/dashboard/activity-plan?${query.toString()}`, { cache: "no-store" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "تعذر تحميل الخطة.");
+        return payload;
+      }));
+      const firstPayload = responses[0] || {};
+      const availableStages = Array.isArray(firstPayload.stages) ? firstPayload.stages as string[] : [];
+      setEntries(responses.flatMap((payload) => Array.isArray(payload.entries) ? payload.entries as Entry[] : []));
+      setDates(firstPayload.dates || []);
+      setGradesByStage(Object.fromEntries(availableStages.map((stage) => [stage, Array.from(new Set(responses.flatMap((payload) => payload.suggestions?.gradesByStage?.[stage] || [])))])));
+      setTeachers(Array.from(new Set(responses.flatMap((payload) => Array.isArray(payload.suggestions?.teachers) ? payload.suggestions.teachers : []))));
+      setStages(availableStages);
+      setSelectedStage(availableStages.includes(nextStage) ? nextStage : firstPayload.stage || availableStages[0] || "");
+
+      if (!stagePreferenceReady && availableStages.length) {
+        const stored = readActivityPlanStagePreference();
+        const validStored = stored?.filter((stage) => availableStages.includes(stage)) || [];
+        setStageDraft(validStored.length ? validStored : availableStages);
+        setSelectedStages(validStored);
+        if (validStored.length) setSelectedStage(validStored[0]);
+        setStagePickerOpen(!validStored.length);
+        setStagePreferenceReady(true);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "تعذر تحميل الخطة.");
     } finally {
@@ -93,24 +124,61 @@ export function ActivityPlanShell() {
   };
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void loadWeek(week, selectedStage); }, [week, selectedStage]);
+  useEffect(() => { void loadWeek(week, selectedStage, selectedStages); }, [week, selectedStage, selectedStages]);
   useEffect(() => {
     void fetch("/api/dashboard/performance-links?serviceSlug=student-activity-plan&roleContext=ACTIVITY_LEADER", { cache: "no-store" })
-      .then((response) => response.json())
+      .then((response) => response.json().catch(() => ({})))
       .then((payload) => setServiceLinks(payload.links || []));
   }, [linkOpen]);
 
   const existingLink = serviceLinks.find((link) => link.sourceKey === "school-account") || null;
+  const visibleStages = stages.filter((stage) => selectedStages.includes(stage));
 
-  const entryByCell = useMemo(
-    () => new Map(entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry])),
-    [entries],
-  );
+  function openStagePicker() {
+    setStageDraft(selectedStages.length ? selectedStages : stages);
+    setStagePickerOpen(true);
+  }
+
+  function toggleStageDraft(stage: string) {
+    setStageDraft((current) => current.includes(stage) ? current.filter((item) => item !== stage) : [...current, stage]);
+  }
+
+  function confirmStageSelection() {
+    const nextStages = stages.filter((stage) => stageDraft.includes(stage));
+    if (!nextStages.length) return;
+    window.localStorage.setItem(ACTIVITY_PLAN_STAGE_PREFERENCE_KEY, JSON.stringify(nextStages));
+    setSelectedStages(nextStages);
+    setStageDraft(nextStages);
+    setSelectedStage(nextStages[0]);
+    setStagePickerOpen(false);
+  }
+
+  async function deleteWeeklyEntry(entry: Entry) {
+    if (!window.confirm("هل تريد حذف هذا النشاط فقط؟")) return;
+    setError("");
+    try {
+      const response = await fetch("/api/dashboard/activity-plan", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry.id }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر حذف النشاط.");
+      setEntries((current) => current.filter((item) => item.id !== entry.id));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذر حذف النشاط.");
+    }
+  }
+
+  const entriesByCell = useMemo(() => {
+    const grouped = new Map<string, Entry[]>();
+    for (const entry of entries) {
+      const key = `${entry.stage}-${entry.dayOfWeek}-${entry.periodNumber}`;
+      grouped.set(key, [...(grouped.get(key) || []), entry]);
+    }
+    return grouped;
+  }, [entries]);
   async function printActivityPlan() {
     const result = await print.runPrintExport({
       exportUrl: "/api/dashboard/activity-plan/export/pdf",
       method: "POST",
-      body: { fileName: "student-activity-plan.pdf", stage: previewStage, mode, weeks: previewWeekMode === "selected" ? previewWeeks : undefined, gradeSections: mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : undefined },
+      body: { fileName: "student-activity-plan.pdf", stage: previewStage, mode, view: mode === "weekly" ? "activity-entries" : undefined, weeks: previewWeekMode === "selected" ? previewWeeks : undefined, gradeSections: mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : undefined },
       printUrl: buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, true, mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : []),
       fileName: "student-activity-plan.pdf",
       blockedTitle: "معاينة خطة النشاط الطلابي",
@@ -173,6 +241,7 @@ export function ActivityPlanShell() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-black tracking-tight">{mode === "ten-percent" ? "الخطة الفصلية" : "خطة النشاط الطلابي"}</h1>
           <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={openStagePicker} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">تغيير المراحل</button>
             <button type="button" onClick={openPreviewSetup} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 text-xs font-black text-sky-800 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200"><Eye className="h-4 w-4" />معاينة</button>
             <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"><Link2 className="h-4 w-4" />تعديل الربط</button>
           </div>
@@ -181,7 +250,7 @@ export function ActivityPlanShell() {
 
       <div className={mode === "ten-percent" ? "min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/35 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/15 sm:p-3" : "contents"}>
       <section className={`activity-plan-controls-surface min-w-0 max-w-full ${mode === "ten-percent" ? "border-b border-sky-100 bg-transparent p-0 pb-2 dark:border-sky-900/60" : "rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900"}`}>
-        <ActivityPlanControls stages={stages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
+        <ActivityPlanControls stages={visibleStages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
       </section>
 
       {mode === "weekly" ? <section className="min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
@@ -193,7 +262,7 @@ export function ActivityPlanShell() {
       </section> : null}
 
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-black text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-200">{error}</div> : null}
-      {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} allowedStages={stages} /> : <section className={`min-w-0 max-w-full rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
+      {mode === "ten-percent" ? <TenPercentActivityPlanPanel stage={selectedStage} allowedStages={visibleStages} /> : <section className={`min-w-0 max-w-full rounded-2xl border p-2 shadow-sm md:p-3 ${mode === "weekly" ? "border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-blue-950/15" : "border-sky-200 bg-sky-50/25 dark:border-sky-900/60 dark:bg-sky-950/15"}`}>
         <>
           <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 [scrollbar-width:thin] dark:border-slate-700" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="min-w-[1220px]">
@@ -207,12 +276,24 @@ export function ActivityPlanShell() {
                     <span className="text-sm font-black text-slate-900 dark:text-slate-100">{day.label}</span><span className="mt-1 text-xs font-bold text-sky-700 dark:text-sky-300">{formatDate(day.date)}</span>
                   </div>
                   {ACTIVITY_PLAN_PERIODS.map((period) => {
-                    const entry = entryByCell.get(`${day.dayOfWeek}-${period}`);
-                    const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
-                    const colorClass = domainProgram?.colorClass || "";
-                    return <button type="button" key={`${day.dayOfWeek}-${period}`} onClick={() => { setActiveCell({ dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date }); setEditing(entry || null); }} className="group min-h-[136px] border-b border-l border-slate-200 bg-white p-2 text-right transition hover:bg-sky-50/50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-sky-950/30">
-                      {entry ? <div className={`h-full rounded-xl border p-3 ${colorClass || "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"}`}><p className="break-words whitespace-normal text-center text-[13px] font-black leading-5">{entry.displayTitle || entry.program.title}</p><p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-300">{entry.stage}{entry.gradeLabel ? ` — ${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}` : ""}</p>{entry.subject ? <p className="mt-1 text-xs font-black text-sky-700 dark:text-sky-300">{entry.subject} • {entry.materialType || "أساسية"}</p> : null}<p className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-400">{entry.teacherName}</p><span className="mt-3 block text-[10px] font-black text-sky-700 opacity-0 transition group-hover:opacity-100 dark:text-sky-300">اضغط للتعديل</span></div> : <span className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-xs font-bold text-slate-400 transition group-hover:border-sky-300 group-hover:bg-sky-50 group-hover:text-sky-700 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-sky-700 dark:group-hover:bg-sky-950/30 dark:group-hover:text-sky-300"><Plus className="h-4 w-4" /><span className="sr-only">إضافة إدخال</span><span aria-hidden="true">إضافة</span></span>}
-                    </button>;
+                    const cell = { dayOfWeek: day.dayOfWeek, periodNumber: period, date: day.date };
+                    const cellEntries = entriesByCell.get(`${selectedStage}-${day.dayOfWeek}-${period}`) || [];
+                    return <div key={`${day.dayOfWeek}-${period}`} className="min-h-[136px] border-b border-l border-slate-200 bg-white p-2 text-right dark:border-slate-700 dark:bg-slate-950">
+                      <div className="space-y-2">
+                        {cellEntries.map((entry) => {
+                          const domainProgram = entry.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+                          const colorClass = domainProgram?.colorClass || "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
+                          return <article key={entry.id} className={`rounded-xl border p-2 ${colorClass}`}>
+                            <div className="flex items-start justify-between gap-1.5"><p className="min-w-0 break-words text-[11px] font-black leading-4">{entry.domainTitle || "مجال النشاط"}</p><span className="flex shrink-0 gap-1"><button type="button" onClick={() => { setActiveCell(cell); setEditing(entry); }} className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/80 text-slate-700 shadow-sm dark:bg-slate-950/70 dark:text-slate-200" title="تعديل النشاط" aria-label="تعديل النشاط"><Pencil className="h-3.5 w-3.5" /></button><button type="button" onClick={() => void deleteWeeklyEntry(entry)} className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/80 text-rose-700 shadow-sm dark:bg-slate-950/70 dark:text-rose-300" title="حذف النشاط" aria-label="حذف النشاط"><Trash2 className="h-3.5 w-3.5" /></button></span></div>
+                            <p className="mt-1 break-words text-[12px] font-black leading-4">{entry.program.title}</p>
+                            {entry.subject ? <p className="mt-1 text-[10px] font-bold leading-4">{entry.subject} ({entry.materialType || "أساسية"})</p> : null}
+                            {entry.gradeLabel || entry.section ? <p className="mt-1 text-[10px] font-bold leading-4">{[entry.gradeLabel, entry.section].filter(Boolean).join(" ")}</p> : null}
+                            <p className="mt-1 text-[10px] font-bold leading-4 opacity-80">{entry.teacherName}</p>
+                          </article>;
+                        })}
+                        <button type="button" onClick={() => { setActiveCell(cell); setEditing(null); }} className="flex min-h-9 w-full items-center justify-center gap-1 rounded-lg border border-dashed border-sky-300 px-2 text-[11px] font-black text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/30"><Plus className="h-3.5 w-3.5" />{cellEntries.length ? "إضافة نشاط آخر" : "إضافة نشاط"}</button>
+                      </div>
+                    </div>;
                   })}
                 </div>
               ))}
@@ -223,10 +304,16 @@ export function ActivityPlanShell() {
       </section>}
       </div>
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
-      <ActivityPlanPreviewSetup open={previewSetupOpen} allowedStages={stages} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} semesterMode={mode === "ten-percent"} scope={previewScope} gradeSections={previewGradeSections} selectedGradeSections={previewSelectedGradeSections} onScopeChange={(scope) => { setPreviewScope(scope); setPreviewSetupError(""); }} onSelectedGradeSectionsChange={(values) => { setPreviewSelectedGradeSections(values); setPreviewSetupError(""); }} onClose={() => setPreviewSetupOpen(false)} onStageChange={(nextStage) => { void changePreviewStage(nextStage); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
-      {mode !== "ten-percent" ? <ActivityPlanCopyModal open={copyOpen} sourceStage={selectedStage} mode={mode} stages={stages} onClose={() => setCopyOpen(false)} /> : null}
+      <ActivityPlanPreviewSetup open={previewSetupOpen} allowedStages={visibleStages} stage={previewStage} weekMode={previewWeekMode} weeks={previewWeeks} error={previewSetupError} semesterMode={mode === "ten-percent"} scope={previewScope} gradeSections={previewGradeSections} selectedGradeSections={previewSelectedGradeSections} onScopeChange={(scope) => { setPreviewScope(scope); setPreviewSetupError(""); }} onSelectedGradeSectionsChange={(values) => { setPreviewSelectedGradeSections(values); setPreviewSetupError(""); }} onClose={() => setPreviewSetupOpen(false)} onStageChange={(nextStage) => { void changePreviewStage(nextStage); }} onWeekModeChange={(mode) => { setPreviewWeekMode(mode); setPreviewSetupError(""); }} onWeeksChange={(weeks) => { setPreviewWeeks(weeks); setPreviewSetupError(""); }} onConfirm={openSelectedPreview} />
+      {mode !== "ten-percent" ? <ActivityPlanCopyModal open={copyOpen} sourceStage={selectedStage} mode={mode} stages={visibleStages} onClose={() => setCopyOpen(false)} /> : null}
       <CurriculumDistributionMobilePreview open={previewOpen} previewUrl={buildActivityPlanPreviewUrl(previewStage, mode, previewWeekMode, previewWeeks, false, mode === "ten-percent" ? (previewScope === "selected-sections" ? previewSelectedGradeSections : previewGradeSections) : [])} onDownload={printActivityPlan} onClose={() => setPreviewOpen(false)} title={mode === "ten-percent" ? "معاينة الخطة الفصلية" : "معاينة خطة النشاط الطلابي"} subtitle="راجع خطة النشاط قبل طباعتها أو تحميلها." documentSelector=".activity-plan-print-page" allowDocumentScroll />
-      <ActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={stages} selectedStage={selectedStage} gradesByStage={gradesByStage} grades={grades} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(entry) => { setEntries((current) => [...current.filter((item) => !(item.stage === entry.stage && item.dayOfWeek === entry.dayOfWeek && item.periodNumber === entry.periodNumber)), entry]); setGrades((current) => Array.from(new Set([...current, entry.gradeLabel]))); setTeachers((current) => Array.from(new Set([...current, entry.teacherName]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
+      <WeeklyActivityPlanCellModal key={activeCell ? `${week}-${activeCell.dayOfWeek}-${activeCell.periodNumber}-${editing?.id || "new"}` : "closed"} week={week} cell={activeCell} entry={editing} stages={visibleStages} selectedStage={selectedStage} gradesByStage={gradesByStage} teachers={teachers} onClose={() => { setActiveCell(null); setEditing(null); }} onSaved={(savedEntries) => { setEntries((current) => [...current.filter((item) => !savedEntries.some((saved) => saved.id === item.id)), ...savedEntries]); setTeachers((current) => Array.from(new Set([...current, ...savedEntries.map((entry) => entry.teacherName)]))); setActiveCell(null); setEditing(null); }} onDeleted={(id) => { setEntries((current) => current.filter((item) => item.id !== id)); setActiveCell(null); setEditing(null); }} />
+      <SmartActionModal open={stagePickerOpen} title="اختر المراحل" description="اختر مرحلة واحدة أو أكثر لإظهارها في خطة النشاط." portal onClose={() => { if (selectedStages.length) setStagePickerOpen(false); }} showFooter={false}>
+        <div className="space-y-3" dir="rtl">
+          <div className="grid gap-2 sm:grid-cols-3">{stages.map((stage) => { const selected = stageDraft.includes(stage); return <button type="button" key={stage} aria-pressed={selected} onClick={() => toggleStageDraft(stage)} className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-black transition ${selected ? "border-sky-700 bg-sky-700 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"}`}>{selected ? <Check className="h-4 w-4" /> : null}{stage}</button>; })}</div>
+          <button type="button" onClick={confirmStageSelection} disabled={!stageDraft.length} className="h-11 w-full rounded-xl bg-sky-700 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">اعتماد</button>
+        </div>
+      </SmartActionModal>
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
     </main>
   );
@@ -254,6 +341,7 @@ function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { o
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
     setTargets([]);
@@ -262,6 +350,7 @@ function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { o
     setError("");
     setSuccess("");
   }, [open, sourceStage, mode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function toggleTarget(stage: string) {
     setTargets((current) => current.includes(stage) ? current.filter((item) => item !== stage) : [...current, stage]);
@@ -294,6 +383,7 @@ function ActivityPlanCopyModal({ open, sourceStage, mode, stages, onClose }: { o
   return <SmartActionModal open={open} title="نسخ الخطة" description={mode === "weekly" ? "الخطة الفصلية" : "الخطة الأسبوعية"} portal onClose={onClose} showFooter={false}><div className="space-y-4" dir="rtl"><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-black text-slate-500">نسخ من</p><p className="mt-1 text-sm font-black text-slate-900">{sourceStage || "—"}</p></div><div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-black text-slate-500">نوع الخطة</p><p className="mt-1 text-sm font-black text-slate-900">{mode === "weekly" ? "الخطة الفصلية" : "الخطة الأسبوعية"}</p></div></div><fieldset><legend className="mb-2 text-sm font-black text-slate-700">نسخ إلى</legend><div className="grid gap-2 sm:grid-cols-2">{availableStages.map((stage) => <label key={stage} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-700 hover:bg-sky-50"><input type="checkbox" checked={targets.includes(stage)} onChange={() => toggleTarget(stage)} />{stage}</label>)}</div></fieldset>{confirmRequired ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-black leading-7 text-amber-800">توجد بيانات حالية في المرحلة المستهدفة. هل تريد استبدالها بالخطة المنسوخة؟</div> : null}{error ? <p className="rounded-xl bg-rose-50 p-3 text-xs font-black text-rose-700">{error}</p> : null}{success ? <p className="rounded-xl bg-emerald-50 p-3 text-xs font-black text-emerald-700">{success}</p> : null}<div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void copyPlan()} disabled={saving || !targets.length} className="h-11 rounded-xl bg-sky-700 text-sm font-black text-white disabled:opacity-50">{saving ? "جار النسخ..." : confirmRequired ? "تأكيد النسخ والاستبدال" : "نسخ الخطة"}</button><button type="button" onClick={onClose} disabled={saving} className="h-11 rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-600">إلغاء</button></div></div></SmartActionModal>;
 }
 
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars */
 function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, gradesByStage, grades, teachers, onClose, onSaved, onDeleted }: { week: number; cell: Cell | null; entry: Entry | null; stages: string[]; selectedStage: string; gradesByStage: Record<string, string[]>; grades: string[]; teachers: string[]; onClose: () => void; onSaved: (entry: Entry) => void; onDeleted: (id: string) => void }) {
   const [domainServiceSlug, setDomainServiceSlug] = useState(entry?.domainServiceSlug || "");
   const [programValue, setProgramValue] = useState(entry?.program.key || "");
@@ -385,8 +475,11 @@ function ActivityPlanCellModal({ week, cell, entry, stages, selectedStage, grade
   </SmartActionModal>;
 }
 
+/* eslint-enable react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars */
+
 function buildActivityPlanPreviewUrl(stage: string, mode: "weekly" | "ten-percent", weekMode: "all" | "selected" | "semester", weeks: number[], print: boolean, gradeSections: string[] = []) {
   const params = new URLSearchParams({ preview: "1", stage, mode });
+  if (mode === "weekly") params.set("view", "activity-entries");
   if (print) params.set("print", "1");
   if (weekMode === "selected" && weeks.length) params.set("weeks", weeks.join(","));
   if (mode === "ten-percent" && gradeSections.length) params.set("gradeSections", gradeSections.join(","));

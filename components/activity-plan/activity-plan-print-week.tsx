@@ -1,6 +1,6 @@
 import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
-import type { ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
+import type { ActivityPlanPrintEntry, ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE } from "@/components/activity-plan/activity-plan-print-shell";
 
@@ -36,7 +36,11 @@ export function ActivityPlanPrintWeek({
   principalName,
   principalSignatureUrl,
 }: ActivityPlanPrintWeekProps) {
-  const entryBySlot = new Map(week.entries.map((entry) => [`${entry.dayOfWeek}-${entry.periodNumber}`, entry]));
+  const entriesBySlot = new Map<string, ActivityPlanPrintEntry[]>();
+  for (const entry of week.entries) {
+    const key = `${entry.dayOfWeek}-${entry.periodNumber}`;
+    entriesBySlot.set(key, [...(entriesBySlot.get(key) || []), entry]);
+  }
 
   return (
     <ActivityPlanPrintPage
@@ -82,11 +86,14 @@ export function ActivityPlanPrintWeek({
                 {rowIndex === 0 ? <th className="activity-plan-print-day" rowSpan={3}><span>{day.label}</span><small>{formatDate(day.date)}</small></th> : null}
                 <th className="activity-plan-print-row-label">{rowLabel}</th>
                 {periods.map((period) => {
-                  const entry = entryBySlot.get(`${day.dayOfWeek}-${period}`);
-                  const domainProgram = entry?.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
-                  const value = rowIndex === 0 ? entry?.displayTitle || "" : rowIndex === 1 ? [entry?.stage, entry?.gradeLabel && `${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}`, entry?.subject && `${entry.subject} • ${entry.materialType || "أساسية"}`].filter(Boolean).join("\n") : entry?.teacherName || "";
-                  const isProgramCell = rowIndex === 0 && Boolean(entry?.displayTitle);
-                  return <td key={`${rowLabel}-${period}`} className={isProgramCell ? "activity-plan-program-cell" : ""} style={{ ...(isProgramCell && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : {}), ...(rowIndex === 1 ? { whiteSpace: "pre-line" } : {}) }}>{value}</td>;
+                  const entries = entriesBySlot.get(`${day.dayOfWeek}-${period}`) || [];
+                  const hasProgram = rowIndex === 0 && entries.some((entry) => Boolean(entry.displayTitle));
+                  return <td key={`${rowLabel}-${period}`} className={hasProgram ? "activity-plan-program-cell" : ""} style={rowIndex === 1 ? { whiteSpace: "pre-line" } : undefined}>{entries.length ? <div className="activity-plan-print-entry-stack">{entries.map((entry, index) => {
+                    const domainProgram = entry.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+                    const value = rowIndex === 0 ? entry.displayTitle : rowIndex === 1 ? [entry.stage, entry.gradeLabel && `${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}`, entry.subject && `${entry.subject} (${entry.materialType || "أساسية"})`].filter(Boolean).join("\n") : entry.teacherName;
+                    const isProgram = rowIndex === 0 && Boolean(entry.displayTitle);
+                    return <div key={`${entry.programKey}-${index}`} className={isProgram ? "activity-plan-print-entry activity-plan-print-entry--program" : "activity-plan-print-entry"} style={isProgram && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</div>;
+                  })}</div> : null}</td>;
                 })}
               </tr>
             ));

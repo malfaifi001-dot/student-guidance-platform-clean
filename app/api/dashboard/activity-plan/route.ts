@@ -183,8 +183,20 @@ export async function POST(request: Request) {
   const domainServiceSlug = cleanText(body?.domainServiceSlug);
   const programValue = cleanText(body?.programValue || body?.programId);
   const manualProgramName = cleanText(body?.programName, 120);
+  const requestedPrograms = Array.isArray(body?.programs)
+    ? body.programs.flatMap((rawProgram) => {
+      if (!rawProgram || typeof rawProgram !== "object") return [];
+      const program = rawProgram as Record<string, unknown>;
+      const requestedDomain = cleanText(program.domainServiceSlug);
+      const requestedValue = cleanText(program.programValue || program.value);
+      if (!requestedDomain || !requestedValue) return [];
+      return [{ domainServiceSlug: requestedDomain, programValue: requestedValue, programName: cleanText(program.programName, 120) }];
+    })
+    : domainServiceSlug && programValue
+      ? [{ domainServiceSlug, programValue, programName: manualProgramName }]
+      : [];
 
-  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !stage || !gradeLabel || !teacherName || !domainServiceSlug || !programValue) {
+  if (!isValidActivityPlanSlot(week, dayOfWeek, periodNumber) || !stage || !teacherName || !requestedPrograms.length) {
     return NextResponse.json({ success: false, error: "أكمل بيانات الخلية المطلوبة." }, { status: 400 });
   }
 
@@ -196,35 +208,50 @@ export async function POST(request: Request) {
   if (!allowedStages.includes(stage)) {
     return NextResponse.json({ success: false, error: "لا يمكن الحفظ في مرحلة غير مسموحة للمستخدم الحالي." }, { status: 403 });
   }
-  const workflowPrograms = await getActivityPlanWorkflowPrograms(domainServiceSlug);
-  const selectedProgram = workflowPrograms ? findActivityPlanWorkflowProgram(workflowPrograms.options, programValue) : null;
-  if (!selectedProgram || (selectedProgram.isOther && !manualProgramName)) {
-    return NextResponse.json({ success: false, error: "البرنامج غير صالح أو يلزم إدخال الاسم." }, { status: 400 });
+  if (entryId && requestedPrograms.length !== 1) {
+    return NextResponse.json({ success: false, error: "يمكن تعديل نشاط واحد فقط في كل مرة." }, { status: 400 });
   }
-  const programName = selectedProgram.isOther ? manualProgramName : selectedProgram.label;
-  const domainTitle = getActivityProgramDomainByServiceSlug(domainServiceSlug)?.title || "";
+  const validatedPrograms: Array<{ domainServiceSlug: string; programValue: string; programName: string; domainTitle: string }> = [];
+  for (const requestedProgram of requestedPrograms) {
+    const workflowPrograms = await getActivityPlanWorkflowPrograms(requestedProgram.domainServiceSlug);
+    const selectedProgram = workflowPrograms ? findActivityPlanWorkflowProgram(workflowPrograms.options, requestedProgram.programValue) : null;
+    if (!selectedProgram || (selectedProgram.isOther && !requestedProgram.programName)) {
+      return NextResponse.json({ success: false, error: "البرنامج غير صالح أو يلزم إدخال الاسم." }, { status: 400 });
+    }
+    validatedPrograms.push({
+      domainServiceSlug: requestedProgram.domainServiceSlug,
+      programValue: selectedProgram.value,
+      programName: selectedProgram.isOther ? requestedProgram.programName : selectedProgram.label,
+      domainTitle: getActivityProgramDomainByServiceSlug(requestedProgram.domainServiceSlug)?.title || "",
+    });
+  }
   const dates = getActivityPlanDates(week);
   const date = dates[dayOfWeek]?.date;
   if (!date) {
     return NextResponse.json({ success: false, error: "تاريخ الخلية غير متاح." }, { status: 400 });
   }
 
-  const entryData = { programKey: encodeActivityPlanProgramValue(domainServiceSlug, programName, { section, subject, materialType }), stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  const sharedEntryData = { stage, weekNumber: week, dayOfWeek, periodNumber, date: new Date(`${date}T00:00:00.000Z`), gradeLabel, teacherName };
+  const entryData = validatedPrograms.map((program) => ({
+    ...sharedEntryData,
+    programKey: encodeActivityPlanProgramValue(program.domainServiceSlug, program.programName, { section, subject, materialType }),
+  }));
   if (entryId) {
     const ownedEntry = await prisma.activityPlanEntry.findFirst({ where: { id: entryId, schoolAccountId }, select: { id: true } });
     if (!ownedEntry) return NextResponse.json({ success: false, error: "الإدخال غير موجود." }, { status: 404 });
   }
-  const entry = entryId
-    ? await prisma.activityPlanEntry.update({ where: { id: entryId }, data: entryData })
-    : await prisma.activityPlanEntry.upsert({
-      where: { schoolAccountId_stage_weekNumber_dayOfWeek_periodNumber: { schoolAccountId, stage, weekNumber: week, dayOfWeek, periodNumber } },
-      update: entryData,
-      create: { schoolAccountId, createdById: auth.current.user.id, ...entryData },
-    });
+  let entries: Awaited<ReturnType<typeof prisma.activityPlanEntry.update>>[];
+  try {
+    entries = entryId
+      ? [await prisma.activityPlanEntry.update({ where: { id: entryId }, data: entryData[0] })]
+      : await prisma.$transaction(entryData.map((data) => prisma.activityPlanEntry.create({ data: { schoolAccountId, createdById: auth.current.user.id, ...data } })));
+  } catch {
+    return NextResponse.json({ success: false, error: "تعذر حفظ النشاط في قاعدة البيانات." }, { status: 500 });
+  }
 
-  return NextResponse.json({
-    success: true,
-    entry: {
+  const responseEntries = entries.map((entry, index) => {
+    const program = validatedPrograms[index];
+    return {
       id: entry.id,
       stage: entry.stage,
       dayOfWeek: entry.dayOfWeek,
@@ -235,12 +262,18 @@ export async function POST(request: Request) {
       subject,
       materialType,
       teacherName: entry.teacherName,
-      domainServiceSlug,
-      domainKey: getActivityProgramDomainByServiceSlug(domainServiceSlug)?.slug || "",
-      domainTitle,
-      displayTitle: formatActivityPlanEntryLabel(domainTitle, programName),
-      program: { id: programValue, key: programValue, title: programName },
-    },
+      domainServiceSlug: program.domainServiceSlug,
+      domainKey: getActivityProgramDomainByServiceSlug(program.domainServiceSlug)?.slug || "",
+      domainTitle: program.domainTitle,
+      displayTitle: formatActivityPlanEntryLabel(program.domainTitle, program.programName),
+      program: { id: program.programValue, key: program.programValue, title: program.programName },
+    };
+  });
+
+  return NextResponse.json({
+    success: true,
+    entry: responseEntries[0],
+    entries: responseEntries,
   });
 }
 

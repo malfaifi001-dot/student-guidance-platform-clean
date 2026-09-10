@@ -1490,7 +1490,7 @@ model ActivityPlanEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([schoolAccountId, stage, weekNumber, dayOfWeek, periodNumber])
+  @@index([schoolAccountId, stage, weekNumber, dayOfWeek, periodNumber], map: "ActivityPlanEntry_school_stage_week_slot_idx")
   @@index([schoolAccountId, stage, weekNumber])
   @@index([programCaseEntryId])
   @@index([programKey])

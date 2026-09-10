@@ -53,6 +53,9 @@ body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
 .weekly-activity-plan-print-table th { color: #fff; background: #137b72; font-weight: 900; }
 .weekly-activity-plan-print-table td { background: #fff; font-weight: 700; }
 .activity-plan-program-cell { color: #fff !important; font-size: 7.9pt; font-weight: 900 !important; }
+.activity-plan-print-entry-stack { display: flex; flex-direction: column; gap: .35mm; width: 100%; }
+.activity-plan-print-entry { min-width: 0; padding: .25mm .4mm; line-height: 1.05; overflow-wrap: anywhere; }
+.activity-plan-print-entry--program { border-radius: .6mm; padding: .45mm .6mm; font-weight: 900; }
 .activity-plan-print-table tbody tr:nth-child(3n) td, .activity-plan-print-table tbody tr:nth-child(3n) th { border-bottom-color: #6f8f86; }
 .activity-plan-print-page .curriculum-print-footer { padding-top: 2mm; }
 .activity-plan-print-page .curriculum-print-signature-row { width: 170mm; gap: 18mm; padding: 0 1mm 4.5mm; }
@@ -170,6 +173,7 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
   const printEnabled = String(params.print || "") === "1";
   const weeklyMode = String(params.mode || "") === "weekly";
+  const activityEntriesMode = String(params.view || "") === "activity-entries";
   const tenPercentMode = String(params.mode || "") === "ten-percent";
   const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
   const allowedStages = current.user.role === "ACTIVITY_LEADER" ? await getActivityPlanLeaderAllowedStages(current) : REAL_ACTIVITY_PLAN_STAGES;
@@ -197,5 +201,5 @@ export default async function ActivityPlanPrintPage({ searchParams }: { searchPa
   });
   const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
   return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />
-<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanSemesterPrintDocument rows={tenPercentRows} gradeSections={requestedGradeSections} {...identity} /> : weeklyMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
+<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanSemesterPrintDocument rows={tenPercentRows} gradeSections={requestedGradeSections} {...identity} /> : weeklyMode && !activityEntriesMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
 }
