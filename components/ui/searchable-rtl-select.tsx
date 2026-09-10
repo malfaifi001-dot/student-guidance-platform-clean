@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type SearchableRtlSelectProps = {
   label: string;
@@ -10,6 +11,14 @@ type SearchableRtlSelectProps = {
   placeholder?: string;
   searchPlaceholder?: string;
   required?: boolean;
+};
+
+type MenuPosition = {
+  left: number;
+  width: number;
+  maxHeight: number;
+  placement: "top" | "bottom";
+  offset: number;
 };
 
 export function SearchableRtlSelect({
@@ -23,6 +32,9 @@ export function SearchableRtlSelect({
 }: SearchableRtlSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim();
     return normalizedQuery
@@ -30,12 +42,69 @@ export function SearchableRtlSelect({
       : options;
   }, [options, query]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportPadding = 12;
+      const gap = 8;
+      const availableBelow = window.innerHeight - rect.bottom - viewportPadding;
+      const availableAbove = rect.top - viewportPadding;
+      const placement = availableBelow >= 240 || availableBelow >= availableAbove
+        ? "bottom"
+        : "top";
+      const availableHeight = placement === "bottom" ? availableBelow : availableAbove;
+      const maxHeight = Math.max(150, Math.min(360, availableHeight - gap));
+      const width = Math.min(rect.width, window.innerWidth - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, rect.left),
+        window.innerWidth - viewportPadding - width,
+      );
+
+      setMenuPosition({
+        left,
+        width,
+        maxHeight,
+        placement,
+        offset: placement === "bottom" ? rect.bottom + gap : window.innerHeight - rect.top + gap,
+      });
+    };
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("pointerdown", closeOnOutsidePointer);
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("pointerdown", closeOnOutsidePointer);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
   return (
-    <label className="relative block space-y-2 text-sm font-bold text-slate-700" dir="rtl">
+    <label className="block space-y-2 text-sm font-bold text-slate-700" dir="rtl">
       <span>
         {label} {required ? <span className="text-red-600">*</span> : null}
       </span>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right outline-none transition focus:border-blue-500"
@@ -44,8 +113,20 @@ export function SearchableRtlSelect({
           {value || placeholder}
         </span>
       </button>
-      {open ? (
-        <div className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+      {open && menuPosition && typeof document !== "undefined" ? createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-[100] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
+          dir="rtl"
+          style={{
+            left: menuPosition.left,
+            width: menuPosition.width,
+            maxHeight: menuPosition.maxHeight,
+            ...(menuPosition.placement === "bottom"
+              ? { top: menuPosition.offset }
+              : { bottom: menuPosition.offset }),
+          }}
+        >
           <input
             type="search"
             value={query}
@@ -54,7 +135,7 @@ export function SearchableRtlSelect({
             autoFocus
             className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-right outline-none focus:border-blue-500"
           />
-          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+          <div className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain">
             {filteredOptions.map((option) => (
               <button
                 key={option}
@@ -75,7 +156,8 @@ export function SearchableRtlSelect({
               </p>
             ) : null}
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </label>
   );
