@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Eye, Link2, Pencil, Plus, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Check, Copy, Eye, Link2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { SmartActionModal } from "@/components/ui/smart-action-modal";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
@@ -54,18 +55,21 @@ function readActivityPlanStagePreference() {
   }
 }
 
-export function ActivityPlanShell() {
-  const [week, setWeek] = useState(1);
+export function ActivityPlanShell({ initialMode = "weekly", dedicated = false }: { initialMode?: "weekly" | "ten-percent"; dedicated?: boolean }) {
+  const searchParams = useSearchParams();
+  const requestedStage = searchParams.get("stage") || "";
+  const requestedWeek = Number(searchParams.get("week"));
+  const [week, setWeek] = useState(Number.isInteger(requestedWeek) && requestedWeek >= 1 && requestedWeek <= 20 ? requestedWeek : 1);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [dates, setDates] = useState<DateItem[]>([]);
   const [gradesByStage, setGradesByStage] = useState<Record<string, string[]>>({});
   const [stages, setStages] = useState<string[]>([]);
-  const [selectedStage, setSelectedStage] = useState("");
+  const [selectedStage, setSelectedStage] = useState(requestedStage);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [stageDraft, setStageDraft] = useState<string[]>([]);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
   const [stagePreferenceReady, setStagePreferenceReady] = useState(false);
-  const [mode, setMode] = useState<"weekly" | "ten-percent">("weekly");
+  const [mode, setMode] = useState<"weekly" | "ten-percent">(initialMode);
   const [teachers, setTeachers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,6 +86,7 @@ export function ActivityPlanShell() {
   const [previewSetupError, setPreviewSetupError] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [serviceLinks, setServiceLinks] = useState<ServiceLink[]>([]);
   const print = usePrintExportAction();
 
@@ -112,7 +117,7 @@ export function ActivityPlanShell() {
         const validStored = stored?.filter((stage) => availableStages.includes(stage)) || [];
         setStageDraft(validStored.length ? validStored : availableStages);
         setSelectedStages(validStored);
-        if (validStored.length) setSelectedStage(validStored[0]);
+        if (validStored.length) setSelectedStage(availableStages.includes(requestedStage) ? requestedStage : validStored[0]);
         setStagePickerOpen(!validStored.length);
         setStagePreferenceReady(true);
       }
@@ -237,20 +242,20 @@ export function ActivityPlanShell() {
 
   return (
     <main className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden overscroll-x-none" dir="rtl">
-      <section className="activity-plan-header rounded-xl border border-sky-200 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
+      <section className="activity-plan-header rounded-2xl border border-sky-100 bg-white px-4 py-4 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-lg font-black tracking-tight">{mode === "ten-percent" ? "الخطة الفصلية" : "خطة النشاط الطلابي"}</h1>
+          <div className="min-w-0"><h1 className="text-xl font-black tracking-tight">{mode === "ten-percent" ? "الخطة الفصلية" : "الخطة الأسبوعية"}</h1><p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{mode === "ten-percent" ? "نظّم برامج النشاط حسب الصف والفصل." : "اختر الأسبوع ثم أضف الأنشطة إلى الجدول."}</p></div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={openStagePicker} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">تغيير المراحل</button>
-            <button type="button" onClick={openPreviewSetup} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 text-xs font-black text-sky-800 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200"><Eye className="h-4 w-4" />معاينة</button>
-            <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"><Link2 className="h-4 w-4" />تعديل الربط</button>
+            <button type="button" onClick={openPreviewSetup} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200"><Eye className="h-4 w-4" />معاينة</button>
+            {mode === "weekly" ? <button type="button" onClick={() => setCopyOpen(true)} disabled={!selectedStage} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-sky-700 px-3 text-xs font-black text-white transition hover:bg-sky-800 disabled:opacity-50"><Copy className="h-4 w-4" />نسخ</button> : null}
+            <button type="button" onClick={() => setMoreOpen(true)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" aria-label="خيارات إضافية"><MoreHorizontal className="h-5 w-5" /></button>
           </div>
         </div>
       </section>
 
       <div className={mode === "ten-percent" ? "min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/35 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/15 sm:p-3" : "contents"}>
       <section className={`activity-plan-controls-surface min-w-0 max-w-full ${mode === "ten-percent" ? "border-b border-sky-100 bg-transparent p-0 pb-2 dark:border-sky-900/60" : "rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900"}`}>
-        <ActivityPlanControls stages={visibleStages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} />
+        <ActivityPlanControls stages={visibleStages} selectedStage={selectedStage} onStageChange={setSelectedStage} mode={mode} onModeChange={setMode} onCopy={() => setCopyOpen(true)} showModeSwitcher={!dedicated} />
       </section>
 
       {mode === "weekly" ? <section className="min-w-0 max-w-full rounded-2xl border border-sky-100 bg-sky-50/60 p-2 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/20">
@@ -315,21 +320,22 @@ export function ActivityPlanShell() {
         </div>
       </SmartActionModal>
       <PerformanceItemLinkPopCard open={linkOpen} serviceSlug="student-activity-plan" roleContext="ACTIVITY_LEADER" resourceType="ACTIVITY_PLAN" sourceReference={{ scope: "school-account" }} displayTitle="خطة النشاط الطلابي" targetType="portfolio-section" defaultTargetKey="student_activity" existingLink={existingLink} onClose={() => setLinkOpen(false)} onSaved={(link) => { setServiceLinks((current) => [...current.filter((item) => item.id !== link.id), link as ServiceLink]); }} />
+      <SmartActionModal open={moreOpen} title="خيارات الخطة" description="إعدادات إضافية للخطة الحالية." portal onClose={() => setMoreOpen(false)} showFooter={false}><div className="grid gap-2" dir="rtl"><button type="button" onClick={() => { setMoreOpen(false); openStagePicker(); }} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-right text-sm font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">تغيير المراحل</button><button type="button" onClick={() => { setMoreOpen(false); setLinkOpen(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-right text-sm font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"><Link2 className="h-4 w-4" />تعديل الربط</button></div></SmartActionModal>
     </main>
   );
 }
 
-function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "weekly" | "ten-percent"; onModeChange: (mode: "weekly" | "ten-percent") => void; onCopy: () => void }) {
+function ActivityPlanControls({ stages, selectedStage, onStageChange, mode, onModeChange, onCopy, showModeSwitcher }: { stages: string[]; selectedStage: string; onStageChange: (stage: string) => void; mode: "weekly" | "ten-percent"; onModeChange: (mode: "weekly" | "ten-percent") => void; onCopy: () => void; showModeSwitcher: boolean }) {
   const selectedTabClass = mode === "weekly" ? "bg-white text-sky-700 shadow-sm" : "bg-white text-green-700 shadow-sm";
   return <div className="flex min-w-0 max-w-full flex-col gap-2 md:flex-row md:items-center">
     {stages.length > 1 ? <label className="flex min-h-9 items-center gap-2 text-xs font-black text-slate-600 dark:text-slate-300">المرحلة<select value={selectedStage} onChange={(event) => onStageChange(event.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-800 outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 md:min-w-[145px]" aria-label="اختيار المرحلة">{stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}</select></label> : null}
-    <div className="min-w-0 max-w-full flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
+    {showModeSwitcher ? <div className="min-w-0 max-w-full flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950" role="tablist" aria-label="نمط خطة النشاط">
       <div className="flex min-w-max gap-1">
         <button type="button" role="tab" aria-selected={mode === "ten-percent"} onClick={() => onModeChange("ten-percent")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "ten-percent" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-green-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الفصلية</button>
         <button type="button" role="tab" aria-selected={mode === "weekly"} onClick={() => onModeChange("weekly")} className={`min-h-8 flex-1 rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === "weekly" ? selectedTabClass : "text-slate-500 hover:bg-white/70 hover:text-sky-700 dark:text-slate-400 dark:hover:bg-slate-900"}`}>الخطة الأسبوعية</button>
       </div>
-    </div>
-    {mode !== "ten-percent" ? <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-950/50"><Copy className="h-4 w-4" />نسخ الخطة</button> : null}
+    </div> : <p className="text-xs font-black text-slate-500 dark:text-slate-400">{selectedStage ? `${selectedStage}${mode === "weekly" ? " — اختر الأسبوع" : " — اختر الصف والفصل"}` : "اختر المرحلة"}</p>}
+    {showModeSwitcher && mode !== "ten-percent" ? <button type="button" onClick={onCopy} disabled={!selectedStage} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-950/50"><Copy className="h-4 w-4" />نسخ الخطة</button> : null}
   </div>;
 }
 
