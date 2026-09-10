@@ -4,12 +4,23 @@ import type { ActivityPlanPrintEntry, ActivityPlanPrintWeek as ActivityPlanPrint
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE } from "@/components/activity-plan/activity-plan-print-shell";
 
-function formatDate(value: string) {
-  return formatActivityPlanHijriDate(value);
-}
-
 const periods = [1, 2, 3, 4, 5, 6, 7];
 const programKeys = ["citizenship-life", "science-technology", "culture-arts", "sports-health", "scouting", "events-occasions"];
+const weeklyRows = ["البرنامج", "الصف والمادة", "اسم المعلم"] as const;
+
+// These capacities deliberately leave a small safety buffer after the rendered
+// header, compact context, table header, and protected footer area.
+const INTERMEDIATE_TABLE_CAPACITY_MM = 138;
+const FINAL_TABLE_CAPACITY_MM = 114;
+
+type WeeklyRow = (typeof weeklyRows)[number];
+type WeeklyBlock = {
+  dayOfWeek: number;
+  dayLabel: string;
+  date: string;
+  rows: WeeklyRow[];
+  estimatedHeightMm: number;
+};
 
 type ActivityPlanPrintWeekProps = {
   week: ActivityPlanPrintWeekData;
@@ -22,85 +33,150 @@ type ActivityPlanPrintWeekProps = {
   activityLeaderSignatureUrl?: string | null;
   principalName?: string | null;
   principalSignatureUrl?: string | null;
+  includeSignatures?: boolean;
 };
 
-export function ActivityPlanPrintWeek({
-  week,
-  stage,
-  academicYear,
-  schoolName,
-  educationDepartment,
-  logoUrl,
-  activityLeaderName,
-  activityLeaderSignatureUrl,
-  principalName,
-  principalSignatureUrl,
-}: ActivityPlanPrintWeekProps) {
+function formatDate(value: string) {
+  return formatActivityPlanHijriDate(value);
+}
+
+function slotEntries(entriesBySlot: Map<string, ActivityPlanPrintEntry[]>, dayOfWeek: number, period: number) {
+  return entriesBySlot.get(`${dayOfWeek}-${period}`) || [];
+}
+
+function entryValue(entry: ActivityPlanPrintEntry, row: WeeklyRow) {
+  if (row === "البرنامج") return entry.displayTitle;
+  if (row === "الصف والمادة") {
+    return [
+      entry.stage,
+      entry.gradeLabel && `${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}`,
+      entry.subject && `${entry.subject} (${entry.materialType || "أساسية"})`,
+    ].filter(Boolean).join("\n");
+  }
+  return entry.teacherName;
+}
+
+function estimateTextLines(value: string, charactersPerLine: number) {
+  return String(value || "—")
+    .split(/\r?\n/)
+    .reduce((total, line) => total + Math.max(1, Math.ceil(line.trim().length / charactersPerLine)), 0);
+}
+
+function estimateCellHeightMm(entries: ActivityPlanPrintEntry[], row: WeeklyRow) {
+  if (!entries.length) return 0;
+  const charactersPerLine = row === "البرنامج" ? 14 : row === "الصف والمادة" ? 16 : 18;
+  const entryHeight = entries.reduce(
+    (total, entry) => total + (estimateTextLines(entryValue(entry, row), charactersPerLine) * 2.45) + 0.7,
+    0,
+  );
+  return entryHeight + Math.max(0, entries.length - 1) * 0.35;
+}
+
+function estimateRowHeightMm(entriesBySlot: Map<string, ActivityPlanPrintEntry[]>, dayOfWeek: number, row: WeeklyRow) {
+  const highestCell = Math.max(
+    ...periods.map((period) => estimateCellHeightMm(slotEntries(entriesBySlot, dayOfWeek, period), row)),
+    0,
+  );
+  return Math.max(6.4, highestCell + 1.5);
+}
+
+function buildBlocks(week: ActivityPlanPrintWeekData, entriesBySlot: Map<string, ActivityPlanPrintEntry[]>) {
+  return week.dates.flatMap((day) => {
+    const rowHeights = weeklyRows.map((row) => ({ row, height: estimateRowHeightMm(entriesBySlot, day.dayOfWeek, row) }));
+    const wholeDayHeight = rowHeights.reduce((total, item) => total + item.height, 0);
+    const base = { dayOfWeek: day.dayOfWeek, dayLabel: day.label, date: day.date };
+
+    // Keep a complete day together whenever it fits. Only a genuinely oversized
+    // day is split into its three semantic rows, each with a repeated day label.
+    if (wholeDayHeight <= FINAL_TABLE_CAPACITY_MM) {
+      return [{ ...base, rows: [...weeklyRows], estimatedHeightMm: wholeDayHeight }];
+    }
+
+    return rowHeights.map(({ row, height }) => ({ ...base, rows: [row], estimatedHeightMm: height }));
+  });
+}
+
+function paginateBlocks(blocks: WeeklyBlock[], reserveSignatures: boolean) {
+  const pages: WeeklyBlock[][] = [];
+  let current: WeeklyBlock[] = [];
+  let usedHeight = 0;
+
+  for (const block of blocks) {
+    if (current.length && usedHeight + block.estimatedHeightMm > INTERMEDIATE_TABLE_CAPACITY_MM) {
+      pages.push(current);
+      current = [];
+      usedHeight = 0;
+    }
+    current.push(block);
+    usedHeight += block.estimatedHeightMm;
+  }
+  if (current.length || !pages.length) pages.push(current);
+
+  // Only the final page of the full print document reserves signature space.
+  // All earlier pages use their freed space for table rows.
+  while (reserveSignatures && pages.length) {
+    const lastPage = pages[pages.length - 1];
+    const lastHeight = lastPage.reduce((total, block) => total + block.estimatedHeightMm, 0);
+    if (lastHeight <= FINAL_TABLE_CAPACITY_MM || lastPage.length <= 1) break;
+
+    const moved = lastPage.pop();
+    if (!moved) break;
+    pages.push([moved]);
+  }
+
+  return pages;
+}
+
+function WeeklyContextRow({ stage, weekNumber }: { stage: string; weekNumber: number }) {
+  return <section className="activity-plan-print-context" aria-label="بيانات الخطة الأسبوعية">
+    <span className="activity-plan-print-context-item"><strong>المرحلة:</strong> {stage}</span>
+    <span className="activity-plan-print-context-item"><strong>الأسبوع:</strong> {new Intl.NumberFormat("ar-SA").format(weekNumber)}</span>
+    <span className="activity-plan-print-context-domains"><strong>مجالات النشاط:</strong>{programKeys.map((key) => {
+      const program = getActivityPlanProgramByKey(key);
+      return program ? <i key={key} style={{ backgroundColor: program.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>{program.title}</i> : null;
+    })}</span>
+  </section>;
+}
+
+function WeeklyTable({ blocks, entriesBySlot, weekNumber }: { blocks: WeeklyBlock[]; entriesBySlot: Map<string, ActivityPlanPrintEntry[]>; weekNumber: number }) {
+  return <table className="activity-plan-print-table activity-plan-print-table--paginated">
+    <caption className="sr-only">خطة النشاط الطلابي للأسبوع {weekNumber}</caption>
+    <thead><tr><th className="activity-plan-print-day-head">اليوم والتاريخ</th><th className="activity-plan-print-label-head">البيان</th>{periods.map((period) => <th key={period}>الحصة {new Intl.NumberFormat("ar-SA").format(period)}</th>)}</tr></thead>
+    <tbody>{blocks.map((block, blockIndex) => block.rows.map((row, rowIndex) => <tr key={`${block.dayOfWeek}-${row}-${blockIndex}`}>
+      {rowIndex === 0 ? <th className="activity-plan-print-day" rowSpan={block.rows.length}><span>{block.dayLabel}</span><small>{formatDate(block.date)}</small></th> : null}
+      <th className="activity-plan-print-row-label">{row}</th>
+      {periods.map((period) => {
+        const entries = slotEntries(entriesBySlot, block.dayOfWeek, period);
+        const hasProgram = row === "البرنامج" && entries.some((entry) => Boolean(entry.displayTitle));
+        return <td key={`${row}-${period}`} className={hasProgram ? "activity-plan-program-cell" : ""} style={row === "الصف والمادة" ? { whiteSpace: "pre-line" } : undefined}>{entries.length ? <div className="activity-plan-print-entry-stack">{entries.map((entry, entryIndex) => {
+          const domainProgram = entry.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
+          const isProgram = row === "البرنامج" && Boolean(entry.displayTitle);
+          return <div key={`${entry.programKey}-${entryIndex}`} className={isProgram ? "activity-plan-print-entry activity-plan-print-entry--program" : "activity-plan-print-entry"} style={isProgram && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{entryValue(entry, row)}</div>;
+        })}</div> : null}</td>;
+      })}
+    </tr>))}</tbody>
+  </table>;
+}
+
+const weeklyPrintPaginationStyles = `
+.activity-plan-print-context{display:flex;align-items:center;gap:1.4mm;min-height:8mm;margin:1.4mm 0 1.6mm;padding:1mm 1.3mm;border:.25mm solid #aab9b4;background:#f7faf9;color:#254b43;font-size:7.4pt;font-weight:800;overflow:hidden}.activity-plan-print-context-item{white-space:nowrap}.activity-plan-print-context-item strong,.activity-plan-print-context-domains>strong{color:#0f5f55}.activity-plan-print-context-domains{display:flex;min-width:0;align-items:center;gap:.75mm;white-space:nowrap}.activity-plan-print-context-domains i{display:inline-flex;align-items:center;justify-content:center;min-width:15mm;padding:.55mm .85mm;border-radius:.8mm;font-style:normal;font-size:6.3pt;font-weight:900;line-height:1.05;text-align:center}.activity-plan-print-table--paginated{margin:0}.activity-plan-print-table--paginated tbody{break-inside:avoid-page;page-break-inside:avoid}@media print{.activity-plan-print-context{margin-top:1.4mm}.activity-plan-print-context-domains i{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+`;
+
+export function ActivityPlanPrintWeek({ week, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl, includeSignatures = true }: ActivityPlanPrintWeekProps) {
   const entriesBySlot = new Map<string, ActivityPlanPrintEntry[]>();
   for (const entry of week.entries) {
     const key = `${entry.dayOfWeek}-${entry.periodNumber}`;
     entriesBySlot.set(key, [...(entriesBySlot.get(key) || []), entry]);
   }
 
-  return (
-    <ActivityPlanPrintPage
-      className="activity-plan-print-page--physical"
-      footer={<CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}
-    >
+  const pages = paginateBlocks(buildBlocks(week, entriesBySlot), includeSignatures);
+
+  return <><style>{weeklyPrintPaginationStyles}</style>{pages.map((blocks, pageIndex) => {
+    const isSignaturePage = includeSignatures && pageIndex === pages.length - 1;
+    return <ActivityPlanPrintPage key={`${week.weekNumber}-${pageIndex}`} className={`activity-plan-print-page--physical${isSignaturePage ? "" : " activity-plan-print-page--compact-footer"}`} footer={<CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} includeSignatures={isSignaturePage} signatureOrder="image-first" />}>
       <CurriculumDocumentHeader title="خطة النشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
-
-      <section className="activity-plan-print-objective">
-        <strong>المرحلة</strong>
-        <span aria-label="المرحلة">{stage}</span>
-      </section>
-
-      <section className="activity-plan-print-legend" aria-label="مجالات النشاط الطلابي">
-        <strong>مجالات النشاط</strong>
-        {programKeys.map((key) => {
-          const program = getActivityPlanProgramByKey(key);
-          return <span key={key} className={`activity-plan-print-legend-item ${program?.printColorClass || ""}`} style={program ? { backgroundColor: program.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{program?.title}</span>;
-        })}
-      </section>
-
-      <section className="activity-plan-print-week-strip">
-        <strong>الأسبوع</strong>
-        <b>{week.weekNumber}</b>
-        <span />
-      </section>
-
-      <h2 className="activity-plan-print-table-heading">الحصص الدراسية</h2>
-      <table className="activity-plan-print-table">
-        <caption className="sr-only">خطة النشاط الطلابي للأسبوع {week.weekNumber}</caption>
-        <thead>
-          <tr>
-            <th className="activity-plan-print-day-head">اليوم والتاريخ</th>
-            <th className="activity-plan-print-label-head">البيان</th>
-            {periods.map((period) => <th key={period}>الحصة {new Intl.NumberFormat("ar-SA").format(period)}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {week.dates.map((day) => {
-            const rows = ["البرنامج", "الصف", "اسم المعلم"] as const;
-            return rows.map((rowLabel, rowIndex) => (
-              <tr key={`${day.dayOfWeek}-${rowLabel}`}>
-                {rowIndex === 0 ? <th className="activity-plan-print-day" rowSpan={3}><span>{day.label}</span><small>{formatDate(day.date)}</small></th> : null}
-                <th className="activity-plan-print-row-label">{rowLabel}</th>
-                {periods.map((period) => {
-                  const entries = entriesBySlot.get(`${day.dayOfWeek}-${period}`) || [];
-                  const hasProgram = rowIndex === 0 && entries.some((entry) => Boolean(entry.displayTitle));
-                  return <td key={`${rowLabel}-${period}`} className={hasProgram ? "activity-plan-program-cell" : ""} style={rowIndex === 1 ? { whiteSpace: "pre-line" } : undefined}>{entries.length ? <div className="activity-plan-print-entry-stack">{entries.map((entry, index) => {
-                    const domainProgram = entry.domainKey ? getActivityPlanProgramByKey(entry.domainKey) : null;
-                    const value = rowIndex === 0 ? entry.displayTitle : rowIndex === 1 ? [entry.stage, entry.gradeLabel && `${entry.gradeLabel}${entry.section ? ` ${entry.section}` : ""}`, entry.subject && `${entry.subject} (${entry.materialType || "أساسية"})`].filter(Boolean).join("\n") : entry.teacherName;
-                    const isProgram = rowIndex === 0 && Boolean(entry.displayTitle);
-                    return <div key={`${entry.programKey}-${index}`} className={isProgram ? "activity-plan-print-entry activity-plan-print-entry--program" : "activity-plan-print-entry"} style={isProgram && domainProgram ? { backgroundColor: domainProgram.backgroundColor, color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } : undefined}>{value}</div>;
-                  })}</div> : null}</td>;
-                })}
-              </tr>
-            ));
-          })}
-        </tbody>
-      </table>
-
-    </ActivityPlanPrintPage>
-  );
+      <WeeklyContextRow stage={stage} weekNumber={week.weekNumber} />
+      <WeeklyTable blocks={blocks} entriesBySlot={entriesBySlot} weekNumber={week.weekNumber} />
+    </ActivityPlanPrintPage>;
+  })}</>;
 }

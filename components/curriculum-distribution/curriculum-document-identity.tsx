@@ -18,6 +18,7 @@ type DocumentFooterProps = {
   principalName?: string | null;
   principalSignatureUrl?: string | null;
   includeSignatures?: boolean;
+  signatureOrder?: "identity-first" | "image-first";
 };
 
 export const curriculumDocumentIdentityStyles = `
@@ -76,19 +77,36 @@ export function CurriculumDocumentFooter({
   principalName,
   principalSignatureUrl,
   includeSignatures = true,
+  signatureOrder = "identity-first",
 }: DocumentFooterProps) {
+  const imageFirst = signatureOrder === "image-first";
+
   return (
     <footer className="curriculum-print-footer">
       {includeSignatures ? <div className="curriculum-print-signature-row">
-        <div className="curriculum-print-signature">
-          <strong>{primaryRoleLabel}</strong>
-          <span>{primaryName || ""}</span>
-          {primarySignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+        <div className={`curriculum-print-signature${imageFirst ? " curriculum-print-signature--image-first" : ""}`}>
+          {imageFirst ? <>
+            {primarySignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+            <i className="curriculum-print-signature-baseline" aria-hidden="true" />
+            <span>{primaryName || ""}</span>
+            <strong>{primaryRoleLabel}</strong>
+          </> : <>
+            <strong>{primaryRoleLabel}</strong>
+            <span>{primaryName || ""}</span>
+            {primarySignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={primarySignatureUrl} alt={primarySignatureAlt} maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+          </>}
         </div>
-        <div className="curriculum-print-signature">
-          <strong>مدير المدرسة</strong>
-          <span>{principalName || ""}</span>
-          {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+        <div className={`curriculum-print-signature${imageFirst ? " curriculum-print-signature--image-first" : ""}`}>
+          {imageFirst ? <>
+            {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+            <i className="curriculum-print-signature-baseline" aria-hidden="true" />
+            <span>{principalName || ""}</span>
+            <strong>مدير المدرسة</strong>
+          </> : <>
+            <strong>مدير المدرسة</strong>
+            <span>{principalName || ""}</span>
+            {principalSignatureUrl ? <SignatureImage className="curriculum-print-signature-image" src={principalSignatureUrl} alt="توقيع مدير المدرسة" maxHeight="16mm" /> : <small className="curriculum-print-signature-line">التوقيع: __________________________</small>}
+          </>}
         </div>
       </div> : null}
       <div className="curriculum-print-footer-line" aria-hidden="true" />

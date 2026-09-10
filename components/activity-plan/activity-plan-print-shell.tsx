@@ -67,28 +67,10 @@ export const activityPlanPrintShellStyles = `
 .activity-plan-print-page.activity-plan-ten-percent-print-page {
   background: #F8FAFC;
 }
-.activity-plan-print-page-content .curriculum-print-footer {
-  position: static !important;
-  inset: auto !important;
-  width: 100%;
-  margin-top: auto !important;
-  padding-top: 1.5mm !important;
-  break-before: avoid-page;
-  page-break-before: avoid;
-  break-inside: avoid-page;
-  page-break-inside: avoid;
-}
-.activity-plan-print-page-content .curriculum-print-signature-row {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-.activity-plan-print-page-content .weekly-plan-a4 > div:last-child {
-  flex: 0 0 auto;
-  margin-top: auto !important;
-}
 .activity-plan-print-footer-slot {
   width: 100%;
-  flex: 0 0 auto;
+  min-height: 29mm;
+  flex: 0 0 29mm;
   margin-top: auto;
   break-before: avoid-page;
   page-break-before: avoid;
@@ -96,17 +78,56 @@ export const activityPlanPrintShellStyles = `
   page-break-inside: avoid;
 }
 .activity-plan-print-footer-slot .curriculum-print-footer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   position: static !important;
   inset: auto !important;
   width: 100%;
   margin: 0 !important;
-  padding-top: 1.5mm !important;
+  padding-top: 1mm !important;
   break-inside: avoid-page;
   page-break-inside: avoid;
 }
 .activity-plan-print-footer-slot .curriculum-print-signature-row {
+  width: 170mm;
+  min-height: 25mm;
+  align-items: end;
+  gap: 18mm;
+  padding: 0 1mm 1.4mm;
   break-inside: avoid;
   page-break-inside: avoid;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature--image-first {
+  grid-template-rows: 16mm .25mm 3.6mm auto;
+  align-items: end;
+  justify-items: center;
+  gap: .45mm;
+  text-align: center;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature-baseline {
+  display: block;
+  width: 76%;
+  min-height: .25mm;
+  background: #8ca3a0;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature-image {
+  width: auto;
+  max-width: 58mm;
+  height: 16mm;
+  max-height: 16mm;
+  object-fit: contain;
+}
+.activity-plan-print-footer-slot .curriculum-print-footer-line {
+  flex: 0 0 1.7mm;
+  margin-top: auto;
+}
+.activity-plan-print-page--compact-footer .activity-plan-print-footer-slot {
+  min-height: 5mm;
+  flex-basis: 5mm;
+}
+.activity-plan-print-page--compact-footer .curriculum-print-footer {
+  padding-top: 0 !important;
 }
 @media print {
   html, body { margin: 0 !important; padding: 0 !important; }

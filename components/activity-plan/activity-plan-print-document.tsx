@@ -18,7 +18,7 @@ type ActivityPlanPrintDocumentProps = {
 export function ActivityPlanPrintDocument({ weeks, stage, ...identity }: ActivityPlanPrintDocumentProps) {
   return (
     <><style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
-      {weeks.map((week) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} stage={stage} {...identity} />)}
+      {weeks.map((week, index) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} stage={stage} includeSignatures={index === weeks.length - 1} {...identity} />)}
     </main></>
   );
 }
