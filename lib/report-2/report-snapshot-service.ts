@@ -11,6 +11,8 @@ import {
   buildReportTwoPreviewCase,
   buildReportTwoRenderContext,
 } from "@/lib/report-2/report-two-structured-data";
+import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
+import { formatWorkflowDisplayValue } from "@/lib/workflow-values/workflow-display-value";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import { resolvePrincipalSignatureForReport } from "@/lib/report-signatures/principal-signature-resolver";
 import { tracePrincipalSignature } from "@/lib/report-signatures/principal-signature-trace";
@@ -63,6 +65,103 @@ function toPrismaJson(value: unknown, fallback: unknown = null) {
   } catch {
     return fallback;
   }
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function withActivityLeaderDisplayValues(report: Record<string, any>, caseEntry: any): any {
+  const values = Array.isArray(caseEntry?.values) ? caseEntry.values : [];
+  if (!values.length) return report;
+
+  const displayByFieldKey = new Map(
+    values.map((value: any) => [
+      String(value.field?.key || value.fieldKey || "").trim(),
+      formatWorkflowDisplayValue(value, values),
+    ]),
+  );
+  const displayTitle = resolveArabicCaseReportTitle(caseEntry);
+  const sourcePayload = report.snapshotPayload;
+
+  if (!sourcePayload || typeof sourcePayload !== "object" || Array.isArray(sourcePayload)) {
+    return {
+      ...report,
+      reportTitle: displayTitle || report.reportTitle,
+    };
+  }
+
+  const payload = sourcePayload as Record<string, any>;
+  const mapFields = (fields: unknown) =>
+    Array.isArray(fields)
+      ? fields.map((field) => {
+          if (!field || typeof field !== "object") return field;
+          const record = field as Record<string, any>;
+          const value = displayByFieldKey.get(String(record.key || "").trim());
+          return value ? { ...record, value } : record;
+        })
+      : fields;
+  const displayPayload = {
+    ...payload,
+    title: displayTitle || payload.title,
+    caseInfo:
+      payload.caseInfo && typeof payload.caseInfo === "object"
+        ? { ...payload.caseInfo, title: displayTitle || payload.caseInfo.title }
+        : payload.caseInfo,
+    primaryFields: mapFields(payload.primaryFields),
+    detailFields: mapFields(payload.detailFields),
+  };
+  let snapshotHtml = report.snapshotHtml;
+  if (typeof snapshotHtml === "string") {
+    for (const value of values) {
+      const raw = String(value.value ?? "").trim();
+      const display = formatWorkflowDisplayValue(value, values).trim();
+      if (raw && display && raw !== display) {
+        snapshotHtml = snapshotHtml.replace(new RegExp(escapeRegExp(raw), "g"), display);
+      }
+    }
+  }
+
+  return {
+    ...report,
+    reportTitle: displayTitle || report.reportTitle,
+    snapshotPayload: displayPayload,
+    renderContext: buildReportTwoRenderContext(displayPayload as SmartReportPayload),
+    previewCase: buildReportTwoPreviewCase(displayPayload as SmartReportPayload),
+    snapshotHtml,
+  };
+}
+
+async function getActivityLeaderCases(caseIds: string[]) {
+  if (!caseIds.length) return new Map<string, any>();
+
+  const cases = await prisma.caseEntry.findMany({
+    where: { id: { in: caseIds } },
+    select: {
+      id: true,
+      title: true,
+      workflowSnapshot: true,
+      workflow: { select: { name: true } },
+      service: { select: { name: true } },
+      values: {
+        select: {
+          fieldKey: true,
+          value: true,
+          jsonValue: true,
+          field: {
+            select: {
+              key: true,
+              label: true,
+              type: true,
+              options: { select: { value: true, label: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return new Map(cases.map((item) => [item.id, item]));
 }
 
 function serializeSnapshot(snapshot: any) {
@@ -470,16 +569,29 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
     : new Map();
 
   const activeIds = new Set(activeReports.map((item) => item.id));
+  const activityLeaderCases = context.user.role === "ACTIVITY_LEADER"
+    ? await getActivityLeaderCases(allowedCaseIds)
+    : new Map<string, any>();
   return [
     ...activeReports.map((report) => ({
-      ...serializeActiveReport(report),
+      ...(activityLeaderCases.has(report.caseEntryId)
+        ? withActivityLeaderDisplayValues(
+            serializeActiveReport(report),
+            activityLeaderCases.get(report.caseEntryId),
+          )
+        : serializeActiveReport(report)),
       linkedContext: report.serviceSlug === "special-report" ? linkedContexts.get(report.caseEntryId) || null : null,
       caseTitle: caseTitleById.get(report.caseEntryId) || "الحالة",
     })),
     ...snapshots
       .filter((item) => !activeIds.has(item.id))
       .map((snapshot) => ({
-        ...serializeSnapshot(snapshot),
+        ...(activityLeaderCases.has(snapshot.caseEntryId)
+          ? withActivityLeaderDisplayValues(
+              serializeSnapshot(snapshot),
+              activityLeaderCases.get(snapshot.caseEntryId),
+            )
+          : serializeSnapshot(snapshot)),
         linkedContext: snapshot.serviceSlug === "special-report" ? linkedContexts.get(snapshot.caseEntryId) || null : null,
         caseTitle: caseTitleById.get(snapshot.caseEntryId) || "الحالة",
       })),
@@ -496,9 +608,14 @@ export async function getReportTwoSnapshotById(
     "REPORT_VIEW",
   );
   if (!result) return null;
-  return result.kind === "ACTIVE"
+  const serialized = result.kind === "ACTIVE"
     ? serializeActiveReport(result.report)
     : serializeSnapshot(result.report);
+  if (context.user.role !== "ACTIVITY_LEADER") return serialized;
+
+  const cases = await getActivityLeaderCases([serialized.caseEntryId]);
+  const caseEntry = cases.get(serialized.caseEntryId);
+  return caseEntry ? withActivityLeaderDisplayValues(serialized, caseEntry) : serialized;
 }
 
 export async function getLatestReportTwoSnapshotForCase(
