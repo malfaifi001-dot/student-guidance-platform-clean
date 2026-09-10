@@ -2,9 +2,26 @@ import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components
 import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
 import type { ActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { paginateMeasuredPrintItems } from "@/components/activity-plan/activity-plan-print-pagination";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
 
-type Props = { rows: ActivityPlanTenPercentRow[]; gradeSections?: string[]; stage: string; academicYear?: string | null; schoolName: string; educationDepartment?: string | null; logoUrl?: string | null; activityLeaderName?: string | null; activityLeaderSignatureUrl?: string | null; principalName?: string | null; principalSignatureUrl?: string | null };
+type Props = {
+  rows: ActivityPlanTenPercentRow[];
+  gradeSections?: string[];
+  stage: string;
+  academicYear?: string | null;
+  schoolName: string;
+  educationDepartment?: string | null;
+  logoUrl?: string | null;
+  activityLeaderName?: string | null;
+  activityLeaderSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+const SEMESTER_TABLE_HEADER_HEIGHT_MM = 10;
+const SEMESTER_INTERMEDIATE_TABLE_CAPACITY_MM = 136;
+const SEMESTER_FINAL_TABLE_CAPACITY_MM = 114;
 
 function displayGrade(value: string) {
   const [grade, section] = String(value || "").split("::");
@@ -14,9 +31,6 @@ function displayGrade(value: string) {
 function materialTypeLabel(value: ActivityPlanTenPercentRow["materialType"]) {
   return value === "10%" ? "10%" : "أساسية";
 }
-
-const SEMESTER_PRINTABLE_TABLE_HEIGHT_MM = 136;
-const SEMESTER_TABLE_HEADER_HEIGHT_MM = 10;
 
 function lineCount(value: string, charactersPerLine: number) {
   return String(value || "—")
@@ -34,8 +48,6 @@ function estimateRowHeightMm(row: ActivityPlanTenPercentRow) {
     : 1;
   const lines = Math.max(1, domainLines, programLines, subjectLines, gradeLines, teacherLines);
 
-  // The base covers the compact cell padding and borders; extra lines use the
-  // actual readable line-height used by the semester table.
   return Math.max(9.2, 4.8 + lines * 4);
 }
 
@@ -54,26 +66,41 @@ function groupRows(rows: ActivityPlanTenPercentRow[], fallbackStage: string) {
     }
   }
 
-  return Array.from(grouped.entries()).flatMap(([groupKey, group]) => {
-    const pages: Array<[string, ActivityPlanTenPercentRow[]]> = [];
-    let pageRows: ActivityPlanTenPercentRow[] = [];
-    let usedHeight = SEMESTER_TABLE_HEADER_HEIGHT_MM;
+  const destinations = Array.from(grouped.entries());
 
-    for (const row of group.rows) {
-      const rowHeight = estimateRowHeightMm(row);
-      if (pageRows.length && usedHeight + rowHeight > SEMESTER_PRINTABLE_TABLE_HEIGHT_MM) {
-        pages.push([`${groupKey}:${pages.length}`, pageRows]);
-        pageRows = [];
-        usedHeight = SEMESTER_TABLE_HEADER_HEIGHT_MM;
-      }
-      pageRows.push(row);
-      usedHeight += rowHeight;
-    }
-
-    if (pageRows.length) pages.push([`${groupKey}:${pages.length}`, pageRows]);
-    return pages;
-  });
+  return destinations.flatMap(([groupKey, group], destinationIndex) =>
+    paginateMeasuredPrintItems(
+      group.rows.map((row) => ({ item: row, heightMm: estimateRowHeightMm(row) })),
+      {
+        intermediateCapacityMm: SEMESTER_INTERMEDIATE_TABLE_CAPACITY_MM - SEMESTER_TABLE_HEADER_HEIGHT_MM,
+        finalCapacityMm: SEMESTER_FINAL_TABLE_CAPACITY_MM - SEMESTER_TABLE_HEADER_HEIGHT_MM,
+        // The two signatures belong to the last physical page of the whole
+        // semester document, never to each individual destination.
+        reserveFinalPage: destinationIndex === destinations.length - 1,
+      },
+    ).map((pageRows, pageIndex) => [`${groupKey}:${pageIndex}`, pageRows] as [string, ActivityPlanTenPercentRow[]]),
+  );
 }
+
+const semesterPrintStyles = `
+@page{size:A4 landscape;margin:0}
+.activity-plan-semester-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.6pt}
+.activity-plan-semester-table th,.activity-plan-semester-table td{border:.25mm solid #CBD5E1;padding:2.1mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}
+.activity-plan-semester-table th{background:#0F5F7A;color:#fff;font-weight:900;line-height:1.3}
+.activity-plan-semester-table td{background:#fff;color:#172B3A;font-weight:700;line-height:1.4}
+.activity-plan-semester-title{display:flex;align-items:center;justify-content:space-between;gap:5mm;margin:3.5mm 0;padding:2.5mm 3mm;border-right:2mm solid #0F7FA8;border-bottom:1px solid #B9D8E8;background:#F1F7FA;color:#123B4A}
+.activity-plan-semester-title h1{margin:0;font-size:15pt;font-weight:900;line-height:1.35}
+.activity-plan-semester-title span{font-size:10pt;font-weight:900;color:#0F5F7A}
+.activity-plan-semester-domain-list{display:flex;flex-wrap:wrap;justify-content:center;gap:1.2mm}
+.activity-plan-semester-domain{display:inline-flex;align-items:center;gap:1.2mm;border:1px solid #94A3B8;border-radius:1.5mm;padding:1mm 1.5mm;background:#F8FAFC;color:#203746;font-size:7.5pt;font-weight:900}
+.activity-plan-semester-domain i{display:inline-block;width:2.2mm;height:2.2mm;border-radius:50%}
+.activity-plan-semester-material-type{font-size:7.5pt;font-weight:900}
+.activity-plan-semester-material-type--core{color:#0F766E}
+.activity-plan-semester-material-type--ten{color:#B45309}
+.activity-plan-semester-empty{padding:10mm!important;color:#64748B!important}
+.activity-plan-semester-multiline{white-space:pre-line}
+@media print{.activity-plan-semester-table th,.activity-plan-semester-domain i{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+`;
 
 export function ActivityPlanSemesterPrintDocument({ rows, gradeSections = [], stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
   const scopedRows = gradeSections.length
@@ -85,5 +112,51 @@ export function ActivityPlanSemesterPrintDocument({ rows, gradeSections = [], st
   const pages = groupRows(scopedRows, stage);
   if (!pages.length) pages.push(["empty", []]);
 
-  return <><style>{activityPlanPrintShellStyles}</style><style>{`@page{size:A4 landscape;margin:0}.activity-plan-semester-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.6pt}.activity-plan-semester-table th,.activity-plan-semester-table td{border:.25mm solid #CBD5E1;padding:2.1mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}.activity-plan-semester-table th{background:#0F5F7A;color:#fff;font-weight:900;line-height:1.3}.activity-plan-semester-table td{background:#fff;color:#172B3A;font-weight:700;line-height:1.4}.activity-plan-semester-title{display:flex;align-items:center;justify-content:space-between;gap:5mm;margin:3.5mm 0;padding:2.5mm 3mm;border-right:2mm solid #0F7FA8;border-bottom:1px solid #B9D8E8;background:#F1F7FA;color:#123B4A}.activity-plan-semester-title h1{margin:0;font-size:15pt;font-weight:900;line-height:1.35}.activity-plan-semester-title span{font-size:10pt;font-weight:900;color:#0F5F7A}.activity-plan-semester-domain-list{display:flex;flex-wrap:wrap;justify-content:center;gap:1.2mm}.activity-plan-semester-domain{display:inline-flex;align-items:center;gap:1.2mm;border:1px solid #94A3B8;border-radius:1.5mm;padding:1mm 1.5mm;background:#F8FAFC;color:#203746;font-size:7.5pt;font-weight:900}.activity-plan-semester-domain i{display:inline-block;width:2.2mm;height:2.2mm;border-radius:50%}.activity-plan-semester-material-type{font-size:7.5pt;font-weight:900}.activity-plan-semester-material-type--core{color:#0F766E}.activity-plan-semester-material-type--ten{color:#B45309}.activity-plan-semester-empty{padding:10mm!important;color:#64748B!important}.activity-plan-semester-multiline{white-space:pre-line}@media print{.activity-plan-semester-table th{-webkit-print-color-adjust:exact;print-color-adjust:exact}.activity-plan-semester-domain i{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`}</style><main className="activity-plan-print-root" dir="rtl">{pages.map(([key, pageRows], pageIndex) => { const groupKey = key.slice(0, key.lastIndexOf(":")); const isLastDestinationPage = !pages.slice(pageIndex + 1).some(([nextKey]) => nextKey.startsWith(`${groupKey}:`)); const pageStage = pageRows[0]?.stage || stage; const combination = pageRows[0]?.grades[0] || ""; const context = combination ? `${pageStage} — ${displayGrade(combination)}` : `${pageStage} — بيانات سابقة غير مصنفة`; return <ActivityPlanPrintPage key={key} className="activity-plan-ten-percent-print-page activity-plan-print-page--physical" contentClassName="ten-percent-plan-page-content" footer={isLastDestinationPage ? <CurriculumDocumentFooter primaryRoleLabel="رائد النشاط" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="توقيع رائد النشاط" principalName={principalName} principalSignatureUrl={principalSignatureUrl} signatureOrder="image-first" /> : undefined}><CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} /><div className="activity-plan-semester-title"><h1>الخطة الفصلية للنشاط الطلابي</h1><span>{context}</span></div><table className="activity-plan-semester-table"><colgroup><col style={{ width: "18%" }} /><col style={{ width: "24%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} /><col style={{ width: "15%" }} /><col style={{ width: "11%" }} /><col style={{ width: "11%" }} /></colgroup><thead><tr><th>المجال</th><th>البرنامج / النشاط</th><th>أسابيع التنفيذ</th><th>عدد الحصص</th><th>المادة والنوع</th><th>الصف</th><th>المعلم / المعلمون</th></tr></thead><tbody>{pageRows.length ? pageRows.map((row) => <tr key={row.id}><td><div className="activity-plan-semester-domain-list">{row.domains.map((domain) => { const color = getActivityPlanProgramByKey(domain.slug)?.backgroundColor || "#64748B"; return <span key={domain.serviceSlug} className="activity-plan-semester-domain" style={{ borderColor: color }}><i style={{ backgroundColor: color }} />{domain.title}</span>; })}</div></td><td>{row.programs.map((program) => program.name).join("، ") || "—"}</td><td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td><td dir="ltr">{row.periodCount?.trim() || "—"}</td><td>{row.subject || "—"} <span className={`activity-plan-semester-material-type ${row.materialType === "10%" ? "activity-plan-semester-material-type--ten" : "activity-plan-semester-material-type--core"}`}>({materialTypeLabel(row.materialType)})</span></td><td>{row.grades.map(displayGrade).join("\n") || "—"}</td><td><div className="activity-plan-semester-multiline">{row.teacherNames.join("\n") || "—"}</div></td></tr>) : <tr><td colSpan={7} className="activity-plan-semester-empty">لا توجد بيانات محفوظة لهذه المرحلة.</td></tr>}</tbody></table></ActivityPlanPrintPage>; })}</main></>;
+  return <>
+    <style>{activityPlanPrintShellStyles}</style>
+    <style>{semesterPrintStyles}</style>
+    <main className="activity-plan-print-root" dir="rtl">
+      {pages.map(([key, pageRows], pageIndex) => {
+        const isFinalDocumentPage = pageIndex === pages.length - 1;
+        const pageStage = pageRows[0]?.stage || stage;
+        const combination = pageRows[0]?.grades[0] || "";
+        const context = combination ? `${pageStage} — ${displayGrade(combination)}` : `${pageStage} — بيانات سابقة غير مصنفة`;
+
+        return <ActivityPlanPrintPage
+          key={key}
+          className={`activity-plan-ten-percent-print-page activity-plan-print-page--physical${isFinalDocumentPage ? "" : " activity-plan-print-page--compact-footer"}`}
+          contentClassName="ten-percent-plan-page-content"
+          footer={<CurriculumDocumentFooter
+            primaryRoleLabel="رائد النشاط"
+            primaryName={activityLeaderName}
+            primarySignatureUrl={activityLeaderSignatureUrl}
+            primarySignatureAlt="توقيع رائد النشاط"
+            principalName={principalName}
+            principalSignatureUrl={principalSignatureUrl}
+            includeSignatures={isFinalDocumentPage}
+            signatureOrder="image-first"
+          />}
+        >
+          <CurriculumDocumentHeader title="الخطة الفصلية للنشاط الطلابي" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <div className="activity-plan-semester-title"><h1>الخطة الفصلية للنشاط الطلابي</h1><span>{context}</span></div>
+          <table className="activity-plan-semester-table">
+            <colgroup><col style={{ width: "18%" }} /><col style={{ width: "24%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} /><col style={{ width: "15%" }} /><col style={{ width: "11%" }} /><col style={{ width: "11%" }} /></colgroup>
+            <thead><tr><th>المجال</th><th>البرنامج / النشاط</th><th>أسابيع التنفيذ</th><th>عدد الحصص</th><th>المادة والنوع</th><th>الصف</th><th>المعلم / المعلمون</th></tr></thead>
+            <tbody>{pageRows.length ? pageRows.map((row) => <tr key={row.id}>
+              <td><div className="activity-plan-semester-domain-list">{row.domains.map((domain) => {
+                const color = getActivityPlanProgramByKey(domain.slug)?.backgroundColor || "#64748B";
+                return <span key={domain.serviceSlug} className="activity-plan-semester-domain" style={{ borderColor: color }}><i style={{ backgroundColor: color }} />{domain.title}</span>;
+              })}</div></td>
+              <td>{row.programs.map((program) => program.name).join("، ") || "—"}</td>
+              <td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
+              <td dir="ltr">{row.periodCount?.trim() || "—"}</td>
+              <td>{row.subject || "—"} <span className={`activity-plan-semester-material-type ${row.materialType === "10%" ? "activity-plan-semester-material-type--ten" : "activity-plan-semester-material-type--core"}`}>({materialTypeLabel(row.materialType)})</span></td>
+              <td>{row.grades.map(displayGrade).join("\n") || "—"}</td>
+              <td><div className="activity-plan-semester-multiline">{row.teacherNames.join("\n") || "—"}</div></td>
+            </tr>) : <tr><td colSpan={7} className="activity-plan-semester-empty">لا توجد بيانات محفوظة لهذه المرحلة.</td></tr>}</tbody>
+          </table>
+        </ActivityPlanPrintPage>;
+      })}
+    </main>
+  </>;
 }

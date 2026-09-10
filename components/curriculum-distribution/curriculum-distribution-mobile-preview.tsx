@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TouchEvent, TouchList, WheelEvent } from "react";
-import { Download, Loader2, Minus, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Expand, Loader2, X } from "lucide-react";
 
 const A4_LANDSCAPE_WIDTH = 1122;
 const A4_LANDSCAPE_HEIGHT = 794;
@@ -39,6 +39,7 @@ export function CurriculumDistributionMobilePreview({
   documentSelector = ".curriculum-print-paper",
   documentLabel = "توزيع المنهج",
   documentNotFoundMessage = "تعذر العثور على مستند المعاينة.",
+  pageSelector,
   allowDocumentScroll = false,
   hideDocumentScrollbars = false,
   documentOrientation = "landscape",
@@ -52,6 +53,7 @@ export function CurriculumDistributionMobilePreview({
   documentSelector?: string;
   documentLabel?: string;
   documentNotFoundMessage?: string;
+  pageSelector?: string;
   allowDocumentScroll?: boolean;
   hideDocumentScrollbars?: boolean;
   documentOrientation?: "landscape" | "portrait";
@@ -59,6 +61,7 @@ export function CurriculumDistributionMobilePreview({
   const documentWidth = documentOrientation === "portrait" ? A4_PORTRAIT_WIDTH : A4_LANDSCAPE_WIDTH;
   const documentHeight = documentOrientation === "portrait" ? A4_PORTRAIT_HEIGHT : A4_LANDSCAPE_HEIGHT;
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const frameReadyRef = useRef(false);
   const pinchRef = useRef<PinchState | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -71,6 +74,8 @@ export function CurriculumDistributionMobilePreview({
   const [previewReady, setPreviewReady] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const [previewReloadVersion, setPreviewReloadVersion] = useState(0);
+  const [printPageCount, setPrintPageCount] = useState(0);
+  const [activePrintPage, setActivePrintPage] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -110,6 +115,8 @@ export function CurriculumDistributionMobilePreview({
     frameReadyRef.current = false;
     setPreviewReady(false);
     setPreviewError("");
+    setPrintPageCount(0);
+    setActivePrintPage(0);
 
     if (!open || !previewUrl) return;
 
@@ -145,13 +152,6 @@ export function CurriculumDistributionMobilePreview({
     };
   }
 
-  function changeZoom(nextZoom: number) {
-    const clampedZoom = Math.min(MAX_ZOOM_PERCENT, Math.max(MIN_ZOOM_PERCENT, nextZoom));
-    setFitMode(false);
-    setZoomPercent(clampedZoom);
-    setPan((currentPan) => clampPan(currentPan, clampedZoom / 100));
-  }
-
   function fitPreview() {
     setFitMode(true);
     setPan({ x: 0, y: 0 });
@@ -159,6 +159,20 @@ export function CurriculumDistributionMobilePreview({
 
   function retryPreview() {
     setPreviewReloadVersion((current) => current + 1);
+  }
+
+  function getPrintPages() {
+    if (!pageSelector) return [] as HTMLElement[];
+    return Array.from(iframeRef.current?.contentDocument?.querySelectorAll<HTMLElement>(pageSelector) || []);
+  }
+
+  function goToPrintPage(nextPage: number) {
+    const pages = getPrintPages();
+    const page = pages[nextPage];
+    if (!page) return;
+
+    page.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+    setActivePrintPage(nextPage);
   }
 
   function startPinch(event: TouchEvent<HTMLDivElement>) {
@@ -257,44 +271,44 @@ export function CurriculumDistributionMobilePreview({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4"
+      className="fixed inset-0 z-[120] flex max-w-full items-center justify-center overflow-x-clip bg-slate-950/60 p-2.5 backdrop-blur-md sm:p-4"
       dir="rtl"
       onClick={onClose}
     >
       <style>{`@media (hover: none) and (pointer: coarse) { .curriculum-preview-gesture-frame:not(.curriculum-preview-document-scroll) iframe { pointer-events: none !important; } }`}</style>
       <section
-        className="flex h-[80dvh] max-h-[80dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-sky-950/30 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
+        className="flex h-[84dvh] max-h-[84dvh] w-full max-w-[450px] flex-col overflow-hidden rounded-[1.75rem] border border-white/80 bg-white shadow-2xl shadow-slate-950/35 sm:h-[94vh] sm:max-h-[94vh] sm:max-w-[1200px]"
         onClick={(event) => event.stopPropagation()}
         aria-label={`معاينة ${documentLabel}`}
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 sm:px-5 sm:py-3.5">
-          <div className="min-w-0">
-            <h2 className="text-base font-black text-slate-950">{title}</h2>
-            <p className="mt-0.5 text-[11px] font-bold text-slate-500">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100/90 bg-white/95 px-3 py-3 shadow-[0_2px_14px_rgba(15,23,42,0.035)] sm:px-5 sm:py-3.5">
+          <div className="min-w-0 pe-1">
+            <h2 className="truncate text-[15px] font-black tracking-tight text-slate-950 sm:text-base">{title}</h2>
+            <p className="mt-0.5 hidden truncate text-[11px] font-bold text-slate-500 sm:block">
               {subtitle}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <div className="flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5" dir="ltr" aria-label="zoom controls">
-              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) - 10)} disabled={!fitMode && zoomPercent <= MIN_ZOOM_PERCENT} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
-              <span className="min-w-[3.2rem] text-center text-[11px] font-black tabular-nums text-slate-700">{displayedZoom}%</span>
-              <button type="button" onClick={() => changeZoom((fitMode ? displayedZoom : zoomPercent) + 10)} disabled={!fitMode && zoomPercent >= MAX_ZOOM_PERCENT} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={fitPreview} className="h-7 rounded-lg px-1.5 text-[10px] font-black text-slate-600 transition hover:bg-white hover:text-sky-700" aria-label="Fit preview">Fit</button>
-            </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-            aria-label="إغلاق المعاينة"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            {printPageCount > 1 ? <div className="flex h-9 items-center gap-0.5 rounded-xl border border-sky-100 bg-sky-50/70 p-1 text-xs font-black text-slate-700 shadow-sm" dir="ltr" aria-label="التنقل بين صفحات المعاينة">
+              <button type="button" onClick={() => goToPrintPage(activePrintPage - 1)} disabled={activePrintPage === 0} className="flex h-7 w-7 items-center justify-center rounded-lg text-sky-700 transition hover:bg-white hover:text-sky-900 disabled:cursor-not-allowed disabled:text-slate-300" aria-label="الصفحة السابقة"><ChevronLeft className="h-4 w-4" /></button>
+              <span className="min-w-[3.1rem] text-center text-[11px] tabular-nums text-slate-700">{activePrintPage + 1} / {printPageCount}</span>
+              <button type="button" onClick={() => goToPrintPage(activePrintPage + 1)} disabled={activePrintPage >= printPageCount - 1} className="flex h-7 w-7 items-center justify-center rounded-lg text-teal-700 transition hover:bg-white hover:text-teal-900 disabled:cursor-not-allowed disabled:text-slate-300" aria-label="الصفحة التالية"><ChevronRight className="h-4 w-4" /></button>
+            </div> : null}
+            <button type="button" onClick={fitPreview} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-teal-100 bg-teal-50/70 px-2.5 text-[11px] font-black text-teal-800 shadow-sm transition hover:bg-white hover:text-teal-950" aria-label="ملاءمة المعاينة"><Expand className="h-3.5 w-3.5" />Fit</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
+              aria-label="إغلاق المعاينة"
+            >
+                  <X className="h-[18px] w-[18px]" />
+            </button>
           </div>
         </header>
 
         <div
           ref={frameRef}
-          className={`curriculum-preview-gesture-frame relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-slate-100 p-2.5 sm:min-h-[220px] sm:p-3${allowDocumentScroll ? " curriculum-preview-document-scroll" : ""}`}
+          className={`curriculum-preview-gesture-frame relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-gradient-to-b from-slate-100 via-slate-100 to-sky-50/70 p-2 sm:min-h-[220px] sm:p-3${allowDocumentScroll ? " curriculum-preview-document-scroll" : ""}`}
           onTouchStart={(event) => {
             startPinch(event);
             startDrag(event);
@@ -306,7 +320,7 @@ export function CurriculumDistributionMobilePreview({
           style={{ touchAction: "none" }}
         >
           <div
-            className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200"
+            className="absolute left-1/2 top-1/2 overflow-hidden rounded-[0.9rem] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/80"
             style={{
               width: `${documentWidth}px`,
               height: `${documentHeight}px`,
@@ -328,6 +342,7 @@ export function CurriculumDistributionMobilePreview({
             ) : null}
             <iframe
               key={`${previewUrl}:${previewReloadVersion}`}
+              ref={iframeRef}
               title={`معاينة تقرير ${documentLabel}`}
               src={previewUrl}
               className="absolute inset-0 block border-0 bg-white"
@@ -388,6 +403,10 @@ export function CurriculumDistributionMobilePreview({
                   if (hasReport) {
                     frameReadyRef.current = true;
                     setPreviewReady(true);
+                    const pageCount = pageSelector
+                      ? reportDocument.querySelectorAll(pageSelector).length
+                      : 0;
+                    setPrintPageCount(pageCount);
                     return;
                   }
 
@@ -416,18 +435,18 @@ export function CurriculumDistributionMobilePreview({
           </div>
         </div>
 
-        <footer className="shrink-0 border-t border-slate-100 bg-white p-2.5 sm:p-4">
+        <footer className="shrink-0 border-t border-slate-100/90 bg-gradient-to-b from-white to-slate-50/80 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
           {error ? (
             <p className="mb-2 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs font-bold text-rose-700">
               {error}
             </p>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               type="button"
               onClick={() => void download()}
               disabled={downloading}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-sky-600 to-cyan-600 text-sm font-black text-white shadow-lg shadow-sky-200/80 transition hover:from-sky-700 hover:to-cyan-700 disabled:cursor-wait disabled:opacity-60"
             >
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               {downloading ? "جارٍ تجهيز التحميل..." : "تحميل / طباعة"}
@@ -435,7 +454,7 @@ export function CurriculumDistributionMobilePreview({
             <button
               type="button"
               onClick={onClose}
-              className="h-11 rounded-2xl bg-slate-100 px-4 text-sm font-black text-slate-700 transition hover:bg-slate-200"
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               إغلاق
             </button>

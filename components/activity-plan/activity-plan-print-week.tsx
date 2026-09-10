@@ -3,6 +3,7 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import type { ActivityPlanPrintEntry, ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE } from "@/components/activity-plan/activity-plan-print-shell";
+import { paginateMeasuredPrintItems } from "@/components/activity-plan/activity-plan-print-pagination";
 
 const periods = [1, 2, 3, 4, 5, 6, 7];
 const programKeys = ["citizenship-life", "science-technology", "culture-arts", "sports-health", "scouting", "events-occasions"];
@@ -96,37 +97,6 @@ function buildBlocks(week: ActivityPlanPrintWeekData, entriesBySlot: Map<string,
   });
 }
 
-function paginateBlocks(blocks: WeeklyBlock[], reserveSignatures: boolean) {
-  const pages: WeeklyBlock[][] = [];
-  let current: WeeklyBlock[] = [];
-  let usedHeight = 0;
-
-  for (const block of blocks) {
-    if (current.length && usedHeight + block.estimatedHeightMm > INTERMEDIATE_TABLE_CAPACITY_MM) {
-      pages.push(current);
-      current = [];
-      usedHeight = 0;
-    }
-    current.push(block);
-    usedHeight += block.estimatedHeightMm;
-  }
-  if (current.length || !pages.length) pages.push(current);
-
-  // Only the final page of the full print document reserves signature space.
-  // All earlier pages use their freed space for table rows.
-  while (reserveSignatures && pages.length) {
-    const lastPage = pages[pages.length - 1];
-    const lastHeight = lastPage.reduce((total, block) => total + block.estimatedHeightMm, 0);
-    if (lastHeight <= FINAL_TABLE_CAPACITY_MM || lastPage.length <= 1) break;
-
-    const moved = lastPage.pop();
-    if (!moved) break;
-    pages.push([moved]);
-  }
-
-  return pages;
-}
-
 function WeeklyContextRow({ stage, weekNumber }: { stage: string; weekNumber: number }) {
   return <section className="activity-plan-print-context" aria-label="بيانات الخطة الأسبوعية">
     <span className="activity-plan-print-context-item"><strong>المرحلة:</strong> {stage}</span>
@@ -169,7 +139,14 @@ export function ActivityPlanPrintWeek({ week, stage, academicYear, schoolName, e
     entriesBySlot.set(key, [...(entriesBySlot.get(key) || []), entry]);
   }
 
-  const pages = paginateBlocks(buildBlocks(week, entriesBySlot), includeSignatures);
+  const pages = paginateMeasuredPrintItems(
+    buildBlocks(week, entriesBySlot).map((block) => ({ item: block, heightMm: block.estimatedHeightMm })),
+    {
+      intermediateCapacityMm: INTERMEDIATE_TABLE_CAPACITY_MM,
+      finalCapacityMm: FINAL_TABLE_CAPACITY_MM,
+      reserveFinalPage: includeSignatures,
+    },
+  );
 
   return <><style>{weeklyPrintPaginationStyles}</style>{pages.map((blocks, pageIndex) => {
     const isSignaturePage = includeSignatures && pageIndex === pages.length - 1;
