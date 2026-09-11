@@ -16,6 +16,14 @@ export type PrintExportFallback = {
 
 export type PrintExportActionOptions = {
   exportUrl?: string;
+  /** Browser delivery defaults to the existing fetch/blob behavior. */
+  deliveryMode?: "blob" | "direct";
+  /** Optional response-received signal for a direct browser download. */
+  directDownloadAcknowledgement?: {
+    cookieNamePrefix: string;
+    timeoutMs?: number;
+    trace?: "portfolio";
+  };
   printUrl?: string;
   fileName?: string;
   method?: "GET" | "POST";

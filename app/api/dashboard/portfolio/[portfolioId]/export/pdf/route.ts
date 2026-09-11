@@ -14,18 +14,63 @@ function pdfFileName(title: string) {
   return `${safe || "ملف-الإنجاز"}.pdf`;
 }
 
-function responseWithPdf(pdf: Uint8Array, fileName: string) {
-  const body = pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer;
-  return new NextResponse(body, {
+const DOWNLOAD_REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{16,48}$/;
+
+function portfolioDownloadDebug(stage: string, details: Record<string, unknown>) {
+  console.info("PORTFOLIO_DOWNLOAD_DEBUG", { stage, ...details });
+}
+
+function getDownloadRequestId(request: Request) {
+  const value = new URL(request.url).searchParams.get("downloadRequestId") || "";
+  return DOWNLOAD_REQUEST_ID_PATTERN.test(value) ? value : "";
+}
+
+function responseWithPdf(
+  pdf: Uint8Array,
+  fileName: string,
+  downloadRequestId: string,
+  elapsedMs: number,
+) {
+  portfolioDownloadDebug("response-build-start", { elapsedMs, bytesLength: pdf.byteLength });
+  // Cloudflare returns a full Uint8Array view. Reuse its ArrayBuffer instead of
+  // slicing a second ~23 MB buffer; retain a safe fallback for non-full views.
+  const body = pdf.byteOffset === 0 && pdf.byteLength === pdf.buffer.byteLength
+    ? pdf.buffer as ArrayBuffer
+    : pdf.slice().buffer as ArrayBuffer;
+  const response = new NextResponse(body, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="portfolio.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       "Cache-Control": "private, no-store",
+      "Content-Length": String(pdf.byteLength),
     },
   });
+
+  if (downloadRequestId) {
+    response.cookies.set({
+      name: `teachix_portfolio_download_${downloadRequestId}`,
+      value: "1",
+      path: "/",
+      maxAge: 120,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: false,
+    });
+  }
+
+  portfolioDownloadDebug("response-build-finished", {
+    elapsedMs,
+    bytesLength: pdf.byteLength,
+    contentType: "application/pdf",
+    contentDispositionPresent: true,
+    downloadRequestIdPresent: Boolean(downloadRequestId),
+  });
+  portfolioDownloadDebug("response-return", { elapsedMs, bytesLength: pdf.byteLength });
+  return response;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ portfolioId: string }> }) {
+  const startedAt = Date.now();
   try {
     const user = await requirePortfolioApiUser();
     const { portfolioId } = await params;
@@ -48,9 +93,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ port
       waitForSelectorTimeoutMs: 30_000,
       debugLabel: "portfolio",
     });
+    const downloadRequestId = getDownloadRequestId(request);
+    const elapsedMs = Date.now() - startedAt;
+    portfolioDownloadDebug("route-pdf-ready", {
+      elapsedMs,
+      bytesLength: pdf.byteLength,
+      downloadRequestIdPresent: Boolean(downloadRequestId),
+    });
 
-    return responseWithPdf(pdf, pdfFileName(workspace.portfolio.title));
+    return responseWithPdf(
+      pdf,
+      pdfFileName(workspace.portfolio.title),
+      downloadRequestId,
+      elapsedMs,
+    );
   } catch (error) {
+    portfolioDownloadDebug("export-error", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      safeCode:
+        error instanceof Error && /^[A-Z0-9_]+$/.test(error.message)
+          ? error.message
+          : "PORTFOLIO_EXPORT_FAILED",
+      elapsedMs: Date.now() - startedAt,
+    });
     return portfolioApiError(error);
   }
 }

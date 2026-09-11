@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  appendDownloadRequestId,
   buildPrintUrl,
+  createDownloadRequestId,
   downloadBlobAsFile,
+  startDirectBrowserDownload,
 } from "@/lib/print-export/print-export-download";
 import type {
   PrintExportActionOptions,
@@ -67,11 +70,66 @@ function buildRequestBody(body: unknown) {
   return JSON.stringify(body);
 }
 
+const PORTFOLIO_DOWNLOAD_TRACE_ENABLED =
+  process.env.NEXT_PUBLIC_PORTFOLIO_DOWNLOAD_TRACE === "1";
+
+function portfolioDownloadTrace(
+  stage: string,
+  details: Record<string, unknown> = {},
+) {
+  if (!PORTFOLIO_DOWNLOAD_TRACE_ENABLED) return;
+  console.info("[PORTFOLIO_DOWNLOAD]", {
+    stage,
+    timestamp: new Date().toISOString(),
+    ...details,
+  });
+}
+
+function portfolioDownloadPathname(url: string) {
+  try {
+    const pathname = new URL(url, window.location.origin).pathname;
+    return pathname.replace(
+      /^\/api\/dashboard\/portfolio\/[^/]+\/export\/pdf$/,
+      "/api/dashboard/portfolio/[portfolioId]/export/pdf",
+    );
+  } catch {
+    return "";
+  }
+}
+
+function hasBrowserCookie(name: string) {
+  return document.cookie.split(";").some((entry) => entry.trim() === `${name}=1`);
+}
+
+function clearBrowserCookie(name: string) {
+  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+async function waitForDownloadAcknowledgement(
+  cookieName: string,
+  timeoutMs: number,
+  signal: AbortSignal,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (signal.aborted) throw new Error("DIRECT_DOWNLOAD_CANCELLED");
+    if (hasBrowserCookie(cookieName)) {
+      clearBrowserCookie(cookieName);
+      return Date.now() - startedAt;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 450));
+  }
+
+  throw new Error("DIRECT_DOWNLOAD_ACK_TIMEOUT");
+}
+
 export function usePrintExportAction() {
   const [status, setStatus] = useState<PrintExportStatus>("idle");
   const [modal, setModal] = useState<PrintExportModal | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(1);
+  const directDownloadAbortRef = useRef<AbortController | null>(null);
 
   const stopProgress = useCallback(() => {
     if (progressTimerRef.current) {
@@ -118,12 +176,17 @@ export function usePrintExportAction() {
   }, [publishProgress, stopProgress]);
 
   const closeModal = useCallback(() => {
+    directDownloadAbortRef.current?.abort();
+    directDownloadAbortRef.current = null;
     stopProgress();
     setModal(null);
     setStatus("idle");
   }, [stopProgress]);
 
-  useEffect(() => () => stopProgress(), [stopProgress]);
+  useEffect(() => () => {
+    directDownloadAbortRef.current?.abort();
+    stopProgress();
+  }, [stopProgress]);
 
   const openFallbackPrintUrl = useCallback(
     async (
@@ -223,6 +286,89 @@ export function usePrintExportAction() {
 
       try {
         if (options.exportUrl) {
+          if (options.deliveryMode === "direct" && !isNativeCapacitor()) {
+            const acknowledgement = options.directDownloadAcknowledgement;
+            const requestId = acknowledgement ? createDownloadRequestId() : "";
+            const exportUrl = requestId
+              ? appendDownloadRequestId(options.exportUrl, requestId)
+              : options.exportUrl;
+            const cookieName = acknowledgement
+              ? `${acknowledgement.cookieNamePrefix}${requestId}`
+              : "";
+            const pathname = portfolioDownloadPathname(exportUrl);
+
+            if (acknowledgement?.trace === "portfolio") {
+              portfolioDownloadTrace("direct-download-requested", {
+                deliveryMode: "direct",
+                native: false,
+                pathname,
+              });
+            }
+
+            try {
+              startDirectBrowserDownload(exportUrl);
+              if (acknowledgement?.trace === "portfolio") {
+                portfolioDownloadTrace("anchor-created", { pathname });
+                portfolioDownloadTrace("anchor-clicked", { pathname });
+              }
+            } catch (error) {
+              if (acknowledgement?.trace === "portfolio") {
+                portfolioDownloadTrace("client-exception", {
+                  errorCode: error instanceof Error ? error.message : "DIRECT_DOWNLOAD_UNKNOWN_ERROR",
+                  pathname,
+                });
+              }
+              throw error;
+            }
+
+            if (acknowledgement) {
+              const controller = new AbortController();
+              directDownloadAbortRef.current?.abort();
+              directDownloadAbortRef.current = controller;
+              try {
+                const elapsedMs = await waitForDownloadAcknowledgement(
+                  cookieName,
+                  acknowledgement.timeoutMs || 85_000,
+                  controller.signal,
+                );
+                if (acknowledgement.trace === "portfolio") {
+                  portfolioDownloadTrace("direct-download-acknowledged", {
+                    elapsedMs,
+                    pathname,
+                    meaning: "pdf-response-reached-browser",
+                  });
+                }
+              } catch (error) {
+                if (acknowledgement.trace === "portfolio") {
+                  const elapsedMs = acknowledgement.timeoutMs || 85_000;
+                  portfolioDownloadTrace(
+                    error instanceof Error && error.message === "DIRECT_DOWNLOAD_ACK_TIMEOUT"
+                      ? "ack-timeout"
+                      : "direct-download-error",
+                    {
+                      elapsedMs,
+                      errorCode: error instanceof Error ? error.message : "DIRECT_DOWNLOAD_UNKNOWN_ERROR",
+                      pathname,
+                    },
+                  );
+                }
+                throw error;
+              } finally {
+                if (directDownloadAbortRef.current === controller) {
+                  directDownloadAbortRef.current = null;
+                }
+              }
+            }
+
+            await finishProgress();
+            setStatus("success");
+            if (options.analytics) {
+              trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
+            }
+            setModal(null);
+            return "downloaded";
+          }
+
           const requestBody = buildRequestBody(options.body);
           const response = await fetch(options.exportUrl, {
             method: options.method || (requestBody ? "POST" : "GET"),
