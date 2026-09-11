@@ -71,7 +71,7 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function withActivityLeaderDisplayValues(report: Record<string, any>, caseEntry: any): any {
+function withWorkflowDisplayValues(report: Record<string, any>, caseEntry: any): any {
   const values = Array.isArray(caseEntry?.values) ? caseEntry.values : [];
   if (!values.length) return report;
 
@@ -132,7 +132,7 @@ function withActivityLeaderDisplayValues(report: Record<string, any>, caseEntry:
   };
 }
 
-async function getActivityLeaderCases(caseIds: string[]) {
+async function getWorkflowDisplayCases(caseIds: string[]) {
   if (!caseIds.length) return new Map<string, any>();
 
   const cases = await prisma.caseEntry.findMany({
@@ -569,15 +569,13 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
     : new Map();
 
   const activeIds = new Set(activeReports.map((item) => item.id));
-  const activityLeaderCases = context.user.role === "ACTIVITY_LEADER"
-    ? await getActivityLeaderCases(allowedCaseIds)
-    : new Map<string, any>();
+  const workflowDisplayCases = await getWorkflowDisplayCases(allowedCaseIds);
   return [
     ...activeReports.map((report) => ({
-      ...(activityLeaderCases.has(report.caseEntryId)
-        ? withActivityLeaderDisplayValues(
+      ...(workflowDisplayCases.has(report.caseEntryId)
+        ? withWorkflowDisplayValues(
             serializeActiveReport(report),
-            activityLeaderCases.get(report.caseEntryId),
+            workflowDisplayCases.get(report.caseEntryId),
           )
         : serializeActiveReport(report)),
       linkedContext: report.serviceSlug === "special-report" ? linkedContexts.get(report.caseEntryId) || null : null,
@@ -586,10 +584,10 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
     ...snapshots
       .filter((item) => !activeIds.has(item.id))
       .map((snapshot) => ({
-        ...(activityLeaderCases.has(snapshot.caseEntryId)
-          ? withActivityLeaderDisplayValues(
+        ...(workflowDisplayCases.has(snapshot.caseEntryId)
+          ? withWorkflowDisplayValues(
               serializeSnapshot(snapshot),
-              activityLeaderCases.get(snapshot.caseEntryId),
+              workflowDisplayCases.get(snapshot.caseEntryId),
             )
           : serializeSnapshot(snapshot)),
         linkedContext: snapshot.serviceSlug === "special-report" ? linkedContexts.get(snapshot.caseEntryId) || null : null,
@@ -611,11 +609,9 @@ export async function getReportTwoSnapshotById(
   const serialized = result.kind === "ACTIVE"
     ? serializeActiveReport(result.report)
     : serializeSnapshot(result.report);
-  if (context.user.role !== "ACTIVITY_LEADER") return serialized;
-
-  const cases = await getActivityLeaderCases([serialized.caseEntryId]);
+  const cases = await getWorkflowDisplayCases([serialized.caseEntryId]);
   const caseEntry = cases.get(serialized.caseEntryId);
-  return caseEntry ? withActivityLeaderDisplayValues(serialized, caseEntry) : serialized;
+  return caseEntry ? withWorkflowDisplayValues(serialized, caseEntry) : serialized;
 }
 
 export async function getLatestReportTwoSnapshotForCase(
