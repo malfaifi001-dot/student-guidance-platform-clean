@@ -194,9 +194,28 @@ function formatDayName(value: Date | string | null | undefined) {
 
 function isTechnicalField(key: string, label: string, value: string) {
   const text = normalizeArabicText(`${key} ${label}`);
+  const normalizedKey = cleanText(key).toLowerCase();
+  const internalCaseValueKeys = new Set([
+    "selectedstudent",
+    "selected_students_count",
+    "selected_students_names_text",
+    "selected_students_json",
+    "primary_student_id",
+    "studentsnapshot",
+    "guardiansnapshot",
+    "activity_domain",
+    "activity_assignment_id",
+    "assigned_teacher_name",
+    "assigned_teacher_phone",
+    "assigned_teacher_signature_url",
+    "assigned_teacher_signed_name",
+    "assigned_teacher_signed_at",
+    "submission_source",
+  ]);
 
   return (
     !value ||
+    internalCaseValueKeys.has(normalizedKey) ||
     text.includes("json") ||
     key.endsWith("_json") ||
     key.endsWith("__other") ||
@@ -273,7 +292,7 @@ function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
       const label = cleanText(fieldRecord.label);
 
       if (key && label) {
-        labels.set(key, label);
+        labels.set(key.toLowerCase(), label);
       }
     }
   }
@@ -309,38 +328,6 @@ function collectWorkflowSnapshotFields(snapshot: unknown) {
   });
 
   return fields;
-}
-
-function collectActiveWorkflowFieldKeys(caseEntry: any) {
-  const keys = new Set<string>();
-
-  caseEntry.workflow?.steps?.forEach((step: any) => {
-    step.fields?.forEach((field: any) => {
-      const key = cleanText(field?.key);
-
-      if (key) {
-        keys.add(key);
-      }
-    });
-  });
-
-  if (keys.size > 0) {
-    return keys;
-  }
-
-  const snapshotLabels = collectWorkflowSnapshotFieldLabels(
-    caseEntry.workflowSnapshot,
-  );
-
-  for (const key of snapshotLabels.keys()) {
-    const cleanKey = cleanText(key);
-
-    if (cleanKey) {
-      keys.add(cleanKey);
-    }
-  }
-
-  return keys;
 }
 
 function buildSmartReportFieldMap(
@@ -586,20 +573,27 @@ function applyLanguageModeToSmartReportValue(
 }
 
 function buildReportFieldMap(caseEntry: any) {
-  const snapshotLabels = collectWorkflowSnapshotFieldLabels(
-    caseEntry.workflowSnapshot,
-  );
   const map = new Map<string, FieldLookupItem>();
+
+  for (const [key, snapshotField] of collectWorkflowSnapshotFields(caseEntry.workflowSnapshot)) {
+    const field = snapshotField as FieldLookupItem;
+    map.set(key, {
+      key,
+      label: cleanText(field.label) || key,
+      type: field.type,
+      options: Array.isArray(field.options) ? field.options : [],
+    });
+  }
 
   caseEntry.workflow?.steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
-      const key = cleanText(field?.key);
+      const key = cleanText(field?.key).toLowerCase();
 
       if (!key) return;
 
       map.set(key, {
         key,
-        label: cleanText(field.label) || snapshotLabels.get(key) || key,
+        label: cleanText(field.label) || map.get(key)?.label || key,
         type: field.type,
         options: field.options || [],
       });
@@ -720,7 +714,7 @@ function resolveReportOptionDisplayValue(
   fieldMap: Map<string, FieldLookupItem>
 ): string | string[] {
   const key = caseValue.field?.key || caseValue.fieldKey || "";
-  const field = caseValue.field || fieldMap.get(key);
+  const field = caseValue.field || fieldMap.get(cleanText(key).toLowerCase());
   const optionLabels = buildReportOptionLabelMap(field);
   const raw = caseValue.jsonValue ?? caseValue.value;
 
@@ -760,6 +754,17 @@ function buildWorkflowSourceOrder(caseEntry: any) {
   const orderByKey = new Map<string, number>();
   let nextOrder = 0;
 
+  // Prefer the immutable workflow snapshot so historical activity cases keep
+  // the field order the submitter actually saw. The active workflow only
+  // fills gaps for cases created before snapshots existed.
+  for (const field of collectWorkflowSnapshotFields(caseEntry.workflowSnapshot).values()) {
+    const key = cleanText((field as FieldLookupItem)?.key).toLowerCase();
+
+    if (key && !orderByKey.has(key)) {
+      orderByKey.set(key, nextOrder++);
+    }
+  }
+
   caseEntry.workflow?.steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
       const key = cleanText(field?.key).toLowerCase();
@@ -777,9 +782,7 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
   const snapshotLabels = collectWorkflowSnapshotFieldLabels(
     caseEntry.workflowSnapshot,
   );
-  const activeWorkflowFieldKeys = collectActiveWorkflowFieldKeys(caseEntry);
   const fieldMap = buildReportFieldMap(caseEntry);
-  const allowSnapshotFallback = fieldMap.size === 0;
 
   const workflowOrderByKey = buildWorkflowSourceOrder(caseEntry);
 
@@ -800,18 +803,15 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
     )
     .map(({ item }: { item: any }) => {
       const key = item.field?.key || item.fieldKey || "";
+      const normalizedKey = cleanText(key).toLowerCase();
 
       if (!key) {
         return null;
       }
 
-      if (!activeWorkflowFieldKeys.has(key)) {
-        return null;
-      }
-
       const label =
-        cleanText(fieldMap.get(key)?.label) ||
-        (allowSnapshotFallback ? snapshotLabels.get(key) : "") ||
+        cleanText(fieldMap.get(normalizedKey)?.label) ||
+        snapshotLabels.get(normalizedKey) ||
         cleanText(item.field?.label) ||
         key ||
         "حقل بدون اسم";
@@ -827,7 +827,7 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
       return {
         key,
         sourceOrder: workflowOrderByKey.get(key.toLowerCase()),
-        fieldType: fieldMap.get(key)?.type || item.field?.type || undefined,
+        fieldType: fieldMap.get(normalizedKey)?.type || item.field?.type || undefined,
         label,
         value,
         ...(payloadValue && payloadValue.length > 1 ? { payloadValue } : {}),
@@ -1679,10 +1679,10 @@ export async function buildSmartReportPayloadForCase({
   const evidence = normalizeEvidence(caseEntry);
   const dateFields = values.filter((item) => item.fieldType?.toUpperCase() === "DATE");
   const primaryFields: SmartReportField[] = dateFields.map((item, index) => ({
-    key: index === 0 ? "execution_date" : `execution_date_${index + 1}`,
+    key: item.key,
     sourceOrder: item.sourceOrder,
     fieldType: "DATE",
-    label: index === 0 ? "تاريخ التنفيذ" : `تاريخ التنفيذ ${index + 1}`,
+    label: item.label || (index === 0 ? "تاريخ التنفيذ" : `تاريخ التنفيذ ${index + 1}`),
     value: item.value,
     importance: "PRIMARY",
   }));

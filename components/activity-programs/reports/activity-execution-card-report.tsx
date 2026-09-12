@@ -109,7 +109,6 @@ function hasUsefulValue(value: unknown) {
   return Boolean(
     text &&
       ![
-        "0",
         "غير محدد",
         "غير مدخل",
         "غير متوفر",

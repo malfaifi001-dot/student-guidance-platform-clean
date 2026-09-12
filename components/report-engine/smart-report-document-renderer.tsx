@@ -85,7 +85,10 @@ function translateTechnicalValue(value: string) {
 function translateFieldLabel(key: string, label: string) {
   if (label && label !== key && !/^[a-z0-9_]+$/i.test(label)) return label;
 
-  return ARABIC_LABEL_MAP[key] || "";
+  // Dynamic workflow fields may be introduced after this renderer was written.
+  // Their saved label is the source of truth; never silently hide a meaningful
+  // value solely because it has no entry in the legacy static label map.
+  return ARABIC_LABEL_MAP[key] || label || key;
 }
 
 function renderFieldValue(value: SmartReportField["value"]) {
@@ -104,10 +107,11 @@ function renderFieldValue(value: SmartReportField["value"]) {
 }
 
 function getField(payload: SmartReportPayload, key: string) {
-  return (
+  const exactField =
     payload.primaryFields.find((field) => field.key === key) ||
-    payload.detailFields.find((field) => field.key === key)
-  );
+    payload.detailFields.find((field) => field.key === key);
+
+  return exactField || (key === "execution_date" ? payload.primaryFields[0] : undefined);
 }
 
 function getFieldValue(payload: SmartReportPayload, key: string) {
@@ -172,7 +176,11 @@ function mapSmartPayloadToActivityReportData(
       label: "الأسبوع",
       value: getFieldValue(payload, "week"),
     },
-    ...payload.detailFields.slice(0, 12).map((field) => ({
+    ...payload.primaryFields.slice(1).map((field) => ({
+      label: translateFieldLabel(field.key, field.label),
+      value: renderFieldValue(field.value),
+    })),
+    ...payload.detailFields.map((field) => ({
       label: translateFieldLabel(field.key, field.label),
       value: renderFieldValue(field.value),
     })),
@@ -199,7 +207,9 @@ function mapSmartPayloadToActivityReportData(
     activity: {
       domain: payload.service.name || "مجال النشاط",
       title: payload.title || payload.caseInfo.title || "تقرير",
-      teacherName: getFieldValue(payload, "executor"),
+      teacherName:
+        getFieldValue(payload, "executor") ||
+        getFieldValue(payload, "assigned_teacher_name"),
       activityDate: getFieldValue(payload, "execution_date"),
       targetGroup:
         getFieldValue(payload, "target_group") ||

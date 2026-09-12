@@ -85,7 +85,12 @@ function looksLikeJson(value: string) {
 }
 
 function isEnglishTechnicalText(value: string) {
-  return /^[a-z0-9_\-.@:/]+$/i.test(value.trim());
+  const text = value.trim();
+
+  // Plain numeric values are valid report content. A value is technical only
+  // when it contains an English identifier signal, not merely because digits
+  // are permitted by the identifier character set.
+  return /^[a-z0-9_\-.@:/]+$/i.test(text) && /[a-z_]/i.test(text);
 }
 
 function isTechnicalField(key: string, label: string, value: string) {
@@ -435,13 +440,22 @@ function applyFields(
     });
 
   const appliedKeys = new Set(applied.map((field) => field.key));
-  const preservedDateFields = sourceFields.filter(
+  const preparedKeys = new Set(
+    preparation.fields
+      .filter((field) => field.source === source)
+      .map((field) => field.key),
+  );
+  const fieldsMissingFromSavedPreparation = sourceFields.filter(
     (field) =>
-      field.fieldType?.toUpperCase() === "DATE" &&
+      !preparedKeys.has(field.key) &&
       !appliedKeys.has(field.key),
   );
 
-  return [...applied, ...preservedDateFields];
+  // Older saved preparations can predate newly displayable field types (the
+  // numeric bug fixed above). Preserve source fields that were never present
+  // in that preparation, while continuing to respect fields the user actually
+  // saw and deliberately deselected.
+  return [...applied, ...fieldsMissingFromSavedPreparation];
 }
 
 export function applyReportFlowPreparationToPayload(
