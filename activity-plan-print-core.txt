@@ -1,0 +1,1164 @@
+﻿
+===== components\activity-plan\activity-plan-print-pagination.ts =====
+
+export type MeasuredPrintItem<T> = {
+  item: T;
+  heightMm: number;
+};
+
+export function paginateMeasuredPrintItems<T>(
+  items: MeasuredPrintItem<T>[],
+  options: {
+    intermediateCapacityMm: number;
+    finalCapacityMm: number;
+    reserveFinalPage?: boolean;
+  },
+) {
+  const pages: MeasuredPrintItem<T>[][] = [];
+  let current: MeasuredPrintItem<T>[] = [];
+  let usedHeight = 0;
+
+  for (const item of items) {
+    if (current.length && usedHeight + item.heightMm > options.intermediateCapacityMm) {
+      pages.push(current);
+      current = [];
+      usedHeight = 0;
+    }
+    current.push(item);
+    usedHeight += item.heightMm;
+  }
+  if (current.length || !pages.length) pages.push(current);
+
+  // Continuation pages can use the full table area. The last page must also
+  // retain enough room for the shared signature block and footer.
+  while (options.reserveFinalPage !== false && pages.length) {
+    const lastPage = pages[pages.length - 1];
+    const lastHeight = lastPage.reduce((total, item) => total + item.heightMm, 0);
+    if (lastHeight <= options.finalCapacityMm || lastPage.length <= 1) break;
+
+    const moved = lastPage.pop();
+    if (!moved) break;
+    pages.push([moved]);
+  }
+
+  return pages.map((page) => page.map(({ item }) => item));
+}
+
+
+===== components\activity-plan\activity-plan-print-shell.tsx =====
+
+import type { ReactNode } from "react";
+
+import {
+  ActivityPlanDocumentPage,
+} from "@/components/document-engine/designs/activity-plan/activity-plan-document-page";
+
+export const ACTIVITY_PLAN_PRINT_SUBTITLE = "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ø§Ù„Ø£ÙˆÙ„ â€” 1448Ù‡Ù€";
+
+export const activityPlanPrintShellStyles = `
+@page { size: A4 landscape; margin: 0; }
+* { box-sizing: border-box; }
+.activity-plan-print-root { direction: rtl; width: 100%; }
+.activity-plan-print-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 297mm;
+  height: 210mm !important;
+  min-height: 210mm !important;
+  max-height: 210mm !important;
+  margin: 0 auto;
+  padding: 6mm 7mm 5mm !important;
+  overflow: hidden !important;
+  background: #fff;
+  break-inside: auto;
+  page-break-inside: auto;
+  break-after: auto;
+  page-break-after: auto;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.activity-plan-print-page--physical {
+  height: 210mm !important;
+  min-height: 210mm !important;
+  max-height: 210mm !important;
+  box-sizing: border-box;
+  overflow: hidden !important;
+  break-after: page;
+  page-break-after: always;
+}
+.activity-plan-print-page--physical:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+@media screen {
+  .activity-plan-print-page + .activity-plan-print-page {
+    margin-top: 8mm !important;
+  }
+}
+@media print {
+  .activity-plan-print-page + .activity-plan-print-page {
+    margin-top: 0 !important;
+  }
+}
+.activity-plan-print-page-content {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+.activity-plan-print-page-content > .weekly-plan-a4,
+.activity-plan-print-page-content > .ten-percent-plan-a4 {
+  flex: 1 1 auto;
+}
+.activity-plan-print-page.activity-plan-ten-percent-print-page {
+  background: #F8FAFC;
+}
+.activity-plan-print-footer-slot {
+  width: 100%;
+  min-height: 29mm;
+  flex: 0 0 29mm;
+  margin-top: auto;
+  break-before: avoid-page;
+  page-break-before: avoid;
+  break-inside: avoid-page;
+  page-break-inside: avoid;
+}
+.activity-plan-print-footer-slot .curriculum-print-footer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: static !important;
+  inset: auto !important;
+  width: 100%;
+  margin: 0 !important;
+  padding-top: 1mm !important;
+  break-inside: avoid-page;
+  page-break-inside: avoid;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature-row {
+  width: 170mm;
+  min-height: 25mm;
+  align-items: end;
+  gap: 18mm;
+  padding: 0 1mm 1.4mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature--image-first {
+  grid-template-rows: 16mm .25mm 3.6mm auto;
+  align-items: end;
+  justify-items: center;
+  gap: .45mm;
+  text-align: center;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature-baseline {
+  display: block;
+  width: 76%;
+  min-height: .25mm;
+  background: #8ca3a0;
+}
+.activity-plan-print-footer-slot .curriculum-print-signature-image {
+  width: auto;
+  max-width: 58mm;
+  height: 16mm;
+  max-height: 16mm;
+  object-fit: contain;
+}
+.activity-plan-print-footer-slot .curriculum-print-footer-line {
+  flex: 0 0 1.7mm;
+  margin-top: auto;
+}
+.activity-plan-print-page--compact-footer .activity-plan-print-footer-slot {
+  min-height: 5mm;
+  flex-basis: 5mm;
+}
+.activity-plan-print-page--compact-footer .curriculum-print-footer {
+  padding-top: 0 !important;
+}
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; }
+  .activity-plan-print-page {
+    display: flex !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  .activity-plan-print-page--physical {
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    overflow: hidden !important;
+  }
+  .activity-plan-print-footer-slot .curriculum-print-footer {
+    position: static !important;
+    inset: auto !important;
+  }
+}
+
+/* Semester plans use measured row pagination; keep the normal case compact
+   enough to use the available A4 height without reducing the text size. */
+.activity-plan-semester-table th,
+.activity-plan-semester-table td {
+  padding: 1.45mm 1.1mm !important;
+}
+.activity-plan-semester-table th {
+  line-height: 1.25 !important;
+}
+.activity-plan-semester-table td {
+  line-height: 1.25 !important;
+}
+.activity-plan-semester-table tbody tr {
+  break-inside: avoid-page !important;
+  page-break-inside: avoid !important;
+}
+.activity-plan-semester-title {
+  margin-top: 2.5mm !important;
+  margin-bottom: 2.5mm !important;
+  padding: 1.8mm 2.5mm !important;
+}
+.activity-plan-semester-title h1 {
+  font-size: 14pt !important;
+}
+.activity-plan-semester-title span {
+  font-size: 9pt !important;
+}
+.activity-plan-semester-domain-list {
+  gap: .8mm !important;
+}
+.activity-plan-semester-domain {
+  padding: .7mm 1.1mm !important;
+}
+`;
+
+type ActivityPlanPrintPageProps = {
+  children: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  contentClassName?: string;
+};
+
+export function ActivityPlanPrintPage({
+  children,
+  footer,
+  className = "",
+  contentClassName = "",
+}: ActivityPlanPrintPageProps) {
+  const flow =
+    className
+      .split(/\s+/)
+      .includes(
+        "activity-plan-print-page--flow",
+      );
+
+  return (
+    <ActivityPlanDocumentPage
+      className={className}
+      contentClassName={contentClassName}
+      footer={footer}
+      flow={flow}
+    >
+      {children}
+    </ActivityPlanDocumentPage>
+  );
+}
+
+
+===== components\activity-plan\activity-plan-print-document.tsx =====
+
+import type { ActivityPlanPrintWeek } from "@/lib/activity-plan/activity-plan-print-data";
+import { ActivityPlanPrintWeek as ActivityPlanPrintWeekView } from "./activity-plan-print-week";
+import { activityPlanPrintShellStyles } from "./activity-plan-print-shell";
+
+type ActivityPlanPrintDocumentProps = {
+  weeks: ActivityPlanPrintWeek[];
+  stage: string;
+  academicYear?: string | null;
+  schoolName: string;
+  educationDepartment?: string | null;
+  logoUrl?: string | null;
+  activityLeaderName?: string | null;
+  activityLeaderSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+export function ActivityPlanPrintDocument({ weeks, stage, ...identity }: ActivityPlanPrintDocumentProps) {
+  return (
+    <><style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
+      {weeks.map((week, index) => <ActivityPlanPrintWeekView key={week.weekNumber} week={week} stage={stage} includeSignatures={index === weeks.length - 1} {...identity} />)}
+    </main></>
+  );
+}
+
+
+===== components\activity-plan\activity-plan-semester-print-document.tsx =====
+
+import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
+import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+import type { ActivityPlanTenPercentRow } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { paginateMeasuredPrintItems } from "@/components/activity-plan/activity-plan-print-pagination";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+
+type Props = {
+  rows: ActivityPlanTenPercentRow[];
+  gradeSections?: string[];
+  stage: string;
+  academicYear?: string | null;
+  schoolName: string;
+  educationDepartment?: string | null;
+  logoUrl?: string | null;
+  activityLeaderName?: string | null;
+  activityLeaderSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+const SEMESTER_TABLE_HEADER_HEIGHT_MM = 10;
+const SEMESTER_INTERMEDIATE_TABLE_CAPACITY_MM = 136;
+const SEMESTER_FINAL_TABLE_CAPACITY_MM = 114;
+
+function displayGrade(value: string) {
+  const [grade, section] = String(value || "").split("::");
+  return `${grade || "Ø¨ÙŠØ§Ù†Ø§Øª Ø³Ø§Ø¨Ù‚Ø© ØºÙŠØ± Ù…ØµÙ†ÙØ©"}${section ? ` ${section}` : ""}`.trim();
+}
+
+function materialTypeLabel(value: ActivityPlanTenPercentRow["materialType"]) {
+  return value === "10%" ? "10%" : "Ø£Ø³Ø§Ø³ÙŠØ©";
+}
+
+function lineCount(value: string, charactersPerLine: number) {
+  return String(value || "â€”")
+    .split(/\r?\n/)
+    .reduce((total, line) => total + Math.max(1, Math.ceil(line.trim().length / charactersPerLine)), 0);
+}
+
+function estimateRowHeightMm(row: ActivityPlanTenPercentRow) {
+  const domainLines = row.domains.reduce((total, domain) => total + lineCount(domain.title, 14), 0);
+  const programLines = lineCount(row.programs.map((program) => program.name).join("ØŒ "), 20);
+  const subjectLines = lineCount(`${row.subject || "â€”"} (${materialTypeLabel(row.materialType)})`, 20);
+  const gradeLines = lineCount(row.grades.map(displayGrade).join("\n"), 16);
+  const teacherLines = row.teacherNames.length
+    ? row.teacherNames.reduce((total, teacher) => total + lineCount(teacher, 16), 0)
+    : 1;
+  const lines = Math.max(1, domainLines, programLines, subjectLines, gradeLines, teacherLines);
+
+  return Math.max(9.2, 4.8 + lines * 4);
+}
+
+function groupRows(rows: ActivityPlanTenPercentRow[], fallbackStage: string) {
+  const grouped = new Map<string, { stage: string; destination: string; rows: ActivityPlanTenPercentRow[] }>();
+  for (const row of rows) {
+    const combinations = row.grades.length ? row.grades : [""];
+    for (const combination of combinations) {
+      const destination = String(combination || "").trim();
+      const [grade = "", section = ""] = destination.split("::");
+      const rowStage = String(row.stage || fallbackStage).trim() || fallbackStage;
+      const key = JSON.stringify([rowStage, grade.trim(), section.trim()]);
+      const group = grouped.get(key) || { stage: rowStage, destination, rows: [] };
+      group.rows.push({ ...row, stage: rowStage, grades: destination ? [destination] : [] });
+      grouped.set(key, group);
+    }
+  }
+
+  const destinations = Array.from(grouped.entries());
+
+  return destinations.flatMap(([groupKey, group], destinationIndex) =>
+    paginateMeasuredPrintItems(
+      group.rows.map((row) => ({ item: row, heightMm: estimateRowHeightMm(row) })),
+      {
+        intermediateCapacityMm: SEMESTER_INTERMEDIATE_TABLE_CAPACITY_MM - SEMESTER_TABLE_HEADER_HEIGHT_MM,
+        finalCapacityMm: SEMESTER_FINAL_TABLE_CAPACITY_MM - SEMESTER_TABLE_HEADER_HEIGHT_MM,
+        // The two signatures belong to the last physical page of the whole
+        // semester document, never to each individual destination.
+        reserveFinalPage: destinationIndex === destinations.length - 1,
+      },
+    ).map((pageRows, pageIndex) => [`${groupKey}:${pageIndex}`, pageRows] as [string, ActivityPlanTenPercentRow[]]),
+  );
+}
+
+const semesterPrintStyles = `
+@page{size:A4 landscape;margin:0}
+.activity-plan-semester-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.6pt}
+.activity-plan-semester-table th,.activity-plan-semester-table td{border:.25mm solid #CBD5E1;padding:2.1mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}
+.activity-plan-semester-table th{background:#0F5F7A;color:#fff;font-weight:900;line-height:1.3}
+.activity-plan-semester-table td{background:#fff;color:#172B3A;font-weight:700;line-height:1.4}
+.activity-plan-semester-title{display:flex;align-items:center;justify-content:space-between;gap:5mm;margin:3.5mm 0;padding:2.5mm 3mm;border-right:2mm solid #0F7FA8;border-bottom:1px solid #B9D8E8;background:#F1F7FA;color:#123B4A}
+.activity-plan-semester-title h1{margin:0;font-size:15pt;font-weight:900;line-height:1.35}
+.activity-plan-semester-title span{font-size:10pt;font-weight:900;color:#0F5F7A}
+.activity-plan-semester-domain-list{display:flex;flex-wrap:wrap;justify-content:center;gap:1.2mm}
+.activity-plan-semester-domain{display:inline-flex;align-items:center;gap:1.2mm;border:1px solid #94A3B8;border-radius:1.5mm;padding:1mm 1.5mm;background:#F8FAFC;color:#203746;font-size:7.5pt;font-weight:900}
+.activity-plan-semester-domain i{display:inline-block;width:2.2mm;height:2.2mm;border-radius:50%}
+.activity-plan-semester-material-type{font-size:7.5pt;font-weight:900}
+.activity-plan-semester-material-type--core{color:#0F766E}
+.activity-plan-semester-material-type--ten{color:#B45309}
+.activity-plan-semester-empty{padding:10mm!important;color:#64748B!important}
+.activity-plan-semester-multiline{white-space:pre-line}
+@media print{.activity-plan-semester-table th,.activity-plan-semester-domain i{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+`;
+
+export function ActivityPlanSemesterPrintDocument({ rows, gradeSections = [], stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
+  const scopedRows = gradeSections.length
+    ? rows.flatMap((row) => {
+        const selectedDestinations = row.grades.filter((value) => gradeSections.includes(value));
+        return selectedDestinations.length ? [{ ...row, grades: selectedDestinations }] : [];
+      })
+    : rows;
+  const pages = groupRows(scopedRows, stage);
+  if (!pages.length) pages.push(["empty", []]);
+
+  return <>
+    <style>{activityPlanPrintShellStyles}</style>
+    <style>{semesterPrintStyles}</style>
+    <main className="activity-plan-print-root" dir="rtl">
+      {pages.map(([key, pageRows], pageIndex) => {
+        const isFinalDocumentPage = pageIndex === pages.length - 1;
+        const pageStage = pageRows[0]?.stage || stage;
+        const combination = pageRows[0]?.grades[0] || "";
+        const context = combination ? `${pageStage} â€” ${displayGrade(combination)}` : `${pageStage} â€” Ø¨ÙŠØ§Ù†Ø§Øª Ø³Ø§Ø¨Ù‚Ø© ØºÙŠØ± Ù…ØµÙ†ÙØ©`;
+
+        return <ActivityPlanPrintPage
+          key={key}
+          className={`activity-plan-ten-percent-print-page activity-plan-print-page--physical${isFinalDocumentPage ? "" : " activity-plan-print-page--compact-footer"}`}
+          contentClassName="ten-percent-plan-page-content"
+          footer={<CurriculumDocumentFooter
+            primaryRoleLabel="Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·"
+            primaryName={activityLeaderName}
+            primarySignatureUrl={activityLeaderSignatureUrl}
+            primarySignatureAlt="ØªÙˆÙ‚ÙŠØ¹ Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·"
+            principalName={principalName}
+            principalSignatureUrl={principalSignatureUrl}
+            includeSignatures={isFinalDocumentPage}
+            signatureOrder="image-first"
+          />}
+        >
+          <CurriculumDocumentHeader title="Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <div className="activity-plan-semester-title"><h1>Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ</h1><span>{context}</span></div>
+          <table className="activity-plan-semester-table">
+            <colgroup><col style={{ width: "18%" }} /><col style={{ width: "24%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} /><col style={{ width: "15%" }} /><col style={{ width: "11%" }} /><col style={{ width: "11%" }} /></colgroup>
+            <thead><tr><th>Ø§Ù„Ù…Ø¬Ø§Ù„</th><th>Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ / Ø§Ù„Ù†Ø´Ø§Ø·</th><th>Ø£Ø³Ø§Ø¨ÙŠØ¹ Ø§Ù„ØªÙ†ÙÙŠØ°</th><th>Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ</th><th>Ø§Ù„Ù…Ø§Ø¯Ø© ÙˆØ§Ù„Ù†ÙˆØ¹</th><th>Ø§Ù„ØµÙ</th><th>Ø§Ù„Ù…Ø¹Ù„Ù… / Ø§Ù„Ù…Ø¹Ù„Ù…ÙˆÙ†</th></tr></thead>
+            <tbody>{pageRows.length ? pageRows.map((row) => <tr key={row.id}>
+              <td><div className="activity-plan-semester-domain-list">{row.domains.map((domain) => {
+                const color = getActivityPlanProgramByKey(domain.slug)?.backgroundColor || "#64748B";
+                return <span key={domain.serviceSlug} className="activity-plan-semester-domain" style={{ borderColor: color }}><i style={{ backgroundColor: color }} />{domain.title}</span>;
+              })}</div></td>
+              <td>{row.programs.map((program) => program.name).join("ØŒ ") || "â€”"}</td>
+              <td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td>
+              <td dir="ltr">{row.periodCount?.trim() || "â€”"}</td>
+              <td>{row.subject || "â€”"} <span className={`activity-plan-semester-material-type ${row.materialType === "10%" ? "activity-plan-semester-material-type--ten" : "activity-plan-semester-material-type--core"}`}>({materialTypeLabel(row.materialType)})</span></td>
+              <td>{row.grades.map(displayGrade).join("\n") || "â€”"}</td>
+              <td><div className="activity-plan-semester-multiline">{row.teacherNames.join("\n") || "â€”"}</div></td>
+            </tr>) : <tr><td colSpan={7} className="activity-plan-semester-empty">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø­ÙÙˆØ¸Ø© Ù„Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø±Ø­Ù„Ø©.</td></tr>}</tbody>
+          </table>
+        </ActivityPlanPrintPage>;
+      })}
+    </main>
+  </>;
+}
+
+
+===== components\activity-plan\activity-plan-ten-percent-print-document.tsx =====
+
+import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
+import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+import type { ActivityPlanTenPercentRow, TenPercentDomainValue, TenPercentProgramValue } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+
+type Props = {
+  rows: ActivityPlanTenPercentRow[];
+  stage: string;
+  academicYear?: string | null;
+  schoolName: string;
+  educationDepartment?: string | null;
+  logoUrl?: string | null;
+  activityLeaderName?: string | null;
+  activityLeaderSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+function domainColor(domain: TenPercentDomainValue) {
+  const configured = getActivityPlanProgramByKey(domain.slug);
+  return configured?.backgroundColor || "#64748b";
+}
+
+type LightDomainPalette = { background: string; border: string; color: string };
+
+const LIGHT_DOMAIN_PALETTE: Record<string, LightDomainPalette> = {
+  "citizenship-life": { background: "#FFF4CC", border: "#F3C64D", color: "#7A5B00" },
+  "science-technology": { background: "#DCEBFF", border: "#6EA8FE", color: "#1D4ED8" },
+  "culture-arts": { background: "#DDF7F3", border: "#5BC0BE", color: "#0F766E" },
+  "sports-health": { background: "#FFE2E2", border: "#F59E9E", color: "#B42318" },
+  scouting: { background: "#FFE8D1", border: "#FB923C", color: "#9A3412" },
+  "events-occasions": { background: "#DCFCE7", border: "#86EFAC", color: "#166534" },
+  "non-class-periods": { background: "#F1E9FA", border: "#C4A7E7", color: "#6941C6" },
+  "school-broadcast": { background: "#E6F4FF", border: "#91C8F6", color: "#175CD3" },
+};
+
+function domainPalette(domain: TenPercentDomainValue): LightDomainPalette {
+  const configured = LIGHT_DOMAIN_PALETTE[domain.slug];
+  if (configured) return configured;
+  const source = domainColor(domain);
+  return { background: `${source}12`, border: `${source}66`, color: source };
+}
+
+function domainNames(domains: TenPercentDomainValue[]) {
+  return domains.map((domain) => {
+    const palette = domainPalette(domain);
+    return <span key={domain.serviceSlug} className="ten-percent-domain-chip" style={{ background: palette.background, borderColor: palette.border, color: palette.color }}>{domain.title}</span>;
+  });
+}
+
+function programNames(programs: TenPercentProgramValue[]) {
+  return programs.map((program) => <div key={`${program.domainServiceSlug}-${program.value}`} className="ten-percent-program-line"><span>{program.name}</span><small>{program.domainTitle}</small></div>);
+}
+
+export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
+  const printStyles = `
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    .ten-percent-plan-a4 {
+      width: 100%;
+      min-height: 0;
+      flex: 1 1 auto;
+
+      display: flex;
+      flex-direction: column;
+
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+
+    .ten-percent-plan-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5mm;
+      margin: 4mm 0 4mm;
+      padding: 3mm 2mm 3mm;
+      border-bottom: 2px solid #D7E3EA;
+      color: #16324F;
+      background: #EEF4F7;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .ten-percent-plan-title h1 {
+      margin: 0;
+      font-size: 15pt;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .ten-percent-plan-title span {
+      padding: 2mm 4mm;
+      border: 1px solid #D7E3EA;
+      border-radius: 2mm;
+      background: #F1F5F9;
+      font-size: 9pt;
+      font-weight: 900;
+      color: #16324F;
+    }
+
+    .ten-percent-plan-table-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ten-percent-plan-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      color: #1F2937;
+      background: #F8FAFC;
+      font-size: 8.2pt;
+    }
+
+    .ten-percent-plan-table th,
+    .ten-percent-plan-table td {
+      padding: 2.4mm 2mm;
+      border: .25mm solid #D7E3EA;
+      text-align: center;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+
+    .ten-percent-plan-table thead {
+      display: table-header-group;
+    }
+
+    .ten-percent-plan-table thead th {
+      color: #16324F;
+      background: #EAF2F8;
+      font-size: 8.2pt;
+      font-weight: 900;
+    }
+
+    .ten-percent-plan-table thead tr:first-child th {
+      background: #EEF4F7;
+    }
+
+    .ten-percent-plan-table .ten-percent-document-header-cell,
+    .ten-percent-plan-table .ten-percent-plan-title-cell {
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-plan-title-cell {
+      padding-top: 1mm !important;
+      padding-bottom: 1mm !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-row {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-row > td {
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    .ten-percent-plan-table .ten-percent-signature-zone {
+      min-height: 30mm;
+      padding-top: 5mm;
+    }
+
+    .ten-percent-plan-table tbody td {
+      background: #fff;
+      color: #1F2937;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .ten-percent-plan-table tbody tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .ten-percent-domain-list,
+    .ten-percent-program-list {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1.2mm;
+    }
+
+    .ten-percent-domain-chip {
+      display: block;
+      padding: 1.2mm;
+      border: 1px solid;
+      border-radius: 1.5mm;
+      font-size: 7.5pt;
+      font-weight: 900;
+    }
+
+    .ten-percent-program-line {
+      display: flex;
+      flex-direction: column;
+      gap: .5mm;
+    }
+
+    .ten-percent-program-line small {
+      color: #64748B;
+      font-size: 6.4pt;
+      font-weight: 700;
+    }
+
+    .ten-percent-multiline {
+      white-space: pre-line;
+    }
+
+    .ten-percent-empty {
+      padding: 12mm !important;
+      color: #64748B !important;
+      background: #F1F5F9 !important;
+      font-weight: 800 !important;
+    }
+
+    @media print {
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+
+      .ten-percent-plan-a4 {
+        min-height: 0 !important;
+      }
+
+      .ten-percent-plan-table-wrap {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .activity-plan-ten-percent-print-footer-guard {
+        break-inside: avoid-page !important;
+        page-break-inside: avoid !important;
+      }
+
+      .ten-percent-plan-table {
+        font-size: 8pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .ten-percent-plan-table .ten-percent-signature-zone {
+        min-height: 30mm;
+      }
+    }
+  `;
+
+  return <>
+    <style>{printStyles + activityPlanPrintShellStyles}</style>
+    <main className="activity-plan-print-root" dir="rtl">
+      <ActivityPlanPrintPage className="activity-plan-ten-percent-print-page activity-plan-print-page--physical" contentClassName="ten-percent-plan-page-content" footer={<CurriculumDocumentFooter primaryRoleLabel="Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="ØªÙˆÙ‚ÙŠØ¹ Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}>
+        <div className="ten-percent-plan-a4">
+          <div className="ten-percent-plan-table-wrap">
+            <table className="ten-percent-plan-table">
+              <colgroup><col style={{ width: "24%" }} /><col style={{ width: "25%" }} /><col style={{ width: "10%" }} /><col style={{ width: "11%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /></colgroup>
+              <thead>
+                <tr><th colSpan={7} className="ten-percent-document-header-cell"><CurriculumDocumentHeader title="Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© (10%) Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} /></th></tr>
+                <tr><th colSpan={7} className="ten-percent-plan-title-cell"><div className="ten-percent-plan-title"><h1>Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© (10%) Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ</h1><span>{stage}</span></div></th></tr>
+                <tr><th colSpan={3}>Ù…Ø¬Ø§Ù„Ø§Øª ÙˆØ¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ù…Ù†ÙØ°Ø©</th><th rowSpan={2}>Ø£Ø³Ø¨ÙˆØ¹ Ø§Ù„ØªÙ†ÙÙŠØ°</th><th rowSpan={2}>Ù…Ø§Ø¯Ø© 10%</th><th rowSpan={2}>Ø§Ù„ØµÙ</th><th rowSpan={2}>Ø§Ù„Ù…Ø¹Ù„Ù…</th></tr>
+                <tr><th>Ø§Ù„Ù…Ø¬Ø§Ù„</th><th>Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬</th><th>Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ</th></tr>
+              </thead>
+              <tbody>
+                {rows.length ? rows.map((row) => <tr key={row.id}><td><div className="ten-percent-domain-list">{domainNames(row.domains)}</div></td><td><div className="ten-percent-program-list">{programNames(row.programs)}</div></td><td>{row.periodCount || "â€”"}</td><td dir="ltr">{formatTenPercentWeeks(row.executionWeeks)}</td><td>{row.subject || "â€”"}</td><td><div className="ten-percent-multiline">{row.grades.join("\n") || "â€”"}</div></td><td><div className="ten-percent-multiline">{row.teacherNames.join("\n") || "â€”"}</div></td></tr>) : <tr><td colSpan={7} className="ten-percent-empty">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø­ÙÙˆØ¸Ø© Ù„Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø±Ø­Ù„Ø©.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </ActivityPlanPrintPage>
+    </main>
+  </>;
+}
+
+
+===== components\activity-plan\weekly-activity-plan-print-document.tsx =====
+
+import type React from "react";
+import { CurriculumDocumentFooter, CurriculumDocumentHeader } from "@/components/curriculum-distribution/curriculum-document-identity";
+import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
+import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+
+type Props = {
+  weeks: WeeklyActivityPlan[];
+  stage: string;
+  academicYear?: string | null;
+  schoolName: string;
+  educationDepartment?: string | null;
+  logoUrl?: string | null;
+  activityLeaderName?: string | null;
+  activityLeaderSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+const DOMAIN_STYLES: Record<string, { background: string; color: string }> = {
+  "citizenship-life": { background: "#fff2cc", color: "#5f4700" },
+  "science-technology": { background: "#dce6f8", color: "#193b72" },
+  "culture-arts": { background: "#d9f0ec", color: "#165d54" },
+  "sports-health": { background: "#f7dddd", color: "#7a2424" },
+  scouting: { background: "#fce4d6", color: "#7b3b16" },
+  "events-occasions": { background: "#d9ead3", color: "#315b2c" },
+  "non-class-periods": { background: "#eee7f5", color: "#563d6c" },
+};
+
+function dateLabel(value: string) {
+  return formatActivityPlanHijriDate(value);
+}
+
+function groups(weeks: WeeklyActivityPlan[]) {
+  const sorted = [...weeks].sort((a, b) => a.weekNumber - b.weekNumber);
+  return [sorted.slice(0, 7), sorted.slice(7, 14), sorted.slice(14, 20)].filter((group) => group.length);
+}
+
+function CellText({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
+  return <div style={{ fontSize: 9, lineHeight: 1.35, fontWeight: 700, color: muted ? "#7a8587" : "#172b31", overflowWrap: "anywhere" }}>{children}</div>;
+}
+
+function PlanCell({ week, row }: { week: WeeklyActivityPlan; row: "domain" | "program" | "periods" }) {
+  if (row === "periods") return <CellText muted={week.periodCount == null}>{week.periodCount ?? "â€”"}</CellText>;
+  if (!week.items.length) return <CellText muted>â€”</CellText>;
+  if (row === "domain") return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    {week.items.map((item) => { const style = DOMAIN_STYLES[item.domainServiceSlug] || { background: "#eef2f1", color: "#334443" }; return <div key={item.domainServiceSlug} style={{ borderRadius: 2, background: style.background, color: style.color, padding: "2px 3px", fontSize: 8.6, lineHeight: 1.25, fontWeight: 800 }}>{item.domainTitle}</div>; })}
+  </div>;
+  return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{week.items.flatMap((item) => item.programs.map((program, index) => <CellText key={`${item.domainServiceSlug}-${program.value}-${index}`}>{program.name}</CellText>))}</div>;
+}
+
+const border: React.CSSProperties = { border: "1px solid #c7d2d0" };
+const bodyCell: React.CSSProperties = { ...border, background: "#ffffff", padding: "5px 5px", textAlign: "center", verticalAlign: "middle" };
+const labelCell: React.CSSProperties = { ...border, width: 70, background: "#f1f6f5", color: "#31524d", padding: "5px", fontSize: 9.5, fontWeight: 900, textAlign: "center", verticalAlign: "middle" };
+
+function Band({ weeks }: { weeks: WeeklyActivityPlan[] }) {
+  return <div className="weekly-plan-band-frame" style={{ overflow: "hidden", border: "1px solid #c7b79b", borderRadius: 14, background: "#fff" }}><table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", direction: "rtl" }}>
+    <colgroup><col style={{ width: 70 }} />{weeks.map((week) => <col key={week.weekNumber} />)}</colgroup>
+    <tbody>
+      <tr><th style={{ ...border, background: "#0f766e", color: "#fff", padding: 5, fontSize: 9.5, fontWeight: 900 }}>Ø§Ù„Ø£Ø³Ø§Ø¨ÙŠØ¹</th>{weeks.map((week) => <th key={week.weekNumber} style={{ ...border, background: "#0f766e", color: "#fff", padding: "5px 3px", fontSize: 9.5, lineHeight: 1.35 }}><div>Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ {week.weekNumber}</div><small dir="ltr" style={{ display: "block", color: "#d9f3ef", fontSize: 7.5, marginTop: 2 }}>{dateLabel(week.dateFrom)} - {dateLabel(week.dateTo)}</small></th>)}</tr>
+      <tr><th style={labelCell}>Ø§Ù„Ù…Ø¬Ø§Ù„</th>{weeks.map((week) => <td key={week.weekNumber} style={bodyCell}><PlanCell week={week} row="domain" /></td>)}</tr>
+      <tr><th style={labelCell}>Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬</th>{weeks.map((week) => <td key={week.weekNumber} style={bodyCell}><PlanCell week={week} row="program" /></td>)}</tr>
+      <tr><th style={labelCell}>Ø¹Ø¯Ø¯ Ø§Ù„Ø­ØµØµ</th>{weeks.map((week) => <td key={week.weekNumber} style={{ ...bodyCell, height: 25 }}><PlanCell week={week} row="periods" /></td>)}</tr>
+    </tbody>
+  </table></div>;
+}
+
+export function WeeklyActivityPlanMatrix({ weeks }: { weeks: WeeklyActivityPlan[] }) {
+  return <div className="weekly-plan-bands" style={{ display: "flex", flexDirection: "column", gap: 8 }}>{groups(weeks).map((group, index) => <div key={`band-${index}`} className="weekly-plan-band"><Band weeks={group} /></div>)}</div>;
+}
+
+export function WeeklyActivityPlanPrintDocument({ weeks, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
+  return <>
+    <style>{`@page { size: A4 landscape; margin: 8mm; } .weekly-activity-plan-print-page { height: auto !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; page-break-after: auto !important; break-after: auto !important; } .weekly-plan-a4 { width: 100%; min-height: 194mm; display: flex; flex-direction: column; } .weekly-plan-band, .weekly-plan-band-frame { break-inside: avoid; page-break-inside: avoid; } @media print { html, body { margin: 0 !important; padding: 0 !important; } .weekly-plan-a4 { min-height: 194mm; } .weekly-plan-band-frame { box-shadow: none !important; } }`}</style>
+    <style>{activityPlanPrintShellStyles}</style><main className="activity-plan-print-root" dir="rtl">
+      <ActivityPlanPrintPage className="weekly-activity-plan-print-page activity-plan-print-page--physical" footer={<CurriculumDocumentFooter primaryRoleLabel="Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·" primaryName={activityLeaderName} primarySignatureUrl={activityLeaderSignatureUrl} primarySignatureAlt="ØªÙˆÙ‚ÙŠØ¹ Ø±Ø§Ø¦Ø¯ Ø§Ù„Ù†Ø´Ø§Ø·" principalName={principalName} principalSignatureUrl={principalSignatureUrl} />}>
+        <div className="weekly-plan-a4">
+          <CurriculumDocumentHeader title="Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ" subtitle={ACTIVITY_PLAN_PRINT_SUBTITLE} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} academicYear={academicYear} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #087e8b", margin: "4px 0 5px", padding: "3px 2px 5px" }}><h1 style={{ margin: 0, color: "#174d59", fontSize: 15, lineHeight: 1.2, fontWeight: 900 }}>Ø§Ù„Ø®Ø·Ø© Ø§Ù„ÙØµÙ„ÙŠØ© Ù„Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ</h1><div style={{ display: "flex", gap: 5, fontSize: 9, fontWeight: 800 }}><span style={{ color: "#617477" }}>Ø§Ù„Ù…Ø±Ø­Ù„Ø©</span><span style={{ border: "1px solid #9fb7b3", background: "#eff6f4", borderRadius: 3, padding: "2px 7px", color: "#214e49", fontWeight: 900 }}>{stage}</span></div></div>
+          <div style={{ flex: 1 }}><WeeklyActivityPlanMatrix weeks={weeks} /></div>
+        </div>
+      </ActivityPlanPrintPage>
+    </main>
+  </>;
+}
+
+
+===== app\print\activity-plan\page.tsx =====
+
+import { redirect } from "next/navigation";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+import { getActivityPlanPrintData } from "@/lib/activity-plan/activity-plan-print-data";
+import { ActivityPlanPrintDocument } from "@/components/activity-plan/activity-plan-print-document";
+import { WeeklyActivityPlanPrintDocument } from "@/components/activity-plan/weekly-activity-plan-print-document";
+import { ActivityPlanSemesterPrintDocument } from "@/components/activity-plan/activity-plan-semester-print-document";
+import { getWeeklyActivityPlans } from "@/lib/activity-plan/weekly-activity-plan-service";
+import { getActivityPlanTenPercentRows } from "@/lib/activity-plan/ten-percent-activity-plan-service";
+import { CurriculumDistributionPrintController } from "@/components/curriculum-distribution/curriculum-distribution-print-controller";
+import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
+import { getActivityPlanStagesFromProfile, normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
+import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
+import { resolveEffectivePrincipalSignature } from "@/lib/report-signatures/effective-principal-signature";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+const printStyles = `
+${curriculumDocumentIdentityStyles}
+@page { size: A4 landscape; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #e8eef0; }
+body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
+.activity-plan-print-root { direction: rtl; width: 100%; }
+.activity-plan-print-page { position: relative; display: block; width: 297mm; height: 210mm; min-height: 210mm; max-height: 210mm; margin: 0 auto; overflow: hidden; padding: 6mm 7mm 24mm; background: #fff; page-break-after: always; break-after: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.activity-plan-print-page:last-child { page-break-after: auto; break-after: auto; }
+.activity-plan-print-objective { display: grid; grid-template-columns: 28mm 1fr; min-height: 9mm; margin-top: 2mm; border: 1px solid #aab9b4; background: #fff; }
+.activity-plan-print-objective strong { display: flex; align-items: center; justify-content: center; color: #fff; background: #5b7659; font-size: 8pt; }
+.activity-plan-print-objective span { display: block; }
+.activity-plan-print-legend { display: grid; grid-template-columns: 27mm repeat(6, 1fr); min-height: 10mm; margin-top: 1.5mm; border: 1px solid #aab9b4; }
+.activity-plan-print-legend > strong { display: flex; align-items: center; justify-content: center; color: #fff; background: #5b7659; font-size: 7pt; }
+.activity-plan-print-legend-item { display: flex; align-items: center; justify-content: center; padding: 1mm; border-inline-start: 1px solid #aab9b4; font-size: 7pt; font-weight: 900; text-align: center; }
+.activity-plan-print-week-strip { display: grid; grid-template-columns: 27mm 18mm 1fr; align-items: center; min-height: 10mm; margin-top: 1.5mm; border: 1px solid #aab9b4; background: #f3f5f3; }
+.activity-plan-print-week-strip strong { display: flex; height: 100%; align-items: center; justify-content: center; color: #fff; background: #5b7659; font-size: 8pt; }
+.activity-plan-print-week-strip b { display: flex; align-items: center; justify-content: center; color: #274b42; font-size: 15pt; }
+.activity-plan-print-table-heading { margin: 2mm 0 0; padding: 1.5mm; color: #fff; background: #137b72; font-size: 9pt; font-weight: 900; text-align: center; }
+.activity-plan-print-table { width: 100%; table-layout: fixed; border-collapse: collapse; color: #263238; font-size: 7.6pt; }
+.activity-plan-print-table th, .activity-plan-print-table td { height: 6.4mm; padding: .55mm 1mm; border: .25mm solid #aeb9b6; overflow: hidden; line-height: 1.1; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
+.activity-plan-print-table thead th { height: 8mm; color: #fff; background: #5b7659; font-size: 7.8pt; font-weight: 900; }
+.activity-plan-print-table .activity-plan-print-day-head { width: 25mm; }
+.activity-plan-print-table .activity-plan-print-label-head { width: 23mm; }
+.activity-plan-print-day { width: 25mm; color: #244d40; background: #e2f0e5 !important; font-size: 8.6pt; font-weight: 900; }
+.activity-plan-print-day span, .activity-plan-print-day small { display: block; }
+.activity-plan-print-day small { margin-top: 1mm; direction: ltr; font-size: 7.6pt; font-weight: 900; }
+.activity-plan-print-row-label { width: 23mm; color: #35524b; background: #f4f7f5; font-size: 7.6pt; font-weight: 900; }
+.activity-plan-print-table td { background: #fff; font-weight: 700; }
+.weekly-activity-plan-print-page { padding-bottom: 28mm; }
+.weekly-activity-plan-print-meta { display: grid; grid-template-columns: 20mm 1fr 20mm 20mm 15mm 35mm 15mm 35mm; align-items: center; margin-top: 5mm; border: .25mm solid #aeb9b6; background: #f4f7f5; color: #274b42; font-size: 10pt; font-weight: 900; }
+.weekly-activity-plan-print-meta > * { min-height: 10mm; padding: 2mm; border-inline-start: .25mm solid #aeb9b6; text-align: center; }
+.weekly-activity-plan-print-meta strong { color: #fff; background: #5b7659; }
+.weekly-activity-plan-print-table { width: 100%; margin-top: 5mm; table-layout: fixed; border-collapse: collapse; color: #263238; font-size: 9pt; }
+.weekly-activity-plan-print-table th, .weekly-activity-plan-print-table td { padding: 2.5mm 2mm; border: .25mm solid #aeb9b6; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
+.weekly-activity-plan-print-table th { color: #fff; background: #137b72; font-weight: 900; }
+.weekly-activity-plan-print-table td { background: #fff; font-weight: 700; }
+.activity-plan-program-cell { color: #fff !important; font-size: 7.9pt; font-weight: 900 !important; }
+.activity-plan-print-entry-stack { display: flex; flex-direction: column; gap: .35mm; width: 100%; }
+.activity-plan-print-entry { min-width: 0; padding: .25mm .4mm; line-height: 1.05; overflow-wrap: anywhere; }
+.activity-plan-print-entry--program { border-radius: .6mm; padding: .45mm .6mm; font-weight: 900; }
+.activity-plan-print-table tbody tr:nth-child(3n) td, .activity-plan-print-table tbody tr:nth-child(3n) th { border-bottom-color: #6f8f86; }
+.activity-plan-print-page .curriculum-print-footer { padding-top: 2mm; }
+.activity-plan-print-page .curriculum-print-signature-row { width: 170mm; gap: 18mm; padding: 0 1mm 4.5mm; }
+.activity-plan-print-page .curriculum-print-signature { justify-items: center; gap: .7mm; text-align: center; font-size: 8pt; }
+.activity-plan-print-page .curriculum-print-signature strong { font-size: 9pt; }
+.activity-plan-print-page .curriculum-print-signature span { min-height: 4mm; font-size: 8pt; }
+.activity-plan-print-page .curriculum-print-signature small { font-size: 7pt; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media screen { body { padding: 12px; } .activity-plan-print-page { box-shadow: 0 14px 35px rgba(19,123,114,.15); } }
+@media print { html, body { background: #fff !important; } body { padding: 0 !important; } .activity-plan-print-page { margin: 0; box-shadow: none; } .activity-plan-print-page .curriculum-print-signature-row { width: 170mm; gap: 18mm; padding-bottom: 4.5mm; } }
+`;
+
+
+/*
+ * Keep physical Activity Plan pages identical between preview
+ * and PDF/print output.
+ *
+ * This intentionally targets only --physical pages.
+ * Weekly/10% flow layouts keep their existing behavior.
+ */
+const activityPlanPhysicalPrintFixStyles = `
+@media print {
+  .activity-plan-print-page.activity-plan-print-page--physical {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 297mm !important;
+    min-width: 297mm !important;
+    max-width: 297mm !important;
+
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+
+    break-after: page !important;
+    page-break-after: always !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical
+    > .activity-plan-print-page-content {
+    display: flex !important;
+    flex-direction: column !important;
+
+    min-height: 0 !important;
+    height: auto !important;
+
+    flex: 1 1 auto !important;
+  }
+
+  .activity-plan-print-page.activity-plan-print-page--physical
+    > .activity-plan-print-footer-slot {
+    flex: 0 0 auto !important;
+    margin-top: auto !important;
+
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+}
+`;
+export default async function ActivityPlanPrintPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const current = await requireServiceAccessForCurrentUser("student-activity-plan");
+  if (!current.user.schoolAccountId) redirect("/dashboard/onboarding?required=true");
+
+  const profile = current.user.schoolAccount?.profile;
+  const params = await (searchParams || Promise.resolve({} as Record<string, string | string[] | undefined>));
+
+  let ownerUserId: string | undefined;
+  let activityLeaderName = "";
+  let activityLeaderSignatureUrl: string | null = null;
+
+  if (current.user.role === "PRINCIPAL") {
+    const requestedUserId = typeof params.userId === "string" ? params.userId.trim() : "";
+    if (!requestedUserId) redirect("/dashboard");
+
+    const staff = await prisma.user.findFirst({
+      where: {
+        id: requestedUserId,
+        schoolAccountId: current.user.schoolAccountId,
+        role: "ACTIVITY_LEADER",
+      },
+      select: {
+        id: true,
+        officialName: true,
+        name: true,
+        signatureUrl: true,
+      },
+    });
+
+    if (!staff) redirect("/dashboard");
+
+    ownerUserId = staff.id;
+    activityLeaderName = staff.officialName || staff.name || "";
+    activityLeaderSignatureUrl = staff.signatureUrl || null;
+  } else {
+    if (current.user.role !== "ACTIVITY_LEADER") redirect("/dashboard");
+    activityLeaderName = profile?.activityLeaderName || current.user.officialName || current.user.name || "";
+    activityLeaderSignatureUrl = profile?.activityLeaderSignatureUrl || null;
+  }
+
+  const academicYear = current.user.schoolAccount?.profile?.academicYear || null;
+  const printEnabled = String(params.print || "") === "1";
+  const weeklyMode = String(params.mode || "") === "weekly";
+  const activityEntriesMode = String(params.view || "") === "activity-entries";
+  const tenPercentMode = String(params.mode || "") === "ten-percent";
+  const requestedStage = typeof params.stage === "string" ? normalizeActivityPlanStage(params.stage) : null;
+  const allowedStages = current.user.role === "ACTIVITY_LEADER" ? await getActivityPlanLeaderAllowedStages(current) : REAL_ACTIVITY_PLAN_STAGES;
+  const stage = requestedStage && allowedStages.includes(requestedStage)
+    ? requestedStage
+    : allowedStages[0] || getActivityPlanStagesFromProfile(profile?.stage)[0] || "";
+  if (!stage) redirect("/dashboard");
+  const requestedWeeks = typeof params.weeks === "string"
+    ? Array.from(new Set(params.weeks.split(",").map((value) => Number(value.trim())).filter((week) => Number.isInteger(week) && week >= 1 && week <= 20)))
+    : [];
+
+  const stageWeeks = tenPercentMode ? [] : await getActivityPlanPrintData(current.user.schoolAccountId, stage, requestedWeeks, ownerUserId);
+  const weeklyPlans = weeklyMode
+    ? (await getWeeklyActivityPlans(current.user.schoolAccountId, stage, ownerUserId)).filter((plan) => !requestedWeeks.length || requestedWeeks.includes(plan.weekNumber))
+    : [];
+  const requestedGradeSections = typeof params.gradeSections === "string"
+    ? Array.from(new Set(params.gradeSections.split(",").map((value) => value.trim()).filter((value) => value.includes("::")))).slice(0, 200)
+    : [];
+  const tenPercentRows = tenPercentMode
+    ? await getActivityPlanTenPercentRows(current.user.schoolAccountId, stage, ownerUserId || current.user.id)
+    : [];
+  const principalSignature = await resolveEffectivePrincipalSignature({
+    schoolAccountId: current.user.schoolAccountId,
+    owner: { id: current.user.id, role: current.user.role, schoolAccountId: current.user.schoolAccountId },
+  });
+  const identity = { stage, academicYear, schoolName: profile?.schoolName || current.user.schoolAccount?.name || "", educationDepartment: profile?.educationDepartment, logoUrl: profile?.logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName: profile?.principalName, principalSignatureUrl: principalSignature.signatureUrl };
+  return <><style dangerouslySetInnerHTML={{ __html: printStyles }} />
+<style dangerouslySetInnerHTML={{ __html: activityPlanPhysicalPrintFixStyles }} />{tenPercentMode ? <ActivityPlanSemesterPrintDocument rows={tenPercentRows} gradeSections={requestedGradeSections} {...identity} /> : weeklyMode && !activityEntriesMode ? <WeeklyActivityPlanPrintDocument weeks={weeklyPlans} {...identity} /> : <ActivityPlanPrintDocument weeks={stageWeeks} {...identity} />}<CurriculumDistributionPrintController enabled={printEnabled} /></>;
+}
+
+
+===== lib\activity-plan\activity-plan-print-data.ts =====
+
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import { getActivityPlanDates } from "@/lib/activity-plan/activity-plan-calendar";
+import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-programs";
+import { normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
+import { decodeActivityPlanProgramValue, formatActivityPlanEntryLabel } from "@/lib/activity-plan/activity-plan-program-value";
+import { getActivityProgramDomainByServiceSlug, getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
+
+export type ActivityPlanPrintEntry = {
+  stage: string;
+  dayOfWeek: number;
+  periodNumber: number;
+  programKey: string;
+  domainKey: string;
+  domainTitle: string;
+  programName: string;
+  displayTitle: string;
+  gradeLabel: string;
+  section: string;
+  subject: string;
+  materialType: "Ø£Ø³Ø§Ø³ÙŠØ©" | "10%";
+  teacherName: string;
+};
+
+export type ActivityPlanPrintWeek = {
+  weekNumber: number;
+  dates: ReturnType<typeof getActivityPlanDates>;
+  entries: ActivityPlanPrintEntry[];
+};
+
+function resolveLegacyProgramKey(title: string | null | undefined) {
+  const value = String(title || "").trim();
+  const match = [
+    "citizenship-life",
+    "science-technology",
+    "culture-arts",
+    "sports-health",
+    "scouting",
+    "events-occasions",
+  ]
+    .map((key) => getActivityPlanProgramByKey(key))
+    .find((program) => program?.title === value);
+  return match?.key || "";
+}
+
+export async function getActivityPlanPrintData(schoolAccountId: string, stage?: string | null, weekNumbers?: number[], ownerUserId?: string): Promise<ActivityPlanPrintWeek[]> {
+  const selectedStage = normalizeActivityPlanStage(stage);
+  const selectedWeeks = weekNumbers?.length ? Array.from(new Set(weekNumbers.filter((week) => Number.isInteger(week) && week >= 1 && week <= 20))) : [];
+  const entries = await prisma.activityPlanEntry.findMany({
+    where: { schoolAccountId, ...(ownerUserId ? { createdById: ownerUserId } : {}), ...(selectedStage ? { stage: selectedStage } : {}), weekNumber: selectedWeeks.length ? { in: selectedWeeks } : { gte: 1, lte: 20 } },
+    select: {
+      weekNumber: true,
+      dayOfWeek: true,
+      periodNumber: true,
+      programKey: true,
+      gradeLabel: true,
+      teacherName: true,
+      stage: true,
+      programCaseEntryId: true,
+    },
+    orderBy: [{ weekNumber: "asc" }, { dayOfWeek: "asc" }, { periodNumber: "asc" }],
+  });
+
+  const legacyIds = Array.from(new Set(entries.map((entry) => entry.programCaseEntryId).filter((id): id is string => Boolean(id))));
+  const legacyCases = await prisma.caseEntry.findMany({
+    where: { schoolAccountId, id: { in: legacyIds } },
+    select: {
+      id: true,
+      values: { where: { fieldKey: "activity_domain" }, select: { value: true }, take: 1 },
+    },
+  });
+  const legacyById = new Map(legacyCases.map((item) => [item.id, item.values[0]?.value || ""]));
+
+  const weeksToRender = selectedWeeks.length ? selectedWeeks.sort((left, right) => left - right) : Array.from({ length: 20 }, (_, index) => index + 1);
+  return weeksToRender.map((weekNumber) => {
+    return {
+      weekNumber,
+      dates: getActivityPlanDates(weekNumber),
+      entries: entries
+        .filter((entry) => entry.weekNumber === weekNumber)
+        .map((entry) => {
+          const stored = decodeActivityPlanProgramValue(entry.programKey || "");
+          return ({
+          dayOfWeek: entry.dayOfWeek,
+          periodNumber: entry.periodNumber,
+          stage: entry.stage,
+          programKey: entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""),
+          domainKey: (() => {
+            const stored = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
+            return stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.slug || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.slug || "";
+          })(),
+          domainTitle: (() => {
+            const stored = entry.programKey ? decodeActivityPlanProgramValue(entry.programKey) : null;
+            return stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.title || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.title || legacyById.get(entry.programCaseEntryId || "") || "";
+          })(),
+          programName: decodeActivityPlanProgramValue(entry.programKey || "")?.programName || "",
+          displayTitle: (() => {
+            const stored = decodeActivityPlanProgramValue(entry.programKey || "");
+            const domainTitle = stored ? getActivityProgramDomainByServiceSlug(stored.serviceSlug)?.title || "" : getActivityProgramDomainBySlug(entry.programKey || resolveLegacyProgramKey(entry.programCaseEntryId ? legacyById.get(entry.programCaseEntryId) : ""))?.title || legacyById.get(entry.programCaseEntryId || "") || "";
+            return formatActivityPlanEntryLabel(domainTitle, stored?.programName);
+          })(),
+          gradeLabel: entry.gradeLabel,
+          teacherName: entry.teacherName,
+          section: stored?.section || "",
+          subject: stored?.subject || "",
+          materialType: stored?.materialType || "Ø£Ø³Ø§Ø³ÙŠØ©",
+          });
+        }),
+    };
+  });
+}
+

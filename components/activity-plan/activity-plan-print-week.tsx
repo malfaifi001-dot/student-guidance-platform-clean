@@ -3,7 +3,6 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import type { ActivityPlanPrintEntry, ActivityPlanPrintWeek as ActivityPlanPrintWeekData } from "@/lib/activity-plan/activity-plan-print-data";
 import { formatActivityPlanHijriDate } from "@/lib/activity-plan/activity-plan-date-format";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE } from "@/components/activity-plan/activity-plan-print-shell";
-import { paginateMeasuredPrintItems } from "@/components/activity-plan/activity-plan-print-pagination";
 
 const periods = [1, 2, 3, 4, 5, 6, 7];
 const programKeys = ["citizenship-life", "science-technology", "culture-arts", "sports-health", "scouting", "events-occasions"];
@@ -13,6 +12,33 @@ const weeklyRows = ["البرنامج", "الصف والمادة", "اسم ال�
 // header, compact context, table header, and protected footer area.
 const INTERMEDIATE_TABLE_CAPACITY_MM = 138;
 const FINAL_TABLE_CAPACITY_MM = 114;
+
+// This entry-based document is server-rendered. Keep its legacy deterministic
+// pagination local so it never imports the client-only physical paginator.
+function paginateMeasuredPrintItems<T>(items: Array<{ item: T; heightMm: number }>, options: { intermediateCapacityMm: number; finalCapacityMm: number; reserveFinalPage?: boolean }) {
+  const pages: T[][] = [];
+  let page: T[] = [];
+  let used = 0;
+  for (const entry of items) {
+    if (page.length && used + entry.heightMm > options.intermediateCapacityMm) {
+      pages.push(page);
+      page = [];
+      used = 0;
+    }
+    page.push(entry.item);
+    used += entry.heightMm;
+  }
+  if (page.length || !pages.length) pages.push(page);
+  while (options.reserveFinalPage && pages.length) {
+    const last = pages[pages.length - 1];
+    const height = items.filter((entry) => last.includes(entry.item)).reduce((total, entry) => total + entry.heightMm, 0);
+    if (height <= options.finalCapacityMm || last.length <= 1) break;
+    const moved = last.pop();
+    if (!moved) break;
+    pages.push([moved]);
+  }
+  return pages;
+}
 
 type WeeklyRow = (typeof weeklyRows)[number];
 type WeeklyBlock = {
@@ -141,11 +167,7 @@ export function ActivityPlanPrintWeek({ week, stage, academicYear, schoolName, e
 
   const pages = paginateMeasuredPrintItems(
     buildBlocks(week, entriesBySlot).map((block) => ({ item: block, heightMm: block.estimatedHeightMm })),
-    {
-      intermediateCapacityMm: INTERMEDIATE_TABLE_CAPACITY_MM,
-      finalCapacityMm: FINAL_TABLE_CAPACITY_MM,
-      reserveFinalPage: includeSignatures,
-    },
+    { intermediateCapacityMm: INTERMEDIATE_TABLE_CAPACITY_MM, finalCapacityMm: FINAL_TABLE_CAPACITY_MM, reserveFinalPage: includeSignatures },
   );
 
   return <><style>{weeklyPrintPaginationStyles}</style>{pages.map((blocks, pageIndex) => {

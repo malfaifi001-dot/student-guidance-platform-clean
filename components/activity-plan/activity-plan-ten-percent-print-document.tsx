@@ -3,6 +3,7 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import type { ActivityPlanTenPercentRow, TenPercentDomainValue, TenPercentProgramValue } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { formatTenPercentWeeks } from "@/lib/activity-plan/ten-percent-activity-plan-types";
 import { ActivityPlanPrintPage, ACTIVITY_PLAN_PRINT_SUBTITLE, activityPlanPrintShellStyles } from "@/components/activity-plan/activity-plan-print-shell";
+import { ActivityPlanSemesterPrintDocument } from "@/components/activity-plan/activity-plan-semester-print-document";
 
 type Props = {
   rows: ActivityPlanTenPercentRow[];
@@ -54,6 +55,10 @@ function programNames(programs: TenPercentProgramValue[]) {
 }
 
 export function ActivityPlanTenPercentPrintDocument({ rows, stage, academicYear, schoolName, educationDepartment, logoUrl, activityLeaderName, activityLeaderSignatureUrl, principalName, principalSignatureUrl }: Props) {
+  // Keep the legacy entry point used by the principal preview, but route its
+  // physical composition through the same measured semester/10% paginator.
+  return <ActivityPlanSemesterPrintDocument rows={rows} stage={stage} academicYear={academicYear} schoolName={schoolName} educationDepartment={educationDepartment} logoUrl={logoUrl} activityLeaderName={activityLeaderName} activityLeaderSignatureUrl={activityLeaderSignatureUrl} principalName={principalName} principalSignatureUrl={principalSignatureUrl} />;
+
   const printStyles = `
     @page {
       size: A4 landscape;

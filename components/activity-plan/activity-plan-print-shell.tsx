@@ -3,10 +3,12 @@ import type { ReactNode } from "react";
 import {
   ActivityPlanDocumentPage,
 } from "@/components/document-engine/designs/activity-plan/activity-plan-document-page";
+import { curriculumDocumentIdentityStyles } from "@/components/curriculum-distribution/curriculum-document-identity";
 
 export const ACTIVITY_PLAN_PRINT_SUBTITLE = "الفصل الدراسي الأول — 1448هـ";
 
 export const activityPlanPrintShellStyles = `
+${curriculumDocumentIdentityStyles}
 @page { size: A4 landscape; margin: 0; }
 * { box-sizing: border-box; }
 .activity-plan-print-root { direction: rtl; width: 100%; }
@@ -42,6 +44,8 @@ export const activityPlanPrintShellStyles = `
   break-after: auto;
   page-break-after: auto;
 }
+.activity-plan-print-group { break-after: page; page-break-after: always; }
+.activity-plan-print-group:last-child { break-after: auto; page-break-after: auto; }
 @media screen {
   .activity-plan-print-page + .activity-plan-print-page {
     margin-top: 8mm !important;
@@ -60,6 +64,7 @@ export const activityPlanPrintShellStyles = `
   flex-direction: column;
   flex: 1 1 auto;
 }
+.activity-plan-print-page-content[data-activity-plan-content] { overflow: hidden; }
 .activity-plan-print-page-content > .weekly-plan-a4,
 .activity-plan-print-page-content > .ten-percent-plan-a4 {
   flex: 1 1 auto;
@@ -126,6 +131,7 @@ export const activityPlanPrintShellStyles = `
   min-height: 5mm;
   flex-basis: 5mm;
 }
+.activity-plan-print-measurement { position: fixed; inset: 0 auto auto -10000px; visibility: hidden; pointer-events: none; }
 .activity-plan-print-page--compact-footer .curriculum-print-footer {
   padding-top: 0 !important;
 }
@@ -199,19 +205,12 @@ export function ActivityPlanPrintPage({
   className = "",
   contentClassName = "",
 }: ActivityPlanPrintPageProps) {
-  const flow =
-    className
-      .split(/\s+/)
-      .includes(
-        "activity-plan-print-page--flow",
-      );
-
   return (
     <ActivityPlanDocumentPage
       className={className}
       contentClassName={contentClassName}
       footer={footer}
-      flow={flow}
+      flow={false}
     >
       {children}
     </ActivityPlanDocumentPage>

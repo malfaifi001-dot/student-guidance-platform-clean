@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const printStyles = `
+const legacyPrintStyles = `
 ${curriculumDocumentIdentityStyles}
 @page { size: A4 landscape; margin: 0; }
 * { box-sizing: border-box; }
@@ -76,6 +76,8 @@ body { color: #263238; font-family: Tahoma, Arial, sans-serif; }
  * This intentionally targets only --physical pages.
  * Weekly/10% flow layouts keep their existing behavior.
  */
+// Physical-page geometry belongs exclusively to ActivityPlanPrintPage. Keeping
+// route CSS to document identity avoids preview/print overrides at this layer.
 const activityPlanPhysicalPrintFixStyles = `
 @media print {
   .activity-plan-print-page.activity-plan-print-page--physical {
@@ -130,6 +132,7 @@ const activityPlanPhysicalPrintFixStyles = `
   }
 }
 `;
+const printStyles = legacyPrintStyles;
 export default async function ActivityPlanPrintPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const current = await requireServiceAccessForCurrentUser("student-activity-plan");
   if (!current.user.schoolAccountId) redirect("/dashboard/onboarding?required=true");

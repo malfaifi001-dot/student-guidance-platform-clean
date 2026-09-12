@@ -163,16 +163,27 @@ export function CurriculumDistributionMobilePreview({
 
   function getPrintPages() {
     if (!pageSelector) return [] as HTMLElement[];
-    return Array.from(iframeRef.current?.contentDocument?.querySelectorAll<HTMLElement>(pageSelector) || []);
+    return Array.from(iframeRef.current?.contentDocument?.querySelectorAll<HTMLElement>(pageSelector) || [])
+      .filter((page) => !page.closest(".activity-plan-print-measurement"));
+  }
+
+  function syncPrintPages() {
+    const count = getPrintPages().length;
+    setPrintPageCount(count);
+    setActivePrintPage((current) => Math.min(Math.max(0, current), Math.max(0, count - 1)));
   }
 
   function goToPrintPage(nextPage: number) {
     const pages = getPrintPages();
-    const page = pages[nextPage];
+    const boundedPage = Math.min(Math.max(0, nextPage), Math.max(0, pages.length - 1));
+    const page = pages[boundedPage];
     if (!page) return;
 
-    page.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
-    setActivePrintPage(nextPage);
+    const frameWindow = iframeRef.current?.contentWindow;
+    const top = page.getBoundingClientRect().top + (frameWindow?.scrollY || 0);
+    frameWindow?.scrollTo({ top, behavior: "smooth" });
+    iframeRef.current?.contentDocument?.scrollingElement?.scrollTo({ top, behavior: "smooth" });
+    setActivePrintPage(boundedPage);
   }
 
   function startPinch(event: TouchEvent<HTMLDivElement>) {
@@ -403,10 +414,11 @@ export function CurriculumDistributionMobilePreview({
                   if (hasReport) {
                     frameReadyRef.current = true;
                     setPreviewReady(true);
-                    const pageCount = pageSelector
-                      ? reportDocument.querySelectorAll(pageSelector).length
-                      : 0;
-                    setPrintPageCount(pageCount);
+                    syncPrintPages();
+                    if (pageSelector && reportDocument.body) {
+                      const pageObserver = new MutationObserver(syncPrintPages);
+                      pageObserver.observe(reportDocument.body, { childList: true, subtree: true });
+                    }
                     return;
                   }
 
