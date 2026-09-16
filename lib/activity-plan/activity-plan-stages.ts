@@ -5,9 +5,10 @@ const stageLabels: string[] = SAUDI_SCHOOL_STAGES.map((stage) => stage.label);
 export function normalizeActivityPlanStage(value: string | null | undefined) {
   const text = String(value || "").trim();
   if (!text) return null;
-  if (text === "primary") return stageLabels[0];
-  if (text === "intermediate" || text === "middle") return stageLabels[1];
-  if (text === "secondary" || text === "high") return stageLabels[2];
+  const key = text.toLowerCase().replace(/[\s-]+/g, "_");
+  if (key === "primary" || key === "primary_stage") return stageLabels[0];
+  if (key === "intermediate" || key === "middle" || key === "middle_stage" || key === "intermediate_stage") return stageLabels[1];
+  if (key === "secondary" || key === "high" || key === "secondary_stage" || key === "high_stage") return stageLabels[2];
   if (text.includes("ابتدائي") || text.includes("ابتدائية")) return stageLabels[0];
   if (text.includes("متوسط")) return stageLabels[1];
   if (text.includes("ثانوي") || text.includes("ثانوية")) return stageLabels[2];
@@ -28,7 +29,10 @@ export function getActivityPlanStagesForActivityLeader(teachingStages: unknown, 
     ? teachingStages.filter((value): value is string => typeof value === "string")
     : [];
   const assignedStages = getActivityPlanStageOptions(assignedValues);
-  return assignedStages.length ? assignedStages : getActivityPlanStageOptions(fallbackValues);
+  if (assignedStages.length) return assignedStages;
+
+  const fallbackStages = getActivityPlanStageOptions(fallbackValues);
+  return fallbackStages.length ? fallbackStages : [...stageLabels];
 }
 
 export function getActivityPlanStagesFromProfile(value: string | null | undefined) {

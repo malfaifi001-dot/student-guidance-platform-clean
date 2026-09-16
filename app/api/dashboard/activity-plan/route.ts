@@ -5,13 +5,7 @@ import { getActivityPlanProgramByKey } from "@/lib/activity-plan/activity-plan-p
 import { getActivityPlanDates, isValidActivityPlanSlot } from "@/lib/activity-plan/activity-plan-calendar";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
-import {
-  getActivityPlanStageOptions,
-  getActivityPlanStagesFromProfile,
-  getActivityPlanStagesForActivityLeader,
-  normalizeActivityPlanStage,
-  REAL_ACTIVITY_PLAN_STAGES,
-} from "@/lib/activity-plan/activity-plan-stages";
+import { normalizeActivityPlanStage, REAL_ACTIVITY_PLAN_STAGES } from "@/lib/activity-plan/activity-plan-stages";
 import { decodeActivityPlanProgramValue, encodeActivityPlanProgramValue } from "@/lib/activity-plan/activity-plan-program-value";
 import { findActivityPlanWorkflowProgram, getActivityPlanWorkflowPrograms } from "@/lib/activity-plan/activity-plan-workflow-programs";
 import { getActivityProgramDomainByServiceSlug, getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
@@ -56,24 +50,10 @@ export async function GET(request: Request) {
 
   const schoolAccountId = auth.current.user.schoolAccountId as string;
   const requestedStage = cleanText(new URL(request.url).searchParams.get("stage"));
-  const [students, stageEntries, tenPercentStageEntries] = await Promise.all([
+  const [students, stageValues] = await Promise.all([
     prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true, grade: true } }),
-    prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
-    prisma.activityPlanTenPercentEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
+    getActivityPlanLeaderAllowedStages(auth.current),
   ]);
-  const stageValues = auth.current.user.role === "ACTIVITY_LEADER"
-    ? getActivityPlanStagesForActivityLeader(auth.current.user.teachingStages, [
-      ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
-      ...students.map((student) => student.stage),
-      ...stageEntries.map((entry) => entry.stage),
-      ...tenPercentStageEntries.map((entry) => entry.stage),
-    ])
-    : getActivityPlanStageOptions([
-      ...getActivityPlanStagesFromProfile(auth.current.user.schoolAccount?.profile?.stage),
-      ...students.map((student) => student.stage),
-      ...stageEntries.map((entry) => entry.stage),
-      ...tenPercentStageEntries.map((entry) => entry.stage),
-    ]);
   const stages = REAL_ACTIVITY_PLAN_STAGES.filter((stage) => stageValues.includes(stage));
   const normalizedRequestedStage = normalizeActivityPlanStage(requestedStage);
   const selectedStage = normalizedRequestedStage && stages.includes(normalizedRequestedStage)

@@ -17,7 +17,7 @@ export const TEACHIX_SOCIAL_LINKS = {
   },
   telegram: {
     name: "تلغرام",
-    url: "https://t.me/teachixsa",
+    url: "https://t.me/teachix_sa",
   },
   snapchat: {
     name: "سناب",

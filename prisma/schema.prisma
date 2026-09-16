@@ -48,6 +48,43 @@ enum PushDeliveryStatus {
   FAILED
 }
 
+enum WhatsAppCloudDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppCloudMessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum WhatsAppCloudMessageType {
+  TEXT
+  TEMPLATE
+  UNSUPPORTED
+}
+
+enum WhatsAppCampaignStatus {
+  DRAFT
+  READY
+  PROCESSING
+  COMPLETED
+  CANCELED
+  FAILED
+}
+
+enum WhatsAppCampaignRecipientStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELED
+}
+
 enum PushRecurrenceFrequency {
   DAILY
   WEEKLY
@@ -505,6 +542,11 @@ model User {
   pushCampaignsCreated        PushCampaign[]       @relation("PushCampaignCreator")
   pushTemplatesCreated        PushTemplate[]       @relation("PushTemplateCreator")
   whatsappMessageTemplates    WhatsAppMessageTemplate[] @relation("WhatsAppMessageTemplateCreator")
+  whatsappCloudConversations  WhatsAppCloudConversation[] @relation("WhatsAppCloudConversationUser")
+  whatsappCloudMessages       WhatsAppCloudMessage[] @relation("WhatsAppCloudMessageUser")
+  whatsappCampaignsCreated    WhatsAppCampaign[] @relation("WhatsAppCampaignCreator")
+  whatsappCampaignRecipients  WhatsAppCampaignRecipient[] @relation("WhatsAppCampaignRecipientUser")
+  whatsappContactConsents     WhatsAppContactConsent[] @relation("WhatsAppContactConsentUser")
   pushAutomaticRulesCreated   PushAutomaticRule[]  @relation("PushAutomaticRuleCreator")
   pushDeliveries              PushDelivery[]
   calendarReminders           CalendarReminder[]
@@ -816,6 +858,170 @@ model WhatsAppMessageTemplate {
   @@index([isActive])
   @@index([createdAt])
   @@index([createdById])
+}
+
+model WhatsAppCloudConversation {
+  id                  String   @id @default(cuid())
+  normalizedPhone     String   @unique @db.VarChar(32)
+  displayName         String?  @db.VarChar(191)
+  linkedUserId        String?
+  linkedUser          User?    @relation("WhatsAppCloudConversationUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  lastMessagePreview  String?  @db.Text
+  lastMessageAt       DateTime?
+  lastInboundAt       DateTime?
+  unreadCount         Int      @default(0)
+  lastReadAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  messages            WhatsAppCloudMessage[]
+
+  @@index([lastMessageAt])
+  @@index([linkedUserId])
+  @@index([unreadCount, lastMessageAt])
+}
+
+model WhatsAppCloudMessage {
+  id                  String                     @id @default(cuid())
+  conversationId      String
+  conversation        WhatsAppCloudConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  linkedUserId        String?
+  linkedUser          User?                      @relation("WhatsAppCloudMessageUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  campaignId          String?
+  campaign            WhatsAppCampaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  direction           WhatsAppCloudDirection
+  status              WhatsAppCloudMessageStatus
+  type                WhatsAppCloudMessageType
+  category            String?                    @db.VarChar(80)
+  normalizedSender    String                      @db.VarChar(32)
+  normalizedRecipient String                      @db.VarChar(32)
+  providerMessageId   String?                     @unique @db.VarChar(255)
+  idempotencyKey      String?                     @unique @db.VarChar(191)
+  templateName        String?                     @db.VarChar(255)
+  templateLanguage    String?                     @db.VarChar(40)
+  templateParameters  Json?
+  bodyPreview         String?                     @db.Text
+  unsupportedMetadata Json?
+  queuedAt            DateTime?
+  sentAt              DateTime?
+  deliveredAt         DateTime?
+  readAt              DateTime?
+  failedAt            DateTime?
+  providerErrorCode   String?                     @db.VarChar(120)
+  providerErrorMessage String?                    @db.Text
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  events              WhatsAppCloudMessageEvent[]
+  campaignRecipient   WhatsAppCampaignRecipient?
+
+  @@index([conversationId, createdAt])
+  @@index([normalizedRecipient, createdAt])
+  @@index([normalizedSender, createdAt])
+  @@index([status, createdAt])
+  @@index([campaignId, createdAt])
+}
+
+model WhatsAppCloudMessageEvent {
+  id                 String               @id @default(cuid())
+  messageId          String?
+  message            WhatsAppCloudMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  providerMessageId  String?              @db.VarChar(255)
+  eventType          String               @db.VarChar(80)
+  status             String?              @db.VarChar(80)
+  eventAt            DateTime
+  errorCode          String?              @db.VarChar(120)
+  safeErrorMessage   String?              @db.Text
+  fingerprint        String               @unique @db.VarChar(191)
+  createdAt          DateTime             @default(now())
+
+  @@index([providerMessageId])
+  @@index([messageId, eventAt])
+  @@index([eventType, createdAt])
+}
+
+model WhatsAppMetaTemplate {
+  id                 String   @id @default(cuid())
+  providerTemplateId String?  @db.VarChar(255)
+  name               String   @db.VarChar(255)
+  language           String   @db.VarChar(40)
+  category           String?  @db.VarChar(80)
+  status             String   @db.VarChar(80)
+  components         Json?
+  lastSyncedAt       DateTime @default(now())
+  providerUpdatedAt  DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  campaigns          WhatsAppCampaign[]
+
+  @@unique([name, language])
+  @@index([status, category])
+  @@index([lastSyncedAt])
+}
+
+model WhatsAppCampaign {
+  id                String                   @id @default(cuid())
+  title             String                   @db.VarChar(191)
+  status            WhatsAppCampaignStatus   @default(DRAFT)
+  templateId        String
+  template          WhatsAppMetaTemplate     @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateLanguage  String                   @db.VarChar(40)
+  templateParameters Json?
+  audienceConfig    Json?
+  estimatedCount    Int                      @default(0)
+  sentCount         Int                      @default(0)
+  successCount      Int                      @default(0)
+  failureCount      Int                      @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  canceledAt        DateTime?
+  lastErrorCode     String?                  @db.VarChar(120)
+  createdById       String
+  createdBy         User                     @relation("WhatsAppCampaignCreator", fields: [createdById], references: [id])
+  recipients        WhatsAppCampaignRecipient[]
+  messages          WhatsAppCloudMessage[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdById, createdAt])
+}
+
+model WhatsAppCampaignRecipient {
+  id               String                           @id @default(cuid())
+  campaignId       String
+  campaign         WhatsAppCampaign                 @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  normalizedPhone  String                           @db.VarChar(32)
+  linkedUserId     String?
+  linkedUser       User?                            @relation("WhatsAppCampaignRecipientUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  status           WhatsAppCampaignRecipientStatus  @default(PENDING)
+  outboundMessageId String?                         @unique
+  outboundMessage  WhatsAppCloudMessage?            @relation(fields: [outboundMessageId], references: [id], onDelete: SetNull)
+  attemptedAt      DateTime?
+  sentAt           DateTime?
+  failedAt         DateTime?
+  failureCode      String?                          @db.VarChar(120)
+  safeFailureMessage String?                        @db.Text
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+
+  @@unique([campaignId, normalizedPhone])
+  @@index([campaignId, status])
+  @@index([linkedUserId])
+}
+
+model WhatsAppContactConsent {
+  id                 String   @id @default(cuid())
+  normalizedPhone    String   @unique @db.VarChar(32)
+  linkedUserId       String?
+  linkedUser         User?    @relation("WhatsAppContactConsentUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  marketingOptIn     Boolean  @default(false)
+  consentGrantedAt   DateTime?
+  consentSource      String?  @db.VarChar(120)
+  consentRevokedAt   DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([marketingOptIn, consentGrantedAt])
+  @@index([linkedUserId])
 }
 
 model PushAutomaticEvent {

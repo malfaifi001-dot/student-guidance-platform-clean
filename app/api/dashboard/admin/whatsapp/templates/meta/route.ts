@@ -1,0 +1,3 @@
+import { NextResponse } from "next/server"; import { requireAdminApi } from "@/lib/admin/admin-api-guard"; import { prisma } from "@/lib/prisma";
+export const dynamic="force-dynamic";
+export async function GET(request:Request){const denied=await requireAdminApi();if(denied)return denied;const u=new URL(request.url),q=u.searchParams.get("search")?.trim()||"",status=u.searchParams.get("status")||"",category=u.searchParams.get("category")||"";const templates=await prisma.whatsAppMetaTemplate.findMany({where:{...(q?{name:{contains:q}}:{}),...(status?{status}:{}),...(category?{category}:{})},orderBy:{lastSyncedAt:"desc"},take:250});return NextResponse.json({templates});}

@@ -3,7 +3,7 @@
 import { Send } from "lucide-react";
 import { MobilePopCard } from "@/components/mobile/mobile-pop-card";
 
-const TELEGRAM_URL = "https://t.me/teachixsa";
+const TELEGRAM_URL = "https://t.me/teachix_sa";
 
 export function TeachixTelegramPopCard({
   open,

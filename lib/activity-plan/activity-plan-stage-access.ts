@@ -8,9 +8,10 @@ type CurrentActivityLeader = NonNullable<Awaited<ReturnType<typeof getCurrentSes
 
 export async function getActivityPlanLeaderAllowedStages(current: CurrentActivityLeader) {
   const schoolAccountId = current.user.schoolAccountId as string;
-  const [students, stageEntries, tenPercentStageEntries] = await Promise.all([
+  const [students, stageEntries, weeklyStageEntries, tenPercentStageEntries] = await Promise.all([
     prisma.student.findMany({ where: { schoolAccountId, isActive: true }, select: { stage: true } }),
     prisma.activityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
+    prisma.weeklyActivityPlanEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
     prisma.activityPlanTenPercentEntry.findMany({ where: { schoolAccountId }, select: { stage: true } }),
   ]);
 
@@ -18,6 +19,7 @@ export async function getActivityPlanLeaderAllowedStages(current: CurrentActivit
     ...getActivityPlanStagesFromProfile(current.user.schoolAccount?.profile?.stage),
     ...students.map((student) => student.stage),
     ...stageEntries.map((entry) => entry.stage),
+    ...weeklyStageEntries.map((entry) => entry.stage),
     ...tenPercentStageEntries.map((entry) => entry.stage),
   ]);
 }

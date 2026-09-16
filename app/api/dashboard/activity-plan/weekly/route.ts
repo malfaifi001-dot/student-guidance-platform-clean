@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { getActivityPlanLeaderAllowedStages } from "@/lib/activity-plan/activity-plan-stage-access";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { REAL_ACTIVITY_PLAN_STAGES, normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
 import { getWeeklyActivityPlans, saveWeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
   const auth = await authorize();
   if (auth.response) return auth.response;
   const stage = normalizeActivityPlanStage(new URL(request.url).searchParams.get("stage"));
+  const allowedStages = await getActivityPlanLeaderAllowedStages(auth.current);
+  if (stage && !allowedStages.includes(stage)) return NextResponse.json({ success: false, error: "Invalid stage." }, { status: 400 });
   if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage)) return NextResponse.json({ success: false, error: "اختر مرحلة صحيحة." }, { status: 400 });
   const plans = await getWeeklyActivityPlans(auth.current.user.schoolAccountId as string, stage);
   return NextResponse.json({ success: true, stage, weeks: plans });
@@ -33,6 +36,8 @@ export async function POST(request: Request) {
   const weekNumber = Number(body?.weekNumber);
   const rawPeriodCount = body?.periodCount;
   const periodCount = rawPeriodCount === "" || rawPeriodCount === null || rawPeriodCount === undefined ? null : Number(rawPeriodCount);
+  const allowedStages = await getActivityPlanLeaderAllowedStages(auth.current);
+  if (stage && !allowedStages.includes(stage)) return NextResponse.json({ success: false, error: "Invalid stage." }, { status: 400 });
   if (!stage || !REAL_ACTIVITY_PLAN_STAGES.includes(stage) || !Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 20 || (periodCount !== null && (!Number.isInteger(periodCount) || periodCount < 0))) {
     return NextResponse.json({ success: false, error: "بيانات الأسبوع غير صالحة." }, { status: 400 });
   }
