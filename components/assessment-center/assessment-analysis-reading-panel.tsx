@@ -122,11 +122,11 @@ function SummaryListCard({
   const visibleItems = expanded ? items.slice(0, 10) : items.slice(0, 5);
 
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-black text-slate-950">{title}</h3>
-          <p className="mt-1 text-sm font-bold text-slate-500">{subtitle}</p>
+          <h3 className="text-base font-black text-slate-950 dark:text-white">{title}</h3>
+          <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">{subtitle}</p>
         </div>
 
         <span className={`rounded-full px-3 py-1 text-xs font-black ${tone}`}>
@@ -136,20 +136,20 @@ function SummaryListCard({
 
       <div className="mt-4 space-y-2">
         {visibleItems.length === 0 ? (
-          <p className="rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-500">
+          <p className="rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-500 dark:bg-slate-950 dark:text-slate-400">
             لا توجد بيانات
           </p>
         ) : (
           visibleItems.map((student) => (
             <div
               key={`${student.studentName}-${student.nationalId || ""}-${student.grade || ""}`}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-900">
+                <p className="truncate text-sm font-black text-slate-900 dark:text-slate-100">
                   {student.studentName}
                 </p>
-                <p className="mt-1 text-xs font-bold text-slate-500">
+                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                   {student.grade || "غير محدد"} / {student.classroom || "غير محدد"}
                 </p>
               </div>
@@ -179,20 +179,20 @@ function OverviewSubjectCard({ title, items }: OverviewSubjectCardProps) {
   if (!items.length) return null;
 
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-base font-black text-slate-950">{title}</h3>
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+      <h3 className="text-base font-black text-slate-950 dark:text-white">{title}</h3>
 
       <div className="mt-4 space-y-3">
         {items.slice(0, 5).map((subject) => (
-          <div key={subject.subject} className="rounded-2xl bg-slate-50 p-4">
+          <div key={subject.subject} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-black text-slate-900">{subject.subject}</span>
+              <span className="font-black text-slate-900 dark:text-slate-100">{subject.subject}</span>
               <span className="text-sm font-black text-cyan-700">
                 {subject.averagePercentage}%
               </span>
             </div>
 
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
               <div
                 className="h-full rounded-full bg-cyan-600"
                 style={{
@@ -220,20 +220,20 @@ function GradeDistributionCard({
   if (!visibleItems.length) return null;
 
   return (
-    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-base font-black text-slate-950">توزيع التقديرات</h3>
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+      <h3 className="text-base font-black text-slate-950 dark:text-white">توزيع التقديرات</h3>
 
       <div className="mt-4 space-y-3">
         {visibleItems.map((item) => (
-          <div key={item.band} className="rounded-2xl bg-slate-50 p-4">
+          <div key={item.band} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-black text-slate-900">{item.label}</span>
+              <span className="font-black text-slate-900 dark:text-slate-100">{item.label}</span>
               <span className="text-sm font-black text-cyan-700">
                 {item.count} • {item.percentage}%
               </span>
             </div>
 
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
               <div
                 className="h-full rounded-full bg-cyan-600"
                 style={{
@@ -336,21 +336,21 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
   const subjectDistribution = (safeSummary.subjectGradeDistribution || []) as AssessmentSubjectGradeDistribution[];
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-black text-slate-950">فهم النتائج بسهولة</h2>
+          <h2 className="text-xl font-black text-slate-950 dark:text-white sm:text-2xl">فهم النتائج بسهولة</h2>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-950">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
             className={[
-              "rounded-2xl px-4 py-2 text-sm font-black transition",
+              "min-w-0 rounded-xl px-2 py-2 text-xs font-black transition sm:px-4 sm:text-sm",
               activeTab === "overview"
                 ? "bg-cyan-600 text-white"
-                : "bg-slate-100 text-slate-600",
+                : "text-slate-600 dark:text-slate-300",
             ].join(" ")}
           >
             نظرة عامة
@@ -359,10 +359,10 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             type="button"
             onClick={() => setActiveTab("students")}
             className={[
-              "rounded-2xl px-4 py-2 text-sm font-black transition",
+              "min-w-0 rounded-xl px-2 py-2 text-xs font-black transition sm:px-4 sm:text-sm",
               activeTab === "students"
                 ? "bg-cyan-600 text-white"
-                : "bg-slate-100 text-slate-600",
+                : "text-slate-600 dark:text-slate-300",
             ].join(" ")}
           >
             الطلاب
@@ -371,10 +371,10 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             type="button"
             onClick={() => setActiveTab("subjects")}
             className={[
-              "rounded-2xl px-4 py-2 text-sm font-black transition",
+              "min-w-0 rounded-xl px-2 py-2 text-xs font-black transition sm:px-4 sm:text-sm",
               activeTab === "subjects"
                 ? "bg-cyan-600 text-white"
-                : "bg-slate-100 text-slate-600",
+                : "text-slate-600 dark:text-slate-300",
             ].join(" ")}
           >
             المواد
@@ -408,20 +408,20 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
       {activeTab === "students" ? (
         <div className="mt-5 space-y-4">
           <div className="grid gap-3 lg:grid-cols-6">
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 lg:col-span-2">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 dark:border-slate-700 dark:bg-slate-950 lg:col-span-2">
               <Search className="h-4 w-4 text-slate-400" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="ابحث باسم الطالب أو الهوية"
-                className="h-12 flex-1 bg-transparent text-sm font-bold outline-none"
+                className="h-12 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none dark:text-slate-100"
               />
             </div>
 
             <select
               value={subjectFilter}
               onChange={(event) => setSubjectFilter(event.target.value)}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">كل المواد</option>
               {subjects.map((subject) => (
@@ -434,7 +434,7 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             <select
               value={gradeFilter}
               onChange={(event) => setGradeFilter(event.target.value)}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">كل الصفوف</option>
               {grades.map((grade) => (
@@ -447,7 +447,7 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             <select
               value={classroomFilter}
               onChange={(event) => setClassroomFilter(event.target.value)}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">كل الفصول</option>
               {classrooms.map((classroom) => (
@@ -460,7 +460,7 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             <select
               value={bandFilter}
               onChange={(event) => setBandFilter(event.target.value)}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">كل التقديرات</option>
               <option value="EXCELLENT">ممتاز</option>
@@ -475,7 +475,7 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="ALL">الحالة: الكل</option>
               <option value="HIGH">متفوق</option>
@@ -487,7 +487,7 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
 
           <div className="grid gap-3">
             {filteredRows.length === 0 ? (
-              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500">
+              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                 لا توجد نتائج مطابقة للفلاتر.
               </div>
             ) : (
@@ -498,43 +498,43 @@ export function AssessmentAnalysisReadingPanel({ rows, summary }: Props) {
                 return (
                   <article
                     key={row.id}
-                    className="rounded-[1.4rem] border border-slate-100 bg-slate-50 p-4"
+                    className="rounded-[1.4rem] border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="truncate text-base font-black text-slate-950">
+                          <h3 className="truncate text-base font-black text-slate-950 dark:text-white">
                             {row.studentName}
                           </h3>
                           <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
                             {row.subject}
                           </span>
                         </div>
-                        <p className="mt-2 text-sm font-bold text-slate-500">
+                        <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
                           {row.grade || "غير محدد"} / {row.classroom || "غير محدد"}
                         </p>
                       </div>
 
                       <div className="grid gap-2 sm:grid-cols-4 lg:min-w-[420px]">
-                        <div className="rounded-2xl bg-white px-3 py-2 text-center">
+                        <div className="rounded-2xl bg-white px-3 py-2 text-center dark:bg-slate-900">
                           <p className="text-[11px] font-black text-slate-400">النسبة</p>
                           <p className="mt-1 text-sm font-black text-cyan-700">
                             {row.percentage ?? 0}%
                           </p>
                         </div>
-                        <div className="rounded-2xl bg-white px-3 py-2 text-center">
+                        <div className="rounded-2xl bg-white px-3 py-2 text-center dark:bg-slate-900">
                           <p className="text-[11px] font-black text-slate-400">التقدير</p>
                           <p className="mt-1 text-sm font-black text-slate-900">
                             {getGradeBandLabel(band)}
                           </p>
                         </div>
-                        <div className="rounded-2xl bg-white px-3 py-2 text-center">
+                        <div className="rounded-2xl bg-white px-3 py-2 text-center dark:bg-slate-900">
                           <p className="text-[11px] font-black text-slate-400">الحالة</p>
                           <p className="mt-1 text-sm font-black text-slate-900">
                             {statusLabel}
                           </p>
                         </div>
-                        <div className="rounded-2xl bg-white px-3 py-2 text-center">
+                        <div className="rounded-2xl bg-white px-3 py-2 text-center dark:bg-slate-900">
                           <p className="text-[11px] font-black text-slate-400">الهوية</p>
                           <p className="mt-1 text-sm font-black text-slate-900">
                             {row.nationalId || "-"}

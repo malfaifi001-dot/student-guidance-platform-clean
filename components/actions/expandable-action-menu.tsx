@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { EllipsisVertical } from "lucide-react";
 
 const MENU_EVENT = "teachix:expandable-action-menu-open";
@@ -12,6 +13,9 @@ type ExpandableActionMenuProps = {
   className?: string;
   stripClassName?: string;
   overlayStrip?: boolean;
+  presentation?: "strip" | "popover";
+  popoverAlign?: "start" | "end";
+  popoverSide?: "left" | "right";
 };
 
 export function ExpandableActionMenu({
@@ -20,9 +24,39 @@ export function ExpandableActionMenu({
   className = "",
   stripClassName = "",
   overlayStrip = false,
+  presentation = "strip",
+  popoverAlign = "start",
+  popoverSide,
 }: ExpandableActionMenuProps) {
   const [open, setOpen] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState<{ left: number; top: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  function updatePopoverPosition() {
+    if (presentation !== "popover" || !triggerRef.current) return;
+
+    const trigger = triggerRef.current.getBoundingClientRect();
+    const padding = 12;
+    const gap = 8;
+    const width = Math.min(224, window.innerWidth - padding * 2);
+    const estimatedHeight = 260;
+    const prefersRight = popoverSide === "right" || (!popoverSide && popoverAlign === "end");
+    const preferredLeft = prefersRight ? trigger.right + gap : trigger.left - width - gap;
+    const fallbackLeft = prefersRight ? trigger.left - width - gap : trigger.right + gap;
+    const left = preferredLeft >= padding && preferredLeft + width <= window.innerWidth - padding
+      ? preferredLeft
+      : fallbackLeft >= padding && fallbackLeft + width <= window.innerWidth - padding
+        ? fallbackLeft
+        : Math.min(Math.max(padding, preferredLeft), window.innerWidth - width - padding);
+    const preferredTop = trigger.bottom + gap;
+    const top = preferredTop + estimatedHeight <= window.innerHeight - padding
+      ? preferredTop
+      : Math.max(padding, trigger.top - estimatedHeight - gap);
+
+    setPopoverPosition({ left, top });
+  }
 
   useEffect(() => {
     function closeWhenAnotherOpens(event: Event) {
@@ -32,7 +66,8 @@ export function ExpandableActionMenu({
     }
 
     function closeWhenOutside(event: PointerEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!menuRef.current?.contains(target) && !popoverRef.current?.contains(target)) {
         setOpen(false);
       }
     }
@@ -54,11 +89,25 @@ export function ExpandableActionMenu({
     };
   }, [menuId]);
 
+  useEffect(() => {
+    if (!open || presentation !== "popover") return;
+
+    updatePopoverPosition();
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
+    };
+  }, [open, presentation, popoverAlign, popoverSide]);
+
   function toggleMenu() {
     const nextOpen = !open;
     setOpen(nextOpen);
 
     if (nextOpen) {
+      updatePopoverPosition();
       window.dispatchEvent(new CustomEvent(MENU_EVENT, { detail: menuId }));
     }
   }
@@ -66,22 +115,21 @@ export function ExpandableActionMenu({
   return (
     <div
       ref={menuRef}
-      className={`flex min-w-0 shrink-0 items-center gap-2 ${overlayStrip ? "relative" : ""} ${className}`}
+      className={`flex min-w-0 shrink-0 items-center gap-2 ${overlayStrip || presentation === "popover" ? "relative" : ""} ${className}`}
       dir="ltr"
     >
-      <div
-        className={`${overlayStrip ? "absolute left-0 top-0 z-10 flex" : "flex"} min-w-0 overflow-hidden transition-all duration-200 ease-out ${
-          open
-            ? `${overlayStrip ? "max-w-[calc(100vw-2rem)]" : "max-w-[24rem]"} translate-x-0 gap-2 opacity-100`
-            : "pointer-events-none max-w-0 translate-x-2 gap-0 opacity-0"
-        } ${stripClassName}`}
-        aria-hidden={!open}
-        onClick={() => setOpen(false)}
-      >
-        {children}
-      </div>
+      {presentation === "popover" && open && popoverPosition && typeof document !== "undefined"
+        ? createPortal(
+          <div ref={popoverRef} className={`fixed z-[100] flex w-56 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900 ${stripClassName}`} style={popoverPosition} dir="rtl">
+            {children}
+          </div>,
+          document.body,
+        )
+        : null}
+      {presentation !== "popover" ? <div className={`${overlayStrip ? "absolute left-0 top-0 z-10 flex" : "flex"} min-w-0 overflow-hidden transition-all duration-200 ease-out ${open ? `${overlayStrip ? "max-w-[calc(100vw-2rem)]" : "max-w-[24rem]"} translate-x-0 gap-2 opacity-100` : "pointer-events-none max-w-0 translate-x-2 gap-0 opacity-0"} ${stripClassName}`} aria-hidden={!open}>{children}</div> : null}
 
       <button
+        ref={triggerRef}
         type="button"
         aria-label="إجراءات"
         aria-expanded={open}
