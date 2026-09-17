@@ -1472,7 +1472,6 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
     <section class="info-panel">
       ${infoItem("school", "المدرسة:", data.schoolName)}
       ${infoItem("report", "اسم التحليل:", data.reportTitle)}
-      ${infoItem("grade", "الصف:", data.gradeLabel)}
       ${infoItem("classroom", "الفصل:", data.classroomLabel)}
       ${infoItem("calendar", "الفصل الدراسي:", data.termLabel)}
       ${infoItem("subject", "المادة / المجال:", data.subjectLabel)}

@@ -2228,6 +2228,7 @@ model AssessmentAnalysis {
 
   summaryJson Json?
   rowsJson    Json?
+  reportVisibilityOptions Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -76,6 +76,7 @@ export function A4PreviewFit({
     <>
       <style>{`
         .a4-preview-fit-viewport { width:100%; min-width:0; overflow:hidden; padding:12px; background:#f1f5f9; }
+        .dark .a4-preview-fit-viewport { background:#020617; }
         .a4-preview-fit-scaled { position:relative; margin-inline:auto; }
         .a4-preview-fit-stage { position:absolute; top:0; left:0; transform-origin:top left; }
       `}</style>

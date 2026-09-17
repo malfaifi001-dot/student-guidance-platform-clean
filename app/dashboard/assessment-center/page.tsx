@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { AssessmentCenterDashboard } from "@/components/assessment-center/assessment-center-dashboard";
 import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
+import { getAssessmentGenderCopy } from "@/lib/assessments-center/gender-copy";
 
 export default async function AssessmentCenterPage() {
   const context = await requireDashboardPageContext();
@@ -23,6 +24,6 @@ export default async function AssessmentCenterPage() {
   });
 
   return (
-    <AssessmentCenterDashboard analyses={analyses} totalCount={totalCount} />
+    <AssessmentCenterDashboard analyses={analyses} totalCount={totalCount} studentLabel={getAssessmentGenderCopy(context.user.gender).students} />
   );
 }

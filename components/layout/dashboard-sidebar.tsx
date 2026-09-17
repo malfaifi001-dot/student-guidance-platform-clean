@@ -38,7 +38,6 @@ import {
   FlaskConical,
   FolderKanban,
   Gauge,
-  GitBranch,
   Home,
   KeyRound,
   LayoutDashboard,
@@ -184,24 +183,14 @@ const counselorServiceLinks: SidebarLinkItem[] = [
 
 const assessmentCenterLinks: SidebarLinkItem[] = [
   {
-    label: "لوحة المركز",
+    label: "تحليل نتائج الطلاب",
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: BarChart3,
-  },
-  {
-    label: "ربط الطلاب",
-    href: "/dashboard/assessment-center/linking",
-    icon: GitBranch,
   },
 ];
 
 const counselorAssessmentCenterLinks: SidebarLinkItem[] = [
   ...assessmentCenterLinks,
-  {
-    label: "الموجه الذكي",
-    href: "/dashboard/assessment-center/smart-counselor",
-    icon: Sparkles,
-  },
 ];
 
 const counselorToolsLinks: SidebarLinkItem[] = [
@@ -1311,7 +1300,7 @@ function CounselorSidebar({
       </SidebarDropdown>
 
       <SidebarDropdown
-        title="مركز تحليل النتائج"
+        title="تحليل نتائج الطلاب"
         defaultOpen={pathname.startsWith(
           "/dashboard/assessment-center",
         )}

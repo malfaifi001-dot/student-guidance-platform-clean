@@ -10,6 +10,8 @@ import type {
 } from "@/lib/assessment-center/assessment-center-types";
 import { buildAssessmentSmartNarrative } from "@/lib/assessment-center/assessment-center-insights";
 import { buildAssessmentPdfHtml } from "@/lib/assessment-center/assessment-pdf-report";
+import { getRequestOrigin } from "@/lib/http/request-origin";
+import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 
 export const runtime = "nodejs";
 
@@ -582,7 +584,11 @@ export async function GET(request: Request, context: RouteContext) {
   const analysis = await prisma.assessmentAnalysis.findFirst({
     where: {
       id: analysisId,
-      ...assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, { historicalPersonalRead: true }),
+      ...(auth.isAdmin
+        ? { schoolAccountId: auth.schoolAccountId }
+        : assessmentAnalysisOwnershipWhere(auth.schoolAccountId, auth.user.id, {
+            historicalPersonalRead: true,
+          })),
     },
   });
 
@@ -601,31 +607,39 @@ export async function GET(request: Request, context: RouteContext) {
   const fileBaseName = safeFileName(analysis.title || "assessment-analysis");
 
   if (format === "pdf") {
-    const schoolProfile = analysis.schoolAccountId
-      ? await prisma.schoolProfile
-          .findFirst({
-            where: {
-              schoolAccountId: analysis.schoolAccountId,
-            },
-          })
-          .catch(() => null)
-      : null;
+    const printUrl = `${getRequestOrigin(request)}/assessment-center-print/${encodeURIComponent(analysis.id)}?print=1`;
 
-    const html = buildAssessmentPdfHtml({
-      analysis,
-      summary,
-      rows,
-      schoolProfile,
-    });
+    try {
+      const pdfBytes = await generatePdfFromUrlWithCloudflare({
+        request,
+        url: printUrl,
+        waitForSelector: ".report-page",
+      });
+      const pdfBody = pdfBytes.buffer.slice(
+        pdfBytes.byteOffset,
+        pdfBytes.byteOffset + pdfBytes.byteLength,
+      ) as ArrayBuffer;
 
-    const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
+      return new Response(pdfBody, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "pdf"),
+          "Cache-Control": "private, no-store",
+        },
+      });
+    } catch (error) {
+      console.error("Assessment-center Cloudflare PDF export failed.", {
+        analysisId: analysis.id,
+        message: error instanceof Error ? error.message : "Unknown PDF export error",
+      });
 
-    return new NextResponse(responseHtml, {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
-    });
+      return NextResponse.json({
+        fallback: "PRINT_PREVIEW",
+        previewUrl: `/dashboard/assessment-center/${encodeURIComponent(analysis.id)}/print?print=1`,
+        legacyPreviewUrl: `/dashboard/assessment-center/${encodeURIComponent(analysis.id)}/print?legacy=1&print=1`,
+      });
+    }
   }
   const excelBuffer = buildExcelBuffer({
     analysis,
