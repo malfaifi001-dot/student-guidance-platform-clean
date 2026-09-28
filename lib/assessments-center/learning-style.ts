@@ -1,6 +1,3 @@
-import crypto from "node:crypto";
-import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
-
 export const LEARNING_STYLE_TYPE = "LEARNING_STYLE" as const;
 export const LEARNING_STYLES = ["VISUAL", "AUDITORY", "READ_WRITE", "KINESTHETIC"] as const;
 export type LearningStyle = (typeof LEARNING_STYLES)[number];
@@ -20,13 +17,4 @@ export const LEARNING_STYLE_BANKS: Record<LearningStage, LearningQuestion[]> = {
   ]),
 };
 export function learningStageForGrade(grade: string): LearningStage { if (/ابتد|primary|[1-6]/i.test(grade)) return "PRIMARY"; if (/متوسط|middle|[7-9]/i.test(grade)) return "MIDDLE"; return "SECONDARY"; }
-export function createLearningStyleToken() { return crypto.randomBytes(24).toString("base64url"); }
-function parse(value: string) { try { return JSON.parse(value.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")); } catch { return null; } }
-export async function classifyLearningStyleBatch(input: { grade: string; classroom: string; stage: LearningStage; students: Array<{ studentKey: string; answers: Array<{ questionId: string; question: string; answerId: string; answerText: string }> }> }) {
-  const content = await callDeepSeekChat({ temperature: 0, maxTokens: 1800, responseFormat: "json_object", messages: [{ role: "system", content: "Return JSON only with students, classroomInterpretation, recommendations. Return exactly one item for every input student, preserve every studentKey exactly once, no extra or missing students. learningStyle must be exactly VISUAL, AUDITORY, READ_WRITE, or KINESTHETIC. Classify only from the ten supplied answers; do not invent scores, facts, or traits; do not calculate percentages." }, { role: "user", content: JSON.stringify(input) }] });
-  const result = parse(content) as { students?: Array<{ studentKey?: string; learningStyle?: string }>; classroomInterpretation?: string; recommendations?: string[] } | null;
-  const expected = input.students.map(s => s.studentKey); const returned = result?.students || [];
-  if (returned.length !== expected.length || new Set(returned.map(s => s.studentKey)).size !== expected.length || returned.some(s => !s.studentKey || !expected.includes(s.studentKey) || !LEARNING_STYLES.includes(s.learningStyle as LearningStyle))) throw new Error("INVALID_LEARNING_STYLE_BATCH");
-  return { students: returned.map(s => ({ studentKey: s.studentKey as string, learningStyle: s.learningStyle as LearningStyle })), classroomInterpretation: String(result?.classroomInterpretation || "").slice(0, 5000), recommendations: Array.isArray(result?.recommendations) ? result!.recommendations!.filter(x => typeof x === "string").slice(0, 20) : [] };
-}
 export function aggregateLearningStyles(values: Array<{ learningStyle?: unknown }>) { const analyzed = values.filter(v => LEARNING_STYLES.includes(v.learningStyle as LearningStyle)); const counts = Object.fromEntries(LEARNING_STYLES.map(s => [s, analyzed.filter(v => v.learningStyle === s).length])) as Record<LearningStyle, number>; const total = analyzed.length; const percentages = Object.fromEntries(LEARNING_STYLES.map(s => [s, total ? Number((counts[s] / total * 100).toFixed(2)) : 0])) as Record<LearningStyle, number>; const top = Math.max(...LEARNING_STYLES.map(s => counts[s]), 0); const leaders = LEARNING_STYLES.filter(s => counts[s] === top && top > 0); return { analyzedStudentCount: total, counts, percentages, dominant: leaders.length === 1 ? leaders[0] : null, tied: leaders.length > 1 }; }

@@ -9,7 +9,8 @@ import type { NafsAnalysisInput } from "@/lib/assessments-center/nafs-types";
 import { calculateMultiPeriod } from "@/lib/assessments-center/multi-period-calculations";
 import type { MultiPeriodInput } from "@/lib/assessments-center/assessment-types";
 import { assessmentAnalysisOwnershipWhere } from "@/lib/assessments-center/assessment-ownership";
-import { LEARNING_STYLE_TYPE, LEARNING_STYLE_BANKS, learningStageForGrade, createLearningStyleToken } from "@/lib/assessments-center/learning-style";
+import { LEARNING_STYLE_TYPE, LEARNING_STYLE_BANKS, learningStageForGrade } from "@/lib/assessments-center/learning-style";
+import { createLearningStyleToken } from "@/lib/assessments-center/learning-style-server";
 
 export const runtime = "nodejs";
 
