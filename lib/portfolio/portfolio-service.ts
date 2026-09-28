@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   assertPortfolioActor,
   PortfolioServiceError,
+  requireOwnedPersonalPortfolio,
   requireOwnedPortfolio,
   type PortfolioActor,
 } from "@/lib/portfolio/portfolio-authorization";
@@ -14,6 +15,7 @@ import type {
   PortfolioEducationIdentity,
   PortfolioPreferences,
 } from "@/lib/portfolio/portfolio-types";
+import { portfolioItemCreateSchema } from "@/lib/portfolio/portfolio-types";
 
 export const DEFAULT_PORTFOLIO_PREFERENCES: PortfolioPreferences = {
   showSchoolName: true,
@@ -252,7 +254,7 @@ export function readEducationIdentity(value: unknown, role?: string | null): Por
 export async function updatePortfolioSettings(user: PortfolioActor, portfolioId: string, input: {
   title: string; academicYear: string; term: string; description: string; themeId: string; preferences: PortfolioPreferences;
 }) {
-  const portfolio = await requireOwnedPortfolio(user, portfolioId);
+  const portfolio = await requireOwnedPersonalPortfolio(user, portfolioId);
   const current = jsonObject(portfolio.settingsJson);
   return prisma.achievementPortfolio.update({
     where: { id: portfolio.id },
@@ -269,7 +271,7 @@ export async function updatePortfolioSettings(user: PortfolioActor, portfolioId:
 export async function updatePortfolioContent(user: PortfolioActor, portfolioId: string, input: {
   introText: string; conclusionText: string; biography: PortfolioBiography; educationIdentity: PortfolioEducationIdentity;
 }) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const [profile, introduction] = await Promise.all([
     prisma.achievementPortfolioSection.findFirst({ where: { portfolioId, sectionKey: "profile" } }),
     prisma.achievementPortfolioSection.findFirst({ where: { portfolioId, sectionKey: "introduction" } }),
@@ -316,12 +318,47 @@ function assertPortfolioAttachmentOwnership(portfolioId: string, attachmentUrl: 
   }
 }
 
+function isImageAttachment(value: Record<string, unknown>) {
+  const url = typeof value.attachmentUrl === "string" ? value.attachmentUrl : "";
+  return value.attachmentKind === "IMAGE" || (typeof value.attachmentMimeType === "string" && value.attachmentMimeType.startsWith("image/")) || /\.(?:jpe?g|png|webp)(?:\?.*)?$/i.test(url);
+}
+
+function normalizePortfolioItemInput(input: Record<string, unknown>, existing?: { sourceType: string; title: string; description: string | null; isVisible: boolean; metadataJson: unknown }) {
+  const previous: Record<string, unknown> = existing ? { ...jsonObject(existing.metadataJson), type: existing.sourceType, title: existing.title, description: existing.description || "", isVisible: existing.isVisible } : {};
+  const merged: Record<string, any> = { ...previous, ...input };
+  const attachmentUrl = typeof merged.attachmentUrl === "string" ? merged.attachmentUrl.trim() : "";
+  const legacyExternalUrl = !isImageAttachment(merged) && /^https?:\/\//i.test(attachmentUrl) ? attachmentUrl : "";
+  const startDate = typeof merged.startDate === "string" ? merged.startDate.trim() : "";
+  const endDate = typeof merged.endDate === "string" ? merged.endDate.trim() : "";
+  const durationValue = typeof merged.durationValue === "string" ? merged.durationValue.trim() : "";
+  const normalized: Record<string, any> = {
+    ...merged,
+    issuer: typeof merged.issuer === "string" ? merged.issuer.trim() : "",
+    date: typeof merged.date === "string" ? merged.date.trim() : "",
+    startDate: startDate || (typeof merged.date === "string" ? merged.date.trim() : ""),
+    endDate,
+    deliveryType: merged.type === "QUALIFICATION" ? "" : (typeof merged.deliveryType === "string" ? merged.deliveryType : ""),
+    durationValue: durationValue || (typeof merged.hours === "string" ? merged.hours.trim() : ""),
+    durationUnit: merged.durationUnit || (durationValue || merged.hours ? "ساعات" : ""),
+    attachmentUrl,
+    externalUrl: typeof merged.externalUrl === "string" && merged.externalUrl.trim() ? merged.externalUrl.trim() : legacyExternalUrl,
+  };
+  if (normalized.startDate && normalized.endDate && normalized.endDate < normalized.startDate) throw new PortfolioServiceError(400, "تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.");
+  if (normalized.durationValue && (!/^\d+(?:\.\d+)?$/.test(normalized.durationValue) || Number(normalized.durationValue) < 0)) throw new PortfolioServiceError(400, "أدخل مدة رقمية صحيحة غير سالبة.");
+  if (normalized.durationValue && !normalized.durationUnit) throw new PortfolioServiceError(400, "اختر وحدة المدة.");
+  if (normalized.externalUrl && !/^https?:\/\//i.test(normalized.externalUrl)) throw new PortfolioServiceError(400, "يجب أن يبدأ الرابط بـ http:// أو https://.");
+  if (normalized.type === "COURSE" && !normalized.deliveryType) throw new PortfolioServiceError(400, "اختر نمط الدورة.");
+  return normalized;
+}
+
 export async function createPortfolioItem(user: PortfolioActor, portfolioId: string, input: Record<string, unknown> & { type: string; title: string; isVisible: boolean }) {
-  await requireOwnedPortfolio(user, portfolioId);
-  assertPortfolioAttachmentOwnership(portfolioId, input.attachmentUrl);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
+  const normalized = normalizePortfolioItemInput(input);
+  const validated = portfolioItemCreateSchema.parse(normalized);
+  assertPortfolioAttachmentOwnership(portfolioId, validated.attachmentUrl);
   const sectionId = await qualificationSectionId(portfolioId);
   const last = await prisma.achievementPortfolioItem.findFirst({ where: { portfolioId, sectionId }, orderBy: { sortOrder: "desc" } });
-  const { type, title, isVisible, description, ...metadata } = input;
+  const { type, title, isVisible, description, ...metadata } = validated;
   return prisma.achievementPortfolioItem.create({ data: {
     portfolioId, sectionId, sourceType: type, title,
     description: typeof description === "string" ? description : null,
@@ -330,7 +367,7 @@ export async function createPortfolioItem(user: PortfolioActor, portfolioId: str
 }
 
 async function ownedItem(user: PortfolioActor, portfolioId: string, itemId: string) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const item = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId } });
   if (!item) throw new PortfolioServiceError(404, "العنصر غير موجود.");
   return item;
@@ -338,13 +375,14 @@ async function ownedItem(user: PortfolioActor, portfolioId: string, itemId: stri
 
 export async function updatePortfolioItem(user: PortfolioActor, portfolioId: string, itemId: string, input: Record<string, unknown>) {
   const item = await ownedItem(user, portfolioId, itemId);
-  assertPortfolioAttachmentOwnership(portfolioId, input.attachmentUrl);
-  const metadata = { ...jsonObject(item.metadataJson), ...input };
+  const normalized = normalizePortfolioItemInput(input, item);
+  assertPortfolioAttachmentOwnership(portfolioId, normalized.attachmentUrl);
+  const metadata = { ...jsonObject(item.metadataJson), ...normalized };
   return prisma.achievementPortfolioItem.update({ where: { id: item.id }, data: {
-    sourceType: typeof input.type === "string" ? input.type : item.sourceType,
-    title: typeof input.title === "string" ? input.title : item.title,
-    description: typeof input.description === "string" ? input.description : item.description,
-    isVisible: typeof input.isVisible === "boolean" ? input.isVisible : item.isVisible,
+    sourceType: typeof normalized.type === "string" ? normalized.type : item.sourceType,
+    title: typeof normalized.title === "string" ? normalized.title : item.title,
+    description: typeof normalized.description === "string" ? normalized.description : item.description,
+    isVisible: typeof normalized.isVisible === "boolean" ? normalized.isVisible : item.isVisible,
     metadataJson: asJson(metadata),
   } });
 }
@@ -368,7 +406,7 @@ export async function movePortfolioItem(user: PortfolioActor, portfolioId: strin
 }
 
 export async function updatePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, isEnabled: boolean) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const allowedKeys = getPortfolioDefaultSectionOrderForRole(user.role).map((section) => section.key);
   const section = await prisma.achievementPortfolioSection.findFirst({ where: { id: sectionId, portfolioId, sectionKey: { in: allowedKeys } } });
   if (!section) throw new PortfolioServiceError(404, "القسم غير موجود.");
@@ -376,7 +414,7 @@ export async function updatePortfolioSection(user: PortfolioActor, portfolioId: 
 }
 
 export async function movePortfolioSection(user: PortfolioActor, portfolioId: string, sectionId: string, direction: "up" | "down") {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const allowedKeys = getPortfolioDefaultSectionOrderForRole(user.role).map((section) => section.key);
   const sections = await prisma.achievementPortfolioSection.findMany({ where: { portfolioId, sectionKey: { in: allowedKeys } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true } });
   const index = sections.findIndex((section) => section.id === sectionId);

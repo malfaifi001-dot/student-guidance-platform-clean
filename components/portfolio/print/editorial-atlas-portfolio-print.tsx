@@ -11,6 +11,7 @@ import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfo
 import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
+import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
 
 const ATLAS = {
   ink: "#10243A",
@@ -953,12 +954,6 @@ export function EditorialAtlasPortfolioPrint({
       {sectionEnabled("qualifications") ? (
         <div style={{ order: sectionOrder("qualifications") }}>
           {qualifications.map((item) => {
-            const hasImage =
-              Boolean(item.attachmentUrl) &&
-              (item.attachmentKind === "IMAGE" ||
-                item.attachmentMimeType.startsWith("image/") ||
-                /\.(?:jpe?g|png|webp|gif|svg)(?:\?.*)?$/i.test(item.attachmentUrl));
-
             return (
               <AtlasPage
                 key={item.id}
@@ -978,17 +973,13 @@ export function EditorialAtlasPortfolioPrint({
 
                 <div className="atlas-qualification-meta">
                   {item.issuer ? <span>{item.issuer}</span> : null}
-                  {item.date ? <span>{item.date}</span> : null}
-                  {item.hours ? <span>{item.hours} ساعة</span> : null}
+                  {item.deliveryType ? <span>{item.deliveryType}</span> : null}
+                  {item.startDate || item.date ? <span>{item.startDate || item.date}</span> : null}
+                  {item.endDate ? <span>{item.endDate}</span> : null}
+                  {item.durationValue && item.durationUnit ? <span>{item.durationValue} {item.durationUnit}</span> : item.hours ? <span>{item.hours} ساعة</span> : null}
                 </div>
 
-                <div className="atlas-qualification-stage">
-                  {hasImage ? (
-                    <img src={item.attachmentUrl} alt={item.title} />
-                  ) : (
-                    <span>لا توجد صورة مرفقة</span>
-                  )}
-                </div>
+                <div className="atlas-qualification-stage"><PortfolioQualificationEvidence item={item} /></div>
 
                 {item.description ? (
                   <p className="atlas-qualification-description">

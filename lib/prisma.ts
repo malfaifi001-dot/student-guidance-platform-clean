@@ -23,6 +23,9 @@ function createPrismaClient() {
   ensureSearchParam(url, "connectionLimit", process.env.PRISMA_CONNECTION_LIMIT || "2");
   ensureSearchParam(url, "acquireTimeout", process.env.PRISMA_POOL_TIMEOUT_MS || "30000");
   ensureSearchParam(url, "connectTimeout", process.env.PRISMA_CONNECT_TIMEOUT_MS || "15000");
+  // MariaDB's mysql_native_password/caching_sha2_password handshake may
+  // require the server RSA key when TLS is not enabled locally.
+  ensureSearchParam(url, "allowPublicKeyRetrieval", "true");
   ensureSearchParam(url, "prepareCacheLength", "0");
 
   const adapter = new PrismaMariaDb(url.toString());

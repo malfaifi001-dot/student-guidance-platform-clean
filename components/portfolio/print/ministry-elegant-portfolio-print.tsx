@@ -12,6 +12,7 @@ import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfo
 import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
+import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
 
 function renderFieldValue(value: string | string[], field?: PortfolioReportField, internalLayout?: PortfolioFieldInternalLayout) {
   if (Array.isArray(value)) {
@@ -166,9 +167,8 @@ function PortfolioQualificationDocumentPage({ data, item }: {
   item: PortfolioPrintData["qualificationItems"][number];
 }) {
   const typeLabel = item.type === "QUALIFICATION" ? "مؤهل" : item.type === "COURSE" ? "دورة" : "شهادة";
-  const hasImage = Boolean(item.attachmentUrl) && (item.attachmentKind === "IMAGE" || item.attachmentMimeType.startsWith("image/") || /\.(?:jpe?g|png|webp)(?:\?.*)?$/i.test(item.attachmentUrl));
   const descriptionFontSize = item.description.length > 1000 ? "7px" : item.description.length > 500 ? "8px" : "10px";
-  const metadata = [item.issuer, item.date, item.hours ? `${item.hours} ساعة` : ""].filter(Boolean);
+  const metadata = [item.issuer, item.deliveryType, item.startDate || item.date, item.endDate, item.durationValue && item.durationUnit ? `${item.durationValue} ${item.durationUnit}` : item.hours ? `${item.hours} ساعة` : ""].filter(Boolean);
 
   return <section className="portfolio-page portfolio-qualification-document-page">
     <div className="portfolio-page-header"><span>المؤهلات والدورات</span><span>ملف إنجاز {data.owner.name}</span></div>
@@ -178,12 +178,7 @@ function PortfolioQualificationDocumentPage({ data, item }: {
         <span className="portfolio-qualification-type">{typeLabel}</span>
         {metadata.length ? <p className="portfolio-qualification-meta">{metadata.map((value, metadataIndex) => <span key={`${value}-${metadataIndex}`}>{value}</span>)}</p> : null}
       </div>
-      <div className="portfolio-qualification-image-stage">
-        {hasImage ? <img src={item.attachmentUrl} alt={item.title} /> : <div className="portfolio-qualification-image-placeholder">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.75 3.75h7.5l3 3v13.5H6.75V3.75Z" /><path d="M14.25 3.75v3h3M9 11.25h6M9 14.25h6" /></svg>
-          <span>لا توجد صورة مرفقة لهذا العنصر</span>
-        </div>}
-      </div>
+      <div className="portfolio-qualification-image-stage"><PortfolioQualificationEvidence item={item} /></div>
       {item.description ? <p className="portfolio-qualification-description" style={{ fontSize: descriptionFontSize }}>{item.description}</p> : null}
     </div>
     <PortfolioPageWave />

@@ -60,21 +60,80 @@ const portfolioAttachmentUrlSchema = z.union([
   z.url("رابط المرفق غير صحيح.").refine((value) => value.startsWith("https://"), "يجب أن يبدأ الرابط الخارجي بـ https://"),
 ]);
 
-export const portfolioItemCreateSchema = z.object({
+const portfolioExternalUrlSchema = z.union([
+  z.literal(""),
+  z.string().trim().url("رابط الدورة أو الشهادة غير صحيح.").refine(
+    (value) => value.startsWith("http://") || value.startsWith("https://"),
+    "يجب أن يبدأ الرابط بـ http:// أو https://.",
+  ),
+]);
+
+const portfolioDateSchema = z.string().trim().max(40).default("");
+const portfolioDurationUnitSchema = z.enum(["", "ساعات", "أيام", "أسابيع", "شهور"]);
+const portfolioDeliveryTypeSchema = z.enum(["", "متزامن", "غير متزامن", "مدمج", "حضوري", "عن بُعد"]);
+const portfolioOrganizationCategorySchema = z.enum([
+  "",
+  "وزارة التعليم",
+  "الإدارة العامة للتعليم",
+  "مكتب التعليم",
+  "المدرسة",
+  "المعهد الوطني للتطوير المهني التعليمي",
+  "المؤسسة العامة للتدريب التقني والمهني",
+  "جامعة أو كلية",
+  "معهد أو مركز تدريب",
+  "منصة تدريب إلكترونية",
+  "جهة حكومية أخرى",
+  "أخرى",
+]);
+
+const portfolioItemBaseSchema = z.object({
   type: z.enum(portfolioItemTypes),
   title: z.string().trim().min(2, "عنوان العنصر مطلوب.").max(200),
   issuer: z.string().trim().max(200).default(""),
-  date: z.string().trim().max(40).default(""),
+  organizationCategory: portfolioOrganizationCategorySchema.default(""),
+  date: portfolioDateSchema,
+  startDate: portfolioDateSchema,
+  endDate: portfolioDateSchema,
+  deliveryType: portfolioDeliveryTypeSchema.default(""),
   hours: z.string().trim().max(40).default(""),
+  durationValue: z.string().trim().max(20).default(""),
+  durationUnit: portfolioDurationUnitSchema.default(""),
   description: z.string().trim().max(2000).default(""),
   attachmentUrl: portfolioAttachmentUrlSchema.default(""),
   attachmentMimeType: z.enum(["image/jpeg", "image/png", "image/webp", ""]).default(""),
   attachmentKind: z.enum(["IMAGE", ""]).default(""),
+  externalUrl: portfolioExternalUrlSchema.default(""),
   isVisible: z.boolean().default(true),
 });
 
+function refinePortfolioItem(value: z.infer<typeof portfolioItemBaseSchema>, ctx: z.RefinementCtx) {
+  if (value.startDate && value.endDate && value.endDate < value.startDate) {
+    ctx.addIssue({ code: "custom", path: ["endDate"], message: "تاريخ النهاية لا يمكن أن يسبق تاريخ البداية." });
+  }
+  if (value.durationValue) {
+    if (!/^\d+(?:\.\d+)?$/.test(value.durationValue) || Number(value.durationValue) < 0) {
+      ctx.addIssue({ code: "custom", path: ["durationValue"], message: "أدخل مدة رقمية صحيحة غير سالبة." });
+    }
+    if (!value.durationUnit) {
+      ctx.addIssue({ code: "custom", path: ["durationUnit"], message: "اختر وحدة المدة." });
+    }
+  }
+  if (value.type === "QUALIFICATION" && value.deliveryType) {
+    ctx.addIssue({ code: "custom", path: ["deliveryType"], message: "نمط الدورة خاص بالدورات فقط." });
+  }
+  if (value.type === "COURSE" && !value.deliveryType) {
+    ctx.addIssue({ code: "custom", path: ["deliveryType"], message: "اختر نمط الدورة." });
+  }
+  const hasImage = value.attachmentKind === "IMAGE" || value.attachmentMimeType.startsWith("image/");
+  if (!hasImage && !value.externalUrl && !value.attachmentUrl) {
+    ctx.addIssue({ code: "custom", path: ["externalUrl"], message: "أرفق صورة الشهادة أو أدخل رابطًا خارجيًا واحدًا على الأقل." });
+  }
+}
+
+export const portfolioItemCreateSchema = portfolioItemBaseSchema.superRefine(refinePortfolioItem);
+
 export const portfolioItemPatchSchema = z.union([
-  portfolioItemCreateSchema.partial().extend({ action: z.literal("update") }),
+  portfolioItemBaseSchema.partial().extend({ action: z.literal("update") }),
   z.object({ action: z.literal("move"), direction: z.enum(["up", "down"]) }),
 ]);
 
@@ -107,12 +166,19 @@ export type PortfolioWorkspaceItem = {
   type: PortfolioItemType;
   title: string;
   issuer: string;
+  organizationCategory: string;
   date: string;
+  startDate: string;
+  endDate: string;
+  deliveryType: string;
   hours: string;
+  durationValue: string;
+  durationUnit: string;
   description: string;
   attachmentUrl: string;
   attachmentMimeType: "image/jpeg" | "image/png" | "image/webp" | "";
   attachmentKind: "IMAGE" | "";
+  externalUrl: string;
   sortOrder: number;
   isVisible: boolean;
 };

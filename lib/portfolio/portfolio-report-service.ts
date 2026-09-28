@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwnedPortfolio, PortfolioServiceError, type PortfolioActor } from "@/lib/portfolio/portfolio-authorization";
+import { requireOwnedPersonalPortfolio, requireOwnedPortfolio, PortfolioServiceError, type PortfolioActor } from "@/lib/portfolio/portfolio-authorization";
 import { getPortfolioPerformanceElements } from "@/lib/portfolio/portfolio-performance-elements";
 import { normalizePortfolioReportPayload, type PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
 import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioManagedEvidence, PortfolioManagedReport, PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
@@ -377,7 +377,7 @@ export async function loadManagedPortfolioReports(user: PortfolioActor, portfoli
 }
 
 async function ensureManagedReportItem(user: PortfolioActor, portfolioId: string, itemId: string) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const existing = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
   if (existing) {
     const eligible = await discoverEligiblePortfolioReports(user, portfolioId);
@@ -392,7 +392,7 @@ async function ensureManagedReportItem(user: PortfolioActor, portfolioId: string
 }
 
 export async function syncPortfolioReports(user: PortfolioActor, portfolioId: string) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   const discovered = await discoverEligiblePortfolioReports(user, portfolioId);
   const existing = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
   const keys = new Set(existing.filter((item) => item.sourceId).map((item) => `${item.sourceType}:${item.sourceId}`));
@@ -470,12 +470,12 @@ async function validateCustomSection(portfolioId: string, sectionId?: string | n
 }
 
 export async function createCustomEvidence(user: PortfolioActor, portfolioId: string, input: { title: string; description: string; fileUrl: string; mimeType: string; sectionId?: string | null; isVisible: boolean }) {
-  await requireOwnedPortfolio(user, portfolioId); const sectionId = await validateCustomSection(portfolioId, input.sectionId);
+  await requireOwnedPersonalPortfolio(user, portfolioId); const sectionId = await validateCustomSection(portfolioId, input.sectionId);
   const last = await prisma.achievementPortfolioItem.findFirst({ where: { portfolioId, sourceType: "CUSTOM_EVIDENCE" }, orderBy: { sortOrder: "desc" } });
   return prisma.achievementPortfolioItem.create({ data: { portfolioId, sectionId, sourceType: "CUSTOM_EVIDENCE", title: input.title, description: input.description || null, isVisible: input.isVisible, sortOrder: (last?.sortOrder || 0) + 10, metadataJson: json({ fileUrl: input.fileUrl, mimeType: input.mimeType }) } });
 }
 
-async function customItem(user: PortfolioActor, portfolioId: string, itemId: string) { await requireOwnedPortfolio(user, portfolioId); const item = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId, sourceType: "CUSTOM_EVIDENCE" } }); if (!item) throw new PortfolioServiceError(404, "الشاهد المستقل غير موجود."); return item; }
+async function customItem(user: PortfolioActor, portfolioId: string, itemId: string) { await requireOwnedPersonalPortfolio(user, portfolioId); const item = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId, sourceType: "CUSTOM_EVIDENCE" } }); if (!item) throw new PortfolioServiceError(404, "الشاهد المستقل غير موجود."); return item; }
 export async function updateCustomEvidence(user: PortfolioActor, portfolioId: string, itemId: string, input: Partial<{ title: string; description: string; fileUrl: string; mimeType: string; sectionId: string | null; isVisible: boolean }>) { const item = await customItem(user, portfolioId, itemId); const sectionId = input.sectionId === undefined ? item.sectionId : await validateCustomSection(portfolioId, input.sectionId); const meta = object(item.metadataJson); return prisma.achievementPortfolioItem.update({ where: { id: item.id }, data: { sectionId, title: input.title ?? item.title, description: input.description ?? item.description, isVisible: input.isVisible ?? item.isVisible, metadataJson: json({ ...meta, fileUrl: input.fileUrl ?? meta.fileUrl ?? "", mimeType: input.mimeType ?? meta.mimeType ?? "" }) } }); }
 export async function deleteCustomEvidence(user: PortfolioActor, portfolioId: string, itemId: string) { const item = await customItem(user, portfolioId, itemId); await prisma.achievementPortfolioItem.delete({ where: { id: item.id } }); }
 export async function moveCustomEvidence(user: PortfolioActor, portfolioId: string, itemId: string, direction: "up" | "down") { const item = await customItem(user, portfolioId, itemId); const items = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: "CUSTOM_EVIDENCE" }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }); const index = items.findIndex((entry) => entry.id === item.id); const target = direction === "up" ? index - 1 : index + 1; if (target < 0 || target >= items.length) return; [items[index], items[target]] = [items[target], items[index]]; await prisma.$transaction(items.map((entry, order) => prisma.achievementPortfolioItem.update({ where: { id: entry.id }, data: { sortOrder: (order + 1) * 10 } }))); }

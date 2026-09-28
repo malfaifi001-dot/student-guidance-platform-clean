@@ -11,6 +11,7 @@ import type { PortfolioFieldInternalLayout } from "@/lib/portfolio/layout/portfo
 import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/portfolio/layout/portfolio-physical-planner";
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
+import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
 
 const MOE_2024 = {
   navy: "#15445A",
@@ -169,16 +170,12 @@ function QualificationPage({
         ? "دورة"
         : "شهادة";
 
-  const hasImage =
-    Boolean(item.attachmentUrl) &&
-    (item.attachmentKind === "IMAGE" ||
-      item.attachmentMimeType.startsWith("image/") ||
-      /\.(?:jpe?g|png|webp|gif|svg)(?:\?.*)?$/i.test(item.attachmentUrl));
-
   const metadata = [
     item.issuer,
-    item.date,
-    item.hours ? `${item.hours} ساعة` : "",
+    item.deliveryType,
+    item.startDate || item.date,
+    item.endDate,
+    item.durationValue && item.durationUnit ? `${item.durationValue} ${item.durationUnit}` : item.hours ? `${item.hours} ساعة` : "",
   ].filter(Boolean);
 
   return (
@@ -196,15 +193,7 @@ function QualificationPage({
         </div>
       ) : null}
 
-      <div className="moe24-qualification-media">
-        {hasImage ? (
-          <img src={item.attachmentUrl} alt={item.title} />
-        ) : (
-          <div className="moe24-media-placeholder">
-            <span>لا توجد صورة مرفقة</span>
-          </div>
-        )}
-      </div>
+      <div className="moe24-qualification-media"><PortfolioQualificationEvidence item={item} /></div>
 
       {item.description ? (
         <p className="moe24-qualification-description">{item.description}</p>

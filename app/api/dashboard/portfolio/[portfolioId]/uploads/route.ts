@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 
 import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
-import { requireOwnedPortfolio } from "@/lib/portfolio/portfolio-authorization";
+import { requireOwnedPersonalPortfolio } from "@/lib/portfolio/portfolio-authorization";
 import {
   PORTFOLIO_IMAGE_MAX_BYTES,
   validatePortfolioImageFile,
@@ -24,7 +24,7 @@ export async function POST(request: Request, context: Context) {
   try {
     const user = await requirePortfolioApiUser();
     const { portfolioId } = await context.params;
-    const portfolio = await requireOwnedPortfolio(user, portfolioId);
+    const portfolio = await requireOwnedPersonalPortfolio(user, portfolioId);
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > PORTFOLIO_IMAGE_MAX_BYTES + 1024 * 1024) {
       return NextResponse.json({ ok: false, error: "حجم طلب رفع الصورة أكبر من الحد المسموح." }, { status: 413 });

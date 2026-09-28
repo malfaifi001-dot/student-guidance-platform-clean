@@ -19,7 +19,7 @@ export type PortfolioLogicalSection = {
 export type PortfolioLogicalDocument = { sections: PortfolioLogicalSection[] };
 
 type StaticSection = { id: string; key: string; title: string; kind: string; sortOrder: number; isEnabled: boolean };
-type Qualification = { id: string; title: string; type: string; issuer: string; date: string; hours: string; description: string; attachmentUrl: string; attachmentMimeType: string; attachmentKind: string; sortOrder: number; isVisible: boolean };
+type Qualification = { id: string; title: string; type: string; issuer: string; organizationCategory: string; date: string; startDate: string; endDate: string; deliveryType: string; hours: string; durationValue: string; durationUnit: string; description: string; attachmentUrl: string; attachmentMimeType: string; attachmentKind: string; externalUrl: string; sortOrder: number; isVisible: boolean };
 
 export type PortfolioLogicalInput = {
   title: string;

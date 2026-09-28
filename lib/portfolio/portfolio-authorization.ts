@@ -52,3 +52,12 @@ export async function requireOwnedPortfolio(user: PortfolioActor, portfolioId: s
 
   return portfolio;
 }
+
+/**
+ * Personal portfolios remain owned by their creator even when their stored
+ * school association is historical. Keep the strict school-scoped guard
+ * above for operations that genuinely require the current school account.
+ */
+export function requireOwnedPersonalPortfolio(user: PortfolioActor, portfolioId: string) {
+  return requireOwnedPortfolio(user, portfolioId, { historicalPersonalRead: true });
+}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   assertPortfolioActor,
   PortfolioServiceError,
+  requireOwnedPersonalPortfolio,
   requireOwnedPortfolio,
   type PortfolioActor,
 } from "@/lib/portfolio/portfolio-authorization";
@@ -75,7 +76,7 @@ export async function createPortfolioSnapshot(
   portfolioId: string,
   input: { name?: string; notes?: string },
 ) {
-  await requireOwnedPortfolio(user, portfolioId);
+  await requireOwnedPersonalPortfolio(user, portfolioId);
   assertPortfolioActor(user);
   const workspace = await getPortfolioWorkspace(user, portfolioId);
   if (!workspace.ok) {
