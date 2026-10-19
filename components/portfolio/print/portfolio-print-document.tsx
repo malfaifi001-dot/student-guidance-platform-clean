@@ -41,7 +41,7 @@ import {
 import {
   buildPortfolioLogicalDocument,
 } from "@/lib/portfolio/layout/portfolio-logical-document";
-import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
+import { isPortfolioPhysicalTraceEnabled, portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 
 import {
   planPortfolioPhysicalDocument,
@@ -499,6 +499,7 @@ export function PortfolioPrintDocument({
 
   useEffect(() => {
     if (frozenDecisions === null) return;
+    if (!isPortfolioPhysicalTraceEnabled()) return;
     const frame = window.requestAnimationFrame(() => {
       const pages = Array.from(document.querySelectorAll<HTMLElement>("[data-portfolio-page-type], .portfolio-page, .atlas-page, .hzn-page, .moe24-page"));
       pages.forEach((page) => {

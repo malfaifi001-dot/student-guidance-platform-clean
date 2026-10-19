@@ -11,6 +11,10 @@ const TRACE_ENABLED =
     ? process.env.PORTFOLIO_PHYSICAL_TRACE === "1"
     : process.env.NEXT_PUBLIC_PORTFOLIO_PHYSICAL_TRACE === "1");
 
+export function isPortfolioPhysicalTraceEnabled() {
+  return TRACE_ENABLED;
+}
+
 let traceSequence = 0;
 
 export function portfolioPhysicalTrace(

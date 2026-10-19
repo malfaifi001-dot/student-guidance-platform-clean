@@ -122,6 +122,27 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
 
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm sm:p-3 lg:p-4">
+      <style>{`
+        [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .portfolio-page,
+        [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .portfolio-report-page,
+        [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .atlas-page,
+        [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .hzn-page,
+        [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .moe24-page {
+          content-visibility: auto;
+          contain-intrinsic-size: 210mm 297mm;
+        }
+
+        @media print {
+          [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .portfolio-page,
+          [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .portfolio-report-page,
+          [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .atlas-page,
+          [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .hzn-page,
+          [data-portfolio-preview-stage] [data-portfolio-smart-phase="frozen"] .moe24-page {
+            content-visibility: visible;
+            contain-intrinsic-size: none;
+          }
+        }
+      `}</style>
       <div
         ref={viewportRef}
         className="relative w-full min-w-0 max-w-full overflow-hidden rounded-[1.5rem] bg-slate-100 py-3 sm:py-4 lg:py-5"

@@ -122,6 +122,80 @@ function renderDesign(
   );
 }
 
+function findReportIdForPage(
+  document: PortfolioPhysicalDocument,
+  pageId: string,
+) {
+  return Object.entries(document.reportPages).find(([, pages]) =>
+    pages.some((page) => page.id === pageId),
+  )?.[0];
+}
+
+function buildSinglePageDocument(
+  document: PortfolioPhysicalDocument,
+  pageId: string,
+): PortfolioPhysicalDocument {
+  const reportEntry = Object.entries(document.reportPages).find(([, pages]) =>
+    pages.some((page) => page.id === pageId),
+  );
+
+  if (!reportEntry) return document;
+
+  const [reportId, reportPages] = reportEntry;
+  const page = reportPages.find((item) => item.id === pageId);
+  if (!page) return document;
+
+  return {
+    ...document,
+    pages: [page],
+    serviceOutputPages: {},
+    reportPages: { [reportId]: [page] },
+    evidencePages: {
+      [reportId]: (document.evidencePages[reportId] || []).filter(
+        (item) => item.id === pageId,
+      ),
+    },
+  };
+}
+
+function buildSingleReportData(
+  data: PortfolioPrintData,
+  document: PortfolioPhysicalDocument,
+  pageId: string,
+): PortfolioPrintData {
+  const reportId = findReportIdForPage(document, pageId);
+  const page = document.pages.find((item) => item.id === pageId);
+  const sectionId = page?.sourceSectionId;
+  if (!reportId || !sectionId) return data;
+
+  const section = data.performanceSections.find((item) => item.id === sectionId);
+  const report = section?.reports.find((item) => item.id === reportId);
+  if (!section || !report) return data;
+
+  return {
+    ...data,
+    portfolio: {
+      ...data.portfolio,
+      preferences: {
+        ...data.portfolio.preferences,
+        showTableOfContents: false,
+        showPerformanceDividers: false,
+      },
+    },
+    sections: data.sections.map((item) => ({ ...item, isEnabled: false })),
+    performanceSections: [
+      {
+        ...section,
+        linkedOutputs: [],
+        reports: [report],
+      },
+    ],
+    qualificationItems: [],
+    customEvidence: [],
+    totals: { reports: 1, evidences: report.evidenceCount, sections: 1 },
+  };
+}
+
 
 function getPhysicalPageFromMarker(
   marker: HTMLElement,
@@ -149,6 +223,16 @@ export function PortfolioPageMeasurementCandidate({
   const candidateDocument = useMemo(
     () => applyPortfolioSmartCandidate(physicalDocument, candidate, false),
     [candidate, physicalDocument],
+  );
+
+  const singlePageDocument = useMemo(
+    () => buildSinglePageDocument(candidateDocument, pageId),
+    [candidateDocument, pageId],
+  );
+
+  const singleReportData = useMemo(
+    () => buildSingleReportData(data, candidateDocument, pageId),
+    [candidateDocument, data, pageId],
   );
 
   useEffect(() => {
@@ -392,8 +476,8 @@ export function PortfolioPageMeasurementCandidate({
       }}
     >
       {renderDesign(
-        data,
-        candidateDocument,
+        singleReportData,
+        singlePageDocument,
         themeId,
       )}
     </div>
