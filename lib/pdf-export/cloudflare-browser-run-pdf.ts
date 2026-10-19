@@ -1,6 +1,6 @@
 import "server-only";
 
-const CLOUDFLARE_PDF_TIMEOUT_MS = 60_000;
+const CLOUDFLARE_PDF_TIMEOUT_MS = 180_000;
 const PDF_SIGNATURE = "%PDF-";
 
 export class CloudflareBrowserRunError extends Error {
