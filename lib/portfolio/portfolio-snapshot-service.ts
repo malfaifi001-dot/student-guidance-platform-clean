@@ -16,6 +16,7 @@ import {
   type PortfolioSnapshotDocumentV1,
   type PortfolioSnapshotSummary,
 } from "@/lib/portfolio/portfolio-snapshot-types";
+import { registerPortfolioSnapshotPdf } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
 
 type SnapshotUser = PortfolioActor & {
   name?: string | null;
@@ -87,7 +88,7 @@ export async function createPortfolioSnapshot(
   const document = toSnapshotDocument(workspace, user, capturedAt);
   const summary = toSummary(document);
 
-  return prisma.portfolioSnapshot.create({
+  const snapshot = await prisma.portfolioSnapshot.create({
     data: {
       portfolioId,
       ownerUserId: user.id,
@@ -109,6 +110,19 @@ export async function createPortfolioSnapshot(
       createdAt: true,
     },
   });
+
+  let pdfPreparation: "PENDING" | "REGISTRATION_FAILED" = "PENDING";
+  try {
+    await registerPortfolioSnapshotPdf(snapshot.id, document);
+  } catch (error) {
+    pdfPreparation = "REGISTRATION_FAILED";
+    console.error("PORTFOLIO_SNAPSHOT_PDF_REGISTRATION_FAILED", {
+      snapshotId: snapshot.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return { ...snapshot, pdfPreparation };
 }
 
 export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: string) {
@@ -128,6 +142,7 @@ export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: 
       snapshotVersion: true,
       summaryJson: true,
       createdAt: true,
+      pdfArtifact: { select: { status: true, byteSize: true, generatedAt: true } },
     },
   });
 
@@ -139,6 +154,9 @@ export async function listPortfolioSnapshots(user: PortfolioActor, portfolioId: 
     snapshotVersion: snapshot.snapshotVersion,
     createdAt: snapshot.createdAt.toISOString(),
     summary: readPortfolioSnapshotSummary(snapshot.summaryJson),
+    // A missing artifact is retryable (older snapshots and registrations that failed after save).
+    pdfPreparationStatus: snapshot.pdfArtifact?.status || "FAILED",
+    pdfByteSize: snapshot.pdfArtifact?.byteSize || null,
   }));
 }
 

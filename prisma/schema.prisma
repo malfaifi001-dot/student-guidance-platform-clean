@@ -2277,6 +2277,13 @@ enum ReportTwoStatus {
   APPROVED
 }
 
+enum PortfolioSnapshotPdfStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
 enum ReportSignatureRequestStatus {
   PENDING
   SIGNED
@@ -2662,6 +2669,31 @@ model PlatformActivityLog {
   @@index([category])
   @@index([action])
   @@index([createdAt])
+}
+
+model PortfolioSnapshotPdfArtifact {
+  id String @id @default(cuid())
+
+  snapshotId String @unique
+  snapshot   PortfolioSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  contentHash String @db.VarChar(64)
+  status PortfolioSnapshotPdfStatus @default(PENDING)
+  storageKey String? @db.VarChar(512)
+  byteSize Int?
+  attemptCount Int @default(0)
+  nextAttemptAt DateTime?
+  leaseExpiresAt DateTime?
+  claimToken String? @db.VarChar(64)
+  lastError String? @db.Text
+  generatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([leaseExpiresAt])
+  @@index([contentHash])
 }
 
 model ExpenseCategory {
@@ -3402,6 +3434,8 @@ model PortfolioSnapshot {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  pdfArtifact PortfolioSnapshotPdfArtifact?
 
   @@index([portfolioId])
   @@index([ownerUserId])

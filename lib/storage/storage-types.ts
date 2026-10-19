@@ -5,5 +5,6 @@ export interface StorageProvider {
   read(segments: readonly string[]): Promise<Buffer>;
   exists(segments: readonly string[]): Promise<boolean>;
   delete(segments: readonly string[]): Promise<void>;
+  rename(fromSegments: readonly string[], toSegments: readonly string[]): Promise<void>;
   resolve(segments: readonly string[]): string;
 }

@@ -5,6 +5,9 @@ import { promises as fs } from "fs";
 import path from "path";
 
 import type { PortfolioPrintData } from "@/components/portfolio/print/portfolio-print-types";
+import { getEvidenceStoredFileNameFromUrl } from "@/lib/evidence/evidence-file-storage";
+import { isSafeStorageId, isSafeUploadedFileName } from "@/lib/storage/durable-upload-storage";
+import { storageFileExists } from "@/lib/storage/storage-provider";
 
 const PORTFOLIO_EXPORT_TTL_MS = 10 * 60 * 1000;
 const TOKEN_PATTERN = /^[a-f0-9-]{36}$/i;
@@ -13,6 +16,57 @@ type PortfolioExportPayload = {
   createdAt: number;
   document: PortfolioPrintData;
 };
+
+const LOCAL_IMAGE_PREFIXES = ["/uploads/portfolio/", "/uploads/evidence/"] as const;
+
+function isLocalImageUrl(value: string) {
+  const pathname = value.split(/[?#]/, 1)[0] || "";
+  return LOCAL_IMAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) && /\.(?:jpe?g|png|webp)$/i.test(pathname);
+}
+
+export function collectPortfolioExportImageUrls(document: PortfolioPrintData) {
+  const urls = new Set<string>();
+  const visit = (value: unknown) => {
+    if (typeof value === "string") {
+      if (isLocalImageUrl(value)) urls.add(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (value && typeof value === "object") Object.values(value).forEach(visit);
+  };
+  visit(document);
+  return urls;
+}
+
+export async function assertPortfolioExportImageSourcesAvailable(document: PortfolioPrintData) {
+  const sources = collectPortfolioExportImageUrls(document);
+  for (const source of sources) {
+    if (source.startsWith("/uploads/portfolio/")) {
+      const parts = source.slice("/uploads/portfolio/".length).split("/");
+      if (parts.length !== 2 || !isSafeStorageId(parts[0]) || !isSafeUploadedFileName(parts[1]) || !(await storageFileExists(["portfolio", parts[0], parts[1]]))) throw new Error("PORTFOLIO_EXPORT_IMAGE_MISSING");
+      continue;
+    }
+    const fileName = getEvidenceStoredFileNameFromUrl(source);
+    if (!fileName || !(await storageFileExists(["evidence", fileName]))) throw new Error("PORTFOLIO_EXPORT_IMAGE_MISSING");
+  }
+}
+
+export function buildPortfolioExportImageUrl(token: string, source: string) {
+  return `/api/portfolio-export/snapshot-image?token=${encodeURIComponent(token)}&source=${encodeURIComponent(source)}`;
+}
+
+export function preparePortfolioDocumentForPdf(document: PortfolioPrintData, token: string) {
+  const replace = (value: unknown): unknown => {
+    if (typeof value === "string") return isLocalImageUrl(value) ? buildPortfolioExportImageUrl(token, value) : value;
+    if (Array.isArray(value)) return value.map(replace);
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)]));
+    return value;
+  };
+  return replace(document) as PortfolioPrintData;
+}
 
 function storageDirectory() {
   return path.join(process.cwd(), ".tmp", "portfolio-export");

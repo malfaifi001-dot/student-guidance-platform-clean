@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveStoragePath } from "./storage-paths";
 import type { StorageProvider } from "./storage-types";
@@ -21,5 +21,11 @@ export const localPersistentStorage: StorageProvider = {
   },
   async delete(segments) {
     await rm(resolveStoragePath(segments), { force: true });
+  },
+  async rename(fromSegments, toSegments) {
+    const fromPath = resolveStoragePath(fromSegments);
+    const toPath = resolveStoragePath(toSegments);
+    await mkdir(path.dirname(toPath), { recursive: true });
+    await rename(fromPath, toPath);
   },
 };

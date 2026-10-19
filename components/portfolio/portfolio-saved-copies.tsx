@@ -1,11 +1,9 @@
 "use client";
 
-import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
-import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
 import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
@@ -24,7 +22,19 @@ export function PortfolioSavedCopies({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const print = usePrintExportAction();
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  async function retryPdf(snapshotId: string) {
+    setRetryingId(snapshotId);
+    try {
+      await fetch(`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshotId)}/pdf`, { method: "POST" });
+      const response = await fetch(`/api/dashboard/portfolio/${encodeURIComponent(portfolioId)}/snapshots`);
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) setSnapshots(payload.snapshots as PortfolioSnapshotListItem[]);
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   function confirmDelete(snapshot: PortfolioSnapshotListItem) {
     setFeedback({
@@ -73,6 +83,17 @@ export function PortfolioSavedCopies({
     };
   }, [portfolioId, refreshKey]);
 
+  useEffect(() => {
+    if (!snapshots.some((snapshot) => snapshot.pdfPreparationStatus === "PENDING" || snapshot.pdfPreparationStatus === "PROCESSING")) return;
+    const timer = window.setInterval(() => {
+      fetch(`/api/dashboard/portfolio/${encodeURIComponent(portfolioId)}/snapshots`)
+        .then((response) => response.json())
+        .then((payload) => setSnapshots(payload.snapshots as PortfolioSnapshotListItem[]))
+        .catch(() => undefined);
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [portfolioId, snapshots]);
+
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
       <div>
@@ -110,6 +131,9 @@ export function PortfolioSavedCopies({
                   <span><span className="text-slate-400">الدور:</span> {snapshot.roleAtCreation}</span>
                 </div>
                 {snapshot.notes ? <p className="relative mt-4 text-sm font-bold leading-6 text-slate-600">{snapshot.notes}</p> : null}
+                <p className="relative mt-4 text-xs font-black text-slate-500">
+                  {snapshot.pdfPreparationStatus === "READY" ? "النسخة جاهزة للتحميل." : snapshot.pdfPreparationStatus === "FAILED" ? "تعذر تجهيز PDF؛ يمكنك إعادة المحاولة." : snapshot.pdfPreparationStatus === "PROCESSING" ? "جارٍ تجهيز النسخة للفتح والتحميل." : "تم حفظ النسخة، وسيتم تجهيز PDF."}
+                </p>
                 <div className="relative mt-5 flex flex-wrap gap-2">
                   <Link
                     href={`${snapshotBasePath}/${snapshot.id}`}
@@ -117,14 +141,19 @@ export function PortfolioSavedCopies({
                   >
                     <ExternalLink className="h-4 w-4" /> عرض النسخة
                   </Link>
-                  <button
-                    type="button"
-                    disabled={print.status === "loading"}
-                    onClick={() => void print.runPrintExport({ exportUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`, fileName: `${snapshot.name}.pdf`, progressTitle: "جاري تجهيز ملف الإنجاز", progressMessage: "يتم الآن تجهيز ملف الإنجاز للتحميل، الرجاء الانتظار...", fallbackProgressTitle: "جاري تجهيز ملف الإنجاز للمعاينة", fallbackProgressMessage: "يتم الآن تجهيز ملف الإنجاز للمعاينة، الرجاء الانتظار...", blockedTitle: "معاينة ملف الإنجاز" })}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:opacity-60"
-                  >
-                    <Download className="h-4 w-4" /> تحميل
-                  </button>
+                  {snapshot.pdfPreparationStatus === "READY" ? (
+                    <a href={`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`} download className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100">
+                      <Download className="h-4 w-4" /> تحميل
+                    </a>
+                  ) : snapshot.pdfPreparationStatus === "FAILED" ? (
+                    <button type="button" disabled={retryingId === snapshot.id} onClick={() => void retryPdf(snapshot.id)} className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-black text-amber-800 disabled:opacity-60">
+                      <RefreshCw className="h-4 w-4" /> إعادة المحاولة
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" /> جاري التجهيز
+                    </span>
+                  )}
                   <button
                     type="button"
                     disabled={deletingId === snapshot.id || deletingId !== null}
@@ -143,7 +172,6 @@ export function PortfolioSavedCopies({
           لا توجد نسخ محفوظة بعد. اعتمد نسختك الأولى بعد مراجعة المعاينة.
         </div>
       )}
-      <PrintExportPopCard align="center" modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} />
       <PortfolioFeedbackPopCard feedback={feedback} loading={deletingId !== null} onClose={() => deletingId === null && setFeedback(null)} />
     </section>
   );

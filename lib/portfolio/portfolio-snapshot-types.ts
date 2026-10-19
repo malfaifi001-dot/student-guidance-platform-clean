@@ -33,6 +33,8 @@ export type PortfolioSnapshotListItem = {
   snapshotVersion: number;
   createdAt: string;
   summary: PortfolioSnapshotSummary | null;
+  pdfPreparationStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  pdfByteSize: number | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
