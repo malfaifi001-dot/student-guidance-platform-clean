@@ -71,6 +71,32 @@ type PortfolioSnapshotPdfGlobalLock = {
   release: () => Promise<void>;
 };
 
+function ensureDatabaseUrlSearchParam(url: URL, key: string, value: string) {
+  if (!url.searchParams.has(key)) {
+    url.searchParams.set(key, value);
+  }
+}
+
+function portfolioSnapshotPdfLockConnectionUrl(databaseUrl: string) {
+  const url = new URL(databaseUrl);
+
+  // PrismaMariaDb rewrites mysql:// to mariadb:// before passing the URL
+  // to the MariaDB connector. The dedicated advisory-lock connection must
+  // use the same compatible protocol and connection options.
+  if (url.protocol === "mysql:") {
+    url.protocol = "mariadb:";
+  } else if (url.protocol !== "mariadb:") {
+    throw new Error("UNSUPPORTED_DATABASE_PROTOCOL");
+  }
+
+  ensureDatabaseUrlSearchParam(url, "acquireTimeout", process.env.PRISMA_POOL_TIMEOUT_MS || "30000");
+  ensureDatabaseUrlSearchParam(url, "connectTimeout", process.env.PRISMA_CONNECT_TIMEOUT_MS || "15000");
+  ensureDatabaseUrlSearchParam(url, "allowPublicKeyRetrieval", "true");
+  ensureDatabaseUrlSearchParam(url, "prepareCacheLength", "0");
+
+  return url.toString();
+}
+
 function annotateClaimError(error: unknown, claimOperation: PortfolioSnapshotPdfClaimOperation) {
   if (error instanceof Error) {
     Object.defineProperty(error, "claimOperation", {
@@ -95,7 +121,7 @@ async function acquirePortfolioSnapshotPdfGlobalLock(): Promise<PortfolioSnapsho
   let claimOperation: PortfolioSnapshotPdfClaimOperation = "lock-connect";
   let connection: mariadb.Connection | undefined;
   try {
-    connection = await mariadb.createConnection(databaseUrl);
+    connection = await mariadb.createConnection(portfolioSnapshotPdfLockConnectionUrl(databaseUrl));
   } catch (error) {
     throw annotateClaimError(error, claimOperation);
   }
