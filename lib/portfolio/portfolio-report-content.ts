@@ -1,3 +1,6 @@
+import type { SmartReportTable } from "@/lib/report-engine/smart-report-types";
+import { resolveStructuredTableDisplayMetadata } from "@/lib/report-engine/report-structured-table-display";
+
 export type PortfolioReportField = {
   key: string;
   label: string;
@@ -11,6 +14,20 @@ export type PortfolioReportEvidenceItem = {
   description?: string;
   url: string | null;
   type: string;
+};
+
+export type PortfolioReportTable = {
+  id: string;
+  sourceFieldKey: string;
+  title: string;
+  columns: Array<{ key: string; label: string; width?: number }>;
+  rows: Array<{ id: string; cells: Record<string, string> }>;
+  settings?: {
+    repeatHeader?: boolean;
+    compact?: boolean;
+    stripedRows?: boolean;
+    highlightFirstColumn?: boolean;
+  };
 };
 
 export type PortfolioReportEvidenceLayout =
@@ -52,6 +69,7 @@ export type PortfolioReportContent = {
   } | null;
   evidenceSettings: PortfolioReportEvidenceSettings;
   evidenceItems: PortfolioReportEvidenceItem[];
+  tables: PortfolioReportTable[];
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -257,6 +275,54 @@ export function normalizePortfolioReportPayload(
   const service = asRecord(source.service);
   const narrativeRecord = asRecord(source.narrative);
   const evidence = asRecord(source.evidence);
+  const rawTables = Array.isArray(source.tables) ? source.tables : [];
+  const tables = rawTables.flatMap((value): PortfolioReportTable[] => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+    const candidate = value as Record<string, unknown>;
+    if (!Array.isArray(candidate.columns) || !Array.isArray(candidate.rows)) return [];
+    const table = resolveStructuredTableDisplayMetadata(candidate as unknown as SmartReportTable) as Record<string, unknown>;
+    const columns = Array.isArray(table.columns)
+      ? table.columns.flatMap((column) => {
+          if (!column || typeof column !== "object" || Array.isArray(column)) return [];
+          const item = column as Record<string, unknown>;
+          const key = cleanText(item.key);
+          const label = cleanText(item.label) || key;
+          if (!key) return [];
+          const width = typeof item.width === "number" && Number.isFinite(item.width) ? item.width : undefined;
+          return [{ key, label, ...(width === undefined ? {} : { width }) }];
+        })
+      : [];
+    const rows = Array.isArray(table.rows)
+      ? table.rows.flatMap((row, index) => {
+          if (!row || typeof row !== "object" || Array.isArray(row)) return [];
+          const item = row as Record<string, unknown>;
+          const cells = item.cells;
+          if (!cells || typeof cells !== "object" || Array.isArray(cells)) return [];
+          return [{
+            id: cleanText(item.id) || `${cleanText(table.id) || "table"}-row-${index + 1}`,
+            cells: Object.fromEntries(Object.entries(cells as Record<string, unknown>).map(([key, cell]) => [key, cleanText(cell)])),
+          }];
+        })
+      : [];
+    const id = cleanText(table.id);
+    if (!id || !columns.length || !rows.length) return [];
+    const settings = table.settings && typeof table.settings === "object" && !Array.isArray(table.settings)
+      ? table.settings as Record<string, unknown>
+      : undefined;
+    return [{
+      id,
+      sourceFieldKey: cleanText(table.sourceFieldKey),
+      title: cleanText(table.title) || id,
+      columns,
+      rows,
+      ...(settings ? { settings: {
+        repeatHeader: settings.repeatHeader === true,
+        compact: settings.compact === true,
+        stripedRows: settings.stripedRows === true,
+        highlightFirstColumn: settings.highlightFirstColumn === true,
+      } } : {}),
+    }];
+  });
 
   const primaryFields = normalizeFields(source.primaryFields);
   const detailFields = normalizeFields(source.detailFields);
@@ -289,5 +355,6 @@ export function normalizePortfolioReportPayload(
       : null,
     evidenceSettings: normalizeEvidenceSettings(evidence),
     evidenceItems: normalizeEvidenceItems(evidence.items),
+    tables,
   };
 }

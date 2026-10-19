@@ -120,6 +120,7 @@ export function portfolioShowsWeights(data: PortfolioPrintData) {
 export type PortfolioReportSectionModel =
   | { kind: "details"; fields: PortfolioReportContent["normalizedFields"] }
   | { kind: "narrative"; body: string }
+  | { kind: "table"; table: PortfolioReportContent["tables"][number] }
   | { kind: "evidence"; items: PortfolioReportContent["evidenceItems"] };
 
 export type PortfolioReportPageModel = {

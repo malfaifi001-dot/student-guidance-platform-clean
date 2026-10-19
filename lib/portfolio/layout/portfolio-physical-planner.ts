@@ -8,6 +8,7 @@ import { formatTenPercentWeeks, type ActivityPlanTenPercentRow } from "@/lib/act
 import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-registry";
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
 import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
+import { REAL_ACTIVITY_PLAN_STAGES, normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
 
 const CURRICULUM_FIRST_PAGE_BUDGET = 30;
 const CURRICULUM_CONTINUATION_PAGE_BUDGET = 38;
@@ -83,7 +84,20 @@ function splitServiceOutputChunkForPhysicalPages(
 ): PortfolioServiceOutputChunk[] {
   const safeHeightMm = Math.max(120, contentHeightMm - 18);
   if (chunk.kind === "activity-plan") {
-    const rowPages = splitRowsByEstimatedHeight(chunk.rows, estimateActivityPlanRowHeightMm, safeHeightMm - 28);
+    const stageGroups = new Map<string, PortfolioActivityPlanRow[]>();
+    for (const row of chunk.rows) {
+      const stage = normalizeActivityPlanStage(row.stage) || row.stage || "";
+      const rows = stageGroups.get(stage) || [];
+      rows.push(row);
+      stageGroups.set(stage, rows);
+    }
+    const orderedStages = [
+      ...REAL_ACTIVITY_PLAN_STAGES.filter((stage) => stageGroups.has(stage)),
+      ...Array.from(stageGroups.keys()).filter((stage) => !REAL_ACTIVITY_PLAN_STAGES.includes(stage)),
+    ];
+    const rowPages = orderedStages.flatMap((stage) =>
+      splitRowsByEstimatedHeight(stageGroups.get(stage) || [], estimateActivityPlanRowHeightMm, safeHeightMm - 28),
+    );
     return rowPages.map((rows, index) => ({
       ...chunk,
       rows,

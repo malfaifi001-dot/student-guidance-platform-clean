@@ -289,6 +289,8 @@ export function PortfolioPrintDocument({
     )
       ? data.portfolio.themeId
       : DEFAULT_PORTFOLIO_THEME_ID;
+  const finalDocumentRef = useRef<HTMLDivElement | null>(null);
+  const [pdfReadyDocument, setPdfReadyDocument] = useState<PortfolioPhysicalDocument | null>(null);
 
 
   const basePhysicalDocument =
@@ -540,6 +542,30 @@ export function PortfolioPrintDocument({
     return () => window.cancelAnimationFrame(frame);
   }, [physicalDocument, frozenDecisions]);
 
+  useEffect(() => {
+    if (frozenDecisions === null) return;
+    let cancelled = false;
+    const waitForFinalAssets = async () => {
+      if (typeof document !== "undefined") {
+        await document.fonts?.ready;
+      }
+      const root = finalDocumentRef.current;
+      if (root) {
+        const images = Array.from(root.querySelectorAll("img"));
+        await Promise.all(images.map((image) => {
+          if (image.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          });
+        }));
+      }
+      if (!cancelled) setPdfReadyDocument(physicalDocument);
+    };
+    void waitForFinalAssets();
+    return () => { cancelled = true; };
+  }, [physicalDocument, frozenDecisions]);
+
 
   const typographyStyle =
     {
@@ -624,11 +650,12 @@ export function PortfolioPrintDocument({
 
   return (
     <div
+      ref={finalDocumentRef}
       style={
         typographyStyle
       }
       data-portfolio-smart-phase="frozen"
-      data-portfolio-pdf-ready="true"
+      data-portfolio-pdf-ready={pdfReadyDocument === physicalDocument ? "true" : undefined}
     >
       {renderPortfolioDesign(
         data,

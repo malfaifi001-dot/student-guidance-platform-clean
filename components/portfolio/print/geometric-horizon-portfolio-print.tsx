@@ -12,6 +12,7 @@ import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/po
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
+import { PortfolioReportTable } from "@/components/portfolio/print/shared/portfolio-report-table";
 
 const HORIZON = {
   indigo: "#25316D",
@@ -217,6 +218,10 @@ function HorizonReportPages({ report, physicalDocument, reportId }: { report: Po
                     </div>
                   </section>
                 );
+              }
+
+              if (section.kind === "table") {
+                return <PortfolioReportTable key={`table-${page.key}-${sectionIndex}`} table={section.table} />;
               }
 
               if (section.kind === "narrative") {
@@ -1227,11 +1232,11 @@ export function GeometricHorizonPortfolioPrint({
               .filter((section) => section.isEnabled)
               .sort((a, b) => a.sortOrder - b.sortOrder)
               .map((section, index) => (
-                <article key={section.id} className="hzn-index-item">
+                <a key={section.id} className="hzn-index-item" href={`#portfolio-section-${section.key}`}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{section.title}</strong>
                   <small>قسم</small>
-                </article>
+                </a>
               ))}
           </div>
         </HorizonPage>
@@ -1361,7 +1366,7 @@ export function GeometricHorizonPortfolioPrint({
               className="hzn-divider"
               code={String(index + 1).padStart(2, "0")}
             >
-              <span className="hzn-divider-number">
+              <span id={`portfolio-section-${section.key}`} className="hzn-divider-number">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <h2>{section.title}</h2>

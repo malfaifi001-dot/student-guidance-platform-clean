@@ -48,7 +48,8 @@ function emptyContent(input: { title: string; serviceName: string; issuedAt: str
     serviceName: input.serviceName,
     primaryFields: [], detailFields: [], normalizedFields: [], narrative: null,
     evidenceSettings: { layout: "TWO_PER_PAGE", fit: "contain", aspectRatio: "LANDSCAPE_4_3", showCaptions: true },
-    evidenceItems: input.evidence,
+     evidenceItems: input.evidence,
+     tables: [],
   };
 }
 

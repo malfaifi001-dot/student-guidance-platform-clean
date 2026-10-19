@@ -7,6 +7,7 @@ import { loadPortfolioForUser, readBiography, readEducationIdentity, readPortfol
 import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
 import type { PortfolioItemType, PortfolioReportGroup } from "@/lib/portfolio/portfolio-types";
 import { resolvePortfolioServiceOutputs } from "@/lib/portfolio/service-outputs/service-output-registry";
+import { formatPortfolioSourceDate, normalizePortfolioDuration } from "@/lib/portfolio/portfolio-formatters";
 
 type PortfolioCurrentUser = {
   id: string;
@@ -206,13 +207,18 @@ export async function getPortfolioWorkspace(
         title: item.title,
         issuer: typeof meta.issuer === "string" ? meta.issuer : "",
         organizationCategory: typeof meta.organizationCategory === "string" ? meta.organizationCategory : "",
-        date: typeof meta.date === "string" ? meta.date : "",
-        startDate: typeof meta.startDate === "string" ? meta.startDate : (typeof meta.date === "string" ? meta.date : ""),
-        endDate: typeof meta.endDate === "string" ? meta.endDate : "",
+        date: typeof meta.date === "string" ? formatPortfolioSourceDate(meta.date) : "",
+        startDate: typeof meta.startDate === "string" ? formatPortfolioSourceDate(meta.startDate) : (typeof meta.date === "string" ? formatPortfolioSourceDate(meta.date) : ""),
+        endDate: typeof meta.endDate === "string" ? formatPortfolioSourceDate(meta.endDate) : "",
         deliveryType: typeof meta.deliveryType === "string" ? meta.deliveryType : "",
         hours: typeof meta.hours === "string" ? meta.hours : "",
-        durationValue: typeof meta.durationValue === "string" ? meta.durationValue : (typeof meta.hours === "string" ? meta.hours : ""),
-        durationUnit: typeof meta.durationUnit === "string" ? meta.durationUnit : (typeof meta.hours === "string" && meta.hours ? "ساعات" : ""),
+        ...(() => {
+          const duration = normalizePortfolioDuration(
+            typeof meta.durationValue === "string" ? meta.durationValue : (typeof meta.hours === "string" ? meta.hours : ""),
+            typeof meta.durationUnit === "string" ? meta.durationUnit : (typeof meta.hours === "string" && meta.hours ? "ساعات" : ""),
+          );
+          return { durationValue: duration.value, durationUnit: duration.unit };
+        })(),
         description: item.description || "",
         attachmentUrl: typeof meta.attachmentUrl === "string" ? meta.attachmentUrl : "",
         attachmentMimeType: (meta.attachmentMimeType === "image/jpeg" || meta.attachmentMimeType === "image/png" || meta.attachmentMimeType === "image/webp" ? meta.attachmentMimeType : "") as "image/jpeg" | "image/png" | "image/webp" | "",

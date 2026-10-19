@@ -1,4 +1,5 @@
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import { paginateSmartReportTable } from "@/lib/report-engine/report-structured-table-extractor";
 import type { PortfolioReportPageModel } from "@/components/portfolio/print/portfolio-print-types";
 import type { PortfolioEvidenceLayout, PortfolioSmartLayoutCandidate, PortfolioSmartPageMetadata } from "@/lib/portfolio/layout/portfolio-smart-a4-types";
 
@@ -9,7 +10,7 @@ import type { PortfolioEvidenceLayout, PortfolioSmartLayoutCandidate, PortfolioS
  * Evidence continuation pages are deterministic and never drop an item.
  */
 export function composePortfolioReportPages(report: PortfolioReportContent): PortfolioReportPageModel[] {
-  const regular = [
+  const regular: PortfolioReportPageModel["sections"] = [
     { kind: "details" as const, fields: report.normalizedFields },
     ...(report.narrative?.body?.trim() ? [{ kind: "narrative" as const, body: report.narrative.body.trim() }] : []),
   ];
@@ -21,13 +22,24 @@ export function composePortfolioReportPages(report: PortfolioReportContent): Por
     overflowEvidenceCount: remaining,
   });
 
-  // The first render is a regular-content candidate. A measured/frozen client
-  // plan may attach evidence to it; continuation pages remain explicit.
-  const pages: PortfolioReportPageModel[] = [{
-    key: "report-page-1",
-    sections: regular,
-    ...metadata(0, evidence.length),
-  }];
+  const pages: PortfolioReportPageModel[] = [];
+  if (regular.some((section) => section.kind === "narrative" ? Boolean(section.body.trim()) : section.kind === "details" && section.fields.length > 0) || (!report.tables.length && !evidence.length)) {
+    pages.push({
+      key: "report-page-1",
+      sections: regular,
+      ...metadata(0, evidence.length),
+    });
+  }
+  report.tables.forEach((table) => {
+    const chunks = paginateSmartReportTable(table, { maxPageUnits: 112 });
+    chunks.forEach((chunk, index) => {
+      pages.push({
+        key: `report-table-${table.id}-${index + 1}`,
+        sections: [{ kind: "table", table: chunk }],
+        ...metadata(0, evidence.length, "comfortable"),
+      });
+    });
+  });
   for (let index = 0; index < evidence.length; index += 2) {
     const items = evidence.slice(index, index + 2);
     pages.push({

@@ -12,6 +12,7 @@ import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/po
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
+import { PortfolioReportTable } from "@/components/portfolio/print/shared/portfolio-report-table";
 
 const MOE_2024 = {
   navy: "#15445A",
@@ -559,6 +560,10 @@ function MoeReportPages({ report, physicalDocument, reportId }: { report: Portfo
                     </div>
                   </section>
                 );
+              }
+
+              if (section.kind === "table") {
+                return <PortfolioReportTable key={`table-${page.key}-${sectionIndex}`} table={section.table} />;
               }
 
               if (section.kind === "narrative") {
@@ -1910,11 +1915,11 @@ export function MoeOfficial2024PortfolioPrint({
               .filter((section) => section.isEnabled)
               .sort((first, second) => first.sortOrder - second.sortOrder)
               .map((section, index) => (
-                <div key={section.id} className="moe24-index-row">
+                <a key={section.id} className="moe24-index-row" href={`#portfolio-section-${section.key}`}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{section.title}</strong>
                   <span>قسم</span>
-                </div>
+                </a>
               ))}
           </div>
         </MoePage>
@@ -2016,7 +2021,7 @@ export function MoeOfficial2024PortfolioPrint({
               sectionLabel={section.title}
               className="moe24-divider"
             >
-              <div className="moe24-divider-content">
+              <div id={`portfolio-section-${section.key}`} className="moe24-divider-content">
                 <span className="moe24-divider-index">
                   {String(index + 1).padStart(2, "0")}
                 </span>

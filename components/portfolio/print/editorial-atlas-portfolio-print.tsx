@@ -12,6 +12,7 @@ import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/po
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
+import { PortfolioReportTable } from "@/components/portfolio/print/shared/portfolio-report-table";
 
 const ATLAS = {
   ink: "#10243A",
@@ -212,6 +213,10 @@ function AtlasReportPages({ report, physicalDocument, reportId }: { report: Port
                     </div>
                   </section>
                 );
+              }
+
+              if (section.kind === "table") {
+                return <PortfolioReportTable key={`table-${page.key}-${sectionIndex}`} table={section.table} />;
               }
 
               if (section.kind === "narrative") {
@@ -875,10 +880,10 @@ export function EditorialAtlasPortfolioPrint({
               .filter((section) => section.isEnabled)
               .sort((a, b) => a.sortOrder - b.sortOrder)
               .map((section, index) => (
-                <article key={section.id} className="atlas-index-item">
+                <a key={section.id} className="atlas-index-item" href={`#portfolio-section-${section.key}`}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{section.title}</strong>
-                </article>
+                </a>
               ))}
           </div>
         </AtlasPage>
@@ -1000,7 +1005,7 @@ export function EditorialAtlasPortfolioPrint({
               className="atlas-divider"
               indexLabel={String(index + 1).padStart(2, "0")}
             >
-              <span className="atlas-divider-number">
+              <span id={`portfolio-section-${section.key}`} className="atlas-divider-number">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <h2>{section.title}</h2>

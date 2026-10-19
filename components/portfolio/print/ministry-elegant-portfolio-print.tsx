@@ -13,6 +13,7 @@ import { getServiceOutputPhysicalChunks, getReportPhysicalPages } from "@/lib/po
 import { ActivityLeaderServiceOutputContent } from "@/components/portfolio/print/activity-leader-service-output-content";
 import { PortfolioEducationalIdentityContent } from "@/components/portfolio/print/portfolio-educational-identity-content";
 import { PortfolioQualificationEvidence } from "@/components/portfolio/print/portfolio-qualification-evidence";
+import { PortfolioReportTable } from "@/components/portfolio/print/shared/portfolio-report-table";
 
 function renderFieldValue(value: string | string[], field?: PortfolioReportField, internalLayout?: PortfolioFieldInternalLayout) {
   if (Array.isArray(value)) {
@@ -248,6 +249,10 @@ function PortfolioDesignedReportPage({ report, physicalDocument, reportId }: { r
                         )}
                       </section>
                     );
+                  }
+
+                  if (section.kind === "table") {
+                    return <PortfolioReportTable key={`table-${page.key}-${sectionIndex}`} table={section.table} />;
                   }
 
                   if (section.kind === "narrative") {
@@ -2051,11 +2056,11 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
             .filter((section) => section.isEnabled)
             .sort((first, second) => first.sortOrder - second.sortOrder)
             .map((section, index) => (
-            <div key={section.id} className="portfolio-index-row">
+            <a key={section.id} className="portfolio-index-row" href={`#portfolio-section-${section.key}`}>
               <span>{index + 1}</span>
               <strong>{section.title}</strong>
               <span>قسم</span>
-            </div>
+            </a>
           ))}
         </div>
       </PageShell>
@@ -2127,7 +2132,7 @@ export function MinistryElegantPortfolioPrint({ data, physicalDocument }: { data
         <div key={section.key} style={{ order: section.sortOrder }}>
           {data.portfolio.preferences.showPerformanceDividers ? (
           <PageShell pageLabel={section.title} className="portfolio-divider-page">
-            <div className="portfolio-divider-hero">
+            <div id={`portfolio-section-${section.key}`} className="portfolio-divider-hero">
               <div>
                 <h2>{section.title}</h2>
                 <p>{section.intro}</p>
