@@ -1,55 +1,45 @@
-import { createReadStream } from "node:fs";
-import { Readable } from "node:stream";
-
 import { NextResponse } from "next/server";
 
 import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
-import { getPortfolioSnapshotPdfArtifact, getPortfolioSnapshotPdfStatus, registerPortfolioSnapshotPdf } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
+import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
 import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
-import { resolveStorageFile, storageFileExists } from "@/lib/storage/storage-provider";
-import { storageKeySegments } from "@/lib/storage/storage-paths";
+import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function pdfFileName(title: string) {
   const safe = title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim();
-  return `${safe || "portfolio-snapshot"}.pdf`;
+  return `${safe || "نسخة-ملف-الإنجاز"}.pdf`;
 }
 
-function preparationResponse(status: string, attemptCount: number) {
-  return NextResponse.json({ ok: false, status, attemptCount }, { status: status === "FAILED" ? 409 : 202 });
+function responseWithPdf(pdf: Uint8Array, fileName: string) {
+  const body = pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer;
+  return new NextResponse(body, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="portfolio.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      "Content-Length": String(pdf.byteLength),
+      "Cache-Control": "private, no-store",
+    },
+  });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
   try {
     const user = await requirePortfolioApiUser();
     const { snapshotId } = await params;
     const snapshot = await getPortfolioSnapshot(user, snapshotId);
-    let status = await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
-    if (!status.exists) {
-      await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document);
-      status = await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
-    }
-    if (status.status !== "READY") return preparationResponse(status.status, status.attemptCount);
-
-    const artifact = await getPortfolioSnapshotPdfArtifact(snapshot.id, snapshot.document);
-    if (!artifact?.storageKey || !(await storageFileExists(storageKeySegments(artifact.storageKey)))) {
-      await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: true });
-      return preparationResponse("PENDING", status.attemptCount);
-    }
-
-    const filePath = resolveStorageFile(storageKeySegments(artifact.storageKey));
-    const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="portfolio.pdf"; filename*=UTF-8''${encodeURIComponent(pdfFileName(snapshot.name))}`,
-        ...(artifact.byteSize ? { "Content-Length": String(artifact.byteSize) } : {}),
-        "Cache-Control": "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const origin = new URL(request.url).origin;
+    const snapshotPath = `${getPortfolioRoutes(user.role).snapshots}/${encodeURIComponent(snapshotId)}`;
+    const previewUrl = `${origin}${snapshotPath}?pdf=1`;
+    const pdf = await generatePdfFromUrlWithCloudflare({
+      request,
+      url: previewUrl,
+      waitForSelector: ".portfolio-page, .portfolio-report-page",
     });
+
+    return responseWithPdf(pdf, pdfFileName(snapshot.name));
   } catch (error) {
     return portfolioApiError(error);
   }
