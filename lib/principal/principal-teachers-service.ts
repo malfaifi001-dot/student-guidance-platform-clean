@@ -149,6 +149,7 @@ export async function getPrincipalTeachersOverview() {
 
 export type PrincipalStaffReport = {
   id: string;
+  caseEntryId: string;
   source: "GUIDANCE_REPORT" | "REPORT_SNAPSHOT" | "REPORT_TWO";
   title: string;
   serviceKey: string;
@@ -400,6 +401,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       orderBy: { generatedAt: "desc" },
       select: {
         id: true,
+        caseEntryId: true,
         title: true,
         serviceSlug: true,
         status: true,
@@ -517,6 +519,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
   const reports: PrincipalStaffReport[] = [
     ...guidanceReports.map((report) => ({
       id: report.id,
+      caseEntryId: report.caseEntryId,
       source: "GUIDANCE_REPORT" as const,
       title: report.title,
       serviceKey: report.serviceSlug,
@@ -540,6 +543,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
       });
       return {
       id: report.id,
+      caseEntryId: report.caseEntryId,
       source: "REPORT_SNAPSHOT" as const,
       title: report.reportTitle,
       serviceKey: report.serviceSlug || report.serviceName || "other",
@@ -571,6 +575,7 @@ export async function getPrincipalStaffReportsWorkspace(userId: string) {
     }),
     ...activeReports.filter((report) => !snapshotCaseIds.has(report.caseEntryId)).map((report) => ({
       id: report.id,
+      caseEntryId: report.caseEntryId,
       source: "REPORT_TWO" as const,
       title: report.reportTitle,
       serviceKey: report.serviceSlug || report.serviceName || "other",

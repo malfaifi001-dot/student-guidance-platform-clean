@@ -21,8 +21,6 @@ import type {
 import { prisma } from "@/lib/prisma";
 import {
   formatWorkflowDisplayValue,
-  getWorkflowFieldKey,
-  getWorkflowFieldLabel,
   type WorkflowValueLike,
 } from "@/lib/workflow-values/workflow-display-value";
 import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
@@ -603,43 +601,6 @@ function buildReportFieldMap(caseEntry: any) {
   return map;
 }
 
-function cleanReportOptionText(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-function buildReportOptionLabelMap(field?: FieldLookupItem | null) {
-  const labels = new Map<string, string>();
-  const options = Array.isArray(field?.options) ? field?.options || [] : [];
-
-  for (const option of options) {
-    const label =
-      cleanReportOptionText(option.label) ||
-      cleanReportOptionText(option.name) ||
-      cleanReportOptionText(option.text) ||
-      cleanReportOptionText(option.title) ||
-      cleanReportOptionText(option.value) ||
-      cleanReportOptionText(option.key) ||
-      cleanReportOptionText(option.id);
-
-    if (!label) continue;
-
-    for (const key of [
-      option.value,
-      option.key,
-      option.id,
-      option.label,
-      option.name,
-      option.text,
-      option.title,
-    ]) {
-      const cleanKey = cleanReportOptionText(key);
-      if (cleanKey) labels.set(cleanKey, label);
-    }
-  }
-
-  return labels;
-}
-
 function getReportRawArrayValue(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
 
@@ -666,88 +627,32 @@ function getReportRawArrayValue(value: unknown): unknown[] {
   return [];
 }
 
-function resolveReportOptionItemLabel(
-  value: unknown,
-  optionLabels: Map<string, string>
-): string {
-  if (value === null || value === undefined || value === "") return "";
-
-  if (typeof value === "boolean") return value ? "نعم" : "لا";
-
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => resolveReportOptionItemLabel(item, optionLabels))
-      .filter(Boolean)
-      .join("، ");
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    return (
-      resolveReportOptionItemLabel(record.label, optionLabels) ||
-      resolveReportOptionItemLabel(record.name, optionLabels) ||
-      resolveReportOptionItemLabel(record.text, optionLabels) ||
-      resolveReportOptionItemLabel(record.title, optionLabels) ||
-      resolveReportOptionItemLabel(record.value, optionLabels) ||
-      resolveReportOptionItemLabel(record.key, optionLabels) ||
-      resolveReportOptionItemLabel(record.id, optionLabels)
-    );
-  }
-
-  const text = cleanReportOptionText(value);
-  return optionLabels.get(text) || text;
-}
-
-function uniqueReportOptionItems(items: string[]) {
-  return Array.from(
-    new Set(
-      items
-        .map((item) => cleanReportOptionText(item))
-        .filter(Boolean)
-    )
-  );
-}
-
 function resolveReportOptionDisplayValue(
   caseValue: any,
-  fieldMap: Map<string, FieldLookupItem>
+  allValues: WorkflowValueLike[],
 ): string | string[] {
-  const key = caseValue.field?.key || caseValue.fieldKey || "";
-  const field = caseValue.field || fieldMap.get(cleanText(key).toLowerCase());
-  const optionLabels = buildReportOptionLabelMap(field);
   const raw = caseValue.jsonValue ?? caseValue.value;
 
   const rawArray = getReportRawArrayValue(raw);
 
   if (rawArray.length) {
-    const labels = uniqueReportOptionItems(
-      rawArray.map((item) => resolveReportOptionItemLabel(item, optionLabels))
+    const labels = Array.from(
+      new Set(
+        rawArray
+          .map((item) =>
+            formatWorkflowDisplayValue(
+              { ...caseValue, jsonValue: undefined, value: item },
+              allValues,
+            ).trim(),
+          )
+          .filter(Boolean),
+      ),
     );
 
     return labels.length > 1 ? labels : labels[0] || "";
   }
 
-  if (typeof raw === "string") {
-    const text = cleanReportOptionText(raw);
-
-    if (optionLabels.has(text)) {
-      return optionLabels.get(text) || text;
-    }
-
-    const parts = text
-      .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (parts.length > 1 && parts.every((part) => optionLabels.has(part))) {
-      return uniqueReportOptionItems(
-        parts.map((part) => optionLabels.get(part) || part)
-      );
-    }
-  }
-
-  return resolveReportOptionItemLabel(raw, optionLabels) || stringifyValue(raw);
+  return formatWorkflowDisplayValue(caseValue, allValues);
 }
 
 function buildWorkflowSourceOrder(caseEntry: any) {
@@ -778,11 +683,14 @@ function buildWorkflowSourceOrder(caseEntry: any) {
   return orderByKey;
 }
 
-function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+export function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
   const snapshotLabels = collectWorkflowSnapshotFieldLabels(
     caseEntry.workflowSnapshot,
   );
   const fieldMap = buildReportFieldMap(caseEntry);
+  const displayValues = (caseEntry.values || []).map((item: any) =>
+    normalizeSmartReportCaseValue(item, fieldMap, snapshotLabels),
+  );
 
   const workflowOrderByKey = buildWorkflowSourceOrder(caseEntry);
 
@@ -816,7 +724,15 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
         key ||
         "حقل بدون اسم";
 
-      const resolvedValue = resolveReportOptionDisplayValue(item, fieldMap);
+      const displayItem = normalizeSmartReportCaseValue(
+        item,
+        fieldMap,
+        snapshotLabels,
+      );
+      const resolvedValue = resolveReportOptionDisplayValue(
+        displayItem,
+        displayValues,
+      );
       const payloadValue = Array.isArray(resolvedValue)
         ? resolvedValue.filter(Boolean)
         : undefined;

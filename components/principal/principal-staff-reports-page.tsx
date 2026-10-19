@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, FileText, Link2, X } from "lucide-react";
+import { ArrowRight, Download, FileText, Link2, X } from "lucide-react";
 
 import type { PrincipalStaffReportsWorkspace } from "@/lib/principal/principal-teachers-service";
 import { getArabicUserRoleLabel } from "@/lib/auth/user-role-display";
@@ -11,6 +11,7 @@ import { PRINCIPAL_EVALUATION_ACCREDITATION_SERVICES } from "@/lib/principal/eva
 import { PortfolioPreviewFit } from "@/components/portfolio/portfolio-preview-fit";
 import { MobileFeedbackPopCard } from "@/components/mobile-app/mobile-feedback-pop-card";
 import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
 import { CurriculumDistributionMobilePreview } from "@/components/curriculum-distribution/curriculum-distribution-mobile-preview";
 
 type WorkspaceProps = {
@@ -176,6 +177,23 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
                 <button type="button" onClick={() => setPreviewReport(report)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-indigo-700 px-3 text-xs font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
                   <FileText className="h-4 w-4" /> معاينة
                 </button>
+                {report.reportTwoPreview ? (
+                  <ReportTwoPdfDownloadButton
+                    snapshot={{
+                      caseEntryId: report.caseEntryId,
+                      reportTitle: report.title,
+                      snapshotTemplateJson: report.reportTwoPreview.template,
+                      renderContext: report.reportTwoPreview.context,
+                      previewCase: report.reportTwoPreview.previewCase,
+                      snapshotPayload: report.reportTwoPreview.sourcePayload,
+                      variantId: report.reportTwoPreview.variantId,
+                    }}
+                    label="تحميل"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-indigo-200 px-3 text-xs font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+                  >
+                    <Download className="h-4 w-4" /> تحميل
+                  </ReportTwoPdfDownloadButton>
+                ) : null}
                 {report.principalSignatureSigned || signedReportKeys.has(`${report.source}:${report.id}`) ? (
                   <span className="inline-flex min-h-10 items-center rounded-xl bg-emerald-50 px-3 text-xs font-black text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">✓ موقّع مسبقًا</span>
                 ) : report.principalSignatureRequestStatus === "PENDING" ? (

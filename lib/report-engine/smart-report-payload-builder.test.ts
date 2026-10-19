@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { normalizeEvidence } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  normalizeCaseValues,
+  normalizeEvidence,
+} from "@/lib/report-engine/smart-report-payload-builder";
 
 function evidence(id: string, fileUrl?: string, title = id) {
   return { id, fileUrl, title };
@@ -80,4 +83,94 @@ test("keeps teacher submission evidence as the fallback source", () => {
   });
 
   assert.deepEqual(result.map((item) => item.id), ["teacher-id"]);
+});
+
+function caseWithValues(values: Array<Record<string, unknown>>) {
+  return {
+    workflowSnapshot: null,
+    workflow: {
+      steps: [
+        {
+          fields: [
+            {
+              key: "competition_name",
+              label: "اسم المسابقة",
+              type: "SELECT",
+              options: [
+                { value: "national", label: "المسابقة الوطنية" },
+                { value: "__OTHER__", label: "أخرى" },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    values,
+  };
+}
+
+test("resolves normal and custom select values from the complete CaseValue context", () => {
+  const result = normalizeCaseValues(
+    caseWithValues([
+      {
+        fieldKey: "competition_name",
+        value: "__OTHER__",
+        field: {
+          key: "competition_name",
+          label: "اسم المسابقة",
+          type: "SELECT",
+          options: [
+            { value: "national", label: "المسابقة الوطنية" },
+            { value: "__OTHER__", label: "أخرى" },
+          ],
+        },
+      },
+      { fieldKey: "competition_name__other", value: "مسابقة ابداع" },
+    ]),
+  );
+
+  assert.equal(result[0].value, "مسابقة ابداع");
+});
+
+test("resolves multi-select values containing __OTHER__", () => {
+  const result = normalizeCaseValues(
+    caseWithValues([
+      {
+        fieldKey: "competition_name",
+        jsonValue: ["national", "__OTHER__"],
+        field: {
+          key: "competition_name",
+          label: "اسم المسابقة",
+          type: "MULTI_SELECT",
+          options: [
+            { value: "national", label: "المسابقة الوطنية" },
+            { value: "__OTHER__", label: "أخرى" },
+          ],
+        },
+      },
+      { fieldKey: "competition_name__other", value: "مسابقة ابداع" },
+    ]),
+  );
+
+  assert.deepEqual(result[0].payloadValue, ["المسابقة الوطنية", "مسابقة ابداع"]);
+  assert.equal(result[0].value, "المسابقة الوطنية، مسابقة ابداع");
+});
+
+test("falls back to the shared resolver when a custom companion value is missing", () => {
+  const result = normalizeCaseValues(
+    caseWithValues([
+      {
+        fieldKey: "competition_name",
+        value: "__OTHER__",
+        field: {
+          key: "competition_name",
+          label: "اسم المسابقة",
+          type: "SELECT",
+          options: [{ value: "__OTHER__", label: "أخرى" }],
+        },
+      },
+    ]),
+  );
+
+  assert.equal(result[0].value, "أخرى");
 });
