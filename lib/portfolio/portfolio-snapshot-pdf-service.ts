@@ -14,6 +14,18 @@ const RATE_LIMIT_RETRY_BASE_MS = 5 * 60 * 1000;
 const RETRY_MAX_MS = 60 * 60 * 1000;
 const GLOBAL_LOCK_NAME = "teachix:portfolio-snapshot-pdf";
 
+export type PortfolioSnapshotPdfClaimOperation =
+  | "lock-connect"
+  | "get-lock"
+  | "recover-expired"
+  | "find-first"
+  | "claim-update"
+  | "load-job";
+
+type PortfolioSnapshotPdfClaimError = Error & {
+  claimOperation?: PortfolioSnapshotPdfClaimOperation;
+};
+
 export const PORTFOLIO_SNAPSHOT_PDF_MAX_ATTEMPTS = MAX_ATTEMPTS;
 
 export function portfolioSnapshotPdfStorageKey(snapshotId: string, contentHash: string) {
@@ -59,13 +71,38 @@ type PortfolioSnapshotPdfGlobalLock = {
   release: () => Promise<void>;
 };
 
+function annotateClaimError(error: unknown, claimOperation: PortfolioSnapshotPdfClaimOperation) {
+  if (error instanceof Error) {
+    Object.defineProperty(error, "claimOperation", {
+      configurable: true,
+      value: claimOperation,
+    });
+    return error;
+  }
+
+  const wrapped = new Error("Portfolio snapshot PDF claim failed");
+  Object.defineProperty(wrapped, "claimOperation", {
+    configurable: true,
+    value: claimOperation,
+  });
+  return wrapped;
+}
+
 async function acquirePortfolioSnapshotPdfGlobalLock(): Promise<PortfolioSnapshotPdfGlobalLock | null> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is not defined");
 
-  const connection = await mariadb.createConnection(databaseUrl);
+  let claimOperation: PortfolioSnapshotPdfClaimOperation = "lock-connect";
+  let connection: mariadb.Connection | undefined;
+  try {
+    connection = await mariadb.createConnection(databaseUrl);
+  } catch (error) {
+    throw annotateClaimError(error, claimOperation);
+  }
+
   let acquired = false;
   try {
+    claimOperation = "get-lock";
     const rows = await connection.query("SELECT GET_LOCK(?, 0) AS acquired", [GLOBAL_LOCK_NAME]);
     acquired = Number(rows[0]?.acquired) === 1;
     if (!acquired) {
@@ -88,7 +125,7 @@ async function acquirePortfolioSnapshotPdfGlobalLock(): Promise<PortfolioSnapsho
   } catch (error) {
     if (acquired) await connection.query("SELECT RELEASE_LOCK(?)", [GLOBAL_LOCK_NAME]).catch(() => undefined);
     await connection.end().catch(() => undefined);
-    throw error;
+    throw annotateClaimError(error, claimOperation);
   }
 }
 
@@ -128,13 +165,24 @@ export async function recoverExpiredPortfolioSnapshotPdfJobs() {
 }
 
 export async function claimNextPortfolioSnapshotPdfJob() {
-  const globalLock = await acquirePortfolioSnapshotPdfGlobalLock();
+  let claimOperation: PortfolioSnapshotPdfClaimOperation = "lock-connect";
+  let globalLock: PortfolioSnapshotPdfGlobalLock | null;
+  try {
+    globalLock = await acquirePortfolioSnapshotPdfGlobalLock();
+  } catch (error) {
+    throw annotateClaimError(
+      error,
+      (error as PortfolioSnapshotPdfClaimError).claimOperation ?? claimOperation,
+    );
+  }
   if (!globalLock) return { kind: "GLOBAL_BUSY" as const };
 
   const releaseOnClaimFailure = async () => globalLock.release().catch(() => undefined);
   try {
+    claimOperation = "recover-expired";
     await recoverExpiredPortfolioSnapshotPdfJobs();
     const now = new Date();
+    claimOperation = "find-first";
     const candidate = await prisma.portfolioSnapshotPdfArtifact.findFirst({
       where: {
         status: "PENDING",
@@ -148,6 +196,7 @@ export async function claimNextPortfolioSnapshotPdfJob() {
     }
 
     const claimToken = randomUUID();
+    claimOperation = "claim-update";
     const claimed = await prisma.portfolioSnapshotPdfArtifact.updateMany({
       where: { id: candidate.id, status: "PENDING", contentHash: candidate.contentHash },
       data: {
@@ -163,6 +212,7 @@ export async function claimNextPortfolioSnapshotPdfJob() {
       return { kind: "CLAIM_CONFLICT" as const };
     }
 
+    claimOperation = "load-job";
     const job = await prisma.portfolioSnapshotPdfArtifact.findUnique({
       where: { id: candidate.id },
       include: { snapshot: { select: { id: true, snapshotJson: true } } },
@@ -174,7 +224,10 @@ export async function claimNextPortfolioSnapshotPdfJob() {
     return { kind: "CLAIMED" as const, job, releaseGlobalLock: globalLock.release };
   } catch (error) {
     await releaseOnClaimFailure();
-    throw error;
+    throw annotateClaimError(
+      error,
+      (error as PortfolioSnapshotPdfClaimError).claimOperation ?? claimOperation,
+    );
   }
 }
 

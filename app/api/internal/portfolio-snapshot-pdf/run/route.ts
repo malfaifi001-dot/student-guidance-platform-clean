@@ -9,6 +9,7 @@ import {
   completePortfolioSnapshotPdfJob,
   failPortfolioSnapshotPdfJob,
   portfolioSnapshotPdfStorageKey,
+  type PortfolioSnapshotPdfClaimOperation,
 } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
 import { parsePortfolioSnapshotDocument } from "@/lib/portfolio/portfolio-snapshot-types";
 import { deleteStorageFile, readStorageFile, renameStorageFile, storageFileExists, writeStorageFile } from "@/lib/storage/storage-provider";
@@ -32,6 +33,34 @@ function isPdf(data: Uint8Array) {
 
 function logPortfolioSnapshotPdf(event: string, details: Record<string, unknown>) {
   console.info(`PORTFOLIO_SNAPSHOT_PDF ${JSON.stringify({ event, ...details })}`);
+}
+
+const claimOperations = new Set<PortfolioSnapshotPdfClaimOperation>([
+  "lock-connect",
+  "get-lock",
+  "recover-expired",
+  "find-first",
+  "claim-update",
+  "load-job",
+]);
+
+function safeClaimErrorDetails(error: unknown) {
+  const candidate = error && typeof error === "object" ? error as Record<string, unknown> : {};
+  const operation = candidate.claimOperation;
+  const errorName = error instanceof Error ? error.name : "UnknownError";
+  const errorCode = candidate.code;
+  const errno = candidate.errno;
+  const sqlState = candidate.sqlState;
+
+  return {
+    claimOperation: typeof operation === "string" && claimOperations.has(operation as PortfolioSnapshotPdfClaimOperation)
+      ? operation
+      : "unknown",
+    errorName: /^[A-Za-z][A-Za-z0-9_.-]{0,79}$/.test(errorName) ? errorName : "UnknownError",
+    errorCode: typeof errorCode === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(errorCode) ? errorCode : null,
+    errno: typeof errno === "number" && Number.isInteger(errno) && Math.abs(errno) <= 999999 ? errno : null,
+    sqlState: typeof sqlState === "string" && /^[A-Z0-9]{5}$/.test(sqlState) ? sqlState : null,
+  };
 }
 
 function publicPortfolioOrigin() {
@@ -64,7 +93,11 @@ export async function POST(request: Request) {
   try {
     claimResult = await claimNextPortfolioSnapshotPdfJob();
   } catch (error) {
-    logPortfolioSnapshotPdf("claim-failed", { stage, durationMs: Date.now() - runnerStartedAt, errorClass: error instanceof Error ? error.constructor.name : "UnknownError" });
+    logPortfolioSnapshotPdf("claim-failed", {
+      stage,
+      durationMs: Date.now() - runnerStartedAt,
+      ...safeClaimErrorDetails(error),
+    });
     return NextResponse.json({ ok: false, claimed: false, reason: "CLAIM_QUERY_FAILED" }, { status: 500 });
   }
 
