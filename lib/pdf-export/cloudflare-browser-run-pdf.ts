@@ -3,6 +3,27 @@ import "server-only";
 const CLOUDFLARE_PDF_TIMEOUT_MS = 60_000;
 const PDF_SIGNATURE = "%PDF-";
 
+export class CloudflareBrowserRunError extends Error {
+  readonly status: number;
+  readonly retryAfterMs: number | null;
+
+  constructor(status: number, message: string, retryAfterMs: number | null) {
+    super(`Cloudflare Browser Run PDF request failed (${status}): ${message}`);
+    this.name = "CloudflareBrowserRunError";
+    this.status = status;
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+function parseRetryAfter(value: string | null) {
+  if (!value) return null;
+  const seconds = Number(value.trim());
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1000, 60 * 60 * 1000);
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.min(Math.max(0, timestamp - Date.now()), 60 * 60 * 1000);
+}
+
 function cloudflareLog(stage: string, details: Record<string, unknown>) {
   console.info(`PORTFOLIO_CLOUDFLARE ${JSON.stringify({ stage, ...details })}`);
 }
@@ -110,9 +131,7 @@ export async function generatePdfFromUrlWithCloudflare({
 
     if (!response.ok) {
       const errorBody = (await response.text()).slice(0, 500);
-      throw new Error(
-        `Cloudflare Browser Run PDF request failed (${response.status}): ${errorBody}`,
-      );
+      throw new CloudflareBrowserRunError(response.status, errorBody, parseRetryAfter(response.headers.get("retry-after")));
     }
 
     const pdfBytes = new Uint8Array(await response.arrayBuffer());

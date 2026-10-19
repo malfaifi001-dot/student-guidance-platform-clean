@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import * as mariadb from "mariadb";
 
 import { prisma } from "@/lib/prisma";
 import { hashPortfolioSnapshotDocument } from "@/lib/portfolio/portfolio-snapshot-hash";
@@ -9,6 +10,9 @@ import { storageKeySegments } from "@/lib/storage/storage-paths";
 const LEASE_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 4;
 const RETRY_BASE_MS = 60 * 1000;
+const RATE_LIMIT_RETRY_BASE_MS = 5 * 60 * 1000;
+const RETRY_MAX_MS = 60 * 60 * 1000;
+const GLOBAL_LOCK_NAME = "teachix:portfolio-snapshot-pdf";
 
 export const PORTFOLIO_SNAPSHOT_PDF_MAX_ATTEMPTS = MAX_ATTEMPTS;
 
@@ -29,9 +33,63 @@ function sanitizeError(error: unknown) {
     .slice(0, 1000);
 }
 
-function nextRetryAt(attemptCount: number) {
-  const delay = RETRY_BASE_MS * 2 ** Math.max(0, attemptCount - 1);
-  return new Date(Date.now() + Math.min(delay, 30 * 60 * 1000));
+function errorProperty(error: unknown, property: string) {
+  return error && typeof error === "object" && property in error
+    ? (error as Record<string, unknown>)[property]
+    : undefined;
+}
+
+function isRateLimitError(error: unknown) {
+  return errorProperty(error, "status") === 429 || /\b429\b|rate limit/i.test(error instanceof Error ? error.message : String(error));
+}
+
+function nextRetryAt(attemptCount: number, error?: unknown) {
+  const rateLimit = isRateLimitError(error);
+  const base = rateLimit ? RATE_LIMIT_RETRY_BASE_MS : RETRY_BASE_MS;
+  const exponentialDelay = base * 2 ** Math.max(0, attemptCount - 1);
+  const retryAfterMs = Number(errorProperty(error, "retryAfterMs"));
+  const requestedDelay = Number.isFinite(retryAfterMs) && retryAfterMs > 0
+    ? retryAfterMs
+    : exponentialDelay;
+  const jitterMs = Math.floor(Math.random() * Math.max(1000, Math.min(base, 30 * 1000)));
+  return new Date(Date.now() + Math.min(Math.max(requestedDelay, exponentialDelay) + jitterMs, RETRY_MAX_MS));
+}
+
+type PortfolioSnapshotPdfGlobalLock = {
+  release: () => Promise<void>;
+};
+
+async function acquirePortfolioSnapshotPdfGlobalLock(): Promise<PortfolioSnapshotPdfGlobalLock | null> {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL is not defined");
+
+  const connection = await mariadb.createConnection(databaseUrl);
+  let acquired = false;
+  try {
+    const rows = await connection.query("SELECT GET_LOCK(?, 0) AS acquired", [GLOBAL_LOCK_NAME]);
+    acquired = Number(rows[0]?.acquired) === 1;
+    if (!acquired) {
+      await connection.end();
+      return null;
+    }
+
+    let released = false;
+    return {
+      release: async () => {
+        if (released) return;
+        released = true;
+        try {
+          await connection.query("SELECT RELEASE_LOCK(?)", [GLOBAL_LOCK_NAME]);
+        } finally {
+          await connection.end();
+        }
+      },
+    };
+  } catch (error) {
+    if (acquired) await connection.query("SELECT RELEASE_LOCK(?)", [GLOBAL_LOCK_NAME]).catch(() => undefined);
+    await connection.end().catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function registerPortfolioSnapshotPdf(snapshotId: string, document: unknown, options?: { forceRetry?: boolean }) {
@@ -70,36 +128,54 @@ export async function recoverExpiredPortfolioSnapshotPdfJobs() {
 }
 
 export async function claimNextPortfolioSnapshotPdfJob() {
-  await recoverExpiredPortfolioSnapshotPdfJobs();
-  const now = new Date();
-  const candidate = await prisma.portfolioSnapshotPdfArtifact.findFirst({
-    where: {
-      status: "PENDING",
-      OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!candidate) return { kind: "NO_ELIGIBLE_JOB" as const };
+  const globalLock = await acquirePortfolioSnapshotPdfGlobalLock();
+  if (!globalLock) return { kind: "GLOBAL_BUSY" as const };
 
-  const claimToken = randomUUID();
-  const claimed = await prisma.portfolioSnapshotPdfArtifact.updateMany({
-    where: { id: candidate.id, status: "PENDING", contentHash: candidate.contentHash },
-    data: {
-      status: "PROCESSING",
-      claimToken,
-      leaseExpiresAt: new Date(Date.now() + LEASE_MS),
-      attemptCount: { increment: 1 },
-      lastError: null,
-    },
-  });
-  if (claimed.count !== 1) return { kind: "CLAIM_CONFLICT" as const };
+  const releaseOnClaimFailure = async () => globalLock.release().catch(() => undefined);
+  try {
+    await recoverExpiredPortfolioSnapshotPdfJobs();
+    const now = new Date();
+    const candidate = await prisma.portfolioSnapshotPdfArtifact.findFirst({
+      where: {
+        status: "PENDING",
+        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!candidate) {
+      await releaseOnClaimFailure();
+      return { kind: "NO_ELIGIBLE_JOB" as const };
+    }
 
-  const job = await prisma.portfolioSnapshotPdfArtifact.findUnique({
-    where: { id: candidate.id },
-    include: { snapshot: { select: { id: true, snapshotJson: true } } },
-  });
-  if (!job) return { kind: "CLAIM_CONFLICT" as const };
-  return { kind: "CLAIMED" as const, job };
+    const claimToken = randomUUID();
+    const claimed = await prisma.portfolioSnapshotPdfArtifact.updateMany({
+      where: { id: candidate.id, status: "PENDING", contentHash: candidate.contentHash },
+      data: {
+        status: "PROCESSING",
+        claimToken,
+        leaseExpiresAt: new Date(Date.now() + LEASE_MS),
+        attemptCount: { increment: 1 },
+        lastError: null,
+      },
+    });
+    if (claimed.count !== 1) {
+      await releaseOnClaimFailure();
+      return { kind: "CLAIM_CONFLICT" as const };
+    }
+
+    const job = await prisma.portfolioSnapshotPdfArtifact.findUnique({
+      where: { id: candidate.id },
+      include: { snapshot: { select: { id: true, snapshotJson: true } } },
+    });
+    if (!job) {
+      await releaseOnClaimFailure();
+      return { kind: "CLAIM_CONFLICT" as const };
+    }
+    return { kind: "CLAIMED" as const, job, releaseGlobalLock: globalLock.release };
+  } catch (error) {
+    await releaseOnClaimFailure();
+    throw error;
+  }
 }
 
 export async function completePortfolioSnapshotPdfJob(input: {
@@ -136,7 +212,7 @@ export async function failPortfolioSnapshotPdfJob(input: { id: string; claimToke
     data: retryable
       ? {
           status: "PENDING",
-          nextAttemptAt: nextRetryAt(current.attemptCount),
+          nextAttemptAt: nextRetryAt(current.attemptCount, input.error),
           leaseExpiresAt: null,
           claimToken: null,
           lastError: sanitizeError(input.error),

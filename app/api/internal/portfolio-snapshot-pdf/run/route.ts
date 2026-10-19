@@ -11,7 +11,7 @@ import {
   portfolioSnapshotPdfStorageKey,
 } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
 import { parsePortfolioSnapshotDocument } from "@/lib/portfolio/portfolio-snapshot-types";
-import { deleteStorageFile, renameStorageFile, writeStorageFile } from "@/lib/storage/storage-provider";
+import { deleteStorageFile, readStorageFile, renameStorageFile, storageFileExists, writeStorageFile } from "@/lib/storage/storage-provider";
 import { storageKeySegments } from "@/lib/storage/storage-paths";
 
 export const runtime = "nodejs";
@@ -72,12 +72,17 @@ export async function POST(request: Request) {
     logPortfolioSnapshotPdf("claim-empty", { stage, durationMs: Date.now() - runnerStartedAt });
     return NextResponse.json({ ok: true, claimed: false, reason: "NO_ELIGIBLE_JOB" });
   }
+  if (claimResult.kind === "GLOBAL_BUSY") {
+    logPortfolioSnapshotPdf("claim-busy", { stage, durationMs: Date.now() - runnerStartedAt });
+    return NextResponse.json({ ok: true, claimed: false, reason: "GLOBAL_PDF_BUSY" }, { status: 202 });
+  }
   if (claimResult.kind === "CLAIM_CONFLICT") {
     logPortfolioSnapshotPdf("claim-conflict", { stage, durationMs: Date.now() - runnerStartedAt });
     return NextResponse.json({ ok: false, claimed: false, reason: "CLAIM_CONFLICT" }, { status: 409 });
   }
 
   const job = claimResult.job;
+  const releaseGlobalLock = claimResult.releaseGlobalLock;
   logPortfolioSnapshotPdf("claimed", { stage, durationMs: Date.now() - runnerStartedAt });
 
   const contentHash = job.contentHash;
@@ -88,6 +93,23 @@ export async function POST(request: Request) {
     const document = parsePortfolioSnapshotDocument(job.snapshot.snapshotJson);
     stage = "image-preflight";
     await assertPortfolioExportImageSourcesAvailable(document);
+    stage = "existing-artifact";
+    if (await storageFileExists(storageKeySegments(finalKey))) {
+      const existingPdf = await readStorageFile(storageKeySegments(finalKey));
+      if (isPdf(existingPdf) && existingPdf.byteLength >= 100) {
+        const finalized = await completePortfolioSnapshotPdfJob({
+          id: job.id,
+          claimToken: job.claimToken!,
+          contentHash,
+          storageKey: finalKey,
+          byteSize: existingPdf.byteLength,
+        });
+        if (finalized.count !== 1) throw new Error("PDF_JOB_CLAIM_EXPIRED_BEFORE_FINALIZE");
+        logPortfolioSnapshotPdf("ready-existing", { stage, durationMs: Date.now() - runnerStartedAt, byteSize: existingPdf.byteLength });
+        return NextResponse.json({ ok: true, claimed: true, status: "READY" });
+      }
+      await deleteStorageFile(storageKeySegments(finalKey));
+    }
     stage = "export-token";
     const token = await createPortfolioExportToken(document);
     stage = "public-origin";
@@ -123,5 +145,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, claimed: true, status: failure.retryable ? "PENDING" : "FAILED" }, { status: 500 });
   } finally {
     await deleteStorageFile(storageKeySegments(tempKey)).catch(() => undefined);
+    await releaseGlobalLock().catch(() => undefined);
   }
 }
