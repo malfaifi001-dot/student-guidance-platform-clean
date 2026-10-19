@@ -87,6 +87,63 @@ export async function getAuthorizedReportTwoCase(
   });
 }
 
+export async function getAuthorizedPrincipalStaffReportTwoCase(
+  context: DashboardContext,
+  staffUserId: string,
+  caseId: string,
+  capability: ReportTwoCapability,
+) {
+  if (
+    context.user.role !== "PRINCIPAL" ||
+    !context.schoolAccountId ||
+    !staffUserId ||
+    !caseId ||
+    !roleHasReportTwoCapability(context.user.role, capability)
+  ) {
+    return null;
+  }
+
+  const staff = await prisma.user.findFirst({
+    where: {
+      id: staffUserId,
+      schoolAccountId: context.schoolAccountId,
+      role: { in: ["TEACHER", "COUNSELOR", "ACTIVITY_LEADER"] },
+    },
+    select: { id: true },
+  });
+
+  if (!staff) return null;
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      schoolAccountId: context.schoolAccountId,
+      createdById: staff.id,
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+      createdById: true,
+      serviceId: true,
+      title: true,
+      service: { select: { slug: true, name: true } },
+    },
+  });
+
+  if (!caseEntry) return null;
+
+  const approvedReport = await prisma.reportTwoActive.findFirst({
+    where: {
+      caseEntryId: caseEntry.id,
+      status: "APPROVED",
+      approvedAt: { not: null },
+    },
+    select: { id: true },
+  });
+
+  return approvedReport ? { caseEntry, approvedReport } : null;
+}
+
 export async function getAuthorizedReportTwoById(
   context: DashboardContext,
   reportId: string,

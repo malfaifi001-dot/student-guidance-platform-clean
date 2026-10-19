@@ -187,6 +187,7 @@ export function PrincipalStaffReportsPage({ workspace }: WorkspaceProps) {
                       previewCase: report.reportTwoPreview.previewCase,
                       snapshotPayload: report.reportTwoPreview.sourcePayload,
                       variantId: report.reportTwoPreview.variantId,
+                      staffUserId: workspace.staff.id,
                     }}
                     label="تحميل"
                     className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-indigo-200 px-3 text-xs font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/50"

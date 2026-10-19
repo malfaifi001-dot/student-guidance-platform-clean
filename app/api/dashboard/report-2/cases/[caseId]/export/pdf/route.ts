@@ -10,7 +10,10 @@ import {
 } from "@/lib/certificates/report-certificate-attachments";
 import { renderLinkedAssessmentAttachmentsHtml } from "@/lib/report-2/report-linked-assessment-attachments";
 import { renderLinkedSurveyAttachmentsHtml } from "@/lib/report-2/report-linked-survey-attachments";
-import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
+import {
+  getAuthorizedPrincipalStaffReportTwoCase,
+  roleHasReportTwoCapability,
+} from "@/lib/report-2/report-two-access";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +30,7 @@ type RouteContext = {
 
 type ExportPdfBody = {
   fileName?: string;
+  staffUserId?: string;
   snapshot?: unknown;
 };
 
@@ -177,11 +181,35 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "لا تملك صلاحية تصدير التقرير." }, { status: 403 });
   }
 
-  const access = await buildSmartReportPayloadForCase({
-    caseId,
-    current,
-    historicalPersonalRead: true,
-  });
+  const body = await readBody(request);
+  const staffUserId = String(body.staffUserId || "").trim();
+  const staffWorkspaceAccess = staffUserId
+    ? await getAuthorizedPrincipalStaffReportTwoCase(
+        {
+          user: current.user,
+          schoolAccountId: current.user.schoolAccountId,
+          isAdmin: current.user.role === "ADMIN",
+        },
+        staffUserId,
+        caseId,
+        "REPORT_EXPORT",
+      )
+    : null;
+
+  const access = staffWorkspaceAccess
+    ? { ok: true as const, serviceSlug: staffWorkspaceAccess.caseEntry.service.slug }
+    : await buildSmartReportPayloadForCase({
+        caseId,
+        current,
+        historicalPersonalRead: true,
+      });
+
+  if (staffUserId && !staffWorkspaceAccess) {
+    return NextResponse.json(
+      { error: "Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© ØªØµØ¯ÙŠØ± ØªÙ‚Ø±ÙŠØ± Ù‡Ø°Ø§ Ø§Ù„Ù…Ù†Ø³ÙˆØ¨." },
+      { status: 404 },
+    );
+  }
 
   if (!access.ok) {
     return NextResponse.json(
@@ -215,7 +243,6 @@ export async function POST(request: Request, context: RouteContext) {
   );
   if (serviceGuard) return serviceGuard;
 
-  const body = await readBody(request);
   const snapshot = sanitizeReportTwoSnapshot(body.snapshot) as any;
 
   if (!snapshot?.template?.pages?.length) {

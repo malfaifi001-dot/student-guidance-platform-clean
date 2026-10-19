@@ -16,6 +16,7 @@ type SnapshotInfo = {
   previewCase?: unknown;
   snapshotPayload?: unknown;
   variantId?: string | null;
+  staffUserId?: string;
 };
 
 type PdfDownloadButtonProps = {
@@ -145,6 +146,9 @@ export function ReportTwoPdfDownloadButton({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fileName: formatFileName(snapshot.reportTitle),
+            ...(snapshot.staffUserId
+              ? { staffUserId: snapshot.staffUserId }
+              : {}),
             snapshot: exportSnapshot,
           }),
         },
