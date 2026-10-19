@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  usePreviewZoomScroll,
+  type PreviewZoomScrollGeometry,
+} from "@/components/preview/use-preview-zoom-scroll";
 
 import {
   getDesignLogoSrc,
@@ -24,6 +28,7 @@ type PrintDocumentSnapshot = {
   template: any;
   context: Record<string, string>;
   previewCase: any;
+  html?: string;
   sourcePayload?: unknown;
   designTemplateId?: ReportDesignId;
   variantId?: string | null;
@@ -31,17 +36,24 @@ type PrintDocumentSnapshot = {
 
 type PrintPreviewDimensions = {
   logicalWidth: number;
+  logicalHeight: number;
   scaledWidth: number;
   scaledHeight: number;
   scale: number;
+  fitScale: number;
 };
 
 const INITIAL_PRINT_PREVIEW_DIMENSIONS: PrintPreviewDimensions = {
   logicalWidth: 0,
+  logicalHeight: 0,
   scaledWidth: 0,
   scaledHeight: 0,
   scale: 1,
+  fitScale: 1,
 };
+
+const REPORT_SNAPSHOT_MIN_ZOOM_FACTOR = 0.75;
+const REPORT_SNAPSHOT_MAX_ZOOM_FACTOR = 2.5;
 
 const SCHOOL_BROADCAST_HIDDEN_BLOCK_KINDS = new Set([
   "executive-description",
@@ -100,9 +112,19 @@ export function ReportTwoPrintDocument({
   autoPrint?: boolean;
 }) {
   const previewViewportRef = useRef<HTMLDivElement>(null);
+  const previewScaledFrameRef = useRef<HTMLDivElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const [previewDimensions, setPreviewDimensions] =
     useState<PrintPreviewDimensions>(INITIAL_PRINT_PREVIEW_DIMENSIONS);
+  const previewDimensionsRef = useRef(INITIAL_PRINT_PREVIEW_DIMENSIONS);
+  const previewZoomFactorRef = useRef(1);
+  const previewGeometryRef = useRef<PreviewZoomScrollGeometry>({
+    logicalWidth: 0,
+    logicalHeight: 0,
+    fitScale: 1,
+    scale: 1,
+  });
+  const isInteractivePreview = !autoPrint;
   const templateWithMetadata = applyStructuredTableDisplayMetadataToTemplate(
     snapshot.template || { pages: [] },
     snapshot.sourcePayload,
@@ -122,11 +144,54 @@ export function ReportTwoPrintDocument({
 
   const logoSrc = getDesignLogoSrc(context);
 
+  const applyPreviewScale = (
+    nextScale: number,
+    nextDimensions: PrintPreviewDimensions,
+    shouldUpdateState = true,
+  ) => {
+    previewDimensionsRef.current = nextDimensions;
+
+    if (previewScaledFrameRef.current) {
+      previewScaledFrameRef.current.style.width = `${nextDimensions.scaledWidth}px`;
+      previewScaledFrameRef.current.style.height = `${nextDimensions.scaledHeight}px`;
+    }
+
+    if (previewStageRef.current) {
+      previewStageRef.current.style.transform = `scale(${nextScale})`;
+    }
+
+    if (shouldUpdateState) setPreviewDimensions(nextDimensions);
+  };
+
+  const previewInteraction = usePreviewZoomScroll({
+    enabled: isInteractivePreview,
+    viewportRef: previewViewportRef,
+    stageRef: previewStageRef,
+    geometryRef: previewGeometryRef,
+    zoomFactorRef: previewZoomFactorRef,
+    minZoomFactor: REPORT_SNAPSHOT_MIN_ZOOM_FACTOR,
+    maxZoomFactor: REPORT_SNAPSHOT_MAX_ZOOM_FACTOR,
+    onZoomFactorChange: (nextZoomFactor) => {
+      const current = previewDimensionsRef.current;
+      const nextScale = current.fitScale * nextZoomFactor;
+      applyPreviewScale(
+        nextScale,
+        {
+          ...current,
+          scaledWidth: current.logicalWidth * nextScale,
+          scaledHeight: current.logicalHeight * nextScale,
+          scale: nextScale,
+        },
+        false,
+      );
+    },
+  });
+
   useEffect(() => {
     const viewport = previewViewportRef.current;
     const stage = previewStageRef.current;
 
-    if (!viewport || !stage || !designId) return;
+    if (!viewport || !stage || (!designId && !snapshot.html)) return;
 
     let frameId = 0;
 
@@ -157,19 +222,39 @@ export function ReportTwoPrintDocument({
         if (!logicalWidth || !naturalStageHeight || !availableWidth) return;
 
         const fitScale = Math.min(1, availableWidth / logicalWidth);
+        const previewScale = fitScale * previewZoomFactorRef.current;
         const nextDimensions = {
           logicalWidth,
-          scaledWidth: logicalWidth * fitScale,
-          scaledHeight: naturalStageHeight * fitScale,
-          scale: fitScale,
+          logicalHeight: naturalStageHeight,
+          scaledWidth: logicalWidth * previewScale,
+          scaledHeight: naturalStageHeight * previewScale,
+          scale: previewScale,
+          fitScale,
         };
+
+        previewDimensionsRef.current = nextDimensions;
+        previewGeometryRef.current = {
+          logicalWidth,
+          logicalHeight: naturalStageHeight,
+          fitScale,
+          scale: previewScale,
+        };
+        if (previewScaledFrameRef.current) {
+          previewScaledFrameRef.current.style.width = `${nextDimensions.scaledWidth}px`;
+          previewScaledFrameRef.current.style.height = `${nextDimensions.scaledHeight}px`;
+        }
+        if (previewStageRef.current) {
+          previewStageRef.current.style.transform = `scale(${nextDimensions.scale})`;
+        }
 
         setPreviewDimensions((current) => {
           const isUnchanged =
             current.logicalWidth === nextDimensions.logicalWidth &&
+            current.logicalHeight === nextDimensions.logicalHeight &&
             Math.abs(current.scaledWidth - nextDimensions.scaledWidth) < 0.5 &&
             Math.abs(current.scaledHeight - nextDimensions.scaledHeight) < 0.5 &&
-            Math.abs(current.scale - nextDimensions.scale) < 0.001;
+            Math.abs(current.scale - nextDimensions.scale) < 0.001 &&
+            Math.abs(current.fitScale - nextDimensions.fitScale) < 0.001;
 
           return isUnchanged ? current : nextDimensions;
         });
@@ -189,6 +274,7 @@ export function ReportTwoPrintDocument({
 
     window.addEventListener("resize", updatePreviewScale);
     window.addEventListener("orientationchange", updatePreviewScale);
+    window.visualViewport?.addEventListener("resize", updatePreviewScale);
     updatePreviewScale();
 
     return () => {
@@ -196,11 +282,12 @@ export function ReportTwoPrintDocument({
       mutationObserver.disconnect();
       window.removeEventListener("resize", updatePreviewScale);
       window.removeEventListener("orientationchange", updatePreviewScale);
+      window.visualViewport?.removeEventListener("resize", updatePreviewScale);
       window.cancelAnimationFrame(frameId);
     };
-  }, [designId, pages.length]);
+  }, [designId, pages.length, snapshot.html]);
 
-  if (!designId) {
+  if (!designId && !snapshot.html) {
     return (
       <main className="p-8 text-center font-bold text-red-700" dir="rtl">
         تعذر تحديد تصميم التقرير المحفوظ للطباعة.
@@ -260,9 +347,14 @@ export function ReportTwoPrintDocument({
         .report-two-print-preview-viewport {
           width: 100%;
           min-width: 0;
-          overflow: hidden;
+          overflow-x: auto;
+          overflow-y: hidden;
           padding: 12px;
           background: #f1f5f9;
+        }
+
+        .report-two-print-document[data-report-two-static-preview="true"] .report-two-print-preview-viewport {
+          overflow: hidden;
         }
 
         .report-two-print-preview-scaled {
@@ -327,9 +419,18 @@ export function ReportTwoPrintDocument({
       <div
         ref={previewViewportRef}
         className="report-two-print-preview-viewport"
+        data-report-two-static-preview={!isInteractivePreview ? "true" : undefined}
+        dir={isInteractivePreview ? "ltr" : undefined}
+        style={{ touchAction: isInteractivePreview ? "pan-y" : undefined }}
+         onTouchStart={isInteractivePreview ? previewInteraction.handleTouchStart : undefined}
+         onTouchMove={isInteractivePreview ? previewInteraction.handleTouchMove : undefined}
+         onTouchEnd={isInteractivePreview ? previewInteraction.handleTouchEnd : undefined}
+         onTouchCancel={isInteractivePreview ? previewInteraction.handleTouchEnd : undefined}
       >
         <div
+          ref={previewScaledFrameRef}
           className="report-two-print-preview-scaled"
+          dir="rtl"
           style={{
             width: previewDimensions.scaledWidth,
             height: previewDimensions.scaledHeight,
@@ -343,22 +444,26 @@ export function ReportTwoPrintDocument({
               transform: `scale(${previewDimensions.scale})`,
             }}
           >
-            <ReportDesignRenderer
-              designId={designId}
-              template={template}
-              activePage={pages[0] || null}
-              activePageId={pages[0]?.id || ""}
-              context={context}
-              previewCase={previewCase}
-              renderMode="stack"
-              chromeLayout="none"
-              onActivePageChange={() => undefined}
-              onAddPage={() => undefined}
-              onMovePage={() => undefined}
-              onDeletePage={() => undefined}
-              canMovePage={() => false}
-              canDeletePage={() => false}
-            />
+            {snapshot.html ? (
+              <div dangerouslySetInnerHTML={{ __html: snapshot.html }} />
+            ) : (
+              <ReportDesignRenderer
+                designId={designId!}
+                template={template}
+                activePage={pages[0] || null}
+                activePageId={pages[0]?.id || ""}
+                context={context}
+                previewCase={previewCase}
+                renderMode="stack"
+                chromeLayout="none"
+                onActivePageChange={() => undefined}
+                onAddPage={() => undefined}
+                onMovePage={() => undefined}
+                onDeletePage={() => undefined}
+                canMovePage={() => false}
+                canDeletePage={() => false}
+              />
+            )}
           </div>
         </div>
       </div>

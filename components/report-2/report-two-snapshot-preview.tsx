@@ -81,7 +81,7 @@ export function ReportTwoSnapshotPreview({
 
   return (
     <main
-      className={printMode ? "bg-white" : "px-6 py-8"}
+      className={printMode ? "bg-white" : "min-h-screen bg-slate-50 px-3 py-4 sm:px-6 sm:py-8 dark:bg-slate-950"}
       dir="rtl"
     >
       {printMode ? <ReportTwoSnapshotPrintController /> : null}
@@ -107,10 +107,10 @@ export function ReportTwoSnapshotPreview({
         <section
           data-report-two-snapshot-toolbar
           data-guidance="report-preview-actions"
-          className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+          className="mx-auto mb-4 w-full max-w-7xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:mb-6 sm:rounded-[2rem] sm:p-5 dark:border-slate-800 dark:bg-slate-950"
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
               <p className={[
                 "text-xs font-black",
                 isApproved
@@ -120,7 +120,7 @@ export function ReportTwoSnapshotPreview({
                 {isApproved ? "التقارير المعتمدة" : "التقارير المحفوظة"}
               </p>
 
-              <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+              <h1 className="mt-2 break-words text-xl font-black leading-tight text-slate-950 sm:text-2xl dark:text-white">
                 {snapshot.reportTitle}
               </h1>
 
@@ -134,11 +134,11 @@ export function ReportTwoSnapshotPreview({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto">
               {isApproved ? (
                 <ReportTwoPdfDownloadButton
                   snapshot={snapshot as SnapshotForDownload}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60 sm:flex-none sm:rounded-2xl sm:px-5"
                 />
               ) : (
                 <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
@@ -160,7 +160,7 @@ export function ReportTwoSnapshotPreview({
                       }
                     : undefined
                 }
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-3"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-white text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-3"
               >
                 <Trash2 className="h-4 w-4" />
                 <span className="hidden sm:inline">
@@ -172,7 +172,7 @@ export function ReportTwoSnapshotPreview({
         </section>
       ) : null}
 
-      <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
+      <section data-guidance={printMode ? undefined : "report-preview-document"} className={printMode ? "" : "mx-auto w-full max-w-7xl pb-6 sm:pb-10"}>
         {canRenderStructured ? (
           <ReportTwoPrintDocument
             snapshot={{
@@ -181,6 +181,15 @@ export function ReportTwoSnapshotPreview({
               previewCase: snapshot.previewCase || null,
               sourcePayload: snapshot.snapshotPayload,
               variantId: snapshot.variantId,
+            }}
+          />
+        ) : !printMode ? (
+          <ReportTwoPrintDocument
+            snapshot={{
+              template: { pages: [] },
+              context: {},
+              previewCase: null,
+              html: snapshot.snapshotHtml,
             }}
           />
         ) : (

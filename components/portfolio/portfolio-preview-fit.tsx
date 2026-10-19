@@ -2,6 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import {
+  usePreviewZoomScroll,
+  type PreviewZoomScrollGeometry,
+} from "@/components/preview/use-preview-zoom-scroll";
 
 type PortfolioPreviewFitProps = {
   children: ReactNode;
@@ -11,19 +15,97 @@ type PreviewDimensions = {
   width: number;
   height: number;
   scale: number;
+  fitScale: number;
+  logicalWidth: number;
+  logicalHeight: number;
 };
 
 const INITIAL_DIMENSIONS: PreviewDimensions = {
   width: 0,
   height: 0,
   scale: 1,
+  fitScale: 1,
+  logicalWidth: 0,
+  logicalHeight: 0,
 };
+
+const MIN_ZOOM_FACTOR = 0.75;
+const MAX_ZOOM_FACTOR = 2.5;
 
 export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const scaledFrameRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] =
     useState<PreviewDimensions>(INITIAL_DIMENSIONS);
+  const dimensionsRef = useRef(INITIAL_DIMENSIONS);
+  const zoomFactorRef = useRef(1);
+  const geometryRef = useRef<PreviewZoomScrollGeometry>({
+    logicalWidth: INITIAL_DIMENSIONS.logicalWidth,
+    logicalHeight: INITIAL_DIMENSIONS.logicalHeight,
+    fitScale: INITIAL_DIMENSIONS.fitScale,
+    scale: INITIAL_DIMENSIONS.scale,
+  });
+
+  const applyPreviewScale = (
+    nextScale: number,
+    nextDimensions: PreviewDimensions,
+    shouldUpdateState = true,
+  ) => {
+    dimensionsRef.current = nextDimensions;
+
+    if (scaledFrameRef.current) {
+      scaledFrameRef.current.style.width = `${nextDimensions.width}px`;
+      scaledFrameRef.current.style.height = `${nextDimensions.height}px`;
+    }
+
+    if (stageRef.current) {
+      stageRef.current.style.transform = `scale(${nextScale})`;
+    }
+
+    if (shouldUpdateState) setDimensions(nextDimensions);
+  };
+
+  const fitToViewport = () => {
+    const current = dimensionsRef.current;
+    zoomFactorRef.current = 1;
+    const nextScale = current.fitScale;
+    applyPreviewScale(
+      nextScale,
+      {
+        ...current,
+        width: current.logicalWidth * nextScale,
+        height: current.logicalHeight * nextScale,
+        scale: nextScale,
+      },
+    );
+
+    previewInteraction.resetZoom();
+  };
+
+  const previewInteraction = usePreviewZoomScroll({
+    enabled: true,
+    viewportRef,
+    stageRef,
+    geometryRef,
+    zoomFactorRef,
+    minZoomFactor: MIN_ZOOM_FACTOR,
+    maxZoomFactor: MAX_ZOOM_FACTOR,
+    onZoomFactorChange: (nextZoomFactor) => {
+      const current = dimensionsRef.current;
+      const nextScale = current.fitScale * nextZoomFactor;
+      applyPreviewScale(
+        nextScale,
+        {
+          ...current,
+          width: current.logicalWidth * nextScale,
+          height: current.logicalHeight * nextScale,
+          scale: nextScale,
+        },
+        false,
+      );
+    },
+  });
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -52,19 +134,38 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
 
         if (!logicalWidth || !logicalHeight || !availableWidth) return;
 
-        const fitScale = availableWidth / logicalWidth;
-        const previewScale = Math.min(1, fitScale);
+        const fitScale = Math.min(1, availableWidth / logicalWidth);
+        const previewScale = fitScale * zoomFactorRef.current;
         const nextDimensions = {
           width: logicalWidth * previewScale,
           height: logicalHeight * previewScale,
           scale: previewScale,
+          fitScale,
+          logicalWidth,
+          logicalHeight,
         };
+
+        dimensionsRef.current = nextDimensions;
+        geometryRef.current = {
+          logicalWidth,
+          logicalHeight,
+          fitScale,
+          scale: previewScale,
+        };
+        if (scaledFrameRef.current) {
+          scaledFrameRef.current.style.width = `${nextDimensions.width}px`;
+          scaledFrameRef.current.style.height = `${nextDimensions.height}px`;
+        }
+        if (stageRef.current) {
+          stageRef.current.style.transform = `scale(${nextDimensions.scale})`;
+        }
 
         setDimensions((current) => {
           const isUnchanged =
             Math.abs(current.width - nextDimensions.width) < 0.5 &&
             Math.abs(current.height - nextDimensions.height) < 0.5 &&
-            Math.abs(current.scale - nextDimensions.scale) < 0.001;
+            Math.abs(current.scale - nextDimensions.scale) < 0.001 &&
+            Math.abs(current.fitScale - nextDimensions.fitScale) < 0.001;
 
           return isUnchanged ? current : nextDimensions;
         });
@@ -109,6 +210,7 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
 
     window.addEventListener("resize", updatePreviewScale);
     window.addEventListener("orientationchange", updatePreviewScale);
+    window.visualViewport?.addEventListener("resize", updatePreviewScale);
     updatePreviewScale();
 
     return () => {
@@ -116,6 +218,7 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
       mutationObserver.disconnect();
       window.removeEventListener("resize", updatePreviewScale);
       window.removeEventListener("orientationchange", updatePreviewScale);
+      window.visualViewport?.removeEventListener("resize", updatePreviewScale);
       window.cancelAnimationFrame(frameId);
     };
   }, []);
@@ -143,11 +246,28 @@ export function PortfolioPreviewFit({ children }: PortfolioPreviewFitProps) {
           }
         }
       `}</style>
+      <div className="flex justify-end px-1 pb-1">
+        <button
+          type="button"
+          className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          onClick={fitToViewport}
+          aria-label="Fit"
+        >
+          Fit
+        </button>
+      </div>
       <div
         ref={viewportRef}
-        className="relative w-full min-w-0 max-w-full overflow-hidden rounded-[1.5rem] bg-slate-100 py-3 sm:py-4 lg:py-5"
+        className="relative w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden rounded-[1.5rem] bg-slate-100 py-3 sm:py-4 lg:py-5"
+        dir="ltr"
+        style={{ touchAction: "pan-y" }}
+           onTouchStart={previewInteraction.handleTouchStart}
+           onTouchMove={previewInteraction.handleTouchMove}
+           onTouchEnd={previewInteraction.handleTouchEnd}
+           onTouchCancel={previewInteraction.handleTouchEnd}
       >
         <div
+          ref={scaledFrameRef}
           className="relative mx-auto overflow-visible"
           style={{
             width: dimensions.width,

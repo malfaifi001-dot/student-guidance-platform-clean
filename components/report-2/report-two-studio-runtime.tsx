@@ -1,6 +1,10 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  usePreviewZoomScroll,
+  type PreviewZoomScrollGeometry,
+} from "@/components/preview/use-preview-zoom-scroll";
 import { useRouter } from "next/navigation";
 import {
   DEFAULT_SELECTABLE_REPORT_DESIGN_ID,
@@ -50,7 +54,6 @@ import {
   tracePrincipalCards,
   tracePrincipalSignature,
 } from "@/lib/report-signatures/principal-signature-trace";
-
 
 type ReportTwoCollapsibleCardProps = {
   id: string;
@@ -2867,6 +2870,17 @@ export function ReportTwoStudioRuntime({
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
   const reportTwoPreviewViewportRef = useRef<HTMLDivElement | null>(null);
+  const reportTwoPreviewStageRef = useRef<HTMLElement | null>(null);
+  const reportTwoPreviewFitScaleRef = useRef(1);
+  const reportTwoPreviewLogicalWidthRef = useRef(0);
+  const reportTwoPreviewLogicalHeightRef = useRef(0);
+  const reportTwoPreviewZoomFactorRef = useRef(1);
+  const reportTwoPreviewGeometryRef = useRef<PreviewZoomScrollGeometry>({
+    logicalWidth: 0,
+    logicalHeight: 0,
+    fitScale: 1,
+    scale: 1,
+  });
   const [designTransitionTargetId, setDesignTransitionTargetId] =
     useState<ReportDesignId | null>(null);
   const reportTwoPdfExporting = printExportStatus === "loading";
@@ -4527,6 +4541,32 @@ export function ReportTwoStudioRuntime({
         ? "report-two-preview-wide"
         : "report-two-preview-normal";
 
+  const isInteractiveReportTwoPreview = runtimeMode === "preview";
+
+  const reportTwoPreviewInteraction = usePreviewZoomScroll({
+    enabled: isInteractiveReportTwoPreview,
+    viewportRef: reportTwoPreviewViewportRef,
+    stageRef: reportTwoPreviewStageRef,
+    geometryRef: reportTwoPreviewGeometryRef,
+    zoomFactorRef: reportTwoPreviewZoomFactorRef,
+    minZoomFactor: 0.75,
+    maxZoomFactor: 2.5,
+    onZoomFactorChange: (zoomFactor) => {
+      const host = reportTwoPreviewExportRef.current;
+      if (!host) return;
+      const scale = reportTwoPreviewFitScaleRef.current * zoomFactor;
+      host.style.setProperty("--report-two-preview-scale", scale.toFixed(4));
+      host.style.setProperty(
+        "--report-two-preview-scaled-height",
+        `${reportTwoPreviewLogicalHeightRef.current * scale}px`,
+      );
+      host.style.setProperty(
+        "--report-two-preview-scaled-width",
+        `${reportTwoPreviewLogicalWidthRef.current * scale}px`,
+      );
+    },
+  });
+
   useEffect(() => {
     const host = reportTwoPreviewExportRef.current;
     const viewport = reportTwoPreviewViewportRef.current;
@@ -4547,6 +4587,7 @@ export function ReportTwoStudioRuntime({
           ".report-design-logo-control-style",
         );
         if (!sheet || !page || !stage) return;
+        reportTwoPreviewStageRef.current = stage;
 
         observer.observe(sheet);
 
@@ -4602,6 +4643,8 @@ export function ReportTwoStudioRuntime({
           responsiveMaxScale,
           responsiveFitScale,
         );
+        reportTwoPreviewFitScaleRef.current = previewScale;
+        reportTwoPreviewLogicalWidthRef.current = logicalStageWidth;
         const naturalStageHeight = Math.max(
           sheet.scrollHeight,
           sheet.offsetHeight,
@@ -4609,10 +4652,19 @@ export function ReportTwoStudioRuntime({
           page.offsetHeight,
           stage.scrollHeight,
         );
+        reportTwoPreviewLogicalHeightRef.current = naturalStageHeight;
+        const effectivePreviewScale =
+          previewScale * reportTwoPreviewZoomFactorRef.current;
+        reportTwoPreviewGeometryRef.current = {
+          logicalWidth: logicalStageWidth,
+          logicalHeight: naturalStageHeight,
+          fitScale: previewScale,
+          scale: effectivePreviewScale,
+        };
 
         host.style.setProperty(
           "--report-two-preview-scale",
-          previewScale.toFixed(4),
+          effectivePreviewScale.toFixed(4),
         );
         host.style.setProperty(
           "--report-two-preview-stage-height",
@@ -4620,7 +4672,7 @@ export function ReportTwoStudioRuntime({
         );
         host.style.setProperty(
           "--report-two-preview-scaled-height",
-          `${naturalStageHeight * previewScale}px`,
+          `${naturalStageHeight * effectivePreviewScale}px`,
         );
         host.style.setProperty(
           "--report-two-preview-page-width",
@@ -4632,7 +4684,7 @@ export function ReportTwoStudioRuntime({
         );
         host.style.setProperty(
           "--report-two-preview-scaled-width",
-          `${logicalStageWidth * previewScale}px`,
+          `${logicalStageWidth * effectivePreviewScale}px`,
         );
       });
     };
@@ -4652,17 +4704,21 @@ export function ReportTwoStudioRuntime({
     });
     window.addEventListener("resize", updatePreviewScale);
     window.addEventListener("orientationchange", updatePreviewScale);
+    window.visualViewport?.addEventListener("resize", updatePreviewScale);
     updatePreviewScale();
 
     return () => {
+      reportTwoPreviewStageRef.current = null;
       observer.disconnect();
       mutationObserver.disconnect();
       window.removeEventListener("resize", updatePreviewScale);
       window.removeEventListener("orientationchange", updatePreviewScale);
+      window.visualViewport?.removeEventListener("resize", updatePreviewScale);
       window.cancelAnimationFrame(frameId);
     };
   }, [
     reportTwoPreviewModeClass,
+    isInteractiveReportTwoPreview,
     template.designTemplateId,
     template.pages.length,
   ]);
@@ -5137,7 +5193,7 @@ export function ReportTwoStudioRuntime({
               </div>
             </section>
           ) : null}
-<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-approved={Boolean(approvedSnapshot)} data-report-id={approvedSnapshot?.id || persistedReport?.id || ""} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+<section ref={reportTwoPreviewExportRef} data-guidance="studio-report-canvas" data-report-approved={Boolean(approvedSnapshot)} data-report-id={approvedSnapshot?.id || persistedReport?.id || ""} data-report-two-snapshot-source="preview" data-report-two-interactive-preview={isInteractiveReportTwoPreview ? "true" : undefined} className={["report-two-a4-host", reportTwoPreviewModeClass, selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID ? "report-two-official-activity-card" : "", "w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <ReportTwoOfficialActivitySignatureStyle
               enabled={selectedVariantId === OFFICIAL_ACTIVITY_CARD_VARIANT_ID}
             />
@@ -5152,6 +5208,12 @@ export function ReportTwoStudioRuntime({
                 max-width: 100%;
                 overflow-x: hidden;
                 overscroll-behavior-x: contain;
+              }
+
+              .report-two-a4-host[data-report-two-interactive-preview="true"] .report-two-preview-viewport {
+                overflow-x: auto;
+                overflow-y: hidden;
+                touch-action: pan-y;
               }
 
               .report-two-a4-host .report-design-logo-control-style {
@@ -5293,8 +5355,14 @@ export function ReportTwoStudioRuntime({
             <div
               ref={reportTwoPreviewViewportRef}
               className="report-two-preview-viewport box-border w-full min-w-0 overflow-hidden rounded-2xl bg-slate-50 p-3 md:p-4 min-[1180px]:p-5 dark:bg-slate-900/70"
+              dir={isInteractiveReportTwoPreview ? "ltr" : undefined}
+              style={{ touchAction: isInteractiveReportTwoPreview ? "pan-y" : undefined }}
+               onTouchStart={isInteractiveReportTwoPreview ? reportTwoPreviewInteraction.handleTouchStart : undefined}
+               onTouchMove={isInteractiveReportTwoPreview ? reportTwoPreviewInteraction.handleTouchMove : undefined}
+               onTouchEnd={isInteractiveReportTwoPreview ? reportTwoPreviewInteraction.handleTouchEnd : undefined}
+               onTouchCancel={isInteractiveReportTwoPreview ? reportTwoPreviewInteraction.handleTouchEnd : undefined}
             >
-            <div className="report-two-preview-renderer">
+            <div className="report-two-preview-renderer" dir="rtl">
             <ReportDesignRenderer
               chromeLayout="split"
               designId={
