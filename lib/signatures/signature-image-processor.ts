@@ -1,7 +1,5 @@
 import "server-only";
 
-import sharp from "sharp";
-
 const DATA_URL_PATTERN = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/;
 const MIN_SIGNATURE_BYTES = 200;
 const MAX_SIGNATURE_BYTES = 2_000_000;
@@ -16,6 +14,11 @@ export const DEFAULT_SIGNATURE_STROKE_BOOST = 2;
 export type SignatureProcessingOptions = {
   strokeBoost?: number;
 };
+
+async function loadSharp() {
+  const module = await import("sharp");
+  return module.default;
+}
 
 export function normalizeSignatureStrokeBoost(
   value: number | undefined,
@@ -53,6 +56,7 @@ export async function processSignaturePng(
   }
 
   try {
+    const sharp = await loadSharp();
     const image = sharp(buffer, { limitInputPixels: 16_000_000 }).ensureAlpha();
     const metadata = await image.metadata();
     if (!metadata.width || !metadata.height) return null;
@@ -95,6 +99,7 @@ export async function processUploadedSignature(
   }
 
   try {
+    const sharp = await loadSharp();
     const decoded = sharp(buffer, { limitInputPixels: MAX_UPLOADED_SIGNATURE_PIXELS }).ensureAlpha();
     const metadata = await decoded.metadata();
     const outputMimeType = metadata.format ? ALLOWED_UPLOADED_SIGNATURE_FORMATS.get(metadata.format) : undefined;
