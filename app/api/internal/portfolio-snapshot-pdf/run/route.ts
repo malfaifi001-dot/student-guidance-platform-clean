@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       url: previewUrl,
       gotoWaitUntil: "domcontentloaded",
       waitForSelector: '[data-portfolio-pdf-ready="true"]',
-      waitForSelectorTimeoutMs: 120_000,
+      waitForSelectorTimeoutMs: 60_000,
       debugLabel: "portfolio",
     });
     if (!isPdf(pdf) || pdf.byteLength < 100) throw new Error("CLOUDFLARE_RETURNED_INVALID_PDF");

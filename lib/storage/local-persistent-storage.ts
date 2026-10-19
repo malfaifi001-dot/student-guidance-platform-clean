@@ -1,9 +1,9 @@
 import "server-only";
 
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveStoragePath } from "./storage-paths";
-import type { StorageProvider } from "./storage-types";
+import type { StorageFileEntry, StorageProvider } from "./storage-types";
 
 export const localPersistentStorage: StorageProvider = {
   resolve: resolveStoragePath,
@@ -18,6 +18,22 @@ export const localPersistentStorage: StorageProvider = {
   },
   async exists(segments) {
     try { return (await stat(resolveStoragePath(segments))).isFile(); } catch { return false; }
+  },
+  async list(segments): Promise<readonly StorageFileEntry[]> {
+    try {
+      const directory = resolveStoragePath(segments);
+      const entries = await readdir(directory, { withFileTypes: true });
+      return (await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
+        try {
+          const details = await stat(path.join(directory, entry.name));
+          return { name: entry.name, modifiedAtMs: details.mtimeMs };
+        } catch {
+          return null;
+        }
+      }))).filter((entry): entry is StorageFileEntry => entry !== null);
+    } catch {
+      return [];
+    }
   },
   async delete(segments) {
     await rm(resolveStoragePath(segments), { force: true });

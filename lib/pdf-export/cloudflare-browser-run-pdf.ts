@@ -1,7 +1,8 @@
 import "server-only";
 
 const CLOUDFLARE_PDF_TIMEOUT_MS = 180_000;
-const CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS = 120_000;
+// Cloudflare Browser Run rejects goto/selector timeouts above 60 seconds.
+const CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS = 60_000;
 const PDF_SIGNATURE = "%PDF-";
 
 export class CloudflareBrowserRunError extends Error {

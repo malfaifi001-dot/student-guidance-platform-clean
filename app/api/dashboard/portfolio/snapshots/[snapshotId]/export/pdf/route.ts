@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sna
       url: previewUrl,
       gotoWaitUntil: "domcontentloaded",
       waitForSelector: '[data-portfolio-pdf-ready="true"]',
-      waitForSelectorTimeoutMs: 120_000,
+      waitForSelectorTimeoutMs: 60_000,
       debugLabel: "portfolio",
     });
 
