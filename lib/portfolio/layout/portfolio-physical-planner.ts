@@ -9,6 +9,7 @@ import { getPortfolioFrame } from "@/lib/portfolio/layout/portfolio-frame-regist
 import type { PortfolioThemeId } from "@/lib/portfolio/portfolio-theme-registry";
 import { portfolioPhysicalTrace } from "@/lib/portfolio/debug/portfolio-physical-trace";
 import { REAL_ACTIVITY_PLAN_STAGES, normalizeActivityPlanStage } from "@/lib/activity-plan/activity-plan-stages";
+import type { WeeklyActivityPlan } from "@/lib/activity-plan/weekly-activity-plan-service";
 
 const CURRICULUM_FIRST_PAGE_BUDGET = 30;
 const CURRICULUM_CONTINUATION_PAGE_BUDGET = 38;
@@ -24,9 +25,16 @@ function estimateTextLines(value: unknown, charsPerLine = 24) {
   return Math.max(1, Math.ceil(text.length / charsPerLine));
 }
 
+const ACTIVITY_PLAN_COLUMN_CHARS = [8, 12, 12, 17, 24, 8, 12, 15] as const;
+
 function estimateActivityPlanRowHeightMm(row: PortfolioActivityPlanRow) {
-  const values = [row.activityArea, row.activity, row.grade, row.supervisor, row.day, row.date, row.period];
-  return 5.5 + Math.max(...values.map((value) => estimateTextLines(value)));
+  const values = [row.week, row.day, row.date, row.activityArea, row.activity, row.period, row.grade, row.supervisor];
+  const lines = Math.max(
+    ...values.map((value, index) => estimateTextLines(value, ACTIVITY_PLAN_COLUMN_CHARS[index])),
+  );
+  // 8.6px text at 1.45 line-height is about 3.2mm per line. Include both
+  // cell paddings and borders so the planner never fills the footer reserve.
+  return 5.2 + lines * 3.2;
 }
 
 const TEN_PERCENT_COLUMN_CHARS = {
@@ -78,6 +86,77 @@ function splitRowsByEstimatedHeight<T>(rows: T[], estimate: (row: T) => number, 
   return pages;
 }
 
+function splitActivityPlanRowsByEstimatedHeight(rows: PortfolioActivityPlanRow[], budgetMm: number) {
+  const pages: PortfolioActivityPlanRow[][] = [];
+  let page: PortfolioActivityPlanRow[] = [];
+  let height = 0;
+  let currentStage = "";
+
+  for (const row of rows) {
+    const stage = normalizeActivityPlanStage(row.stage) || row.stage || "";
+    const stageHeadingMm = stage !== currentStage ? 9 : 0;
+    const rowHeightMm = estimateActivityPlanRowHeightMm(row);
+    if (page.length && height + stageHeadingMm + rowHeightMm > budgetMm) {
+      pages.push(page);
+      page = [];
+      height = 0;
+      currentStage = "";
+    }
+    page.push(row);
+    height += (stage !== currentStage ? 9 : 0) + rowHeightMm;
+    currentStage = stage;
+  }
+
+  if (page.length) pages.push(page);
+  return pages;
+}
+
+function estimateWeeklyBandHeightMm(weeks: WeeklyActivityPlan[]) {
+  const domainLines = Math.max(
+    1,
+    ...weeks.map((week) => week.items.reduce(
+      (total, item) => total + estimateTextLines(item.domainTitle, 13),
+      0,
+    )),
+  );
+  const programLines = Math.max(
+    1,
+    ...weeks.map((week) => week.items.reduce(
+      (total, item) => total + item.programs.reduce((sum, program) => sum + estimateTextLines(program.name, 16), 0),
+      0,
+    )),
+  );
+  // The linked matrix keeps seven weeks together for readable columns. This
+  // estimates the vertical height of that visual band; page breaks are then
+  // based on the available A4 height rather than on the number seven.
+  return 16 + domainLines * 3.2 + programLines * 3.2;
+}
+
+function splitWeeklyActivityPlanForPhysicalPages(
+  chunk: Extract<PortfolioServiceOutputChunk, { kind: "weekly-activity-plan" }>,
+  contentHeightMm: number,
+) {
+  const visualBands = splitPortfolioItems(chunk.weeks, 7);
+  const budgetMm = Math.max(120, contentHeightMm - 42);
+  const pages: WeeklyActivityPlan[][] = [];
+  let page: WeeklyActivityPlan[] = [];
+  let usedMm = 0;
+
+  for (const band of visualBands) {
+    const bandHeightMm = estimateWeeklyBandHeightMm(band);
+    if (page.length && usedMm + bandHeightMm > budgetMm) {
+      pages.push(page);
+      page = [];
+      usedMm = 0;
+    }
+    page.push(...band);
+    usedMm += bandHeightMm;
+  }
+
+  if (page.length) pages.push(page);
+  return pages.map((weeks) => ({ ...chunk, weeks }));
+}
+
 function splitServiceOutputChunkForPhysicalPages(
   chunk: PortfolioServiceOutputChunk,
   contentHeightMm: number,
@@ -95,9 +174,11 @@ function splitServiceOutputChunkForPhysicalPages(
       ...REAL_ACTIVITY_PLAN_STAGES.filter((stage) => stageGroups.has(stage)),
       ...Array.from(stageGroups.keys()).filter((stage) => !REAL_ACTIVITY_PLAN_STAGES.includes(stage)),
     ];
-    const rowPages = orderedStages.flatMap((stage) =>
-      splitRowsByEstimatedHeight(stageGroups.get(stage) || [], estimateActivityPlanRowHeightMm, safeHeightMm - 28),
-    );
+    // Keep stage ordering, but let adjacent stages share the remaining page
+    // space. The renderer adds each stage heading to the page chunk, so this
+    // avoids one mostly-empty page per stage without changing source data.
+    const orderedRows = orderedStages.flatMap((stage) => stageGroups.get(stage) || []);
+    const rowPages = splitActivityPlanRowsByEstimatedHeight(orderedRows, safeHeightMm - 28);
     return rowPages.map((rows, index) => ({
       ...chunk,
       rows,
@@ -114,8 +195,7 @@ function splitServiceOutputChunkForPhysicalPages(
     return splitRowsByEstimatedHeight(chunk.rows, (row) => 9 + estimateTextLines(`${row.label} ${row.supervisor}`, 28), safeHeightMm).map((rows) => ({ ...chunk, rows }));
   }
   if (chunk.kind === "weekly-activity-plan") {
-    const weeks = splitPortfolioItems(chunk.weeks, 7);
-    return weeks.map((items) => ({ ...chunk, weeks: items }));
+    return splitWeeklyActivityPlanForPhysicalPages(chunk, contentHeightMm);
   }
   return [chunk];
 }

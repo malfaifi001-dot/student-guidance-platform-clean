@@ -19,6 +19,29 @@ const activityPlanColumns = [
   { key: "supervisor", label: "المشرف", width: "9%" },
 ];
 
+const PORTFOLIO_SERVICE_OUTPUT_SAFETY_STYLE = `
+.portfolio-service-output-page .portfolio-page-body,
+.portfolio-service-output-page .atlas-body,
+.portfolio-service-output-page .hzn-body,
+.portfolio-service-output-page .moe24-page-body {
+  box-sizing: border-box !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.portfolio-service-output-page [data-portfolio-safe-content] table {
+  break-inside: auto;
+  page-break-inside: auto;
+}
+.portfolio-service-output-page [data-portfolio-safe-content] thead {
+  display: table-header-group;
+}
+.portfolio-service-output-page [data-portfolio-safe-content] tbody tr {
+  break-inside: avoid-page;
+  page-break-inside: avoid;
+}
+`;
+
 function getWeeklyPlanStats(weeks: WeeklyActivityPlan[]) {
   const activeDomains = new Set(weeks.flatMap((week) => week.items.filter((item) => item.programs.length > 0).map((item) => item.domainServiceSlug)));
   return {
@@ -35,6 +58,7 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
     const stats = getWeeklyPlanStats(chunk.weeks);
     return (
       <div className={`${prefix}-activity-output-body weekly-activity-plan-achievement-output`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="weekly-activity-plan">
+        <style>{PORTFOLIO_SERVICE_OUTPUT_SAFETY_STYLE}</style>
         <style>{`.weekly-activity-plan-achievement-output{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.weekly-activity-plan-achievement-output .weekly-plan-bands{gap:3px!important}.weekly-activity-plan-achievement-output table{font-size:7px!important}.weekly-activity-plan-achievement-output th,.weekly-activity-plan-achievement-output td{padding:2px!important}.weekly-activity-plan-achievement-output .weekly-plan-band{break-inside:avoid;page-break-inside:avoid}.weekly-activity-plan-achievement-output .weekly-plan-band+ .weekly-plan-band{margin-top:3px}`}</style>
         <style>{`.${prefix}-activity-plan-stats{display:flex;flex-wrap:wrap;gap:2mm;margin:0 0 2mm;font-size:9px;line-height:1.4}.${prefix}-activity-plan-stats b{padding:1.5mm 2mm;border:1px solid #c9a77e;border-radius:1.5mm;color:#604a35;background:#fffaf4}.${prefix}-activity-plan-stats strong{margin-inline-start:1mm;font-size:11px}`}</style>
         <h3 className={`${prefix}-activity-plan-stage-heading`}>{chunk.stage} · الخطة الفصلية للنشاط الطلابي</h3>
@@ -47,6 +71,7 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
   if (chunk.kind === "activity-team") {
     return (
       <div className={`${prefix}-activity-output-body ${prefix}-activity-team-output-body`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="table">
+        <style>{PORTFOLIO_SERVICE_OUTPUT_SAFETY_STYLE}</style>
         <style>{`.portfolio-structured-table-wrap{width:100%;overflow:hidden}.${prefix}-activity-output-body{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.${prefix}-activity-output-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.2px;line-height:1.4}.${prefix}-activity-output-table th,.${prefix}-activity-output-table td{padding:1.7mm 2mm;overflow-wrap:anywhere;text-align:right;vertical-align:middle}.${prefix}-activity-output-table thead th{font-weight:800}.${prefix}-activity-output-table tbody tr{break-inside:avoid;page-break-inside:avoid}.${prefix}-activity-team-output-body{break-inside:avoid;page-break-inside:avoid}.portfolio-structured-table-signature{display:block;max-width:22mm;max-height:8mm;margin:auto;object-fit:contain}`}</style>
         <style>{`.${prefix}-activity-team-output-body .${prefix}-activity-output-table th{color:#604a35;background:#f2e9df;border:1px solid #d8c7b4}.${prefix}-activity-team-output-body .${prefix}-activity-output-table td{border:1px solid #e4d9cd;background:#fff}`}</style>
         <PortfolioStructuredTable className={`${prefix}-activity-output-table`} columns={[{ key: "number", label: "م", width: "9%" }, { key: "field", label: "مجال النشاط", width: "43%" }, { key: "supervisor", label: "اسم المشرف", width: "28%" }, { key: "signature", label: "التوقيع", width: "20%" }]} rows={activityTeamTableRows(chunk.rows)} />
@@ -69,6 +94,7 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
     }));
     return (
       <div className={`${prefix}-activity-output-body ${prefix}-ten-percent-output-body`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="table">
+        <style>{PORTFOLIO_SERVICE_OUTPUT_SAFETY_STYLE}</style>
         <style>{`.${prefix}-ten-percent-output-body{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.${prefix}-ten-percent-output-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:8.3px;line-height:1.35}.${prefix}-ten-percent-output-table th,.${prefix}-ten-percent-output-table td{padding:1.8mm 1.5mm;border:1px solid #d8c7b4;overflow-wrap:anywhere;text-align:right;vertical-align:middle;white-space:pre-line}.${prefix}-ten-percent-output-table th{color:#604a35;background:#f2e9df;font-weight:900}.${prefix}-ten-percent-output-table td{background:#fff;color:#263238;font-weight:700}.${prefix}-ten-percent-output-heading{margin:0 0 2mm;padding:2mm 3mm;color:#684b08;background:#fff8e7;border-inline-start:1.5mm solid #c48a18;font-size:12px;font-weight:900;break-after:avoid}`}</style>
         <h3 className={`${prefix}-ten-percent-output-heading`}>{chunk.stage} · الخطة الفصلية (10%)</h3>
         <PortfolioStructuredTable className={`${prefix}-ten-percent-output-table`} columns={[{ key: "domain", label: "المجال", width: "18%" }, { key: "program", label: "البرنامج", width: "23%" }, { key: "periods", label: "عدد الحصص", width: "10%" }, { key: "weeks", label: "أسبوع التنفيذ", width: "12%" }, { key: "subject", label: "مادة 10%", width: "12%" }, { key: "grades", label: "الصف", width: "13%" }, { key: "teachers", label: "المعلم", width: "12%" }]} rows={tableRows} />
@@ -80,6 +106,7 @@ export function ActivityLeaderServiceOutputContent({ chunk, design }: { chunk: P
     const rowsByStage = new Map(REAL_ACTIVITY_PLAN_STAGES.map((stage) => [stage, chunk.rows.filter((row) => row.stage === stage)]));
     return (
       <div className={`${prefix}-activity-output-body`} data-portfolio-smart-block="service-output" data-portfolio-smart-role="table">
+        <style>{PORTFOLIO_SERVICE_OUTPUT_SAFETY_STYLE}</style>
         <style>{`.portfolio-structured-table-wrap{width:100%;overflow:hidden}.${prefix}-activity-output-body{font-family:var(--font-cairo),"Cairo",Tahoma,Arial,sans-serif}.${prefix}-activity-output-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:8.6px;line-height:1.45}.${prefix}-activity-output-table th,.${prefix}-activity-output-table td{padding:1.5mm 1.4mm;overflow-wrap:anywhere;text-align:right;vertical-align:middle}.${prefix}-activity-output-table thead th{font-weight:800}.${prefix}-activity-output-table tbody tr{break-inside:avoid;page-break-inside:avoid}.${prefix}-activity-plan-summary{break-inside:avoid;page-break-inside:avoid}.${prefix}-activity-plan-meta,.${prefix}-activity-plan-stats{display:flex;flex-wrap:wrap;gap:2mm;margin-bottom:2mm;font-size:9px;line-height:1.4}.${prefix}-activity-plan-meta span,.${prefix}-activity-plan-stats b{padding:1.5mm 2mm;border:1px solid currentColor;border-radius:1.5mm}.${prefix}-activity-plan-stats strong{margin-inline-start:1mm;font-size:11px}.${prefix}-activity-plan-stage{margin-top:4mm;border:1px solid #d8c7b4;border-radius:2mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid}.${prefix}-activity-plan-stage:first-child{margin-top:0}.${prefix}-activity-plan-stage-heading{margin:0;padding:2mm 3mm;color:#604a35;background:#fbf7f2;border-inline-start:1.5mm solid #c9a77e;font-size:12px;font-weight:900}.${prefix}-activity-plan-stage .portfolio-structured-table-wrap{padding:0 2mm 2mm;background:#fffdfb}.${prefix}-activity-plan-stage .${prefix}-activity-output-table thead th{color:#604a35;background:#f2e9df;border-color:#d8c7b4}.${prefix}-activity-plan-stage .${prefix}-activity-output-table td{border-color:#e4d9cd;background:#fff}.${prefix}-activity-plan-share{display:flex;align-items:center;justify-content:space-between;gap:5mm;margin-top:3mm;padding:2.5mm 3mm;border:1px solid currentColor;break-inside:avoid}.${prefix}-activity-plan-share img{width:28mm;height:28mm;object-fit:contain}.${prefix}-activity-plan-share strong,.${prefix}-activity-plan-share a,.${prefix}-activity-plan-share small{display:block}.${prefix}-activity-plan-share a{margin-top:1mm;text-decoration:underline;font-weight:900}.${prefix}-activity-plan-share small{margin-top:1mm;direction:ltr;font-size:7px;overflow-wrap:anywhere}`}</style>
         {chunk.summary ? <div className={`${prefix}-activity-plan-summary`}>
           <div className={`${prefix}-activity-plan-meta`}><span>العام الدراسي: {chunk.summary.academicYear || "—"}</span><span>الفصل: {chunk.summary.semester || "—"}</span></div>
