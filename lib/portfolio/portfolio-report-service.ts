@@ -9,11 +9,18 @@ import { normalizePortfolioReportPayload, type PortfolioReportContent } from "@/
 import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioManagedEvidence, PortfolioManagedReport, PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
 import { ACTIVITY_LEADER_SERVICE_SLUGS, ACTIVITY_SERVICE_TARGET_TYPE, LEGACY_ACTIVITY_PROGRAM_TARGET_TYPE } from "@/lib/special-report/report-linking";
 import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
-import { formatWorkflowDisplayValue } from "@/lib/workflow-values/workflow-display-value";
+import { normalizeCaseValues } from "@/lib/report-engine/smart-report-payload-builder";
 
 type JsonMap = Record<string, unknown>;
 type PortfolioPerfTrace = { traceId: string };
 type EligibleReport = Omit<PortfolioManagedReport, "itemId" | "isVisible" | "sortOrder" | "isPersisted" | "isAvailable" | "evidence"> & { content: PortfolioReportContent };
+type WorkflowCaseEntry = {
+  values?: unknown[];
+  title?: string | null;
+  workflowSnapshot?: unknown;
+  workflow?: { name?: string | null } | null;
+  service?: { name?: string | null } | null;
+};
 
 function portfolioPerfLog(trace: PortfolioPerfTrace | undefined, stage: string, durationMs: number, details: Record<string, unknown> = {}) {
   if (process.env.PORTFOLIO_PERF_TRACE !== "1" || !trace) return;
@@ -49,22 +56,32 @@ function withEvidence(content: PortfolioReportContent | null, fallback: Paramete
   return { ...(content || emptyContent(fallback)), evidenceItems: fallback.evidence };
 }
 
-function withWorkflowDisplayValues(content: PortfolioReportContent, caseEntry: any) {
-  const values = Array.isArray(caseEntry?.values) ? caseEntry.values : [];
+function withWorkflowDisplayValues(content: PortfolioReportContent, caseEntry: unknown) {
+  const entry = caseEntry && typeof caseEntry === "object" ? caseEntry as WorkflowCaseEntry : null;
+  if (!entry) return content;
+
+  const values = Array.isArray(entry.values) ? entry.values : [];
   if (!values.length) return content;
 
+  // Reuse the Report-2 normalizer so current DynamicFieldOption metadata and
+  // the immutable workflow snapshot follow the same display rules, including
+  // multi-select and companion __other values.
+  const normalizedValues = normalizeCaseValues(entry);
   const displayByFieldKey = new Map<string, string>(
-    values.map((value: any) => [
-      String(value.field?.key || value.fieldKey || "").trim(),
-      formatWorkflowDisplayValue(value, values),
-    ]),
+    normalizedValues.flatMap((value) => {
+      const key = String(value.key || "").trim();
+      return key ? [[key, value.value], [key.toLowerCase(), value.value]] : [];
+    }),
   );
   const mapFields = (fields: PortfolioReportContent["primaryFields"]) =>
     fields.map((field) => ({
       ...field,
-      value: displayByFieldKey.get(field.key) || field.value,
+      value:
+        displayByFieldKey.get(field.key) ||
+        displayByFieldKey.get(field.key.toLowerCase()) ||
+        field.value,
     }));
-  const title = resolveArabicCaseReportTitle(caseEntry);
+  const title = resolveArabicCaseReportTitle(entry as Parameters<typeof resolveArabicCaseReportTitle>[0]);
 
   return {
     ...content,
@@ -294,18 +311,28 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
       const evidence = report.evidenceItems.map((item) => ({ id: item.id, title: item.caption || item.fileName, url: item.fileUrl || null, type: item.mimeType?.startsWith("image/") ? "IMAGE" : item.mimeType || "FILE" }));
       const serviceName = report.caseEntry.service.name || report.serviceSlug;
       const base = normalizePortfolioReportPayload(report.reportDataSnapshot);
-      results.push({ sourceId: report.id, sourceType: "GUIDANCE_REPORT", sectionId: section.id, sectionKey: section.key, title: report.title, serviceName, caseTitle: report.caseEntry.title, status: report.status, generatedAt: (report.generatedAt || report.approvedAt)?.toISOString() || null, createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report/${report.id}/preview`, content: withEvidence(base, { title: report.title, serviceName, issuedAt: report.generatedAt?.toISOString() || null, evidence }) });
+      const content = withWorkflowDisplayValues(
+        withEvidence(base, { title: report.title, serviceName, issuedAt: report.generatedAt?.toISOString() || null, evidence }),
+        workflowDisplayCaseById.get(report.caseEntryId),
+      );
+      results.push({ sourceId: report.id, sourceType: "GUIDANCE_REPORT", sectionId: section.id, sectionKey: section.key, title: report.title, serviceName, caseTitle: report.caseEntry.title, status: report.status, generatedAt: (report.generatedAt || report.approvedAt)?.toISOString() || null, createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report/${report.id}/preview`, content });
     } else {
       const report = linkedSnapshots.find((item) => item.id === link.sourceId);
       const activeReport = linkedActive.find((item) => item.id === link.sourceId);
       if (!report && !activeReport) continue;
       if (!report && activeReport) {
-        const content = normalizePortfolioReportPayload(activeReport.sourcePayload) || emptyContent({ title: activeReport.reportTitle, serviceName: activeReport.serviceName || activeReport.serviceSlug || "تقرير", issuedAt: activeReport.approvedAt?.toISOString() || activeReport.savedAt.toISOString(), evidence: [] });
+        const content = withWorkflowDisplayValues(
+          normalizePortfolioReportPayload(activeReport.sourcePayload) || emptyContent({ title: activeReport.reportTitle, serviceName: activeReport.serviceName || activeReport.serviceSlug || "تقرير", issuedAt: activeReport.approvedAt?.toISOString() || activeReport.savedAt.toISOString(), evidence: [] }),
+          workflowDisplayCaseById.get(activeReport.caseEntryId),
+        );
         results.push({ sourceId: activeReport.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || activeReport.reportTitle, serviceName: content.serviceName || activeReport.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: (activeReport.approvedAt || activeReport.savedAt).toISOString(), createdAt: activeReport.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${activeReport.id}/preview`, content });
         continue;
       }
       if (!report) continue;
-      const content = normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt.toISOString(), evidence: [] });
+      const content = withWorkflowDisplayValues(
+        normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt.toISOString(), evidence: [] }),
+        workflowDisplayCaseById.get(report.caseEntryId),
+      );
       results.push({ sourceId: report.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || report.reportTitle, serviceName: content.serviceName || report.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: report.approvedAt.toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
     }
   }
@@ -318,7 +345,10 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
       const evidence = report.evidenceItems.map((item) => ({ id: item.id, title: item.caption || item.fileName, url: item.fileUrl || null, type: item.mimeType?.startsWith("image/") ? "IMAGE" : item.mimeType || "FILE" }));
       const serviceName = assignment.sourceService?.name || assignment.sourceServiceNameSnapshot || assignment.sourceServiceSlugSnapshot || "تقرير مستلم";
       const issuedAt = (assignment.submittedAt || report.generatedAt)?.toISOString() || null;
-      const content = withEvidence(normalizePortfolioReportPayload(report.reportDataSnapshot), { title: report.title, serviceName, issuedAt, evidence });
+      const content = withWorkflowDisplayValues(
+        withEvidence(normalizePortfolioReportPayload(report.reportDataSnapshot), { title: report.title, serviceName, issuedAt, evidence }),
+        workflowDisplayCaseById.get(report.caseEntryId),
+      );
       results.push({ sourceId: assignment.id, sourceType: "GUIDANCE_REPORT", sectionId: section.id, sectionKey: section.key, title: assignment.reportTitleSnapshot || report.title, serviceName, caseTitle, status: assignment.status, generatedAt: issuedAt, createdAt: assignment.createdAt.toISOString(), previewUrl: `/dashboard/reports/${report.id}/preview`, content });
       continue;
     }
@@ -326,7 +356,10 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
       const report = assignment.reportSnapshot;
       const serviceName = assignment.sourceService?.name || assignment.sourceServiceNameSnapshot || report.serviceName || report.serviceSlug || "تقرير مستلم";
       const issuedAt = (assignment.submittedAt || report.approvedAt).toISOString();
-      const content = normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName, issuedAt, evidence: [] });
+      const content = withWorkflowDisplayValues(
+        normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName, issuedAt, evidence: [] }),
+        workflowDisplayCaseById.get(report.caseEntryId),
+      );
       results.push({ sourceId: assignment.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: assignment.reportTitleSnapshot || content.title || report.reportTitle, serviceName: content.serviceName || serviceName, caseTitle, status: assignment.status, generatedAt: issuedAt, createdAt: assignment.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
     }
   }
