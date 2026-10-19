@@ -81,7 +81,11 @@ export async function GET(request: Request) {
     try {
       result = await withSharpSlot(() => transformImage(original, details.mimeType));
     } catch (error) {
-      console.warn("PORTFOLIO_SNAPSHOT_IMAGE_TRANSFORM_FALLBACK", { source, error: error instanceof Error ? error.message : String(error) });
+      console.warn("PORTFOLIO_SNAPSHOT_IMAGE_TRANSFORM_FALLBACK", {
+        optimized: false,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorCode: error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : null,
+      });
       result = { body: original, mimeType: details.mimeType };
     }
     return new NextResponse(new Uint8Array(result.body), {

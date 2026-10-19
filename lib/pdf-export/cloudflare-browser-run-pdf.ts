@@ -1,6 +1,7 @@
 import "server-only";
 
 const CLOUDFLARE_PDF_TIMEOUT_MS = 180_000;
+const CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS = 120_000;
 const PDF_SIGNATURE = "%PDF-";
 
 export class CloudflareBrowserRunError extends Error {
@@ -33,7 +34,7 @@ export async function generatePdfFromUrlWithCloudflare({
   request,
   waitForSelector = ".pdf-report-page",
   gotoWaitUntil = "networkidle2",
-  waitForSelectorTimeoutMs = 45_000,
+  waitForSelectorTimeoutMs = CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS,
   debugLabel,
   landscape = false,
 }: {
@@ -80,7 +81,7 @@ export async function generatePdfFromUrlWithCloudflare({
     ...(cookies ? { cookies } : {}),
     gotoOptions: {
       waitUntil: gotoWaitUntil,
-      timeout: 45_000,
+      timeout: CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS,
     },
     waitForSelector: {
       selector: waitForSelector,

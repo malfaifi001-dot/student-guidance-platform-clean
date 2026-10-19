@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
-import { getPortfolioRoutes } from "@/lib/portfolio/portfolio-routes";
+import { assertPortfolioExportImageSourcesAvailable, createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
 import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
 import { generatePdfFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
+import { getPortfolioPublicOrigin } from "@/lib/portfolio/portfolio-public-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,18 +26,20 @@ function responseWithPdf(pdf: Uint8Array, fileName: string) {
   });
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
   try {
     const user = await requirePortfolioApiUser();
     const { snapshotId } = await params;
     const snapshot = await getPortfolioSnapshot(user, snapshotId);
-    const origin = new URL(request.url).origin;
-    const snapshotPath = `${getPortfolioRoutes(user.role).snapshots}/${encodeURIComponent(snapshotId)}`;
-    const previewUrl = `${origin}${snapshotPath}?pdf=1`;
+    await assertPortfolioExportImageSourcesAvailable(snapshot.document);
+    const token = await createPortfolioExportToken(snapshot.document);
+    const previewUrl = `${getPortfolioPublicOrigin()}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     const pdf = await generatePdfFromUrlWithCloudflare({
-      request,
       url: previewUrl,
-      waitForSelector: ".portfolio-page, .portfolio-report-page",
+      gotoWaitUntil: "domcontentloaded",
+      waitForSelector: '[data-portfolio-pdf-ready="true"]',
+      waitForSelectorTimeoutMs: 120_000,
+      debugLabel: "portfolio",
     });
 
     return responseWithPdf(pdf, pdfFileName(snapshot.name));
