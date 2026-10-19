@@ -22,7 +22,11 @@ export function portfolioSnapshotPdfStorageSegments(snapshotId: string, contentH
 
 function sanitizeError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  return message.replace(/[\r\n]+/g, " ").slice(0, 1000);
+  return message
+    .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted-url]")
+    .replace(/token=[^&\s]+/gi, "token=[redacted]")
+    .replace(/[\r\n]+/g, " ")
+    .slice(0, 1000);
 }
 
 function nextRetryAt(attemptCount: number) {
@@ -66,49 +70,36 @@ export async function recoverExpiredPortfolioSnapshotPdfJobs() {
 }
 
 export async function claimNextPortfolioSnapshotPdfJob() {
-  const debug = process.env.NODE_ENV === "development" && process.env.PORTFOLIO_PDF_CLAIM_DEBUG === "1";
-  let candidateFound = false;
-  let claimAttempted = false;
+  await recoverExpiredPortfolioSnapshotPdfJobs();
+  const now = new Date();
+  const candidate = await prisma.portfolioSnapshotPdfArtifact.findFirst({
+    where: {
+      status: "PENDING",
+      OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!candidate) return { kind: "NO_ELIGIBLE_JOB" as const };
 
-  try {
-    await recoverExpiredPortfolioSnapshotPdfJobs();
-    const now = new Date();
-    const candidate = await prisma.portfolioSnapshotPdfArtifact.findFirst({
-      where: {
-        status: "PENDING",
-        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
-      },
-      orderBy: { createdAt: "asc" },
-    });
-    candidateFound = Boolean(candidate);
-    if (!candidate) {
-      if (debug) console.info("PORTFOLIO_PDF_CLAIM_DEBUG", { candidateFound, claimAttempted });
-      return null;
-    }
+  const claimToken = randomUUID();
+  const claimed = await prisma.portfolioSnapshotPdfArtifact.updateMany({
+    where: { id: candidate.id, status: "PENDING", contentHash: candidate.contentHash },
+    data: {
+      status: "PROCESSING",
+      claimToken,
+      leaseExpiresAt: new Date(Date.now() + LEASE_MS),
+      attemptCount: { increment: 1 },
+      lastError: null,
+    },
+  });
+  if (claimed.count !== 1) return { kind: "CLAIM_CONFLICT" as const };
 
-    const claimToken = randomUUID();
-    claimAttempted = true;
-    const claimed = await prisma.portfolioSnapshotPdfArtifact.updateMany({
-      where: { id: candidate.id, status: "PENDING", contentHash: candidate.contentHash },
-      data: {
-        status: "PROCESSING",
-        claimToken,
-        leaseExpiresAt: new Date(Date.now() + LEASE_MS),
-        attemptCount: { increment: 1 },
-        lastError: null,
-      },
-    });
-    if (debug) console.info("PORTFOLIO_PDF_CLAIM_DEBUG", { candidateFound, claimAttempted, affectedRows: claimed.count === 1 ? 1 : 0 });
-    if (claimed.count !== 1) return null;
-
-    return prisma.portfolioSnapshotPdfArtifact.findUnique({
-      where: { id: candidate.id },
-      include: { snapshot: { select: { id: true, snapshotJson: true } } },
-    });
-  } catch (error) {
-    if (debug) console.info("PORTFOLIO_PDF_CLAIM_DEBUG", { candidateFound, claimAttempted, errorClass: error instanceof Error ? error.constructor.name : "UnknownError" });
-    throw error;
-  }
+  const job = await prisma.portfolioSnapshotPdfArtifact.findUnique({
+    where: { id: candidate.id },
+    include: { snapshot: { select: { id: true, snapshotJson: true } } },
+  });
+  if (!job) return { kind: "CLAIM_CONFLICT" as const };
+  return { kind: "CLAIMED" as const, job };
 }
 
 export async function completePortfolioSnapshotPdfJob(input: {
@@ -137,10 +128,10 @@ export async function failPortfolioSnapshotPdfJob(input: { id: string; claimToke
     where: { id: input.id, status: "PROCESSING", claimToken: input.claimToken },
     select: { attemptCount: true },
   });
-  if (!current) return { count: 0 };
+  if (!current) return { count: 0, retryable: false };
 
   const retryable = current.attemptCount < MAX_ATTEMPTS;
-  return prisma.portfolioSnapshotPdfArtifact.updateMany({
+  const result = await prisma.portfolioSnapshotPdfArtifact.updateMany({
     where: { id: input.id, status: "PROCESSING", claimToken: input.claimToken },
     data: retryable
       ? {
@@ -158,6 +149,7 @@ export async function failPortfolioSnapshotPdfJob(input: { id: string; claimToke
           lastError: sanitizeError(input.error),
         },
   });
+  return { count: result.count, retryable };
 }
 
 export async function getPortfolioSnapshotPdfArtifact(snapshotId: string, document: unknown) {

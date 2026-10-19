@@ -3,6 +3,10 @@ import "server-only";
 const CLOUDFLARE_PDF_TIMEOUT_MS = 60_000;
 const PDF_SIGNATURE = "%PDF-";
 
+function cloudflareLog(stage: string, details: Record<string, unknown>) {
+  console.info(`PORTFOLIO_CLOUDFLARE ${JSON.stringify({ stage, ...details })}`);
+}
+
 export async function generatePdfFromUrlWithCloudflare({
   url,
   request,
@@ -72,8 +76,7 @@ export async function generatePdfFromUrlWithCloudflare({
   };
 
   if (debugLabel === "portfolio") {
-    console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-      stage: "fetch-start",
+    cloudflareLog("fetch-start", {
       elapsedMs: 0,
       cloudflareTimeoutMs: CLOUDFLARE_PDF_TIMEOUT_MS,
       gotoWaitUntil,
@@ -98,8 +101,7 @@ export async function generatePdfFromUrlWithCloudflare({
     );
 
     if (debugLabel === "portfolio") {
-      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-        stage: "fetch-response",
+      cloudflareLog("fetch-response", {
         elapsedMs: Date.now() - startedAt,
         status: response.status,
         ok: response.ok,
@@ -116,8 +118,7 @@ export async function generatePdfFromUrlWithCloudflare({
     const pdfBytes = new Uint8Array(await response.arrayBuffer());
 
     if (debugLabel === "portfolio") {
-      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-        stage: "pdf-bytes-ready",
+      cloudflareLog("pdf-bytes-ready", {
         elapsedMs: Date.now() - startedAt,
         bytesLength: pdfBytes.length,
       });
@@ -132,11 +133,9 @@ export async function generatePdfFromUrlWithCloudflare({
     return pdfBytes;
   } catch (error) {
     if (debugLabel === "portfolio") {
-      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-        stage: "fetch-error",
+      cloudflareLog("fetch-error", {
         elapsedMs: Date.now() - startedAt,
         errorName: error instanceof Error ? error.name : "UnknownError",
-        errorMessage: error instanceof Error ? error.message : String(error),
         abortedByLocalController: controller.signal.aborted,
       });
     }
@@ -144,8 +143,7 @@ export async function generatePdfFromUrlWithCloudflare({
     throw error;
   } finally {
     if (debugLabel === "portfolio") {
-      console.info("PORTFOLIO_CLOUDFLARE_DEBUG", {
-        stage: "fetch-finished",
+      cloudflareLog("fetch-finished", {
         elapsedMs: Date.now() - startedAt,
       });
     }
