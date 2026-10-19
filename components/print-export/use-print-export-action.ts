@@ -5,6 +5,7 @@ import {
   appendDownloadRequestId,
   buildPrintUrl,
   createDownloadRequestId,
+  waitForBrowserDownloadAcknowledgement,
   downloadBlobAsFile,
   startDirectBrowserDownload,
 } from "@/lib/print-export/print-export-download";
@@ -95,33 +96,6 @@ function portfolioDownloadPathname(url: string) {
   } catch {
     return "";
   }
-}
-
-function hasBrowserCookie(name: string) {
-  return document.cookie.split(";").some((entry) => entry.trim() === `${name}=1`);
-}
-
-function clearBrowserCookie(name: string) {
-  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-}
-
-async function waitForDownloadAcknowledgement(
-  cookieName: string,
-  timeoutMs: number,
-  signal: AbortSignal,
-) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    if (signal.aborted) throw new Error("DIRECT_DOWNLOAD_CANCELLED");
-    if (hasBrowserCookie(cookieName)) {
-      clearBrowserCookie(cookieName);
-      return Date.now() - startedAt;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 450));
-  }
-
-  throw new Error("DIRECT_DOWNLOAD_ACK_TIMEOUT");
 }
 
 export function usePrintExportAction() {
@@ -326,7 +300,7 @@ export function usePrintExportAction() {
               directDownloadAbortRef.current?.abort();
               directDownloadAbortRef.current = controller;
               try {
-                const elapsedMs = await waitForDownloadAcknowledgement(
+                const elapsedMs = await waitForBrowserDownloadAcknowledgement(
                   cookieName,
                   acknowledgement.timeoutMs || 85_000,
                   controller.signal,

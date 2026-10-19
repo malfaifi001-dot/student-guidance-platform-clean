@@ -2,12 +2,25 @@
 
 import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import { NativeDownloadLink } from "@/components/downloads/native-download-link";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
 import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
+import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import {
+  clearBrowserDownloadAcknowledgement,
+  createDownloadRequestId,
+  waitForBrowserDownloadAcknowledgement,
+} from "@/lib/print-export/print-export-download";
+
+type SnapshotDownloadState = {
+  status: "preparing" | "idle";
+  elapsedSeconds: number;
+};
+
+const DOWNLOAD_ACK_TIMEOUT_MS = 195_000;
 
 export function PortfolioSavedCopies({
   portfolioId,
@@ -23,6 +36,106 @@ export function PortfolioSavedCopies({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadStates, setDownloadStates] = useState<Record<string, SnapshotDownloadState>>({});
+  const [downloadRequestIds, setDownloadRequestIds] = useState<Record<string, string>>({});
+  const downloadTimersRef = useRef(new Map<string, {
+    interval: ReturnType<typeof setInterval>;
+    timeout: ReturnType<typeof setTimeout>;
+    controller: AbortController;
+    cookieName: string;
+  }>());
+
+  function clearDownloadTimer(snapshotId: string) {
+    const timer = downloadTimersRef.current.get(snapshotId);
+    if (!timer) return;
+    clearInterval(timer.interval);
+    clearTimeout(timer.timeout);
+    timer.controller.abort();
+    clearBrowserDownloadAcknowledgement(timer.cookieName);
+    downloadTimersRef.current.delete(snapshotId);
+  }
+
+  function removeDownloadRequestId(snapshotId: string) {
+    setDownloadRequestIds((ids) => {
+      const next = { ...ids };
+      delete next[snapshotId];
+      return next;
+    });
+  }
+
+  function finishDownloadPreparation(snapshotId: string) {
+    if (!downloadTimersRef.current.has(snapshotId)) return;
+    clearDownloadTimer(snapshotId);
+    removeDownloadRequestId(snapshotId);
+    setDownloadStates((states) => ({
+      ...states,
+      [snapshotId]: { status: "idle", elapsedSeconds: 0 },
+    }));
+    setFeedback({
+      type: "success",
+      title: "بدأ تنزيل ملف PDF",
+      description: "تم إرسال ملف PDF إلى المتصفح، وقد يستمر التنزيل في الخلفية.",
+    });
+  }
+
+  function handleDownloadClick(snapshot: PortfolioSnapshotListItem, event: MouseEvent<HTMLAnchorElement>) {
+    if (isNativeCapacitor()) return;
+
+    if (downloadStates[snapshot.id]?.status === "preparing") {
+      event.preventDefault();
+      return;
+    }
+
+    const requestId = downloadRequestIds[snapshot.id] || createDownloadRequestId();
+    setDownloadRequestIds((ids) => ({ ...ids, [snapshot.id]: requestId }));
+    event.currentTarget.href = `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf?downloadRequestId=${encodeURIComponent(requestId)}`;
+    const cookieName = `teachix_portfolio_download_${requestId}`;
+    const controller = new AbortController();
+    let elapsedSeconds = 0;
+    const interval = setInterval(() => {
+      elapsedSeconds += 1;
+      setDownloadStates((states) => ({
+        ...states,
+        [snapshot.id]: {
+          status: "preparing",
+          elapsedSeconds,
+        },
+      }));
+    }, 1000);
+    const timeout = setTimeout(() => {
+      clearDownloadTimer(snapshot.id);
+      removeDownloadRequestId(snapshot.id);
+      setDownloadStates((states) => ({
+        ...states,
+        [snapshot.id]: { status: "idle", elapsedSeconds: 0 },
+      }));
+      setFeedback({
+        type: "error",
+        title: "تعذر تأكيد بدء تنزيل PDF",
+        description: "لم نتمكن من تأكيد بدء التنزيل خلال المهلة، وقد يستمر المتصفح في التنزيل. يمكنك المحاولة مرة أخرى.",
+      });
+    }, DOWNLOAD_ACK_TIMEOUT_MS);
+
+    downloadTimersRef.current.set(snapshot.id, { interval, timeout, controller, cookieName });
+    setDownloadStates((states) => ({
+      ...states,
+      [snapshot.id]: { status: "preparing", elapsedSeconds: 0 },
+    }));
+
+    void waitForBrowserDownloadAcknowledgement(cookieName, DOWNLOAD_ACK_TIMEOUT_MS, controller.signal)
+      .then(() => finishDownloadPreparation(snapshot.id))
+      .catch(() => undefined);
+  }
+
+  useEffect(() => () => {
+    for (const [snapshotId, timer] of downloadTimersRef.current) {
+      clearInterval(timer.interval);
+      clearTimeout(timer.timeout);
+      timer.controller.abort();
+      clearBrowserDownloadAcknowledgement(timer.cookieName);
+      downloadTimersRef.current.delete(snapshotId);
+    }
+  }, []);
 
   function confirmDelete(snapshot: PortfolioSnapshotListItem) {
     setFeedback({
@@ -118,10 +231,25 @@ export function PortfolioSavedCopies({
                   <NativeDownloadLink
                     href={`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`}
                     fileName={`${snapshot.name}.pdf`}
+                    onClick={(event) => handleDownloadClick(snapshot, event)}
+                    ariaBusy={downloadStates[snapshot.id]?.status === "preparing"}
+                    ariaLabel={downloadStates[snapshot.id]?.status === "preparing" ? "جارٍ تجهيز PDF" : "تحميل ملف PDF"}
                     className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
                   >
-                    <Download className="h-4 w-4" /> تحميل
+                    {downloadStates[snapshot.id]?.status === "preparing" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {downloadStates[snapshot.id]?.status === "preparing" ? "جارٍ تجهيز PDF..." : "تحميل"}
                   </NativeDownloadLink>
+                  {downloadStates[snapshot.id]?.status === "preparing" ? (
+                    <div className="basis-full rounded-2xl border border-sky-100 bg-sky-50/70 p-3 text-xs font-bold text-sky-800" role="status" aria-live="polite">
+                      <div className="flex items-center justify-between gap-3">
+                        <span>جارٍ تجهيز PDF...</span>
+                        <span className="tabular-nums">{String(Math.floor(downloadStates[snapshot.id].elapsedSeconds / 60)).padStart(2, "0")}:{String(downloadStates[snapshot.id].elapsedSeconds % 60).padStart(2, "0")}</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sky-100" aria-hidden="true">
+                        <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-600" />
+                      </div>
+                    </div>
+                  ) : null}
                   <button
                     type="button"
                     disabled={deletingId === snapshot.id || deletingId !== null}

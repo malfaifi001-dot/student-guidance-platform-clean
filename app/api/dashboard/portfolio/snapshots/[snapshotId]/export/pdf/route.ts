@@ -12,6 +12,13 @@ function pdfFileName(title: string) {
   return `${safe || "نسخة-ملف-الإنجاز"}.pdf`;
 }
 
+const DOWNLOAD_REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{16,48}$/;
+
+function getDownloadRequestId(request: Request) {
+  const value = new URL(request.url).searchParams.get("downloadRequestId") || "";
+  return DOWNLOAD_REQUEST_ID_PATTERN.test(value) ? value : "";
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
   try {
     const user = await requirePortfolioApiUser();
@@ -33,6 +40,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ snap
     });
     if (pdf.contentLength !== null) {
       headers.set("Content-Length", String(pdf.contentLength));
+    }
+    const downloadRequestId = getDownloadRequestId(request);
+    if (downloadRequestId) {
+      headers.set(
+        "Set-Cookie",
+        `teachix_portfolio_download_${downloadRequestId}=1; Path=/; Max-Age=300; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+      );
     }
 
     return new Response(pdf.body, { headers });

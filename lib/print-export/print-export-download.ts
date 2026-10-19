@@ -22,6 +22,33 @@ export function appendDownloadRequestId(url: string, requestId: string) {
     : parsed.toString();
 }
 
+export function hasBrowserDownloadAcknowledgement(cookieName: string) {
+  return document.cookie.split(";").some((entry) => entry.trim() === `${cookieName}=1`);
+}
+
+export function clearBrowserDownloadAcknowledgement(cookieName: string) {
+  document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+export async function waitForBrowserDownloadAcknowledgement(
+  cookieName: string,
+  timeoutMs: number,
+  signal: AbortSignal,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (signal.aborted) throw new Error("DIRECT_DOWNLOAD_CANCELLED");
+    if (hasBrowserDownloadAcknowledgement(cookieName)) {
+      clearBrowserDownloadAcknowledgement(cookieName);
+      return Date.now() - startedAt;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 450));
+  }
+
+  throw new Error("DIRECT_DOWNLOAD_ACK_TIMEOUT");
+}
+
 /** Starts a same-origin browser download without buffering the response in JS. */
 export function startDirectBrowserDownload(url: string): void {
   if (typeof window === "undefined" || typeof document === "undefined") {

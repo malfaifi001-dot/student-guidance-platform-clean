@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
+import type { MouseEvent, MouseEventHandler, ReactNode } from "react";
 import { useState } from "react";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
 import { downloadUrlAsFile } from "@/lib/print-export/print-export-download";
@@ -13,6 +13,8 @@ type NativeDownloadLinkProps = {
   ariaLabel?: string;
   target?: string;
   rel?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  ariaBusy?: boolean;
 };
 
 export function NativeDownloadLink({
@@ -23,10 +25,14 @@ export function NativeDownloadLink({
   ariaLabel,
   target,
   rel,
+  onClick,
+  ariaBusy = false,
 }: NativeDownloadLinkProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    onClick?.(event);
+    if (event.defaultPrevented) return;
     if (!isNativeCapacitor()) return;
     event.preventDefault();
     if (loading) return;
@@ -40,7 +46,7 @@ export function NativeDownloadLink({
   }
 
   return (
-    <a href={href} onClick={handleClick} aria-label={ariaLabel} aria-busy={loading} target={target} rel={rel} className={className}>
+    <a href={href} onClick={handleClick} aria-label={ariaLabel} aria-busy={loading || ariaBusy} target={target} rel={rel} className={className}>
       {loading ? "جارٍ التحميل..." : children}
     </a>
   );
