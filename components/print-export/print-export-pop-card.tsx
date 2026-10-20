@@ -36,7 +36,7 @@ export function PrintExportPopCard({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm print:hidden"
       dir="rtl"
     >
       <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
