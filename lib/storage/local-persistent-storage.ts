@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createReadStream } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveStoragePath } from "./storage-paths";
@@ -15,6 +16,14 @@ export const localPersistentStorage: StorageProvider = {
   },
   async read(segments) {
     return readFile(resolveStoragePath(segments));
+  },
+  async stat(segments) {
+    const details = await stat(resolveStoragePath(segments));
+    if (!details.isFile()) throw new Error("STORAGE_FILE_NOT_FOUND");
+    return { size: details.size, modifiedAtMs: details.mtimeMs };
+  },
+  createReadStream(segments, options) {
+    return createReadStream(resolveStoragePath(segments), options);
   },
   async exists(segments) {
     try { return (await stat(resolveStoragePath(segments))).isFile(); } catch { return false; }

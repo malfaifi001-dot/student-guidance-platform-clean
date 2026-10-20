@@ -24,6 +24,14 @@ export type PrintExportActionOptions = {
     timeoutMs?: number;
     trace?: "portfolio";
   };
+  /** Probe/poll a persisted export before handing the final file to the browser. */
+  pendingDownload?: {
+    statusUrl: string;
+    pollIntervalMs?: number;
+    timeoutMs?: number;
+  };
+  /** Existing Capacitor Browser fallback for large files the native Blob bridge cannot hold safely. */
+  nativeLargeFileFallbackUrl?: string;
   printUrl?: string;
   /** Print an already-mounted document before falling back to exportUrl. */
   preparedPrint?: {
@@ -63,6 +71,9 @@ export type PrintExportModal = {
   progress?: number;
   receivedBytes?: number;
   totalBytes?: number | null;
+  speedBytesPerSecond?: number | null;
+  remainingSeconds?: number | null;
+  phase?: "preparing" | "ready" | "downloading" | "browser-handoff";
   fallback?: PrintExportFallback | null;
 };
 

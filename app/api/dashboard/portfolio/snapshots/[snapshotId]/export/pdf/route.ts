@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { portfolioApiError, requirePortfolioApiUser } from "@/lib/portfolio/portfolio-api";
-import { createPortfolioExportToken } from "@/lib/portfolio/portfolio-export-snapshot";
-import { getPortfolioPublicOrigin } from "@/lib/portfolio/portfolio-public-origin";
 import { getPortfolioSnapshot } from "@/lib/portfolio/portfolio-snapshot-service";
-import { getPortfolioSnapshotPdfArtifact } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
-import { generatePdfStreamFromUrlWithCloudflare } from "@/lib/pdf-export/cloudflare-browser-run-pdf";
-import { readStorageFile } from "@/lib/storage/storage-provider";
+import {
+  getPortfolioSnapshotPdfArtifact,
+  getPortfolioSnapshotPdfStatus,
+  registerPortfolioSnapshotPdf,
+} from "@/lib/portfolio/portfolio-snapshot-pdf-service";
+import { createStoredFileResponse } from "@/lib/storage/storage-file-response";
+import { storageFileExists } from "@/lib/storage/storage-provider";
 import { storageKeySegments } from "@/lib/storage/storage-paths";
 
 export const runtime = "nodejs";
@@ -24,73 +26,75 @@ function getDownloadRequestId(request: Request) {
   return DOWNLOAD_REQUEST_ID_PATTERN.test(value) ? value : "";
 }
 
-function pdfResponse(body: BodyInit, fileName: string, downloadRequestId: string, contentLength?: number | null) {
-  const headers = new Headers({
-    "Content-Type": "application/pdf",
-    "Content-Disposition": `attachment; filename="portfolio.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-    "Cache-Control": "private, no-store",
-    ...(contentLength !== undefined && contentLength !== null ? { "Content-Length": String(contentLength) } : {}),
-  });
-  if (downloadRequestId) {
-    headers.set("Set-Cookie", `teachix_portfolio_download_${downloadRequestId}=1; Path=/; Max-Age=300; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
-  }
-  return new Response(body as BodyInit, { headers });
+function setAcknowledgementCookie(headers: Headers, downloadRequestId: string) {
+  if (!downloadRequestId) return;
+  headers.set("Set-Cookie", `teachix_portfolio_download_${downloadRequestId}=1; Path=/; Max-Age=300; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
+function statusUrl(request: Request, snapshotId: string) {
+  const url = new URL(`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshotId)}/pdf`, request.url);
+  return `${url.pathname}${url.search}`;
+}
+
+function pendingResponse(request: Request, snapshotId: string, status: string, byteSize: number | null) {
+  return NextResponse.json({
+    ok: true,
+    status,
+    byteSize,
+    statusUrl: statusUrl(request, snapshotId),
+    downloadUrl: new URL(request.url).pathname,
+  }, {
+    status: 202,
+    headers: {
+      "Cache-Control": "no-store",
+      "X-Portfolio-PDF-Status": status,
+    },
+  });
+}
+
+async function ensureSnapshotPdf(snapshot: Awaited<ReturnType<typeof getPortfolioSnapshot>>) {
+  const current = await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
+  if (current.exists && current.status !== "FAILED") return current;
+  await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: current.status === "FAILED" });
+  return getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
+}
+
+async function handle(request: Request, { params }: { params: Promise<{ snapshotId: string }> }) {
   try {
     const user = await requirePortfolioApiUser();
     const { snapshotId } = await params;
     const snapshot = await getPortfolioSnapshot(user, snapshotId);
-    const fileName = pdfFileName(snapshot.name);
-    const downloadRequestId = getDownloadRequestId(request);
+    const status = await ensureSnapshotPdf(snapshot);
     const artifact = await getPortfolioSnapshotPdfArtifact(snapshot.id, snapshot.document);
 
-    if (artifact?.storageKey) {
-      const body = await readStorageFile(storageKeySegments(artifact.storageKey));
-      if (body.byteLength > 5 && Buffer.from(body.subarray(0, 5)).toString("ascii") === "%PDF-") {
-        return pdfResponse(new Uint8Array(body), fileName, downloadRequestId, body.byteLength);
-      }
+    if (status.status !== "READY" || !artifact?.storageKey) {
+      return pendingResponse(request, snapshot.id, status.status, "byteSize" in status ? status.byteSize : null);
     }
 
-    const token = await createPortfolioExportToken(snapshot.document, { snapshotId: snapshot.id });
-    const requestOrigin = new URL(request.url).origin;
-    const fallbackUrl = `${requestOrigin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
-    let origin: string;
-    try {
-      origin = getPortfolioPublicOrigin();
-    } catch (error) {
-      if (error instanceof Error && ["PORTFOLIO_PUBLIC_ORIGIN_NOT_CONFIGURED", "PORTFOLIO_PUBLIC_ORIGIN_NOT_REACHABLE"].includes(error.message)) {
-        return NextResponse.json({
-          ok: false,
-          fallback: "PRINT_PREVIEW",
-          previewUrl: fallbackUrl,
-          message: "ملف PDF قيد التجهيز. افتح المعاينة المنفصلة للطباعة أو الحفظ.",
-        }, { status: 409 });
-      }
-      throw error;
+    const segments = storageKeySegments(artifact.storageKey);
+    if (!(await storageFileExists(segments))) {
+      await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: true });
+      return pendingResponse(request, snapshot.id, "PENDING", null);
     }
 
-    const previewUrl = `${origin}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
-    if (!previewUrl.startsWith(origin)) throw new Error("PORTFOLIO_EXPORT_ORIGIN_MISMATCH");
-
-    const pdf = await generatePdfStreamFromUrlWithCloudflare({
+    const response = await createStoredFileResponse({
       request,
-      url: previewUrl,
-      gotoWaitUntil: "domcontentloaded",
-      waitForSelector: '[data-portfolio-pdf-ready="true"]',
-      waitForSelectorTimeoutMs: 60_000,
-      debugLabel: "portfolio",
+      segments,
+      fileName: pdfFileName(snapshot.name),
+      etag: artifact.storageKey.split("/").pop()?.replace(/\.pdf$/i, "") || snapshot.id,
+      contentType: "application/pdf",
     });
-    const headers = new Headers({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="portfolio.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-      "Cache-Control": "private, no-store",
-    });
-    if (pdf.contentLength !== null) headers.set("Content-Length", String(pdf.contentLength));
-    if (downloadRequestId) headers.set("Set-Cookie", `teachix_portfolio_download_${downloadRequestId}=1; Path=/; Max-Age=300; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
-    return new Response(pdf.body, { headers });
+    setAcknowledgementCookie(response.headers, getDownloadRequestId(request));
+    return response;
   } catch (error) {
     return portfolioApiError(error);
   }
+}
+
+export async function GET(request: Request, context: { params: Promise<{ snapshotId: string }> }) {
+  return handle(request, context);
+}
+
+export async function HEAD(request: Request, context: { params: Promise<{ snapshotId: string }> }) {
+  return handle(request, context);
 }

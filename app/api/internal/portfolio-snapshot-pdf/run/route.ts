@@ -12,12 +12,16 @@ import {
   type PortfolioSnapshotPdfClaimOperation,
 } from "@/lib/portfolio/portfolio-snapshot-pdf-service";
 import { parsePortfolioSnapshotDocument } from "@/lib/portfolio/portfolio-snapshot-types";
-import { deleteStorageFile, readStorageFile, renameStorageFile, storageFileExists, writeStorageFile } from "@/lib/storage/storage-provider";
+import { deleteStorageFile, renameStorageFile, storageFileExists, storageFileStat, writeStorageFile } from "@/lib/storage/storage-provider";
 import { storageKeySegments } from "@/lib/storage/storage-paths";
 import { getPortfolioPublicOrigin } from "@/lib/portfolio/portfolio-public-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function isPdf(data: Uint8Array) {
+  return data.byteLength > 5 && Buffer.from(data.subarray(0, 5)).toString("ascii") === "%PDF-";
+}
 
 function authorized(request: Request) {
   const expected = process.env.PORTFOLIO_SNAPSHOT_PDF_RUNNER_SECRET?.trim();
@@ -26,10 +30,6 @@ function authorized(request: Request) {
   const expectedBytes = Buffer.from(expected);
   const suppliedBytes = Buffer.from(supplied);
   return expectedBytes.length === suppliedBytes.length && timingSafeEqual(expectedBytes, suppliedBytes);
-}
-
-function isPdf(data: Uint8Array) {
-  return data.byteLength > 5 && Buffer.from(data.subarray(0, 5)).toString("ascii") === "%PDF-";
 }
 
 function logPortfolioSnapshotPdf(event: string, details: Record<string, unknown>) {
@@ -108,17 +108,17 @@ export async function POST(request: Request) {
     await assertPortfolioExportImageSourcesAvailable(document);
     stage = "existing-artifact";
     if (await storageFileExists(storageKeySegments(finalKey))) {
-      const existingPdf = await readStorageFile(storageKeySegments(finalKey));
-      if (isPdf(existingPdf) && existingPdf.byteLength >= 100) {
+      const existingPdf = await storageFileStat(storageKeySegments(finalKey));
+      if (existingPdf.size >= 100) {
         const finalized = await completePortfolioSnapshotPdfJob({
           id: job.id,
           claimToken: job.claimToken!,
           contentHash,
           storageKey: finalKey,
-          byteSize: existingPdf.byteLength,
+          byteSize: existingPdf.size,
         });
         if (finalized.count !== 1) throw new Error("PDF_JOB_CLAIM_EXPIRED_BEFORE_FINALIZE");
-        logPortfolioSnapshotPdf("ready-existing", { stage, durationMs: Date.now() - runnerStartedAt, byteSize: existingPdf.byteLength });
+        logPortfolioSnapshotPdf("ready-existing", { stage, durationMs: Date.now() - runnerStartedAt, byteSize: existingPdf.size });
         return NextResponse.json({ ok: true, claimed: true, status: "READY" });
       }
       await deleteStorageFile(storageKeySegments(finalKey));

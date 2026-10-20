@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  appendDownloadRequestId,
   buildPrintUrl,
-  createDownloadRequestId,
-  waitForBrowserDownloadAcknowledgement,
   downloadBlobAsFile,
   readResponseBlob,
   startDirectBrowserDownload,
@@ -20,8 +17,10 @@ import type {
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
 import { isCompletePortfolioPrintTarget } from "@/lib/print-export/print-export-contract";
-import { getDownloadProgress } from "@/lib/print-export/print-export-progress";
+import { formatTransferSize, getDownloadProgress } from "@/lib/print-export/print-export-progress";
+import { getTransferMetrics, type TransferSample } from "@/lib/print-export/print-export-transfer";
 import {
+  openNativeBrowserDownload,
   savePrintPreviewAsNativePdf,
   shareBlobAsNativeFile,
 } from "@/lib/native/native-download";
@@ -171,6 +170,59 @@ function portfolioDownloadPathname(url: string) {
   }
 }
 
+function getTrustedContentLength(response: Response) {
+  const value = response.headers.get("content-length");
+  if (!value || !/^\d+$/.test(value)) return null;
+  const length = Number(value);
+  return Number.isSafeInteger(length) && length >= 0 ? length : null;
+}
+
+async function waitForPersistedPdfReady(
+  exportUrl: string,
+  pending: NonNullable<PrintExportActionOptions["pendingDownload"]>,
+  publish: (update: Pick<PrintExportModal, "progress" | "receivedBytes" | "totalBytes" | "speedBytesPerSecond" | "remainingSeconds" | "phase" | "message">) => void,
+  signal: AbortSignal,
+) {
+  const timeoutMs = Math.max(30_000, pending.timeoutMs || 15 * 60_000);
+  const pollIntervalMs = Math.max(500, pending.pollIntervalMs || 2_000);
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (signal.aborted) throw new Error("PRINT_EXPORT_CANCELLED");
+    const probe = await fetch(exportUrl, { method: "HEAD", credentials: "same-origin", cache: "no-store", signal });
+    if (probe.ok && (probe.headers.get("content-type") || "").includes("application/pdf")) {
+      const totalBytes = getTrustedContentLength(probe);
+      publish({ progress: undefined, receivedBytes: 0, totalBytes, speedBytesPerSecond: null, remainingSeconds: null, phase: "ready", message: totalBytes === null ? "PDF جاهز — الحجم غير متاح بعد. سيبدأ المتصفح التنزيل." : `PDF جاهز — ${totalBytes} بايت. سيبدأ المتصفح التنزيل.` });
+      return totalBytes;
+    }
+
+    if (probe.status !== 202) {
+      throw new Error("PORTFOLIO_PDF_PREPARATION_FAILED");
+    }
+
+    const statusResponse = await fetch(pending.statusUrl, { credentials: "same-origin", cache: "no-store", signal });
+    const payload = await statusResponse.json().catch(() => ({})) as { pdf?: { status?: string; byteSize?: number | null }; status?: string };
+    const pdfStatus = payload.pdf?.status || payload.status;
+    const byteSize = typeof payload.pdf?.byteSize === "number" ? payload.pdf.byteSize : null;
+    if (pdfStatus === "READY") {
+      publish({ progress: undefined, receivedBytes: 0, totalBytes: byteSize, speedBytesPerSecond: null, remainingSeconds: null, phase: "ready", message: byteSize === null ? "PDF جاهز — الحجم غير متاح بعد. سيبدأ المتصفح التنزيل." : `PDF جاهز — ${byteSize} بايت. سيبدأ المتصفح التنزيل.` });
+      return byteSize;
+    }
+    if (pdfStatus === "FAILED") throw new Error("PORTFOLIO_PDF_PREPARATION_FAILED");
+
+    publish({ progress: undefined, receivedBytes: 0, totalBytes: byteSize, speedBytesPerSecond: null, remainingSeconds: null, phase: "preparing", message: "جار تجهيز PDF — سيبدأ التنزيل تلقائيًا عند اكتماله." });
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(resolve, pollIntervalMs);
+      signal.addEventListener("abort", () => {
+        window.clearTimeout(timeout);
+        reject(new Error("PRINT_EXPORT_CANCELLED"));
+      }, { once: true });
+    });
+  }
+
+  throw new Error("PORTFOLIO_PDF_PREPARATION_TIMEOUT");
+}
+
 export function usePrintExportAction() {
   const [status, setStatus] = useState<PrintExportStatus>("idle");
   const [modal, setModal] = useState<PrintExportModal | null>(null);
@@ -180,7 +232,7 @@ export function usePrintExportAction() {
     // Progress is driven by the actual export lifecycle. There is no timer-based estimate.
   }, []);
 
-  const publishProgress = useCallback((update: Pick<PrintExportModal, "progress" | "receivedBytes" | "totalBytes">) => {
+  const publishProgress = useCallback((update: Pick<PrintExportModal, "progress" | "receivedBytes" | "totalBytes" | "speedBytesPerSecond" | "remainingSeconds" | "phase"> & { message?: string }) => {
     setModal((current) =>
       current?.status === "loading" ? { ...current, ...update } : current,
     );
@@ -287,6 +339,9 @@ export function usePrintExportAction() {
 
   const runPrintExport = useCallback(
     async (options: PrintExportActionOptions): Promise<PrintExportRunResult> => {
+      const runController = new AbortController();
+      directDownloadAbortRef.current?.abort();
+      directDownloadAbortRef.current = runController;
       startProgress();
       setStatus("loading");
       setModal({
@@ -294,6 +349,9 @@ export function usePrintExportAction() {
         progress: undefined,
         receivedBytes: 0,
         totalBytes: null,
+        speedBytesPerSecond: null,
+        remainingSeconds: null,
+        phase: "preparing",
         title: options.progressTitle || "جاري تجهيز الملف",
         message: options.progressMessage || "يتم الآن تجهيز ملف التقرير للتحميل، الرجاء الانتظار...",
       });
@@ -324,87 +382,33 @@ export function usePrintExportAction() {
         }
 
         if (options.exportUrl) {
+          let preparedByteSize: number | null = null;
+          if (options.pendingDownload) {
+            preparedByteSize = await waitForPersistedPdfReady(options.exportUrl, options.pendingDownload, (update) => {
+              publishProgress(update);
+              setModal((current) => current?.status === "loading" && update.message ? { ...current, message: update.message } : current);
+            }, runController.signal);
+          }
+
           if (options.deliveryMode === "direct" && !isNativeCapacitor()) {
-            const acknowledgement = options.directDownloadAcknowledgement;
-            const requestId = acknowledgement ? createDownloadRequestId() : "";
-            const exportUrl = requestId
-              ? appendDownloadRequestId(options.exportUrl, requestId)
-              : options.exportUrl;
-            const cookieName = acknowledgement
-              ? `${acknowledgement.cookieNamePrefix}${requestId}`
-              : "";
+            const exportUrl = options.exportUrl;
             const pathname = portfolioDownloadPathname(exportUrl);
-
-            if (acknowledgement?.trace === "portfolio") {
-              portfolioDownloadTrace("direct-download-requested", {
-                deliveryMode: "direct",
-                native: false,
-                pathname,
-              });
-            }
-
-            try {
-              startDirectBrowserDownload(exportUrl);
-              if (acknowledgement?.trace === "portfolio") {
-                portfolioDownloadTrace("anchor-created", { pathname });
-                portfolioDownloadTrace("anchor-clicked", { pathname });
-              }
-            } catch (error) {
-              if (acknowledgement?.trace === "portfolio") {
-                portfolioDownloadTrace("client-exception", {
-                  errorCode: error instanceof Error ? error.message : "DIRECT_DOWNLOAD_UNKNOWN_ERROR",
-                  pathname,
-                });
-              }
-              throw error;
-            }
-
-            if (acknowledgement) {
-              const controller = new AbortController();
-              directDownloadAbortRef.current?.abort();
-              directDownloadAbortRef.current = controller;
-              try {
-                const elapsedMs = await waitForBrowserDownloadAcknowledgement(
-                  cookieName,
-                  acknowledgement.timeoutMs || 85_000,
-                  controller.signal,
-                );
-                if (acknowledgement.trace === "portfolio") {
-                  portfolioDownloadTrace("direct-download-acknowledged", {
-                    elapsedMs,
-                    pathname,
-                    meaning: "pdf-response-reached-browser",
-                  });
-                }
-              } catch (error) {
-                if (acknowledgement.trace === "portfolio") {
-                  const elapsedMs = acknowledgement.timeoutMs || 85_000;
-                  portfolioDownloadTrace(
-                    error instanceof Error && error.message === "DIRECT_DOWNLOAD_ACK_TIMEOUT"
-                      ? "ack-timeout"
-                      : "direct-download-error",
-                    {
-                      elapsedMs,
-                      errorCode: error instanceof Error ? error.message : "DIRECT_DOWNLOAD_UNKNOWN_ERROR",
-                      pathname,
-                    },
-                  );
-                }
-                throw error;
-              } finally {
-                if (directDownloadAbortRef.current === controller) {
-                  directDownloadAbortRef.current = null;
-                }
-              }
-            }
-
-            await finishProgress();
+            portfolioDownloadTrace("browser-download-handoff", { deliveryMode: "direct", native: false, pathname });
+            publishProgress({ progress: undefined, receivedBytes: 0, totalBytes: preparedByteSize, speedBytesPerSecond: null, remainingSeconds: null, phase: "browser-handoff" });
+            startDirectBrowserDownload(exportUrl);
             setStatus("success");
+            setModal({ status: "success", title: "بدأ تنزيل PDF", message: preparedByteSize === null ? "تم تسليم الملف إلى مدير تنزيل المتصفح. الحجم غير متاح، ولا يستطيع التطبيق قياس سرعة أو اكتمال الحفظ الأصلي." : `PDF جاهز — ${formatTransferSize(preparedByteSize)}. تم تسليمه إلى مدير تنزيل المتصفح، ولا يستطيع التطبيق قياس اكتمال الحفظ الأصلي.` });
             if (options.analytics) {
               trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
             }
-            setModal(null);
-            return "downloaded";
+            return "opened";
+          }
+
+          if (options.nativeLargeFileFallbackUrl && isNativeCapacitor() && preparedByteSize !== null && preparedByteSize >= 50 * 1024 * 1024) {
+            await openNativeBrowserDownload(options.nativeLargeFileFallbackUrl);
+            setStatus("success");
+            setModal({ status: "success", title: "بدأ تنزيل PDF", message: `PDF جاهز — ${formatTransferSize(preparedByteSize)}. تم فتح مدير المتصفح للنقل دون Blob أو Base64 داخل التطبيق.` });
+            return "opened";
           }
 
           const requestBody = buildRequestBody(options.body);
@@ -423,11 +427,17 @@ export function usePrintExportAction() {
             const totalBytesHeader = response.headers.get("content-length");
             const totalBytes = totalBytesHeader && /^\d+$/.test(totalBytesHeader) ? Number(totalBytesHeader) : null;
             publishProgress({ progress: totalBytes === null ? undefined : 0, receivedBytes: 0, totalBytes });
-            const blob = await readResponseBlob(response, (receivedBytes) => {
+            const samples: TransferSample[] = [];
+            const blob = await readResponseBlob(response, (receivedBytes, _totalBytes, atMs) => {
+              samples.push({ receivedBytes, atMs });
+              const metrics = getTransferMetrics(samples.slice(-8), totalBytes);
               publishProgress({
                 progress: getDownloadProgress(receivedBytes, totalBytes),
                 receivedBytes,
                 totalBytes,
+                speedBytesPerSecond: metrics.speedBytesPerSecond,
+                remainingSeconds: metrics.remainingSeconds,
+                phase: "downloading",
               });
             });
             if (isNativeCapacitor() && options.nativeDelivery === "share") {
@@ -435,7 +445,7 @@ export function usePrintExportAction() {
             } else {
               await downloadBlobAsFile(blob, options.fileName || "report.pdf");
             }
-            publishProgress({ progress: 100, receivedBytes: totalBytes ?? undefined, totalBytes });
+            publishProgress({ progress: 100, receivedBytes: totalBytes ?? blob.size, totalBytes: totalBytes ?? blob.size, speedBytesPerSecond: null, remainingSeconds: 0, phase: "downloading" });
             setStatus("success");
             if (options.analytics) {
               trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
@@ -514,6 +524,7 @@ export function usePrintExportAction() {
 
         throw new Error("PRINT_EXPORT_NO_FALLBACK");
       } catch {
+        if (runController.signal.aborted) return null;
         stopProgress();
         setStatus("error");
         setModal({
@@ -524,6 +535,8 @@ export function usePrintExportAction() {
             "تعذر تنفيذ عملية التصدير أو فتح معاينة الطباعة. حاول مرة أخرى.",
         });
         return "error";
+      } finally {
+        if (directDownloadAbortRef.current === runController) directDownloadAbortRef.current = null;
       }
     },
     [finishProgress, openFallbackPrintUrl, startProgress, stopProgress],

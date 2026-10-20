@@ -54,7 +54,13 @@ export function PortfolioSavedCopies({
     setActiveSnapshotId(snapshot.id);
     void print.runPrintExport({
       exportUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`,
-      deliveryMode: "blob",
+      deliveryMode: "direct",
+      pendingDownload: {
+        statusUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/pdf`,
+        pollIntervalMs: 2_000,
+        timeoutMs: 15 * 60_000,
+      },
+      nativeLargeFileFallbackUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`,
       fileName: `${snapshot.name}.pdf`,
       progressTitle: "جار تجهيز PDF",
       progressMessage: "جار تجهيز PDF — الحجم غير متاح بعد",

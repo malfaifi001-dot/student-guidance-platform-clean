@@ -5,7 +5,7 @@ import type {
   PrintExportModal,
 } from "@/lib/print-export/print-export-types";
 import { BrandLoader } from "@/components/common/brand-loader";
-import { formatTransferSize } from "@/lib/print-export/print-export-progress";
+import { formatRemainingTime, formatTransferRate, formatTransferSize } from "@/lib/print-export/print-export-progress";
 
 export function PrintExportPopCard({
   modal,
@@ -57,19 +57,38 @@ export function PrintExportPopCard({
               aria-label={modal.title}
             >
               <span className="text-center text-3xl font-black leading-none tracking-tight text-slate-950 tabular-nums sm:text-4xl">
-                {modal.progress !== undefined
+                {modal.phase === "ready"
+                  ? "PDF جاهز"
+                  : modal.progress !== undefined
                   ? `${modal.progress}%`
                   : modal.receivedBytes
                     ? formatTransferSize(modal.receivedBytes)
                     : "جار تجهيز PDF"}
               </span>
               <p className="mt-3 text-sm font-bold text-slate-500">
-                {modal.totalBytes && modal.receivedBytes !== undefined
+                {modal.phase === "ready" && modal.totalBytes
+                  ? `الحجم ${formatTransferSize(modal.totalBytes)}`
+                  : modal.phase === "browser-handoff"
+                  ? "تم تسليم الملف إلى مدير تنزيل المتصفح"
+                  : modal.totalBytes && modal.receivedBytes !== undefined
                   ? `${formatTransferSize(modal.receivedBytes)} / ${formatTransferSize(modal.totalBytes)}`
                   : modal.receivedBytes
                     ? `${formatTransferSize(modal.receivedBytes)} — الحجم الكلي غير متاح بعد`
                     : "الحجم غير متاح بعد"}
               </p>
+              {modal.phase === "downloading" ? (
+                <div className="mt-3 grid w-full grid-cols-2 gap-2 text-xs font-bold text-slate-500" aria-live="polite">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <span className="block text-slate-400">سرعة التحميل</span>
+                    <span className="mt-1 block text-slate-700">{formatTransferRate(modal.speedBytesPerSecond) || "جارٍ الحساب..."}</span>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <span className="block text-slate-400">الوقت المتبقي</span>
+                    <span className="mt-1 block text-slate-700">{formatRemainingTime(modal.remainingSeconds) || "جارٍ الحساب..."}</span>
+                  </div>
+                </div>
+              ) : null}
+              {modal.speedBytesPerSecond ? <p className="mt-2 text-xs font-bold text-slate-400">{formatTransferRate(modal.speedBytesPerSecond)}{modal.remainingSeconds !== null && modal.remainingSeconds !== undefined ? ` — المتبقي ${formatRemainingTime(modal.remainingSeconds)}` : ""}</p> : null}
               <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
                   className={modal.progress === undefined ? "h-full w-2/5 animate-pulse rounded-full bg-amber-500" : "h-full rounded-full bg-amber-500 transition-[width] duration-200 ease-out"}
