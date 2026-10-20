@@ -20,7 +20,12 @@ export default async function PortfolioExportPreviewPage({ params, searchParams 
       data-portfolio-print-target="portfolio"
       data-portfolio-snapshot-id={payload.snapshotId || undefined}
     >
-      {printMode ? <PortfolioPrintPreviewController autoPrint /> : null}
+      {printMode ? (
+        <PortfolioPrintPreviewController
+          autoPrint
+          downloadUrl={payload.snapshotId ? `/api/dashboard/portfolio/snapshots/${encodeURIComponent(payload.snapshotId)}/export/pdf` : undefined}
+        />
+      ) : null}
       <PortfolioPrintDocument data={document} />
     </main>
   );

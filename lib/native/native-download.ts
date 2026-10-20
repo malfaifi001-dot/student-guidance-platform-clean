@@ -2,6 +2,8 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
+import { isPortfolioAuthenticatedPrintEntryUrl } from "@/lib/native/print-preview-capability";
+
 type NativePdfResult = {
   fileName: string;
   uri: string;
@@ -92,6 +94,26 @@ function dispatchDownloadFeedback(
       detail: { type, fileName, message },
     }),
   );
+}
+
+async function resolveAuthenticatedPrintEntryUrl(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      credentials: "include",
+      redirect: "manual",
+    });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (location) {
+        const resolved = getSafePreviewUrl(new URL(location, url).toString());
+        if (resolved) return resolved;
+      }
+    }
+  } catch {
+    // The system browser can still follow the authenticated entry itself.
+  }
+  return url;
 }
 
 export async function downloadBlobAsNativeFile(
@@ -205,6 +227,19 @@ export async function savePrintPreviewAsNativePdf(url: string, fileName: string)
     const safeUrl = getSafePreviewUrl(url);
     if (!safeUrl) throw new Error("UNSAFE_PRINT_PREVIEW_URL");
 
+    // The Portfolio print entry is an authenticated API route that creates a
+    // short-lived preview token and returns a redirect. Android's existing
+    // HTML-to-PDF plugin intentionally rejects API paths, so let the platform
+    // browser follow the authenticated redirect instead of passing an invalid
+    // URL to renderHtmlToPdf. The standalone preview owns readiness and print
+    // fallback once it opens.
+    if (isPortfolioAuthenticatedPrintEntryUrl(safeUrl)) {
+      const { Browser } = await import("@capacitor/browser");
+      const previewUrl = await resolveAuthenticatedPrintEntryUrl(safeUrl);
+      await Browser.open({ url: previewUrl });
+      return true;
+    }
+
     if (Capacitor.getPlatform() === "android") {
       const safeFileName = fileName.trim() || "report.pdf";
       await TeachixPdf.renderHtmlToPdf({ url: safeUrl, fileName: safeFileName });
@@ -212,8 +247,6 @@ export async function savePrintPreviewAsNativePdf(url: string, fileName: string)
     }
 
     if (Capacitor.getPlatform() !== "ios") return false;
-
-    const safeFileName = sanitizeFileName(fileName);
 
     const { Browser } = await import("@capacitor/browser");
     await Browser.open({ url: safeUrl });

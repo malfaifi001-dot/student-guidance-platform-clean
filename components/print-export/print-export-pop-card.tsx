@@ -12,11 +12,13 @@ export function PrintExportPopCard({
   onClose,
   onOpenFallback,
   align = "start",
+  downloadUrl,
 }: {
   modal: PrintExportModal | null;
   onClose: () => void;
   onOpenFallback: (fallback?: PrintExportFallback | null) => void;
   align?: "start" | "center";
+  downloadUrl?: string;
 }) {
   if (!modal) {
     return null;
@@ -95,7 +97,17 @@ export function PrintExportPopCard({
           ) : null}
         </header>
 
-        {modal.status !== "loading" ? <footer className={["flex px-6 py-4", isCentered ? "justify-center" : "justify-end"].join(" ")}>
+        {modal.status !== "loading" ? <footer className={["flex flex-wrap items-center gap-3 px-6 py-4", isCentered ? "justify-center" : "justify-end"].join(" ")}>
+          {modal.status === "error" && downloadUrl ? (
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+            >
+              تحميل PDF
+            </a>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
