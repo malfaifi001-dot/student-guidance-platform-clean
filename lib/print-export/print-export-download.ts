@@ -104,27 +104,27 @@ export async function downloadResponseAsFile(
 
 export async function readResponseBlob(
   response: Response,
-  onProgress?: (receivedBytes: number, totalBytes: number | null) => void,
+  onProgress?: (receivedBytes: number, totalBytes: number | null, atMs: number) => void,
 ): Promise<Blob> {
   const totalHeader = response.headers.get("content-length");
   const totalBytes = totalHeader && /^\d+$/.test(totalHeader) ? Number(totalHeader) : null;
   if (!response.body) {
     const blob = await response.blob();
-    onProgress?.(blob.size, totalBytes ?? blob.size);
+    onProgress?.(blob.size, totalBytes ?? blob.size, Date.now());
     return blob;
   }
 
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let receivedBytes = 0;
-  onProgress?.(0, totalBytes);
+  onProgress?.(0, totalBytes, Date.now());
   while (true) {
     const result = await reader.read();
     if (result.done) break;
     if (!result.value?.byteLength) continue;
     chunks.push(result.value);
     receivedBytes += result.value.byteLength;
-    onProgress?.(receivedBytes, totalBytes);
+    onProgress?.(receivedBytes, totalBytes, Date.now());
   }
 
   const body = new Uint8Array(receivedBytes);

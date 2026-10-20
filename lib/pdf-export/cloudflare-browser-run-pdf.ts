@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isTransientCloudflareBodyFailure } from "@/lib/pdf-export/cloudflare-body-errors";
+
 const CLOUDFLARE_PDF_TIMEOUT_MS = 180_000;
 // Cloudflare Browser Run rejects goto/selector timeouts above 60 seconds.
 const CLOUDFLARE_BROWSER_OPERATION_TIMEOUT_MS = 60_000;
@@ -43,6 +45,66 @@ function parseRetryAfter(value: string | null) {
 
 function cloudflareLog(stage: string, details: Record<string, unknown>) {
   console.info(`PORTFOLIO_CLOUDFLARE ${JSON.stringify({ stage, ...details })}`);
+}
+
+class CloudflareBrowserRunBodyError extends Error {
+  readonly transientBodyFailure = true;
+  readonly receivedBytes: number;
+  readonly contentLength: number | null;
+
+  constructor(cause: unknown, receivedBytes: number, contentLength: number | null) {
+    super("Cloudflare Browser Run PDF response body failed while being consumed.", { cause });
+    this.name = "CloudflareBrowserRunBodyError";
+    this.receivedBytes = receivedBytes;
+    this.contentLength = contentLength;
+  }
+}
+
+async function readCloudflarePdfBody(response: Response) {
+  const contentLength = parseTrustedContentLength(response.headers.get("content-length"));
+  const reader = response.body?.getReader();
+  if (!reader) throw new CloudflareBrowserRunBodyError(new Error("EMPTY_BODY"), 0, contentLength);
+
+  const chunks: Uint8Array[] = [];
+  const preallocatedBody = contentLength === null ? null : Buffer.allocUnsafe(contentLength);
+  let receivedBytes = 0;
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      if (!result.value?.byteLength) continue;
+      if (preallocatedBody) {
+        if (receivedBytes + result.value.byteLength > preallocatedBody.byteLength) {
+          throw new CloudflareBrowserRunBodyError(new Error("OVERSIZED_BODY"), receivedBytes, contentLength);
+        }
+        preallocatedBody.set(result.value, receivedBytes);
+      } else {
+        chunks.push(result.value);
+      }
+      receivedBytes += result.value.byteLength;
+    }
+  } catch (error) {
+    throw new CloudflareBrowserRunBodyError(error, receivedBytes, contentLength);
+  }
+
+  if (contentLength !== null && receivedBytes !== contentLength) {
+    throw new CloudflareBrowserRunBodyError(new Error("TRUNCATED_BODY"), receivedBytes, contentLength);
+  }
+  return new Uint8Array(preallocatedBody || Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))));
+}
+
+function cloudflareErrorDetails(error: unknown) {
+  const candidate = error && typeof error === "object" ? error as Record<string, unknown> : {};
+  const cause = candidate.cause && typeof candidate.cause === "object" ? candidate.cause as Record<string, unknown> : {};
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    errorCode: typeof candidate.code === "string" ? candidate.code.slice(0, 80) : typeof cause.code === "string" ? cause.code.slice(0, 80) : null,
+    errorMessage: message.replace(/[\r\n]+/g, " ").slice(0, 180),
+    transientBodyFailure: isTransientCloudflareBodyFailure(error),
+    receivedBytes: typeof candidate.receivedBytes === "number" ? candidate.receivedBytes : null,
+    contentLength: typeof candidate.contentLength === "number" ? candidate.contentLength : null,
+  };
 }
 
 export async function generatePdfFromUrlWithCloudflare({
@@ -151,7 +213,7 @@ export async function generatePdfFromUrlWithCloudflare({
       throw new CloudflareBrowserRunError(response.status, errorBody, parseRetryAfter(response.headers.get("retry-after")));
     }
 
-    const pdfBytes = new Uint8Array(await response.arrayBuffer());
+    const pdfBytes = await readCloudflarePdfBody(response);
 
     if (debugLabel === "portfolio") {
       cloudflareLog("pdf-bytes-ready", {
@@ -171,7 +233,7 @@ export async function generatePdfFromUrlWithCloudflare({
     if (debugLabel === "portfolio") {
       cloudflareLog("fetch-error", {
         elapsedMs: Date.now() - startedAt,
-        errorName: error instanceof Error ? error.name : "UnknownError",
+        ...cloudflareErrorDetails(error),
         abortedByLocalController: controller.signal.aborted,
       });
     }
@@ -304,7 +366,7 @@ export async function generatePdfStreamFromUrlWithCloudflare({
     if (debugLabel === "portfolio") {
       cloudflareLog("fetch-error", {
         elapsedMs: Date.now() - startedAt,
-        errorName: error instanceof Error ? error.name : "UnknownError",
+        ...cloudflareErrorDetails(error),
         abortedByLocalController: controller.signal.aborted,
       });
       cloudflareLog("fetch-finished", { elapsedMs: Date.now() - startedAt });
@@ -375,7 +437,7 @@ export async function generatePdfStreamFromUrlWithCloudflare({
     if (debugLabel === "portfolio") {
       cloudflareLog("fetch-error", {
         elapsedMs: Date.now() - startedAt,
-        errorName: error instanceof Error ? error.name : "UnknownError",
+        ...cloudflareErrorDetails(error),
         abortedByLocalController: controller.signal.aborted,
       });
       cloudflareLog("fetch-finished", { elapsedMs: Date.now() - startedAt });
@@ -427,7 +489,7 @@ export async function generatePdfStreamFromUrlWithCloudflare({
         if (debugLabel === "portfolio") {
           cloudflareLog("fetch-error", {
             elapsedMs: Date.now() - startedAt,
-            errorName: error instanceof Error ? error.name : "UnknownError",
+            ...cloudflareErrorDetails(error),
             abortedByLocalController: controller.signal.aborted,
           });
           cloudflareLog("fetch-finished", { elapsedMs: Date.now() - startedAt });
