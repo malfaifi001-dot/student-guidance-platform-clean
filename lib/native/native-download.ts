@@ -223,12 +223,3 @@ export async function savePrintPreviewAsNativePdf(url: string, fileName: string)
     throw error;
   }
 }
-
-export async function openNativeBrowserDownload(url: string): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
-  const safeUrl = getSafePreviewUrl(url);
-  if (!safeUrl) throw new Error("UNSAFE_NATIVE_DOWNLOAD_URL");
-  const { Browser } = await import("@capacitor/browser");
-  await Browser.open({ url: safeUrl });
-  return true;
-}

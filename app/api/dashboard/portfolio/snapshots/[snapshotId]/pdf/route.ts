@@ -20,12 +20,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ sn
   try {
     const user = await requirePortfolioApiUser();
     const snapshot = await getPortfolioSnapshot(user, (await params).snapshotId);
-    const current = await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
-    if (!current.exists) {
-      await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document);
-    } else if (current.status === "FAILED") {
-      await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: true });
-    }
+    await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: true });
     return NextResponse.json({ ok: true, pdf: await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document) });
   } catch (error) {
     return portfolioApiError(error);
