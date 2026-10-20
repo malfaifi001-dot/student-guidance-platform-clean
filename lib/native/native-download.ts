@@ -2,7 +2,10 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
-import { isPortfolioAuthenticatedPrintEntryUrl } from "@/lib/native/print-preview-capability";
+import {
+  isPortfolioAuthenticatedPrintEntryUrl,
+  resolvePortfolioPrintPreviewUrl,
+} from "@/lib/native/print-preview-capability";
 
 type NativePdfResult = {
   fileName: string;
@@ -235,7 +238,10 @@ export async function savePrintPreviewAsNativePdf(url: string, fileName: string)
     // fallback once it opens.
     if (isPortfolioAuthenticatedPrintEntryUrl(safeUrl)) {
       const { Browser } = await import("@capacitor/browser");
-      const previewUrl = await resolveAuthenticatedPrintEntryUrl(safeUrl);
+      const previewUrl =
+        Capacitor.getPlatform() === "ios"
+          ? await resolvePortfolioPrintPreviewUrl(safeUrl)
+          : await resolveAuthenticatedPrintEntryUrl(safeUrl);
       await Browser.open({ url: previewUrl });
       return true;
     }
