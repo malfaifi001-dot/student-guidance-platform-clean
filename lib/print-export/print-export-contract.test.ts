@@ -27,3 +27,18 @@ test("all frozen pages and the requested snapshot are required", () => {
   assert.equal(isCompletePortfolioPrintTarget(base), true);
   assert.equal(isCompletePortfolioPrintTarget({ ...base, snapshotId: "snapshot-2" }), false);
 });
+
+test("a delayed readiness marker becomes eligible without changing the page contract", () => {
+  assert.equal(isCompletePortfolioPrintTarget({ ...base, ready: false }), false);
+  assert.equal(isCompletePortfolioPrintTarget({ ...base, ready: true }), true);
+});
+
+test("repeated readiness events remain idempotent", () => {
+  assert.equal(isCompletePortfolioPrintTarget(base), true);
+  assert.equal(isCompletePortfolioPrintTarget(base), true);
+});
+
+test("cleanup or an incomplete page count cannot make a document printable", () => {
+  assert.equal(isCompletePortfolioPrintTarget({ ...base, pageCount: 0 }), false);
+  assert.equal(isCompletePortfolioPrintTarget({ ...base, requiredPageCount: 0 }), false);
+});

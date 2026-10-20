@@ -236,7 +236,11 @@ export function usePrintExportAction() {
           if (!opened) throw new Error("PRINT_PREVIEW_OPEN_FAILED");
           await finishProgress();
           setStatus("success");
-          setModal(null);
+          setModal(fallback?.action === "print" ? {
+            status: "success",
+            title: fallback?.title || "تم فتح الطباعة",
+            message: fallback?.message || "استخدم أدوات النظام للطباعة أو حفظ PDF.",
+          } : null);
         } catch {
           stopProgress();
           setStatus("error");
@@ -250,7 +254,7 @@ export function usePrintExportAction() {
         if (analytics) {
           trackAnalyticsEvent(analytics.eventName, analytics.params);
         }
-        return "downloaded";
+        return fallback?.action === "print" ? "opened" : "downloaded";
       }
 
       const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -276,7 +280,11 @@ export function usePrintExportAction() {
 
       await finishProgress();
       setStatus("success");
-      setModal(null);
+      setModal(fallback?.action === "print" ? {
+        status: "success",
+        title: fallback?.title || "تم فتح المعاينة",
+        message: fallback?.message || "تم فتح مستند الطباعة. استخدم نافذة الطباعة لحفظ PDF.",
+      } : null);
       if (analytics) {
         trackAnalyticsEvent(analytics.eventName, analytics.params);
       }
@@ -484,6 +492,7 @@ export function usePrintExportAction() {
             return openFallbackPrintUrl({
               printUrl: fallbackUrl,
               fileName: options.fileName,
+              action: "download",
               title: fallbackMeta.title,
               message: fallbackMeta.message,
             }, options.analytics);
@@ -507,6 +516,7 @@ export function usePrintExportAction() {
           return openFallbackPrintUrl({
             printUrl: options.printUrl,
             fileName: options.fileName,
+            action: "print",
             title: fallbackMeta.title,
             message: fallbackMeta.message,
           }, options.analytics);

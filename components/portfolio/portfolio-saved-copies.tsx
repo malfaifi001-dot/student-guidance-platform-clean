@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Loader2, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -9,6 +9,7 @@ import { usePrintExportAction } from "@/components/print-export/use-print-export
 import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
+import { buildPortfolioSnapshotPrintUrl } from "@/lib/print-export/portfolio-print-entry";
 
 export function PortfolioSavedCopies({
   portfolioId,
@@ -65,6 +66,18 @@ export function PortfolioSavedCopies({
     }).finally(() => setActiveSnapshotId(null));
   }
 
+  function printSnapshot(snapshot: PortfolioSnapshotListItem) {
+    if (print.status === "loading") return;
+    setActiveSnapshotId(snapshot.id);
+    void print.openFallbackPrintUrl({
+      printUrl: buildPortfolioSnapshotPrintUrl(snapshot.id),
+      fileName: `${snapshot.name}.pdf`,
+      action: "print",
+      title: "طباعة / حفظ PDF",
+      message: "تم فتح مستند Portfolio المعزول. استخدم نافذة الطباعة لاختيار الطباعة أو حفظ PDF.",
+    }).finally(() => setActiveSnapshotId(null));
+  }
+
   function confirmDelete(snapshot: PortfolioSnapshotListItem) {
     setFeedback({
       type: "confirm",
@@ -118,6 +131,7 @@ export function PortfolioSavedCopies({
                 </div>
                 {snapshot.notes ? <p className="relative mt-4 text-sm font-bold leading-6 text-slate-600">{snapshot.notes}</p> : null}
                 <div className="relative mt-5 flex flex-wrap gap-2">
+                  <button type="button" disabled={print.status === "loading"} onClick={() => printSnapshot(snapshot)} className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-800 disabled:opacity-60"><Printer className="h-4 w-4" /> طباعة / حفظ PDF</button>
                   <Link href={`${snapshotBasePath}/${snapshot.id}`} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"><ExternalLink className="h-4 w-4" /> عرض النسخة</Link>
                   <button type="button" disabled={print.status === "loading"} onClick={() => downloadSnapshot(snapshot)} aria-busy={isDownloading} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60">
                     {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {isDownloading ? "جارٍ تجهيز PDF..." : "تحميل PDF"}

@@ -9,6 +9,7 @@ export type PrintExportStatus =
 
 export type PrintExportFallback = {
   printUrl: string;
+  action?: "print" | "download";
   fileName?: string;
   title?: string;
   message?: string;
