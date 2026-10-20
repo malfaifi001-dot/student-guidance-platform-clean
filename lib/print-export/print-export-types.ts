@@ -27,8 +27,12 @@ export type PrintExportActionOptions = {
   printUrl?: string;
   /** Print an already-mounted document before falling back to exportUrl. */
   preparedPrint?: {
-    readySelector?: string;
-    rootSelector?: string;
+    /** Explicit isolated print target; never inferred from the current page. */
+    rootSelector: string;
+    readySelector: string;
+    pageSelector: string;
+    requiredPageCount: number;
+    expectedSnapshotId?: string;
     timeoutMs?: number;
   };
   fileName?: string;
@@ -57,6 +61,8 @@ export type PrintExportModal = {
   title: string;
   message: string;
   progress?: number;
+  receivedBytes?: number;
+  totalBytes?: number | null;
   fallback?: PrintExportFallback | null;
 };
 

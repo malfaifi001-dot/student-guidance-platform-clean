@@ -88,6 +88,7 @@ export function getFileNameFromContentDisposition(
 export async function downloadResponseAsFile(
   response: Response,
   fallbackFileName = "download.bin",
+  onProgress?: (receivedBytes: number, totalBytes: number | null) => void,
 ): Promise<NativeDownloadResult | null> {
   if (!response.ok) {
     throw new Error("DOWNLOAD_REQUEST_FAILED");
@@ -97,8 +98,42 @@ export async function downloadResponseAsFile(
     response.headers.get("content-disposition"),
     fallbackFileName,
   );
-  const blob = await response.blob();
+  const blob = await readResponseBlob(response, onProgress);
   return downloadBlobAsFile(blob, fileName);
+}
+
+export async function readResponseBlob(
+  response: Response,
+  onProgress?: (receivedBytes: number, totalBytes: number | null) => void,
+): Promise<Blob> {
+  const totalHeader = response.headers.get("content-length");
+  const totalBytes = totalHeader && /^\d+$/.test(totalHeader) ? Number(totalHeader) : null;
+  if (!response.body) {
+    const blob = await response.blob();
+    onProgress?.(blob.size, totalBytes ?? blob.size);
+    return blob;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+  onProgress?.(0, totalBytes);
+  while (true) {
+    const result = await reader.read();
+    if (result.done) break;
+    if (!result.value?.byteLength) continue;
+    chunks.push(result.value);
+    receivedBytes += result.value.byteLength;
+    onProgress?.(receivedBytes, totalBytes);
+  }
+
+  const body = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new Blob([body], { type: response.headers.get("content-type") || "application/octet-stream" });
 }
 
 export async function downloadUrlAsFile(

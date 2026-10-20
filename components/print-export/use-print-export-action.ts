@@ -7,6 +7,7 @@ import {
   createDownloadRequestId,
   waitForBrowserDownloadAcknowledgement,
   downloadBlobAsFile,
+  readResponseBlob,
   startDirectBrowserDownload,
 } from "@/lib/print-export/print-export-download";
 import type {
@@ -18,6 +19,8 @@ import type {
 } from "@/lib/print-export/print-export-types";
 import { trackAnalyticsEvent } from "@/lib/analytics/analytics-client";
 import { isNativeCapacitor } from "@/lib/native/native-runtime";
+import { isCompletePortfolioPrintTarget } from "@/lib/print-export/print-export-contract";
+import { getDownloadProgress } from "@/lib/print-export/print-export-progress";
 import {
   savePrintPreviewAsNativePdf,
   shareBlobAsNativeFile,
@@ -93,15 +96,25 @@ async function waitForPreparedPrintDocument(options: NonNullable<PrintExportActi
   if (isEmbeddedWebView()) return false;
 
   const timeoutMs = Math.max(1_000, options.timeoutMs || PREPARED_PRINT_TIMEOUT_MS);
-  const readySelector = options.readySelector || '[data-portfolio-pdf-ready="true"]';
-  const root = options.rootSelector ? document.querySelector(options.rootSelector) : document;
+  const root = document.querySelector(options.rootSelector);
   if (!root) return false;
+  if (root.getAttribute("data-portfolio-print-target") !== "portfolio") return false;
+  if (options.expectedSnapshotId && root.getAttribute("data-portfolio-snapshot-id") !== options.expectedSnapshotId) return false;
 
   try {
-    if (!root.querySelector(readySelector)) {
+    const hasCompleteDocument = () => isCompletePortfolioPrintTarget({
+      targetKind: root.getAttribute("data-portfolio-print-target"),
+      ready: Boolean(root.querySelector(options.readySelector)),
+      pageCount: root.querySelectorAll(options.pageSelector).length,
+      requiredPageCount: options.requiredPageCount,
+      snapshotId: root.getAttribute("data-portfolio-snapshot-id"),
+      expectedSnapshotId: options.expectedSnapshotId,
+      containsApplicationUi: Boolean(root.querySelector("[data-portfolio-application-ui], [data-portfolio-modal], [data-portfolio-dashboard-ui]")),
+    });
+    if (!hasCompleteDocument()) {
       await waitWithTimeout(new Promise<void>((resolve, reject) => {
         const observer = new MutationObserver(() => {
-          if (root.querySelector(readySelector)) {
+          if (hasCompleteDocument()) {
             observer.disconnect();
             resolve();
           }
@@ -161,53 +174,25 @@ function portfolioDownloadPathname(url: string) {
 export function usePrintExportAction() {
   const [status, setStatus] = useState<PrintExportStatus>("idle");
   const [modal, setModal] = useState<PrintExportModal | null>(null);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef(1);
   const directDownloadAbortRef = useRef<AbortController | null>(null);
 
   const stopProgress = useCallback(() => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
+    // Progress is driven by the actual export lifecycle. There is no timer-based estimate.
   }, []);
 
-  const publishProgress = useCallback((progress: number) => {
+  const publishProgress = useCallback((update: Pick<PrintExportModal, "progress" | "receivedBytes" | "totalBytes">) => {
     setModal((current) =>
-      current?.status === "loading" ? { ...current, progress } : current,
+      current?.status === "loading" ? { ...current, ...update } : current,
     );
   }, []);
 
   const startProgress = useCallback(() => {
     stopProgress();
-    progressRef.current = 1;
-    progressTimerRef.current = setInterval(() => {
-      const current = progressRef.current;
-      const next = current < 20
-        ? current + 1
-        : current < 60
-          ? current + 1
-          : current < 90
-            ? current + 1
-            : current < 95
-              ? current + 1
-              : current;
-      if (next !== current) {
-        progressRef.current = next;
-        publishProgress(next);
-      }
-    }, 220);
-  }, [publishProgress, stopProgress]);
+  }, [stopProgress]);
 
   const finishProgress = useCallback(async () => {
     stopProgress();
-    while (progressRef.current < 100) {
-      await new Promise((resolve) => setTimeout(resolve, 28));
-      progressRef.current += 1;
-      publishProgress(progressRef.current);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 350));
-  }, [publishProgress, stopProgress]);
+  }, [stopProgress]);
 
   const closeModal = useCallback(() => {
     directDownloadAbortRef.current?.abort();
@@ -306,7 +291,9 @@ export function usePrintExportAction() {
       setStatus("loading");
       setModal({
         status: "loading",
-        progress: 1,
+        progress: undefined,
+        receivedBytes: 0,
+        totalBytes: null,
         title: options.progressTitle || "جاري تجهيز الملف",
         message: options.progressMessage || "يتم الآن تجهيز ملف التقرير للتحميل، الرجاء الانتظار...",
       });
@@ -319,18 +306,16 @@ export function usePrintExportAction() {
       };
 
       try {
-        const preparedPrint = options.preparedPrint || (
-          typeof window !== "undefined" && window.location.pathname.includes("/portfolio/print")
-            ? {}
-            : null
-        );
-        if (preparedPrint) {
-          const prepared = await waitForPreparedPrintDocument(preparedPrint);
+        if (options.preparedPrint) {
+          const prepared = await waitForPreparedPrintDocument(options.preparedPrint);
           if (prepared) {
             window.print();
-            await finishProgress();
             setStatus("success");
-            setModal(null);
+            setModal({
+              status: "success",
+              title: "تم فتح الطباعة",
+              message: "تم فتح مستند ملف الإنجاز الكامل. يحفظ المتصفح الملف من نافذة الطباعة؛ لا يمكن للتطبيق قياس تقدم الحفظ الأصلي.",
+            });
             if (options.analytics) {
               trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
             }
@@ -435,13 +420,22 @@ export function usePrintExportAction() {
           const contentType = response.headers.get("content-type") || "";
 
           if (response.ok && contentType.includes("application/pdf")) {
-            const blob = await response.blob();
+            const totalBytesHeader = response.headers.get("content-length");
+            const totalBytes = totalBytesHeader && /^\d+$/.test(totalBytesHeader) ? Number(totalBytesHeader) : null;
+            publishProgress({ progress: totalBytes === null ? undefined : 0, receivedBytes: 0, totalBytes });
+            const blob = await readResponseBlob(response, (receivedBytes) => {
+              publishProgress({
+                progress: getDownloadProgress(receivedBytes, totalBytes),
+                receivedBytes,
+                totalBytes,
+              });
+            });
             if (isNativeCapacitor() && options.nativeDelivery === "share") {
               await shareBlobAsNativeFile(blob, options.fileName || "report.pdf");
             } else {
               await downloadBlobAsFile(blob, options.fileName || "report.pdf");
             }
-            await finishProgress();
+            publishProgress({ progress: 100, receivedBytes: totalBytes ?? undefined, totalBytes });
             setStatus("success");
             if (options.analytics) {
               trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);

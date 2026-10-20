@@ -13,6 +13,7 @@ const TOKEN_PATTERN = /^[a-f0-9-]{36}$/i;
 type PortfolioExportPayload = {
   createdAt: number;
   document: PortfolioPrintData;
+  snapshotId?: string;
 };
 
 const LOCAL_IMAGE_PREFIXES = ["/uploads/portfolio/", "/uploads/evidence/"] as const;
@@ -82,11 +83,11 @@ async function cleanupExpiredExports() {
     .map((entry) => deleteStorageFile(["portfolio-export", entry.name]).catch(() => undefined)));
 }
 
-export async function createPortfolioExportToken(document: PortfolioPrintData) {
+export async function createPortfolioExportToken(document: PortfolioPrintData, metadata?: { snapshotId?: string }) {
   const token = randomUUID();
   await writeStorageFile(
     storageKey(token),
-    Buffer.from(JSON.stringify({ createdAt: Date.now(), document }), "utf8"),
+    Buffer.from(JSON.stringify({ createdAt: Date.now(), document, snapshotId: metadata?.snapshotId }), "utf8"),
     { exclusive: true },
   );
   void cleanupExpiredExports().catch(() => undefined);

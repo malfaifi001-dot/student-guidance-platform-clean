@@ -656,6 +656,7 @@ export function PortfolioPrintDocument({
       }
       data-portfolio-smart-phase="frozen"
       data-portfolio-pdf-ready={pdfReadyDocument === physicalDocument ? "true" : undefined}
+      data-portfolio-physical-page-count={physicalDocument.pages.length}
     >
       {renderPortfolioDesign(
         data,

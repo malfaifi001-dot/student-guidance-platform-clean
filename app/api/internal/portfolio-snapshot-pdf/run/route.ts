@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       await deleteStorageFile(storageKeySegments(finalKey));
     }
     stage = "export-token";
-    const token = await createPortfolioExportToken(document);
+    const token = await createPortfolioExportToken(document, { snapshotId: job.snapshotId });
     stage = "public-origin";
     const previewUrl = `${getPortfolioPublicOrigin()}/portfolio-export-preview/${encodeURIComponent(token)}?pdf=1`;
     stage = "cloudflare";

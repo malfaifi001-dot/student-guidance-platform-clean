@@ -5,6 +5,7 @@ import type {
   PrintExportModal,
 } from "@/lib/print-export/print-export-types";
 import { BrandLoader } from "@/components/common/brand-loader";
+import { formatTransferSize } from "@/lib/print-export/print-export-progress";
 
 export function PrintExportPopCard({
   modal,
@@ -51,16 +52,28 @@ export function PrintExportPopCard({
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={modal.progress ?? 1}
+              aria-valuenow={modal.progress}
+              aria-valuetext={modal.progress === undefined ? "جار تجهيز PDF" : `${modal.progress}%`}
               aria-label={modal.title}
             >
-              <span className="text-5xl font-black leading-none tracking-tight text-slate-950 tabular-nums sm:text-6xl">
-                {modal.progress ?? 1}%
+              <span className="text-center text-3xl font-black leading-none tracking-tight text-slate-950 tabular-nums sm:text-4xl">
+                {modal.progress !== undefined
+                  ? `${modal.progress}%`
+                  : modal.receivedBytes
+                    ? formatTransferSize(modal.receivedBytes)
+                    : "جار تجهيز PDF"}
               </span>
+              <p className="mt-3 text-sm font-bold text-slate-500">
+                {modal.totalBytes && modal.receivedBytes !== undefined
+                  ? `${formatTransferSize(modal.receivedBytes)} / ${formatTransferSize(modal.totalBytes)}`
+                  : modal.receivedBytes
+                    ? `${formatTransferSize(modal.receivedBytes)} — الحجم الكلي غير متاح بعد`
+                    : "الحجم غير متاح بعد"}
+              </p>
               <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-amber-500 transition-[width] duration-200 ease-out"
-                  style={{ width: `${modal.progress ?? 1}%` }}
+                  className={modal.progress === undefined ? "h-full w-2/5 animate-pulse rounded-full bg-amber-500" : "h-full rounded-full bg-amber-500 transition-[width] duration-200 ease-out"}
+                  style={modal.progress === undefined ? undefined : { width: `${modal.progress}%` }}
                 />
               </div>
               <BrandLoader variant="inline" size="sm" label={null} className="mt-4" />

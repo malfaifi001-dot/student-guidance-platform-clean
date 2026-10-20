@@ -2,25 +2,13 @@
 
 import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 
-import { NativeDownloadLink } from "@/components/downloads/native-download-link";
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
-import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/portfolio/portfolio-feedback-pop-card";
-import { isNativeCapacitor } from "@/lib/native/native-runtime";
-import {
-  clearBrowserDownloadAcknowledgement,
-  createDownloadRequestId,
-  waitForBrowserDownloadAcknowledgement,
-} from "@/lib/print-export/print-export-download";
-
-type SnapshotDownloadState = {
-  status: "preparing" | "idle";
-  elapsedSeconds: number;
-};
-
-const DOWNLOAD_ACK_TIMEOUT_MS = 195_000;
 
 export function PortfolioSavedCopies({
   portfolioId,
@@ -36,106 +24,46 @@ export function PortfolioSavedCopies({
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [downloadStates, setDownloadStates] = useState<Record<string, SnapshotDownloadState>>({});
-  const [downloadRequestIds, setDownloadRequestIds] = useState<Record<string, string>>({});
-  const downloadTimersRef = useRef(new Map<string, {
-    interval: ReturnType<typeof setInterval>;
-    timeout: ReturnType<typeof setTimeout>;
-    controller: AbortController;
-    cookieName: string;
-  }>());
+  const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null);
+  const print = usePrintExportAction();
 
-  function clearDownloadTimer(snapshotId: string) {
-    const timer = downloadTimersRef.current.get(snapshotId);
-    if (!timer) return;
-    clearInterval(timer.interval);
-    clearTimeout(timer.timeout);
-    timer.controller.abort();
-    clearBrowserDownloadAcknowledgement(timer.cookieName);
-    downloadTimersRef.current.delete(snapshotId);
-  }
-
-  function removeDownloadRequestId(snapshotId: string) {
-    setDownloadRequestIds((ids) => {
-      const next = { ...ids };
-      delete next[snapshotId];
-      return next;
-    });
-  }
-
-  function finishDownloadPreparation(snapshotId: string) {
-    if (!downloadTimersRef.current.has(snapshotId)) return;
-    clearDownloadTimer(snapshotId);
-    removeDownloadRequestId(snapshotId);
-    setDownloadStates((states) => ({
-      ...states,
-      [snapshotId]: { status: "idle", elapsedSeconds: 0 },
-    }));
-    setFeedback({
-      type: "success",
-      title: "بدأ تنزيل ملف PDF",
-      description: "تم إرسال ملف PDF إلى المتصفح، وقد يستمر التنزيل في الخلفية.",
-    });
-  }
-
-  function handleDownloadClick(snapshot: PortfolioSnapshotListItem, event: MouseEvent<HTMLAnchorElement>) {
-    if (isNativeCapacitor()) return;
-
-    if (downloadStates[snapshot.id]?.status === "preparing") {
-      event.preventDefault();
-      return;
-    }
-
-    const requestId = downloadRequestIds[snapshot.id] || createDownloadRequestId();
-    setDownloadRequestIds((ids) => ({ ...ids, [snapshot.id]: requestId }));
-    event.currentTarget.href = `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf?downloadRequestId=${encodeURIComponent(requestId)}`;
-    const cookieName = `teachix_portfolio_download_${requestId}`;
-    const controller = new AbortController();
-    let elapsedSeconds = 0;
-    const interval = setInterval(() => {
-      elapsedSeconds += 1;
-      setDownloadStates((states) => ({
-        ...states,
-        [snapshot.id]: {
-          status: "preparing",
-          elapsedSeconds,
-        },
-      }));
-    }, 1000);
-    const timeout = setTimeout(() => {
-      clearDownloadTimer(snapshot.id);
-      removeDownloadRequestId(snapshot.id);
-      setDownloadStates((states) => ({
-        ...states,
-        [snapshot.id]: { status: "idle", elapsedSeconds: 0 },
-      }));
-      setFeedback({
-        type: "error",
-        title: "تعذر تأكيد بدء تنزيل PDF",
-        description: "لم نتمكن من تأكيد بدء التنزيل خلال المهلة، وقد يستمر المتصفح في التنزيل. يمكنك المحاولة مرة أخرى.",
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/dashboard/portfolio/${encodeURIComponent(portfolioId)}/snapshots`)
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "تعذر تحميل النسخ المحفوظة.");
+        return payload.snapshots as PortfolioSnapshotListItem[];
+      })
+      .then((items) => {
+        if (!cancelled) setSnapshots(items);
+      })
+      .catch((reason) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : "تعذر تحميل النسخ المحفوظة.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-    }, DOWNLOAD_ACK_TIMEOUT_MS);
+    return () => {
+      cancelled = true;
+    };
+  }, [portfolioId, refreshKey]);
 
-    downloadTimersRef.current.set(snapshot.id, { interval, timeout, controller, cookieName });
-    setDownloadStates((states) => ({
-      ...states,
-      [snapshot.id]: { status: "preparing", elapsedSeconds: 0 },
-    }));
-
-    void waitForBrowserDownloadAcknowledgement(cookieName, DOWNLOAD_ACK_TIMEOUT_MS, controller.signal)
-      .then(() => finishDownloadPreparation(snapshot.id))
-      .catch(() => undefined);
+  function downloadSnapshot(snapshot: PortfolioSnapshotListItem) {
+    if (print.status === "loading") return;
+    setActiveSnapshotId(snapshot.id);
+    void print.runPrintExport({
+      exportUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`,
+      deliveryMode: "blob",
+      fileName: `${snapshot.name}.pdf`,
+      progressTitle: "جار تجهيز PDF",
+      progressMessage: "جار تجهيز PDF — الحجم غير متاح بعد",
+      blockedTitle: "معاينة ملف PDF",
+      blockedMessage: "تعذر فتح المعاينة تلقائيًا. استخدم الزر أدناه لفتح مستند Portfolio المنفصل.",
+      errorTitle: "تعذر تصدير PDF",
+      errorMessage: "تعذر إنشاء ملف PDF أو فتح المعاينة المنفصلة. حاول مرة أخرى.",
+    }).finally(() => setActiveSnapshotId(null));
   }
-
-  useEffect(() => () => {
-    for (const [snapshotId, timer] of downloadTimersRef.current) {
-      clearInterval(timer.interval);
-      clearTimeout(timer.timeout);
-      timer.controller.abort();
-      clearBrowserDownloadAcknowledgement(timer.cookieName);
-      downloadTimersRef.current.delete(snapshotId);
-    }
-  }, []);
 
   function confirmDelete(snapshot: PortfolioSnapshotListItem) {
     setFeedback({
@@ -162,38 +90,11 @@ export function PortfolioSavedCopies({
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/dashboard/portfolio/${encodeURIComponent(portfolioId)}/snapshots`)
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || "تعذر تحميل النسخ المحفوظة.");
-        return payload.snapshots as PortfolioSnapshotListItem[];
-      })
-      .then((items) => {
-        if (!cancelled) setSnapshots(items);
-      })
-      .catch((reason) => {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : "تعذر تحميل النسخ المحفوظة.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [portfolioId, refreshKey]);
-
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-      <div>
-        <h2 className="text-xl font-black text-slate-950">النسخ المحفوظة</h2>
-      </div>
-
+      <div><h2 className="text-xl font-black text-slate-950">النسخ المحفوظة</h2></div>
       {loading ? (
-        <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-slate-50 p-8 text-sm font-black text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" /> جارٍ تحميل النسخ
-        </div>
+        <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-slate-50 p-8 text-sm font-black text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> جارٍ تحميل النسخ</div>
       ) : error ? (
         <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-bold text-rose-700">{error}</div>
       ) : snapshots.length ? (
@@ -201,17 +102,12 @@ export function PortfolioSavedCopies({
           {snapshots.map((snapshot) => {
             const summary = snapshot.summary;
             const theme = getPortfolioTheme(summary?.themeId || "");
+            const isDownloading = activeSnapshotId === snapshot.id && print.status === "loading";
             return (
-              <article
-                key={snapshot.id}
-                className="group relative min-w-[290px] snap-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-sky-50/30 p-5 shadow-sm shadow-slate-200/70 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-md hover:shadow-sky-100/70 focus-within:-translate-y-0.5 focus-within:border-sky-300 focus-within:bg-white focus-within:shadow-md md:min-w-0"
-              >
-                <span aria-hidden="true" className="absolute inset-y-0 right-0 w-1 bg-sky-500/60 transition-colors group-hover:bg-sky-600 group-focus-within:bg-sky-600" />
+              <article key={snapshot.id} className="group relative min-w-[290px] snap-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-sky-50/30 p-5 shadow-sm shadow-slate-200/70 md:min-w-0">
+                <span aria-hidden="true" className="absolute inset-y-0 right-0 w-1 bg-sky-500/60" />
                 <div className="relative flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-black text-slate-950">{snapshot.name}</h3>
-                    <p className="mt-1 text-xs font-bold text-slate-500">{new Date(snapshot.createdAt).toLocaleString("ar-SA")}</p>
-                  </div>
+                  <div><h3 className="text-base font-black text-slate-950">{snapshot.name}</h3><p className="mt-1 text-xs font-bold text-slate-500">{new Date(snapshot.createdAt).toLocaleString("ar-SA")}</p></div>
                   <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">معتمدة</span>
                 </div>
                 <div className="relative mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-100 bg-white/80 p-3 text-xs font-bold text-slate-600">
@@ -222,52 +118,20 @@ export function PortfolioSavedCopies({
                 </div>
                 {snapshot.notes ? <p className="relative mt-4 text-sm font-bold leading-6 text-slate-600">{snapshot.notes}</p> : null}
                 <div className="relative mt-5 flex flex-wrap gap-2">
-                  <Link
-                    href={`${snapshotBasePath}/${snapshot.id}`}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
-                  >
-                    <ExternalLink className="h-4 w-4" /> عرض النسخة
-                  </Link>
-                  <NativeDownloadLink
-                    href={`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/export/pdf`}
-                    fileName={`${snapshot.name}.pdf`}
-                    onClick={(event) => handleDownloadClick(snapshot, event)}
-                    ariaBusy={downloadStates[snapshot.id]?.status === "preparing"}
-                    ariaLabel={downloadStates[snapshot.id]?.status === "preparing" ? "جارٍ تجهيز PDF" : "تحميل ملف PDF"}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100"
-                  >
-                    {downloadStates[snapshot.id]?.status === "preparing" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {downloadStates[snapshot.id]?.status === "preparing" ? "جارٍ تجهيز PDF..." : "تحميل"}
-                  </NativeDownloadLink>
-                  {downloadStates[snapshot.id]?.status === "preparing" ? (
-                    <div className="basis-full rounded-2xl border border-sky-100 bg-sky-50/70 p-3 text-xs font-bold text-sky-800" role="status" aria-live="polite">
-                      <div className="flex items-center justify-between gap-3">
-                        <span>جارٍ تجهيز PDF...</span>
-                        <span className="tabular-nums">{String(Math.floor(downloadStates[snapshot.id].elapsedSeconds / 60)).padStart(2, "0")}:{String(downloadStates[snapshot.id].elapsedSeconds % 60).padStart(2, "0")}</span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sky-100" aria-hidden="true">
-                        <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-600" />
-                      </div>
-                    </div>
-                  ) : null}
-                  <button
-                    type="button"
-                    disabled={deletingId === snapshot.id || deletingId !== null}
-                    onClick={() => confirmDelete(snapshot)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Trash2 className="h-4 w-4" /> حذف النسخة
+                  <Link href={`${snapshotBasePath}/${snapshot.id}`} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"><ExternalLink className="h-4 w-4" /> عرض النسخة</Link>
+                  <button type="button" disabled={print.status === "loading"} onClick={() => downloadSnapshot(snapshot)} aria-busy={isDownloading} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60">
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {isDownloading ? "جارٍ تجهيز PDF..." : "تحميل PDF"}
                   </button>
+                  <button type="button" disabled={deletingId === snapshot.id || deletingId !== null} onClick={() => confirmDelete(snapshot)} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 disabled:opacity-60"><Trash2 className="h-4 w-4" /> حذف النسخة</button>
                 </div>
               </article>
             );
           })}
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-black text-slate-500">
-          لا توجد نسخ محفوظة بعد. اعتمد نسختك الأولى بعد مراجعة المعاينة.
-        </div>
+        <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-black text-slate-500">لا توجد نسخ محفوظة بعد.</div>
       )}
+      <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} align="center" />
       <PortfolioFeedbackPopCard feedback={feedback} loading={deletingId !== null} onClose={() => deletingId === null && setFeedback(null)} />
     </section>
   );

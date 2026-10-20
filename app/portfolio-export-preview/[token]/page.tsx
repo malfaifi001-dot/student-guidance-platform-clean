@@ -13,7 +13,11 @@ export default async function PortfolioExportPreviewPage({ params, searchParams 
   const document = query?.pdf === "1" ? preparePortfolioDocumentForPdf(payload.document, token) : payload.document;
 
   return (
-    <main dir="rtl">
+    <main
+      dir="rtl"
+      data-portfolio-print-target="portfolio"
+      data-portfolio-snapshot-id={payload.snapshotId || undefined}
+    >
       <PortfolioPrintDocument data={document} />
     </main>
   );
