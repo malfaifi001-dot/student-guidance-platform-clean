@@ -71,6 +71,66 @@ function buildRequestBody(body: unknown) {
   return JSON.stringify(body);
 }
 
+const PREPARED_PRINT_TIMEOUT_MS = 12_000;
+
+function isEmbeddedWebView() {
+  if (typeof navigator === "undefined") return false;
+  const userAgent = navigator.userAgent || "";
+  return /; wv\)|\bwv\b|\bWebView\b/i.test(userAgent) && !/Chrome\/|CriOS\/|EdgA\//i.test(userAgent);
+}
+
+function waitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error("PRINT_ASSET_TIMEOUT")), timeoutMs);
+    }),
+  ]);
+}
+
+async function waitForPreparedPrintDocument(options: NonNullable<PrintExportActionOptions["preparedPrint"]>) {
+  if (typeof window === "undefined" || typeof document === "undefined" || typeof window.print !== "function") return false;
+  if (isEmbeddedWebView()) return false;
+
+  const timeoutMs = Math.max(1_000, options.timeoutMs || PREPARED_PRINT_TIMEOUT_MS);
+  const readySelector = options.readySelector || '[data-portfolio-pdf-ready="true"]';
+  const root = options.rootSelector ? document.querySelector(options.rootSelector) : document;
+  if (!root) return false;
+
+  try {
+    if (!root.querySelector(readySelector)) {
+      await waitWithTimeout(new Promise<void>((resolve, reject) => {
+        const observer = new MutationObserver(() => {
+          if (root.querySelector(readySelector)) {
+            observer.disconnect();
+            resolve();
+          }
+        });
+        observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-portfolio-pdf-ready"] });
+        window.setTimeout(() => {
+          observer.disconnect();
+          reject(new Error("PRINT_DOCUMENT_NOT_READY"));
+        }, timeoutMs);
+      }), timeoutMs);
+    }
+    if (document.fonts?.ready) await waitWithTimeout(document.fonts.ready, timeoutMs);
+    const images = Array.from(root.querySelectorAll("img"));
+    await waitWithTimeout(Promise.all(images.map(async (image) => {
+      if (image.complete) {
+        if (image.naturalWidth === 0 && image.src) throw new Error("PRINT_IMAGE_FAILED");
+        return;
+      }
+      await new Promise<void>((resolve, reject) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => reject(new Error("PRINT_IMAGE_FAILED")), { once: true });
+      });
+    })), timeoutMs);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const PORTFOLIO_DOWNLOAD_TRACE_ENABLED =
   process.env.NEXT_PUBLIC_PORTFOLIO_DOWNLOAD_TRACE === "1";
 
@@ -259,6 +319,25 @@ export function usePrintExportAction() {
       };
 
       try {
+        const preparedPrint = options.preparedPrint || (
+          typeof window !== "undefined" && window.location.pathname.includes("/portfolio/print")
+            ? {}
+            : null
+        );
+        if (preparedPrint) {
+          const prepared = await waitForPreparedPrintDocument(preparedPrint);
+          if (prepared) {
+            window.print();
+            await finishProgress();
+            setStatus("success");
+            setModal(null);
+            if (options.analytics) {
+              trackAnalyticsEvent(options.analytics.eventName, options.analytics.params);
+            }
+            return "opened";
+          }
+        }
+
         if (options.exportUrl) {
           if (options.deliveryMode === "direct" && !isNativeCapacitor()) {
             const acknowledgement = options.directDownloadAcknowledgement;

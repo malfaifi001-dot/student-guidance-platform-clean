@@ -25,6 +25,12 @@ export type PrintExportActionOptions = {
     trace?: "portfolio";
   };
   printUrl?: string;
+  /** Print an already-mounted document before falling back to exportUrl. */
+  preparedPrint?: {
+    readySelector?: string;
+    rootSelector?: string;
+    timeoutMs?: number;
+  };
   fileName?: string;
   method?: "GET" | "POST";
   body?: unknown;
