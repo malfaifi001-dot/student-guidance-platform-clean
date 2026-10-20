@@ -57,6 +57,7 @@ export function PortfolioSavedCopies({
       deliveryMode: "direct",
       pendingDownload: {
         statusUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/pdf`,
+        startUrl: `/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/pdf`,
         pollIntervalMs: 2_000,
         timeoutMs: 15 * 60_000,
       },

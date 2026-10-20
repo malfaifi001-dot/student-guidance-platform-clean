@@ -44,7 +44,7 @@ function pendingResponse(request: Request, snapshotId: string, status: string, b
     statusUrl: statusUrl(request, snapshotId),
     downloadUrl: new URL(request.url).pathname,
   }, {
-    status: 202,
+    status: status === "FAILED" ? 409 : 202,
     headers: {
       "Cache-Control": "no-store",
       "X-Portfolio-PDF-Status": status,
@@ -54,8 +54,8 @@ function pendingResponse(request: Request, snapshotId: string, status: string, b
 
 async function ensureSnapshotPdf(snapshot: Awaited<ReturnType<typeof getPortfolioSnapshot>>) {
   const current = await getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
-  if (current.exists && current.status !== "FAILED") return current;
-  await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document, { forceRetry: current.status === "FAILED" });
+  if (current.exists) return current;
+  await registerPortfolioSnapshotPdf(snapshot.id, snapshot.document);
   return getPortfolioSnapshotPdfStatus(snapshot.id, snapshot.document);
 }
 
@@ -67,6 +67,9 @@ async function handle(request: Request, { params }: { params: Promise<{ snapshot
     const status = await ensureSnapshotPdf(snapshot);
     const artifact = await getPortfolioSnapshotPdfArtifact(snapshot.id, snapshot.document);
 
+    if (status.status === "FAILED") {
+      return pendingResponse(request, snapshot.id, "FAILED", "byteSize" in status ? status.byteSize : null);
+    }
     if (status.status !== "READY" || !artifact?.storageKey) {
       return pendingResponse(request, snapshot.id, status.status, "byteSize" in status ? status.byteSize : null);
     }

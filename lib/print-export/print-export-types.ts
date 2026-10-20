@@ -27,6 +27,7 @@ export type PrintExportActionOptions = {
   /** Probe/poll a persisted export before handing the final file to the browser. */
   pendingDownload?: {
     statusUrl: string;
+    startUrl?: string;
     pollIntervalMs?: number;
     timeoutMs?: number;
   };

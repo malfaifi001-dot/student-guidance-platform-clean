@@ -15,6 +15,7 @@ import { parsePortfolioSnapshotDocument } from "@/lib/portfolio/portfolio-snapsh
 import { deleteStorageFile, renameStorageFile, storageFileExists, storageFileStat, writeStorageFile } from "@/lib/storage/storage-provider";
 import { storageKeySegments } from "@/lib/storage/storage-paths";
 import { getPortfolioPublicOrigin } from "@/lib/portfolio/portfolio-public-origin";
+import { isTransientCloudflareBodyFailure } from "@/lib/pdf-export/cloudflare-body-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -154,7 +155,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, claimed: true, status: "READY" });
   } catch (error) {
     const failure = await failPortfolioSnapshotPdfJob({ id: job.id, claimToken: job.claimToken!, error });
-    logPortfolioSnapshotPdf("failed", { stage, durationMs: Date.now() - runnerStartedAt, errorClass: error instanceof Error ? error.constructor.name : "UnknownError", retryable: failure.retryable });
+    logPortfolioSnapshotPdf("failed", {
+      stage,
+      durationMs: Date.now() - runnerStartedAt,
+      errorClass: error instanceof Error ? error.constructor.name : "UnknownError",
+      errorCode: error && typeof error === "object" && typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code.slice(0, 80) : null,
+      transientBodyFailure: isTransientCloudflareBodyFailure(error),
+      retryable: failure.retryable,
+    });
     return NextResponse.json({ ok: false, claimed: true, status: failure.retryable ? "PENDING" : "FAILED" }, { status: 500 });
   } finally {
     await deleteStorageFile(storageKeySegments(tempKey)).catch(() => undefined);

@@ -187,6 +187,16 @@ async function waitForPersistedPdfReady(
   const pollIntervalMs = Math.max(500, pending.pollIntervalMs || 2_000);
   const startedAt = Date.now();
 
+  if (pending.startUrl) {
+    const startResponse = await fetch(pending.startUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      signal,
+    });
+    if (!startResponse.ok) throw new Error("PORTFOLIO_PDF_PREPARATION_START_FAILED");
+  }
+
   while (Date.now() - startedAt < timeoutMs) {
     if (signal.aborted) throw new Error("PRINT_EXPORT_CANCELLED");
     const probe = await fetch(exportUrl, { method: "HEAD", credentials: "same-origin", cache: "no-store", signal });
