@@ -25,6 +25,7 @@ import {
 import {
   MoeOfficial2024PortfolioPrint,
 } from "@/components/portfolio/print/moe-official-2024-portfolio-print";
+import { PORTFOLIO_PRINT_PAGINATION_CSS } from "@/components/portfolio/print/portfolio-print-pagination-css";
 
 
 import type {
@@ -663,6 +664,7 @@ export function PortfolioPrintDocument({
         physicalDocument,
         themeId,
       )}
+      <style>{PORTFOLIO_PRINT_PAGINATION_CSS}</style>
     </div>
   );
 }
