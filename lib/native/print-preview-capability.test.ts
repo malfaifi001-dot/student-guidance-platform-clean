@@ -73,3 +73,19 @@ test("the authenticated handoff follows the redirect and rejects auth failures",
     /PORTFOLIO_PRINT_AUTH_HANDOFF_FAILED/,
   );
 });
+
+test("Android entry detection remains independent from iOS preview mode", () => {
+  assert.equal(
+    isPortfolioAuthenticatedPrintEntryUrl(
+      "https://teachix.sa/api/dashboard/portfolio/snapshots/snapshot-1/print",
+    ),
+    true,
+  );
+  assert.equal(
+    isValidPortfolioPrintPreviewUrl(
+      "https://teachix.sa/portfolio-export-preview/token-1?print=1&ios=1",
+      "https://teachix.sa",
+    ),
+    true,
+  );
+});

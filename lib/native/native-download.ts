@@ -242,7 +242,14 @@ export async function savePrintPreviewAsNativePdf(url: string, fileName: string)
         Capacitor.getPlatform() === "ios"
           ? await resolvePortfolioPrintPreviewUrl(safeUrl)
           : await resolveAuthenticatedPrintEntryUrl(safeUrl);
-      await Browser.open({ url: previewUrl });
+      const browserUrl = new URL(previewUrl);
+      if (Capacitor.getPlatform() === "ios") {
+        // SFSafariViewController does not reliably honor window.print().
+        // The preview uses this scoped flag to show the native Share > Print
+        // instructions without changing desktop or Android behavior.
+        browserUrl.searchParams.set("ios", "1");
+      }
+      await Browser.open({ url: browserUrl.toString() });
       return true;
     }
 

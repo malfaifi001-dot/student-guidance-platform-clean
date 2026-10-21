@@ -44,9 +44,11 @@ function isReady(target: Element) {
 
 export function PortfolioPrintPreviewController({
   autoPrint,
+  manualPrintOnly = false,
   downloadUrl,
 }: {
   autoPrint: boolean;
+  manualPrintOnly?: boolean;
   downloadUrl?: string;
 }) {
   const [state, setState] = useState<PreviewState>("preparing");
@@ -154,6 +156,11 @@ export function PortfolioPrintPreviewController({
         {state === "error" ? (
           <p className="mb-2 text-sm font-bold text-red-700" role="alert">
             تعذر تجهيز مستند الطباعة. أعد المحاولة أو استخدم تحميل PDF.
+          </p>
+        ) : null}
+        {state === "ready" && manualPrintOnly ? (
+          <p className="mb-2 max-w-xl text-sm font-bold leading-7 text-slate-600" role="status">
+            على iPhone، افتح زر المشاركة في المتصفح ثم اختر «طباعة» أو «حفظ في الملفات بصيغة PDF».
           </p>
         ) : null}
         <button
