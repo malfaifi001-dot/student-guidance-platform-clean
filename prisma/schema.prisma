@@ -3436,11 +3436,25 @@ model PortfolioSnapshot {
   updatedAt DateTime @updatedAt
 
   pdfArtifact PortfolioSnapshotPdfArtifact?
+  share       PortfolioSnapshotShare?
 
   @@index([portfolioId])
   @@index([ownerUserId])
   @@index([schoolAccountId])
   @@index([createdAt])
+}
+
+model PortfolioSnapshotShare {
+  id        String          @id @default(cuid())
+  snapshotId String         @unique
+  snapshot  PortfolioSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  tokenHash String          @unique @db.VarChar(64)
+  encryptedToken String     @db.Text
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  revokedAt DateTime?
+
+  @@index([revokedAt])
 }
 
 model AchievementPortfolioSection {

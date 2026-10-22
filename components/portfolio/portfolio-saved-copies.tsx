@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, ExternalLink, Loader2, Printer, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Loader2, Printer, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -10,6 +10,7 @@ import { PortfolioFeedbackPopCard, type PortfolioFeedback } from "@/components/p
 import { getPortfolioTheme } from "@/lib/portfolio/portfolio-theme-registry";
 import type { PortfolioSnapshotListItem } from "@/lib/portfolio/portfolio-snapshot-types";
 import { buildPortfolioSnapshotPrintUrl } from "@/lib/print-export/portfolio-print-entry";
+import { PortfolioSnapshotShareCard, type PortfolioSnapshotShareData } from "@/components/portfolio/portfolio-snapshot-share-card";
 
 export function PortfolioSavedCopies({
   portfolioId,
@@ -26,6 +27,8 @@ export function PortfolioSavedCopies({
   const [feedback, setFeedback] = useState<PortfolioFeedback | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null);
+  const [shareData, setShareData] = useState<PortfolioSnapshotShareData | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
   const print = usePrintExportAction();
 
   useEffect(() => {
@@ -88,6 +91,21 @@ export function PortfolioSavedCopies({
     });
   }
 
+  async function shareSnapshot(snapshot: PortfolioSnapshotListItem) {
+    if (sharingId) return;
+    setSharingId(snapshot.id);
+    try {
+      const response = await fetch(`/api/dashboard/portfolio/snapshots/${encodeURIComponent(snapshot.id)}/share`, { method: "POST", cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذر تجهيز رابط المشاركة.");
+      setShareData(payload.share as PortfolioSnapshotShareData);
+    } catch (reason) {
+      setFeedback({ type: "error", title: "تعذر مشاركة النسخة", description: reason instanceof Error ? reason.message : "حاول مرة أخرى." });
+    } finally {
+      setSharingId(null);
+    }
+  }
+
   async function deleteSnapshot(snapshot: PortfolioSnapshotListItem) {
     setDeletingId(snapshot.id);
     try {
@@ -116,6 +134,7 @@ export function PortfolioSavedCopies({
             const summary = snapshot.summary;
             const theme = getPortfolioTheme(summary?.themeId || "");
             const isDownloading = activeSnapshotId === snapshot.id && print.status === "loading";
+            const isSharing = sharingId === snapshot.id;
             return (
               <article key={snapshot.id} className="group relative min-w-[290px] snap-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-sky-50/30 p-5 shadow-sm shadow-slate-200/70 md:min-w-0">
                 <span aria-hidden="true" className="absolute inset-y-0 right-0 w-1 bg-sky-500/60" />
@@ -132,6 +151,7 @@ export function PortfolioSavedCopies({
                 {snapshot.notes ? <p className="relative mt-4 text-sm font-bold leading-6 text-slate-600">{snapshot.notes}</p> : null}
                 <div className="relative mt-5 flex flex-wrap gap-2">
                   <button type="button" disabled={print.status === "loading"} onClick={() => printSnapshot(snapshot)} className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-800 disabled:opacity-60"><Printer className="h-4 w-4" /> طباعة / حفظ PDF</button>
+                  <button type="button" disabled={isSharing} onClick={() => void shareSnapshot(snapshot)} className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-800 disabled:opacity-60">{isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />} مشاركة ملف الإنجاز</button>
                   <Link href={`${snapshotBasePath}/${snapshot.id}`} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"><ExternalLink className="h-4 w-4" /> عرض النسخة</Link>
                   <button type="button" disabled={print.status === "loading"} onClick={() => downloadSnapshot(snapshot)} aria-busy={isDownloading} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60">
                     {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {isDownloading ? "جارٍ تجهيز PDF..." : "تحميل PDF"}
@@ -147,6 +167,7 @@ export function PortfolioSavedCopies({
       )}
       <PrintExportPopCard modal={print.modal} onClose={print.closeModal} onOpenFallback={(fallback) => void print.openFallbackPrintUrl(fallback)} align="center" />
       <PortfolioFeedbackPopCard feedback={feedback} loading={deletingId !== null} onClose={() => deletingId === null && setFeedback(null)} />
+      {shareData ? <PortfolioSnapshotShareCard share={shareData} onClose={() => setShareData(null)} /> : null}
     </section>
   );
 }
