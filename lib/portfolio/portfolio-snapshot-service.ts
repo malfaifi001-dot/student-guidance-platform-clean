@@ -9,6 +9,7 @@ import {
   type PortfolioActor,
 } from "@/lib/portfolio/portfolio-authorization";
 import { getPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
+import { toSnapshotDocument } from "@/lib/portfolio/portfolio-snapshot-document";
 import {
   parsePortfolioSnapshotDocument,
   PORTFOLIO_SNAPSHOT_VERSION,
@@ -34,30 +35,6 @@ function defaultSnapshotName(createdAt: Date) {
     timeStyle: "short",
   }).format(createdAt);
   return `نسخة معتمدة - ${formatted}`;
-}
-
-function toSnapshotDocument(
-  workspace: Awaited<ReturnType<typeof getPortfolioWorkspace>> & { ok: true },
-  user: SnapshotUser,
-  capturedAt: Date,
-): PortfolioSnapshotDocumentV1 {
-  return {
-    snapshotVersion: PORTFOLIO_SNAPSHOT_VERSION,
-    capturedAt: capturedAt.toISOString(),
-    ownerUserId: user.id,
-    schoolAccountId: user.schoolAccountId!,
-    showWeights: workspace.showWeights,
-    portfolio: workspace.portfolio,
-    owner: workspace.owner,
-    school: workspace.school,
-    sections: workspace.sections,
-    biography: workspace.biography,
-    educationIdentity: workspace.educationIdentity,
-    qualificationItems: workspace.qualificationItems,
-    performanceSections: workspace.performanceSections,
-    customEvidence: workspace.customEvidence,
-    totals: workspace.totals,
-  };
 }
 
 function toSummary(document: PortfolioSnapshotDocumentV1): PortfolioSnapshotSummary {

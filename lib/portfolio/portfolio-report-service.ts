@@ -11,6 +11,7 @@ import { ACTIVITY_LEADER_SERVICE_SLUGS, ACTIVITY_SERVICE_TARGET_TYPE, LEGACY_ACT
 import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
 import { normalizeCaseValues } from "@/lib/report-engine/smart-report-payload-builder";
 import { adaptCounselorCommitteeCaseToPortfolioReport } from "@/lib/portfolio/portfolio-case-report-adapter";
+import { selectCounselorCommitteeCases } from "@/lib/portfolio/counselor-committee-report-selection";
 
 type JsonMap = Record<string, unknown>;
 type PortfolioPerfTrace = { traceId: string };
@@ -117,7 +118,7 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   const cases = await prisma.caseEntry.findMany({
     where: { createdById: user.id, service: { slug: { in: serviceSlugs } } },
     select: {
-      id: true, title: true, status: true, createdAt: true, submittedAt: true,
+      id: true, createdById: true, title: true, status: true, createdAt: true, submittedAt: true,
       workflowSnapshot: true,
       service: { select: { slug: true, name: true } },
       values: { include: { field: { select: { key: true, label: true, type: true } } } },
@@ -313,8 +314,9 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   if (user.role === "COUNSELOR") {
     const committeeSection = sectionBySlug.get("committees-meetings");
     if (committeeSection) {
-      for (const caseEntry of cases) {
-        if (caseEntry.service?.slug !== "committees-meetings" || caseEntry.status !== "SUBMITTED" || emittedCaseIds.has(caseEntry.id)) continue;
+      const committeeCases = selectCounselorCommitteeCases(cases, user.id);
+      for (const caseEntry of committeeCases) {
+        if (emittedCaseIds.has(caseEntry.id)) continue;
         const content = adaptCounselorCommitteeCaseToPortfolioReport(caseEntry);
         results.push({
           sourceId: caseEntry.id, sourceType: "CASE_ENTRY", sectionId: committeeSection.id, sectionKey: committeeSection.key,
