@@ -1,4 +1,5 @@
 import type { PortfolioReportContent } from "@/lib/portfolio/portfolio-report-content";
+import type { PortfolioReportSourceType } from "@/lib/portfolio/portfolio-types";
 import type { PortfolioServiceOutput } from "@/lib/portfolio/service-outputs/service-output-types";
 import type { PortfolioSmartPageMetadata } from "@/lib/portfolio/layout/portfolio-smart-a4-types";
 
@@ -106,7 +107,7 @@ export type PortfolioPrintData = {
       caseTitle: string | null;
       serviceName: string;
       previewUrl: string;
-      sourceType: "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+      sourceType: PortfolioReportSourceType;
       content: PortfolioReportContent | null;
     }>;
   }>;

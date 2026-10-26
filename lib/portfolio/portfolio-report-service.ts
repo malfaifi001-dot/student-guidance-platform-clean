@@ -10,6 +10,7 @@ import type { PortfolioCustomEvidence, PortfolioEvidencePreference, PortfolioMan
 import { ACTIVITY_LEADER_SERVICE_SLUGS, ACTIVITY_SERVICE_TARGET_TYPE, LEGACY_ACTIVITY_PROGRAM_TARGET_TYPE } from "@/lib/special-report/report-linking";
 import { resolveArabicCaseReportTitle } from "@/lib/cases/resolve-arabic-case-report-title";
 import { normalizeCaseValues } from "@/lib/report-engine/smart-report-payload-builder";
+import { adaptCounselorCommitteeCaseToPortfolioReport } from "@/lib/portfolio/portfolio-case-report-adapter";
 
 type JsonMap = Record<string, unknown>;
 type PortfolioPerfTrace = { traceId: string };
@@ -115,7 +116,13 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   const caseStartedAt = performance.now();
   const cases = await prisma.caseEntry.findMany({
     where: { createdById: user.id, service: { slug: { in: serviceSlugs } } },
-    select: { id: true },
+    select: {
+      id: true, title: true, status: true, createdAt: true, submittedAt: true,
+      workflowSnapshot: true,
+      service: { select: { slug: true, name: true } },
+      values: { include: { field: { select: { key: true, label: true, type: true } } } },
+      evidences: true,
+    },
   });
   portfolioPerfLog(trace, "discoverEligiblePortfolioReports.caseQuery", performance.now() - caseStartedAt, { rowCount: cases.length });
   const caseIds = cases.map((item) => item.id);
@@ -241,6 +248,7 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
   portfolioPerfLog(trace, "discoverEligiblePortfolioReports.mainPromise.all", performance.now() - reportQueriesStartedAt, { guidance: guidance.length, active: active.length, snapshots: snapshots.length, returnedAssignments: returnedAssignments.length });
   const normalizationStartedAt = performance.now();
   const results: EligibleReport[] = [];
+  const emittedCaseIds = new Set<string>();
   const specialServiceTargets = user.role === "TEACHER" && user.schoolAccountId && specialLinks.length
     ? await prisma.service.findMany({ where: { id: { in: specialLinks.map((link) => link.targetId) }, slug: { in: serviceSlugs } }, select: { id: true, slug: true, name: true } })
     : [];
@@ -284,12 +292,14 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
     const base = normalizePortfolioReportPayload(report.reportDataSnapshot);
     const content = withWorkflowDisplayValues(withEvidence(base, { title: report.title, serviceName, issuedAt: report.generatedAt?.toISOString() || null, evidence }), workflowDisplayCaseById.get(report.caseEntryId));
     results.push({ sourceId: report.id, sourceType: "GUIDANCE_REPORT", sectionId: section.id, sectionKey: section.key, title: content.title || report.title, serviceName, caseTitle: report.caseEntry.title, status: report.status, generatedAt: report.generatedAt?.toISOString() || null, createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report/${report.id}/preview`, content });
+    emittedCaseIds.add(report.caseEntryId);
   }
   for (const report of active) {
     const section = report.serviceSlug ? sectionBySlug.get(report.serviceSlug) : null; if (!section) continue;
     const contentBase = normalizePortfolioReportPayload(report.sourcePayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt?.toISOString() || null, evidence: [] });
     const content = withWorkflowDisplayValues(contentBase, workflowDisplayCaseById.get(report.caseEntryId));
     results.push({ sourceId: report.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || report.reportTitle, serviceName: content.serviceName || report.serviceName || "تقرير", caseTitle: null, status: report.status, generatedAt: (report.approvedAt || report.savedAt).toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
+    emittedCaseIds.add(report.caseEntryId);
   }
   const activeIds = new Set(active.map((item) => item.id));
   for (const report of snapshots) {
@@ -298,6 +308,21 @@ export async function discoverEligiblePortfolioReports(user: PortfolioActor, por
     const contentBase = normalizePortfolioReportPayload(report.snapshotPayload) || emptyContent({ title: report.reportTitle, serviceName: report.serviceName || report.serviceSlug || "تقرير", issuedAt: report.approvedAt.toISOString(), evidence: [] });
     const content = withWorkflowDisplayValues(contentBase, workflowDisplayCaseById.get(report.caseEntryId));
     results.push({ sourceId: report.id, sourceType: "REPORT_SNAPSHOT", sectionId: section.id, sectionKey: section.key, title: content.title || report.reportTitle, serviceName: content.serviceName || report.serviceName || "تقرير", caseTitle: null, status: "APPROVED", generatedAt: report.approvedAt.toISOString(), createdAt: report.createdAt.toISOString(), previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`, content });
+    emittedCaseIds.add(report.caseEntryId);
+  }
+  if (user.role === "COUNSELOR") {
+    const committeeSection = sectionBySlug.get("committees-meetings");
+    if (committeeSection) {
+      for (const caseEntry of cases) {
+        if (caseEntry.service?.slug !== "committees-meetings" || caseEntry.status !== "SUBMITTED" || emittedCaseIds.has(caseEntry.id)) continue;
+        const content = adaptCounselorCommitteeCaseToPortfolioReport(caseEntry);
+        results.push({
+          sourceId: caseEntry.id, sourceType: "CASE_ENTRY", sectionId: committeeSection.id, sectionKey: committeeSection.key,
+          title: content.title, serviceName: content.serviceName, caseTitle: caseEntry.title, status: caseEntry.status,
+          generatedAt: content.issuedAt, createdAt: caseEntry.createdAt.toISOString(), previewUrl: `/dashboard/cases/${caseEntry.id}`, content,
+        });
+      }
+    }
   }
   const linkedPortfolioSources = new Set<string>();
   for (const link of principalLinks) {
@@ -389,7 +414,7 @@ export async function loadManagedPortfolioReports(user: PortfolioActor, portfoli
   const discovered = await discoverEligiblePortfolioReports(user, portfolioId, trace);
   portfolioPerfLog(trace, "loadManagedPortfolioReports.discoverEligiblePortfolioReports", performance.now() - discoverStartedAt, { rowCount: discovered.length });
   const storedStartedAt = performance.now();
-  const stored = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
+  const stored = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT", "CASE_ENTRY"] } } });
   portfolioPerfLog(trace, "loadManagedPortfolioReports.storedAchievementPortfolioItemQuery", performance.now() - storedStartedAt, { rowCount: stored.length });
   const mapStartedAt = performance.now();
   const storedByKey = new Map(stored.filter((item) => item.sourceId).map((item) => [`${item.sourceType}:${item.sourceId}`, item]));
@@ -412,7 +437,7 @@ export async function loadManagedPortfolioReports(user: PortfolioActor, portfoli
 
 async function ensureManagedReportItem(user: PortfolioActor, portfolioId: string, itemId: string) {
   await requireOwnedPersonalPortfolio(user, portfolioId);
-  const existing = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
+  const existing = await prisma.achievementPortfolioItem.findFirst({ where: { id: itemId, portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT", "CASE_ENTRY"] } } });
   if (existing) {
     const eligible = await discoverEligiblePortfolioReports(user, portfolioId);
     if (!eligible.some((report) => report.sourceId === existing.sourceId && report.sourceType === existing.sourceType)) throw new PortfolioServiceError(409, "مصدر التقرير لم يعد متاحًا.");
@@ -421,14 +446,14 @@ async function ensureManagedReportItem(user: PortfolioActor, portfolioId: string
   const eligible = await discoverEligiblePortfolioReports(user, portfolioId);
   const report = eligible.find((entry) => portfolioReportItemId(portfolioId, entry.sourceType, entry.sourceId) === itemId);
   if (!report) throw new PortfolioServiceError(404, "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.");
-  const last = await prisma.achievementPortfolioItem.findFirst({ where: { portfolioId, sectionId: report.sectionId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } }, orderBy: { sortOrder: "desc" } });
+  const last = await prisma.achievementPortfolioItem.findFirst({ where: { portfolioId, sectionId: report.sectionId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT", "CASE_ENTRY"] } }, orderBy: { sortOrder: "desc" } });
   return prisma.achievementPortfolioItem.create({ data: { id: itemId, portfolioId, sectionId: report.sectionId, sourceType: report.sourceType, sourceId: report.sourceId, title: report.title, isVisible: true, sortOrder: (last?.sortOrder || 0) + 10, metadataJson: json({ sectionKey: report.sectionKey, serviceName: report.serviceName, evidencePreferences: {}, unavailable: false }) } });
 }
 
 export async function syncPortfolioReports(user: PortfolioActor, portfolioId: string) {
   await requireOwnedPersonalPortfolio(user, portfolioId);
   const discovered = await discoverEligiblePortfolioReports(user, portfolioId);
-  const existing = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } } });
+  const existing = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT", "CASE_ENTRY"] } } });
   const keys = new Set(existing.filter((item) => item.sourceId).map((item) => `${item.sourceType}:${item.sourceId}`));
   const currentKeys = new Set(discovered.map((item) => `${item.sourceType}:${item.sourceId}`));
   const maxBySection = new Map<string, number>();
@@ -457,7 +482,7 @@ export async function setPortfolioReportVisibility(user: PortfolioActor, portfol
 export async function movePortfolioReport(user: PortfolioActor, portfolioId: string, itemId: string, direction: "up" | "down") {
   const item = await ensureManagedReportItem(user, portfolioId, itemId);
   await syncPortfolioReports(user, portfolioId);
-  const items = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sectionId: item.sectionId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT"] } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
+  const items = await prisma.achievementPortfolioItem.findMany({ where: { portfolioId, sectionId: item.sectionId, sourceType: { in: ["GUIDANCE_REPORT", "REPORT_SNAPSHOT", "CASE_ENTRY"] } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
   const index = items.findIndex((entry) => entry.id === item.id); const target = direction === "up" ? index - 1 : index + 1;
   if (target < 0 || target >= items.length) return;
   [items[index], items[target]] = [items[target], items[index]];

@@ -183,7 +183,7 @@ export type PortfolioWorkspaceItem = {
   isVisible: boolean;
 };
 
-export type PortfolioReportSourceType = "GUIDANCE_REPORT" | "REPORT_SNAPSHOT";
+export type PortfolioReportSourceType = "GUIDANCE_REPORT" | "REPORT_SNAPSHOT" | "CASE_ENTRY";
 export type PortfolioEvidencePreference = {
   isVisible: boolean;
   sortOrder: number;

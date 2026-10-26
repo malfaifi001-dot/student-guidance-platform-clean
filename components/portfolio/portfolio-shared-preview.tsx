@@ -81,7 +81,11 @@ export function PortfolioSharedPreview({ data }: { data: PortfolioPrintData }) {
     root.addEventListener("load", onResourceChange, true);
     root.addEventListener("error", onResourceChange, true);
     const fonts = document.fonts;
-    void fonts.ready.then(() => { fontsReady = true; scan(); });
+    if (fonts) {
+      void fonts.ready.then(() => { fontsReady = true; scan(); });
+    } else {
+      fontsReady = true;
+    }
     scan();
 
     return () => {
